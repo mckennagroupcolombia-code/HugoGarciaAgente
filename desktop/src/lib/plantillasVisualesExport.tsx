@@ -140,6 +140,77 @@ function normalizarErrorExportDom(err: unknown): Error {
   return new Error("Error al exportar por una causa no identificada. Revisa la consola del navegador.");
 }
 
+function cargarImagenDesde(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("No se pudo decodificar la imagen"));
+    img.src = src;
+  });
+}
+
+/**
+ * Vuelve a pintar cada imagen directamente sobre el canvas ya capturado, a su
+ * resolución nativa (con `ctx.drawImage`), en vez de confiar en el bitmap que
+ * `html-to-image` generó dentro del `foreignObject`. Ese `foreignObject`
+ * rasteriza el `<img>` a la resolución de layout (1×) antes de que el SVG se
+ * escale al tamaño final del canvas, así que a "Alta"/"Máxima" el resultado
+ * quedaba pixelado — el texto no sufre esto porque se redibuja como fuente
+ * vectorial, pero una imagen ya rasterizada sí.
+ */
+async function redibujarImagenesEnCanvas(
+  canvas: HTMLCanvasElement,
+  doc: PlantillaVisualDoc,
+  imagenesResueltas: Map<string, string | null>,
+  escala: number,
+): Promise<void> {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const imagenes = doc.elementos.filter(
+    (el): el is Extract<ElementoVisual, { type: "image" }> =>
+      el.type === "image" && el.visible !== false && !!imagenesResueltas.get(el.id),
+  );
+  if (imagenes.length === 0) return;
+
+  await Promise.all(
+    imagenes.map(async (el) => {
+      const dataUrl = imagenesResueltas.get(el.id);
+      if (!dataUrl) return;
+      let img: HTMLImageElement;
+      try {
+        img = await cargarImagenDesde(dataUrl);
+      } catch {
+        return;
+      }
+      if (!img.naturalWidth || !img.naturalHeight) return;
+
+      const cx = (el.x + el.width / 2) * escala;
+      const cy = (el.y + el.height / 2) * escala;
+      const w = el.width * escala;
+      const h = el.height * escala;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180);
+      ctx.beginPath();
+      ctx.rect(-w / 2, -h / 2, w, h);
+      ctx.clip();
+
+      const escalaObjeto =
+        el.objectFit === "cover"
+          ? Math.max(w / img.naturalWidth, h / img.naturalHeight)
+          : Math.min(w / img.naturalWidth, h / img.naturalHeight);
+      const drawW = img.naturalWidth * escalaObjeto;
+      const drawH = img.naturalHeight * escalaObjeto;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
+    }),
+  );
+}
+
 /**
  * Renderiza la plantilla montando el mismo DOM/CSS del editor (fuera de
  * pantalla) y lo captura con html-to-image. A diferencia de
@@ -186,7 +257,7 @@ export async function renderPlantillaToCanvasDom(
       // esa resolución. pixelRatio se deja en 1: si se usara `escala` aquí,
       // html-to-image tomaría el bitmap ya renderizado a 1× y lo estiraría,
       // produciendo letras borrosas en "Alta"/"Máxima".
-      return await toCanvas(nodo, {
+      const canvas = await toCanvas(nodo, {
         width: w * escala,
         height: h * escala,
         pixelRatio: 1,
@@ -194,6 +265,8 @@ export async function renderPlantillaToCanvasDom(
         cacheBust: true,
         imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
       });
+      await redibujarImagenesEnCanvas(canvas, doc, imagenesResueltas, escala);
+      return canvas;
     } catch (err) {
       throw normalizarErrorExportDom(err);
     }

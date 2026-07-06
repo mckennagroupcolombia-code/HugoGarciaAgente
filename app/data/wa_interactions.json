@@ -1,30 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1782934470.0436435,
-      "tipo": "bot_pausado_global",
-      "sender": "573155951959@c.us",
-      "detalle": "Quisiera saber si ya tienen el litro de pantenol? ☺️"
-    },
-    {
-      "ts": 1782934596.26839,
-      "tipo": "bot_pausado_global",
-      "sender": "573155951959@c.us",
-      "detalle": "Ayy por favor si 👏"
-    },
-    {
-      "ts": 1782934599.8453805,
-      "tipo": "bot_pausado_global",
-      "sender": "573155951959@c.us",
-      "detalle": "Regálamelo"
-    },
-    {
-      "ts": 1782934609.86455,
-      "tipo": "bot_pausado_global",
-      "sender": "573155951959@c.us",
-      "detalle": "Y tienes litro de vitamina A y a cómo por favor"
-    },
-    {
       "ts": 1782934621.411661,
       "tipo": "bot_pausado_global",
       "sender": "573155951959@c.us",
@@ -1799,6 +1775,30 @@
       "tipo": "bot_pausado_global",
       "sender": "573202262183@c.us",
       "detalle": "Si"
+    },
+    {
+      "ts": 1783262843.3955393,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Buen día que precio tiene la proteina"
+    },
+    {
+      "ts": 1783295041.6336305,
+      "tipo": "bot_pausado_global",
+      "sender": "573178277163@c.us",
+      "detalle": "Hola, quiero ordenar: ACEITE JOJOBA 30mL (Ref: C-ACEIJOJ30mL) — $23.296 COP"
+    },
+    {
+      "ts": 1783303219.794715,
+      "tipo": "bot_pausado_global",
+      "sender": "573166180513@c.us",
+      "detalle": "Hola, estoy interesada en comprar el citrato de magnesio y el citrato de potasio"
+    },
+    {
+      "ts": 1783308241.1701882,
+      "tipo": "bot_pausado_global",
+      "sender": "573144799036@c.us",
+      "detalle": "Hola, quiero ordenar: D PANTENOL 50 mL (Ref: C-DPAN50mL) — $42.168 COP"
     }
   ]
 }

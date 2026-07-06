@@ -270,10 +270,12 @@ def _carpeta_recursos_png() -> Path:
 
 def listar_recursos_png_sueltos(q: str = "") -> list[str]:
     """PNG/JPG generados en Studio (transición .ai → PNG): no se emparejan con
-    SKU todavía, se listan tal cual existan en la biblioteca de imágenes."""
+    SKU todavía, se listan tal cual existan en la biblioteca de imágenes
+    (incluye subcarpetas, con la ruta relativa como nombre)."""
     carpeta = _carpeta_recursos_png()
     nombres = sorted(
-        p.name for p in carpeta.iterdir()
+        p.relative_to(carpeta).as_posix()
+        for p in carpeta.rglob("*")
         if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg")
     )
     ql = (q or "").strip().lower()

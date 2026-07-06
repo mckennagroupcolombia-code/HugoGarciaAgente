@@ -11267,12 +11267,23 @@ def register_routes(app):
     def api_plantillas_visuales():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.tools.plantillas_visuales import guardar_plantilla, listar_plantillas
+        from app.tools.plantillas_visuales import (
+            guardar_plantilla,
+            listar_carpetas_plantillas,
+            listar_plantillas,
+        )
 
         if request.method == "GET":
             q = (request.args.get("q") or "").strip()
-            items = listar_plantillas(q=q)
-            return jsonify({"plantillas": items, "total": len(items)})
+            carpeta = (request.args.get("carpeta") or "").strip().strip("/")
+            items = listar_plantillas(q=q, carpeta=carpeta)
+            carpetas = listar_carpetas_plantillas(carpeta)
+            return jsonify({
+                "plantillas": items,
+                "total": len(items),
+                "carpetas": carpetas,
+                "carpeta_actual": carpeta,
+            })
 
         body = request.get_json(silent=True) or {}
         try:
@@ -11280,6 +11291,58 @@ def register_routes(app):
         except Exception as exc:
             return jsonify({"error": str(exc)}), 400
         return jsonify({"ok": True, "plantilla": entry})
+
+    @app.route("/api/plantillas-visuales/carpetas", methods=["GET", "POST"])
+    @app.route("/app/api/plantillas-visuales/carpetas", methods=["GET", "POST"])
+    def api_plantillas_visuales_carpetas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import (
+            crear_carpeta_plantilla,
+            listar_todas_carpetas_plantillas,
+        )
+
+        if request.method == "GET":
+            return jsonify({"carpetas": listar_todas_carpetas_plantillas()})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            nueva = crear_carpeta_plantilla(
+                body.get("carpeta_padre") or "", body.get("nombre") or "",
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "carpeta": nueva})
+
+    @app.route("/api/plantillas-visuales/mover", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/mover", methods=["POST"])
+    def api_plantillas_visuales_mover():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import mover_plantillas
+
+        body = request.get_json(silent=True) or {}
+        ids = body.get("ids")
+        if not isinstance(ids, list) or not ids:
+            return jsonify({"error": "Falta 'ids' (lista no vacía)"}), 400
+        movidos, errores = mover_plantillas(ids, body.get("carpeta_destino") or "")
+        return jsonify({"ok": True, "movidos": movidos, "errores": errores})
+
+    @app.route("/api/plantillas-visuales/carpetas/renombrar", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/carpetas/renombrar", methods=["POST"])
+    def api_plantillas_visuales_renombrar_carpeta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import renombrar_carpeta_plantilla
+
+        body = request.get_json(silent=True) or {}
+        try:
+            nueva = renombrar_carpeta_plantilla(
+                body.get("carpeta") or "", body.get("nombre_nuevo") or "",
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "carpeta": nueva})
 
     @app.route("/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
     @app.route("/app/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
@@ -11568,6 +11631,35 @@ REGLAS:
         os.makedirs(d, exist_ok=True)
         return d
 
+    def _resolver_subcarpeta_png(rel: str, *, crear: bool = False) -> str | None:
+        """Resuelve una ruta relativa dentro de Recursos PNG (soporta subcarpetas
+        anidadas), bloqueando '..' o rutas absolutas que se salgan de esa carpeta."""
+        base = os.path.realpath(_carpeta_png_recursos_etiquetas())
+        partes = [p for p in re.split(r"[\\/]+", (rel or "").strip()) if p not in ("", ".", "..")]
+        if not partes:
+            return base
+        destino = os.path.realpath(os.path.join(base, *partes))
+        if destino != base and not destino.startswith(base + os.sep):
+            return None
+        if crear:
+            os.makedirs(destino, exist_ok=True)
+        return destino
+
+    def _nombre_carpeta_png_seguro(nombre: str) -> str:
+        nombre = re.sub(r"[\\/]+", " ", (nombre or "").strip())
+        nombre = re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", nombre, flags=re.UNICODE).strip()
+        return nombre[:80]
+
+    def _nombre_png_disponible(nombre: str) -> bool:
+        """True si ningún archivo con ese nombre existe ya en el árbol de carpetas
+        (los nombres son únicos globalmente, para que /archivo/<nombre> y
+        /eliminar-lote sigan identificando un recurso sin ambigüedad)."""
+        base = _carpeta_png_recursos_etiquetas()
+        for _dirpath, _dirs, files in os.walk(base):
+            if nombre in files:
+                return False
+        return True
+
     def _extension_imagen_recurso_ok(nombre: str) -> str | None:
         lower = (nombre or "").strip().lower()
         if lower.endswith(".jpeg"):
@@ -11680,11 +11772,17 @@ REGLAS:
         for it in _load_png_recursos_etiquetas():
             if it.get("nombre") == nombre:
                 ruta = os.path.realpath(it.get("ruta_completa") or "")
-                if ruta.startswith(carpeta + os.sep) and os.path.isfile(ruta):
+                if (ruta == carpeta or ruta.startswith(carpeta + os.sep)) and os.path.isfile(ruta):
                     return ruta, None
         ruta_directa = os.path.realpath(os.path.join(carpeta, nombre))
         if ruta_directa.startswith(carpeta + os.sep) and os.path.isfile(ruta_directa):
             return ruta_directa, None
+        # Recorre subcarpetas: archivos movidos o nunca indexados (biblioteca legacy).
+        for dirpath, _dirs, files in os.walk(carpeta):
+            if nombre in files:
+                ruta = os.path.realpath(os.path.join(dirpath, nombre))
+                if ruta.startswith(carpeta + os.sep):
+                    return ruta, None
         return None, "Imagen no encontrada"
 
     @app.route("/api/etiquetas/recursos-png", methods=["GET", "POST"])
@@ -11693,12 +11791,54 @@ REGLAS:
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         if request.method == "GET":
-            recursos = _load_png_recursos_etiquetas()
+            carpeta_rel = (request.args.get("carpeta") or "").strip()
+            destino = _resolver_subcarpeta_png(carpeta_rel)
+            if destino is None:
+                return jsonify({"error": "Carpeta inválida"}), 400
+            if not os.path.isdir(destino):
+                return jsonify({"error": "Carpeta no encontrada"}), 404
+
+            indice = {
+                os.path.realpath(it.get("ruta_completa") or ""): it
+                for it in _load_png_recursos_etiquetas()
+            }
+            try:
+                entradas = list(os.scandir(destino))
+            except OSError:
+                entradas = []
+            carpetas = sorted((e.name for e in entradas if e.is_dir()), key=str.lower)
+            archivos = []
+            for e in entradas:
+                if not e.is_file() or not _extension_imagen_recurso_ok(e.name):
+                    continue
+                ruta_abs = os.path.realpath(e.path)
+                registrado = indice.get(ruta_abs)
+                if registrado:
+                    archivos.append(registrado)
+                    continue
+                st = e.stat()
+                archivos.append({
+                    "id": None,
+                    "nombre": e.name,
+                    "ruta_completa": ruta_abs,
+                    "bytes": st.st_size,
+                    "subido_at": _dt.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
+                    "thumb_b64": None,
+                    "thumb_mime": None,
+                })
+            archivos.sort(key=lambda x: x.get("subido_at") or "", reverse=True)
+
             return jsonify({
-                "recursos": recursos,
-                "total": len(recursos),
-                "carpeta": _carpeta_png_recursos_etiquetas(),
+                "recursos": archivos,
+                "carpetas": carpetas,
+                "carpeta_actual": carpeta_rel.strip("/"),
+                "total": len(archivos),
             })
+
+        carpeta_rel = (request.form.get("carpeta") or "").strip()
+        carpeta_destino = _resolver_subcarpeta_png(carpeta_rel, crear=True)
+        if carpeta_destino is None:
+            return jsonify({"error": "Carpeta inválida"}), 400
 
         archivo = request.files.get("archivo")
         if not archivo or not archivo.filename:
@@ -11713,18 +11853,161 @@ REGLAS:
             }), 400
         if not _es_bytes_imagen_png_jpg(raw):
             return jsonify({"error": "Solo se permiten archivos JPG o PNG"}), 400
-        destino = os.path.join(_carpeta_png_recursos_etiquetas(), nombre)
-        if os.path.isfile(destino):
+        if not _nombre_png_disponible(nombre):
             base, ext = os.path.splitext(nombre)
             n = 2
-            while os.path.isfile(destino):
-                nombre = f"{base}_{n}{ext}"
-                destino = os.path.join(_carpeta_png_recursos_etiquetas(), nombre)
+            candidato = f"{base}_{n}{ext}"
+            while not _nombre_png_disponible(candidato):
                 n += 1
+                candidato = f"{base}_{n}{ext}"
+            nombre = candidato
+        destino = os.path.join(carpeta_destino, nombre)
         with open(destino, "wb") as f:
             f.write(raw)
         entry = _registrar_png_recurso(nombre, destino, len(raw))
         return jsonify({"ok": True, **entry})
+
+    @app.route("/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
+    def api_etiquetas_recursos_png_crear_carpeta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            base = _carpeta_png_recursos_etiquetas()
+            todas = []
+            for dirpath, dirnames, _files in os.walk(base):
+                dirnames.sort()
+                rel = os.path.relpath(dirpath, base)
+                if rel != ".":
+                    todas.append(rel.replace(os.sep, "/"))
+            todas.sort(key=str.lower)
+            return jsonify({"carpetas": todas})
+        body = request.get_json(silent=True) or {}
+        nombre = _nombre_carpeta_png_seguro(body.get("nombre") or "")
+        if not nombre:
+            return jsonify({"error": "Nombre de carpeta inválido"}), 400
+        carpeta_padre_rel = (body.get("carpeta_padre") or "").strip().strip("/")
+        padre_dir = _resolver_subcarpeta_png(carpeta_padre_rel)
+        if padre_dir is None or not os.path.isdir(padre_dir):
+            return jsonify({"error": "Carpeta padre inválida"}), 400
+        if os.path.isdir(os.path.join(padre_dir, nombre)):
+            return jsonify({"error": "Ya existe una carpeta con ese nombre"}), 400
+        nueva_rel = f"{carpeta_padre_rel}/{nombre}" if carpeta_padre_rel else nombre
+        nueva_dir = _resolver_subcarpeta_png(nueva_rel, crear=True)
+        if nueva_dir is None:
+            return jsonify({"error": "No se pudo crear la carpeta"}), 400
+        return jsonify({"ok": True, "carpeta": nueva_rel})
+
+    @app.route("/api/etiquetas/recursos-png/carpetas/renombrar", methods=["POST"])
+    @app.route("/app/api/etiquetas/recursos-png/carpetas/renombrar", methods=["POST"])
+    def api_etiquetas_recursos_png_renombrar_carpeta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import shutil as _shutil_png_ren
+
+        body = request.get_json(silent=True) or {}
+        carpeta_rel = (body.get("carpeta") or "").strip().strip("/")
+        nombre_nuevo = _nombre_carpeta_png_seguro(body.get("nombre_nuevo") or "")
+        if not carpeta_rel:
+            return jsonify({"error": "Falta 'carpeta'"}), 400
+        if not nombre_nuevo:
+            return jsonify({"error": "Nombre nuevo inválido"}), 400
+
+        actual_dir = _resolver_subcarpeta_png(carpeta_rel)
+        if actual_dir is None or not os.path.isdir(actual_dir):
+            return jsonify({"error": "Carpeta no encontrada"}), 404
+
+        partes = carpeta_rel.split("/")
+        carpeta_padre_rel = "/".join(partes[:-1])
+        nueva_rel = f"{carpeta_padre_rel}/{nombre_nuevo}" if carpeta_padre_rel else nombre_nuevo
+        if nueva_rel == carpeta_rel:
+            return jsonify({"ok": True, "carpeta": carpeta_rel})
+
+        nueva_dir = _resolver_subcarpeta_png(nueva_rel)
+        if nueva_dir is None:
+            return jsonify({"error": "Nombre nuevo inválido"}), 400
+        if os.path.exists(nueva_dir):
+            return jsonify({"error": "Ya existe una carpeta con ese nombre"}), 400
+
+        try:
+            _shutil_png_ren.move(actual_dir, nueva_dir)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        # Actualiza rutas en el índice para todo lo que vivía bajo la carpeta vieja.
+        viejo_abs = os.path.realpath(actual_dir)
+        nuevo_abs = os.path.realpath(nueva_dir)
+        items = _load_png_recursos_etiquetas()
+        cambiado = False
+        for it in items:
+            ruta = os.path.realpath(it.get("ruta_completa") or "")
+            if ruta == viejo_abs or ruta.startswith(viejo_abs + os.sep):
+                nueva_ruta = nuevo_abs + ruta[len(viejo_abs):]
+                it["ruta_completa"] = nueva_ruta
+                if nueva_ruta.startswith(_PDF_DIR):
+                    it["ruta"] = os.path.relpath(nueva_ruta, _PDF_DIR).replace("\\", "/")
+                cambiado = True
+        if cambiado:
+            _save_png_recursos_etiquetas(items)
+
+        return jsonify({"ok": True, "carpeta": nueva_rel})
+
+    @app.route("/api/etiquetas/recursos-png/mover", methods=["POST"])
+    @app.route("/app/api/etiquetas/recursos-png/mover", methods=["POST"])
+    def api_etiquetas_recursos_png_mover():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import shutil as _shutil_png
+
+        body = request.get_json(silent=True) or {}
+        nombres = body.get("nombres")
+        carpeta_destino_rel = (body.get("carpeta_destino") or "").strip()
+        if not isinstance(nombres, list) or not nombres:
+            return jsonify({"error": "Falta 'nombres' (lista no vacía)"}), 400
+        destino_dir = _resolver_subcarpeta_png(carpeta_destino_rel, crear=True)
+        if destino_dir is None:
+            return jsonify({"error": "Carpeta destino inválida"}), 400
+
+        movidos: list[str] = []
+        errores: dict[str, str] = {}
+        cambios_ruta: dict[str, str] = {}
+
+        for nombre in nombres:
+            nombre = str(nombre or "")
+            ruta_actual, err = _ruta_png_recurso_ok(nombre)
+            if err:
+                errores[nombre] = err
+                continue
+            if os.path.realpath(os.path.dirname(ruta_actual)) == os.path.realpath(destino_dir):
+                movidos.append(nombre)
+                continue
+            nueva_ruta = os.path.join(destino_dir, os.path.basename(ruta_actual))
+            if os.path.exists(nueva_ruta):
+                errores[nombre] = "Ya existe un archivo con ese nombre en la carpeta destino"
+                continue
+            try:
+                _shutil_png.move(ruta_actual, nueva_ruta)
+            except Exception as e:
+                errores[nombre] = str(e)
+                continue
+            cambios_ruta[os.path.realpath(ruta_actual)] = nueva_ruta
+            movidos.append(nombre)
+
+        if cambios_ruta:
+            items = _load_png_recursos_etiquetas()
+            cambiado = False
+            for it in items:
+                vieja = os.path.realpath(it.get("ruta_completa") or "")
+                if vieja in cambios_ruta:
+                    nueva = cambios_ruta[vieja]
+                    it["ruta_completa"] = nueva
+                    if nueva.startswith(_PDF_DIR):
+                        it["ruta"] = os.path.relpath(nueva, _PDF_DIR).replace("\\", "/")
+                    cambiado = True
+            if cambiado:
+                _save_png_recursos_etiquetas(items)
+
+        return jsonify({"ok": True, "movidos": movidos, "errores": errores})
 
     @app.route("/api/etiquetas/recursos-png/<path:nombre>", methods=["DELETE"])
     @app.route("/app/api/etiquetas/recursos-png/<path:nombre>", methods=["DELETE"])
@@ -11789,6 +12072,50 @@ REGLAS:
         from flask import send_file
         mime = "image/jpeg" if nombre.lower().endswith((".jpg", ".jpeg", ".jpe")) else "image/png"
         return send_file(ruta, mimetype=mime, conditional=True)
+
+    @app.route("/api/etiquetas/recursos-png/imprimir-pdf", methods=["POST"])
+    @app.route("/app/api/etiquetas/recursos-png/imprimir-pdf", methods=["POST"])
+    def api_etiquetas_recursos_png_imprimir_pdf():
+        """Convierte una imagen de la biblioteca en un PDF de una página y lo
+        registra en la biblioteca de PDFs, para que el botón Imprimir de la
+        galería/catálogo conecte con la misma interfaz de Imprimir Etiquetas
+        que usan los archivos .ai (vista previa + impresión física)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip()
+        ruta_png, err = _ruta_png_recurso_ok(nombre)
+        if err:
+            return jsonify({"error": err}), 404
+
+        from PIL import Image as _PILImgPdf
+
+        base_nombre = os.path.splitext(os.path.basename(ruta_png))[0]
+        nombre_pdf = _nombre_pdf_etiqueta_seguro(f"{base_nombre}.pdf")
+        carpeta = _carpeta_pdfs_etiquetas()
+        destino = os.path.join(carpeta, nombre_pdf)
+        if os.path.isfile(destino):
+            stamp = _dt.now().strftime("%Y%m%d_%H%M%S")
+            base, ext = os.path.splitext(nombre_pdf)
+            nombre_pdf = f"{base}_{stamp}{ext}"
+            destino = os.path.join(carpeta, nombre_pdf)
+
+        try:
+            with _PILImgPdf.open(ruta_png) as im:
+                im = im.convert("RGB")
+                im.save(destino, "PDF", resolution=300.0)
+        except Exception as e:
+            return jsonify({"error": f"No se pudo generar el PDF para imprimir: {e}"}), 500
+
+        bytes_size = os.path.getsize(destino)
+        entry = _registrar_pdf_guardado_etiqueta(nombre_pdf, destino, bytes_size)
+        rel = entry.get("ruta") or os.path.relpath(destino, _PDF_DIR)
+        return jsonify({
+            "ok": True,
+            "nombre": nombre_pdf,
+            "ruta": rel,
+            "ruta_completa": destino,
+        })
 
     # ── Etiquetas: catálogo de formatos (nombre + mm) ────────────────────────
 

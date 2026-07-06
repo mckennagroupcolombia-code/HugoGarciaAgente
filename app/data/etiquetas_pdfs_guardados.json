@@ -1,6 +1,62 @@
 {
   "archivos": [
     {
+      "nombre": "FLORES_DE_LAVANDA_100g.pdf",
+      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g.pdf",
+      "subido_at": "2026-07-05T20:01:19",
+      "bytes": 3352
+    },
+    {
+      "nombre": "FLORES_DE_LAVANDA_100g_4x.pdf",
+      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x.pdf",
+      "subido_at": "2026-07-05T20:00:17",
+      "bytes": 176244
+    },
+    {
+      "nombre": "LACTATO_DE_CALCIO_50g_4x_20260705_194733.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g_4x_20260705_194733.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g_4x_20260705_194733.pdf",
+      "subido_at": "2026-07-05T19:47:33",
+      "bytes": 185169
+    },
+    {
+      "nombre": "LACTATO_DE_CALCIO_50g_20260705_194600.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20260705_194600.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20260705_194600.pdf",
+      "subido_at": "2026-07-05T19:46:00",
+      "bytes": 16908
+    },
+    {
+      "nombre": "LACTATO_DE_CALCIO_50g_4x.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g_4x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g_4x.pdf",
+      "subido_at": "2026-07-05T18:21:55",
+      "bytes": 185137
+    },
+    {
+      "nombre": "LACTATO_DE_CALCIO_50g_20260705_182119.pdf",
+      "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20260705_182119.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g_20260705_182119.pdf",
+      "subido_at": "2026-07-05T18:21:19",
+      "bytes": 16908
+    },
+    {
+      "nombre": "PLANTILLA_50g_azul.pdf",
+      "ruta": "Etiquetas McKenna/PLANTILLA_50g_azul.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_50g_azul.pdf",
+      "subido_at": "2026-07-05T17:58:40",
+      "bytes": 196398
+    },
+    {
+      "nombre": "__test_imprimir_png__.pdf",
+      "ruta": "Etiquetas McKenna/__test_imprimir_png__.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/__test_imprimir_png__.pdf",
+      "subido_at": "2026-07-05T17:57:42",
+      "bytes": 1959
+    },
+    {
       "nombre": "LACTATO_DE_CALCIO_50g.pdf",
       "ruta": "Etiquetas McKenna/LACTATO_DE_CALCIO_50g.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g.pdf",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -10,23 +10,18 @@ import {
   type PlantillaVisualDoc,
 } from "../../lib/plantillasVisuales";
 import {
-  descargarBase64,
   descargarBlob,
   exportarPlantillaBlob,
-  guardarPlantillaEnGaleria,
   subirImagenBlobAEtiquetas,
-  subirPdfBase64AEtiquetas,
 } from "../../lib/plantillasVisualesExport";
-import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
-import { useAppStore } from "../../stores/app";
-import { EtiquetaMckennaPreview } from "../etiquetas/EtiquetaMckennaPreview";
+import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso } from "../etiquetas/RecursoPngViewer";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 
 interface RecursoPngBiblioteca {
-  id: string;
+  id: string | null;
   nombre: string;
   subido_at?: string;
   bytes?: number;
@@ -34,63 +29,7 @@ interface RecursoPngBiblioteca {
   thumb_mime?: string | null;
 }
 
-function MiniaturaRecursoPng({ nombre, thumbB64, thumbMime }: {
-  nombre: string;
-  thumbB64?: string | null;
-  thumbMime?: string | null;
-}) {
-  const [src, setSrc] = useState<string | null>(
-    thumbB64 ? `data:${thumbMime || "image/png"};base64,${thumbB64}` : null,
-  );
-  const [fallo, setFallo] = useState(false);
-
-  useEffect(() => {
-    if (thumbB64) {
-      setSrc(`data:${thumbMime || "image/png"};base64,${thumbB64}`);
-      setFallo(false);
-      return;
-    }
-    // Sin miniatura embebida (falló al subir): recurre al archivo real.
-    let cancelado = false;
-    setFallo(false);
-    resolverUrlImagenCanvas(`/api/etiquetas/recursos-png/archivo/${encodeURIComponent(nombre)}`)
-      .then((url) => {
-        if (!cancelado) setSrc(url);
-      })
-      .catch(() => {
-        if (!cancelado) setFallo(true);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [nombre, thumbB64, thumbMime]);
-
-  if (fallo || !src) {
-    return (
-      <div className="flex h-10 w-10 items-center justify-center rounded bg-surface-hover text-[9px] text-muted" title="Sin previsualización">
-        ?
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={nombre}
-      className="max-h-full max-w-full object-contain"
-      draggable={false}
-      onError={() => setFallo(true)}
-    />
-  );
-}
-
-function formatoBytes(bytes?: number): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(0)} KB`;
-  return `${(kb / 1024).toFixed(1)} MB`;
-}
+const formatoBytes = formatoBytesRecurso;
 
 function BibliotecaEtiquetasSection() {
   const qc = useQueryClient();
@@ -100,16 +39,44 @@ function BibliotecaEtiquetasSection() {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [eliminandoLote, setEliminandoLote] = useState(false);
   const [errorLote, setErrorLote] = useState<string | null>(null);
+  const [vistaPreviaNombre, setVistaPreviaNombre] = useState<string | null>(null);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false);
+  const [moviendoLote, setMoviendoLote] = useState(false);
+  const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
+  const [arrastrando, setArrastrando] = useState<string[] | null>(null);
+  const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["etiquetas-recursos-png"],
-    queryFn: () => api.get<{ recursos: RecursoPngBiblioteca[] }>("/api/etiquetas/recursos-png"),
+    queryKey: ["etiquetas-recursos-png", carpetaActual],
+    queryFn: () =>
+      api.get<{ recursos: RecursoPngBiblioteca[]; carpetas: string[]; carpeta_actual: string }>(
+        `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(carpetaActual)}`,
+      ),
+    staleTime: 15_000,
+  });
+
+  const { data: carpetasTodasData } = useQuery({
+    queryKey: ["etiquetas-recursos-png-carpetas"],
+    queryFn: () => api.get<{ carpetas: string[] }>("/api/etiquetas/recursos-png/carpetas"),
     staleTime: 15_000,
   });
 
   const recursos = data?.recursos ?? [];
   const q = buscar.trim().toLowerCase();
   const filtrados = q ? recursos.filter((r) => r.nombre.toLowerCase().includes(q)) : recursos;
+  const subcarpetas = useMemo(() => {
+    const nombres = data?.carpetas ?? [];
+    if (!q) return nombres;
+    return nombres.filter((n) => n.toLowerCase().includes(q));
+  }, [data?.carpetas, q]);
+  const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
+
+  function irACarpeta(rel: string) {
+    setCarpetaActual(rel);
+    setSeleccionados(new Set());
+    setMenuMoverAbierto(false);
+  }
 
   function alternarSeleccion(nombre: string) {
     setSeleccionados((prev) => {
@@ -177,6 +144,93 @@ function BibliotecaEtiquetasSection() {
     eliminarLoteMut.mutate(nombres);
   }
 
+  const crearCarpetaMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.post<{ ok: boolean; carpeta: string }>("/api/etiquetas/recursos-png/carpetas", {
+        nombre,
+        carpeta_padre: carpetaActual,
+      }),
+    onMutate: () => setCreandoCarpeta(true),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "No se pudo crear la carpeta"),
+    onSettled: () => setCreandoCarpeta(false),
+  });
+
+  function crearCarpeta() {
+    const nombre = window.prompt("Nombre de la nueva carpeta:");
+    if (!nombre || !nombre.trim()) return;
+    crearCarpetaMut.mutate(nombre.trim());
+  }
+
+  const renombrarCarpetaMut = useMutation({
+    mutationFn: ({ carpeta, nombreNuevo }: { carpeta: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; carpeta: string }>(
+        "/api/etiquetas/recursos-png/carpetas/renombrar",
+        { carpeta, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "No se pudo renombrar la carpeta"),
+  });
+
+  function renombrarCarpeta(rel: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarCarpetaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const moverLoteMut = useMutation({
+    mutationFn: ({ nombres, destino }: { nombres: string[]; destino: string }) =>
+      api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/mover",
+        { nombres, carpeta_destino: destino },
+      ),
+    onMutate: () => {
+      setMoviendoLote(true);
+      setErrorLote(null);
+    },
+    onSuccess: (res) => {
+      setMenuMoverAbierto(false);
+      setSeleccionados(new Set());
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setErrorLote(`No se pudieron mover ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "Error al mover las imágenes seleccionadas"),
+    onSettled: () => setMoviendoLote(false),
+  });
+
+  function moverSeleccionados(destino: string) {
+    const nombres = Array.from(seleccionados);
+    if (nombres.length === 0) return;
+    moverLoteMut.mutate({ nombres, destino });
+  }
+
+  function iniciarArrastre(nombre: string) {
+    const enSeleccion = seleccionados.has(nombre) && seleccionados.size > 1;
+    setArrastrando(enSeleccion ? Array.from(seleccionados) : [nombre]);
+  }
+
+  function finalizarArrastre() {
+    setArrastrando(null);
+    setCarpetaHoverDrop(null);
+  }
+
+  function soltarEnCarpeta(destino: string) {
+    if (arrastrando && arrastrando.length > 0) {
+      moverLoteMut.mutate({ nombres: arrastrando, destino });
+    }
+    finalizarArrastre();
+  }
+
   async function descargar(nombre: string) {
     setDescargandoId(nombre);
     try {
@@ -193,8 +247,80 @@ function BibliotecaEtiquetasSection() {
 
   return (
     <div className="rounded-xl border border-border bg-surface-panel p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-1 text-xs">
+        <span className="mr-2 text-sm font-bold text-ink">Biblioteca de etiquetas</span>
+        <button
+          type="button"
+          onClick={() => irACarpeta("")}
+          disabled={carpetaActual === ""}
+          onDragOver={(e) => {
+            if (!arrastrando || carpetaActual === "") return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDragEnter={(e) => {
+            if (!arrastrando || carpetaActual === "") return;
+            e.preventDefault();
+            setCarpetaHoverDrop("");
+          }}
+          onDragLeave={() => setCarpetaHoverDrop((v) => (v === "" ? null : v))}
+          onDrop={(e) => {
+            if (carpetaActual === "") return;
+            e.preventDefault();
+            soltarEnCarpeta("");
+          }}
+          className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+            carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
+          }`}
+        >
+          📁 Raíz
+        </button>
+        {segmentosRuta.map((seg, i) => {
+          const rel = segmentosRuta.slice(0, i + 1).join("/");
+          const esUltimo = i === segmentosRuta.length - 1;
+          return (
+            <span key={rel} className="flex items-center gap-1">
+              <span className="text-muted">/</span>
+              <button
+                type="button"
+                onClick={() => irACarpeta(rel)}
+                disabled={esUltimo}
+                onDragOver={(e) => {
+                  if (!arrastrando || esUltimo) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrando || esUltimo) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  if (esUltimo) return;
+                  e.preventDefault();
+                  soltarEnCarpeta(rel);
+                }}
+                className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+                  carpetaHoverDrop === rel ? "bg-accent/15 text-accent" : ""
+                }`}
+              >
+                {seg}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          onClick={crearCarpeta}
+          disabled={creandoCarpeta}
+          className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+        >
+          {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="text-sm font-bold text-ink">Biblioteca de etiquetas</span>
         <input
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
@@ -211,6 +337,43 @@ function BibliotecaEtiquetasSection() {
             />
             Seleccionar todo
           </label>
+        )}
+        {seleccionados.size > 0 && (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuMoverAbierto((v) => !v)}
+              disabled={moviendoLote}
+              className="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            >
+              {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionados.size})`}
+            </button>
+            {menuMoverAbierto && (
+              <div className="absolute left-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => moverSeleccionados("")}
+                  disabled={carpetaActual === ""}
+                  className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+                >
+                  📁 Raíz
+                </button>
+                {(carpetasTodasData?.carpetas ?? [])
+                  .filter((c) => c !== carpetaActual)
+                  .map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => moverSeleccionados(c)}
+                      className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
+                      title={c}
+                    >
+                      📁 {c}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
         )}
         {seleccionados.size > 0 && (
           <button
@@ -234,18 +397,76 @@ function BibliotecaEtiquetasSection() {
         <div className="flex justify-center py-16">
           <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
-      ) : filtrados.length === 0 ? (
+      ) : filtrados.length === 0 && subcarpetas.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted">
-          {q ? "No hay imágenes con ese nombre." : "Aún no hay imágenes guardadas en la biblioteca."}
+          {q ? "No hay imágenes ni carpetas con ese nombre." : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {subcarpetas.map((nombreCarpeta) => {
+            const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
+            const enHoverDrop = carpetaHoverDrop === rel;
+            return (
+              <div
+                key={rel}
+                role="button"
+                tabIndex={0}
+                onDoubleClick={() => irACarpeta(rel)}
+                onClick={() => irACarpeta(rel)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") irACarpeta(rel);
+                }}
+                title={rel}
+                onDragOver={(e) => {
+                  if (!arrastrando) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrando) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  soltarEnCarpeta(rel);
+                }}
+                className={`group/carpeta relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center transition ${
+                  enHoverDrop
+                    ? "border-accent bg-accent/10"
+                    : "border-border bg-surface hover:border-accent hover:bg-surface-hover"
+                }`}
+              >
+                <button
+                  type="button"
+                  title="Renombrar carpeta"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    renombrarCarpeta(rel, nombreCarpeta);
+                  }}
+                  className="absolute right-1 top-1 rounded-md border border-border bg-white/95 px-1 py-0.5 text-[10px] opacity-0 shadow-sm transition hover:bg-surface-hover group-hover/carpeta:opacity-100 dark:bg-zinc-900/95"
+                >
+                  ✎
+                </button>
+                <span className="text-3xl">📁</span>
+                <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
+              </div>
+            );
+          })}
           {filtrados.map((r) => {
             const activo = seleccionados.has(r.nombre);
             return (
             <div
-              key={r.id}
-              className={`group relative flex flex-col overflow-hidden rounded-lg border bg-surface ${
+              key={r.nombre}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                iniciarArrastre(r.nombre);
+              }}
+              onDragEnd={finalizarArrastre}
+              title="Arrastra a una carpeta para mover"
+              className={`group relative flex cursor-grab flex-col overflow-hidden rounded-lg border bg-surface active:cursor-grabbing ${
                 activo ? "border-accent ring-2 ring-accent/40" : "border-border"
               }`}
             >
@@ -257,9 +478,14 @@ function BibliotecaEtiquetasSection() {
                   className="h-3.5 w-3.5"
                 />
               </label>
-              <div className="flex aspect-square items-center justify-center bg-zinc-100 p-1 dark:bg-zinc-800/40">
+              <button
+                type="button"
+                title="Ver imagen"
+                onClick={() => setVistaPreviaNombre(r.nombre)}
+                className="flex aspect-square items-center justify-center bg-zinc-100 p-1 hover:opacity-90 dark:bg-zinc-800/40"
+              >
                 <MiniaturaRecursoPng nombre={r.nombre} thumbB64={r.thumb_b64} thumbMime={r.thumb_mime} />
-              </div>
+              </button>
               <div className="px-1.5 py-1">
                 <p className="truncate text-[10px] text-ink" title={r.nombre}>
                   {r.nombre}
@@ -294,177 +520,21 @@ function BibliotecaEtiquetasSection() {
           })}
         </div>
       )}
-    </div>
-  );
-}
 
-interface ComboSku {
-  code: string;
-  name: string;
-}
-
-function CompararEtiquetasSection() {
-  const [buscarSku, setBuscarSku] = useState("");
-  const [skuActivo, setSkuActivo] = useState("");
-  const [nombreActivo, setNombreActivo] = useState("");
-
-  const { data: combosData } = useQuery({
-    queryKey: ["studio-comparar-combos", buscarSku],
-    queryFn: () =>
-      api.get<{ combos: ComboSku[] }>(
-        `/api/etiquetas/combos-siigo?q=${encodeURIComponent(buscarSku)}`,
-      ),
-    enabled: buscarSku.trim().length > 1,
-    staleTime: 30_000,
-  });
-
-  const { data: dataOriginal, isLoading: loadOrig } = useQuery({
-    queryKey: ["studio-comparar", skuActivo, "original"],
-    queryFn: () =>
-      api.get<{ datos: EtiquetaStudioDatos | null }>(
-        `/api/etiquetas/studio/${encodeURIComponent(skuActivo)}?version=original`,
-      ),
-    enabled: !!skuActivo.trim(),
-  });
-
-  const { data: dataAlternativa, isLoading: loadAlt } = useQuery({
-    queryKey: ["studio-comparar", skuActivo, "alternativa"],
-    queryFn: () =>
-      api.get<{ datos: EtiquetaStudioDatos | null }>(
-        `/api/etiquetas/studio/${encodeURIComponent(skuActivo)}?version=alternativa`,
-      ),
-    enabled: !!skuActivo.trim(),
-  });
-
-  const combos = (combosData?.combos ?? []).slice(0, 8);
-
-  function buildPreviewDatos(
-    base: EtiquetaStudioDatos,
-    version: "original" | "alternativa",
-  ): EtiquetaStudioDatos {
-    return {
-      ...base,
-      modo_etiqueta: version,
-      descripcion_etiqueta: base.descripcion_etiqueta ?? "",
-      diagramacion: base.diagramacion ?? {},
-      diagramacion_graficos: base.diagramacion_graficos ?? {},
-    };
-  }
-
-  const previewOriginal = dataOriginal?.datos
-    ? buildPreviewDatos(dataOriginal.datos, "original")
-    : null;
-
-  const previewAlternativa = dataAlternativa?.datos
-    ? buildPreviewDatos(dataAlternativa.datos, "alternativa")
-    : null;
-
-  const isLoading = loadOrig || loadAlt;
-
-  return (
-    <div className="rounded-xl border border-border bg-surface-panel p-4">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-sm font-bold text-ink">Comparar etiqueta</span>
-        <div className="relative min-w-0 flex-1">
-          <input
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-            placeholder="Buscar SKU o producto…"
-            value={buscarSku}
-            onChange={(e) => setBuscarSku(e.target.value)}
-          />
-          {buscarSku.trim().length > 1 && combos.length > 0 && (
-            <ul className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
-              {combos.map((c) => (
-                <li key={c.code}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSkuActivo(c.code);
-                      setNombreActivo(c.name);
-                      setBuscarSku(c.code);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-surface-hover"
-                  >
-                    <span className="font-mono text-accent">{c.code}</span>
-                    <span className="truncate text-ink">{c.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {skuActivo && (
-          <button
-            type="button"
-            onClick={() => {
-              setSkuActivo("");
-              setNombreActivo("");
-              setBuscarSku("");
-            }}
-            className="shrink-0 text-xs text-muted hover:text-ink"
-          >
-            ✕ Limpiar
-          </button>
-        )}
-      </div>
-
-      {!skuActivo && (
-        <p className="py-4 text-center text-sm text-muted">
-          Busca un SKU para comparar la etiqueta original con la alternativa.
-        </p>
-      )}
-
-      {skuActivo && (
-        <>
-          {nombreActivo && (
-            <p className="mb-3 text-xs text-muted">
-              <span className="font-mono font-semibold text-accent">{skuActivo}</span>{" "}
-              {nombreActivo}
-            </p>
-          )}
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted">
-                  Original
-                </p>
-                <div className="flex min-h-[200px] items-center justify-center rounded-lg bg-[#e8eaed] p-3">
-                  {previewOriginal ? (
-                    <EtiquetaMckennaPreview
-                      datos={previewOriginal}
-                      className="h-full w-full"
-                      raw
-                      marcoFormato
-                    />
-                  ) : (
-                    <p className="text-xs text-muted">Sin etiqueta original guardada</p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted">
-                  Alternativa
-                </p>
-                <div className="flex min-h-[200px] items-center justify-center rounded-lg bg-[#e8eaed] p-3">
-                  {previewAlternativa ? (
-                    <EtiquetaMckennaPreview
-                      datos={previewAlternativa}
-                      className="h-full w-full"
-                      raw
-                      marcoFormato
-                    />
-                  ) : (
-                    <p className="text-xs text-muted">Sin alternativa guardada para este SKU</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </>
+      {vistaPreviaNombre && (
+        <LightboxImagen
+          nombre={vistaPreviaNombre}
+          onCerrar={() => setVistaPreviaNombre(null)}
+          onDescargar={() => void descargar(vistaPreviaNombre)}
+          onEliminar={() => {
+            if (!window.confirm(`¿Eliminar "${vistaPreviaNombre}" de la biblioteca?`)) return;
+            eliminarMut.mutate(vistaPreviaNombre, {
+              onSuccess: () => setVistaPreviaNombre(null),
+            });
+          }}
+          descargando={descargandoId === vistaPreviaNombre}
+          eliminando={eliminandoId === vistaPreviaNombre}
+        />
       )}
     </div>
   );
@@ -479,48 +549,146 @@ export default function PlantillasVisualesPanel({
   onInmersivoChange?: (inmersivo: boolean) => void;
 } = {}) {
   const qc = useQueryClient();
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
-  const setEtiquetasHandoff = useAppStore((s) => s.setEtiquetasHandoff);
   const [vista, setVista] = useState<Vista>("lista");
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
   const [buscar, setBuscar] = useState("");
-  const [mostrarComparar, setMostrarComparar] = useState(false);
-  const [mostrarBiblioteca, setMostrarBiblioteca] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [pdfListoParaImprimir, setPdfListoParaImprimir] = useState<{
-    ruta_completa: string;
-    nombre: string;
-  } | null>(null);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false);
+  const [moviendoLote, setMoviendoLote] = useState(false);
+  const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
+  const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
+  const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
 
   useEffect(() => {
     onInmersivoChange?.(vista === "editor");
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
-  const irAImprimirEnEtiquetas = useCallback(() => {
-    if (!pdfListoParaImprimir || !doc) return;
-    setEtiquetasHandoff({
-      pdf_ruta: pdfListoParaImprimir.ruta_completa,
-      pdf_nombre: pdfListoParaImprimir.nombre,
-      tipo_etiqueta: doc.formato.tipo_etiqueta,
-      ancho_mm: doc.formato.ancho_mm,
-      alto_mm: doc.formato.alto_mm,
-    });
-    setEtiquetasTab("imprimir");
-    setPanel("etiquetas");
-  }, [pdfListoParaImprimir, doc, setEtiquetasHandoff, setEtiquetasTab, setPanel]);
-
   const { data, isLoading } = useQuery({
-    queryKey: ["plantillas-visuales", buscar],
+    queryKey: ["plantillas-visuales", buscar, carpetaActual],
     queryFn: () =>
-      api.get<{ plantillas: PlantillaVisualDoc[] }>(
-        `/api/plantillas-visuales${buscar ? `?q=${encodeURIComponent(buscar)}` : ""}`,
+      api.get<{ plantillas: PlantillaVisualDoc[]; carpetas: string[]; carpeta_actual: string }>(
+        `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscar ? `&q=${encodeURIComponent(buscar)}` : ""}`,
       ),
     staleTime: 15_000,
   });
 
+  const { data: carpetasTodasData } = useQuery({
+    queryKey: ["plantillas-visuales-carpetas"],
+    queryFn: () => api.get<{ carpetas: string[] }>("/api/plantillas-visuales/carpetas"),
+    staleTime: 15_000,
+  });
+
   const plantillas = data?.plantillas ?? [];
+  const subcarpetas = data?.carpetas ?? [];
+  const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
+
+  function irACarpeta(rel: string) {
+    setCarpetaActual(rel);
+    setSeleccionadas(new Set());
+    setMenuMoverAbierto(false);
+  }
+
+  function alternarSeleccionPlantilla(id: string) {
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const crearCarpetaPlantillaMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.post<{ ok: boolean; carpeta: string }>("/api/plantillas-visuales/carpetas", {
+        nombre,
+        carpeta_padre: carpetaActual,
+      }),
+    onMutate: () => setCreandoCarpeta(true),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo crear la carpeta"),
+    onSettled: () => setCreandoCarpeta(false),
+  });
+
+  function crearCarpetaPlantilla() {
+    const nombre = window.prompt("Nombre de la nueva carpeta:");
+    if (!nombre || !nombre.trim()) return;
+    crearCarpetaPlantillaMut.mutate(nombre.trim());
+  }
+
+  const renombrarCarpetaPlantillaMut = useMutation({
+    mutationFn: ({ carpeta, nombreNuevo }: { carpeta: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; carpeta: string }>(
+        "/api/plantillas-visuales/carpetas/renombrar",
+        { carpeta, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo renombrar la carpeta"),
+  });
+
+  function renombrarCarpetaPlantilla(rel: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarCarpetaPlantillaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const moverPlantillasMut = useMutation({
+    mutationFn: ({ ids, destino }: { ids: string[]; destino: string }) =>
+      api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
+        "/api/plantillas-visuales/mover",
+        { ids, carpeta_destino: destino },
+      ),
+    onMutate: () => {
+      setMoviendoLote(true);
+      setMsg(null);
+    },
+    onSuccess: (res) => {
+      setMenuMoverAbierto(false);
+      setSeleccionadas(new Set());
+      const fallidos = Object.keys(res.errores || {});
+      setMsg(
+        fallidos.length > 0
+          ? `No se pudieron mover ${fallidos.length} plantilla(s)`
+          : "Movida(s) ✓",
+      );
+      setTimeout(() => setMsg(null), 2500);
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al mover las plantillas seleccionadas"),
+    onSettled: () => setMoviendoLote(false),
+  });
+
+  function moverSeleccionadas(destino: string) {
+    const ids = Array.from(seleccionadas);
+    if (ids.length === 0) return;
+    moverPlantillasMut.mutate({ ids, destino });
+  }
+
+  function iniciarArrastrePlantilla(id: string) {
+    const enSeleccion = seleccionadas.has(id) && seleccionadas.size > 1;
+    setArrastrandoIds(enSeleccion ? Array.from(seleccionadas) : [id]);
+  }
+
+  function finalizarArrastrePlantilla() {
+    setArrastrandoIds(null);
+    setCarpetaHoverDrop(null);
+  }
+
+  function soltarPlantillaEnCarpeta(destino: string) {
+    if (arrastrandoIds && arrastrandoIds.length > 0) {
+      moverPlantillasMut.mutate({ ids: arrastrandoIds, destino });
+    }
+    finalizarArrastrePlantilla();
+  }
 
   const guardarMut = useMutation({
     mutationFn: (payload: PlantillaVisualDoc) =>
@@ -544,14 +712,12 @@ export default function PlantillasVisualesPanel({
   });
 
   const [exportando, setExportando] = useState(false);
-  const [guardandoGaleria, setGuardandoGaleria] = useState<"jpeg" | "pdf" | null>(null);
   const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
 
   const abrirCopiaGuardada = useCallback(
     (local: PlantillaVisualDoc, servidor: PlantillaVisualDoc) => {
       setDoc(fusionarMetadatosPlantillaTrasGuardar(local, servidor));
       setVista("editor");
-      setPdfListoParaImprimir(null);
       setMsg("Plantilla duplicada ✓");
       setTimeout(() => setMsg(null), 2500);
     },
@@ -589,13 +755,11 @@ export default function PlantillasVisualesPanel({
 
   const abrirNuevo = () => {
     setDoc(null);
-    setPdfListoParaImprimir(null);
     setVista("formato");
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    setDoc(plantillaVacia(formato, categoriaId));
-    setPdfListoParaImprimir(null);
+    setDoc(plantillaVacia(formato, categoriaId, carpetaActual));
     setVista("editor");
   };
 
@@ -605,70 +769,28 @@ export default function PlantillasVisualesPanel({
         `/api/plantillas-visuales/${id}`,
       );
       setDoc(res.plantilla);
-      setPdfListoParaImprimir(null);
       setVista("editor");
     } catch {
       setMsg("No se pudo abrir la plantilla");
     }
   }, []);
 
-  const guardarEnGaleria = async (formato: "jpeg" | "pdf", escala = 1) => {
-    if (!doc) return;
-    setGuardandoGaleria(formato);
-    setMsg(null);
-    try {
-      const { nombre } = await guardarPlantillaEnGaleria(doc, formato, { escala });
-      if (formato === "jpeg") {
-        void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
-        void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
-        setMsg(`JPG guardado en galería (${nombre}) ✓`);
-      } else {
-        void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
-        setMsg(`PDF guardado en biblioteca Etiquetas (${nombre}) ✓`);
-      }
-      setTimeout(() => setMsg(null), 3500);
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Error al guardar en galería");
-    } finally {
-      setGuardandoGaleria(null);
-    }
-  };
-
-  const exportar = async (formato: "png" | "jpeg" | "pdf", escala = 1) => {
+  const exportar = async (escala = 1) => {
     if (!doc) return;
     setExportando(true);
     setMsg(null);
-    setPdfListoParaImprimir(null);
     try {
-      let mensajeExtra = "";
-      if (formato === "pdf") {
-        const res = await api.post<{
-          ok: boolean;
-          nombre: string;
-          base64: string;
-          formato: string;
-        }>("/api/plantillas-visuales/exportar", { plantilla: doc, formato: "pdf", escala });
-        descargarBase64(res.base64, res.nombre, "application/pdf");
-        const subido = await subirPdfBase64AEtiquetas(res.base64, res.nombre);
-        void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
-        setPdfListoParaImprimir({ ruta_completa: subido.ruta_completa, nombre: subido.nombre });
-        mensajeExtra = " · enviado a Etiquetas para imprimir";
-      } else {
-        const blob = await exportarPlantillaBlob(doc, formato, { escala });
-        const ext = formato === "jpeg" ? "jpg" : "png";
-        const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
-        const suf = escala !== 1 ? `@${escala}x` : "";
-        const nombreArchivo = `${safe}${suf}.${ext}`;
-        descargarBlob(blob, nombreArchivo);
-        if (formato === "png") {
-          await subirImagenBlobAEtiquetas(blob, nombreArchivo);
-          void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
-          void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
-          mensajeExtra = " · guardado en biblioteca de etiquetas";
-        }
-      }
+      const blob = await exportarPlantillaBlob(doc, "png", { escala });
+      const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
+      const suf = escala !== 1 ? `@${escala}x` : "";
+      const nombreArchivo = `${safe}${suf}.png`;
+      descargarBlob(blob, nombreArchivo);
+      await subirImagenBlobAEtiquetas(blob, nombreArchivo);
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
+
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
-      setMsg(`Exportado ${formato.toUpperCase()} (${dim} px)${mensajeExtra} ✓`);
+      setMsg(`Exportado PNG (${dim} px) · guardado en biblioteca de etiquetas ✓`);
       setTimeout(() => setMsg(null), 2500);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al exportar");
@@ -696,18 +818,6 @@ export default function PlantillasVisualesPanel({
             {msg}
           </div>
         )}
-        {pdfListoParaImprimir && (
-          <div className="absolute left-1/2 top-12 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-accent/40 bg-surface-panel px-3 py-1.5 text-xs shadow-lg">
-            <span className="text-muted">📄 {pdfListoParaImprimir.nombre}</span>
-            <button
-              type="button"
-              onClick={irAImprimirEnEtiquetas}
-              className="rounded-md bg-accent px-2.5 py-1 font-bold text-white hover:bg-accent/90"
-            >
-              🖨️ Ir a imprimir en Etiquetas →
-            </button>
-          </div>
-        )}
         <VisualCanvasEditor
           doc={doc}
           onChange={setDoc}
@@ -718,10 +828,8 @@ export default function PlantillasVisualesPanel({
             setDoc(null);
           }}
           onExportar={exportar}
-          onGuardarEnGaleria={guardarEnGaleria}
           guardando={guardarMut.isPending}
           duplicando={guardarMut.isPending}
-          guardandoGaleria={guardandoGaleria}
           exportando={exportando}
         />
       </div>
@@ -730,7 +838,7 @@ export default function PlantillasVisualesPanel({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-bold tracking-tight text-ink">Studio</h1>
         <div className="min-w-0 flex-1">
           <input
@@ -740,28 +848,43 @@ export default function PlantillasVisualesPanel({
             className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setMostrarComparar((v) => !v)}
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-            mostrarComparar
-              ? "bg-surface-hover text-ink ring-1 ring-border"
-              : "text-muted hover:bg-surface-hover hover:text-ink"
-          }`}
-        >
-          Comparar
-        </button>
-        <button
-          type="button"
-          onClick={() => setMostrarBiblioteca((v) => !v)}
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-            mostrarBiblioteca
-              ? "bg-surface-hover text-ink ring-1 ring-border"
-              : "text-muted hover:bg-surface-hover hover:text-ink"
-          }`}
-        >
-          Biblioteca
-        </button>
+        {seleccionadas.size > 0 && (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuMoverAbierto((v) => !v)}
+              disabled={moviendoLote}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            >
+              {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionadas.size})`}
+            </button>
+            {menuMoverAbierto && (
+              <div className="absolute right-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => moverSeleccionadas("")}
+                  disabled={carpetaActual === ""}
+                  className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+                >
+                  📁 Raíz
+                </button>
+                {(carpetasTodasData?.carpetas ?? [])
+                  .filter((c) => c !== carpetaActual)
+                  .map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => moverSeleccionadas(c)}
+                      className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
+                      title={c}
+                    >
+                      📁 {c}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
         <button
           type="button"
           onClick={abrirNuevo}
@@ -771,17 +894,81 @@ export default function PlantillasVisualesPanel({
         </button>
       </div>
 
-      {mostrarComparar && (
-        <div className="mb-5">
-          <CompararEtiquetasSection />
-        </div>
-      )}
+      <div className="mb-5 flex flex-wrap items-center gap-1 text-xs">
+        <button
+          type="button"
+          onClick={() => irACarpeta("")}
+          disabled={carpetaActual === ""}
+          onDragOver={(e) => {
+            if (!arrastrandoIds || carpetaActual === "") return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDragEnter={(e) => {
+            if (!arrastrandoIds || carpetaActual === "") return;
+            e.preventDefault();
+            setCarpetaHoverDrop("");
+          }}
+          onDragLeave={() => setCarpetaHoverDrop((v) => (v === "" ? null : v))}
+          onDrop={(e) => {
+            if (carpetaActual === "") return;
+            e.preventDefault();
+            soltarPlantillaEnCarpeta("");
+          }}
+          className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+            carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
+          }`}
+        >
+          📁 Raíz
+        </button>
+        {segmentosRuta.map((seg, i) => {
+          const rel = segmentosRuta.slice(0, i + 1).join("/");
+          const esUltimo = i === segmentosRuta.length - 1;
+          return (
+            <span key={rel} className="flex items-center gap-1">
+              <span className="text-muted">/</span>
+              <button
+                type="button"
+                onClick={() => irACarpeta(rel)}
+                disabled={esUltimo}
+                onDragOver={(e) => {
+                  if (!arrastrandoIds || esUltimo) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrandoIds || esUltimo) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  if (esUltimo) return;
+                  e.preventDefault();
+                  soltarPlantillaEnCarpeta(rel);
+                }}
+                className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+                  carpetaHoverDrop === rel ? "bg-accent/15 text-accent" : ""
+                }`}
+              >
+                {seg}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          onClick={crearCarpetaPlantilla}
+          disabled={creandoCarpeta}
+          className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+        >
+          {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+      </div>
 
-      {mostrarBiblioteca && (
-        <div className="mb-5">
-          <BibliotecaEtiquetasSection />
-        </div>
-      )}
+      <div className="mb-5">
+        <BibliotecaEtiquetasSection />
+      </div>
 
       {msg && (
         <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm">
@@ -793,7 +980,7 @@ export default function PlantillasVisualesPanel({
         <div className="flex justify-center py-20">
           <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
-      ) : plantillas.length === 0 ? (
+      ) : plantillas.length === 0 && subcarpetas.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-20 text-center">
           <p className="text-sm font-medium text-ink">Sin plantillas todavía</p>
           <p className="mt-1 max-w-sm text-sm text-muted">
@@ -809,25 +996,98 @@ export default function PlantillasVisualesPanel({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {plantillas.map((p) => {
+          {subcarpetas.map((nombreCarpeta) => {
+            const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
+            const enHoverDrop = carpetaHoverDrop === rel;
             return (
-              <article
-                key={p.id}
-                className="group relative overflow-hidden rounded-xl border border-border bg-surface-panel transition hover:border-accent/40 hover:shadow-md"
+              <div
+                key={rel}
+                role="button"
+                tabIndex={0}
+                onDoubleClick={() => irACarpeta(rel)}
+                onClick={() => irACarpeta(rel)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") irACarpeta(rel);
+                }}
+                title={rel}
+                onDragOver={(e) => {
+                  if (!arrastrandoIds) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrandoIds) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  soltarPlantillaEnCarpeta(rel);
+                }}
+                className={`group/carpeta relative flex min-h-[164px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed p-4 text-center transition ${
+                  enHoverDrop
+                    ? "border-accent bg-accent/10"
+                    : "border-border bg-surface-panel hover:border-accent hover:bg-surface-hover"
+                }`}
               >
                 <button
                   type="button"
-                  onClick={() => void abrirPlantilla(p.id)}
-                  className="flex w-full flex-col text-left"
+                  title="Renombrar carpeta"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    renombrarCarpetaPlantilla(rel, nombreCarpeta);
+                  }}
+                  className="absolute right-2 top-2 rounded-md border border-border bg-white/95 px-1.5 py-0.5 text-xs opacity-0 shadow-sm transition hover:bg-surface-hover group-hover/carpeta:opacity-100 dark:bg-zinc-900/95"
                 >
-                  <div className="flex min-h-[120px] items-center justify-center bg-[#525659] p-4">
+                  ✎
+                </button>
+                <span className="text-3xl">📁</span>
+                <span className="w-full truncate text-xs font-medium text-ink">{nombreCarpeta}</span>
+              </div>
+            );
+          })}
+          {plantillas.map((p) => {
+            const seleccionada = seleccionadas.has(p.id);
+            return (
+              <article
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  iniciarArrastrePlantilla(p.id);
+                }}
+                onDragEnd={finalizarArrastrePlantilla}
+                title="Arrastra a una carpeta para mover"
+                key={p.id}
+                className={`group relative cursor-grab overflow-hidden rounded-xl border bg-surface-panel transition hover:border-accent/40 hover:shadow-md active:cursor-grabbing ${
+                  seleccionada ? "border-accent ring-2 ring-accent/40" : "border-border"
+                }`}
+              >
+                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-zinc-900/95" style={seleccionada ? { opacity: 1 } : undefined}>
+                  <input
+                    type="checkbox"
+                    checked={seleccionada}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      alternarSeleccionPlantilla(p.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-3.5 w-3.5"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void abrirPlantilla(p.id)}
+                  className="flex w-full items-center justify-center bg-[#525659] p-4"
+                >
+                  <div className="flex min-h-[120px] items-center justify-center">
                     <PlantillaVisualMiniatura doc={p} maxAncho={140} maxAlto={100} />
                   </div>
-                  <div className="px-3 py-2.5">
-                    <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
-                    <p className="mt-0.5 text-[11px] text-muted">{labelFormato(p.formato)}</p>
-                  </div>
                 </button>
+                <div className="px-3 py-2.5">
+                  <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
+                  <p className="mt-0.5 text-[11px] text-muted">{labelFormato(p.formato)}</p>
+                </div>
                 <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
                   <button
                     type="button"

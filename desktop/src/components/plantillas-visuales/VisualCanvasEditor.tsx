@@ -71,11 +71,9 @@ interface Props {
   onGuardar: () => void;
   onDuplicar?: () => void;
   onVolver: () => void;
-  onExportar: (formato: "png" | "jpeg" | "pdf", escala: number) => void;
-  onGuardarEnGaleria?: (formato: "jpeg" | "pdf", escala: number) => void;
+  onExportar: (escala: number) => void;
   guardando?: boolean;
   duplicando?: boolean;
-  guardandoGaleria?: "jpeg" | "pdf" | null;
   exportando?: boolean;
 }
 
@@ -160,10 +158,8 @@ export default function VisualCanvasEditor({
   onDuplicar,
   onVolver,
   onExportar,
-  onGuardarEnGaleria,
   guardando,
   duplicando,
-  guardandoGaleria,
   exportando,
 }: Props) {
   const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
@@ -183,18 +179,12 @@ export default function VisualCanvasEditor({
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
   const [formatoModalAbierto, setFormatoModalAbierto] = useState(false);
   const presetsExport = useMemo(() => presetsResolucionExport(doc.formato), [doc.formato]);
-  const [escalaExportId, setEscalaExportId] = useState("1x");
-  const escalaExport = useMemo(
-    () => presetsExport.find((p) => p.id === escalaExportId)?.escala ?? 1,
-    [presetsExport, escalaExportId],
-  );
+  // Export siempre a máxima resolución: se quitó el selector de escala.
   const presetExportActivo = useMemo(
-    () => presetsExport.find((p) => p.id === escalaExportId) ?? presetsExport[0],
-    [presetsExport, escalaExportId],
+    () => presetsExport.find((p) => p.id === "4x") ?? presetsExport[presetsExport.length - 1],
+    [presetsExport],
   );
-  useEffect(() => {
-    setEscalaExportId("1x");
-  }, [doc.id]);
+  const escalaExport = presetExportActivo?.escala ?? 4;
   const [ghsAbierto, setGhsAbierto] = useState(false);
   const [ean13Abierto, setEan13Abierto] = useState(false);
   const [panelTab, setPanelTab] = useState<"capas" | "propiedades">("capas");
@@ -229,6 +219,26 @@ export default function VisualCanvasEditor({
   }, [doc.elementos, seleccionIds]);
 
   const seleccionPrincipalId = seleccionIds[seleccionIds.length - 1] ?? null;
+
+  // Cuando la selección es exactamente un grupo (2+ elementos con el mismo
+  // groupId), se dibuja una caja sobre toda su área para poder arrastrar el
+  // grupo desde los huecos entre elementos, no solo desde encima de cada uno.
+  const elementosGrupoActivo = useMemo(() => {
+    if (seleccionIds.length < 2) return null;
+    const elementos = seleccionIds
+      .map((id) => doc.elementos.find((e) => e.id === id))
+      .filter((e): e is ElementoVisual => !!e);
+    if (elementos.length !== seleccionIds.length) return null;
+    const gid = elementos[0].groupId;
+    if (!gid) return null;
+    if (!elementos.every((e) => e.groupId === gid)) return null;
+    return elementos;
+  }, [seleccionIds, doc.elementos]);
+
+  const cajaGrupoActivo = useMemo(() => {
+    if (!elementosGrupoActivo) return null;
+    return unionBounds(elementosGrupoActivo.map(boundsElemento));
+  }, [elementosGrupoActivo]);
 
   const maxZ = useMemo(
     () => doc.elementos.reduce((m, e) => Math.max(m, e.zIndex), 0),
@@ -944,77 +954,24 @@ export default function VisualCanvasEditor({
               {duplicando ? "…" : "Duplicar"}
             </button>
           )}
-          {onGuardarEnGaleria && (
-            <div className="relative group/galeria">
-              <button
-                type="button"
-                disabled={!!guardandoGaleria}
-                title="Guardar render del lienzo en la galería (JPG en imágenes del Studio, PDF en biblioteca Etiquetas)"
-                className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
-              >
-                {guardandoGaleria ? "…" : "En galería"}
-              </button>
-              <div className="absolute right-0 top-full z-30 hidden min-w-[140px] rounded-md border border-border bg-surface-panel py-1 text-ink shadow-xl group-hover/galeria:block group-focus-within/galeria:block">
-                <button
-                  type="button"
-                  disabled={guardandoGaleria === "jpeg"}
-                  onClick={() => onGuardarEnGaleria("jpeg", escalaExport)}
-                  title={`JPG · ${presetExportActivo?.hint ?? "resolución del export"}`}
-                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
-                >
-                  JPG
-                </button>
-                <button
-                  type="button"
-                  disabled={guardandoGaleria === "pdf"}
-                  onClick={() => onGuardarEnGaleria("pdf", escalaExport)}
-                  title="PDF · tamaño físico del formato (mm)"
-                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-          )}
-          <label
+          <div
             className="flex max-w-[11rem] items-center gap-1 rounded-md border border-white/15 px-2 py-1"
-            title="Escala proporcional: mismo diseño, más píxeles (sin deformar)"
+            title={`Escala fija a máxima resolución${presetExportActivo?.hint ? ` · ${presetExportActivo.hint}` : ""}`}
           >
             <span className="shrink-0 text-[10px] text-neutral-400">Export</span>
-            <select
-              value={escalaExportId}
-              onChange={(e) => setEscalaExportId(e.target.value)}
-              className="min-w-0 flex-1 cursor-pointer truncate bg-transparent text-[11px] font-medium text-neutral-200 outline-none"
-            >
-              {presetsExport.map((p) => (
-                <option key={p.id} value={p.id} className="text-ink">
-                  {p.label} · {p.hint}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="relative group/export">
-            <button
-              type="button"
-              disabled={exportando}
-              title={`Descargar a ${presetExportActivo?.hint ?? "resolución del lienzo"}`}
-              className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
-            >
-              {exportando ? "…" : "Descargar"}
-            </button>
-            <div className="absolute right-0 top-full z-30 hidden min-w-[120px] rounded-md border border-border bg-surface-panel py-1 text-ink shadow-xl group-hover/export:block group-focus-within/export:block">
-              {(["png", "jpeg", "pdf"] as const).map((fmt) => (
-                <button
-                  key={fmt}
-                  type="button"
-                  onClick={() => onExportar(fmt, escalaExport)}
-                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover"
-                >
-                  {fmt === "jpeg" ? "JPG" : fmt.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-neutral-200">
+              {presetExportActivo?.label ?? "Máxima"}
+            </span>
           </div>
+          <button
+            type="button"
+            disabled={exportando}
+            onClick={() => onExportar(escalaExport)}
+            title={`Descargar PNG a ${presetExportActivo?.hint ?? "resolución del lienzo"}`}
+            className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
+          >
+            {exportando ? "…" : "Descargar PNG"}
+          </button>
         </div>
       </header>
 
@@ -1473,6 +1430,23 @@ export default function VisualCanvasEditor({
                   }
                   return null;
                 })}
+              {cajaGrupoActivo && elementosGrupoActivo && (
+                <div
+                  title="Arrastra para mover todo el grupo"
+                  onPointerDown={(e) => onPointerDownEl(e, elementosGrupoActivo[0], "move")}
+                  style={{
+                    position: "absolute",
+                    left: cajaGrupoActivo.left,
+                    top: cajaGrupoActivo.top,
+                    width: cajaGrupoActivo.right - cajaGrupoActivo.left,
+                    height: cajaGrupoActivo.bottom - cajaGrupoActivo.top,
+                    zIndex: Math.min(...elementosGrupoActivo.map((e) => e.zIndex)) - 0.01,
+                    border: "1px dashed rgba(99,102,241,0.6)",
+                    cursor: elementosGrupoActivo.some((e) => e.locked) ? "default" : "move",
+                    background: "transparent",
+                  }}
+                />
+              )}
             </div>
           </div>
           </div>

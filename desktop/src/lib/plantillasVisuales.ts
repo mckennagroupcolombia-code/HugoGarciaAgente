@@ -80,6 +80,8 @@ export interface PlantillaVisualDoc {
   id: string;
   nombre: string;
   categoria: string;
+  /** Ruta de carpeta del Studio (p. ej. "Fragancias/Difusor"); "" = raíz. */
+  carpeta?: string;
   formato: FormatoCanvas;
   fondo: string;
   elementos: ElementoVisual[];
@@ -427,11 +429,16 @@ export function ajustarTamanoTexto(n: number): number {
   return Math.min(TAMANO_TEXTO_MAX, Math.max(TAMANO_TEXTO_MIN, snap));
 }
 
-export function plantillaVacia(formato: FormatoCanvas, categoria: string): PlantillaVisualDoc {
+export function plantillaVacia(
+  formato: FormatoCanvas,
+  categoria: string,
+  carpeta = "",
+): PlantillaVisualDoc {
   return {
     id: nuevoId(),
     nombre: "Nuevo recurso",
     categoria,
+    carpeta,
     formato,
     fondo: "#ffffff",
     elementos: [],
