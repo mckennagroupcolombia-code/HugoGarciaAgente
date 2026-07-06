@@ -14,8 +14,6 @@ import { estiloElemento } from "./VisualCanvasEditor";
  */
 export interface Props {
   doc: PlantillaVisualDoc;
-  /** id de elemento imagen -> URL ya resuelta (blob:/data:) o null si falló. */
-  imagenesResueltas: Map<string, string | null>;
   /**
    * Factor de resolución de exportación (2×, 3×, "Máxima"…). Se aplica como
    * `transform: scale()` sobre el lienzo a tamaño natural, en vez de dejar
@@ -23,15 +21,11 @@ export interface Props {
    * pinta nítido directamente a la resolución final, no borroso por upscale.
    */
   escala?: number;
+  /** true en composiciones multi-pasada: el fondo ya lo pintó otro paso. */
+  fondoTransparente?: boolean;
 }
 
-function ElementoEstatico({
-  el,
-  imagenesResueltas,
-}: {
-  el: ElementoVisual;
-  imagenesResueltas: Map<string, string | null>;
-}) {
+function ElementoEstatico({ el }: { el: ElementoVisual }) {
   if (el.type === "text") {
     const estilo: React.CSSProperties = {
       ...estiloElemento(el),
@@ -61,57 +55,19 @@ function ElementoEstatico({
     );
   }
 
-  if (el.type === "line") {
-    const x2 = el.x2 ?? el.x + el.width;
-    const y2 = el.y2 ?? el.y;
-    const minX = Math.min(el.x, x2);
-    const minY = Math.min(el.y, y2);
-    const w = Math.max(Math.abs(x2 - el.x), 1);
-    const h = Math.max(Math.abs(y2 - el.y), 1);
-    return (
-      <svg
-        style={{ position: "absolute", left: minX, top: minY, overflow: "visible", zIndex: el.zIndex }}
-        width={w}
-        height={h}
-      >
-        <line
-          x1={el.x - minX}
-          y1={el.y - minY}
-          x2={x2 - minX}
-          y2={y2 - minY}
-          stroke={el.stroke}
-          strokeWidth={el.strokeWidth}
-          strokeLinecap="butt"
-        />
-      </svg>
-    );
-  }
-
-  if (el.type === "image") {
-    const src = el.src ? imagenesResueltas.get(el.id) : null;
-    return (
-      <div style={{ ...estiloElemento(el), overflow: "hidden" }}>
-        {src ? (
-          <img
-            src={src}
-            alt=""
-            style={{
-              display: "block",
-              width: "100%",
-              height: "100%",
-              objectFit: el.objectFit,
-              objectPosition: "center",
-            }}
-          />
-        ) : null}
-      </div>
-    );
-  }
-
+  // "line" e "image" no se dibujan aquí: html-to-image los rasteriza mal
+  // dentro de su foreignObject (líneas de 1px que se desplazan al escalar,
+  // imágenes cacheadas a la resolución de layout en vez de la nativa). Se
+  // pintan aparte, directo sobre el canvas ya capturado, intercalados por
+  // zIndex con estos pasos DOM (ver renderPlantillaToCanvasDom).
   return null;
 }
 
-export default function PlantillaVisualEstaticoDom({ doc, imagenesResueltas, escala = 1 }: Props) {
+export default function PlantillaVisualEstaticoDom({
+  doc,
+  escala = 1,
+  fondoTransparente = false,
+}: Props) {
   const { ancho_px: w, alto_px: h } = doc.formato;
   return (
     <div
@@ -127,7 +83,7 @@ export default function PlantillaVisualEstaticoDom({ doc, imagenesResueltas, esc
           position: "relative",
           width: w,
           height: h,
-          background: doc.fondo || "#ffffff",
+          background: fondoTransparente ? "transparent" : doc.fondo || "#ffffff",
           transform: escala !== 1 ? `scale(${escala})` : undefined,
           transformOrigin: "top left",
         }}
@@ -136,7 +92,7 @@ export default function PlantillaVisualEstaticoDom({ doc, imagenesResueltas, esc
           .filter((el) => el.visible !== false)
           .sort((a, b) => a.zIndex - b.zIndex)
           .map((el) => (
-            <ElementoEstatico key={el.id} el={el} imagenesResueltas={imagenesResueltas} />
+            <ElementoEstatico key={el.id} el={el} />
           ))}
       </div>
     </div>
