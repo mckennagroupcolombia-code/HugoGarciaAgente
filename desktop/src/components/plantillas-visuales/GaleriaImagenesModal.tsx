@@ -5,12 +5,13 @@ import { api } from "../../api/client";
 import { resolverUrlImagenCanvas, liberarCacheImagenCanvas } from "../../lib/plantillasVisualesImagen";
 
 interface RecursoPng {
-  id: string;
+  id: string | null;
   nombre: string;
   ruta?: string;
   ruta_completa?: string;
   subido_at?: string;
   thumb_b64?: string | null;
+  thumb_mime?: string | null;
 }
 
 interface RecursoEditor {
@@ -41,6 +42,8 @@ function MiniaturaGaleria({
   onElegir,
   onEliminar,
   onAlternarSeleccion,
+  onArrastrarInicio,
+  onArrastrarFin,
 }: {
   item: ImagenGaleriaItem;
   seleccionada: boolean;
@@ -49,6 +52,8 @@ function MiniaturaGaleria({
   onElegir: () => void;
   onEliminar: () => void;
   onAlternarSeleccion: () => void;
+  onArrastrarInicio?: () => void;
+  onArrastrarFin?: () => void;
 }) {
   const [src, setSrc] = useState<string | null>(
     item.thumbB64 ? `data:image/png;base64,${item.thumbB64}` : null,
@@ -70,11 +75,21 @@ function MiniaturaGaleria({
     };
   }, [item.src, item.thumbB64]);
 
+  const puedeArrastrar = item.origen === "recursos" && !!onArrastrarInicio;
+
   return (
     <div
+      draggable={puedeArrastrar}
+      onDragStart={(e) => {
+        if (!puedeArrastrar) return;
+        e.dataTransfer.effectAllowed = "move";
+        onArrastrarInicio?.();
+      }}
+      onDragEnd={onArrastrarFin}
+      title={puedeArrastrar ? "Arrastra a una carpeta para mover" : undefined}
       className={`group relative flex flex-col overflow-hidden rounded-lg border-2 bg-surface text-left transition ${
         seleccionada ? "border-accent ring-2 ring-accent/30" : "border-border"
-      }`}
+      } ${puedeArrastrar ? "cursor-grab active:cursor-grabbing" : ""}`}
     >
       <label
         className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-zinc-900/95"
@@ -149,6 +164,19 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
   const [progresoCarpeta, setProgresoCarpeta] = useState<ProgresoCarpeta | null>(null);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [eliminandoLote, setEliminandoLote] = useState(false);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false);
+  const [moviendoLote, setMoviendoLote] = useState(false);
+  const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
+  const [arrastrando, setArrastrando] = useState<ImagenGaleriaItem[] | null>(null);
+  const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierta) {
+      setCarpetaActual("");
+      setSeleccionados(new Set());
+    }
+  }, [abierta]);
 
   // webkitdirectory no está en los tipos estándar — el input solo existe cuando abierta=true
   useEffect(() => {
@@ -178,6 +206,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
       try {
         const fd = new FormData();
         fd.append("archivo", file);
+        fd.append("carpeta", carpetaActual);
         ultimoSubido = await api.upload<RecursoPng & { ok: boolean }>(
           "/api/etiquetas/recursos-png",
           fd,
@@ -210,20 +239,38 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
   }
 
   const { data: recursosData, isLoading: loadingRecursos } = useQuery({
-    queryKey: ["etiquetas-recursos-png"],
+    queryKey: ["etiquetas-recursos-png", carpetaActual],
     queryFn: () =>
-      api.get<{ recursos: RecursoPng[] }>("/api/etiquetas/recursos-png"),
+      api.get<{ recursos: RecursoPng[]; carpetas: string[]; carpeta_actual: string }>(
+        `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(carpetaActual)}`,
+      ),
     enabled: abierta,
-    staleTime: 30_000,
+    staleTime: 15_000,
   });
 
+  // Las imágenes propias del editor (plantillas-visuales/assets) no tienen
+  // carpetas todavía: solo se muestran parado en la raíz.
   const { data: editorData, isLoading: loadingEditor } = useQuery({
     queryKey: ["plantillas-visuales-assets"],
     queryFn: () =>
       api.get<{ recursos: RecursoEditor[] }>("/api/plantillas-visuales/assets"),
-    enabled: abierta,
+    enabled: abierta && carpetaActual === "",
     staleTime: 30_000,
   });
+
+  const { data: carpetasTodasData } = useQuery({
+    queryKey: ["etiquetas-recursos-png-carpetas"],
+    queryFn: () => api.get<{ carpetas: string[] }>("/api/etiquetas/recursos-png/carpetas"),
+    enabled: abierta,
+    staleTime: 15_000,
+  });
+
+  const subcarpetas = useMemo(() => {
+    const nombres = recursosData?.carpetas ?? [];
+    const q = buscar.trim().toLowerCase();
+    if (!q) return nombres;
+    return nombres.filter((n) => n.toLowerCase().includes(q));
+  }, [recursosData, buscar]);
 
   const imagenes = useMemo(() => {
     const map = new Map<string, ImagenGaleriaItem>();
@@ -237,21 +284,122 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
         origen: "recursos",
       });
     }
-    for (const r of editorData?.recursos ?? []) {
-      const key = `editor:${r.nombre}`;
-      if (map.has(key)) continue;
-      map.set(key, {
-        id: r.nombre,
-        nombre: r.nombre,
-        src: r.url,
-        origen: "editor",
-      });
+    if (carpetaActual === "") {
+      for (const r of editorData?.recursos ?? []) {
+        const key = `editor:${r.nombre}`;
+        if (map.has(key)) continue;
+        map.set(key, {
+          id: r.nombre,
+          nombre: r.nombre,
+          src: r.url,
+          origen: "editor",
+        });
+      }
     }
     const q = buscar.trim().toLowerCase();
     const items = Array.from(map.values());
     if (!q) return items;
     return items.filter((i) => i.nombre.toLowerCase().includes(q));
-  }, [recursosData, editorData, buscar]);
+  }, [recursosData, editorData, carpetaActual, buscar]);
+
+  const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
+
+  function irACarpeta(rel: string) {
+    setCarpetaActual(rel);
+    setSeleccionados(new Set());
+    setMenuMoverAbierto(false);
+  }
+
+  const crearCarpetaMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.post<{ ok: boolean; carpeta: string }>("/api/etiquetas/recursos-png/carpetas", {
+        nombre,
+        carpeta_padre: carpetaActual,
+      }),
+    onMutate: () => setCreandoCarpeta(true),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (err: Error) => setErrorSubida(err.message),
+    onSettled: () => setCreandoCarpeta(false),
+  });
+
+  function crearCarpeta() {
+    const nombre = window.prompt("Nombre de la nueva carpeta:");
+    if (!nombre || !nombre.trim()) return;
+    crearCarpetaMut.mutate(nombre.trim());
+  }
+
+  const renombrarCarpetaMut = useMutation({
+    mutationFn: ({ carpeta, nombreNuevo }: { carpeta: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; carpeta: string }>(
+        "/api/etiquetas/recursos-png/carpetas/renombrar",
+        { carpeta, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (err: Error) => setErrorSubida(err.message),
+  });
+
+  function renombrarCarpeta(rel: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarCarpetaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const moverLoteMut = useMutation({
+    mutationFn: async ({ items, destino }: { items: ImagenGaleriaItem[]; destino: string }) => {
+      const nombres = items.filter((i) => i.origen === "recursos").map((i) => i.nombre);
+      if (nombres.length === 0) return { movidos: [], errores: {} as Record<string, string> };
+      return api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/mover",
+        { nombres, carpeta_destino: destino },
+      );
+    },
+    onMutate: () => {
+      setMoviendoLote(true);
+      setErrorSubida(null);
+    },
+    onSuccess: (res) => {
+      setMenuMoverAbierto(false);
+      setSeleccionados(new Set());
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setErrorSubida(`No se pudieron mover ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (err: Error) => setErrorSubida(err.message),
+    onSettled: () => setMoviendoLote(false),
+  });
+
+  function moverSeleccionados(destino: string) {
+    const items = imagenes.filter((i) => seleccionados.has(claveItem(i)));
+    if (items.length === 0) return;
+    moverLoteMut.mutate({ items, destino });
+  }
+
+  function iniciarArrastre(item: ImagenGaleriaItem) {
+    const clave = claveItem(item);
+    const enSeleccion = seleccionados.has(clave) && seleccionados.size > 1;
+    setArrastrando(enSeleccion ? imagenes.filter((i) => seleccionados.has(claveItem(i))) : [item]);
+  }
+
+  function finalizarArrastre() {
+    setArrastrando(null);
+    setCarpetaHoverDrop(null);
+  }
+
+  function soltarEnCarpeta(destino: string) {
+    if (arrastrando && arrastrando.length > 0) {
+      moverLoteMut.mutate({ items: arrastrando, destino });
+    }
+    finalizarArrastre();
+  }
 
   function claveItem(item: Pick<ImagenGaleriaItem, "origen" | "nombre">): string {
     return `${item.origen}-${item.nombre}`;
@@ -366,6 +514,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
       if (validos.length === 1) {
         const fd = new FormData();
         fd.append("archivo", validos[0]);
+        fd.append("carpeta", carpetaActual);
         return api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
       }
       await subirArchivos(validos);
@@ -418,6 +567,78 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
           </button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-1 border-b border-border px-4 py-2 text-xs">
+          <button
+            type="button"
+            onClick={() => irACarpeta("")}
+            disabled={carpetaActual === ""}
+            onDragOver={(e) => {
+              if (!arrastrando || carpetaActual === "") return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDragEnter={(e) => {
+              if (!arrastrando || carpetaActual === "") return;
+              e.preventDefault();
+              setCarpetaHoverDrop("");
+            }}
+            onDragLeave={() => setCarpetaHoverDrop((v) => (v === "" ? null : v))}
+            onDrop={(e) => {
+              if (carpetaActual === "") return;
+              e.preventDefault();
+              soltarEnCarpeta("");
+            }}
+            className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+              carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
+            }`}
+          >
+            📁 Raíz
+          </button>
+          {segmentosRuta.map((seg, i) => {
+            const rel = segmentosRuta.slice(0, i + 1).join("/");
+            const esUltimo = i === segmentosRuta.length - 1;
+            return (
+              <span key={rel} className="flex items-center gap-1">
+                <span className="text-muted">/</span>
+                <button
+                  type="button"
+                  onClick={() => irACarpeta(rel)}
+                  disabled={esUltimo}
+                  onDragOver={(e) => {
+                    if (!arrastrando || esUltimo) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDragEnter={(e) => {
+                    if (!arrastrando || esUltimo) return;
+                    e.preventDefault();
+                    setCarpetaHoverDrop(rel);
+                  }}
+                  onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                  onDrop={(e) => {
+                    if (esUltimo) return;
+                    e.preventDefault();
+                    soltarEnCarpeta(rel);
+                  }}
+                  className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+                    carpetaHoverDrop === rel ? "bg-accent/15 text-accent" : ""
+                  }`}
+                >
+                  {seg}
+                </button>
+              </span>
+            );
+          })}
+          <button
+            type="button"
+            onClick={crearCarpeta}
+            disabled={creandoCarpeta}
+            className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+          >
+            {creandoCarpeta ? "…" : "+ Carpeta"}
+          </button>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
           <input
             value={buscar}
@@ -435,6 +656,43 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
               />
               Seleccionar todo
             </label>
+          )}
+          {seleccionados.size > 0 && (
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setMenuMoverAbierto((v) => !v)}
+                disabled={moviendoLote}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+              >
+                {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionados.size})`}
+              </button>
+              {menuMoverAbierto && (
+                <div className="absolute left-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => moverSeleccionados("")}
+                    disabled={carpetaActual === ""}
+                    className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+                  >
+                    📁 Raíz
+                  </button>
+                  {(carpetasTodasData?.carpetas ?? [])
+                    .filter((c) => c !== carpetaActual)
+                    .map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => moverSeleccionados(c)}
+                        className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
+                        title={c}
+                      >
+                        📁 {c}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
           )}
           {seleccionados.size > 0 && (
             <button
@@ -558,14 +816,65 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
             <div className="flex justify-center py-16">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
             </div>
-          ) : imagenes.length === 0 ? (
+          ) : imagenes.length === 0 && subcarpetas.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted">
               {buscar.trim()
-                ? "No hay imágenes con ese nombre."
-                : "Aún no hay imágenes. Sube la primera con el botón de arriba."}
+                ? "No hay imágenes ni carpetas con ese nombre."
+                : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              {subcarpetas.map((nombreCarpeta) => {
+                const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
+                const enHoverDrop = carpetaHoverDrop === rel;
+                return (
+                  <div
+                    key={rel}
+                    role="button"
+                    tabIndex={0}
+                    onDoubleClick={() => irACarpeta(rel)}
+                    onClick={() => irACarpeta(rel)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") irACarpeta(rel);
+                    }}
+                    title={rel}
+                    onDragOver={(e) => {
+                      if (!arrastrando) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                    }}
+                    onDragEnter={(e) => {
+                      if (!arrastrando) return;
+                      e.preventDefault();
+                      setCarpetaHoverDrop(rel);
+                    }}
+                    onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      soltarEnCarpeta(rel);
+                    }}
+                    className={`group/carpeta relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center transition ${
+                      enHoverDrop
+                        ? "border-accent bg-accent/10"
+                        : "border-border bg-surface hover:border-accent hover:bg-surface-hover"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      title="Renombrar carpeta"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        renombrarCarpeta(rel, nombreCarpeta);
+                      }}
+                      className="absolute right-1 top-1 rounded-md border border-border bg-white/95 px-1 py-0.5 text-[10px] opacity-0 shadow-sm transition hover:bg-surface-hover group-hover/carpeta:opacity-100 dark:bg-zinc-900/95"
+                    >
+                      ✎
+                    </button>
+                    <span className="text-3xl">📁</span>
+                    <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
+                  </div>
+                );
+              })}
               {imagenes.map((item) => (
                 <MiniaturaGaleria
                   key={claveItem(item)}
@@ -582,6 +891,8 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                     onCerrar();
                   }}
                   onAlternarSeleccion={() => alternarSeleccion(item)}
+                  onArrastrarInicio={() => iniciarArrastre(item)}
+                  onArrastrarFin={finalizarArrastre}
                   onEliminar={() => {
                     if (
                       !window.confirm(

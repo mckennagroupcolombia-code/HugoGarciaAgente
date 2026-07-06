@@ -14,6 +14,7 @@ from typing import Any
 
 _REPO = Path(__file__).resolve().parents[2]
 _DATA_PATH = _REPO / "app" / "data" / "plantillas_visuales.json"
+_CARPETAS_PATH = _REPO / "app" / "data" / "plantillas_visuales_carpetas.json"
 _ASSETS_DIR = _REPO / "uploads" / "plantillas_visuales"
 _MAX_PLANTILLAS = 500
 _MAX_ASSET_BYTES = 8 * 1024 * 1024
@@ -41,8 +42,10 @@ def _save_all(items: list[dict]) -> None:
         json.dump({"plantillas": items[:_MAX_PLANTILLAS]}, f, ensure_ascii=False, indent=2)
 
 
-def listar_plantillas(q: str = "") -> list[dict]:
+def listar_plantillas(q: str = "", carpeta: str | None = None) -> list[dict]:
     items = _load_all()
+    if carpeta is not None:
+        items = [p for p in items if (p.get("carpeta") or "") == carpeta]
     q = (q or "").strip().lower()
     if not q:
         return sorted(items, key=lambda x: x.get("updated_at") or "", reverse=True)
@@ -54,6 +57,150 @@ def listar_plantillas(q: str = "") -> list[dict]:
         if q in nombre or q in cat or q in fmt:
             out.append(p)
     return sorted(out, key=lambda x: x.get("updated_at") or "", reverse=True)
+
+
+def _load_carpetas_registro() -> list[str]:
+    if not _CARPETAS_PATH.exists():
+        return []
+    try:
+        with open(_CARPETAS_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+    items = data.get("carpetas") if isinstance(data, dict) else []
+    return [c for c in items if isinstance(c, str) and c.strip()] if isinstance(items, list) else []
+
+
+def _save_carpetas_registro(carpetas: list[str]) -> None:
+    _CARPETAS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_CARPETAS_PATH, "w", encoding="utf-8") as f:
+        json.dump({"carpetas": sorted(set(carpetas))}, f, ensure_ascii=False, indent=2)
+
+
+def _nombre_carpeta_plantilla_segura(nombre: str) -> str:
+    nombre = re.sub(r"[\\/]+", " ", (nombre or "").strip())
+    nombre = re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", nombre, flags=re.UNICODE).strip()
+    return nombre[:80]
+
+
+def listar_carpetas_plantillas(carpeta_padre: str = "") -> list[str]:
+    """Subcarpetas inmediatas de `carpeta_padre`: unión de las que ya tienen
+    alguna plantilla y las creadas vacías (registro aparte, ya que las
+    plantillas son solo registros JSON, no archivos)."""
+    carpeta_padre = (carpeta_padre or "").strip().strip("/")
+    prefijo = f"{carpeta_padre}/" if carpeta_padre else ""
+    vistas: set[str] = set()
+
+    todas = {(p.get("carpeta") or "").strip() for p in _load_all()}
+    todas |= set(_load_carpetas_registro())
+
+    for c in todas:
+        c = c.strip("/")
+        if not c or not c.startswith(prefijo):
+            continue
+        resto = c[len(prefijo):]
+        if not resto:
+            continue
+        hijo = resto.split("/", 1)[0]
+        if hijo:
+            vistas.add(hijo)
+    return sorted(vistas, key=str.lower)
+
+
+def listar_todas_carpetas_plantillas() -> list[str]:
+    """Todas las rutas de carpeta (para el selector "Mover a…")."""
+    todas: set[str] = set()
+    for p in _load_all():
+        c = (p.get("carpeta") or "").strip().strip("/")
+        if c:
+            todas.add(c)
+    for c in _load_carpetas_registro():
+        c = c.strip("/")
+        if c:
+            todas.add(c)
+    return sorted(todas, key=str.lower)
+
+
+def crear_carpeta_plantilla(carpeta_padre: str, nombre: str) -> str:
+    nombre = _nombre_carpeta_plantilla_segura(nombre)
+    if not nombre:
+        raise ValueError("Nombre de carpeta inválido")
+    carpeta_padre = (carpeta_padre or "").strip().strip("/")
+    nueva = f"{carpeta_padre}/{nombre}" if carpeta_padre else nombre
+    registro = _load_carpetas_registro()
+    if nueva not in registro:
+        registro.append(nueva)
+        _save_carpetas_registro(registro)
+    return nueva
+
+
+def mover_plantillas(ids: list[str], carpeta_destino: str) -> tuple[list[str], dict[str, str]]:
+    carpeta_destino = (carpeta_destino or "").strip().strip("/")
+    items = _load_all()
+    por_id = {p.get("id"): p for p in items if p.get("id")}
+    movidos: list[str] = []
+    errores: dict[str, str] = {}
+    for pid in ids:
+        p = por_id.get(pid)
+        if not p:
+            errores[pid] = "Plantilla no encontrada"
+            continue
+        p["carpeta"] = carpeta_destino
+        movidos.append(pid)
+    if movidos:
+        _save_all(items)
+    return movidos, errores
+
+
+def renombrar_carpeta_plantilla(carpeta: str, nombre_nuevo: str) -> str:
+    """Renombra la carpeta (y sus subcarpetas, ya que 'carpeta' es solo un
+    campo de texto): reemplaza el prefijo en cada plantilla y en el registro
+    de carpetas vacías."""
+    carpeta = (carpeta or "").strip().strip("/")
+    if not carpeta:
+        raise ValueError("Falta 'carpeta'")
+    nombre_nuevo = _nombre_carpeta_plantilla_segura(nombre_nuevo)
+    if not nombre_nuevo:
+        raise ValueError("Nombre nuevo inválido")
+
+    partes = carpeta.split("/")
+    carpeta_padre = "/".join(partes[:-1])
+    nueva = f"{carpeta_padre}/{nombre_nuevo}" if carpeta_padre else nombre_nuevo
+    if nueva == carpeta:
+        return carpeta
+
+    todas_existentes = set(listar_todas_carpetas_plantillas())
+    if carpeta not in todas_existentes:
+        raise ValueError("Carpeta no encontrada")
+    if nueva in todas_existentes:
+        raise ValueError("Ya existe una carpeta con ese nombre")
+
+    def _reemplazar_prefijo(valor: str) -> str:
+        if valor == carpeta:
+            return nueva
+        if valor.startswith(carpeta + "/"):
+            return nueva + valor[len(carpeta):]
+        return valor
+
+    items = _load_all()
+    cambiado = False
+    for p in items:
+        actual = (p.get("carpeta") or "").strip().strip("/")
+        if not actual:
+            continue
+        nuevo_valor = _reemplazar_prefijo(actual)
+        if nuevo_valor != actual:
+            p["carpeta"] = nuevo_valor
+            cambiado = True
+    if cambiado:
+        _save_all(items)
+
+    registro = _load_carpetas_registro()
+    registro_nuevo = [_reemplazar_prefijo(c.strip("/")) for c in registro]
+    if registro_nuevo != registro:
+        _save_carpetas_registro(registro_nuevo)
+
+    return nueva
 
 
 def obtener_plantilla(pid: str) -> dict | None:
@@ -77,17 +224,25 @@ def guardar_plantilla(body: dict) -> dict:
     now = _now()
     formato = body.get("formato")
     elementos = body.get("elementos")
+    todas = _load_all()
+    existente = next((p for p in todas if p.get("id") == pid), None)
+    # Si el body no manda 'carpeta' (p. ej. un guardado que no la conoce),
+    # conserva la que ya tenía la plantilla en vez de devolverla a la raíz.
+    carpeta = body.get("carpeta")
+    if carpeta is None:
+        carpeta = (existente or {}).get("carpeta") or ""
     entry = {
         "id": pid,
         "nombre": nombre,
         "categoria": (body.get("categoria") or "general").strip(),
+        "carpeta": str(carpeta).strip().strip("/"),
         "formato": _copia_fiel_json(formato) if isinstance(formato, dict) else {},
         "fondo": body.get("fondo") or "#ffffff",
         "elementos": _copia_fiel_json(elementos) if isinstance(elementos, list) else [],
         "created_at": body.get("created_at") or now,
         "updated_at": now,
     }
-    items = [p for p in _load_all() if p.get("id") != pid]
+    items = [p for p in todas if p.get("id") != pid]
     items.insert(0, entry)
     _save_all(items)
     return entry

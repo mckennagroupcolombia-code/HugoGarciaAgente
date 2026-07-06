@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
   targetEscaneoDesdeFila,
@@ -8,7 +8,10 @@ import {
   type FormatoImpresionEscaneo,
 } from "../../lib/etiquetasStudioHelpers";
 import { mmParaTipoEtiqueta, TIPOS_ETIQUETA_DEFAULT } from "../../lib/etiquetasTipos";
+import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
+import { descargarBlob } from "../../lib/plantillasVisualesExport";
 import { CatalogoDiagramacionScanner } from "./CatalogoDiagramacionScanner";
+import { LightboxImagen, MiniaturaRecursoPng, codificarRutaRecursoPng } from "./RecursoPngViewer";
 import {
   SelectorFormatoEtiqueta,
   type FormatoEtiquetaValor,
@@ -140,6 +143,82 @@ export function EtiquetasStudioCatalogo({
   });
   const [plantillaSueltasAbierto, setPlantillaSueltasAbierto] = useState(false);
   const [plantillaPngAbierto, setPlantillaPngAbierto] = useState(false);
+  const [pngSeleccionados, setPngSeleccionados] = useState<Set<string>>(new Set());
+  const [pngEliminandoLote, setPngEliminandoLote] = useState(false);
+  const [pngErrorLote, setPngErrorLote] = useState<string | null>(null);
+  const [pngVistaPrevia, setPngVistaPrevia] = useState<string | null>(null);
+  const [pngDescargando, setPngDescargando] = useState<string | null>(null);
+  const [pngEliminandoUno, setPngEliminandoUno] = useState<string | null>(null);
+
+  const qc = useQueryClient();
+
+  function alternarSeleccionPng(nombre: string) {
+    setPngSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(nombre)) next.delete(nombre);
+      else next.add(nombre);
+      return next;
+    });
+  }
+
+  const eliminarPngMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.delete<{ ok: boolean }>(`/api/etiquetas/recursos-png/${codificarRutaRecursoPng(nombre)}`),
+    onMutate: (nombre) => setPngEliminandoUno(nombre),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    },
+    onSettled: () => setPngEliminandoUno(null),
+  });
+
+  const eliminarPngLoteMut = useMutation({
+    mutationFn: (nombres: string[]) =>
+      api.post<{ ok: boolean; eliminados: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/eliminar-lote",
+        { nombres },
+      ),
+    onMutate: () => {
+      setPngEliminandoLote(true);
+      setPngErrorLote(null);
+    },
+    onSuccess: (res) => {
+      setPngSeleccionados((prev) => {
+        const next = new Set(prev);
+        res.eliminados.forEach((n) => next.delete(n));
+        return next;
+      });
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setPngErrorLote(`No se pudieron eliminar ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    },
+    onError: (e: Error) => setPngErrorLote(e.message || "Error al eliminar las imágenes seleccionadas"),
+    onSettled: () => setPngEliminandoLote(false),
+  });
+
+  function eliminarPngSeleccionados() {
+    const nombres = Array.from(pngSeleccionados);
+    if (nombres.length === 0) return;
+    if (!window.confirm(`¿Eliminar ${nombres.length} imagen(es) seleccionada(s)?`)) return;
+    eliminarPngLoteMut.mutate(nombres);
+  }
+
+  async function descargarPng(nombre: string) {
+    setPngDescargando(nombre);
+    try {
+      const url = await resolverUrlImagenCanvas(
+        `/api/etiquetas/recursos-png/archivo/${codificarRutaRecursoPng(nombre)}`,
+      );
+      const res = await fetch(url);
+      const blob = await res.blob();
+      descargarBlob(blob, nombre.split("/").pop() || nombre);
+    } finally {
+      setPngDescargando(null);
+    }
+  }
 
   const formatoImpresion = useMemo<FormatoImpresionEscaneo | null>(() => {
     const nombre = formatoValor.nombre.trim();
@@ -620,31 +699,107 @@ export function EtiquetasStudioCatalogo({
 
       {plantillaPngAbierto && (
         <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-violet-800">
               PNG generados en Studio ({plantillasPngFiltradas.length}
               {buscar.trim() ? ` / ${data?.plantillas_png_sin_producto?.length ?? 0}` : ""})
             </p>
-            <p className="text-[10px] text-violet-700">
-              En transición · aún no vinculados a un SKU del catálogo
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] text-violet-700">
+                En transición · aún no vinculados a un SKU del catálogo
+              </p>
+              {plantillasPngFiltradas.length > 0 && (
+                <label className="flex items-center gap-1.5 text-[10px] text-violet-800">
+                  <input
+                    type="checkbox"
+                    checked={plantillasPngFiltradas.every((n) => pngSeleccionados.has(n))}
+                    onChange={() => {
+                      setPngSeleccionados((prev) => {
+                        const todosMarcados = plantillasPngFiltradas.every((n) => prev.has(n));
+                        const next = new Set(prev);
+                        plantillasPngFiltradas.forEach((n) =>
+                          todosMarcados ? next.delete(n) : next.add(n),
+                        );
+                        return next;
+                      });
+                    }}
+                  />
+                  Seleccionar todo
+                </label>
+              )}
+              {pngSeleccionados.size > 0 && (
+                <button
+                  type="button"
+                  onClick={eliminarPngSeleccionados}
+                  disabled={pngEliminandoLote}
+                  className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {pngEliminandoLote ? "Eliminando…" : `Eliminar (${pngSeleccionados.size})`}
+                </button>
+              )}
+            </div>
           </div>
+
+          {pngErrorLote && (
+            <p className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">
+              {pngErrorLote}
+            </p>
+          )}
+
           {plantillasPngFiltradas.length === 0 ? (
             <p className="px-1 py-2 text-center text-xs text-muted">Sin PNG que coincidan</p>
           ) : (
-            <ul className="grid max-h-64 grid-cols-2 gap-1 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">
-              {plantillasPngFiltradas.map((nombre) => (
-                <li
-                  key={nombre}
-                  title={nombre}
-                  className="truncate rounded border border-violet-200 bg-white px-2 py-1.5 font-mono text-[10px] text-violet-900"
-                >
-                  {nombre}
-                </li>
-              ))}
-            </ul>
+            <div className="grid max-h-80 grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4 lg:grid-cols-6">
+              {plantillasPngFiltradas.map((nombre) => {
+                const activo = pngSeleccionados.has(nombre);
+                return (
+                  <div
+                    key={nombre}
+                    className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white ${
+                      activo ? "border-accent ring-2 ring-accent/40" : "border-violet-200"
+                    }`}
+                  >
+                    <label className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={activo}
+                        onChange={() => alternarSeleccionPng(nombre)}
+                        className="h-3.5 w-3.5"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      title={nombre}
+                      onClick={() => setPngVistaPrevia(nombre)}
+                      className="flex aspect-square items-center justify-center bg-zinc-100 p-1 hover:opacity-90"
+                    >
+                      <MiniaturaRecursoPng nombre={nombre} />
+                    </button>
+                    <p className="truncate px-1.5 py-1 font-mono text-[9px] text-violet-900" title={nombre}>
+                      {nombre}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
+      )}
+
+      {pngVistaPrevia && (
+        <LightboxImagen
+          nombre={pngVistaPrevia}
+          onCerrar={() => setPngVistaPrevia(null)}
+          onDescargar={() => void descargarPng(pngVistaPrevia)}
+          onEliminar={() => {
+            if (!window.confirm(`¿Eliminar "${pngVistaPrevia}" de la biblioteca?`)) return;
+            eliminarPngMut.mutate(pngVistaPrevia, {
+              onSuccess: () => setPngVistaPrevia(null),
+            });
+          }}
+          descargando={pngDescargando === pngVistaPrevia}
+          eliminando={pngEliminandoUno === pngVistaPrevia}
+        />
       )}
 
       <div className="overflow-hidden rounded-xl border border-border">
