@@ -20,7 +20,7 @@
         {
           "align": "justify",
           "color": "#0f172a",
-          "content": "",
+          "content": "Inulina",
           "fontFamily": "\"Montserrat\", system-ui, sans-serif",
           "fontSize": 6.25,
           "fontWeight": "500",
@@ -29,11 +29,11 @@
           "rotation": 0,
           "textRole": "descripcion",
           "type": "text",
+          "visible": true,
           "width": 184.0865515579857,
           "x": 6.596532235465071,
           "y": 48.10904217324702,
-          "zIndex": 1,
-          "visible": true
+          "zIndex": 1
         },
         {
           "height": 4,
@@ -298,7 +298,7 @@
         }
       ],
       "created_at": "2026-07-05T23:52:02",
-      "updated_at": "2026-07-06T22:17:40"
+      "updated_at": "2026-07-07T00:05:59"
     },
     {
       "id": "073aca8c-fc1",

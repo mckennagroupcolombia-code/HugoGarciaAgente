@@ -43,7 +43,11 @@ export default function SugerenciasTextoMagico({
   const reqIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const puedeGenerar = contarPalabras(fragmento) >= 2;
+  // Muchas materias primas son una sola palabra (Creatina, Inulina,
+  // Lanolina...): exigir 2 palabras bloqueaba el caso de uso principal
+  // (generar texto con la descripción todavía vacía, solo a partir del
+  // título del producto en `fragmento`).
+  const puedeGenerar = contarPalabras(fragmento) >= 1;
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -132,8 +136,8 @@ export default function SugerenciasTextoMagico({
       {!puedeGenerar && (
         <p className="mt-1 text-[10px] text-muted">
           {modoDescripcionMateriaPrima
-            ? "Agrega una capa de título con el nombre del producto (ej. suero de leche), o escribe al menos 2 palabras en este contenido, para activar texto mágico."
-            : "Escribe al menos 2 palabras en el contenido (ej. suero de leche) para activar texto mágico."}
+            ? "Agrega una capa de título con el nombre del producto (ej. creatina), o escribe algo en este contenido, para activar texto mágico."
+            : "Escribe el nombre del producto en el contenido (ej. creatina) para activar texto mágico."}
         </p>
       )}
 

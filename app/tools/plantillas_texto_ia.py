@@ -1721,10 +1721,16 @@ def _validar_texto_catalogo(
         return None
     if re.search(
         r"(DESCRIPCIÓN FÍSICA|DESCRIPCIÓN FUNCIONAL|IMPORTANCIA Y MECANISMO|"
-        r"APLICACIONES|REFERENCIA DE USO|^\s*[•\-]\s)",
+        r"REFERENCIA DE USO|^\s*[•\-]\s)",
         t,
         re.I | re.M,
     ):
+        return None
+    # "APLICACIONES" sin re.I: en mayúsculas es un encabezado de ficha que se
+    # coló sin limpiar; en minúsculas ("aplicaciones industriales...") es una
+    # palabra normal e inevitable al describir usos de un insumo — con
+    # re.I cualquier texto que la usara en prosa (casi todos) se rechazaba.
+    if re.search(r"\bAPLICACIONES\b", t):
         return None
     if _APROPIACION_RE.search(t):
         return None
@@ -2040,10 +2046,15 @@ def sugerir_texto_magico(
 ) -> dict:
     fragmento = (fragmento or "").strip()
     palabras = _palabras_clave(fragmento, min_len=3)
-    if len(palabras) < 2:
+    # Muchas materias primas son una sola palabra (Creatina, Inulina,
+    # Lanolina...): exigir 2 palabras clave bloqueaba el caso de uso
+    # principal (generar texto con la capa de descripción todavía vacía,
+    # solo con el título del producto). `_recolectar_fichas` ya adapta su
+    # propio umbral de coincidencias con `min(2, len(palabras))`.
+    if len(palabras) < 1:
         return {
             "ok": False,
-            "error": "Escribe al menos dos palabras para sugerencias",
+            "error": "Escribe al menos una palabra clave para sugerencias",
             "sugerencias": [],
             "fichas": [],
         }
