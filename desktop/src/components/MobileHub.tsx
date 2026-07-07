@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useTicketsAuth } from "../stores/ticketsAuth";
+import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
+import { puedeVerSeccionPanel } from "./Sidebar";
 import { useAppStore, type Panel } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
@@ -540,7 +541,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { icon: "envelope",  label: "Facturas de compra",  sub: "Registrar desde Gmail", endpoint: "/api/sync/gmail", method: "POST", tone: "rose" },
 ];
 
-function AccionesTab({ apiToken, onNavigateTo }: { apiToken: string; onNavigateTo: (p: Panel) => void }) {
+function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user: TicketsUser | null; onNavigateTo: (p: Panel) => void }) {
   const [results, setResults] = useState<Record<number, ActionResult | "loading">>({});
   const [preventa, setPreventa] = useState<number | null>(null);
 
@@ -633,7 +634,8 @@ function AccionesTab({ apiToken, onNavigateTo }: { apiToken: string; onNavigateT
           { panel: "stock" as Panel, label: "Stock" },
           { panel: "facturas" as Panel, label: "Facturas" },
           { panel: "pedidos" as Panel, label: "Pedidos web" },
-        ]).map((s) => (
+          { panel: "placas-concreto" as Panel, label: "Placas concreto" },
+        ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (
           <button
             key={s.panel}
             type="button"
@@ -812,7 +814,7 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
           />
         )}
         {tab === "chat" && <ChatTab />}
-        {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} onNavigateTo={navigateTo} />}
+        {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} user={user} onNavigateTo={navigateTo} />}
         {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
       </div>
 

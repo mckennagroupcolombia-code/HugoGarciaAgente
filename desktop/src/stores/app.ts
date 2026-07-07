@@ -25,6 +25,7 @@ export type Panel =
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
+  | "placas-concreto"
   | "logistica-importaciones"
   | "logistica-embarques"
   | "logistica-aduanas"

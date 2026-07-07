@@ -6,9 +6,9 @@ export const studio = {
   canvasBg: "bg-[#505050]",
   panel: "bg-surface-panel text-ink border-border",
   toolBtn:
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-300 transition hover:bg-white/10 hover:text-white data-[active=true]:bg-white/15 data-[active=true]:text-white",
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-neutral-300 transition hover:bg-white/10 hover:text-white data-[active=true]:bg-white/15 data-[active=true]:text-white",
   toolBtnDanger:
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-400 transition hover:bg-red-500/20 hover:text-red-300",
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-red-400 transition hover:bg-red-500/20 hover:text-red-300",
   sep: "bg-white/10",
   field:
     "w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent/50",

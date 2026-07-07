@@ -4,6 +4,7 @@ Editor de Plantillas Visuales — persistencia JSON y exportación PDF/PNG/JPG.
 from __future__ import annotations
 
 import base64
+import copy
 import io
 import json
 import re
@@ -19,27 +20,50 @@ _ASSETS_DIR = _REPO / "uploads" / "plantillas_visuales"
 _MAX_PLANTILLAS = 500
 _MAX_ASSET_BYTES = 8 * 1024 * 1024
 
+# Cache en memoria de plantillas_visuales.json, invalidada por mtime: cada
+# tecla en el buscador del Studio listaba y filtraba el catálogo completo
+# releyendo y re-parseando el JSON desde disco. `_load_all` devuelve una
+# copia profunda del cache para que las mutaciones in-place de otras
+# funciones (p. ej. `mover_plantillas`) nunca contaminen el estado cacheado.
+_cache: dict[str, Any] = {"mtime": None, "items": None}
+
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
 def _load_all() -> list[dict]:
-    if not _DATA_PATH.exists():
-        return []
     try:
-        with open(_DATA_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception:
+        mtime = _DATA_PATH.stat().st_mtime
+    except OSError:
+        _cache["mtime"] = None
+        _cache["items"] = []
         return []
-    items = data.get("plantillas") if isinstance(data, dict) else data
-    return items if isinstance(items, list) else []
+    if _cache["items"] is None or _cache["mtime"] != mtime:
+        try:
+            with open(_DATA_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        items = data.get("plantillas") if isinstance(data, dict) else data
+        _cache["items"] = items if isinstance(items, list) else []
+        _cache["mtime"] = mtime
+    return copy.deepcopy(_cache["items"])
 
 
 def _save_all(items: list[dict]) -> None:
     _DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    trimmed = items[:_MAX_PLANTILLAS]
     with open(_DATA_PATH, "w", encoding="utf-8") as f:
-        json.dump({"plantillas": items[:_MAX_PLANTILLAS]}, f, ensure_ascii=False, indent=2)
+        json.dump({"plantillas": trimmed}, f, ensure_ascii=False, indent=2)
+    # Actualiza el cache de inmediato: el mtime del filesystem puede tener
+    # resolución de 1s, insuficiente para distinguir un guardado de la
+    # lectura inmediatamente posterior (p. ej. autoguardado + refresco de lista).
+    try:
+        _cache["mtime"] = _DATA_PATH.stat().st_mtime
+    except OSError:
+        _cache["mtime"] = None
+    _cache["items"] = copy.deepcopy(trimmed)
 
 
 def listar_plantillas(q: str = "", carpeta: str | None = None) -> list[dict]:

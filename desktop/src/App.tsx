@@ -21,6 +21,7 @@ import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
 import SupervisorPanel from "./components/SupervisorPanel";
 import EtiquetasPanel, { ConfigurarProductosPanel } from "./components/EtiquetasPanel";
+import PlacasConcretoPanel from "./components/PlacasConcretoPanel";
 import PublicacionesPanel from "./components/PublicacionesPanel";
 import LogisticaInternacionalPanel from "./components/LogisticaInternacionalPanel";
 import Settings from "./components/Settings";
@@ -80,6 +81,8 @@ function PanelRouter() {
       return <EtiquetasPanel />;
     case "etiquetas-config":
       return <ConfigurarProductosPanel />;
+    case "placas-concreto":
+      return <PlacasConcretoPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "logistica-importaciones":
@@ -186,6 +189,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
   "facturas", "costos-productos", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config",
+  "placas-concreto",
   ...LOGISTICA_PANELS,
   "settings",
 ];

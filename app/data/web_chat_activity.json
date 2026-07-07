@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-04T07:27:29",
+  "updated_at": "2026-07-06T15:54:09",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -41,9 +41,142 @@
     "2026-07-01": 1,
     "2026-07-02": 4,
     "2026-07-03": 10,
-    "2026-07-04": 1
+    "2026-07-04": 1,
+    "2026-07-06": 8
   },
   "sessions": [
+    {
+      "session_id": "web-4bf550c2-b21d-4482-901c-04dab99a6a23",
+      "started_at": "2026-07-06T15:54:09",
+      "last_at": "2026-07-06T15:54:09",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-proconsue80pkg",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Vende la proteína de suero de leche por vueltos?",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-06T15:54:09",
+          "user_message": "Vende la proteína de suero de leche por vueltos?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-1d7b4894-8676-482c-8cb2-41c819abc5fc",
+      "started_at": "2026-07-06T14:09:50",
+      "last_at": "2026-07-06T14:10:11",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hola necesito una microcelulosa ph102",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-06T14:09:50",
+          "user_message": "Buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-06T14:10:11",
+          "user_message": "Hola necesito una microcelulosa ph102",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-273a3403-1ce0-47d8-8308-6bfa8ca25d9b",
+      "started_at": "2026-07-06T08:21:40",
+      "last_at": "2026-07-06T08:28:09",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Me equivoque es palmitos tripeptide",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-06T08:21:40",
+          "user_message": "Buenos días",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-06T08:25:09",
+          "user_message": "Quisiera cotizar unas materias primas de grado cosmético   ascorbil glucosido (vitamina c)en polca y matrixil 3000",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-06T08:27:20",
+          "user_message": "O palmitol tripepeptide",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-06T08:28:09",
+          "user_message": "Me equivoque es palmitos tripeptide",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-55cc8fd9-d159-4056-b0a1-84e3ded5ed77",
+      "started_at": "2026-07-06T02:51:44",
+      "last_at": "2026-07-06T02:51:44",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Su manteca de cacao es comestible?",
+      "last_agent_reply": "¡Claro que sí, veci! Nuestra manteca de cacao es 100% pura y de grado alimenticio, así que sí es comestible. Le aclaro que como es una materia prima, no tiene un registro INVIMA como si fuera un producto terminado (ej. una chocolatina), ya que ese registro aplica es al producto final. Lo que garantizamos es su total pureza y calidad con la ficha técnica y el certificado de análisis. Puede usarla con toda confianza.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-06T02:51:44",
+          "user_message": "Su manteca de cacao es comestible?",
+          "agent_reply": "¡Claro que sí, veci! Nuestra manteca de cacao es 100% pura y de grado alimenticio, así que sí es comestible. Le aclaro que como es una materia prima, no tiene un registro INVIMA como si fuera un producto terminado (ej. una chocolatina), ya que ese registro aplica es al producto final. Lo que garantizamos es su total pureza y calidad con la ficha técnica y el certificado de análisis. Puede usarla con toda confianza.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-bd10d764-b9f1-4120-93b1-227e52ac2691",
       "started_at": "2026-07-04T07:27:29",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -552,7 +552,11 @@ export default function PlantillasVisualesPanel({
   const [vista, setVista] = useState<Vista>("lista");
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
   const [buscar, setBuscar] = useState("");
+  const [buscarDebounced, setBuscarDebounced] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  // Snapshot del último doc guardado (o recién abierto): compararlo con `doc`
+  // dice si hay cambios sin guardar, para poder avisar antes de perderlos.
+  const docGuardadoRef = useRef<PlantillaVisualDoc | null>(null);
   const [carpetaActual, setCarpetaActual] = useState("");
   const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
   const [creandoCarpeta, setCreandoCarpeta] = useState(false);
@@ -566,11 +570,16 @@ export default function PlantillasVisualesPanel({
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
+  useEffect(() => {
+    const t = window.setTimeout(() => setBuscarDebounced(buscar), 250);
+    return () => window.clearTimeout(t);
+  }, [buscar]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["plantillas-visuales", buscar, carpetaActual],
+    queryKey: ["plantillas-visuales", buscarDebounced, carpetaActual],
     queryFn: () =>
       api.get<{ plantillas: PlantillaVisualDoc[]; carpetas: string[]; carpeta_actual: string }>(
-        `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscar ? `&q=${encodeURIComponent(buscar)}` : ""}`,
+        `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscarDebounced ? `&q=${encodeURIComponent(buscarDebounced)}` : ""}`,
       ),
     staleTime: 15_000,
   });
@@ -694,17 +703,59 @@ export default function PlantillasVisualesPanel({
     mutationFn: (payload: PlantillaVisualDoc) =>
       api.post<{ plantilla: PlantillaVisualDoc }>("/api/plantillas-visuales", payload),
     onSuccess: (res) => {
-      setDoc((prev) =>
-        prev && res.plantilla
-          ? fusionarMetadatosPlantillaTrasGuardar(prev, res.plantilla)
-          : res.plantilla,
-      );
+      setDoc((prev) => {
+        const next =
+          prev && res.plantilla
+            ? fusionarMetadatosPlantillaTrasGuardar(prev, res.plantilla)
+            : res.plantilla;
+        docGuardadoRef.current = next;
+        return next;
+      });
       void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
       setMsg("Plantilla guardada ✓");
       setTimeout(() => setMsg(null), 2500);
     },
     onError: (e: Error) => setMsg(e.message || "Error al guardar"),
   });
+
+  // Refs "valor más reciente" para el autoguardado: el intervalo se crea una
+  // sola vez por sesión de editor (deps: [vista]) y lee estas refs en cada
+  // tick, así no se reinicia con cada tecla mientras se edita el texto.
+  const docRef = useRef<PlantillaVisualDoc | null>(null);
+  useEffect(() => {
+    docRef.current = doc;
+  }, [doc]);
+  const guardarEnCursoRef = useRef(false);
+  useEffect(() => {
+    guardarEnCursoRef.current = guardarMut.isPending;
+  }, [guardarMut.isPending]);
+  const mutateGuardarRef = useRef(guardarMut.mutate);
+  useEffect(() => {
+    mutateGuardarRef.current = guardarMut.mutate;
+  }, [guardarMut.mutate]);
+
+  useEffect(() => {
+    if (vista !== "editor") return;
+    const AUTOSAVE_MS = 60_000;
+    const id = window.setInterval(() => {
+      const actual = docRef.current;
+      if (actual && docGuardadoRef.current !== actual && !guardarEnCursoRef.current) {
+        mutateGuardarRef.current(actual);
+      }
+    }, AUTOSAVE_MS);
+    return () => window.clearInterval(id);
+  }, [vista]);
+
+  useEffect(() => {
+    if (vista !== "editor") return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (!doc || docGuardadoRef.current === doc) return;
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [vista, doc]);
 
   const eliminarMut = useMutation({
     mutationFn: (id: string) => api.delete(`/api/plantillas-visuales/${id}`),
@@ -716,7 +767,9 @@ export default function PlantillasVisualesPanel({
 
   const abrirCopiaGuardada = useCallback(
     (local: PlantillaVisualDoc, servidor: PlantillaVisualDoc) => {
-      setDoc(fusionarMetadatosPlantillaTrasGuardar(local, servidor));
+      const fusionado = fusionarMetadatosPlantillaTrasGuardar(local, servidor);
+      setDoc(fusionado);
+      docGuardadoRef.current = fusionado;
       setVista("editor");
       setMsg("Plantilla duplicada ✓");
       setTimeout(() => setMsg(null), 2500);
@@ -759,7 +812,9 @@ export default function PlantillasVisualesPanel({
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    setDoc(plantillaVacia(formato, categoriaId, carpetaActual));
+    const nuevo = plantillaVacia(formato, categoriaId, carpetaActual);
+    setDoc(nuevo);
+    docGuardadoRef.current = nuevo;
     setVista("editor");
   };
 
@@ -769,6 +824,7 @@ export default function PlantillasVisualesPanel({
         `/api/plantillas-visuales/${id}`,
       );
       setDoc(res.plantilla);
+      docGuardadoRef.current = res.plantilla;
       setVista("editor");
     } catch {
       setMsg("No se pudo abrir la plantilla");
@@ -824,10 +880,18 @@ export default function PlantillasVisualesPanel({
           onGuardar={() => guardarMut.mutate(doc)}
           onDuplicar={duplicarPlantillaActual}
           onVolver={() => {
+            if (
+              docGuardadoRef.current !== doc &&
+              !window.confirm("Hay cambios sin guardar. ¿Salir de todas formas? Se perderán.")
+            ) {
+              return;
+            }
             setVista("lista");
             setDoc(null);
+            docGuardadoRef.current = null;
           }}
           onExportar={exportar}
+          dirty={docGuardadoRef.current !== doc}
           guardando={guardarMut.isPending}
           duplicando={guardarMut.isPending}
           exportando={exportando}
