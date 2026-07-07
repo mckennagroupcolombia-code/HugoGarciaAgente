@@ -700,10 +700,15 @@ export function inferirRolTextoCapa(
   if (textos.length === 1) return "descripcion";
 
   const sortedByZ = [...textos].sort((a, b) => a.zIndex - b.zIndex);
+  // El tamaño de fuente es la señal universal de jerarquía en una etiqueta
+  // (el título es el texto más grande); el grosor solo desempata. Ordenar
+  // por grosor primero hacía que una capa pequeña pero en negrita (CAS,
+  // lote, código de barras) le ganara el puesto de "título" a la capa que
+  // de verdad lo es, y entonces la descripción nunca encontraba el título.
   const sortedByFont = [...textos].sort((a, b) => {
     const wb = parseInt(b.fontWeight, 10) || 400;
     const wa = parseInt(a.fontWeight, 10) || 400;
-    return wb - wa || b.fontSize - a.fontSize;
+    return b.fontSize - a.fontSize || wb - wa;
   });
 
   const candidatoDesc = sortedByZ[0];

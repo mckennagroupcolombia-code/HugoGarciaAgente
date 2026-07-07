@@ -142,6 +142,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M16 9a3 3 0 0 1 0 6" />
     </>
   ),
+  "placas-concreto": (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M4 12h16M12 4v16" />
+      <path d="M8 4v4M16 16v4" />
+    </>
+  ),
   "logistica-importaciones": (
     <>
       <path d="M4 16l2-5h12l2 5" />

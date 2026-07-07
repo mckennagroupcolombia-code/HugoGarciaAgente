@@ -32,6 +32,7 @@ import {
   InventarioCarritoModal,
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
+import PlacasConcretoModal from "./PlacasConcretoModal";
 import { puedeVerSeccionPanel } from "./Sidebar";
 import {
   esSolicitudEtiqueta,
@@ -23129,6 +23130,7 @@ function AccionesView({
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
   const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
   const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "agenda" | "notas" | "bolsillo">(initialTab ?? "activas");
+  const [appAbierta, setAppAbierta] = useState<"placas-concreto" | null>(null);
   const [historial, setHistorial] = useState<Ticket[]>([]);
   const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
   const [pendientes, setPendientes] = useState<PendienteItem[]>([]);
@@ -24357,6 +24359,26 @@ function AccionesView({
             abrirFormSignal={crearProcedimientoSignal}
             onCreado={() => void cargarHistorialYProcedimientos()}
           />
+
+          {/* Aplicaciones — procedimientos interactivos (calculadoras, no checklist) */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
+              🧩 Aplicaciones — disponibles para todo el equipo
+            </p>
+            <button
+              type="button"
+              onClick={() => setAppAbierta("placas-concreto")}
+              className="flex w-full items-center gap-3 rounded-xl border-2 border-accent/30 bg-accent/5 p-3 text-left transition hover:border-accent/60 hover:bg-accent/10"
+            >
+              <TopicIcon value="🧱" size={20} className="shrink-0 text-accent" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ink">Placas de Concreto Pulido</p>
+                <p className="text-[11px] text-muted">Calculadora de taller — dosificación exacta por pieza</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">Abrir</span>
+            </button>
+          </div>
+
           {loadingExtra && <p className="text-sm text-muted">Cargando…</p>}
           {!loadingExtra && procedimientos.length === 0 && !abrirFormProcedimiento && crearProcedimientoSignal === 0 && (
             <div className="space-y-3 py-8 text-center">
@@ -24460,6 +24482,10 @@ function AccionesView({
             </div>
           )}
         </div>
+      )}
+
+      {appAbierta === "placas-concreto" && (
+        <PlacasConcretoModal onClose={() => setAppAbierta(null)} />
       )}
 
       {/* Secciones secundarias — visibles salvo cuando se está dentro de un subtab */}

@@ -384,6 +384,17 @@ export default function Sidebar() {
           </>
         )}
 
+        {/* PRODUCCIÓN */}
+        {puedeVerSeccion(user, "placas-concreto") && (
+          <>
+            <SectionLabel>Producción</SectionLabel>
+            <div className="space-y-0.5">
+              <NavItem id="placas-concreto" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
+            </div>
+            <Divider />
+          </>
+        )}
+
         {/* FINANZAS */}
         {(verContabilidad || puedeVerSeccion(user, "sync") || puedeVerSeccion(user, "facturas")) && (
           <>

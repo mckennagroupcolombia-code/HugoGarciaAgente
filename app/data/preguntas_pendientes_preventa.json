@@ -1101,8 +1101,8 @@
       "question_id": "13615881238",
       "titulo_producto": "Repuestos Extrusor Compatible Artillery Sidewinder Genius",
       "pregunta": "buenas noches es compatible con una artillery genius y se puede recoger el dia de mañana",
-      "timestamp": "2026-07-06T01:58:21.151178",
-      "respondida": false
+      "timestamp": "2026-07-06T03:28:33.320493",
+      "respondida": true
     },
     {
       "question_id": "13616182356",
@@ -1117,8 +1117,41 @@
       "question_id": "13616258494",
       "titulo_producto": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
       "pregunta": "La necesito para pesar oro si me sirve para eso ?",
-      "timestamp": "2026-07-06T01:58:21.151178",
-      "respondida": false
+      "timestamp": "2026-07-06T03:28:33.320493",
+      "respondida": true
+    },
+    {
+      "question_id": "13615804665",
+      "titulo_producto": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+      "pregunta": "Buen día el jabón potasico por litro. Trae aceite de neen? Me puedes compartir los i ngredientes? Gracias",
+      "timestamp": "2026-07-06T13:29:04.918501",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-07-06"
+    },
+    {
+      "question_id": "13616789362",
+      "titulo_producto": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+      "pregunta": "Y cuánto vale el aceite en neen puro",
+      "timestamp": "2026-07-06T15:59:56.130447",
+      "respondida": true
+    },
+    {
+      "question_id": "13616226611",
+      "titulo_producto": "Sabor Carne Ahumada Polvo 100gr",
+      "pregunta": "Es Vegana?",
+      "timestamp": "2026-07-06T18:54:22.373993",
+      "respondida": true,
+      "borrador_ia": "¡Hola veci! Con gusto le colaboro.\n\nNuestro saborizante está diseñado para ser muy versátil. De hecho, una de sus aplicaciones principales es para mejorar y resaltar el sabor en productos basados en proteínas vegetales, por lo que se ajusta a lo que necesita.\n\nEl característico sabor a carne ahumada se logra a través de una combinación de condimentos como el humo líquido y el extracto de levadura, no de ingredientes de origen animal. Así que puede usarlo con confianza para darle ese toque ahumado delicioso a sus preparaciones.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-06"
+    },
+    {
+      "question_id": "13617061528",
+      "titulo_producto": "Ácido Hialurónico 30ml Bajo Pes Todo Tipo De Piel Día/noche",
+      "pregunta": "Buenas noches Hola quiero hacerte un pedido pero no encontre el acido salicilico. Esta agotado? Y si es asi cuando esta",
+      "timestamp": "2026-07-06T21:47:09.743599",
+      "respondida": true,
+      "borrador_ia": "Buenas noches, veci. Con gusto le colaboro con su pedido.\n\nPor el momento, la información que tengo disponible para ofrecerle es sobre nuestro Ácido Hialurónico de 30ml. Es un producto excelente para todo tipo de piel que puede usar tanto de día como de noche.\n\nEntre sus beneficios, le cuento que es un potente hidratante que ayuda a mantener la piel suave, tersa y con apariencia joven. También es ideal para reducir la apariencia de arrugas y líneas finas. Si le interesa, con gusto le doy más detalles para que pueda completar su compra.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-06"
     }
   ]
 }

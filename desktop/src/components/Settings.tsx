@@ -725,6 +725,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "logistica-internacional", label: "Logística Internacional" },
   { id: "etiquetas",  label: "Impresora · Etiquetas" },
   { id: "etiquetas-config", label: "Configurar productos" },
+  { id: "placas-concreto", label: "Placas de Concreto" },
   { id: "tickets",    label: "Centro de Mando" },
   { id: "settings",   label: "Ajustes" },
 ];

@@ -195,11 +195,20 @@ def _buscar_en_json(palabras: list[str], limite: int = 3) -> list[dict]:
     for clave, ficha in fichas.items():
         if not isinstance(ficha, dict):
             continue
+        clave_norm = _norm(clave)
         blob = _norm(f"{clave} {_ficha_dict_a_texto(ficha)}")
-        hits = sum(1 for p in palabras if p in blob)
-        if hits < min(2, len(palabras)):
+        hits_blob = sum(1 for p in palabras if p in blob)
+        if hits_blob < min(2, len(palabras)):
             continue
-        score = hits * 100 + len(clave)
+        # Prioriza fuerte las coincidencias en el propio nombre de la ficha:
+        # antes el score solo sumaba `len(clave)` como desempate, así que una
+        # mención suelta de las palabras clave dentro del cuerpo de OTRA
+        # ficha (p. ej. "se combina con ácido ascórbico" en la ficha de
+        # benzoato de sodio) podía empatar o superar a la ficha que
+        # realmente es el producto buscado — la etiqueta terminaba con texto
+        # de un insumo distinto al de su propio título.
+        hits_clave = sum(1 for p in palabras if p in clave_norm)
+        score = hits_clave * 1000 + hits_blob * 10
         scored.append((score, clave, ficha))
 
     scored.sort(key=lambda t: t[0], reverse=True)
@@ -396,16 +405,24 @@ def _recolectar_fichas(
         vistos.add(item["clave"])
         resultados.append(item)
 
-    sheet = _buscar_en_sheets(fragmento)
-    if sheet and sheet["clave"] not in vistos:
-        vistos.add(sheet["clave"])
-        resultados.append(sheet)
-
+    # Prioridad 2: catálogo curado de fichas_tecnicas.json (secciones
+    # estructuradas: beneficios, apariencia, solubilidad...). Va ANTES que
+    # Google Sheets a propósito: ambas fuentes suelen compartir la misma
+    # clave normalizada para el mismo producto, y el primero en reclamarla
+    # gana el cupo (se descarta el resto por duplicado). Sheets solo trae
+    # un bloque de texto plano de una columna — si ganaba el cupo antes,
+    # la ficha rica y estructurada del JSON quedaba descartada y el texto
+    # generado terminaba genérico, sin datos reales del producto.
     for item in _buscar_en_json(palabras, limite=limite):
         if item["clave"] in vistos:
             continue
         vistos.add(item["clave"])
         resultados.append(item)
+
+    sheet = _buscar_en_sheets(fragmento)
+    if sheet and sheet["clave"] not in vistos:
+        vistos.add(sheet["clave"])
+        resultados.append(sheet)
 
     resultados.sort(key=lambda x: x.get("score", 0), reverse=True)
     return resultados[:limite]
@@ -501,6 +518,21 @@ def _limpiar_fragmento_ficha(texto: str) -> str:
     ):
         t = re.sub(pref, "", t, flags=re.I)
     return t.strip().rstrip(".")
+
+
+_RE_PREFIJO_FUENTE_FICHA = re.compile(r"^(?:FT/COA/SDS|FT|COA|SDS)\s+", re.I)
+
+
+def _titulo_sin_prefijo_fuente(titulo: str) -> str:
+    """`_buscar_en_fichas_word` antepone la familia de documento al título
+    (p. ej. "FT/COA/SDS LACTATO DE CALCIO") solo para mostrar la fuente al
+    usuario ("Fuentes: ..."). Usar ese título tal cual para construir el
+    nombre del ingrediente colaba el prefijo en la prosa generada
+    ("El ft/coa/sds lactato de calcio es un ingrediente...") y además
+    duplicaba el ancla anti-repetición, produciendo sustituciones rotas
+    como "El ft/coa/sds Este insumo es...". Se limpia aquí, en el único
+    punto de entrada hacia nombre/anclas."""
+    return _RE_PREFIJO_FUENTE_FICHA.sub("", (titulo or "").strip()).strip()
 
 
 def _nombre_materia_prima(titulo: str) -> str:
@@ -1786,7 +1818,11 @@ def _fallback_catalogo(
         return []
     ficha = fichas[0]
     titulo = (ficha.get("titulo") or fragmento).strip()
-    nombre = _nombre_materia_prima(titulo)
+    # `titulo` puede traer el prefijo de familia de documento ("FT/COA/SDS ...")
+    # que antepone `_buscar_en_fichas_word` — útil para mostrar la fuente,
+    # pero nunca para construir el nombre del ingrediente en la prosa.
+    titulo_nombre = _titulo_sin_prefijo_fuente(titulo)
+    nombre = _nombre_materia_prima(titulo_nombre)
     blob = ficha.get("texto") or ""
     parsed = _parsear_ficha_estructurada(blob)
     segmento = _segmento_insumo(contexto_capas, blob)
@@ -1797,7 +1833,7 @@ def _fallback_catalogo(
     origen = parsed.get("origen", "")
     alim = parsed.get("alimentaria", "")
 
-    titulo_en_capa = _titulo_ya_en_capa(titulo, nombre, contexto_capas)
+    titulo_en_capa = _titulo_ya_en_capa(titulo_nombre, nombre, contexto_capas)
     ap, sol = _extraer_apariencia_solubilidad_blob(blob)
     p1_partes = [_apertura_p1(segmento, titulo_en_capa, nombre)]
     or_ap = _oracion_apariencia_fisica(ap, blob)
@@ -1865,7 +1901,7 @@ def _fallback_catalogo(
         _relleno_p2(segmento),
     )
     texto = _asegurar_dos_parrafos(_post_procesar_texto(f"{p1}\n\n{p2}"))
-    anclas = _terminos_ancla_repeticion(fragmento, contexto_capas, titulo)
+    anclas = _terminos_ancla_repeticion(fragmento, contexto_capas, titulo_nombre)
     aceptado = _aceptar_texto_ia(
         texto,
         max_chars,
@@ -1901,7 +1937,9 @@ def _generar_con_gemini(
         return _fallback_catalogo(fragmento, fichas, max_chars, contexto_capas=contexto_capas)
 
     contexto = ""
-    titulo_ficha = (fichas[0].get("titulo") if fichas else "") or fragmento
+    titulo_ficha = _titulo_sin_prefijo_fuente(
+        (fichas[0].get("titulo") if fichas else "") or fragmento
+    )
     nombre_canonico = _nombre_materia_prima(titulo_ficha)
     anclas = _terminos_ancla_repeticion(fragmento, contexto_capas, titulo_ficha)
     segmento = _segmento_insumo(
@@ -2019,7 +2057,7 @@ def sugerir_texto_magico(
             "mensaje": "No hay fichas técnicas que coincidan con esas palabras",
         }
 
-    titulo_ficha = (fichas[0].get("titulo") or fragmento).strip()
+    titulo_ficha = _titulo_sin_prefijo_fuente((fichas[0].get("titulo") or fragmento).strip())
     anclas = _terminos_ancla_repeticion(fragmento, contexto_capas, titulo_ficha)
 
     sugerencias = _filtrar_sugerencias(

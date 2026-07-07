@@ -225,6 +225,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "canales",
   },
 
+  // ── Producción ────────────────────────────────────────────────────────────────
+  "placas-concreto": {
+    emoji: "🧱",
+    label: "Placas de Concreto",
+    description: "Calculadora de taller para placas de concreto pulido de alto rendimiento. Ingresa las dimensiones del molde y el tipo de mezcla y obtén los pesos exactos de cada insumo para esa pieza.",
+    tips: [
+      "El % de merma por defecto es 5% — súbelo si el molde tiene pérdida por derrame o vibrado.",
+      "'Agregado reciclado' usa trozos de concreto viejo (SSS); 'Alta densidad negro intenso' es la mezcla sin agregado reciclado.",
+      "Los resultados en gramos y mililitros quedan listos para pesar directo en la báscula del taller.",
+    ],
+    tier: "standard",
+    category: "produccion",
+  },
+
   // ── Config ────────────────────────────────────────────────────────────────────
   "etiquetas-config": {
     emoji: "⚙️",

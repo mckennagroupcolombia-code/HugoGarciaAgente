@@ -75,6 +75,8 @@ interface Props {
   guardando?: boolean;
   duplicando?: boolean;
   exportando?: boolean;
+  /** Hay cambios sin guardar desde el último `onGuardar` exitoso. */
+  dirty?: boolean;
 }
 
 function ToolBtn({
@@ -161,6 +163,7 @@ export default function VisualCanvasEditor({
   guardando,
   duplicando,
   exportando,
+  dirty,
 }: Props) {
   const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
@@ -187,7 +190,11 @@ export default function VisualCanvasEditor({
   const escalaExport = presetExportActivo?.escala ?? 4;
   const [ghsAbierto, setGhsAbierto] = useState(false);
   const [ean13Abierto, setEan13Abierto] = useState(false);
-  const [panelTab, setPanelTab] = useState<"capas" | "propiedades">("capas");
+  // Ancho del panel derecho y alto de la sección "Capas" (Inspector ocupa el resto),
+  // ambos ajustables arrastrando los separadores — ver `iniciarResizePanel`.
+  const [panelAncho, setPanelAncho] = useState(240);
+  const [capasAltura, setCapasAltura] = useState(200);
+  const resizingPanelRef = useRef<{ kind: "ancho" | "altura"; startPos: number; startVal: number } | null>(null);
   const suppressDeselectRef = useRef(false);
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const contenidoSeleccionRef = useRef<{ start: number; end: number } | null>(null);
@@ -840,9 +847,41 @@ export default function VisualCanvasEditor({
     if (e.target === viewportRef.current) { setSeleccionIds([]); cancelEditInline(); }
   }
 
+  const iniciarResizePanel = useCallback(
+    (e: ReactPointerEvent, kind: "ancho" | "altura") => {
+      e.preventDefault();
+      resizingPanelRef.current = {
+        kind,
+        startPos: kind === "ancho" ? e.clientX : e.clientY,
+        startVal: kind === "ancho" ? panelAncho : capasAltura,
+      };
+    },
+    [panelAncho, capasAltura],
+  );
+
   useEffect(() => {
-    if (seleccionIds.length > 0) setPanelTab("propiedades");
-  }, [seleccionIds.length]);
+    function onMove(ev: PointerEvent) {
+      const r = resizingPanelRef.current;
+      if (!r) return;
+      if (r.kind === "ancho") {
+        // El panel está a la derecha: arrastrar el borde hacia la izquierda lo ensancha.
+        const dx = r.startPos - ev.clientX;
+        setPanelAncho(Math.min(460, Math.max(220, r.startVal + dx)));
+      } else {
+        const dy = ev.clientY - r.startPos;
+        setCapasAltura(Math.min(560, Math.max(120, r.startVal + dy)));
+      }
+    }
+    function onUp() {
+      resizingPanelRef.current = null;
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, []);
 
   const alineacionBtns = (
     [
@@ -870,8 +909,8 @@ export default function VisualCanvasEditor({
     <div className={`flex h-full min-h-0 flex-col ${studio.workspace}`}>
       {/* Barra superior */}
       <header className={`flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 ${studio.topbar}`}>
-        <ToolBtn title="Volver a biblioteca" onClick={onVolver} className="!h-7 !w-7">
-          <span className="text-sm">←</span>
+        <ToolBtn title="Volver a biblioteca" onClick={onVolver} className="!h-10 !w-10">
+          <span className="text-xl">←</span>
         </ToolBtn>
         <input
           value={doc.nombre}
@@ -898,16 +937,16 @@ export default function VisualCanvasEditor({
         <ToolBtn
           title="Deshacer (Ctrl+Z)"
           onClick={deshacer}
-          className={`!h-7 !w-7 ${!puedeDeshacer ? "pointer-events-none opacity-30" : ""}`}
+          className={`!h-10 !w-10 ${!puedeDeshacer ? "pointer-events-none opacity-30" : ""}`}
         >
-          <span className="text-sm">↺</span>
+          <span className="text-xl">↺</span>
         </ToolBtn>
         <ToolBtn
           title="Rehacer (Ctrl+Shift+Z)"
           onClick={rehacer}
-          className={`!h-7 !w-7 ${!puedeRehacer ? "pointer-events-none opacity-30" : ""}`}
+          className={`!h-10 !w-10 ${!puedeRehacer ? "pointer-events-none opacity-30" : ""}`}
         >
-          <span className="text-sm">↻</span>
+          <span className="text-xl">↻</span>
         </ToolBtn>
         <div className="ml-auto flex items-center gap-1">
           <button
@@ -939,9 +978,13 @@ export default function VisualCanvasEditor({
             type="button"
             onClick={onGuardar}
             disabled={guardando}
-            className="ml-2 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            title={dirty && !guardando ? "Hay cambios sin guardar" : undefined}
+            className="relative ml-2 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
             {guardando ? "…" : "Guardar"}
+            {dirty && !guardando && (
+              <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-[#333333]" />
+            )}
           </button>
           {onDuplicar && (
             <button
@@ -977,18 +1020,18 @@ export default function VisualCanvasEditor({
 
       <div className="flex min-h-0 flex-1">
         {/* Herramientas — columna izquierda */}
-        <aside className={`flex w-11 shrink-0 flex-col items-center gap-0.5 border-r py-2 ${studio.toolbar}`}>
+        <aside className={`flex w-14 shrink-0 flex-col items-center gap-1.5 border-r py-2 ${studio.toolbar}`}>
           <ToolBtn title="Texto (T)" onClick={agregarTexto}>
-            <span className="text-xs font-bold">T</span>
+            <span className="text-lg font-bold">T</span>
           </ToolBtn>
           <ToolBtn title="Rectángulo" onClick={agregarRect}>
-            <span className="text-sm">▢</span>
+            <span className="text-2xl">▢</span>
           </ToolBtn>
           <ToolBtn title="Línea" onClick={agregarLinea}>
-            <span className="text-sm leading-none">─</span>
+            <span className="text-2xl leading-none">─</span>
           </ToolBtn>
           <ToolBtn title="Imagen" onClick={() => setGaleriaAbierta(true)} active={galeriaAbierta}>
-            <span className="text-xs">▣</span>
+            <span className="text-xl">▣</span>
           </ToolBtn>
           <GaleriaImagenesModal
             abierta={galeriaAbierta}
@@ -1004,7 +1047,7 @@ export default function VisualCanvasEditor({
             }}
             active={ghsAbierto}
           >
-            <span className="text-[8px] font-black text-red-400">GHS</span>
+            <span className="text-[11px] font-black text-red-400">GHS</span>
           </ToolBtn>
           <ToolBtn
             title="Código EAN-13"
@@ -1014,7 +1057,7 @@ export default function VisualCanvasEditor({
             }}
             active={ean13Abierto}
           >
-            <span className="text-[8px] font-black">EAN</span>
+            <span className="text-[11px] font-black">EAN</span>
           </ToolBtn>
         </aside>
 
@@ -1489,28 +1532,24 @@ export default function VisualCanvasEditor({
           )}
         </div>
 
-        {/* Panel derecho */}
-        <aside className={`flex w-60 shrink-0 flex-col border-l ${studio.panel}`}>
-          <div className="flex shrink-0 border-b border-border">
-            <button
-              type="button"
-              onClick={() => setPanelTab("capas")}
-              className={`flex-1 px-3 py-2 text-xs ${panelTab === "capas" ? studio.tabActive : studio.tabIdle}`}
-            >
+        {/* Panel derecho: Capas e Inspector visibles a la vez (antes eran pestañas
+            excluyentes). Ancho del panel y alto de "Capas" se arrastran con los
+            separadores — ver `iniciarResizePanel`. */}
+        <div className="relative flex shrink-0" style={{ width: panelAncho }}>
+          <div
+            onPointerDown={(e) => iniciarResizePanel(e, "ancho")}
+            title="Arrastra para cambiar el ancho del panel"
+            className="absolute left-0 top-0 z-10 h-full w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-accent/40"
+          />
+          <aside className={`flex w-full flex-col border-l ${studio.panel}`}>
+          <div
+            className="flex shrink-0 flex-col overflow-y-auto border-b border-border p-3"
+            style={{ height: capasAltura }}
+          >
+            <p className="mb-2 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted">
               Capas
-            </button>
-            <button
-              type="button"
-              onClick={() => setPanelTab("propiedades")}
-              className={`flex-1 px-3 py-2 text-xs ${panelTab === "propiedades" ? studio.tabActive : studio.tabIdle}`}
-            >
-              Inspector
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            {panelTab === "capas" ? (
-              <>
+            </p>
+            <>
                 {capasOrdenadas.length === 0 ? (
                   <p className="py-6 text-center text-xs text-muted">
                     Usa las herramientas de la izquierda para añadir elementos.
@@ -1570,7 +1609,7 @@ export default function VisualCanvasEditor({
                                   : "text-ink-secondary hover:bg-surface-hover"
                             }`}
                           >
-                            <span className="w-3 shrink-0 text-center text-[10px] font-bold opacity-70">{icon}</span>
+                            <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
                             <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
                               {labelCapa(el)}
                             </span>
@@ -1598,7 +1637,16 @@ export default function VisualCanvasEditor({
                   />
                 </label>
               </>
-            ) : (
+          </div>
+          <div
+            onPointerDown={(e) => iniciarResizePanel(e, "altura")}
+            title="Arrastra para cambiar el alto de Capas"
+            className="h-1.5 shrink-0 cursor-row-resize hover:bg-accent/40"
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+              Inspector
+            </p>
               <>
                 {seleccionIds.length > 1 ? (
                   <div className="space-y-3 text-sm">
@@ -2094,9 +2142,9 @@ export default function VisualCanvasEditor({
                   </div>
                 )}
               </>
-            )}
           </div>
         </aside>
+        </div>
       </div>
     </div>
   );

@@ -62,7 +62,9 @@
     "129274891751568@lid",
     "573207209541@c.us",
     "573016146900@c.us",
-    "250306399101061@lid"
+    "250306399101061@lid",
+    "573133401041@c.us",
+    "173190328357095@lid"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -127,323 +129,335 @@
     "129274891751568@lid": 1783097802.2639356,
     "573207209541@c.us": 1783097802.2639356,
     "573016146900@c.us": 1783179337.206181,
-    "250306399101061@lid": 1783179337.206181
+    "250306399101061@lid": 1783179337.206181,
+    "573133401041@c.us": 1783362889.9947684,
+    "173190328357095@lid": 1783362889.9947684
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1779607073.685289,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "108207892635657@lid": {
       "timestamp": 1779841391.5377421,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779902999.5390468,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "web-test-handoff2": {
       "timestamp": 1779872652.346131,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573013536788@c.us": {
       "timestamp": 1779890129.7563171,
       "razon": "men\u00fa autom\u00e1tico",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "73031707820119@lid": {
       "timestamp": 1779916294.9625869,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "49976306606124@lid": {
       "timestamp": 1779917580.1837876,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "71262147764245@lid": {
       "timestamp": 1779917739.2717392,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "259502091821270@lid": {
       "timestamp": 1779923371.8995585,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": {
       "timestamp": 1779972323.9718435,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "130975447179480@lid": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "266855042285583@lid": {
       "timestamp": 1779998033.7324655,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "110213222891737@lid": {
       "timestamp": 1779998050.9782407,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "246827609772242@lid": {
       "timestamp": 1780071470.9523313,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "112145974988807@lid": {
       "timestamp": 1780406805.1967304,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "93167101677754@lid": {
       "timestamp": 1780502711.8209083,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573214399939@c.us": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "117832545226982@lid": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "143842900717701@lid": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573015416992@c.us": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573174923920@c.us": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "228960461930678@lid": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573162484731@c.us": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573114292482@c.us": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "52003631849707@lid": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "23588077846694@lid": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573207092059@c.us": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "159171555111054@lid": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573232058352@c.us": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "124833761378498@lid": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573105081002@c.us": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573143343325@c.us": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "183562741534973@lid": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573114620203@c.us": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "182905510850731@lid": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573207640451@c.us": {
       "timestamp": 1781885466.1422698,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "145371858772137@lid": {
       "timestamp": 1781885466.1422698,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "93656073662560@lid": {
       "timestamp": 1782133253.3541255,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573016213015@c.us": {
       "timestamp": 1782133253.3541255,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "156315888394321@lid": {
       "timestamp": 1782158373.4165123,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573028200001@c.us": {
       "timestamp": 1782158373.4165123,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573208321691@c.us": {
       "timestamp": 1782224284.3031623,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "16445933117688@lid": {
       "timestamp": 1782224284.3031623,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573187462545@c.us": {
       "timestamp": 1782411542.5026875,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "180496738828390@lid": {
       "timestamp": 1782411542.5026875,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "174869778043120@lid": {
       "timestamp": 1782418834.2476861,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573104578432@c.us": {
       "timestamp": 1782418834.2476861,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573007694823@c.us": {
       "timestamp": 1782511758.2527354,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "235304296431616@lid": {
       "timestamp": 1782511758.2527354,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573245757180@c.us": {
       "timestamp": 1782512136.4613266,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "162178334216195@lid": {
       "timestamp": 1782512136.4613266,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "157904573317299@lid": {
       "timestamp": 1782846641.6460228,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573222357398@c.us": {
       "timestamp": 1782846641.6460228,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573156814001@c.us": {
       "timestamp": 1782910012.008097,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "205226506248373@lid": {
       "timestamp": 1782910012.008097,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "196022391283853@lid": {
       "timestamp": 1782927566.240963,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573134604659@c.us": {
       "timestamp": 1782927566.240963,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573155951959@c.us": {
       "timestamp": 1782937175.2607427,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "57861950460055@lid": {
       "timestamp": 1782937175.2607427,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "129274891751568@lid": {
       "timestamp": 1783097802.2639356,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573207209541@c.us": {
       "timestamp": 1783097802.2639356,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "573016146900@c.us": {
       "timestamp": 1783179337.206181,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
     },
     "250306399101061@lid": {
       "timestamp": 1783179337.206181,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "En la consignaci\u00f3n tambi\u00e9n env\u00edo la tarifa de env\u00edo?"
+      "ultimo_mensaje": "Gracias"
+    },
+    "573133401041@c.us": {
+      "timestamp": 1783362889.9947684,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Gracias"
+    },
+    "173190328357095@lid": {
+      "timestamp": 1783362889.9947684,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Gracias"
     }
   },
   "bot_global_activo": false,
