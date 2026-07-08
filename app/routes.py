@@ -355,6 +355,16 @@ def _listar_postventa_pendientes_api() -> list[dict]:
             ]
         else:
             productos_lista = list(productos) if productos else []
+        productos_detalle_raw = v.get("productos_detalle") or []
+        productos_detalle = [
+            {
+                "nombre": pd.get("nombre") or "",
+                "cantidad": pd.get("cantidad") or 1,
+                "precio_unitario": pd.get("precio_unitario"),
+            }
+            for pd in productos_detalle_raw
+            if isinstance(pd, dict)
+        ]
         items.append(
             {
                 "codigo": codigo,
@@ -362,6 +372,10 @@ def _listar_postventa_pendientes_api() -> list[dict]:
                 "comprador": v.get("comprador") or "",
                 "texto": v.get("texto") or "",
                 "productos": productos_lista,
+                "productos_detalle": productos_detalle,
+                "total": v.get("total") or "",
+                "fecha_compra": v.get("fecha_compra") or "",
+                "envio": v.get("envio") or "",
                 "timestamp": v.get("timestamp") or "",
                 "msg_id": v.get("msg_id") or "",
             }
@@ -3024,6 +3038,15 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         mensajes = _listar_postventa_pendientes_api()
         return jsonify({"mensajes": mensajes, "total": len(mensajes)})
+
+    @app.route("/api/postventa/historial/<pack_id>")
+    def api_postventa_historial(pack_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.meli_postventa_notif import obtener_historial_postventa
+
+        historial = obtener_historial_postventa(pack_id, limite=3)
+        return jsonify({"historial": historial})
 
     @app.route("/api/responder-postventa", methods=["POST"])
     def api_responder_postventa():
@@ -10304,6 +10327,7 @@ def register_routes(app):
                     pass
 
     @app.route("/api/etiquetas/imprimir", methods=["POST"])
+    @app.route("/app/api/etiquetas/imprimir", methods=["POST"])
     def api_etiquetas_imprimir():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401

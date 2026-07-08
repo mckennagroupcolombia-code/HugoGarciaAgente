@@ -64,7 +64,7 @@ def sufijo_pack_postventa(pack_id: str) -> str:
     return digits[-3:] if len(digits) >= 3 else digits
 
 
-def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, str]:
+def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, str, list]:
     """
     Productos, total, fecha de compra y estado de envío de una orden MeLi.
     Un solo pack_id por llamada a procesar_postventa_meli_desde_webhook: se calcula
@@ -72,6 +72,7 @@ def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, st
     repetir GET /orders y /shipments por cada mensaje del lote).
     """
     productos_str = total_str = fecha_str = envio_str = ""
+    productos_detalle: list = []
     try:
         r_ord = _requests_lib.get(
             f"https://api.mercadolibre.com/orders/{pack_id}",
@@ -92,6 +93,11 @@ def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, st
                 if precio_unit is not None:
                     linea += f" — ${precio_unit:,.0f} c/u"
                 lineas.append(linea)
+                productos_detalle.append({
+                    "nombre": titulo,
+                    "cantidad": cantidad,
+                    "precio_unitario": precio_unit,
+                })
             if lineas:
                 productos_str = "\n".join(lineas)
 
@@ -128,11 +134,83 @@ def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, st
                     pass
     except Exception:
         pass
-    return productos_str, total_str, fecha_str, envio_str
+    return productos_str, total_str, fecha_str, envio_str, productos_detalle
 
 
 def _sufijo_pack(pack_id: str) -> str:
     return sufijo_pack_postventa(pack_id)
+
+
+def fecha_key_mensaje_postventa(m: dict) -> str:
+    """Clave de fecha ordenable de un mensaje postventa (para sort cronológico)."""
+    msg_date = m.get("message_date")
+    if isinstance(msg_date, dict):
+        return str(
+            msg_date.get("created")
+            or msg_date.get("received")
+            or msg_date.get("available")
+            or msg_date.get("notified")
+            or ""
+        )
+    return str(
+        m.get("date")
+        or m.get("date_created")
+        or m.get("message_date")
+        or m.get("timestamp")
+        or ""
+    )
+
+
+def _formatear_fecha_mensaje(fecha_iso: str) -> str:
+    if not fecha_iso:
+        return ""
+    try:
+        from datetime import datetime as _dt
+
+        return _dt.fromisoformat(fecha_iso.replace("Z", "+00:00")).strftime("%d/%m %I:%M %p")
+    except Exception:
+        return fecha_iso[:16]
+
+
+def obtener_historial_postventa(pack_id: str, *, limite: int = 3) -> list[dict]:
+    """
+    Últimos N mensajes de la conversación postventa de un pack (comprador y vendedor),
+    ordenados del más antiguo al más reciente. Para mostrar contexto en el panel.
+    """
+    token = refrescar_token_meli()
+    if not token:
+        return []
+    seller_id = str(obtener_seller_id_meli() or "")
+    headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
+    try:
+        res = _requests_lib.get(
+            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{seller_id}?tag=post_sale",
+            headers=headers,
+            timeout=10,
+        )
+        if res.status_code != 200:
+            return []
+        mensajes = [m for m in res.json().get("messages", []) or [] if isinstance(m, dict)]
+        mensajes.sort(key=fecha_key_mensaje_postventa)
+        ultimos = mensajes[-limite:] if limite else mensajes
+        historial = []
+        for m in ultimos:
+            from_id = meli_postventa_remitente_user_id(m)
+            de = "vendedor" if from_id and from_id == seller_id else "comprador"
+            nombre = "Nosotros" if de == "vendedor" else meli_postventa_nombre_remitente(m, from_id)
+            texto = meli_postventa_texto_para_notif(m)
+            if not texto:
+                continue
+            historial.append({
+                "de": de,
+                "nombre": nombre,
+                "texto": texto,
+                "fecha": _formatear_fecha_mensaje(fecha_key_mensaje_postventa(m)),
+            })
+        return historial
+    except Exception as e:
+        print(f"⚠️ [POSVENTA] Error obteniendo historial pack {pack_id}: {e}")
+        return []
 
 
 def _pack_id_desde_payload_mensaje(msg_data: dict) -> str:
@@ -364,27 +442,9 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 # solo registrar como procesado; no revivir una alerta vieja.
                 if reconciliar_existentes:
                     try:
-                        def _k(m: dict) -> str:
-                            msg_date = m.get("message_date")
-                            if isinstance(msg_date, dict):
-                                return str(
-                                    msg_date.get("created")
-                                    or msg_date.get("received")
-                                    or msg_date.get("available")
-                                    or msg_date.get("notified")
-                                    or ""
-                                )
-                            return str(
-                                m.get("date")
-                                or m.get("date_created")
-                                or m.get("message_date")
-                                or m.get("timestamp")
-                                or ""
-                            )
-
                         ordenados = sorted(
                             [m for m in mensajes if isinstance(m, dict)],
-                            key=_k,
+                            key=fecha_key_mensaje_postventa,
                         )
                         idx = next(
                             (
@@ -411,7 +471,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
 
                 if detalle_venta is None:
                     detalle_venta = _detalle_venta_orden(pack_id, headers)
-                productos_str, total_str, fecha_str, envio_str = detalle_venta
+                productos_str, total_str, fecha_str, envio_str, productos_detalle = detalle_venta
 
                 clave_pendiente = str(pack_id)
                 state["pendientes"][clave_pendiente] = {
@@ -422,6 +482,10 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     "texto": texto,
                     "msg_id": msg_id,
                     "productos": productos_str,
+                    "productos_detalle": productos_detalle,
+                    "total": total_str,
+                    "fecha_compra": fecha_str,
+                    "envio": envio_str,
                     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 }
                 # Compatibilidad: comando posventa 0583: sigue resolviendo por sufijo.

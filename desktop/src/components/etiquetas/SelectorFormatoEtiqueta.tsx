@@ -6,6 +6,10 @@ import {
   useTiposEtiqueta,
   type TipoEtiqueta,
 } from "../../lib/etiquetasTipos";
+import { IconButton } from "./ui";
+import { clampFloatingLeft } from "../../lib/floatingPosition";
+
+const MENU_FORMATO_PANEL_MAX_WIDTH = 320;
 
 export interface FormatoEtiquetaValor {
   nombre: string;
@@ -51,7 +55,8 @@ function MenuFormatoDropdown({
     const el = wrapRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPos({ top: r.bottom + 4, left: r.left, minWidth: Math.max(r.width, 224) });
+    const left = clampFloatingLeft(r.left, MENU_FORMATO_PANEL_MAX_WIDTH, window.innerWidth);
+    setPos({ top: r.bottom + 4, left, minWidth: Math.max(r.width, 224) });
   }, []);
 
   useLayoutEffect(() => {
@@ -98,10 +103,6 @@ function MenuFormatoDropdown({
 
   const itemActivo = dark ? "bg-white/15" : "bg-accent/10";
 
-  const btnX = dark
-    ? "shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold text-red-300 hover:bg-red-500/30"
-    : "shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold text-red-500 hover:bg-red-50";
-
   const panel = abierto && pos
     ? createPortal(
         <div
@@ -123,18 +124,17 @@ function MenuFormatoDropdown({
                 >
                   <span className="truncate">{etiquetaOpcionLabel(t)}</span>
                 </button>
-                <button
-                  type="button"
-                  className={btnX}
-                  title={`Eliminar ${t.nombre}`}
+                <IconButton
+                  icon="trash"
+                  label={`Eliminar ${t.nombre}`}
+                  size="xs"
+                  tone="danger"
                   disabled={deleting}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(t.nombre);
                   }}
-                >
-                  ✕
-                </button>
+                />
               </li>
             ))}
           </ul>
@@ -359,7 +359,7 @@ export function SelectorFormatoEtiqueta({
           </>
         )}
         {msgGuardar && (
-          <span className={`text-[10px] font-semibold ${msgGuardar.startsWith("✓") ? "text-accent" : "text-red-500"}`}>
+          <span className={`text-[10px] font-semibold ${msgGuardar.startsWith("✓") ? "text-accent" : "text-danger"}`}>
             {msgGuardar}
           </span>
         )}
@@ -559,7 +559,7 @@ export function SelectorFormatoEtiqueta({
       <div className="flex items-center gap-2">
         {medidasActuales}
         {msgGuardar && (
-          <span className={`text-[10px] font-semibold ${msgGuardar.startsWith("✓") ? "text-accent" : "text-red-500"}`}>
+          <span className={`text-[10px] font-semibold ${msgGuardar.startsWith("✓") ? "text-accent" : "text-danger"}`}>
             {msgGuardar}
           </span>
         )}

@@ -155,9 +155,10 @@ export default function SugerenciasTextoMagico({
           </div>
 
           <p className="mb-1.5 text-[10px] leading-snug text-muted">
-            2 párrafos técnicos (~{PALABRAS_POR_PARRAFO} palabras c/u). Si el subtítulo indica
-            insumo alimentario, la redacción se centra en formulación alimentaria industrial
-            (sin repetir el subtítulo ni claims de consumidor).
+            2 párrafos técnicos (máximo 90 palabras c/u), tono de formulación DIY. Según el
+            subtítulo, la redacción se centra en el segmento correspondiente (cosmético,
+            alimentario, agrícola o industrial), sin repetir título/subtítulo ni claims de
+            consumo, salud o dosis.
           </p>
 
           {fichas.length > 0 && (

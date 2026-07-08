@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-06T15:54:09",
+  "updated_at": "2026-07-07T22:07:17",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -42,9 +42,305 @@
     "2026-07-02": 4,
     "2026-07-03": 10,
     "2026-07-04": 1,
-    "2026-07-06": 8
+    "2026-07-06": 8,
+    "2026-07-07": 22
   },
   "sessions": [
+    {
+      "session_id": "web-af336017-3ff4-41ed-b61f-1a2bf5a2681b",
+      "started_at": "2026-07-07T22:07:17",
+      "last_at": "2026-07-07T22:07:17",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/guias",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hola compré ácido glicolico para axilas pero no sé cómo diluirlo para utilizarlo",
+      "last_agent_reply": "Hola veci, ¡de una! Con gusto le colaboro con esa duda. Es clave tener en cuenta que lo que compró es la materia prima pura, es decir, el ingrediente activo para que usted prepare un producto final. No se debe aplicar puro bajo ninguna circunstancia porque puede causar quemaduras. Para usarlo de forma segura en la piel, debe diluirlo en un vehículo, como agua destilada, un tónico base o una crema. En cosmética, para un uso como exfoliante suave, se suelen usar concentraciones entre el 5% y el 10%. Por ejemplo, para preparar 100 gramos de un tónico al 10%, usaría 10 gramos de nuestro ácido glicólico y 90 gramos de agua destilada. Ojo a esto que es importante: siempre haga una prueba de parche en un área pequeña antes de usarlo por completo para ver cómo reacciona su piel, y no olvide aplicar protector solar en la zona, ya que la piel queda más sensible. Como le vendemos el insumo, la formulación y aplicación final ya dependen de la receta que usted quiera seguir.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T22:07:17",
+          "user_message": "Hola compré ácido glicolico para axilas pero no sé cómo diluirlo para utilizarlo",
+          "agent_reply": "Hola veci, ¡de una! Con gusto le colaboro con esa duda. Es clave tener en cuenta que lo que compró es la materia prima pura, es decir, el ingrediente activo para que usted prepare un producto final. No se debe aplicar puro bajo ninguna circunstancia porque puede causar quemaduras. Para usarlo de forma segura en la piel, debe diluirlo en un vehículo, como agua destilada, un tónico base o una crema. En cosmética, para un uso como exfoliante suave, se suelen usar concentraciones entre el 5% y el 10%. Por ejemplo, para preparar 100 gramos de un tónico al 10%, usaría 10 gramos de nuestro ácido glicólico y 90 gramos de agua destilada. Ojo a esto que es importante: siempre haga una prueba de parche en un área pequeña antes de usarlo por completo para ver cómo reacciona su piel, y no olvide aplicar protector solar en la zona, ya que la piel queda más sensible. Como le vendemos el insumo, la formulación y aplicación final ya dependen de la receta que usted quiera seguir.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-b7fe8f5c-6ad0-417f-908b-a5d3e2daf961",
+      "started_at": "2026-07-07T19:41:18",
+      "last_at": "2026-07-07T19:41:45",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-gomxankg?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Goma xantana",
+      "last_agent_reply": "Veci, la Goma Xantana no me aparece en el catálogo en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T19:41:18",
+          "user_message": "Hola este es alimento",
+          "agent_reply": "Hola veci. Para poderle confirmar, ¿a qué producto se refiere exactamente? Le pregunto porque nosotros vendemos materias primas, y algunas son grado alimenticio mientras que otras son para uso cosmético o industrial. El documento que le confirma el grado y la pureza es la ficha técnica o el certificado de análisis (COA), no un registro Invima, ya que eso aplica es al producto terminado que se elabora con el insumo.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T19:41:45",
+          "user_message": "Goma xantana",
+          "agent_reply": "Veci, la Goma Xantana no me aparece en el catálogo en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-2d4b1afd-93d5-4aa7-b5f4-6e18e698266b",
+      "started_at": "2026-07-07T12:13:12",
+      "last_at": "2026-07-07T12:13:12",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "aasesor",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T12:13:12",
+          "user_message": "aasesor",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-a7733680-592f-40d4-8660-33b7b6be6840",
+      "started_at": "2026-07-07T11:05:43",
+      "last_at": "2026-07-07T11:13:39",
+      "messages_count": 9,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "tienes barro del mar muerto",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T11:05:43",
+          "user_message": "Hola buenos dias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:06:21",
+          "user_message": "barro del mar muerto manejas para cosmeticos",
+          "agent_reply": "Claro que sí, veci. Manejamos la Arcilla del Mar Muerto grado cosmético. La presentación de 500g le vale $35.000.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:06:45",
+          "user_message": "perfecto",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:07:07",
+          "user_message": "tendrias una muestra que podrias audarme",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:08:47",
+          "user_message": "no manejas muestras",
+          "agent_reply": "Veci, qué pena con usted pero no manejamos muestras. Como somos tienda 100% virtual, la logística se complica. La presentación más pequeña que le puedo ofrecer es la de 500g, que es ideal para que pueda probar el producto y hacer sus ensayos.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:09:14",
+          "user_message": "podriamos comprar desde 1kg?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:10:17",
+          "user_message": "que precio tiene los 500 gramos",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:13:25",
+          "user_message": "Hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:13:39",
+          "user_message": "tienes barro del mar muerto",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-4741b94f-16ba-427c-b75c-84ec3e3845a2",
+      "started_at": "2026-07-07T11:00:22",
+      "last_at": "2026-07-07T11:03:53",
+      "messages_count": 5,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Si",
+      "last_agent_reply": "Listo veci. Para confirmar si le podemos conseguir esos productos, lo mejor es que le escriba a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le ayudan de una. Le recuerdo que este chat no guarda la conversación si cierra la ventana.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T11:00:22",
+          "user_message": "Burnas",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:02:10",
+          "user_message": "Buenas",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:02:51",
+          "user_message": "Si una pregunta ustedes tienen",
+          "agent_reply": "Claro que sí, veci. Cuénteme qué necesita y de una le confirmo.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:03:23",
+          "user_message": "Glicerina vegetal y arcilla caolín vegetal",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T11:03:53",
+          "user_message": "Si",
+          "agent_reply": "Listo veci. Para confirmar si le podemos conseguir esos productos, lo mejor es que le escriba a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le ayudan de una. Le recuerdo que este chat no guarda la conversación si cierra la ventana.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-a2414602-0a98-4e71-bf03-f720bb9b4f95",
+      "started_at": "2026-07-07T09:04:35",
+      "last_at": "2026-07-07T09:05:04",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-gomgua500g",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "Goma Guar por kilo",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T09:04:35",
+          "user_message": "buenos dias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T09:04:47",
+          "user_message": "Hola Hugo",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-07T09:05:04",
+          "user_message": "Goma Guar por kilo",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-680eeb4e-8d03-4de4-b12c-dc41773fb2a8",
+      "started_at": "2026-07-07T08:25:36",
+      "last_at": "2026-07-07T08:25:36",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/contacto",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola Hugo, desde ayer les he escrito por WhatsApp y no me contestan para apartar un kilo de sucralosa pura y confirmar el precio porque veo que tiene.n descuentos",
+      "last_agent_reply": "Veci, nuestro WhatsApp de ventas es **+57 319 518 3596**:\nhttps://wa.me/573195183596 Ahí retoman cotizaciones formales, pedidos, comprobantes y envío de documentos con su historial. En esta burbuja puede consultar **precios, disponibilidad** y enlaces a COA/ficha cuando estén en archivo.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-07T08:25:36",
+          "user_message": "Hola Hugo, desde ayer les he escrito por WhatsApp y no me contestan para apartar un kilo de sucralosa pura y confirmar el precio porque veo que tiene.n descuentos",
+          "agent_reply": "Veci, nuestro WhatsApp de ventas es **+57 319 518 3596**:\nhttps://wa.me/573195183596 Ahí retoman cotizaciones formales, pedidos, comprobantes y envío de documentos con su historial. En esta burbuja puede consultar **precios, disponibilidad** y enlaces a COA/ficha cuando estén en archivo.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-4bf550c2-b21d-4482-901c-04dab99a6a23",
       "started_at": "2026-07-06T15:54:09",

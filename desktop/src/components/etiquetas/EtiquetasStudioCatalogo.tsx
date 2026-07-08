@@ -16,6 +16,7 @@ import {
   SelectorFormatoEtiqueta,
   type FormatoEtiquetaValor,
 } from "./SelectorFormatoEtiqueta";
+import { Banner, Button, StatTile } from "./ui";
 
 export interface CatalogoStudioFila {
   sku: string;
@@ -409,7 +410,7 @@ export function EtiquetasStudioCatalogo({
           {fetching && <span className="ml-1">…</span>}
         </label>
         {!formatoImpresion && (
-          <p className="text-[10px] text-amber-800">Elige formato arriba</p>
+          <p className="text-[10px] text-warning">Elige formato arriba</p>
         )}
       </div>
 
@@ -467,11 +468,11 @@ export function EtiquetasStudioCatalogo({
               <p className="text-muted">SKU</p>
             </div>
             <div className="rounded border border-border bg-surface px-1 py-1">
-              <p className="font-bold text-emerald-700">{stats.con_ai}</p>
+              <p className="font-bold text-success">{stats.con_ai}</p>
               <p className="text-muted">Con .ai</p>
             </div>
             <div className="rounded border border-border bg-surface px-1 py-1">
-              <p className="font-bold text-violet-700">{stats.plantillas_ai_sin_producto}</p>
+              <p className="font-bold text-accent-plum">{stats.plantillas_ai_sin_producto}</p>
               <p className="text-muted">.ai sueltos</p>
             </div>
           </div>
@@ -499,14 +500,14 @@ export function EtiquetasStudioCatalogo({
           )}
         </div>
         {!formatoImpresion && (
-          <p className="text-[10px] text-amber-800">↑ Elige formato arriba primero</p>
+          <p className="text-[10px] text-warning">↑ Elige formato arriba primero</p>
         )}
       </div>
 
       <ul className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {buscar.trim() && plantillasSueltasFiltradas.length > 0 && (
           <li className="mb-2">
-            <p className="mb-1 px-1 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+            <p className="mb-1 px-1 text-[9px] font-bold uppercase tracking-wide text-accent-plum">
               Plantillas .ai sin SKU en catálogo
             </p>
             <ul className="space-y-1">
@@ -518,11 +519,11 @@ export function EtiquetasStudioCatalogo({
                     onClick={() => elegirPlantillaParaEscaneo(a)}
                     className={`w-full rounded-lg border px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                       escaneoArchivoActivo === a
-                        ? "border-violet-500 bg-violet-500/10 ring-1 ring-violet-400/40"
-                        : "border-dashed border-violet-300/60 bg-surface hover:border-violet-400 hover:bg-violet-50/50"
+                        ? "border-accent-plum bg-accent-plum/10 ring-1 ring-accent-plum/40"
+                        : "border-dashed border-accent-plum/40 bg-surface hover:border-accent-plum hover:bg-accent-plum/10"
                     }`}
                   >
-                    <p className="truncate font-mono text-[10px] font-semibold text-violet-800">{a}</p>
+                    <p className="truncate font-mono text-[10px] font-semibold text-accent-plum">{a}</p>
                     <p className="mt-0.5 text-[9px] text-muted">Archivo .ai · sin producto Siigo</p>
                   </button>
                 </li>
@@ -614,7 +615,7 @@ export function EtiquetasStudioCatalogo({
         </header>
 
         {errorActivo instanceof Error && (
-          <p className="shrink-0 border-b border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-800">{errorActivo.message}</p>
+          <Banner tone="danger" className="shrink-0 rounded-none border-x-0 border-t-0 text-xs">{errorActivo.message}</Banner>
         )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
@@ -639,26 +640,11 @@ export function EtiquetasStudioCatalogo({
   return (
     <div className="space-y-4">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg border border-border bg-surface px-3 py-2">
-          <p className="text-[10px] uppercase text-muted">Productos</p>
-          <p className="text-lg font-bold text-ink">{stats?.total_productos ?? "—"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-2">
-          <p className="text-[10px] uppercase text-muted">Con MeLi</p>
-          <p className="text-lg font-bold text-blue-700">{stats?.con_meli ?? "—"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-2">
-          <p className="text-[10px] uppercase text-muted">Con .ai</p>
-          <p className="text-lg font-bold text-emerald-700">{stats?.con_ai ?? "—"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-2">
-          <p className="text-[10px] uppercase text-muted">Sin match</p>
-          <p className="text-lg font-bold text-red-700">{stats?.sin_match ?? "—"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-2">
-          <p className="text-[10px] uppercase text-muted">PNG (Studio)</p>
-          <p className="text-lg font-bold text-violet-700">{stats?.plantillas_png_total ?? "—"}</p>
-        </div>
+        <StatTile label="Productos" value={stats?.total_productos ?? "—"} />
+        <StatTile label="Con MeLi" value={stats?.con_meli ?? "—"} tone="accent" />
+        <StatTile label="Con .ai" value={stats?.con_ai ?? "—"} tone="success" />
+        <StatTile label="Sin match" value={stats?.sin_match ?? "—"} tone="danger" />
+        <StatTile label="PNG (Studio)" value={stats?.plantillas_png_total ?? "—"} tone="plum" />
       </div>
 
       {mostrarDiagramacion && (
@@ -694,22 +680,22 @@ export function EtiquetasStudioCatalogo({
       </div>
 
       {error instanceof Error && (
-        <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">{error.message}</p>
+        <Banner tone="danger" className="text-xs">{error.message}</Banner>
       )}
 
       {plantillaPngAbierto && (
-        <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+        <div className="rounded-paper-lg border border-accent-plum/30 bg-accent-plum/10 p-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-violet-800">
+            <p className="text-xs font-bold uppercase tracking-wide text-accent-plum">
               PNG generados en Studio ({plantillasPngFiltradas.length}
               {buscar.trim() ? ` / ${data?.plantillas_png_sin_producto?.length ?? 0}` : ""})
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] text-violet-700">
+              <p className="text-[10px] text-accent-plum">
                 En transición · aún no vinculados a un SKU del catálogo
               </p>
               {plantillasPngFiltradas.length > 0 && (
-                <label className="flex items-center gap-1.5 text-[10px] text-violet-800">
+                <label className="flex items-center gap-1.5 text-[10px] text-accent-plum">
                   <input
                     type="checkbox"
                     checked={plantillasPngFiltradas.every((n) => pngSeleccionados.has(n))}
@@ -728,22 +714,22 @@ export function EtiquetasStudioCatalogo({
                 </label>
               )}
               {pngSeleccionados.size > 0 && (
-                <button
-                  type="button"
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  loading={pngEliminandoLote}
                   onClick={eliminarPngSeleccionados}
-                  disabled={pngEliminandoLote}
-                  className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
                 >
                   {pngEliminandoLote ? "Eliminando…" : `Eliminar (${pngSeleccionados.size})`}
-                </button>
+                </Button>
               )}
             </div>
           </div>
 
           {pngErrorLote && (
-            <p className="mb-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">
+            <Banner tone="danger" className="mb-2 text-[10px]">
               {pngErrorLote}
-            </p>
+            </Banner>
           )}
 
           {plantillasPngFiltradas.length === 0 ? (
@@ -756,7 +742,7 @@ export function EtiquetasStudioCatalogo({
                   <div
                     key={nombre}
                     className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white ${
-                      activo ? "border-accent ring-2 ring-accent/40" : "border-violet-200"
+                      activo ? "border-accent ring-2 ring-accent/40" : "border-accent-plum/30"
                     }`}
                   >
                     <label className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm">
@@ -771,11 +757,11 @@ export function EtiquetasStudioCatalogo({
                       type="button"
                       title={nombre}
                       onClick={() => setPngVistaPrevia(nombre)}
-                      className="flex aspect-square items-center justify-center bg-zinc-100 p-1 hover:opacity-90"
+                      className="flex aspect-square items-center justify-center bg-surface-hover p-1 hover:opacity-90"
                     >
                       <MiniaturaRecursoPng nombre={nombre} />
                     </button>
-                    <p className="truncate px-1.5 py-1 font-mono text-[9px] text-violet-900" title={nombre}>
+                    <p className="truncate px-1.5 py-1 font-mono text-[9px] text-accent-plum" title={nombre}>
                       {nombre}
                     </p>
                   </div>
@@ -832,7 +818,7 @@ export function EtiquetasStudioCatalogo({
                         <button
                           type="button"
                           onClick={() => elegirParaEscaneo(f)}
-                          className="rounded border border-violet-300 px-2 py-0.5 text-[10px] font-semibold text-violet-800 hover:bg-violet-50"
+                          className="rounded border border-accent-plum/40 px-2 py-0.5 text-[10px] font-semibold text-accent-plum hover:bg-accent-plum/10"
                         >
                           Escanear
                         </button>

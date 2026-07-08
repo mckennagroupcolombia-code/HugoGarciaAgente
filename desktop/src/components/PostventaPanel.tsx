@@ -1,13 +1,54 @@
 import { useState } from "react";
-import { usePostventa, useResponderPostventa } from "../hooks/usePostventa";
+import { usePostventa, useResponderPostventa, type MensajeHistorialPostventa } from "../hooks/usePostventa";
+import { api } from "../api/client";
+
+function cop(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
 
 export default function PostventaPanel() {
   const { data, isLoading, refetch } = usePostventa();
   const responder = useResponderPostventa();
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
+  const [historialAbierto, setHistorialAbierto] = useState<Set<string>>(new Set());
+  const [historiales, setHistoriales] = useState<Record<string, MensajeHistorialPostventa[]>>({});
+  const [cargandoHistorial, setCargandoHistorial] = useState<Set<string>>(new Set());
 
   const mensajes = data?.mensajes ?? [];
+
+  const toggleHistorial = async (packId: string) => {
+    if (historialAbierto.has(packId)) {
+      setHistorialAbierto((prev) => {
+        const s = new Set(prev);
+        s.delete(packId);
+        return s;
+      });
+      return;
+    }
+    setHistorialAbierto((prev) => new Set(prev).add(packId));
+    if (historiales[packId]) return;
+    setCargandoHistorial((prev) => new Set(prev).add(packId));
+    try {
+      const res = await api.get<{ historial: MensajeHistorialPostventa[] }>(
+        `/api/postventa/historial/${packId}`,
+      );
+      setHistoriales((prev) => ({ ...prev, [packId]: res.historial ?? [] }));
+    } catch {
+      /* ignore */
+    } finally {
+      setCargandoHistorial((prev) => {
+        const s = new Set(prev);
+        s.delete(packId);
+        return s;
+      });
+    }
+  };
 
   const handleSubmit = (codigo: string) => {
     const texto = (respuestas[codigo] ?? "").trim();
@@ -87,34 +128,100 @@ export default function PostventaPanel() {
                 <p className="text-lg font-medium text-ink truncate">
                   {m.comprador || "Comprador MeLi"}
                 </p>
-                {m.productos.length > 0 && (
-                  <ul className="mt-1 text-base text-muted list-disc list-inside">
-                    {m.productos.map((p) => (
-                      <li key={p} className="truncate">
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
+                {(m.productos_detalle ?? []).length > 0 ? (
+                  <div className="mt-1 overflow-hidden rounded-lg border border-border">
+                    <table className="w-full text-base">
+                      <thead className="bg-surface-hover text-[11px] uppercase tracking-wide text-muted">
+                        <tr>
+                          <th className="px-2 py-1 text-left">Producto</th>
+                          <th className="px-2 py-1 text-right">Unid.</th>
+                          <th className="px-2 py-1 text-right">Precio unit.</th>
+                          <th className="px-2 py-1 text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(m.productos_detalle ?? []).map((p, i) => (
+                          <tr key={`${p.nombre}-${i}`} className="border-t border-border/50">
+                            <td className="px-2 py-1 text-ink">{p.nombre}</td>
+                            <td className="px-2 py-1 text-right text-muted">{p.cantidad}</td>
+                            <td className="px-2 py-1 text-right text-muted">{cop(p.precio_unitario)}</td>
+                            <td className="px-2 py-1 text-right font-medium text-ink">
+                              {p.precio_unitario != null ? cop(p.precio_unitario * p.cantidad) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  m.productos.length > 0 && (
+                    <ul className="mt-1 text-base text-muted list-disc list-inside">
+                      {m.productos.map((p) => (
+                        <li key={p}>{p}</li>
+                      ))}
+                    </ul>
+                  )
                 )}
                 <p className="mt-2 text-lg text-ink-muted whitespace-pre-wrap">
                   &ldquo;{m.texto}&rdquo;
                 </p>
-                <p className="mt-1 text-base text-muted">
-                  Código: <span className="font-mono font-semibold">{m.codigo}</span>
-                  {" · "}
-                  Pack: …{m.pack_id.slice(-6)}
+
+                <button
+                  type="button"
+                  onClick={() => void toggleHistorial(m.pack_id)}
+                  className="mt-1 text-sm font-medium text-accent hover:underline"
+                >
+                  {historialAbierto.has(m.pack_id) ? "Ocultar" : "Ver"} últimos mensajes de la conversación
+                </button>
+
+                {historialAbierto.has(m.pack_id) && (
+                  <div className="mt-2 space-y-1.5 rounded-lg border border-border bg-surface-hover/50 p-2">
+                    {cargandoHistorial.has(m.pack_id) && (
+                      <p className="text-sm text-muted">Cargando…</p>
+                    )}
+                    {!cargandoHistorial.has(m.pack_id) && (historiales[m.pack_id]?.length ?? 0) === 0 && (
+                      <p className="text-sm text-muted">Sin historial disponible.</p>
+                    )}
+                    {(historiales[m.pack_id] ?? []).map((h, i) => (
+                      <div
+                        key={i}
+                        className={`rounded-lg px-3 py-1.5 text-sm ${
+                          h.de === "vendedor"
+                            ? "ml-6 bg-accent/15 text-ink"
+                            : "mr-6 bg-surface text-ink"
+                        }`}
+                      >
+                        <p className="text-[11px] font-semibold text-muted">
+                          {h.nombre} {h.fecha && `· ${h.fecha}`}
+                        </p>
+                        <p className="whitespace-pre-wrap">{h.texto}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-surface-hover px-3 py-2 text-base text-muted">
+                  <span>
+                    Código: <span className="font-mono font-semibold text-ink">{m.codigo}</span>
+                  </span>
+                  <span>
+                    N.° de venta: <span className="font-mono font-semibold text-ink">{m.pack_id}</span>
+                  </span>
+                  {m.total && <span>💰 {m.total}</span>}
+                  {m.fecha_compra && <span>📅 Compra: {m.fecha_compra}</span>}
+                  {m.envio && <span>🚚 {m.envio}</span>}
                   {m.timestamp && (
-                    <>
-                      {" · "}
+                    <span>
+                      🕒{" "}
                       {new Date(m.timestamp).toLocaleString("es-CO", {
                         day: "2-digit",
                         month: "short",
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                    </>
+                    </span>
                   )}
-                </p>
+                </div>
               </div>
             </div>
 
@@ -125,6 +232,8 @@ export default function PostventaPanel() {
             <div className="flex gap-2">
               <input
                 type="text"
+                spellCheck
+                lang="es"
                 value={respuestas[m.codigo] ?? ""}
                 onChange={(e) =>
                   setRespuestas((r) => ({ ...r, [m.codigo]: e.target.value }))

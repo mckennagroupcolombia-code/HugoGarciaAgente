@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { useAppStore } from "../../stores/app";
+import { Modal, Button, Banner, Spinner } from "./ui";
 
 /** Codifica un nombre de recurso para usarlo en una ruta `/archivo/<path:nombre>`.
  * Codifica cada segmento por separado para preservar las '/' de subcarpetas
@@ -106,14 +106,6 @@ export function LightboxImagen({
     };
   }, [nombre]);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onCerrar();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCerrar]);
-
   // Convierte esta imagen en PDF y la envía al mismo flujo de vista previa +
   // impresión física que usan los archivos .ai/PDF en Imprimir Etiquetas.
   async function enviarAImprimir() {
@@ -135,76 +127,53 @@ export function LightboxImagen({
     }
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[700] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
-      onClick={onCerrar}
+  return (
+    <Modal
+      onClose={onCerrar}
+      title={<span title={nombre}>{nombre}</span>}
+      maxWidthClassName="max-w-4xl"
+      headerExtra={
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="printer"
+            loading={enviandoImprimir}
+            disabled={!src}
+            title="Envía la imagen al centro de Imprimir Etiquetas"
+            onClick={enviarAImprimir}
+          >
+            Imprimir
+          </Button>
+          <Button variant="secondary" size="sm" icon="download" loading={descargando} onClick={onDescargar}>
+            Descargar
+          </Button>
+          <Button variant="destructive" size="sm" icon="trash" loading={eliminando} onClick={onEliminar}>
+            Eliminar
+          </Button>
+        </div>
+      }
     >
-      <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-          <p className="min-w-0 truncate text-sm font-semibold text-ink" title={nombre}>
-            {nombre}
-          </p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={enviarAImprimir}
-              disabled={!src || enviandoImprimir}
-              title="Envía la imagen al centro de Imprimir Etiquetas"
-              className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
-            >
-              {enviandoImprimir ? "…" : "🖨 Imprimir"}
-            </button>
-            <button
-              type="button"
-              onClick={onDescargar}
-              disabled={descargando}
-              className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
-            >
-              {descargando ? "…" : "⬇ Descargar"}
-            </button>
-            <button
-              type="button"
-              onClick={onEliminar}
-              disabled={eliminando}
-              className="rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
-            >
-              {eliminando ? "…" : "✕ Eliminar"}
-            </button>
-            <button
-              type="button"
-              onClick={onCerrar}
-              className="rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:bg-surface-hover"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-        {errorImprimir && (
-          <p className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-            {errorImprimir}
-          </p>
+      {errorImprimir && (
+        <Banner tone="danger" className="rounded-none border-x-0 border-t-0">
+          {errorImprimir}
+        </Banner>
+      )}
+      <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto bg-surface-hover p-4">
+        {fallo ? (
+          <p className="text-sm text-muted">No se pudo cargar la imagen.</p>
+        ) : src ? (
+          <img
+            src={src}
+            alt={nombre}
+            className="max-h-full max-w-full object-contain"
+            onError={() => setFallo(true)}
+          />
+        ) : (
+          <Spinner size="lg" />
         )}
-        <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto bg-zinc-100 p-4 dark:bg-zinc-800/40">
-          {fallo ? (
-            <p className="text-sm text-muted">No se pudo cargar la imagen.</p>
-          ) : src ? (
-            <img
-              src={src}
-              alt={nombre}
-              className="max-h-full max-w-full object-contain"
-              onError={() => setFallo(true)}
-            />
-          ) : (
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          )}
-        </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }
 

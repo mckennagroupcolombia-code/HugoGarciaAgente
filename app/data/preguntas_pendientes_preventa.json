@@ -1152,6 +1152,29 @@
       "respondida": true,
       "borrador_ia": "Buenas noches, veci. Con gusto le colaboro con su pedido.\n\nPor el momento, la información que tengo disponible para ofrecerle es sobre nuestro Ácido Hialurónico de 30ml. Es un producto excelente para todo tipo de piel que puede usar tanto de día como de noche.\n\nEntre sus beneficios, le cuento que es un potente hidratante que ayuda a mantener la piel suave, tersa y con apariencia joven. También es ideal para reducir la apariencia de arrugas y líneas finas. Si le interesa, con gusto le doy más detalles para que pueda completar su compra.",
       "nota": "Respondida automáticamente por monitor (reintento) 2026-07-06"
+    },
+    {
+      "question_id": "13617518276",
+      "titulo_producto": "Ácido Hialurónico 30ml Bajo Pes Todo Tipo De Piel Día/noche",
+      "pregunta": "Buenas tardes.no me contestaste la pregunta. Quiero pedirte acido salicilico pero ya no esta en el catalogo. Lo descontinuaron? O si no como te lo puedo pedir?",
+      "timestamp": "2026-07-07T15:44:23.913052",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buenas tardes. Con gusto le colaboro.\n\nComprendo su consulta, pero por este medio mi función es brindarle información únicamente sobre el producto de esta publicación, que es nuestro Ácido Hialurónico de 30ml.\n\nEste es un excelente hidratante que ayuda a mantener la piel suave, tersa y con una apariencia más joven. Además, ayuda a reducir la apariencia de arrugas y líneas finas, y es ideal para todo tipo de piel, para usar de día o de noche.\n\nSi tiene alguna otra consulta sobre nuestro Ácido Hialurónico, quedo totalmente atento para ayudarle. Le confirmo que tenemos unidades disponibles.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-07"
+    },
+    {
+      "question_id": "13617741162",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Es comestible o de grado alimenticio?",
+      "timestamp": "2026-07-07T19:41:12.661240",
+      "respondida": true
+    },
+    {
+      "question_id": "13617743608",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Con preguntar sobre si es comestible quería saber si se puede usar para el mantenimiento de tablas de picar de madera",
+      "timestamp": "2026-07-07T19:46:41.367567",
+      "respondida": true
     }
   ]
 }
