@@ -1,18 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1783112303.7662497,
-      "tipo": "bot_pausado_global",
-      "sender": "573172228023@c.us",
-      "detalle": "Y el zinc"
-    },
-    {
-      "ts": 1783112318.4054332,
-      "tipo": "bot_pausado_global",
-      "sender": "573172228023@c.us",
-      "detalle": "La tienen que precio envio cali"
-    },
-    {
       "ts": 1783113848.0545244,
       "tipo": "bot_pausado_global",
       "sender": "573155219923@c.us",
@@ -1799,6 +1787,18 @@
       "tipo": "bot_pausado_global",
       "sender": "573228290901@c.us",
       "detalle": "Hola, quiero una cotización"
+    },
+    {
+      "ts": 1783484842.395926,
+      "tipo": "bot_pausado_global",
+      "sender": "573145632357@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1783484842.5413253,
+      "tipo": "bot_pausado_global",
+      "sender": "573145632357@c.us",
+      "detalle": "Me puedes dar por favor el certificado de análisis (CoA) o la ficha de seguridad (MSDS) de la C-PROCONSUE80PKg"
     }
   ]
 }
