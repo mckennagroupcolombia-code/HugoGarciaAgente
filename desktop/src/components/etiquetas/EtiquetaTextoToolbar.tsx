@@ -65,7 +65,7 @@ export function EtiquetaTextoToolbar({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 ${FUENTE_ETIQUETA} ${
+      className={`flex flex-wrap items-center gap-2 rounded-paper border border-border bg-surface px-2 py-1.5 ${FUENTE_ETIQUETA} ${
         disabled ? "opacity-60" : ""
       }`}
     >
@@ -116,6 +116,7 @@ export function EtiquetaTextoToolbar({
             type="button"
             disabled={disabled}
             title={a.title}
+            aria-label={a.title}
             onClick={() => onPatch({ alineacion: a.id })}
             className={`rounded border px-1.5 py-0.5 text-sm font-bold disabled:cursor-not-allowed ${
               alineacion === a.id

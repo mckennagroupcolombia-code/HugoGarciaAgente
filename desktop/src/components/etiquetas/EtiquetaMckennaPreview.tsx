@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import type { EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import type { CampoDiagramacionId } from "../../lib/etiquetasDiagramacion";
 import { formatoCanvasPx } from "../../lib/etiquetasDiagramacion";
 import { EtiquetaDiagramacionWorkspace } from "./EtiquetaDiagramEditor";
+import { Modal, Banner, Button, IconButton } from "./ui";
 
 interface Props {
   datos: EtiquetaStudioDatos;
@@ -226,26 +226,26 @@ export function EtiquetaMckennaPreview({
         <p className="py-2 text-center text-[10px] text-muted">Renderizando etiqueta…</p>
       )}
       {descSinAplicar && (
-        <p className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-900">
+        <Banner tone="warning" className="text-[10px]">
           La descripción del cuadro no se aplicó a la plantilla (
           {data?.meta?.descripcion_recibida_chars ?? 0} caracteres recibidos). Comprueba que estás en
           versión «Alternativa» y vuelve a cargar el SKU.
-        </p>
+        </Banner>
       )}
       {errMsg && (
-        <p className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-900">
+        <Banner tone="warning" className="text-[10px]">
           {errMsg}
-        </p>
+        </Banner>
       )}
       {!errMsg && data?.meta?.preflight && data.meta.preflight.ok === false && (
-        <p className="rounded border border-red-300 bg-red-50 px-2 py-1 text-[10px] text-red-800">
+        <Banner tone="danger" className="text-[10px]">
           Preflight: {(data.meta.preflight.errors || []).join(" · ")}
-        </p>
+        </Banner>
       )}
       {!errMsg && data?.meta?.preflight?.ok && (data.meta.preflight.warnings || []).length > 0 && (
-        <p className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-900">
+        <Banner tone="warning" className="text-[10px]">
           Aviso: {(data.meta.preflight.warnings || []).join(" · ")}
-        </p>
+        </Banner>
       )}
       {modoStudio && editable && !raw && svgMarkup && onPatch ? (
         <EtiquetaDiagramacionWorkspace
@@ -320,89 +320,67 @@ export function EtiquetaMckennaPreview({
           {debounced.archivo_ai ? ` · ${debounced.archivo_ai}` : ""}
         </p>
       )}
-      {ampliada && (svgMarkup || src) && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/75 p-2 sm:p-4">
-          <div
-            className={`grid h-[90vh] w-[96vw] ${editable && !raw ? "max-w-[1400px]" : "max-w-[1200px]"} grid-rows-[auto_1fr] rounded-xl border border-border bg-surface-panel p-3 shadow-2xl`}
-          >
-            <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-surface px-2 py-1">
-              <p className="text-sm font-semibold text-ink">
-                Vista previa ampliada
-                {editable && !raw ? " · editor de diagramación" : ""}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setZoomPct((z) => Math.max(50, z - 10))}
-                  className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-hover"
-                >
-                  −
-                </button>
-                <span className="min-w-[52px] text-center text-xs font-semibold text-ink">{zoomPct}%</span>
-                <button
-                  type="button"
-                  onClick={() => setZoomPct((z) => Math.min(250, z + 10))}
-                  className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-hover"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoomPct(100)}
-                  className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-hover"
-                >
-                  100%
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAmpliada(false)}
-                  className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-hover"
-                >
-                  Cerrar
-                </button>
-              </div>
+      {ampliada && (svgMarkup || src) && typeof document !== "undefined" && (
+        <Modal
+          onClose={() => setAmpliada(false)}
+          title={
+            <>
+              Vista previa ampliada
+              {editable && !raw ? " · editor de diagramación" : ""}
+            </>
+          }
+          maxWidthClassName={editable && !raw ? "max-w-[1400px]" : "max-w-[1200px]"}
+          fixedHeight
+          headerExtra={
+            <div className="flex items-center gap-1.5">
+              <IconButton icon="minus" label="Reducir zoom" size="sm" variant="outline" onClick={() => setZoomPct((z) => Math.max(50, z - 10))} />
+              <span className="min-w-[52px] text-center text-xs font-semibold text-ink">{zoomPct}%</span>
+              <IconButton icon="plus" label="Aumentar zoom" size="sm" variant="outline" onClick={() => setZoomPct((z) => Math.min(250, z + 10))} />
+              <Button variant="secondary" size="sm" onClick={() => setZoomPct(100)}>
+                100%
+              </Button>
             </div>
-            <div className="min-h-0 overflow-hidden">
-              {svgMarkup ? (
-                editable && !raw && onPatch ? (
-                  <EtiquetaDiagramacionWorkspace
-                    containerRef={ampliadaRef}
-                    svgKey={`${descFingerprint}:${diagFingerprint}:${zoomPct}`}
-                    diagramacion={datos.diagramacion}
-                    diagramacionGraficos={datos.diagramacion_graficos}
-                    datos={datos}
-                    enabled
-                    variant="sidebar"
-                    zoomPct={zoomPct}
-                    onZoomPctChange={setZoomPct}
-                    onPatchDiagramacion={(diagramacion) => onPatch({ diagramacion })}
-                    onPatchGraficos={(diagramacion_graficos) => onPatch({ diagramacion_graficos })}
-                    onPatchDatos={onPatch}
-                  >
-                    <SvgEnFormato svg={svgMarkup} />
-                  </EtiquetaDiagramacionWorkspace>
-                ) : (
-                  <div className="h-full overflow-auto rounded bg-[#e8eaed] p-2">
-                    <div className="flex min-h-full items-center justify-center">
-                      {marcoFormatoNode(<SvgEnFormato svg={svgMarkup} />)}
-                    </div>
-                  </div>
-                )
+          }
+        >
+          <div className="min-h-full">
+            {svgMarkup ? (
+              editable && !raw && onPatch ? (
+                <EtiquetaDiagramacionWorkspace
+                  containerRef={ampliadaRef}
+                  svgKey={`${descFingerprint}:${diagFingerprint}:${zoomPct}`}
+                  diagramacion={datos.diagramacion}
+                  diagramacionGraficos={datos.diagramacion_graficos}
+                  datos={datos}
+                  enabled
+                  variant="sidebar"
+                  zoomPct={zoomPct}
+                  onZoomPctChange={setZoomPct}
+                  onPatchDiagramacion={(diagramacion) => onPatch({ diagramacion })}
+                  onPatchGraficos={(diagramacion_graficos) => onPatch({ diagramacion_graficos })}
+                  onPatchDatos={onPatch}
+                >
+                  <SvgEnFormato svg={svgMarkup} />
+                </EtiquetaDiagramacionWorkspace>
               ) : (
-                <div className="flex h-full items-center justify-center overflow-auto rounded bg-[#e8eaed] p-2">
-                  {marcoFormatoNode(
-                    <img
-                      src={src!}
-                      alt={`Etiqueta ampliada ${debounced.nombre_producto}`}
-                      className="h-full w-full object-contain"
-                    />,
-                  )}
+                <div className="h-full overflow-auto rounded bg-surface-hover p-2">
+                  <div className="flex min-h-full items-center justify-center">
+                    {marcoFormatoNode(<SvgEnFormato svg={svgMarkup} />)}
+                  </div>
                 </div>
-              )}
-            </div>
+              )
+            ) : (
+              <div className="flex h-full items-center justify-center overflow-auto rounded bg-surface-hover p-2">
+                {marcoFormatoNode(
+                  <img
+                    src={src!}
+                    alt={`Etiqueta ampliada ${debounced.nombre_producto}`}
+                    className="h-full w-full object-contain"
+                  />,
+                )}
+              </div>
+            )}
           </div>
-        </div>,
-        document.body,
+        </Modal>
       )}
     </div>
   );

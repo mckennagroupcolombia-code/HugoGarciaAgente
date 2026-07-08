@@ -164,6 +164,14 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M5 12h14" />,
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M5 19h14" />
+    </>
+  ),
   trash: (
     <>
       <path d="M4 7h16M9 7V5h6v2M8 7l1 11h6l1-11M10 11v5M14 11v5" />

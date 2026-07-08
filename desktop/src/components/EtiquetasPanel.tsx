@@ -50,6 +50,7 @@ import {
 } from "../lib/etiquetasNormativa";
 import { studioDatosDesdeCatalogo, presentacionDesdeTipoEtiqueta } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
+import { Banner, Badge, Card, StatTile, Button, IconButton, Modal, Spinner } from "./etiquetas/ui";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
 import { useGuardarPublicacion } from "../hooks/usePublicaciones";
@@ -1843,34 +1844,23 @@ function BannerErrorImpresora({
 }) {
   const mostrarInstalar = onInstalar && (!error.codigo || CODIGOS_INSTALAR_IMPRESORA.has(error.codigo));
   return (
-    <div className="flex flex-shrink-0 items-start gap-3 border-b border-red-300 bg-red-50 px-4 py-3">
-      <span className="mt-0.5 text-lg leading-none" aria-hidden>⚠️</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-red-800">{error.error}</p>
-        <p className="mt-1 text-xs leading-relaxed text-red-700">
-          <span className="font-semibold">Posible solución: </span>
-          {error.solucion}
-        </p>
+    <Banner tone="danger" className="flex-shrink-0 items-start rounded-none border-x-0 border-t-0 px-4 py-3" onClose={onCerrar}>
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 text-lg leading-none" aria-hidden>⚠️</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{error.error}</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            <span className="font-semibold">Posible solución: </span>
+            {error.solucion}
+          </p>
+          {mostrarInstalar && (
+            <Button variant="secondary" size="sm" className="mt-2" onClick={onInstalar}>
+              Instalar impresora
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="flex flex-shrink-0 flex-col gap-1 sm:flex-row">
-        {mostrarInstalar && (
-          <button
-            type="button"
-            onClick={onInstalar}
-            className="rounded border border-red-400 bg-white px-2.5 py-1 text-[10px] font-bold text-red-700 hover:bg-red-100"
-          >
-            Instalar impresora
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onCerrar}
-          className="rounded px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-100"
-        >
-          Cerrar
-        </button>
-      </div>
-    </div>
+    </Banner>
   );
 }
 
@@ -2067,7 +2057,7 @@ function VistaPreviaConLote({
         </div>
       ) : loading ? (
         <div className="flex flex-col items-center gap-3 text-muted">
-          <span className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <Spinner size="lg" />
           <span className="text-xs">Renderizando...</span>
         </div>
       ) : (
@@ -2152,7 +2142,7 @@ function BotonSubirPdfEtiqueta({
         {subirMut.isPending ? "Guardando…" : label}
       </button>
       {errorLocal && (
-        <p className="mt-1 text-[11px] text-red-600">{errorLocal}</p>
+        <p className="mt-1 text-[11px] text-danger">{errorLocal}</p>
       )}
     </div>
   );
@@ -2201,26 +2191,35 @@ function NavegadorArchivos({
     !isLoading && !error && !enRaiz && rutaActual === null && !!data?.ruta_actual;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="flex h-[80vh] w-full max-w-xl flex-col rounded-2xl border-2 border-border bg-surface-panel shadow-xl">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3.5 flex-shrink-0 gap-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-ink">Explorar archivos PDF</h3>
-            <p className="text-xs text-muted truncate">
-              {enRaiz ? "Selecciona un disco o sube un PDF (queda guardado en Documentos)" : data?.ruta_actual}
-            </p>
-          </div>
-          <BotonSubirPdfEtiqueta
-            compact
-            label="📤 Subir"
-            onSubido={(item) => {
-              onSeleccionar({ nombre: item.nombre, ruta_completa: item.ruta_completa });
-              onCerrar();
-            }}
-          />
-          <button onClick={onCerrar} className="rounded p-1 text-muted hover:text-ink flex-shrink-0">✕</button>
-        </div>
-
+    <Modal
+      onClose={onCerrar}
+      maxWidthClassName="max-w-xl"
+      fixedHeight
+      title={
+        <>
+          <h3 className="text-sm font-bold text-ink">Explorar archivos PDF</h3>
+          <p className="truncate text-xs font-normal text-muted">
+            {enRaiz ? "Selecciona un disco o sube un PDF (queda guardado en Documentos)" : data?.ruta_actual}
+          </p>
+        </>
+      }
+      headerExtra={
+        <BotonSubirPdfEtiqueta
+          compact
+          label="📤 Subir"
+          onSubido={(item) => {
+            onSeleccionar({ nombre: item.nombre, ruta_completa: item.ruta_completa });
+            onCerrar();
+          }}
+        />
+      }
+      footer={
+        <Button variant="secondary" className="w-full" onClick={onCerrar}>
+          Cancelar
+        </Button>
+      }
+    >
+      <div className="flex h-full flex-col">
         {(enRaiz || data?.ruta_actual) && (
           <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-4 py-2 flex-shrink-0 text-xs">
             {data?.padre != null && (
@@ -2271,19 +2270,19 @@ function NavegadorArchivos({
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           {apiSinDiscos && (
-            <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+            <Banner tone="warning" className="mb-3 text-xs">
               El servidor aún no tiene la vista de discos. Reinicia el servicio:{" "}
               <code className="font-mono">sudo systemctl restart agente-pro</code>
               {" "}y recarga el panel (Ctrl+Shift+R).
-            </div>
+            </Banner>
           )}
           {isLoading && (
             <div className="flex items-center justify-center py-8 text-sm text-muted gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <Spinner />
               Cargando...
             </div>
           )}
-          {error && <p className="py-4 text-center text-sm text-red-500">Error al leer directorio</p>}
+          {error && <p className="py-4 text-center text-sm text-danger">Error al leer directorio</p>}
 
           {!busqueda && enRaiz && discos.map((d) => (
             <button
@@ -2333,17 +2332,8 @@ function NavegadorArchivos({
             <p className="py-6 text-center text-sm text-muted">Sin resultados para "{busqueda}"</p>
           )}
         </div>
-
-        <div className="border-t border-border px-5 py-3 flex-shrink-0">
-          <button
-            onClick={onCerrar}
-            className="w-full rounded-lg border-2 border-border py-2 text-sm font-semibold text-ink-secondary hover:bg-surface-hover"
-          >
-            Cancelar
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -2367,22 +2357,45 @@ function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
   const todoOk = diagData?.todo_ok ?? false;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-lg rounded-2xl border-2 border-border bg-surface-panel shadow-xl">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div>
-            <h3 className="text-base font-bold text-ink">Instalación de impresora</h3>
-            <p className="text-xs text-muted">Epson ColorWorks CW-C4000u</p>
-          </div>
-          <button onClick={onCerrar} className="rounded-lg p-1.5 text-muted hover:bg-surface-hover hover:text-ink">✕</button>
+    <Modal
+      onClose={onCerrar}
+      maxWidthClassName="max-w-lg"
+      title={
+        <>
+          <h3 className="text-base font-bold text-ink">Instalación de impresora</h3>
+          <p className="text-xs font-normal text-muted">Epson ColorWorks CW-C4000u</p>
+        </>
+      }
+      footer={
+        <div className="flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={onCerrar}>
+            {instalDone || todoOk ? "Cerrar" : "Cancelar"}
+          </Button>
+          {!todoOk && (
+            <Button
+              variant="primary"
+              className="flex-1"
+              loading={instalarMut.isPending}
+              disabled={diagLoading}
+              onClick={() => { setInstalLog([]); setInstalDone(false); instalarMut.mutate(); }}
+            >
+              {instalarMut.isPending ? "Instalando..." : "Instalar automáticamente"}
+            </Button>
+          )}
+          {todoOk && (
+            <Button variant="secondary" className="flex-1" onClick={() => refetchDiag()}>
+              Actualizar
+            </Button>
+          )}
         </div>
-
-        <div className="px-6 py-5 space-y-5">
+      }
+    >
+      <div className="px-6 py-5 space-y-5">
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wide text-muted">Diagnóstico del sistema</p>
             {diagLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent inline-block" />
+                <Spinner />
                 Verificando componentes...
               </div>
             ) : (
@@ -2401,9 +2414,9 @@ function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
           </div>
 
           {diagData?.usb_detectado && (
-            <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700">
+            <Banner tone="success" className="text-xs">
               Impresora USB detectada: <span className="font-mono">{diagData.usb_detectado}</span>
-            </div>
+            </Banner>
           )}
 
           {instalLog.length > 0 && (
@@ -2411,45 +2424,19 @@ function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
               <p className="border-b border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">Log de instalación</p>
               <div className="max-h-40 overflow-y-auto p-3 font-mono text-[11px] text-ink space-y-0.5">
                 {instalLog.map((l, i) => (
-                  <div key={i} className={l.startsWith("✗") || l.startsWith("⚠") ? "text-orange-600" : ""}>{l}</div>
+                  <div key={i} className={l.startsWith("✗") || l.startsWith("⚠") ? "text-warning" : ""}>{l}</div>
                 ))}
               </div>
             </div>
           )}
 
           {todoOk && !instalarMut.isPending && (
-            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm font-semibold text-green-700 text-center">
+            <Banner tone="success" className="justify-center text-center text-sm font-semibold">
               ✅ Todo está correctamente instalado
-            </div>
+            </Banner>
           )}
-        </div>
-
-        <div className="flex gap-3 border-t border-border px-6 py-4">
-          <button onClick={onCerrar} className="flex-1 rounded-lg border-2 border-border py-2.5 text-sm font-semibold text-ink-secondary hover:bg-surface-hover">
-            {instalDone || todoOk ? "Cerrar" : "Cancelar"}
-          </button>
-          {!todoOk && (
-            <button
-              onClick={() => { setInstalLog([]); setInstalDone(false); instalarMut.mutate(); }}
-              disabled={instalarMut.isPending || diagLoading}
-              className="flex-1 rounded-lg border-2 border-accent bg-accent py-2.5 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-40"
-            >
-              {instalarMut.isPending ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Instalando...
-                </span>
-              ) : "Instalar automáticamente"}
-            </button>
-          )}
-          {todoOk && (
-            <button onClick={() => refetchDiag()} className="flex-1 rounded-lg border-2 border-border py-2.5 text-sm font-semibold text-ink hover:bg-surface-hover">
-              Actualizar
-            </button>
-          )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -2529,7 +2516,7 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted">
-        <span className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        <Spinner size="lg" />
         <span className="text-xs">Extrayendo texto del PDF...</span>
       </div>
     );
@@ -2537,9 +2524,9 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+      <Banner tone="danger" className="rounded-paper-lg px-4 py-4 text-sm">
         Error al leer el PDF: {(error as Error).message}
-      </div>
+      </Banner>
     );
   }
 
@@ -2587,7 +2574,7 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
                       title={span.color_hex}
                     />
                     {!span.font_file && (
-                      <span className="text-[9px] text-orange-500" title="Fuente no encontrada en el sistema — se usará Helvetica">⚠ fuente approx.</span>
+                      <span className="text-[9px] text-warning" title="Fuente no encontrada en el sistema — se usará Helvetica">⚠ fuente approx.</span>
                     )}
                   </div>
                   <ProseTextarea
@@ -2625,9 +2612,9 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
 
       {/* Resultado y botón guardar */}
       {resultado && (
-        <p className={`rounded-lg px-3 py-2 text-xs font-medium ${resultado.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+        <Banner tone={resultado.ok ? "success" : "danger"} className="text-xs font-medium">
           {resultado.msg}
-        </p>
+        </Banner>
       )}
 
       <div className="flex items-center gap-2 border-t border-border pt-3">
@@ -2825,29 +2812,54 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
         />
       )}
 
-      <div className="fixed inset-0 z-40 flex flex-col bg-black/40">
-        <div className="mx-auto flex h-full w-full max-w-[min(100vw,1440px)] flex-col overflow-hidden border-x border-border bg-surface-panel shadow-2xl">
-          {/* Barra de título — estilo Word */}
-          <div className="flex flex-shrink-0 items-center gap-3 border-b border-accent/30 bg-accent px-4 py-2 text-white">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold">{combo.name}</p>
-              <p className="font-mono text-[10px] opacity-75">{combo.code}</p>
-            </div>
-            {form.pdf_nombre && (
-              <span className="hidden max-w-[200px] truncate text-[10px] opacity-80 sm:inline">
-                📄 {form.pdf_nombre}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={onCerrar}
-              className="rounded-md p-1.5 text-white/90 transition hover:bg-white/15"
-              title="Cerrar"
-            >
-              ✕
+      <Modal
+        onClose={onCerrar}
+        variant="fullscreen"
+        headerTone="accent"
+        maxWidthClassName="max-w-[min(100vw,1440px)]"
+        title={
+          <>
+            <p className="truncate text-sm font-bold">{combo.name}</p>
+            <p className="font-mono text-[10px] opacity-75">{combo.code}</p>
+          </>
+        }
+        headerExtra={
+          form.pdf_nombre ? (
+            <span className="hidden max-w-[200px] truncate text-[10px] opacity-80 sm:inline">
+              📄 {form.pdf_nombre}
+            </span>
+          ) : undefined
+        }
+        footer={
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onCerrar} className="rounded border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-hover">
+              Cerrar
             </button>
+            <div className="flex-1 truncate text-[10px] text-muted">
+              {form.pdf_nombre ? `📄 ${form.pdf_nombre}` : "Editor de etiquetas"}
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="floppyDisk"
+              loading={guardarMut.isPending}
+              onClick={() => guardarMut.mutate()}
+            >
+              Guardar
+            </Button>
+            <Button
+              variant="success"
+              size="sm"
+              icon="printer"
+              disabled={!form.pdf_ruta}
+              loading={imprimirEditorMut.isPending}
+              onClick={handleImprimirEditor}
+            >
+              Imprimir
+            </Button>
           </div>
-
+        }
+      >
           {errorImpresion && (
             <BannerErrorImpresora
               error={errorImpresion}
@@ -2929,9 +2941,10 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       type="button"
                       onClick={handleImprimirEditor}
                       disabled={!form.pdf_ruta || imprimirEditorMut.isPending}
-                      className={`inline-flex h-8 items-center gap-1 rounded border-2 border-green-600 bg-green-600 px-3 ${RIB_FONT_BTN} font-bold text-white disabled:opacity-40`}
+                      className={`inline-flex h-8 items-center gap-1 rounded border-2 border-success bg-success px-3 ${RIB_FONT_BTN} font-bold text-white disabled:opacity-40`}
                     >
-                      🖨 {imprimirEditorMut.isPending ? "…" : "Imprimir"}
+                      <Icon name="printer" size={13} weight="bold" />
+                      {imprimirEditorMut.isPending ? "…" : "Imprimir"}
                     </button>
                   </RibbonGroup>
                 </>
@@ -3088,9 +3101,9 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                         >
                           <span className="text-sm">{expandido ? "▾" : "▸"}</span>
                           <span className="flex-1 truncate text-xs font-semibold">{campo.etiqueta || "Campo"}</span>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); moverCampo(campo.id, -1); }} disabled={idx === 0} className="p-1 text-muted disabled:opacity-30">↑</button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); moverCampo(campo.id, 1); }} disabled={idx === campos.length - 1} className="p-1 text-muted disabled:opacity-30">↓</button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); eliminarCampo(campo.id); }} className="p-1 text-muted hover:text-danger">✕</button>
+                          <button type="button" aria-label="Mover arriba" onClick={(e) => { e.stopPropagation(); moverCampo(campo.id, -1); }} disabled={idx === 0} className="p-1 text-muted disabled:opacity-30">↑</button>
+                          <button type="button" aria-label="Mover abajo" onClick={(e) => { e.stopPropagation(); moverCampo(campo.id, 1); }} disabled={idx === campos.length - 1} className="p-1 text-muted disabled:opacity-30">↓</button>
+                          <button type="button" aria-label="Eliminar campo" onClick={(e) => { e.stopPropagation(); eliminarCampo(campo.id); }} className="p-1 text-muted hover:text-danger">✕</button>
                         </div>
                         {expandido && (
                           <div className="space-y-2 border-t border-border px-3 py-3">
@@ -3174,35 +3187,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
               </div>
             )}
           </div>
-
-          {/* Barra de estado */}
-          <div className="flex flex-shrink-0 items-center gap-2 border-t border-border bg-surface-panel px-4 py-2">
-            <button type="button" onClick={onCerrar} className="rounded border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-hover">
-              Cerrar
-            </button>
-            <div className="flex-1 truncate text-[10px] text-muted">
-              {form.pdf_nombre ? `📄 ${form.pdf_nombre}` : "Editor de etiquetas"}
-            </div>
-            <button
-              type="button"
-              onClick={() => guardarMut.mutate()}
-              disabled={guardarMut.isPending}
-              className="inline-flex items-center gap-1 rounded border-2 border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-            >
-              <Icon name="floppyDisk" size={14} weight="bold" />
-              Guardar
-            </button>
-            <button
-              type="button"
-              onClick={handleImprimirEditor}
-              disabled={!form.pdf_ruta || imprimirEditorMut.isPending}
-              className="rounded border-2 border-green-600 bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
-            >
-              🖨 Imprimir
-            </button>
-          </div>
-        </div>
-      </div>
+      </Modal>
     </>
   );
 }
@@ -3314,8 +3299,8 @@ function TabConfigurar() {
         key={c.code}
         className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
           esPorPublicar
-            ? "border-amber-200 bg-amber-50/50"
-            : "border-gray-200 bg-gray-50/60"
+            ? "border-warning/30 bg-warning/10"
+            : "border-border bg-surface"
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -3324,7 +3309,7 @@ function TabConfigurar() {
             <span className="font-mono text-[10px] text-muted">{c.code}</span>
             <span
               className={`text-[10px] font-semibold ${
-                esPorPublicar ? "text-amber-700" : "text-gray-600"
+                esPorPublicar ? "text-warning" : "text-muted"
               }`}
             >
               {esPorPublicar ? "Por publicar" : "Omitido"}
@@ -3355,7 +3340,7 @@ function TabConfigurar() {
           <p className="truncate text-sm font-medium text-ink">{c.name}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
             <span className="font-mono text-[10px] text-muted">{c.code}</span>
-            <span className="text-[10px] font-medium text-blue-700">MeLi {meliId}</span>
+            <span className="text-[10px] font-medium text-accent">MeLi {meliId}</span>
           </div>
         </div>
         <span className="text-xs text-muted transition group-hover:text-accent">Editar →</span>
@@ -3373,7 +3358,7 @@ function TabConfigurar() {
     return (
       <div
         key={c.code}
-        className="rounded-xl border border-orange-200 bg-orange-50/40 px-4 py-3"
+        className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 min-w-0">
@@ -3437,7 +3422,7 @@ function TabConfigurar() {
         </div>
         {cargandoCombos && (
           <span className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <Spinner />
           </span>
         )}
       </div>
@@ -3457,7 +3442,7 @@ function TabConfigurar() {
           onClick={() => toggleFiltroCategoria("con_meli")}
           className={claseTarjetaFiltro(filtroCategoria === "con_meli")}
         >
-          <p className="text-xl font-extrabold text-green-600">{combosConMeli.length}</p>
+          <p className="text-xl font-extrabold text-success">{combosConMeli.length}</p>
           <p className="text-xs text-muted mt-0.5">Con MeLi</p>
         </button>
         <button
@@ -3465,7 +3450,7 @@ function TabConfigurar() {
           onClick={() => toggleFiltroCategoria("por_publicar")}
           className={claseTarjetaFiltro(filtroCategoria === "por_publicar")}
         >
-          <p className="text-xl font-extrabold text-amber-600">{combosPorPublicar.length}</p>
+          <p className="text-xl font-extrabold text-warning">{combosPorPublicar.length}</p>
           <p className="text-xs text-muted mt-0.5">Por publicar</p>
         </button>
         <button
@@ -3473,7 +3458,7 @@ function TabConfigurar() {
           onClick={() => toggleFiltroCategoria("omitidos")}
           className={claseTarjetaFiltro(filtroCategoria === "omitidos")}
         >
-          <p className="text-xl font-extrabold text-gray-500">{combosOmitidos.length}</p>
+          <p className="text-xl font-extrabold text-muted">{combosOmitidos.length}</p>
           <p className="text-xs text-muted mt-0.5">Omitidos</p>
         </button>
         <button
@@ -3481,7 +3466,7 @@ function TabConfigurar() {
           onClick={() => toggleFiltroCategoria("pendientes")}
           className={claseTarjetaFiltro(filtroCategoria === "pendientes", "col-span-2 sm:col-span-1")}
         >
-          <p className="text-xl font-extrabold text-orange-500">{combosPendientes.length}</p>
+          <p className="text-xl font-extrabold text-warning">{combosPendientes.length}</p>
           <p className="text-xs text-muted mt-0.5">Pendientes</p>
         </button>
       </div>
@@ -3848,7 +3833,7 @@ function ChecklistPedidoEtiquetas({
       })}
 
       {msg && (
-        <p className={`text-center text-xs font-semibold ${msg.startsWith("✅") ? "text-accent" : "text-red-500"}`}>
+        <p className={`text-center text-xs font-semibold ${msg.startsWith("✅") ? "text-accent" : "text-danger"}`}>
           {msg}
         </p>
       )}
@@ -3940,12 +3925,12 @@ function ModalPedidosEtiquetasEnCurso({
               {pedidoSel ? "Marca, anota y guarda el avance" : "Etiquetas asignadas a ti"}
             </p>
           </div>
-          <button type="button" onClick={onCerrar} className="rounded px-2 py-1 text-lg leading-none hover:bg-white/15">×</button>
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="rounded px-2 py-1 text-lg leading-none hover:bg-white/15">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
           {error && (
-            <p className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p>
+            <Banner tone="danger" className="mb-3 text-xs">{error}</Banner>
           )}
           {loading && !pedidoSel && (
             <p className="py-8 text-center text-sm text-muted italic">Cargando…</p>
@@ -4410,7 +4395,7 @@ function TabImprimir({
             >
               📋 En curso
               {solicitudesImprimir.length > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[9px] font-black text-amber-950">
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-black text-white">
                   {solicitudesImprimir.length}
                 </span>
               )}
@@ -4439,15 +4424,14 @@ function TabImprimir({
             </p>
           </div>
           {tabsVistaImpresion}
-          <span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
-            impDeshabilitada ? "bg-orange-200 text-orange-800"
-            : impConectada ? (avisoRollo ? "bg-amber-200 text-amber-900" : "bg-green-200 text-green-800")
-            : "bg-red-200 text-red-800"
-          }`}>
+          <Badge
+            tone={impDeshabilitada ? "warning" : impConectada ? (avisoRollo ? "warning" : "success") : "danger"}
+            solid
+          >
             {impDeshabilitada ? "Desconectada"
               : impConectada ? (avisoRollo ? "Conectada · revisa rollo" : "Impresora lista")
               : "Sin impresora"}
-          </span>
+          </Badge>
           <button
             type="button"
             onClick={() => setMostrarPedidoEtiquetas(true)}
@@ -4456,7 +4440,7 @@ function TabImprimir({
           >
             📋 En curso
             {solicitudesImprimir.length > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[9px] font-black text-amber-950">
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-black text-white">
                 {solicitudesImprimir.length}
               </span>
             )}
@@ -4479,24 +4463,24 @@ function TabImprimir({
         )}
 
         {!impConectada && estadoTxt && !errorImpresion && (
-          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-orange-200 bg-orange-50 px-4 py-2">
-            <p className="text-xs text-orange-700">
-              {impDeshabilitada
-                ? "Conecta el cable USB e instala la impresora."
-                : "Impresora no registrada en CUPS. Pulsa «Instalar impresora»."}
-            </p>
-            <button type="button" onClick={() => setMostrarInstalador(true)} className="rounded bg-orange-500 px-3 py-1 text-[10px] font-bold text-white hover:bg-orange-600">
-              Instalar
-            </button>
-          </div>
+          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs">
+                {impDeshabilitada
+                  ? "Conecta el cable USB e instala la impresora."
+                  : "Impresora no registrada en CUPS. Pulsa «Instalar impresora»."}
+              </p>
+              <Button variant="warning" size="sm" onClick={() => setMostrarInstalador(true)}>
+                Instalar
+              </Button>
+            </div>
+          </Banner>
         )}
 
         {impConectada && avisoRollo && estadoData?.niveles_tinta?.alerta_impresora && !errorImpresion && (
-          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2">
-            <p className="text-xs text-amber-900">
-              {estadoData.niveles_tinta.alerta_impresora.error}
-            </p>
-          </div>
+          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0 text-xs">
+            {estadoData.niveles_tinta.alerta_impresora.error}
+          </Banner>
         )}
 
         <NivelesTintaImpresora compact onExpand={onIrInventarioTinta} />
@@ -4573,7 +4557,7 @@ function TabImprimir({
                 </RibbonGroup>
                 <RibbonGroup label="Cantidad">
                   <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">−</button>
+                    <button type="button" aria-label="Restar cantidad" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">−</button>
                     <input
                       type="number"
                       min={1}
@@ -4582,7 +4566,7 @@ function TabImprimir({
                       onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
                       className={`${RIB_INP} w-12 text-center font-bold`}
                     />
-                    <button type="button" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">+</button>
+                    <button type="button" aria-label="Sumar cantidad" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">+</button>
                   </div>
                 </RibbonGroup>
               </>
@@ -4670,7 +4654,7 @@ function TabImprimir({
                   </button>
                 </div>
                 {pdfStudioPreview?.error ? (
-                  <p className="px-6 text-center text-xs text-red-500">{pdfStudioPreview.error}</p>
+                  <p className="px-6 text-center text-xs text-danger">{pdfStudioPreview.error}</p>
                 ) : (
                   <VistaPreviaConLote
                     imagen={pdfStudioPreview?.imagen}
@@ -4728,7 +4712,7 @@ function TabImprimir({
             type="button"
             onClick={handleImprimir}
             disabled={imprimirMut.isPending || !productoListo}
-            className="w-full max-w-md rounded-xl border-2 border-green-600 bg-green-600 py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:bg-green-700 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
+            className="w-full max-w-md rounded-xl border-2 border-success bg-success py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:opacity-90 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
           >
             {imprimirMut.isPending ? "Imprimiendo…" : "🖨 IMPRIMIR"}
           </button>
@@ -4742,7 +4726,7 @@ function TabImprimir({
             </div>
             <div className="max-h-28 overflow-y-auto rounded bg-surface-panel p-2 font-mono text-[10px] text-ink space-y-0.5">
               {log.map((l, i) => (
-                <div key={i} className={l.includes("❌") || l.includes("✗") ? "text-red-600" : l.includes("✅") ? "text-green-600" : l.includes("⚠") ? "text-orange-500" : ""}>
+                <div key={i} className={l.includes("❌") || l.includes("✗") ? "text-danger" : l.includes("✅") ? "text-success" : l.includes("⚠") ? "text-warning" : ""}>
                   {l}
                 </div>
               ))}
@@ -4823,8 +4807,8 @@ async function fetchNivelesTintaUsb(): Promise<NivelesTintaResp> {
 
 function nivelTintaBarraClase(pct: number | null | undefined): string {
   if (pct == null) return "bg-muted/40";
-  if (pct <= 15) return "bg-red-500";
-  if (pct <= 30) return "bg-orange-500";
+  if (pct <= 15) return "bg-danger";
+  if (pct <= 30) return "bg-warning";
   return "bg-accent";
 }
 
@@ -4882,16 +4866,11 @@ function PanelAlertaEstadoImpresora({
   onInstalar?: () => void;
 }) {
   const sev = alerta.severidad ?? "error";
-  const estilos =
-    sev === "info"
-      ? "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100"
-      : sev === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-        : "border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100";
+  const tone = sev === "info" ? "accent" : sev === "warning" ? "warning" : "danger";
   const mostrarInstalar = onInstalar && (!alerta.codigo || CODIGOS_INSTALAR_IMPRESORA.has(alerta.codigo));
 
   return (
-    <div className={`mb-3 rounded-lg border px-3 py-3 text-xs ${estilos}`}>
+    <Banner tone={tone} className="mb-3 text-xs">
       <div className="flex flex-wrap items-start gap-3">
         <span className="text-base leading-none" aria-hidden>
           {sev === "info" ? "ℹ️" : sev === "warning" ? "⚠️" : "🛑"}
@@ -4907,16 +4886,12 @@ function PanelAlertaEstadoImpresora({
           ) : null}
         </div>
         {mostrarInstalar && (
-          <button
-            type="button"
-            onClick={onInstalar}
-            className="shrink-0 rounded border border-current/30 bg-white/80 px-2.5 py-1 text-[10px] font-bold hover:bg-white dark:bg-black/20"
-          >
+          <Button variant="secondary" size="sm" className="shrink-0" onClick={onInstalar}>
             Instalar impresora
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Banner>
   );
 }
 
@@ -5084,9 +5059,9 @@ function NivelesTintaImpresora({
       )}
 
       {errorUsb && (
-        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+        <Banner tone="danger" className="mb-3 text-xs">
           {errorUsb}
-        </p>
+        </Banner>
       )}
 
       {!isError && alerta && (
@@ -5097,15 +5072,15 @@ function NivelesTintaImpresora({
       )}
 
       {!isError && data?.mensaje && !alerta && (
-        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <Banner tone="warning" className="mb-3 text-xs">
           {data.mensaje}
-        </p>
+        </Banner>
       )}
 
       {soloUsb && !isError && (
-        <p className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-900 dark:border-green-800 dark:bg-green-950/40 dark:text-green-100">
+        <Banner tone="success" className="mb-3 text-xs">
           Niveles según el estado que reporta la Epson (misma lógica que las barras del LCD). Pulsa <strong>Leer impresora</strong> para actualizar.
-        </p>
+        </Banner>
       )}
 
       {mostrarEditorManual && !isError && (
@@ -5118,7 +5093,7 @@ function NivelesTintaImpresora({
         {cartuchos.map((c) => {
           const pct = pctVisible(c);
           return (
-          <div key={c.codigo} className="rounded-lg border border-border bg-surface px-3 py-2.5">
+          <Card key={c.codigo} padding="sm">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="text-xs font-bold text-ink">
                 <span
@@ -5130,22 +5105,22 @@ function NivelesTintaImpresora({
                   <span className="ml-1 font-mono text-[10px] text-muted">({c.codigo})</span>
                 ) : null}
                 {c.estado_etiqueta ? (
-                  <span className="ml-1 rounded bg-surface-panel px-1 text-[9px] font-semibold text-muted">
+                  <Badge tone="neutral" className="ml-1">
                     {c.estado_etiqueta}
-                  </span>
+                  </Badge>
                 ) : c.origen === "manual" ? (
-                  <span className="ml-1 rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">manual</span>
+                  <Badge tone="warning" solid className="ml-1">manual</Badge>
                 ) : c.origen === "impresora" ? (
-                  <span className="ml-1 rounded bg-green-100 px-1 text-[9px] font-bold text-green-800">USB</span>
+                  <Badge tone="success" solid className="ml-1">USB</Badge>
                 ) : null}
               </span>
               <span className={`font-mono text-sm font-extrabold tabular-nums ${
-                pct <= 15 ? "text-red-600" : "text-ink"
+                pct <= 15 ? "text-danger" : "text-ink"
               }`}>
                 {`${pct}%`}
               </span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-gray-200 ring-1 ring-border dark:bg-gray-700">
+            <div className="h-3 overflow-hidden rounded-full bg-surface-hover ring-1 ring-border">
               <div
                 className={`h-full rounded-full transition-all ${nivelTintaBarraClase(c.nivel ?? pct)}`}
                 style={{
@@ -5171,20 +5146,20 @@ function NivelesTintaImpresora({
             {c.nombre ? (
               <p className="mt-1 truncate font-mono text-[10px] text-muted">{c.nombre}</p>
             ) : null}
-          </div>
+          </Card>
           );
         })}
       </div>
 
       {mostrarEditorManual && !isError && (
-        <button
-          type="button"
-          disabled={guardarManualMut.isPending}
+        <Button
+          variant="primary"
+          className="mt-3 w-full"
+          loading={guardarManualMut.isPending}
           onClick={() => guardarManualMut.mutate(manualDraft)}
-          className="mt-3 w-full rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
         >
           {guardarManualMut.isPending ? "Guardando…" : "Guardar niveles de tinta"}
-        </button>
+        </Button>
       )}
     </div>
     </>
@@ -5464,14 +5439,14 @@ function TabInventarioPapelTinta() {
       <NivelesTintaImpresora />
 
       {errorInventario && (
-        <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+        <Banner tone="danger" className="text-xs font-semibold">
           {errorInventario}
-        </p>
+        </Banner>
       )}
       {okInventario && (
-        <p className="rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800">
+        <Banner tone="success" className="text-xs font-semibold">
           {okInventario}
-        </p>
+        </Banner>
       )}
 
       {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
@@ -5488,7 +5463,7 @@ function TabInventarioPapelTinta() {
               const bajo = papelBajoMinimo(v);
               const editando = editandoId === p.id;
               return (
-                <div key={p.id} className={`rounded-lg border ${bajo ? "border-orange-300 bg-orange-50" : "border-border bg-surface"}`}>
+                <div key={p.id} className={`rounded-lg border ${bajo ? "border-warning/30 bg-warning/10" : "border-border bg-surface"}`}>
                   {editando ? (
                     <div className="p-2">
                       <FormularioPapelInventario
@@ -5515,7 +5490,7 @@ function TabInventarioPapelTinta() {
                           {v.unidades_por_rollo} u/rollo · {v.rollos} rollos
                           {v.etiquetas_sueltas ? ` + ${v.etiquetas_sueltas} sueltas` : ""}
                         </p>
-                        <p className={`mt-1 font-mono font-semibold ${bajo ? "text-orange-700" : "text-accent"}`}>
+                        <p className={`mt-1 font-mono font-semibold ${bajo ? "text-warning" : "text-accent"}`}>
                           {total} etiquetas disponibles
                         </p>
                         {v.formato_etiqueta && (
@@ -5523,7 +5498,7 @@ function TabInventarioPapelTinta() {
                         )}
                         {v.notas && <p className="text-[10px] text-muted">{v.notas}</p>}
                       </div>
-                      <div className="flex shrink-0 gap-1">
+                      <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setEditandoId(p.id)}
@@ -5531,14 +5506,13 @@ function TabInventarioPapelTinta() {
                         >
                           Editar
                         </button>
-                        <button
-                          type="button"
-                          title="Eliminar"
+                        <IconButton
+                          icon="trash"
+                          label={`Eliminar rollo ${v.ref || v.nombre || ""}`}
+                          size="sm"
+                          tone="danger"
                           onClick={() => eliminarMut.mutate(p.id)}
-                          className="rounded px-2 py-1 text-muted hover:bg-danger/10 hover:text-danger"
-                        >
-                          ×
-                        </button>
+                        />
                       </div>
                     </div>
                   )}
@@ -5561,28 +5535,28 @@ function TabInventarioPapelTinta() {
                 <div
                   key={it.id}
                   className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
-                    bajo ? "border-orange-300 bg-orange-50" : "border-border bg-surface"
+                    bajo ? "border-warning/30 bg-warning/10" : "border-border bg-surface"
                   }`}
                 >
                   <span className="min-w-0 flex-1 font-semibold text-ink">{it.nombre}</span>
                   <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="rounded border border-border px-2 py-0.5 hover:bg-surface-hover"
+                    <IconButton
+                      icon="minus"
+                      label={`Restar unidad a ${it.nombre}`}
+                      size="sm"
+                      variant="outline"
                       onClick={() => patchMut.mutate({ id: it.id, patch: { cantidad: Math.max(0, it.cantidad - 1) } })}
-                    >
-                      −
-                    </button>
-                    <span className={`min-w-[4rem] text-center font-mono ${bajo ? "text-orange-700" : ""}`}>
+                    />
+                    <span className={`min-w-[4rem] text-center font-mono ${bajo ? "text-warning" : ""}`}>
                       {it.cantidad} {it.unidad}
                     </span>
-                    <button
-                      type="button"
-                      className="rounded border border-border px-2 py-0.5 hover:bg-surface-hover"
+                    <IconButton
+                      icon="plus"
+                      label={`Sumar unidad a ${it.nombre}`}
+                      size="sm"
+                      variant="outline"
                       onClick={() => patchMut.mutate({ id: it.id, patch: { cantidad: it.cantidad + 1 } })}
-                    >
-                      +
-                    </button>
+                    />
                   </div>
                   <span className="text-[10px] text-muted">mín. {it.minimo}</span>
                   {it.notas && <span className="w-full text-[10px] text-muted">{it.notas}</span>}
@@ -5755,7 +5729,7 @@ export default function EtiquetasPanel() {
   }
 
   const tabCls = (t: EtiquetasTab) =>
-    `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
+    `flex flex-1 items-center justify-center gap-1.5 rounded-paper py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow-paper-sm" : "text-ink-secondary hover:bg-surface-hover"}`;
 
   const studioFullscreen = tab === "studio" && studioInmersivo;
 
@@ -5764,15 +5738,15 @@ export default function EtiquetasPanel() {
       studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"
     }`}>
       {!studioFullscreen && (
-        <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
+        <div className="flex gap-2 rounded-paper-lg border border-border bg-surface-panel p-1">
           <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
-            🖨 Imprimir
+            <Icon name="printer" size={16} /> Imprimir
           </button>
           <button type="button" onClick={() => setTab("studio")} className={tabCls("studio")}>
-            🎨 Studio
+            <Icon name="palette" size={16} /> Studio
           </button>
           <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
-            📦 Inventario de papel y tinta
+            <Icon name="package" size={16} /> Inventario de papel y tinta
           </button>
         </div>
       )}

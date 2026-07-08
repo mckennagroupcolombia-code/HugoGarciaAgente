@@ -14,6 +14,7 @@ import type {
   FormatoImpresionEscaneo,
 } from "../../lib/etiquetasStudioHelpers";
 import { EtiquetaDiagramacionWorkspace } from "./EtiquetaDiagramEditor";
+import { IconButton, Badge, Banner, Button } from "./ui";
 
 interface EscanearDiagramacionResp {
   ok: boolean;
@@ -460,9 +461,9 @@ export function CatalogoDiagramacionScanner({
 
   const barraZoom = (
     <div className="flex items-center gap-0.5 rounded border border-border bg-surface px-1 py-0.5">
-      <button type="button" onClick={() => setZoomPct((z) => Math.max(50, z - 10))} className="px-1.5 text-xs">−</button>
+      <IconButton icon="minus" label="Reducir zoom" size="xs" onClick={() => setZoomPct((z) => Math.max(50, z - 10))} />
       <span className="min-w-[2.5rem] text-center text-[10px] font-semibold">{zoomPct}%</span>
-      <button type="button" onClick={() => setZoomPct((z) => Math.min(200, z + 10))} className="px-1.5 text-xs">+</button>
+      <IconButton icon="plus" label="Aumentar zoom" size="xs" onClick={() => setZoomPct((z) => Math.min(200, z + 10))} />
     </div>
   );
 
@@ -493,14 +494,14 @@ export function CatalogoDiagramacionScanner({
         )}
         <div className="flex flex-wrap items-center gap-1.5">
           {saveMsg && (
-            <span className="hidden rounded bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-800 sm:inline">
+            <Badge tone="success" solid>
               ✓ {saveMsg}
-            </span>
+            </Badge>
           )}
           {dirty && (
-            <span className="rounded bg-amber-100 px-2 py-1 text-[10px] font-medium text-amber-900">
+            <Badge tone="warning" solid>
               Sin guardar
-            </span>
+            </Badge>
           )}
           {activo && svgMostrar && !modoEdicionTexto && (
             <button
@@ -535,24 +536,19 @@ export function CatalogoDiagramacionScanner({
             {escanearMut.isPending ? "…" : "↺ Re-escanear"}
           </button>
           {puedeGuardar && (
-            <button
-              type="button"
-              disabled={guardarMut.isPending}
-              onClick={() => guardarMut.mutate()}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-            >
+            <Button variant="success" size="sm" loading={guardarMut.isPending} onClick={() => guardarMut.mutate()}>
               {guardarMut.isPending ? "Guardando…" : "Guardar"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {(escanearMut.isError || guardarMut.isError) && (
-        <p className="shrink-0 border-b border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-800">
+        <Banner tone="danger" className="shrink-0 rounded-none border-x-0 border-t-0">
           {(escanearMut.error ?? guardarMut.error) instanceof Error
             ? (escanearMut.error ?? guardarMut.error)?.message
             : "Error"}
-        </p>
+        </Banner>
       )}
 
       <div className={`min-h-0 flex-1 ${embedded ? "" : "p-3"}`}>
@@ -631,14 +627,14 @@ function CanvasArea({
     <div className="flex min-h-0 flex-1 flex-col p-2">
       {!ocultarZoom && (
       <div className="mb-2 flex items-center justify-center gap-1">
-        <button type="button" onClick={() => setZoomPct((z) => Math.max(50, z - 10))} className="rounded border border-border px-2 py-0.5 text-xs">−</button>
+        <IconButton icon="minus" label="Reducir zoom" size="xs" variant="outline" onClick={() => setZoomPct((z) => Math.max(50, z - 10))} />
         <span className="min-w-[3rem] text-center text-[11px] font-semibold">{zoomPct}%</span>
-        <button type="button" onClick={() => setZoomPct((z) => Math.min(200, z + 10))} className="rounded border border-border px-2 py-0.5 text-xs">+</button>
+        <IconButton icon="plus" label="Aumentar zoom" size="xs" variant="outline" onClick={() => setZoomPct((z) => Math.min(200, z + 10))} />
         <button type="button" onClick={() => setZoomPct(ZOOM_LIENZO_DEFAULT)} className="rounded border border-border px-1.5 py-0.5 text-[10px]">140%</button>
       </div>
       )}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg bg-[#e5e7eb] p-3">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg bg-surface-hover p-3">
         {cargando && (
           <p className="text-xs text-muted animate-pulse">Leyendo plantilla…</p>
         )}

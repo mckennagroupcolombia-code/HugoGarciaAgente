@@ -29,6 +29,8 @@ export type UiIconName =
   | "bell"
   | "xCircle"
   | "plus"
+  | "minus"
+  | "download"
   | "trash"
   | "funnel"
   | "link"

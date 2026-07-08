@@ -1096,13 +1096,13 @@ export function EtiquetaDiagramacionWorkspace({
       className={
         panelExterno
           ? "flex min-h-0 flex-1 items-center justify-center overflow-auto"
-          : "min-h-0 flex-1 overflow-auto rounded-lg bg-[#e8eaed] p-3"
+          : "min-h-0 flex-1 overflow-auto rounded-lg bg-surface-hover p-3"
       }
     >
       <div className={panelExterno ? "flex min-h-full w-full items-center justify-center" : "flex min-h-full items-center justify-center"}>
         <div
           ref={containerRef}
-          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-md ${FUENTE_ETIQUETA} ${
+          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-paper-sm ${FUENTE_ETIQUETA} ${
             variant === "inline" ? "" : "mx-auto max-w-[920px]"
           }`}
           style={{
@@ -1266,7 +1266,7 @@ export function EtiquetaDiagramacionWorkspace({
               type="button"
               title="Eliminar caja de texto (Supr)"
               aria-label="Eliminar caja de texto"
-              className="absolute z-40 flex h-4 w-4 items-center justify-center rounded-full border border-white/90 bg-red-500/90 text-[9px] font-bold leading-none text-white opacity-85 shadow-sm hover:opacity-100"
+              className="absolute z-40 flex h-4 w-4 items-center justify-center rounded-full border border-white/90 bg-danger/90 text-[9px] font-bold leading-none text-white opacity-85 shadow-paper-sm hover:opacity-100"
               style={{
                 left: pos.left + seleccionado.width - 6,
                 top: pos.top - 8,
@@ -1485,6 +1485,7 @@ export function EtiquetaDiagramacionWorkspace({
             <div className="ml-auto flex items-center gap-1">
               <button
                 type="button"
+                aria-label="Reducir zoom"
                 onClick={() => onZoomPctChange(Math.max(80, zoomPct - 10))}
                 className="rounded border border-border px-2 py-0.5 text-xs hover:bg-surface-hover"
               >
@@ -1493,6 +1494,7 @@ export function EtiquetaDiagramacionWorkspace({
               <span className="min-w-[40px] text-center text-[10px] font-semibold">{zoomPct}%</span>
               <button
                 type="button"
+                aria-label="Aumentar zoom"
                 onClick={() => onZoomPctChange(Math.min(220, zoomPct + 10))}
                 className="rounded border border-border px-2 py-0.5 text-xs hover:bg-surface-hover"
               >
@@ -1501,9 +1503,9 @@ export function EtiquetaDiagramacionWorkspace({
             </div>
           )}
         </div>
-        <div className={`grid min-h-0 flex-1 gap-2 ${capasVisibles ? "grid-cols-[minmax(120px,150px)_1fr]" : "grid-cols-1"}`}>
+        <div className={`grid min-h-0 flex-1 gap-2 ${capasVisibles ? "grid-cols-1 lg:grid-cols-[minmax(120px,150px)_1fr]" : "grid-cols-1"}`}>
           {capasVisibles && (
-          <aside className="overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs">
+          <aside className="max-h-[35vh] overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs lg:max-h-none">
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">Capas</p>
             {capasList}
             {seleccionado && (
@@ -1529,8 +1531,8 @@ export function EtiquetaDiagramacionWorkspace({
   }
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[240px_1fr] gap-2">
-      <aside className="flex flex-col gap-2 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs">
+    <div className="grid h-full min-h-0 grid-cols-1 gap-2 lg:grid-cols-[240px_1fr]">
+      <aside className="flex max-h-[35vh] flex-col gap-2 overflow-y-auto rounded-lg border border-border bg-surface p-2 text-xs lg:max-h-none">
         <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Diagramación</p>
         <p className="text-[10px] leading-snug text-muted">
           Selecciona un bloque, arrástralo en la etiqueta o ajusta color y posición.

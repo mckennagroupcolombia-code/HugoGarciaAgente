@@ -1222,6 +1222,23 @@ def _contexto_sds(datos_sds: dict) -> dict:
     }
 
 
+_SDS_CAMPOS_EXCLUSIVOS = (
+    "usos", "telefono", "clasificacion", "pictogramas",
+    "manipulacion", "almacenamiento", "normativa", "observaciones",
+)
+
+
+def _sds_diligenciado(sds_ctx: dict) -> bool:
+    """True si el SDS trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
+    if any((sds_ctx.get(campo) or "").strip() for campo in _SDS_CAMPOS_EXCLUSIVOS):
+        return True
+    for clave in ("composicion", "primeros_auxilios", "propiedades"):
+        for fila in sds_ctx.get(clave) or []:
+            if any((celda or "").strip() for celda in fila):
+                return True
+    return False
+
+
 def generar_pdf_completo(
     datos_ft: dict,
     datos_coa: dict | None = None,
@@ -1249,6 +1266,8 @@ def generar_pdf_completo(
     if coa_ctx and not _coa_diligenciado(coa_ctx):
         coa_ctx = None
     sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
+    if sds_ctx and not _sds_diligenciado(sds_ctx):
+        sds_ctx = None
 
     import re as _re
     def _formula_sub(val: str) -> str:

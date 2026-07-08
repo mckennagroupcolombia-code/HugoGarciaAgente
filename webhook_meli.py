@@ -701,6 +701,7 @@ _PROXY_LONG_PATH_MARKERS = (
     "chat-panel",
     "api/sync/",
     "api/voz/",
+    "api/etiquetas/imprimir",
 )
 
 

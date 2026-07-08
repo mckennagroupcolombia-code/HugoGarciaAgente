@@ -24,7 +24,7 @@ _STOP = {
     "the", "and", "de", "la", "el", "en", "y", "a", "es", "se",
 }
 
-_PROMPT_CATALOGO = """Eres redactor técnico especializado en materias primas químicas, cosméticas, alimentarias, industriales y de laboratorio (según corresponda al ingrediente) de McKenna Group.
+_PROMPT_CATALOGO = """Eres redactor técnico especializado en materias primas químicas, cosméticas, alimentarias, agrícolas e industriales de McKenna Group.
 
 El usuario escribe palabras clave para identificar una materia prima (solo para buscar la ficha; NO las repitas en el texto):
 "{fragmento}"
@@ -32,82 +32,45 @@ El usuario escribe palabras clave para identificar una materia prima (solo para 
 NOMBRE CANÓNICO del ingrediente (mencionar como MÁXIMO 1 vez en TODO el texto, preferiblemente al inicio del párrafo 1; si el título ya está en otra capa de la etiqueta, NO lo menciones):
 "{nombre_canonico}"
 
-Usa SOLO la información de las fichas técnicas adjuntas. No inventes datos. Si un dato no está en las fichas, indica de forma general sin especificar cifras falsas.
+Usa SOLO la información de las fichas técnicas adjuntas (documentos técnicos del agente). No inventes datos: si algo no consta en la ficha, omítelo sin rellenar con cifras o afirmaciones falsas.
 
-Redacta {n_opciones} variante(s) de texto técnico-comercial para catálogo o publicación de MATERIA PRIMA.
+TAREA: redacta {n_opciones} variante(s) de texto de descripción para una etiqueta de materia prima, en tono técnico de formulación — claro, profesional, dirigido a un público DIY que formula sus propios productos.
+
+CONTENIDO A CUBRIR (intégralo en prosa fluida, sin viñetas ni encabezados; usa solo lo que conste en la ficha, sin inventar):
+- Naturaleza química o funcional: qué tipo de compuesto o ingrediente es.
+- Apariencia física: estado, color, textura.
+- Origen: vegetal, animal, mineral o de síntesis industrial.
+- Método general de obtención: extracción, síntesis, fermentación, refinación u otro proceso.
+- Solubilidad o comportamiento de disolución/dispersión.
+- Condiciones básicas de incorporación: fase (acuosa/oleosa), temperatura, agitación, % de uso habitual.
+- Aplicaciones permitidas, según el segmento del insumo (cosmético, alimentario, agrícola o industrial).
+
+{instrucciones_segmento}
+
+PROHIBIDO POR NORMATIVA MERCADO LIBRE (rechazo automático si aparece cualquiera de estos elementos):
+- Claims de consumo, salud, bienestar, tratamiento, prevención o beneficio para el organismo.
+- Dosis recomendadas, modo de uso como suplemento, promesas nutricionales o cualquier frase que pueda interpretarse como indicación terapéutica.
+- Expresiones explícitamente prohibidas (y equivalentes): "mejora la salud", "beneficia al organismo", "dosis diaria", "suplemento dietético", "tratamiento", "previene", "cura".
+- McKenna comercializa MATERIA PRIMA reempacada para formulación — NO un suplemento ni un medicamento terminado.
+- PROHIBIDO también: grado farmacéutico como reclamo de consumo, uso medicinal, instrucciones de consumo ("tomar", "ingerir"), atletas, culturistas, rendimiento deportivo, ATP/trifosfato de adenosina, metabolismo energético, soporte celular.
+
+VOZ Y ESTILO (obligatorio):
+- Sobrio, informativo, enfocado en formulación: procesamiento, porcentajes de uso y aplicaciones — nunca en vender ni prometer resultados.
+- Redacción IMPERSONAL y OBJETIVA: describe la materia prima, no a un proveedor. PROHIBIDO primera persona ("nosotros", "nuestro", "ofrecemos", "le presentamos") y apropiación comercial ("nuestro producto", "garantiza su excelencia").
+- No repitas el título ni el subtítulo de la etiqueta (ya están impresos en otra capa): {contexto_otras_capas}
+- Tras la primera mención del ingrediente, varía referencias ("este compuesto", "el ingrediente", "la sustancia") — no repitas el nombre canónico más de la única vez ya permitida, ni encadenes "este insumo" en oraciones seguidas.
+- "materia prima" como MÁXIMO 1 vez en todo el texto (si el subtítulo ya lo dice, NO la uses). "formulación" no más de 3 veces — varía con "matriz", "proceso industrial", "elaboración".
+- Evita plantillas vacías ("características funcionales específicas", "optimizar el perfil"); cada oración debe aportar un dato distinto y concreto.
 
 EXTENSIÓN Y FORMA (obligatorio):
 - EXACTAMENTE 2 párrafos, separados por una línea en blanco (\\n\\n en JSON).
-- Cada párrafo debe tener alrededor de {palabras_por_parrafo} palabras (rango por párrafo: {palabras_parrafo_min}–{palabras_parrafo_max}).
-- Total aproximado: {palabras_objetivo} palabras entre ambos párrafos.
-- Desarrolla cada párrafo con detalle y varias oraciones; evita párrafos breves o telegráficos.
-
-VOZ Y PERSPECTIVA (obligatorio):
-- Redacción IMPERSONAL y OBJETIVA: describe la materia prima, no a un proveedor ni a un producto comercial propio.
-- PROHIBIDO primera persona: nosotros, nuestro, nuestra, ofrecemos, garantizamos, le presentamos, etc.
-- PROHIBIDO apropiación comercial en tercera persona: "nuestro producto", "este producto de calidad", "garantiza su excelencia", "le ofrece", lenguaje de marca o venta directa.
-- Tras la primera mención del ingrediente (si hace falta), varía referencias: "se emplea", "su uso", "el compuesto" — NO encadenes "este insumo" en oraciones seguidas (máximo 2 veces en todo el texto).
-- Construcciones preferidas: "se presenta", "es soluble en", "se emplea en", "se utiliza como", "presenta", "actúa como".
-- El texto debe leerse como una ficha técnica o descriptivo de catálogo de ingrediente, no como copy publicitario de una empresa.
-
-ESTILO NATURAL (obligatorio):
-- Español técnico fluido, como catálogo B2B colombiano; oraciones directas y concretas.
-- Varía el inicio de cada oración; evita plantillas vacías ("características funcionales específicas", "rol relevante", "encuentra su principal campo de aplicación", "optimizar el perfil").
-- PROHIBIDO acumular sinónimos huecos: no repitas "funcional", "características", "matrices" en la misma frase.
-- Describe propiedades físicas y usos industriales concretos; NO redactes como artículo de salud ni fisiología.
-- PROHIBIDO metabolismo celular, ATP, trifosfato de adenosina, energía celular, soporte celular o efectos en el organismo.
-- Usa "concentración" o "nivel de incorporación", no "dosificación" orientada al consumidor.
-
-ANTI-REPETICIÓN (obligatorio):
-- PROHIBIDO repetir el nombre canónico, las palabras clave del usuario o frases casi iguales en oraciones consecutivas.
-- "materia prima" como MÁXIMO 1 vez en todo el texto (si el subtítulo de la etiqueta ya lo dice, NO lo uses).
-- "formulación" no más de 3 veces en todo el texto; varía con "matriz", "proceso industrial", "elaboración".
-- Cada oración debe aportar un dato distinto (físico, funcional o de aplicación).
-
-Contenido a integrar de forma natural (sin títulos ni viñetas):
-
-PÁRRAFO 1 — ORDEN OBLIGATORIO (desarrolla cada bloque con datos de la ficha; si falta un dato, omítelo sin inventar):
-A) QUÉ ES: identifica brevemente de qué tipo de compuesto o ingrediente se trata, sin repetir el nombre canónico más de la única vez ya permitida.
-B) APARIENCIA FÍSICA: estado (polvo, líquido, granulado, cristalino), color, textura u organolépticas visuales si constan. Usa redacción explícita («se presenta como…», «en apariencia…»).
-C) ORIGEN O FUENTE: origen natural (vegetal, animal, mineral) o de síntesis química/industrial, y presencia natural si aplica — solo si consta en la ficha.
-D) MODO DE OBTENCIÓN: proceso general de extracción, síntesis, fermentación, refinación u otro método de obtención — solo si consta en la ficha; si no hay dato, omite este punto sin inventar.
-E) SOLUBILIDAD: medios de disolución o dispersión (agua, alcohol, aceites, etc.) con redacción explícita («es soluble en…», «se dispersa en…», «presenta solubilidad…»). Este punto es obligatorio si la ficha lo menciona.
-F) PROPIEDADES Y BENEFICIOS COMO MATERIA PRIMA: función técnica, rol en formulación, ventajas de proceso (estabilidad, textura, compatibilidad reológica, pureza) — sin claims de salud al consumidor.
-G) Comportamiento en matrices industriales según diseño de fórmula, equipo y condiciones de elaboración.
-H) Estabilidad frente al aire, humedad, luz o temperatura solo como propiedad del material, no como recomendación de guardado.
-
-NO incluir instrucciones de almacenamiento, caducidad ni conservación en el párrafo 1.
-
-PÁRRAFO 2 (características generales, propiedades y usos):
-- Características generales y propiedades adicionales relevantes para quien formula.
-- Aplicaciones por industria (química, alimentaria, farmacéutica, cosmética, industrial o de laboratorio, según lo que indiquen las fichas).
-- Referencia de uso o concentración (solo si consta en fichas; si no, indicar que depende de formulación y normativa).
-
-- PROHIBIDO en el párrafo 1: almacenar, guardar en envase, caducidad, consumir preferentemente, recomendaciones logísticas.
-
-- No repitas encabezados de ficha (Apariencia:, Solubilidad:, etc.); integra esos datos en prosa.
-- No dupliques frases del tipo "En la industria alimentaria… Para la industria alimentaria…".
-- Si no hay datos de una industria en las fichas, omítela; no uses texto genérico de relleno.
-- PROHIBIDO copiar tablas de especificaciones, valores Máx/Min, unidades (g/100g), pH numérico, índices de laboratorio o listas técnicas de control de calidad.
-- PROHIBIDO dejar etiquetas sueltas (Olor y sabor:, Alérgenos:, ALMACENAMIENTO, etc.); integra olor, sabor y alérgenos en oraciones completas si constan en la ficha.
-- No repitas la misma idea en oraciones consecutivas (p. ej. "materia prima industrial" dos veces seguidas).
-- Sin prometer curas, sin exagerar beneficios, sin lenguaje medicinal directo.
+- Cada párrafo: MÁXIMO 90 palabras.
+- No copies tablas de especificaciones, valores Máx/Min, unidades (g/100g), pH numérico exacto, ni encabezados o etiquetas sueltas de la ficha (Apariencia:, Solubilidad:, Olor y sabor:, etc.) — integra esos datos en prosa.
 - No uses emojis, comillas envolventes, listas ni encabezados en mayúsculas.
 - Máximo {max_chars} caracteres por variante.
 
-COMPLIANCE MERCADO LIBRE (obligatorio — evita baja de publicación):
-- McKenna comercializa MATERIA PRIMA reempacada para formulación. NO suplemento terminado ni medicamento.
-- PROHIBIDO mencionar: grado farmacéutico, uso medicinal, suplemento (en cualquier forma), dosis sugerida o recomendada, instrucciones de consumo tipo "tomar" o "ingerir", afirmaciones terapéuticas o promesas de resultados médicos.
-- PROHIBIDO orientar al consumidor final: dosis, dosificación, gramos diarios, fase de carga, consumo, suplemento deportivo, atletas, culturistas, ganancia muscular, recuperación post-entrenamiento, tratamiento, cura, terapia, ELA, trastornos neuromusculares, función cerebral terapéutica, absorción por el organismo, salud ósea/muscular/cardiovascular al consumidor, ATP, trifosfato de adenosina, metabolismo energético, soporte celular, perfil energético.
-- PROHIBIDO claims de producto terminado; describe uso en FORMULACIÓN industrial, alimentaria, cosmética, química o de laboratorio.
-- PROHIBIDO repetir el nombre comercial del ingrediente como titular si ya consta en otra capa de la plantilla.
-- PROHIBIDO repetir frases del subtítulo (ej. "materia prima alimentaria", "insumo cosmético").
-- Cada párrafo debe aportar información técnica nueva (propiedad, solubilidad, aplicaciones de formulación).
-
 OTRAS CAPAS DE LA ETIQUETA (no repetir):
 {contexto_otras_capas}
-
-{instrucciones_segmento}
 
 FICHAS TÉCNICAS:
 {contexto}
@@ -116,11 +79,11 @@ Responde ÚNICAMENTE con JSON válido en este formato:
 {{"sugerencias": [{{"texto": "primer párrafo.\\n\\nsegundo párrafo."}}]}}"""
 
 PALABRAS_POR_PARRAFO = 80
-PALABRAS_POR_PARRAFO_MIN = 65
-PALABRAS_POR_PARRAFO_MAX = 95
+PALABRAS_POR_PARRAFO_MIN = 55
+PALABRAS_POR_PARRAFO_MAX = 90
 PALABRAS_OBJETIVO = PALABRAS_POR_PARRAFO * 2
-PALABRAS_MIN = 120
-PALABRAS_MAX = 200
+PALABRAS_MIN = 110
+PALABRAS_MAX = 180
 MAX_CHARS_CATALOGO = 2600
 _JOB_TTL_SEC = 600
 
@@ -902,6 +865,15 @@ _RIESGO_MELI_EXTRA = (
     "terapéutico",
     "terapéutica",
     "resultado médico",
+    "tratamiento",
+    "previene",
+    "prevención",
+    "prevencion",
+    "cura",
+    "dosis diaria",
+    "beneficia al organismo",
+    "mejora la salud",
+    "bienestar",
 )
 
 
@@ -1174,6 +1146,8 @@ def _segmento_insumo(
         return "cosmetico"
     if any(k in subt for k in ("farmac", "farmaceut")):
         return "farmaceutico"
+    if any(k in subt for k in ("agric", "agro")):
+        return "agricola"
     if re.search(
         r"industria alimentaria|uso alimentario|grado alimenticio|ingrediente alimentario",
         blob,
@@ -1183,6 +1157,8 @@ def _segmento_insumo(
         return "cosmetico"
     if re.search(r"industria farmac|uso farmac", blob):
         return "farmaceutico"
+    if re.search(r"industria agricola|uso agricola|grado agricola|agroquimic", blob):
+        return "agricola"
     return "general"
 
 
@@ -1210,9 +1186,15 @@ def _instrucciones_segmento(segmento: str) -> str:
             "SEGMENTO FARMACÉUTICO: redacta para formulación farmacéutica industrial; "
             "no menciones alimentaria ni cosmética salvo en la ficha."
         )
+    if segmento == "agricola":
+        return (
+            "SEGMENTO AGRÍCOLA: redacta para formulación agrícola industrial "
+            "(fertilizantes, fitosanitarios, sustratos, nutrición vegetal); "
+            "no menciones cosmética, alimentaria ni farmacéutica salvo en la ficha."
+        )
     return (
         "Redacta según el segmento principal que indiquen las fichas técnicas "
-        "(alimentaria, cosmética o farmacéutica)."
+        "(alimentaria, cosmética, farmacéutica o agrícola)."
     )
 
 
@@ -1260,6 +1242,10 @@ def _apertura_p1(
         if titulo_en_capa:
             return "Insumo de uso farmacéutico-industrial para formulación en planta."
         return f"El {nombre} es un insumo de uso farmacéutico-industrial para formulación."
+    if segmento == "agricola":
+        if titulo_en_capa:
+            return "Insumo de uso agrícola-industrial para formulación en planta."
+        return f"El {nombre} es un insumo de uso agrícola-industrial para formulación."
     if titulo_en_capa:
         return "Insumo de uso industrial y de formulación."
     return f"El {nombre} es un insumo de uso industrial y de formulación."
@@ -1287,6 +1273,11 @@ def _uso_generico_p2(segmento: str) -> str:
     if segmento == "farmaceutico":
         return (
             "Se incorpora en formulaciones farmacéuticas según la aplicación "
+            "prevista y la normativa vigente."
+        )
+    if segmento == "agricola":
+        return (
+            "Se incorpora en formulaciones agrícolas según la aplicación "
             "prevista y la normativa vigente."
         )
     return (
@@ -1709,8 +1700,10 @@ def _validar_texto_catalogo(
     paras = [p for p in re.split(r"\n\s*\n", t) if p.strip()]
     if len(paras) < 2:
         return None
-    min_p = PALABRAS_POR_PARRAFO_MIN if estricto else max(45, PALABRAS_POR_PARRAFO_MIN - 15)
-    max_p = PALABRAS_POR_PARRAFO_MAX + (25 if estricto else 40)
+    min_p = PALABRAS_POR_PARRAFO_MIN if estricto else max(40, PALABRAS_POR_PARRAFO_MIN - 15)
+    # Margen de tolerancia reducido: el límite explícito ahora es "máximo 90
+    # palabras por párrafo" (antes el margen +25/+40 lo estiraba hasta 120/135).
+    max_p = PALABRAS_POR_PARRAFO_MAX + (10 if estricto else 20)
     for p in paras[:2]:
         wp = _contar_palabras(p)
         if wp < min_p or wp > max_p:
@@ -1764,6 +1757,8 @@ def _cumple_segmento(texto: str, contexto_capas: dict | None) -> bool:
     if seg == "cosmetico" and re.search(r"\bfarmac|\balimentar", t):
         return False
     if seg == "farmaceutico" and re.search(r"\bcosmet|\balimentar", t):
+        return False
+    if seg == "agricola" and re.search(r"\bcosmet|\bfarmac|\balimentar", t):
         return False
     return True
 
@@ -1960,10 +1955,6 @@ def _generar_con_gemini(
         fragmento=fragmento,
         nombre_canonico=nombre_canonico,
         n_opciones=n_opciones,
-        palabras_por_parrafo=PALABRAS_POR_PARRAFO,
-        palabras_parrafo_min=PALABRAS_POR_PARRAFO_MIN,
-        palabras_parrafo_max=PALABRAS_POR_PARRAFO_MAX,
-        palabras_objetivo=PALABRAS_OBJETIVO,
         max_chars=max_chars,
         contexto_otras_capas=_formatear_contexto_otras_capas(contexto_capas),
         instrucciones_segmento=_instrucciones_segmento(segmento),
