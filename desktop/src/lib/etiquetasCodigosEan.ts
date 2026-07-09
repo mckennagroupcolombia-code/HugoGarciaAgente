@@ -71,6 +71,15 @@ export function useCrearCodigoEan() {
   });
 }
 
+export function useActualizarCodigoEan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, datos }: { id: string; datos: NuevoCodigoEan }) =>
+      api.put<CodigoEan & { ok: boolean }>(`/api/etiquetas/codigos-ean/${id}`, datos),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+}
+
 export function useEliminarCodigoEan() {
   const qc = useQueryClient();
   return useMutation({
