@@ -2905,3 +2905,18 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel 2d52b09] Auto-commit: actualizacion diaria 2026-07-08 23:00
+ 32 files changed, 1845 insertions(+), 2210 deletions(-)
+ create mode 100644 app/data/etiquetas_codigos_ean.json
+ create mode 100644 desktop/src/components/etiquetas/CodigosEanPanel.tsx
+ create mode 100644 desktop/src/lib/ean13.ts
+ create mode 100644 desktop/src/lib/etiquetasCodigosEan.ts
+ create mode 100644 uploads/tickets/4451b9fe5b46441190b758f6c08f0404.jpeg
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-08 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
