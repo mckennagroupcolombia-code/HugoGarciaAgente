@@ -330,6 +330,36 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573013362991@c.us": {
+      "jid": "573013362991@c.us",
+      "primer_intencion_ts": 1783502063.0,
+      "primer_intencion_texto": "Buen día hice un pedido y no me acepta el pago por nequi me colaboran",
+      "ultima_human_ts": null,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1783502975.8823156,
+      "cancelada": false,
+      "cancelada_razon": null
+    },
+    "573107386545@c.us": {
+      "jid": "573107386545@c.us",
+      "primer_intencion_ts": 1783539684.0,
+      "primer_intencion_texto": "Voy a realizar el pedido",
+      "ultima_human_ts": 1783539955.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573208213048@c.us": {
+      "jid": "573208213048@c.us",
+      "primer_intencion_ts": 1783524603.0,
+      "primer_intencion_texto": "Si me regala el link de pago",
+      "ultima_human_ts": 1783524657.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

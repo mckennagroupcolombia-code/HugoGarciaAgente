@@ -534,4 +534,14 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
       <path d="M9 16h6M9 19h6" />
     </>
   ),
+  barcode: (
+    <>
+      <path d="M4 5v14" />
+      <path d="M8 5v14" />
+      <path d="M11 5v14" />
+      <path d="M15 5v14" />
+      <path d="M18 5v14" />
+      <path d="M20 5v14" />
+    </>
+  ),
 };

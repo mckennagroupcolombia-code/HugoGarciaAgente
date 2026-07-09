@@ -31,6 +31,7 @@ export type UiIconName =
   | "plus"
   | "minus"
   | "download"
+  | "barcode"
   | "trash"
   | "funnel"
   | "link"

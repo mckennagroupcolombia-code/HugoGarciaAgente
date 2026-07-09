@@ -12255,6 +12255,127 @@ REGLAS:
         _save_colores_etiquetas(nuevo)
         return jsonify({"ok": True})
 
+    # ── Etiquetas: códigos EAN-13 por producto ────────────────────────────────
+    # Estructura fija de 13 dígitos: 770 (país) + producto (3, 001-900) +
+    # presentación (3) + año (2, últimos dígitos) + bimestre (1, 0-5: Ene-Feb=0
+    # … Nov-Dic=5 — EAN-13 solo admite dígitos, no cabe el mes exacto en 1 dígito)
+    # + dígito verificador (algoritmo mod-10 estándar EAN-13).
+
+    _ETIQUETAS_CODIGOS_EAN_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_codigos_ean.json",
+    )
+    _EAN_PREFIJO = "770"
+
+    def _ean_calc_check(d12: str) -> int:
+        s = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(d12))
+        return (10 - (s % 10)) % 10
+
+    def _ean_bimestre_desde_mes(mes: int) -> int:
+        return max(0, min(5, (mes - 1) // 2))
+
+    def _load_codigos_ean() -> list:
+        try:
+            with open(_ETIQUETAS_CODIGOS_EAN_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            return []
+        items = data.get("codigos") if isinstance(data, dict) else []
+        return items if isinstance(items, list) else []
+
+    def _save_codigos_ean(items: list) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_CODIGOS_EAN_PATH), exist_ok=True)
+        with open(_ETIQUETAS_CODIGOS_EAN_PATH, "w", encoding="utf-8") as f:
+            json.dump({"codigos": items}, f, ensure_ascii=False, indent=2)
+
+    @app.route("/api/etiquetas/codigos-ean", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/codigos-ean", methods=["GET", "POST"])
+    def api_etiquetas_codigos_ean():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        items = _load_codigos_ean()
+
+        if request.method == "GET":
+            return jsonify({"codigos": items, "total": len(items)})
+
+        body = request.get_json(silent=True) or {}
+        sku = (body.get("sku") or "").strip()
+        nombre_producto = (body.get("nombre_producto") or "").strip()
+        if not sku:
+            return jsonify({"error": "SKU requerido"}), 400
+
+        try:
+            numero_producto = int(body.get("numero_producto"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Número de producto inválido"}), 400
+        if not (1 <= numero_producto <= 900):
+            return jsonify({"error": "El número de producto debe estar entre 1 y 900"}), 400
+        if any(int(it.get("numero_producto", -1)) == numero_producto for it in items):
+            return jsonify({"error": f"El número de producto {numero_producto} ya está registrado"}), 400
+
+        presentacion = str(body.get("presentacion") or "000").strip()
+        if not (presentacion.isdigit() and len(presentacion) == 3):
+            return jsonify({"error": "La presentación debe ser un código numérico de 3 dígitos"}), 400
+
+        anio_raw = body.get("anio")
+        if anio_raw in (None, ""):
+            anio = _dt.now().year % 100
+        else:
+            try:
+                anio = int(anio_raw) % 100
+            except (TypeError, ValueError):
+                return jsonify({"error": "Año inválido"}), 400
+
+        if body.get("bimestre") is not None:
+            try:
+                bimestre = int(body.get("bimestre"))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Bimestre inválido"}), 400
+        else:
+            try:
+                mes = int(body.get("mes"))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Mes inválido"}), 400
+            if not (1 <= mes <= 12):
+                return jsonify({"error": "El mes debe estar entre 1 y 12"}), 400
+            bimestre = _ean_bimestre_desde_mes(mes)
+        if not (0 <= bimestre <= 5):
+            return jsonify({"error": "Bimestre inválido"}), 400
+
+        d12 = f"{_EAN_PREFIJO}{numero_producto:03d}{presentacion}{anio:02d}{bimestre}"
+        check = _ean_calc_check(d12)
+        codigo = f"{d12}{check}"
+
+        import uuid as _uuid_ean
+        entry = {
+            "id": _uuid_ean.uuid4().hex[:12],
+            "sku": sku,
+            "nombre_producto": nombre_producto,
+            "numero_producto": numero_producto,
+            "presentacion": presentacion,
+            "anio": anio,
+            "bimestre": bimestre,
+            "codigo": codigo,
+            "creado_at": _dt.now().isoformat(timespec="seconds"),
+        }
+        items.append(entry)
+        items.sort(key=lambda x: x.get("numero_producto") or 0)
+        _save_codigos_ean(items)
+        return jsonify({"ok": True, **entry})
+
+    @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
+    @app.route("/app/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
+    def api_etiquetas_codigo_ean_delete(codigo_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        codigo_id = (codigo_id or "").strip()
+        items = _load_codigos_ean()
+        nuevo = [c for c in items if c.get("id") != codigo_id]
+        if len(nuevo) == len(items):
+            return jsonify({"error": "Código no encontrado"}), 404
+        _save_codigos_ean(nuevo)
+        return jsonify({"ok": True})
+
     # ── Etiquetas: inventario papel y tinta ───────────────────────────────────
 
     _ETIQUETAS_INVENTARIO_PATH = os.path.join(

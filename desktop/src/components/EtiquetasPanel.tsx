@@ -44,6 +44,7 @@ import {
   type CatalogoStudioFila,
 } from "./etiquetas/EtiquetasStudioCatalogo";
 import { EtiquetaMckennaPreview } from "./etiquetas/EtiquetaMckennaPreview";
+import { CodigosEanPanel } from "./etiquetas/CodigosEanPanel";
 import {
   ETIQUETA_STUDIO_DEFAULT,
   type EtiquetaStudioDatos,
@@ -5702,7 +5703,7 @@ export default function EtiquetasPanel() {
   const [studioInmersivo, setStudioInmersivo] = useState(false);
 
   useEffect(() => {
-    if (storeTab === "imprimir" || storeTab === "inventario" || storeTab === "studio") {
+    if (storeTab === "imprimir" || storeTab === "inventario" || storeTab === "studio" || storeTab === "codigos_ean") {
       setTabLocal(storeTab);
       return;
     }
@@ -5748,6 +5749,9 @@ export default function EtiquetasPanel() {
           <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
             <Icon name="package" size={16} /> Inventario de papel y tinta
           </button>
+          <button type="button" onClick={() => setTab("codigos_ean")} className={tabCls("codigos_ean")}>
+            <Icon name="barcode" size={16} /> Códigos EAN
+          </button>
         </div>
       )}
 
@@ -5762,6 +5766,7 @@ export default function EtiquetasPanel() {
       )}
       {tab === "studio" && <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />}
       {tab === "inventario" && <TabInventarioPapelTinta />}
+      {tab === "codigos_ean" && <CodigosEanPanel />}
     </div>
   );
 }

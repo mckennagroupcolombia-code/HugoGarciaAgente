@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-07T22:07:17",
+  "updated_at": "2026-07-08T16:44:56",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -43,9 +43,68 @@
     "2026-07-03": 10,
     "2026-07-04": 1,
     "2026-07-06": 8,
-    "2026-07-07": 22
+    "2026-07-07": 22,
+    "2026-07-08": 3
   },
   "sessions": [
+    {
+      "session_id": "web-1ea3df6e-14e9-4c7c-bee2-cf06e8aa0cad",
+      "started_at": "2026-07-08T16:44:56",
+      "last_at": "2026-07-08T16:44:56",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-alukg",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hola, precios al por mayor de alulosa",
+      "last_agent_reply": "Hola veci. En este momento no me aparece la alulosa en el catálogo para venta web. Puede echarle un ojo a nuestra tienda completa en mckennagroup.co/tienda a ver si la encuentra por ahí. Si no, nos puede escribir al WhatsApp (+57 319 518 3596) y le confirmamos si de pronto tenemos algún stock especial que no esté publicado.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-08T16:44:56",
+          "user_message": "Hola, precios al por mayor de alulosa",
+          "agent_reply": "Hola veci. En este momento no me aparece la alulosa en el catálogo para venta web. Puede echarle un ojo a nuestra tienda completa en mckennagroup.co/tienda a ver si la encuentra por ahí. Si no, nos puede escribir al WhatsApp (+57 319 518 3596) y le confirmamos si de pronto tenemos algún stock especial que no esté publicado.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-538652f1-93bf-4c45-afc4-e41fb9dbc95e",
+      "started_at": "2026-07-08T13:15:43",
+      "last_at": "2026-07-08T13:16:05",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/guias/benzoato-sodio",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "BENZOATO DE SODIO}",
+      "last_agent_reply": "Veci, el Benzoato de Sodio no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-08T13:15:43",
+          "user_message": "hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-08T13:16:05",
+          "user_message": "BENZOATO DE SODIO}",
+          "agent_reply": "Veci, el Benzoato de Sodio no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-af336017-3ff4-41ed-b61f-1a2bf5a2681b",
       "started_at": "2026-07-07T22:07:17",
