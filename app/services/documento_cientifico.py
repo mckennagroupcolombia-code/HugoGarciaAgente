@@ -459,6 +459,14 @@ def _asegurar_punto_final(texto: str) -> str:
     return t + "."
 
 
+def _asegurar_punto_final_lineas(texto: str) -> str:
+    """Como _asegurar_punto_final pero por cada línea: para campos con una
+    oración por renglón (ej. aplicaciones), donde cada línea se renderiza
+    como un ítem independiente en el PDF y debe llevar su propia puntuación."""
+    lineas = (texto or "").split("\n")
+    return "\n".join(_asegurar_punto_final(ln) if ln.strip() else ln for ln in lineas)
+
+
 def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     """Sugerencia IA para cualquier campo del formulario de ficha técnica.
     Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis."""
@@ -691,6 +699,8 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
+    elif campo == "aplicaciones":
+        valor = _asegurar_punto_final_lineas(valor)
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 

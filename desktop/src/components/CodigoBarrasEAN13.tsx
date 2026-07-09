@@ -1,88 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-
-// ── EAN-13 encoding tables ──────────────────────────────────────────────────
-const L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
-const G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
-const R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
-// Parity pattern per first digit (L=left-odd, G=left-even)
-const PARITY = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
-// Guard bars: start(0-2), center(45-49), end(92-94)
-const GUARD_IDX = new Set([0,1,2,45,46,47,48,49,92,93,94]);
-
-function calcCheck(d12: string): number {
-  let s = 0;
-  for (let i = 0; i < 12; i++) s += parseInt(d12[i]) * (i % 2 === 0 ? 1 : 3);
-  return (10 - (s % 10)) % 10;
-}
-
-function buildBits(digits: string): string {
-  const parity = PARITY[parseInt(digits[0])];
-  let bits = "101";
-  for (let i = 0; i < 6; i++) {
-    const d = parseInt(digits[i + 1]);
-    bits += parity[i] === "L" ? L[d] : G[d];
-  }
-  bits += "01010";
-  for (let i = 0; i < 6; i++) bits += R[parseInt(digits[i + 7])];
-  bits += "101";
-  return bits; // 95 modules
-}
-
-interface EAN13Result { svg: string; digits: string; }
-
-function generarEAN13(input: string): EAN13Result | null {
-  const raw = input.replace(/\D/g, "");
-  if (raw.length < 12 || raw.length > 13) return null;
-
-  const digits = raw.length === 12 ? raw + calcCheck(raw) : raw;
-  const bits = buildBits(digits);
-
-  // Layout constants (all in px) — mw=3 gives 339×112px for good print resolution
-  const mw = 3;       // module width
-  const qzL = 11;     // quiet zone left modules
-  const qzR = 7;      // quiet zone right modules
-  const dataH = 80;   // data bar height
-  const gExt = 12;    // guard bar extra height below data bars
-  const textH = 20;   // text row height
-  const padTop = 2;
-  const totalW = (qzL + 95 + qzR) * mw;   // 339px
-  const totalH = padTop + dataH + gExt + textH; // 108px
-
-  let bars = "";
-  for (let i = 0; i < 95; i++) {
-    if (bits[i] === "1") {
-      const h = GUARD_IDX.has(i) ? dataH + gExt : dataH;
-      bars += `<rect x="${(qzL + i) * mw}" y="${padTop}" width="${mw}" height="${h}" fill="black"/>`;
-    }
-  }
-
-  const textY = padTop + dataH + gExt + textH - 2;
-  const fz = 17;
-  // digit 1 left of start guard
-  const xD1 = (qzL - 1) * mw;
-  // digits 2-7 center under left data (modules qzL+3 … qzL+44)
-  const xLeft = (qzL + 3 + 21) * mw;
-  // digits 8-13 center under right data (modules qzL+50 … qzL+91)
-  const xRight = (qzL + 50 + 21) * mw;
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}">` +
-    `<rect width="${totalW}" height="${totalH}" fill="white"/>` +
-    bars +
-    `<text x="${xD1}" y="${textY}" text-anchor="middle" font-family="monospace" font-size="${fz}" fill="black">${digits[0]}</text>` +
-    `<text x="${xLeft}" y="${textY}" text-anchor="middle" font-family="monospace" font-size="${fz}" fill="black">${digits.slice(1, 7)}</text>` +
-    `<text x="${xRight}" y="${textY}" text-anchor="middle" font-family="monospace" font-size="${fz}" fill="black">${digits.slice(7)}</text>` +
-    `</svg>`;
-
-  return { svg, digits };
-}
-
-function svgToDataUrl(svg: string): string {
-  try {
-    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
-  } catch {
-    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  }
-}
+import { useEffect, useMemo, useRef, useState } from "react";
+import { calcCheck, generarEAN13, svgToDataUrl, type EAN13Result } from "../lib/ean13";
+import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 
 // ── Component ───────────────────────────────────────────────────────────────
 interface Props {
@@ -90,17 +8,42 @@ interface Props {
   onInsertar?: (svgDataUrl: string) => void;
 }
 
+function coincide(c: CodigoEan, q: string): boolean {
+  const t = q.trim().toLowerCase();
+  if (!t) return true;
+  return (
+    c.sku.toLowerCase().includes(t) ||
+    (c.nombre_producto || "").toLowerCase().includes(t) ||
+    String(c.numero_producto).includes(t) ||
+    c.codigo.includes(t)
+  );
+}
+
 export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
+  const [modo, setModo] = useState<"registrados" | "manual">("registrados");
+
+  // ── Modo "registrados": buscar en la tabla ya persistida ──────────────────
+  const { data: codigos, isLoading } = useCodigosEan();
+  const [busqueda, setBusqueda] = useState("");
+  const [seleccionado, setSeleccionado] = useState<CodigoEan | null>(null);
+  const buscarRef = useRef<HTMLInputElement>(null);
+
+  const coincidencias = useMemo(
+    () => (codigos ?? []).filter((c) => coincide(c, busqueda)),
+    [codigos, busqueda],
+  );
+
+  // ── Modo "manual": escribir dígitos directamente ───────────────────────────
   const [valor, setValor] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (modo === "registrados") buscarRef.current?.focus();
+    else inputRef.current?.focus();
+  }, [modo]);
 
   const raw = valor.replace(/\D/g, "").slice(0, 13);
-  const resultado = raw.length >= 12 ? generarEAN13(raw) : null;
-  const esValido = resultado !== null;
-
-  // Check digit preview while typing
+  const resultadoManual = raw.length >= 12 ? generarEAN13(raw) : null;
   const checkPreview = raw.length === 12 ? calcCheck(raw) : null;
   const errorCheck =
     raw.length === 13
@@ -108,6 +51,10 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
         ? `Dígito verificador incorrecto (correcto: ${calcCheck(raw.slice(0, 12))})`
         : null
       : null;
+
+  const resultado: EAN13Result | null =
+    modo === "registrados" ? (seleccionado ? generarEAN13(seleccionado.codigo) : null) : resultadoManual;
+  const esValido = resultado !== null;
 
   function onDragStart(e: React.DragEvent) {
     if (!resultado) return;
@@ -120,13 +67,18 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
     setTimeout(() => ghost.remove(), 0);
   }
 
+  const tabCls = (m: "registrados" | "manual") =>
+    `flex-1 rounded-lg py-1 text-[10px] font-bold transition ${
+      modo === m ? "bg-accent text-white" : "text-ink-secondary hover:bg-surface-hover"
+    }`;
+
   return (
     <div
-      className="fixed right-4 top-20 z-40 w-72 rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+      className="fixed right-4 top-20 z-40 flex max-h-[80vh] w-80 flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-3 py-2">
         <span className="text-xs font-bold text-ink">Código de barras EAN-13</span>
         <button
           type="button"
@@ -137,34 +89,89 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
         </button>
       </div>
 
-      <div className="space-y-3 p-3">
-        {/* Input */}
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">
-            Código EAN-13
-          </label>
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="numeric"
-            maxLength={14}
-            placeholder="7 700000 000000"
-            value={valor}
-            onChange={(e) => setValor(e.target.value.replace(/[^\d\s]/g, ""))}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 font-mono text-sm tracking-widest text-ink focus:border-accent focus:outline-none"
-          />
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-[10px] text-muted">{raw.length}/13 dígitos</span>
-            {checkPreview !== null && (
-              <span className="text-[10px] font-semibold text-accent">
-                Dígito verificador: {checkPreview}
-              </span>
-            )}
-            {errorCheck && (
-              <span className="text-[10px] text-red-500">{errorCheck}</span>
-            )}
-          </div>
+      <div className="flex-shrink-0 border-b border-border p-2">
+        <div className="flex gap-1 rounded-lg border border-border bg-surface p-0.5">
+          <button type="button" className={tabCls("registrados")} onClick={() => setModo("registrados")}>
+            Registrados
+          </button>
+          <button type="button" className={tabCls("manual")} onClick={() => setModo("manual")}>
+            Escribir manual
+          </button>
         </div>
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        {modo === "registrados" ? (
+          <>
+            <input
+              ref={buscarRef}
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por SKU, producto o número…"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
+            />
+            <div className="max-h-40 space-y-1 overflow-y-auto">
+              {isLoading ? (
+                <p className="py-4 text-center text-[10px] text-muted">Cargando…</p>
+              ) : coincidencias.length === 0 ? (
+                <p className="py-4 text-center text-[10px] text-muted">
+                  {codigos && codigos.length === 0
+                    ? "Aún no hay códigos registrados (pestaña «Códigos EAN»)."
+                    : "Sin coincidencias."}
+                </p>
+              ) : (
+                coincidencias.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSeleccionado((prev) => (prev?.id === c.id ? null : c))}
+                    className={`w-full rounded-lg border px-2.5 py-1.5 text-left transition ${
+                      seleccionado?.id === c.id
+                        ? "border-accent bg-accent/10"
+                        : "border-border hover:bg-surface-hover"
+                    }`}
+                  >
+                    <p className="truncate text-xs font-semibold text-ink">
+                      {c.sku} <span className="font-normal text-muted">· {String(c.numero_producto).padStart(3, "0")}</span>
+                    </p>
+                    {c.nombre_producto && (
+                      <p className="truncate text-[10px] text-muted">{c.nombre_producto}</p>
+                    )}
+                    <p className="mt-0.5 font-mono text-[9px] tracking-wide text-muted">{c.codigo}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">
+              Código EAN-13
+            </label>
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="numeric"
+              maxLength={14}
+              placeholder="7 700000 000000"
+              value={valor}
+              onChange={(e) => setValor(e.target.value.replace(/[^\d\s]/g, ""))}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 font-mono text-sm tracking-widest text-ink focus:border-accent focus:outline-none"
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-[10px] text-muted">{raw.length}/13 dígitos</span>
+              {checkPreview !== null && (
+                <span className="text-[10px] font-semibold text-accent">
+                  Dígito verificador: {checkPreview}
+                </span>
+              )}
+              {errorCheck && (
+                <span className="text-[10px] text-danger">{errorCheck}</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Preview barcode */}
         <div className="flex min-h-[56px] items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2 dark:bg-zinc-50">
@@ -178,7 +185,9 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
             />
           ) : (
             <span className="text-[10px] text-muted">
-              {raw.length === 0
+              {modo === "registrados"
+                ? "Elige un código de la lista"
+                : raw.length === 0
                 ? "Ingresa 12 o 13 dígitos"
                 : raw.length < 12
                 ? `Faltan ${12 - raw.length} dígitos`
@@ -225,7 +234,9 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
         </div>
 
         <p className="text-[9px] text-muted">
-          Con 12 dígitos el verificador se calcula automáticamente. Arrastra la previsualización al lienzo.
+          {modo === "registrados"
+            ? "Haz clic en un código para previsualizarlo, o arrástralo directo al lienzo."
+            : "Con 12 dígitos el verificador se calcula automáticamente. Arrastra la previsualización al lienzo."}
         </p>
       </div>
     </div>

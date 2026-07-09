@@ -971,7 +971,8 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
     sinonimos = (d.get("sinonimos") or "").strip()
     cas = (d.get("cas") or "").strip()
     fecha = _formatear_fecha_revision(d.get("fecha_revision") or "")
-    descripcion = (d.get("descripcion") or "").strip()
+    from app.services.documento_cientifico import _asegurar_punto_final
+    descripcion = _asegurar_punto_final((d.get("descripcion") or "").strip())
 
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
@@ -1009,16 +1010,19 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
     apps = d.get("aplicaciones") or []
     if isinstance(apps, str):
         apps = [a.strip() for a in apps.split("\n") if a.strip()]
+    apps = [_asegurar_punto_final(a) for a in apps]
 
     # Composición
     composicion = [(r[0], r[1]) for r in _filas_tabla(d.get("composicion")) if r[0] or r[1]]
 
     # Modo de uso (sección propia después de Aplicaciones)
-    modo_uso = (d.get("modo_uso") or "").strip()
+    modo_uso = _asegurar_punto_final((d.get("modo_uso") or "").strip())
 
     # Recomendaciones GHS
     recomendaciones_raw = (d.get("recomendaciones") or "").strip()
-    recomendaciones = [l.strip() for l in recomendaciones_raw.split("\n") if l.strip()]
+    recomendaciones = [
+        _asegurar_punto_final(l.strip()) for l in recomendaciones_raw.split("\n") if l.strip()
+    ]
 
     # Lote
     lote = (d.get("lote") or "").strip()

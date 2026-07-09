@@ -35,7 +35,7 @@ export type Panel =
   | "perfil";
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
-export type EtiquetasTab = "imprimir" | "inventario" | "studio";
+export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
 
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {

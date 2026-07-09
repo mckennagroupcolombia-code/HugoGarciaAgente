@@ -1175,6 +1175,43 @@
       "pregunta": "Con preguntar sobre si es comestible quería saber si se puede usar para el mantenimiento de tablas de picar de madera",
       "timestamp": "2026-07-07T19:46:41.367567",
       "respondida": true
+    },
+    {
+      "question_id": "13617912772",
+      "titulo_producto": "Kit Reparador #2 Cosmético Todo Tipo De Piel",
+      "pregunta": "Tienes ácido retinoico?",
+      "timestamp": "2026-07-08T11:03:19.854123",
+      "respondida": true
+    },
+    {
+      "question_id": "13618011606",
+      "titulo_producto": "Agitador Magnético Con Plancha Calefactora Laboratorio",
+      "pregunta": "Emiten factura electrónica ?",
+      "timestamp": "2026-07-08T10:33:15.675472",
+      "respondida": true
+    },
+    {
+      "question_id": "13617288549",
+      "titulo_producto": "Aceite Esencial De Menta 5ml Mckenna Group Puro Apto Difusor Y Masajes",
+      "pregunta": "Es grado alimenticio?",
+      "timestamp": "2026-07-08T11:03:19.854123",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡con gusto te colaboro!\n\nClaro que sí, nuestro Aceite Esencial de Menta se considera seguro para ingerir. De hecho, uno de sus beneficios es ayudar a aliviar problemas digestivos como la indigestión y el malestar estomacal.\n\nPara su consumo, la recomendación es siempre diluirlo en un aceite portador comestible, como el de coco o el de oliva. La proporción es muy baja: basta con una gota o menos de nuestro aceite esencial en una cucharadita del aceite portador.\n\nRecuerda que generalmente solo se requiere una pequeña cantidad para obtener sus beneficios. ¡Quedo atento si tienes alguna otra duda",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-08"
+    },
+    {
+      "question_id": "13618078394",
+      "titulo_producto": "Kit Reparador #2 Cosmético Todo Tipo De Piel",
+      "pregunta": "Solo quiero hacer una salvedad. El retinol no es igual al ácido retinoico.",
+      "timestamp": "2026-07-08T11:20:51.630761",
+      "respondida": true
+    },
+    {
+      "question_id": "13617381797",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Buenas tardes, Diez unidades se obtiene mejor precio?",
+      "timestamp": "2026-07-08T13:03:40.758962",
+      "respondida": true
     }
   ]
 }
