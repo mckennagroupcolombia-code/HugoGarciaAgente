@@ -12363,6 +12363,85 @@ REGLAS:
         _save_codigos_ean(items)
         return jsonify({"ok": True, **entry})
 
+    @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["PUT", "PATCH"])
+    @app.route("/app/api/etiquetas/codigos-ean/<codigo_id>", methods=["PUT", "PATCH"])
+    def api_etiquetas_codigo_ean_editar(codigo_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        codigo_id = (codigo_id or "").strip()
+        items = _load_codigos_ean()
+        idx = next((i for i, c in enumerate(items) if c.get("id") == codigo_id), None)
+        if idx is None:
+            return jsonify({"error": "Código no encontrado"}), 404
+        actual = items[idx]
+
+        body = request.get_json(silent=True) or {}
+        sku = (body.get("sku") or "").strip()
+        nombre_producto = (body.get("nombre_producto") or "").strip()
+        if not sku:
+            return jsonify({"error": "SKU requerido"}), 400
+
+        try:
+            numero_producto = int(body.get("numero_producto"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Número de producto inválido"}), 400
+        if not (1 <= numero_producto <= 900):
+            return jsonify({"error": "El número de producto debe estar entre 1 y 900"}), 400
+        if any(
+            i != idx and int(it.get("numero_producto", -1)) == numero_producto
+            for i, it in enumerate(items)
+        ):
+            return jsonify({"error": f"El número de producto {numero_producto} ya está registrado"}), 400
+
+        presentacion = str(body.get("presentacion") or "000").strip()
+        if not (presentacion.isdigit() and len(presentacion) == 3):
+            return jsonify({"error": "La presentación debe ser un código numérico de 3 dígitos"}), 400
+
+        anio_raw = body.get("anio")
+        if anio_raw in (None, ""):
+            anio = _dt.now().year % 100
+        else:
+            try:
+                anio = int(anio_raw) % 100
+            except (TypeError, ValueError):
+                return jsonify({"error": "Año inválido"}), 400
+
+        if body.get("bimestre") is not None:
+            try:
+                bimestre = int(body.get("bimestre"))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Bimestre inválido"}), 400
+        else:
+            try:
+                mes = int(body.get("mes"))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Mes inválido"}), 400
+            if not (1 <= mes <= 12):
+                return jsonify({"error": "El mes debe estar entre 1 y 12"}), 400
+            bimestre = _ean_bimestre_desde_mes(mes)
+        if not (0 <= bimestre <= 5):
+            return jsonify({"error": "Bimestre inválido"}), 400
+
+        d12 = f"{_EAN_PREFIJO}{numero_producto:03d}{presentacion}{anio:02d}{bimestre}"
+        check = _ean_calc_check(d12)
+        codigo = f"{d12}{check}"
+
+        entry = {
+            **actual,
+            "sku": sku,
+            "nombre_producto": nombre_producto,
+            "numero_producto": numero_producto,
+            "presentacion": presentacion,
+            "anio": anio,
+            "bimestre": bimestre,
+            "codigo": codigo,
+            "actualizado_at": _dt.now().isoformat(timespec="seconds"),
+        }
+        items[idx] = entry
+        items.sort(key=lambda x: x.get("numero_producto") or 0)
+        _save_codigos_ean(items)
+        return jsonify({"ok": True, **entry})
+
     @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
     @app.route("/app/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
     def api_etiquetas_codigo_ean_delete(codigo_id: str):

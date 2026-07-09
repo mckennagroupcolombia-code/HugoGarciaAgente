@@ -4,6 +4,7 @@ import {
   BIMESTRE_LABEL,
   construirCodigo12,
   mesABimestre,
+  useActualizarCodigoEan,
   useCodigosEan,
   useCrearCodigoEan,
   useEliminarCodigoEan,
@@ -23,8 +24,10 @@ function anioActualCorto(): number {
 export function CodigosEanPanel() {
   const { data: codigos, isLoading, error } = useCodigosEan();
   const crear = useCrearCodigoEan();
+  const actualizar = useActualizarCodigoEan();
   const eliminar = useEliminarCodigoEan();
 
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [sku, setSku] = useState("");
   const [nombreProducto, setNombreProducto] = useState("");
   const [numeroProducto, setNumeroProducto] = useState("");
@@ -32,10 +35,18 @@ export function CodigosEanPanel() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(anioActualCorto());
 
+  const guardando = crear.isPending || actualizar.isPending;
+  const errorGuardar = editandoId ? actualizar.error : crear.error;
+  const huboError = editandoId ? actualizar.isError : crear.isError;
+
   const numeroValido = /^\d+$/.test(numeroProducto) && Number(numeroProducto) >= 1 && Number(numeroProducto) <= 900;
   const numeroDuplicado = useMemo(
-    () => numeroValido && (codigos ?? []).some((c) => c.numero_producto === Number(numeroProducto)),
-    [codigos, numeroProducto, numeroValido],
+    () =>
+      numeroValido &&
+      (codigos ?? []).some(
+        (c) => c.numero_producto === Number(numeroProducto) && c.id !== editandoId,
+      ),
+    [codigos, numeroProducto, numeroValido, editandoId],
   );
   const bimestre = mesABimestre(mes);
 
@@ -46,33 +57,60 @@ export function CodigosEanPanel() {
     return generarEAN13(`${d12}${check}`);
   }, [numeroValido, numeroProducto, presentacion, anio, bimestre]);
 
-  const puedeRegistrar = sku.trim().length > 0 && numeroValido && !numeroDuplicado && !crear.isPending;
+  const puedeGuardar = sku.trim().length > 0 && numeroValido && !numeroDuplicado && !guardando;
 
-  function registrar() {
-    if (!puedeRegistrar) return;
-    crear.mutate(
-      {
-        sku: sku.trim(),
-        nombre_producto: nombreProducto.trim(),
-        numero_producto: Number(numeroProducto),
-        presentacion,
-        anio,
-        mes,
-      },
-      {
+  function limpiarFormulario() {
+    setEditandoId(null);
+    setSku("");
+    setNombreProducto("");
+    setNumeroProducto("");
+    setPresentacion("000");
+    setMes(new Date().getMonth() + 1);
+    setAnio(anioActualCorto());
+  }
+
+  function editar(c: CodigoEan) {
+    setEditandoId(c.id);
+    setSku(c.sku);
+    setNombreProducto(c.nombre_producto || "");
+    setNumeroProducto(String(c.numero_producto));
+    setPresentacion(c.presentacion);
+    setMes(c.bimestre * 2 + 1);
+    setAnio(2000 + c.anio);
+  }
+
+  function guardar() {
+    if (!puedeGuardar) return;
+    const datos = {
+      sku: sku.trim(),
+      nombre_producto: nombreProducto.trim(),
+      numero_producto: Number(numeroProducto),
+      presentacion,
+      anio,
+      mes,
+    };
+    if (editandoId) {
+      actualizar.mutate(
+        { id: editandoId, datos },
+        { onSuccess: () => limpiarFormulario() },
+      );
+    } else {
+      crear.mutate(datos, {
         onSuccess: () => {
           setSku("");
           setNombreProducto("");
           setNumeroProducto("");
         },
-      },
-    );
+      });
+    }
   }
 
   return (
     <div className="space-y-4">
       <Card padding="md" className="space-y-3">
-        <p className="text-sm font-bold text-ink">Registrar código EAN-13</p>
+        <p className="text-sm font-bold text-ink">
+          {editandoId ? "Editar código EAN-13" : "Registrar código EAN-13"}
+        </p>
         <p className="text-xs text-muted">
           Estructura fija: 770 (país) + número de producto (001-900) + presentación (3 díg.) + año (2 díg.) + bimestre (1 díg.) + verificador.
         </p>
@@ -168,12 +206,19 @@ export function CodigosEanPanel() {
             {preview && (
               <p className="font-mono text-xs tracking-widest text-muted">{preview.digits}</p>
             )}
-            {crear.isError && (
-              <Banner tone="danger" className="text-xs">{crear.error instanceof Error ? crear.error.message : "Error al registrar"}</Banner>
+            {huboError && (
+              <Banner tone="danger" className="text-xs">{errorGuardar instanceof Error ? errorGuardar.message : "Error al guardar"}</Banner>
             )}
-            <Button variant="primary" disabled={!puedeRegistrar} loading={crear.isPending} onClick={registrar}>
-              Registrar código
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="primary" disabled={!puedeGuardar} loading={guardando} onClick={guardar}>
+                {editandoId ? "Guardar cambios" : "Registrar código"}
+              </Button>
+              {editandoId && (
+                <Button variant="secondary" disabled={guardando} onClick={limpiarFormulario}>
+                  Cancelar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -216,18 +261,28 @@ export function CodigosEanPanel() {
                     <td className="px-3 py-2">{BIMESTRE_LABEL[c.bimestre] ?? c.bimestre}</td>
                     <td className="px-3 py-2 font-mono tracking-wide">{c.codigo}</td>
                     <td className="px-3 py-2 text-right">
-                      <IconButton
-                        icon="trash"
-                        label={`Eliminar código de ${c.sku}`}
-                        size="sm"
-                        tone="danger"
-                        disabled={eliminar.isPending}
-                        onClick={() => {
-                          if (window.confirm(`¿Eliminar el código EAN de ${c.sku}?`)) {
-                            eliminar.mutate(c.id);
-                          }
-                        }}
-                      />
+                      <div className="flex justify-end gap-1">
+                        <IconButton
+                          icon="pencil"
+                          label={`Editar código de ${c.sku}`}
+                          size="sm"
+                          disabled={guardando}
+                          onClick={() => editar(c)}
+                        />
+                        <IconButton
+                          icon="trash"
+                          label={`Eliminar código de ${c.sku}`}
+                          size="sm"
+                          tone="danger"
+                          disabled={eliminar.isPending}
+                          onClick={() => {
+                            if (window.confirm(`¿Eliminar el código EAN de ${c.sku}?`)) {
+                              if (editandoId === c.id) limpiarFormulario();
+                              eliminar.mutate(c.id);
+                            }
+                          }}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

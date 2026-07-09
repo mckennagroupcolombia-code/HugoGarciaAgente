@@ -3,13 +3,81 @@
     {
       "id": "659d5476d919",
       "sku": "C-MANNATTOS500g",
-      "nombre_producto": "MANI NATURAL TOSTADO",
+      "nombre_producto": "MANI NATURAL TOSTADO 500g",
       "numero_producto": 1,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700015002633",
-      "creado_at": "2026-07-08T15:11:39"
+      "creado_at": "2026-07-08T15:11:39",
+      "actualizado_at": "2026-07-09T02:43:33"
+    },
+    {
+      "id": "dd339426d1f7",
+      "sku": "C-ALMNAL500g",
+      "nombre_producto": "ALMENDRA NATURAL 500g",
+      "numero_producto": 2,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700025002630",
+      "creado_at": "2026-07-09T02:33:23",
+      "actualizado_at": "2026-07-09T02:43:22"
+    },
+    {
+      "id": "e77a52b3c885",
+      "sku": "C-ALMNAT250g",
+      "nombre_producto": "ALMENDRA NATURAL  250g",
+      "numero_producto": 3,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700035002637",
+      "creado_at": "2026-07-09T02:34:08"
+    },
+    {
+      "id": "3d77b0a9bc58",
+      "sku": "C-COCDESHIL250g",
+      "nombre_producto": "COCO DESHIDRATADO HILOS 250g",
+      "numero_producto": 4,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700042502632",
+      "creado_at": "2026-07-09T02:36:13"
+    },
+    {
+      "id": "d3d649dedced",
+      "sku": "C-COCDESHIL500g",
+      "nombre_producto": "COCOS DESHIDRATADO HILOS  500g",
+      "numero_producto": 5,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700055002631",
+      "creado_at": "2026-07-09T02:36:50"
+    },
+    {
+      "id": "5c73ab9d69dc",
+      "sku": "C-SEMGIR250g",
+      "nombre_producto": "SEMILLA DE GIRASOL 250g",
+      "numero_producto": 6,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700062502636",
+      "creado_at": "2026-07-09T02:38:10"
+    },
+    {
+      "id": "05f53adaa120",
+      "sku": "C-SEMGIR500g",
+      "nombre_producto": "C-SEMILLA GIRASOL 500g",
+      "numero_producto": 7,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700075002635",
+      "creado_at": "2026-07-09T02:39:32"
     }
   ]
 }
