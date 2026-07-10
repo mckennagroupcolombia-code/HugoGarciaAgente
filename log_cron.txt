@@ -2926,3 +2926,33 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel 54b983d] Auto-commit: actualizacion diaria 2026-07-09 23:00
+ 69 files changed, 4979 insertions(+), 1153 deletions(-)
+ create mode 100644 FOTOS  IMPORTADOS MELI/ARANDANOS DESHIDRATADOS 250g.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/ARANDANOS DESHIDRATADOS.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/COCO DESHIDRATADO.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/MANI TOSTADO.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/NUEZ DEL BRASIL.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/PISTACHOS.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/SEMILLAS DE CALABAZA.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/SEMILLAS DE GIRASOL.png
+ create mode 100644 desktop/src/components/etiquetas/EtiquetasTabNav.tsx
+ create mode 100644 desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx
+ create mode 100644 desktop/src/components/etiquetas/ui/FilterChip.tsx
+ create mode 100644 desktop/src/components/nav/NavCollapsibleGroup.tsx
+ create mode 100644 desktop/src/components/ui/PanelTransition.tsx
+ create mode 100644 desktop/src/lib/navHash.ts
+ create mode 100644 desktop/src/lib/navStructure.ts
+ create mode 100644 uploads/tickets/09e0748da8da45e9b9a106288e85edd3.png
+ create mode 100644 uploads/tickets/2b5f12352be442a49a82e98953d4e8b3.png
+ create mode 100644 uploads/tickets/3649091fa21146dead9e16ae5c91daf9.png
+ create mode 100644 uploads/tickets/8bfa3bcf2cad46c085b9ce406b01f09a.png
+ create mode 100644 uploads/tickets/dcbbc19bb51946099ceb4385a9875543.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-09 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
