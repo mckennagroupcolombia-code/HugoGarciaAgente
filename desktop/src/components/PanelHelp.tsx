@@ -23,7 +23,7 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
         type="button"
         onClick={() => setOpen(true)}
         title={`¿Qué es ${info.label}?`}
-        className="mb-4 flex items-center gap-1.5 rounded-full border border-border bg-surface-panel px-3 py-1 text-xs font-semibold text-muted shadow-paper-sm transition hover:border-accent hover:text-accent"
+        className="mb-4 mck-press flex items-center gap-1.5 rounded-full border border-border bg-surface-panel px-3 py-1 text-xs font-semibold text-muted shadow-paper-sm transition-colors hover:border-accent hover:text-accent"
       >
         <span className="mt-0.5 shrink-0">
           <Icon name="question" size={14} weight="duotone" />
@@ -34,7 +34,7 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
   }
 
   return (
-    <div className="mb-5 overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 shadow-paper-sm">
+    <div className="mck-card mb-5 overflow-hidden border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 shadow-paper-sm transition-shadow hover:shadow-paper">
       <div className="flex items-start gap-3 px-5 py-4">
         <PanelIcon panel={panelId as Panel} size={36} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
@@ -51,7 +51,7 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
               <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="mt-2 flex items-center gap-1 text-xs font-semibold text-accent transition hover:underline"
+                className="mt-2 mck-press flex items-center gap-1 text-xs font-semibold text-accent transition-colors hover:underline"
               >
                 <span>{open ? "▾" : "▸"}</span>
                 {open ? "Ocultar tips" : `Ver ${info.tips.length} tip${info.tips.length > 1 ? "s" : ""}`}

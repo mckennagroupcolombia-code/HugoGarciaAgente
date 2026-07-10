@@ -1212,6 +1212,46 @@
       "pregunta": "Buenas tardes, Diez unidades se obtiene mejor precio?",
       "timestamp": "2026-07-08T13:03:40.758962",
       "respondida": true
+    },
+    {
+      "question_id": "13618517342",
+      "titulo_producto": "Aceite Esencial Puro Naranja Mckenna Group 5 Ml Aromaterapia Difusor",
+      "pregunta": "Hola. Sirve para difusores que no requieren agua, es decir el aceite sin diluir?",
+      "timestamp": "2026-07-09T04:13:01.363583",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\n¡Claro que sí! Nuestro Aceite Esencial de Naranja es puro, obtenido directamente de la cáscara del fruto, por lo que es ideal para usarse sin diluir en difusores que no requieren agua.\n\nGeneralmente se requiere solo una pequeña cantidad para obtener sus beneficios y disfrutar de su aroma, que ayuda a reducir el estrés y a aumentar la energía.\n\n¡Que lo disfrutes",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-09"
+    },
+    {
+      "question_id": "13618611438",
+      "titulo_producto": "Fragancias Para Base De Glicerina Para Hacer Jabón 120 Ml",
+      "pregunta": "Hola sirve para jabones en barra,con soda cáustica gracias",
+      "timestamp": "2026-07-09T09:43:33.053260",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¿cómo estás? Con gusto le colaboro con su pregunta.\n\nNuestras fragancias están especialmente diseñadas para ser utilizadas en bases de glicerina para la elaboración de jabones.\n\nLa glicerina es un excelente humectante natural que ayuda a retener la humedad en la piel, convirtiéndola en un ingrediente ideal, ya que mejora la apariencia de la piel y puede ayudar a reducir la irritación.\n\nPara garantizar su calidad, el producto cumple con el estándar USP. Le recomendamos guardar sus fragancias en un envase bien cerrado, en un lugar fresco, seco y alejado de la luz y el calor.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-09"
+    },
+    {
+      "question_id": "13618623494",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Buen día Como medir los 30 mg ?",
+      "timestamp": "2026-07-09T14:14:14.584741",
+      "respondida": true
+    },
+    {
+      "question_id": "13618816908",
+      "titulo_producto": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+      "pregunta": "Cual es la dosis para el consumo",
+      "timestamp": "2026-07-09T14:05:28.083979",
+      "respondida": true
+    },
+    {
+      "question_id": "13618841566",
+      "titulo_producto": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+      "pregunta": "Es apto para el consumo?",
+      "timestamp": "2026-07-09T15:25:27.972922",
+      "respondida": true,
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-09"
     }
   ]
 }

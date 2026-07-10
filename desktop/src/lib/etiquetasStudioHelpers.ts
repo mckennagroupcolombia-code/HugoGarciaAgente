@@ -1,7 +1,6 @@
 import { mmParaTipoEtiqueta, TIPOS_ETIQUETA_DEFAULT } from "./etiquetasTipos";
 import {
   ETIQUETA_STUDIO_DEFAULT,
-  aplicarDefaultsAlternativa,
   type EtiquetaStudioDatos,
 } from "./etiquetasNormativa";
 import type { CatalogoStudioFila } from "../components/etiquetas/EtiquetasStudioCatalogo";
@@ -153,22 +152,21 @@ export function studioDatosDesdeCatalogo(
   const perfilInferido = inferirPerfilDesdeProducto(nombre, fila.sku, fila.archivo_ai || guardado?.archivo_ai);
 
   const base: EtiquetaStudioDatos = {
-    ...(aplicarDefaultsAlternativa({
-      ...ETIQUETA_STUDIO_DEFAULT,
-      ...perfilInferido,
-      ...guardado,
-      sku: fila.sku,
-      codigo_barras: guardado?.codigo_barras || "",
-      nombre_producto: nombre,
-      ingrediente: guardado?.ingrediente || nombre,
-      archivo_ai: fila.archivo_ai || guardado?.archivo_ai,
-      forzar_plantilla_svg: fila.fuente === "svg" ? true : guardado?.forzar_plantilla_svg,
-      tipo_etiqueta: tipo,
-      ancho_mm: guardado?.ancho_mm ?? ancho,
-      alto_mm: guardado?.alto_mm ?? alto,
-      contenido_neto: guardado?.contenido_neto || pres.contenido_neto || ETIQUETA_STUDIO_DEFAULT.contenido_neto,
-      unidad: guardado?.unidad || pres.unidad || ETIQUETA_STUDIO_DEFAULT.unidad,
-    }) as EtiquetaStudioDatos),
+    ...ETIQUETA_STUDIO_DEFAULT,
+    ...perfilInferido,
+    ...guardado,
+    sku: fila.sku,
+    codigo_barras: guardado?.codigo_barras || "",
+    nombre_producto: nombre,
+    ingrediente: guardado?.ingrediente || nombre,
+    archivo_ai: fila.archivo_ai || guardado?.archivo_ai,
+    forzar_plantilla_svg: fila.fuente === "svg" ? true : guardado?.forzar_plantilla_svg,
+    tipo_etiqueta: tipo,
+    ancho_mm: guardado?.ancho_mm ?? ancho,
+    alto_mm: guardado?.alto_mm ?? alto,
+    contenido_neto: guardado?.contenido_neto || pres.contenido_neto || ETIQUETA_STUDIO_DEFAULT.contenido_neto,
+    unidad: guardado?.unidad || pres.unidad || ETIQUETA_STUDIO_DEFAULT.unidad,
+    modo_etiqueta: "original",
   };
 
   if (Object.keys(perfilInferido).length > 0 && esCopiaGenericaPolvo(guardado || {})) {

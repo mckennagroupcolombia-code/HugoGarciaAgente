@@ -16,7 +16,7 @@ import {
   SelectorFormatoEtiqueta,
   type FormatoEtiquetaValor,
 } from "./SelectorFormatoEtiqueta";
-import { Banner, Button, StatTile } from "./ui";
+import { Banner, Button, StatTile, FilterChip, Badge } from "./ui";
 
 export interface CatalogoStudioFila {
   sku: string;
@@ -637,14 +637,20 @@ export function EtiquetasStudioCatalogo({
   }
 
   /* Vista clásica (impresión / catálogo completo) */
+  const fuenteBadge = (fuente: CatalogoStudioFila["fuente"]) => {
+    if (fuente === "ai") return <Badge tone="success">.ai</Badge>;
+    if (fuente === "svg") return <Badge tone="accent">SVG</Badge>;
+    return <Badge tone="warning">Sin match</Badge>;
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mck-stagger">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Productos" value={stats?.total_productos ?? "—"} />
-        <StatTile label="Con MeLi" value={stats?.con_meli ?? "—"} tone="accent" />
-        <StatTile label="Con .ai" value={stats?.con_ai ?? "—"} tone="success" />
-        <StatTile label="Sin match" value={stats?.sin_match ?? "—"} tone="danger" />
-        <StatTile label="PNG (Studio)" value={stats?.plantillas_png_total ?? "—"} tone="plum" />
+        <StatTile label="Productos" value={stats?.total_productos ?? "—"} icon="package" interactive />
+        <StatTile label="Con MeLi" value={stats?.con_meli ?? "—"} tone="accent" icon="tag" interactive />
+        <StatTile label="Con .ai" value={stats?.con_ai ?? "—"} tone="success" icon="check" interactive />
+        <StatTile label="Sin match" value={stats?.sin_match ?? "—"} tone="danger" icon="warning" interactive />
+        <StatTile label="PNG Studio" value={stats?.plantillas_png_total ?? "—"} tone="plum" icon="image" interactive />
       </div>
 
       {mostrarDiagramacion && (
@@ -654,29 +660,36 @@ export function EtiquetasStudioCatalogo({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          className="min-w-[200px] flex-1 rounded-lg border border-border px-3 py-2 text-sm"
-          placeholder="Buscar SKU, nombre o plantilla…"
-          value={buscar}
-          onChange={(e) => setBuscar(e.target.value)}
-        />
-        <label className="flex items-center gap-1.5 text-xs">
-          <input type="checkbox" checked={soloConMeli} onChange={(e) => setSoloConMeli(e.target.checked)} />
-          Solo MeLi
-        </label>
-        <label className="flex items-center gap-1.5 text-xs">
-          <input type="checkbox" checked={soloConAi} onChange={(e) => setSoloConAi(e.target.checked)} />
-          Solo con .ai
-        </label>
-        <label className="flex items-center gap-1.5 text-xs">
+        <div className="relative min-w-[200px] flex-1">
           <input
-            type="checkbox"
-            checked={plantillaPngAbierto}
-            onChange={(e) => setPlantillaPngAbierto(e.target.checked)}
+            className="w-full rounded-paper border-2 border-border bg-surface py-2 pl-3 pr-3 text-sm outline-none transition focus:border-accent"
+            placeholder="Buscar SKU, nombre o plantilla…"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
           />
-          PNG (Studio)
-        </label>
+        </div>
+        <FilterChip
+          label="Solo MeLi"
+          active={soloConMeli}
+          onClick={() => setSoloConMeli((v) => !v)}
+        />
+        <FilterChip
+          label="Solo .ai"
+          active={soloConAi}
+          onClick={() => setSoloConAi((v) => !v)}
+        />
+        <FilterChip
+          label="PNG Studio"
+          active={plantillaPngAbierto}
+          onClick={() => setPlantillaPngAbierto((v) => !v)}
+          count={data?.plantillas_png_sin_producto?.length}
+        />
         {isFetching && <span className="text-xs text-muted">Actualizando…</span>}
+        {!isFetching && data && (
+          <span className="text-xs text-muted tabular-nums">
+            {filas.length}{buscar.trim() ? ` / ${data.total}` : ""} resultados
+          </span>
+        )}
       </div>
 
       {error instanceof Error && (
@@ -788,30 +801,34 @@ export function EtiquetasStudioCatalogo({
         />
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="mck-card overflow-hidden">
         <div className="max-h-[min(60vh,520px)] overflow-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
-            <thead className="sticky top-0 z-10 bg-surface-panel text-[10px] uppercase text-muted">
+            <thead className="sticky top-0 z-10 border-b border-border bg-surface-panel text-[10px] font-bold uppercase tracking-wide text-muted">
               <tr>
-                <th className="px-3 py-2">SKU</th>
-                <th className="px-3 py-2">Producto</th>
-                <th className="px-3 py-2">Plantilla .ai</th>
-                <th className="px-3 py-2">Fuente</th>
-                {mostrarDiagramacion && <th className="px-3 py-2">Diagramación</th>}
-                {!seleccionPorFila && accionLabel && <th className="px-3 py-2" />}
+                <th className="px-3 py-2.5">SKU</th>
+                <th className="px-3 py-2.5">Producto</th>
+                <th className="px-3 py-2.5">Plantilla .ai</th>
+                <th className="px-3 py-2.5">Fuente</th>
+                {mostrarDiagramacion && <th className="px-3 py-2.5">Diagramación</th>}
+                {!seleccionPorFila && accionLabel && <th className="px-3 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {filas.map((f) => (
                 <tr
                   key={f.sku}
                   onClick={seleccionPorFila ? () => onSeleccionar(f) : undefined}
-                  className={`hover:bg-surface-hover ${skuActivo === f.sku ? "bg-accent/5" : ""} ${seleccionPorFila ? "cursor-pointer" : ""}`}
+                  className={`transition-colors hover:bg-surface-hover ${
+                    skuActivo === f.sku ? "bg-accent/8 ring-1 ring-inset ring-accent/25" : ""
+                  } ${seleccionPorFila ? "cursor-pointer" : ""}`}
                 >
-                  <td className="px-3 py-2 font-mono text-accent">{f.sku}</td>
-                  <td className="max-w-[200px] truncate px-3 py-2">{f.nombre}</td>
-                  <td className="max-w-[180px] truncate px-3 py-2 font-mono text-[10px]">{f.archivo_ai || "—"}</td>
-                  <td className="px-3 py-2 text-muted">{f.fuente}</td>
+                  <td className="px-3 py-2.5 font-mono text-accent">{f.sku}</td>
+                  <td className="max-w-[200px] truncate px-3 py-2.5 font-medium text-ink">{f.nombre}</td>
+                  <td className="max-w-[180px] truncate px-3 py-2.5 font-mono text-[10px] text-muted">
+                    {f.archivo_ai || "—"}
+                  </td>
+                  <td className="px-3 py-2.5">{fuenteBadge(f.fuente)}</td>
                   {mostrarDiagramacion && (
                     <td className="px-3 py-2">
                       {formatoImpresion && filaTieneAi(f) ? (

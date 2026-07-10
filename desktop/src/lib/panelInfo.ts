@@ -26,7 +26,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Puedes ver quién está en línea en este momento.",
     ],
     tier: "core",
-    category: "general",
+    category: "inicio",
   },
   dashboard: {
     emoji: "📊",
@@ -38,7 +38,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Si algo aparece en rojo, avisa al administrador.",
     ],
     tier: "core",
-    category: "general",
+    category: "inicio",
   },
   chat: {
     emoji: "💬",
@@ -50,7 +50,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Hugo recuerda el contexto de la conversación mientras estés en esta sesión.",
     ],
     tier: "core",
-    category: "general",
+    category: "inicio",
   },
   whatsapp: {
     emoji: "💚",
@@ -61,7 +61,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Las conversaciones marcadas en naranja esperan tu aprobación.",
     ],
     tier: "standard",
-    category: "canales",
+    category: "clientes",
   },
 
   // ── Ventas ───────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "El número rojo en el menú indica cuántas hay sin responder.",
     ],
     tier: "core",
-    category: "ventas",
+    category: "clientes",
   },
   postventa: {
     emoji: "📬",
@@ -87,7 +87,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Los RUT para facturación electrónica llegan como archivo adjunto en estos mensajes.",
     ],
     tier: "core",
-    category: "ventas",
+    category: "clientes",
   },
   pedidos: {
     emoji: "📦",
@@ -99,7 +99,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Actualiza el número de guía para que el cliente pueda rastrear su envío.",
     ],
     tier: "core",
-    category: "ventas",
+    category: "clientes",
   },
 
   // ── Inventario ────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Si el stock de MeLi y la web no coinciden, usa 'Verificar SKUs' para corregirlo.",
     ],
     tier: "core",
-    category: "inventario",
+    category: "productos",
   },
   etiquetas: {
     emoji: "🏷️",
@@ -125,7 +125,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Usa la pestaña Studio para diseñar una plantilla y enviarla directo a imprimir.",
     ],
     tier: "core",
-    category: "inventario",
+    category: "productos",
   },
   fichas: {
     emoji: "📄",
@@ -136,7 +136,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Puedes descargar el PDF de cada ficha para enviarlo a clientes.",
     ],
     tier: "standard",
-    category: "inventario",
+    category: "productos",
   },
 
   // ── Contenido ────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Usa 'Por Pack ID' cuando una factura específica no se subió correctamente.",
     ],
     tier: "standard",
-    category: "finanzas",
+    category: "contabilidad",
   },
   facturas: {
     emoji: "🧾",
@@ -174,7 +174,17 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Verifica que el proveedor y monto sean correctos antes de aprobar.",
     ],
     tier: "standard",
-    category: "finanzas",
+    category: "contabilidad",
+  },
+  "costos-productos": {
+    emoji: "📊",
+    label: "Costos de productos",
+    description: "Costos unitarios y márgenes por SKU. Cruza datos de compra, inventario y venta para decisiones de precio.",
+    tips: [
+      "Útil para validar rentabilidad antes de cambiar precios en MeLi o la web.",
+    ],
+    tier: "advanced",
+    category: "contabilidad",
   },
   "centros-costo": {
     emoji: "💰",
@@ -184,7 +194,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Asigna cada gasto al centro de costo correspondiente para informes precisos.",
     ],
     tier: "advanced",
-    category: "finanzas",
+    category: "contabilidad",
   },
   rentabilidad: {
     emoji: "📈",
@@ -194,7 +204,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Compara el costo de fabricación con el precio de venta para ver el margen real.",
     ],
     tier: "advanced",
-    category: "finanzas",
+    category: "contabilidad",
   },
 
   // ── Canales avanzados ─────────────────────────────────────────────────────────
@@ -206,7 +216,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Útil para auditar la calidad de las respuestas automáticas de Hugo.",
     ],
     tier: "advanced",
-    category: "canales",
+    category: "sistemas",
   },
   voz: {
     emoji: "🎙️",
@@ -214,7 +224,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Canal de atención telefónica con IA. Clientes pueden llamar y Hugo responde por voz.",
     tips: ["Canal experimental — consulta al administrador antes de activarlo."],
     tier: "advanced",
-    category: "canales",
+    category: "sistemas",
   },
   webchat: {
     emoji: "🌐",
@@ -222,7 +232,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Conversaciones iniciadas desde el chat de la página web mckennagroup.co.",
     tips: ["Las conversaciones sin respuesta en más de 10 minutos se marcan en rojo."],
     tier: "advanced",
-    category: "canales",
+    category: "clientes",
   },
 
   // ── Producción ────────────────────────────────────────────────────────────────
@@ -246,7 +256,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Configuración avanzada de productos para el sistema de etiquetado: formatos, campos personalizados y reglas normativas.",
     tips: ["Solo modifica esto si sabes exactamente qué cambiar — afecta todas las etiquetas."],
     tier: "advanced",
-    category: "inventario",
+    category: "productos",
   },
   "logistica-importaciones": {
     emoji: "🚢",
@@ -297,6 +307,6 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Los administradores pueden agregar o quitar usuarios desde aquí.",
     ],
     tier: "core",
-    category: "general",
+    category: "inicio",
   },
 };

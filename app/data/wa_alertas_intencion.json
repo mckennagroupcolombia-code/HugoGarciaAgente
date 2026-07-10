@@ -360,6 +360,46 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573122700201@c.us": {
+      "jid": "573122700201@c.us",
+      "primer_intencion_ts": 1783608147.0,
+      "primer_intencion_texto": "Y tan amable me envías el link de pago o número de cuenta",
+      "ultima_human_ts": 1783608215.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573218828743@c.us": {
+      "jid": "573218828743@c.us",
+      "primer_intencion_ts": 1783615523.0,
+      "primer_intencion_texto": "Plis confirmar pedido",
+      "ultima_human_ts": 1783615551.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573237753655@c.us": {
+      "jid": "573237753655@c.us",
+      "primer_intencion_ts": 1783616000.0,
+      "primer_intencion_texto": "El pedido, lo recibo esta tarde, ¿cierto?",
+      "ultima_human_ts": 1783616009.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573214772896@c.us": {
+      "jid": "573214772896@c.us",
+      "primer_intencion_ts": 1783620413.0,
+      "primer_intencion_texto": "Si hago pedido ya",
+      "ultima_human_ts": 1783620560.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

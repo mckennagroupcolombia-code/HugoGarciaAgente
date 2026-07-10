@@ -48,7 +48,7 @@ function buildPreviewPayload(datos: EtiquetaStudioDatos, anchoPx: number, raw: b
   return {
     ...datos,
     descripcion_etiqueta: datos.descripcion_etiqueta ?? "",
-    modo_etiqueta: datos.modo_etiqueta ?? "alternativa",
+    modo_etiqueta: datos.modo_etiqueta ?? "original",
     b1_ancho_pct: datos.b1_ancho_pct ?? 100,
     diagramacion: datos.diagramacion ?? {},
     diagramacion_graficos: datos.diagramacion_graficos ?? {},
@@ -123,7 +123,7 @@ export function EtiquetaMckennaPreview({
     () => [
       "etiquetas-studio-preview",
       debounced.sku,
-      debounced.modo_etiqueta ?? "alternativa",
+      debounced.modo_etiqueta ?? "original",
       debounced.archivo_ai ?? "",
       debounced.subtitulo ?? "",
       debounced.b1_ancho_pct ?? 100,

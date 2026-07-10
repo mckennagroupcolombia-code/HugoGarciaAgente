@@ -51,11 +51,14 @@ import {
 } from "../lib/etiquetasNormativa";
 import { studioDatosDesdeCatalogo, presentacionDesdeTipoEtiqueta } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
+import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { Banner, Badge, Card, StatTile, Button, IconButton, Modal, Spinner } from "./etiquetas/ui";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
 import { useGuardarPublicacion } from "../hooks/usePublicaciones";
 import PlantillasVisualesPanel from "./plantillas-visuales/PlantillasVisualesPanel";
+import { EtiquetasTabNav } from "./etiquetas/EtiquetasTabNav";
+import { ImpresionEtiquetasHeader } from "./etiquetas/ImpresionEtiquetasHeader";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -4060,7 +4063,6 @@ function TabImprimir({
   const [offsetV, setOffsetV] = useState(0.0);
   const [offsetH, setOffsetH] = useState(0.0);
   const [vistaImpresion, setVistaImpresion] = useState<"catalogo" | "documento">("catalogo");
-  const [versionPreview, setVersionPreview] = useState<"original" | "alternativa">("alternativa");
   const [skuActivoImpresion, setSkuActivoImpresion] = useState("");
   const [filaActiva, setFilaActiva] = useState<CatalogoStudioFila | null>(null);
   const [studioDatos, setStudioDatos] = useState<EtiquetaStudioDatos>({ ...ETIQUETA_STUDIO_DEFAULT });
@@ -4122,7 +4124,7 @@ function TabImprimir({
     const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
     return {
       ...studioDatos,
-      modo_etiqueta: versionPreview,
+      modo_etiqueta: "original",
       descripcion_etiqueta: studioDatos.descripcion_etiqueta ?? "",
       tipo_etiqueta: formato.nombre,
       ancho_mm: formato.anchoMm,
@@ -4132,7 +4134,7 @@ function TabImprimir({
       lote: loteParaEtiqueta(lote) || studioDatos.lote,
       vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
     };
-  }, [studioDatos, formato, lote, vencimiento, versionPreview]);
+  }, [studioDatos, formato, lote, vencimiento]);
 
   useEffect(() => {
     if (vistaImpresion !== "documento" || !studioDatosImpresion.sku.trim()) return;
@@ -4268,7 +4270,6 @@ function TabImprimir({
     const base = studioDatosDesdeCatalogo(fila, guardado);
     if (datos.lote_defecto) base.lote = datos.lote_defecto;
     if (datos.vencimiento_defecto) base.vencimiento = datos.vencimiento_defecto;
-    setVersionPreview("alternativa");
     setStudioDatos(base);
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
@@ -4290,29 +4291,6 @@ function TabImprimir({
     setVistaImpresion("documento");
     setTabRibbon("inicio");
   }
-
-  const tabsVistaImpresion = (
-    <div className="flex gap-1 rounded-lg border border-white/30 bg-white/10 p-0.5">
-      <button
-        type="button"
-        onClick={() => setVistaImpresion("catalogo")}
-        className={`rounded-md px-3 py-1 text-[10px] font-semibold ${
-          vistaImpresion === "catalogo" ? "bg-white text-accent" : "text-white/90 hover:bg-white/15"
-        }`}
-      >
-        Catálogo
-      </button>
-      <button
-        type="button"
-        onClick={() => setVistaImpresion("documento")}
-        className={`rounded-md px-3 py-1 text-[10px] font-semibold ${
-          vistaImpresion === "documento" ? "bg-white text-accent" : "text-white/90 hover:bg-white/15"
-        }`}
-      >
-        Ajustar
-      </button>
-    </div>
-  );
 
   const productoListo = !!pdfStudioRuta
     || (!!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim());
@@ -4382,26 +4360,13 @@ function TabImprimir({
       )}
 
       {vistaImpresion === "catalogo" ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm">
-          <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-accent/30 bg-accent px-4 py-2 text-white">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">Impresión de etiquetas</p>
-              <p className="text-[10px] opacity-75">Catálogo SKU · MeLi · plantilla .ai</p>
-            </div>
-            {tabsVistaImpresion}
-            <button
-              type="button"
-              onClick={() => setMostrarPedidoEtiquetas(true)}
-              className="relative rounded border border-white/30 px-2.5 py-1 text-[10px] font-semibold hover:bg-white/15"
-            >
-              📋 En curso
-              {solicitudesImprimir.length > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-black text-white">
-                  {solicitudesImprimir.length}
-                </span>
-              )}
-            </button>
-          </div>
+        <div className="mck-card overflow-hidden shadow-paper-sm">
+          <ImpresionEtiquetasHeader
+            vista="catalogo"
+            onVistaChange={setVistaImpresion}
+            solicitudesCount={solicitudesImprimir.length}
+            onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
+          />
           <div className="p-4">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
@@ -4414,46 +4379,18 @@ function TabImprimir({
           </div>
         </div>
       ) : (
-      <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm">
-        {/* Barra de título — estilo Word */}
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-accent/30 bg-accent px-4 py-2 text-white">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold">Impresión de etiquetas</p>
-            <p className="text-[10px] opacity-75">
-              Epson ColorWorks CW-C4000u · MCKG Suite
-              {skuActivoImpresion ? ` · ${skuActivoImpresion}` : ""}
-            </p>
-          </div>
-          {tabsVistaImpresion}
-          <Badge
-            tone={impDeshabilitada ? "warning" : impConectada ? (avisoRollo ? "warning" : "success") : "danger"}
-            solid
-          >
-            {impDeshabilitada ? "Desconectada"
-              : impConectada ? (avisoRollo ? "Conectada · revisa rollo" : "Impresora lista")
-              : "Sin impresora"}
-          </Badge>
-          <button
-            type="button"
-            onClick={() => setMostrarPedidoEtiquetas(true)}
-            className="relative rounded border border-white/30 px-2.5 py-1 text-[10px] font-semibold hover:bg-white/15"
-            title="Ver pedidos de etiquetas en curso"
-          >
-            📋 En curso
-            {solicitudesImprimir.length > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-black text-white">
-                {solicitudesImprimir.length}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMostrarInstalador(true)}
-            className="rounded border border-white/30 px-2.5 py-1 text-[10px] font-semibold hover:bg-white/15"
-          >
-            🖨 Instalar
-          </button>
-        </div>
+      <div className="mck-card flex flex-col overflow-hidden shadow-paper-sm">
+        <ImpresionEtiquetasHeader
+          vista="documento"
+          skuActivo={skuActivoImpresion}
+          onVistaChange={setVistaImpresion}
+          solicitudesCount={solicitudesImprimir.length}
+          onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
+          onInstalarClick={() => setMostrarInstalador(true)}
+          impConectada={impConectada}
+          impDeshabilitada={impDeshabilitada}
+          avisoRollo={avisoRollo}
+        />
 
         {errorImpresion && (
           <BannerErrorImpresora
@@ -4615,24 +4552,6 @@ function TabImprimir({
                   {filaActiva.archivo_ai}
                 </span>
               )}
-              {productoListo && (
-                <div className="flex rounded border border-border bg-surface p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setVersionPreview("alternativa")}
-                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${versionPreview === "alternativa" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"}`}
-                  >
-                    Alternativa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVersionPreview("original")}
-                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${versionPreview === "original" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"}`}
-                  >
-                    Original
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
@@ -4680,7 +4599,7 @@ function TabImprimir({
               <EtiquetaMckennaPreview
                 datos={studioDatosImpresion}
                 marcoFormato
-                raw={versionPreview === "original"}
+                raw
                 className="w-full max-w-[420px]"
               />
             ) : (
@@ -4715,7 +4634,12 @@ function TabImprimir({
             disabled={imprimirMut.isPending || !productoListo}
             className="w-full max-w-md rounded-xl border-2 border-success bg-success py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:opacity-90 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
           >
-            {imprimirMut.isPending ? "Imprimiendo…" : "🖨 IMPRIMIR"}
+            {imprimirMut.isPending ? "Imprimiendo…" : (
+              <span className="inline-flex items-center justify-center gap-2">
+                <Icon name="printer" size={20} />
+                IMPRIMIR
+              </span>
+            )}
           </button>
         </div>
 
@@ -5429,12 +5353,15 @@ function TabInventarioPapelTinta() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      <div>
-        <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
-        <p className="text-xs text-muted">
-          Registra rollos por ref. y medida. Al imprimir, el sistema descuenta etiquetas del rollo que coincida con el tamaño.
-        </p>
+    <div className="mx-auto max-w-4xl space-y-5 mck-animate-enter">
+      <div className="flex items-center gap-3">
+        <IllustrationIcon name="package" size={36} tone="leaf" className="mck-illus-icon--hoverable shrink-0" />
+        <div>
+          <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
+          <p className="text-xs text-muted">
+            Registra rollos por ref. y medida. Al imprimir, el sistema descuenta etiquetas del rollo que coincida con el tamaño.
+          </p>
+        </div>
       </div>
 
       <NivelesTintaImpresora />
@@ -5453,7 +5380,10 @@ function TabInventarioPapelTinta() {
       {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
 
       <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-3 text-sm font-bold text-ink">📄 Papel / etiquetas</p>
+        <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink">
+          <Icon name="file" size={16} className="text-accent" />
+          Papel / etiquetas
+        </p>
         {papeles.length === 0 ? (
           <p className="mb-3 text-xs text-muted">Sin rollos registrados.</p>
         ) : (
@@ -5525,7 +5455,10 @@ function TabInventarioPapelTinta() {
       </div>
 
       <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-3 text-sm font-bold text-ink">🖨 Tintas</p>
+        <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink">
+          <Icon name="palette" size={16} className="text-accent-plum" />
+          Tintas
+        </p>
         {tintas.length === 0 ? (
           <p className="text-xs text-muted">Sin registros.</p>
         ) : (
@@ -5729,31 +5662,13 @@ export default function EtiquetasPanel() {
     setStoreTab(t);
   }
 
-  const tabCls = (t: EtiquetasTab) =>
-    `flex flex-1 items-center justify-center gap-1.5 rounded-paper py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow-paper-sm" : "text-ink-secondary hover:bg-surface-hover"}`;
-
   const studioFullscreen = tab === "studio" && studioInmersivo;
 
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${
+    <div className={`mck-animate-enter space-y-5 px-1 sm:px-0 ${
       studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"
     }`}>
-      {!studioFullscreen && (
-        <div className="flex gap-2 rounded-paper-lg border border-border bg-surface-panel p-1">
-          <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
-            <Icon name="printer" size={16} /> Imprimir
-          </button>
-          <button type="button" onClick={() => setTab("studio")} className={tabCls("studio")}>
-            <Icon name="palette" size={16} /> Studio
-          </button>
-          <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
-            <Icon name="package" size={16} /> Inventario de papel y tinta
-          </button>
-          <button type="button" onClick={() => setTab("codigos_ean")} className={tabCls("codigos_ean")}>
-            <Icon name="barcode" size={16} /> Códigos EAN
-          </button>
-        </div>
-      )}
+      {!studioFullscreen && <EtiquetasTabNav active={tab} onChange={setTab} />}
 
       {tab === "imprimir" && (
         <TabImprimir

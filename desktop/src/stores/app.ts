@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { notifyNavChange } from "../lib/appBackNavigation";
+import { readNavHash, writeNavHash } from "../lib/navHash";
 import { LOGISTICA_PANEL_LEGACY } from "../lib/logisticaAccess";
 
 export type Panel =
@@ -36,6 +37,8 @@ export type Panel =
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
 export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
+
+export type MobileHubTab = "home" | "chat" | "acciones" | "yo";
 
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {
@@ -102,9 +105,15 @@ export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" 
 interface AppState {
   panel: Panel;
   setPanel: (p: Panel) => void;
-  /** Vista activa dentro de Hugo / Centro de Mando (p. ej. agente, home, list). */
+  /** Vista activa dentro de Hugo / Centro de Mando (p. ej. home, acciones, list). */
   centroMandoView: string;
   setCentroMandoView: (v: string) => void;
+  ticketsSelectedId: number | null;
+  setTicketsSelectedId: (id: number | null) => void;
+  ticketsSelectedMisionId: number | null;
+  setTicketsSelectedMisionId: (id: number | null) => void;
+  mobileTab: MobileHubTab;
+  setMobileTab: (t: MobileHubTab) => void;
   ticketsBootView: TicketsBootView;
   setTicketsBootView: (v: TicketsBootView) => void;
   solicitudBoot: SolicitudBoot | null;
@@ -122,18 +131,53 @@ interface AppState {
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
   setEtiquetasSolicitudActiva: (s: EtiquetasSolicitudActiva | null) => void;
+  /** true tras rehidratar localStorage — evita saltos de panel al refrescar. */
+  _hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
+}
+
+function normalizePanel(panel: Panel): Panel {
+  let next = panel === "tickets" ? "hugo" : panel;
+  if ((next as string) === LOGISTICA_PANEL_LEGACY) next = "logistica-importaciones";
+  return next;
+}
+
+function syncNavHash(panel: Panel, view?: string) {
+  const p = normalizePanel(panel);
+  writeNavHash(p, p === "hugo" ? view : undefined);
 }
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       panel: "hugo",
       centroMandoView: "home",
-      setCentroMandoView: (centroMandoView) => set({ centroMandoView }),
+      ticketsSelectedId: null,
+      ticketsSelectedMisionId: null,
+      mobileTab: "home",
+      _hasHydrated: false,
+      setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
+      setCentroMandoView: (centroMandoView) => {
+        set({ centroMandoView });
+        const { panel } = get();
+        if (panel === "hugo" || panel === "tickets") {
+          syncNavHash(panel, centroMandoView);
+        }
+        queueMicrotask(() => notifyNavChange());
+      },
+      setTicketsSelectedId: (ticketsSelectedId) => {
+        set({ ticketsSelectedId });
+        queueMicrotask(() => notifyNavChange());
+      },
+      setTicketsSelectedMisionId: (ticketsSelectedMisionId) => {
+        set({ ticketsSelectedMisionId });
+        queueMicrotask(() => notifyNavChange());
+      },
+      setMobileTab: (mobileTab) => set({ mobileTab }),
       setPanel: (panel) => {
-        let next = panel === "tickets" ? "hugo" : panel;
-        if ((next as string) === LOGISTICA_PANEL_LEGACY) next = "logistica-importaciones";
+        const next = normalizePanel(panel);
         set({ panel: next, sidebarOpen: false });
+        syncNavHash(next, get().centroMandoView);
         queueMicrotask(() => notifyNavChange());
       },
       ticketsBootView: null,
@@ -162,13 +206,51 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "mckenna-app",
-      partialize: (s) => ({ panel: s.panel }),
-      migrate: (persisted) => {
-        const s = persisted as { panel?: string };
-        if (s?.panel === LOGISTICA_PANEL_LEGACY) s.panel = "logistica-importaciones";
-        return persisted as AppState;
+      partialize: (s) => ({
+        panel: s.panel,
+        centroMandoView: s.centroMandoView,
+        ticketsSelectedId: s.ticketsSelectedId,
+        ticketsSelectedMisionId: s.ticketsSelectedMisionId,
+        mobileTab: s.mobileTab,
+        etiquetasTab: s.etiquetasTab,
+      }),
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Record<string, unknown>;
+        if (s.panel === LOGISTICA_PANEL_LEGACY) s.panel = "logistica-importaciones";
+        if (version < 2) {
+          if (!s.centroMandoView) s.centroMandoView = "home";
+          if (!s.mobileTab) s.mobileTab = "home";
+          if (!s.etiquetasTab) s.etiquetasTab = "imprimir";
+        }
+        return s as unknown as AppState;
       },
-      version: 1,
+      version: 2,
+      onRehydrateStorage: () => (state) => {
+        const hash = readNavHash();
+        if (hash?.panel && state) {
+          state.panel = normalizePanel(hash.panel);
+          if (hash.view && (hash.panel === "hugo" || hash.panel === "tickets")) {
+            state.centroMandoView = hash.view;
+          }
+        }
+        state?.setHasHydrated(true);
+        if (state) {
+          syncNavHash(state.panel, state.centroMandoView);
+        }
+      },
     },
   ),
 );
+
+/** Espera a que localStorage restaure panel y sub-vistas. */
+export function waitForAppHydration(): Promise<void> {
+  if (useAppStore.getState()._hasHydrated) return Promise.resolve();
+  return new Promise((resolve) => {
+    const unsub = useAppStore.subscribe((s) => {
+      if (s._hasHydrated) {
+        unsub();
+        resolve();
+      }
+    });
+  });
+}

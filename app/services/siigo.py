@@ -33,6 +33,28 @@ def _invalidar_cache_token_siigo():
         pass
 
 
+def _siigo_get(url: str, *, params: dict | None = None, timeout: int = 25):
+    """GET a Siigo con reintento automático si el Bearer en caché devolvió 401."""
+    token = autenticar_siigo()
+    if not token:
+        return None
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    for _ in range(2):
+        try:
+            res = requests.get(url, params=params, headers=headers, timeout=timeout)
+        except requests.RequestException:
+            return None
+        if res.status_code == 401:
+            _invalidar_cache_token_siigo()
+            token = autenticar_siigo(forzar=True)
+            if not token:
+                return None
+            headers["Authorization"] = f"Bearer {token}"
+            continue
+        return res
+    return None
+
+
 def autenticar_siigo(forzar=False):
     """
     Autentica con la API de Siigo para obtener un token de acceso.
@@ -1735,11 +1757,6 @@ def listar_productos_combo_siigo() -> list:
     if _combos_cache and time.time() - _combos_cache_ts < _COMBOS_TTL:
         return _combos_cache
 
-    token = autenticar_siigo()
-    if not token:
-        return []
-
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
     out = []
     seen = set()
 
@@ -1756,54 +1773,30 @@ def listar_productos_combo_siigo() -> list:
             seen.add(code.upper())
             out.append(p)
 
-    for page in range(1, 500):
-        try:
-            res = requests.get(
+    def _paginar(params: dict, max_pages: int) -> None:
+        for page in range(1, max_pages):
+            res = _siigo_get(
                 "https://api.siigo.com/v1/products",
-                params={"page": page, "page_size": 100, "type": "Combo", "active": "true"},
-                headers=headers,
-                timeout=25,
+                params={**params, "page": page, "page_size": 100},
             )
-        except requests.RequestException:
-            break
-        if res.status_code != 200:
-            break
-        data = res.json()
-        results = data.get("results") or []
-        if not results:
-            break
-        consume_results(results, strict_combo=True)
-        pag = data.get("pagination") or {}
-        total = int(pag.get("total_results") or 0)
-        if total and page * 100 >= total:
-            break
-        if len(results) < 100:
-            break
+            if res is None or res.status_code != 200:
+                break
+            data = res.json()
+            results = data.get("results") or []
+            if not results:
+                break
+            consume_results(results, strict_combo=True)
+            pag = data.get("pagination") or {}
+            total = int(pag.get("total_results") or 0)
+            if total and page * 100 >= total:
+                break
+            if len(results) < 100:
+                break
 
-    if out:
-        _combos_cache = out
-        _combos_cache_ts = time.time()
-        return out
+    _paginar({"type": "Combo", "active": "true"}, max_pages=500)
 
-    for page in range(1, 2000):
-        try:
-            res = requests.get(
-                "https://api.siigo.com/v1/products",
-                params={"page": page, "page_size": 100},
-                headers=headers,
-                timeout=25,
-            )
-        except requests.RequestException:
-            break
-        if res.status_code != 200:
-            break
-        data = res.json()
-        results = data.get("results") or []
-        if not results:
-            break
-        consume_results(results, strict_combo=True)
-        if len(results) < 100:
-            break
+    if not out:
+        _paginar({}, max_pages=2000)
 
     if out:
         _combos_cache = out

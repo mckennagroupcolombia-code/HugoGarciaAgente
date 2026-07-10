@@ -11,9 +11,11 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import TemasSidebarButton from "./TemasSidebarButton";
-import ContabilidadSidebarGroup, { contabilidadNavVisible } from "./ContabilidadSidebarGroup";
+import NavCollapsibleGroup from "./nav/NavCollapsibleGroup";
 import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import { puedeVerModuloLogistica } from "../lib/logisticaAccess";
+import { NAV_SECTIONS } from "../lib/navStructure";
+import type { NavItemDef } from "../lib/navStructure";
 import { useUiMode } from "../stores/uiMode";
 import { PANEL_INFO, type PanelTier } from "../lib/panelInfo";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
@@ -79,9 +81,9 @@ function NavItem({
         onClick={() => onNavigate(id)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${
+        className={`group mck-nav-item mck-press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
           active
-            ? "bg-accent text-white shadow-[0_2px_0_rgba(2,45,51,0.2)]"
+            ? "is-active bg-accent text-white"
             : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
         }`}
       >
@@ -99,7 +101,7 @@ function NavItem({
 
       {/* Tooltip on hover (desktop only) — shows description */}
       {hovered && description && !active && (
-        <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel p-3 shadow-paper-lg">
+        <div className="mck-tooltip-fly pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel/95 p-3 shadow-paper-lg backdrop-blur-sm">
           <p className="mb-1 flex items-center gap-2 text-xs font-bold text-ink">
             <IllustrationIcon name={id} size={20} bubble={false} tone="accent" />
             {label}
@@ -132,6 +134,16 @@ function Divider() {
   return <div className="mx-3 my-1 h-px bg-border/60" />;
 }
 
+function sectionVisible(
+  items: readonly NavItemDef[],
+  user: TicketsUser | null,
+  advanced: boolean,
+): boolean {
+  return items.some(
+    (item) => puedeVerSeccion(user, item.panel) && (item.tier !== "advanced" || advanced),
+  );
+}
+
 // ── AdvancedToggle ─────────────────────────────────────────────────────────────
 
 function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: () => void }) {
@@ -139,7 +151,7 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
     <button
       type="button"
       onClick={onToggle}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all ${
+      className={`mck-press flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
         advanced
           ? "bg-accent/5 text-accent dark:bg-accent/25 dark:text-accent/30"
           : "text-muted hover:bg-surface-hover hover:text-ink"
@@ -161,67 +173,6 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
         />
       </span>
     </button>
-  );
-}
-
-// ── Logística collapsible group ────────────────────────────────────────────────
-
-const LOGISTICA_ITEMS: { id: Panel }[] = [
-  { id: "logistica-importaciones" },
-  { id: "logistica-embarques" },
-  { id: "logistica-aduanas" },
-  { id: "logistica-proveedores" },
-  { id: "logistica-seguimiento" },
-];
-
-function LogisticaGroup({
-  panel, user, onNavigate, advanced,
-}: {
-  panel: Panel;
-  user: TicketsUser | null;
-  onNavigate: (id: Panel) => void;
-  advanced: boolean;
-}) {
-  const visible = LOGISTICA_ITEMS.filter((i) => puedeVerSeccion(user, i.id));
-  if (visible.length === 0 || !advanced) return null;
-
-  const hasActive = visible.some((i) => i.id === panel);
-  const [open, setOpen] = useState(hasActive);
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-all ${
-          hasActive ? "text-ink" : "text-muted hover:bg-surface-hover hover:text-ink"
-        }`}
-      >
-        <span className="text-lg">🌎</span>
-        <span className="flex-1">Logística Internacional</span>
-        <svg
-          className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-        >
-          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="mt-0.5 space-y-0.5 pl-4">
-          {visible.map((item) => (
-            <NavItem
-              key={item.id}
-              id={item.id}
-              panel={panel}
-              user={user}
-              onNavigate={onNavigate}
-              advanced={advanced}
-              tier="advanced"
-            />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -252,8 +203,6 @@ export default function Sidebar() {
     refetchInterval: 15000,
   });
   const facturasPendientes = facturaData?.total ?? 0;
-
-  const verContabilidad = contabilidadNavVisible(user, puedeVerSeccion);
 
   const badges: Partial<Record<string, number>> = {
     preventa: pendientes,
@@ -293,8 +242,8 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border bg-surface-panel
-        transition-transform duration-200 ease-out lg:static lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border/80 bg-surface-panel/95 backdrop-blur-md
+        transition-transform duration-300 ease-out lg:static lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
     >
@@ -313,7 +262,7 @@ export default function Sidebar() {
               type="button"
               title="Cambiar foto de perfil"
               onClick={() => fotoInputRef.current?.click()}
-              className="relative shrink-0 rounded-full transition hover:opacity-90"
+              className="mck-press relative shrink-0 rounded-full ring-2 ring-transparent transition hover:ring-accent/30"
             >
               <UserAvatar user={user} token={token} />
               {totalAlerts > 0 && (
@@ -344,100 +293,50 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* ── Nav ── */}
+      {/* ── Nav (estructura centralizada en lib/navStructure.ts) ── */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
-
-        {/* ESENCIALES — siempre visibles */}
-        <SectionLabel>Esencial</SectionLabel>
-        <div className="space-y-0.5">
-          <NavItem id="hugo"      panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-          <NavItem id="dashboard" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-          <NavItem id="chat"      panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-        </div>
+        {NAV_SECTIONS.filter(
+          (section) =>
+            (!section.advancedOnly || advanced)
+            && sectionVisible(section.items, user, advanced),
+        ).map((section, idx) => (
+          <div key={section.id}>
+            {idx > 0 && <Divider />}
+            {!section.collapsible && <SectionLabel>{section.label}</SectionLabel>}
+            <div className="space-y-0.5">
+              {section.collapsible ? (
+                <NavCollapsibleGroup
+                  label={section.label}
+                  items={section.items}
+                  panel={panel}
+                  user={user}
+                  advanced={advanced}
+                  badges={badges}
+                  puedeVer={puedeVerSeccion}
+                  onNavigate={navegarPanel}
+                  badgePanel={section.id === "contabilidad" ? "facturas" : undefined}
+                />
+              ) : (
+                section.items.map((item) => (
+                  <NavItem
+                    key={item.panel}
+                    id={item.panel}
+                    panel={panel}
+                    user={user}
+                    badges={badges}
+                    onNavigate={navegarPanel}
+                    advanced={advanced}
+                    tier={item.tier}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        ))}
 
         <Divider />
-
-        {/* VENTAS */}
-        {(puedeVerSeccion(user, "preventa") || puedeVerSeccion(user, "postventa") || puedeVerSeccion(user, "pedidos")) && (
-          <>
-            <SectionLabel>Ventas</SectionLabel>
-            <div className="space-y-0.5">
-              <NavItem id="preventa"  panel={panel} user={user} badges={badges} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-              <NavItem id="postventa" panel={panel} user={user} badges={badges} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-              <NavItem id="pedidos"   panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-            </div>
-            <Divider />
-          </>
-        )}
-
-        {/* INVENTARIO */}
-        {(puedeVerSeccion(user, "stock") || puedeVerSeccion(user, "etiquetas")) && (
-          <>
-            <SectionLabel>Inventario</SectionLabel>
-            <div className="space-y-0.5">
-              <NavItem id="stock"            panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-              <NavItem id="etiquetas"        panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-              <NavItem id="fichas"           panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              <NavItem id="etiquetas-config" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-            </div>
-            <Divider />
-          </>
-        )}
-
-        {/* PRODUCCIÓN */}
-        {puedeVerSeccion(user, "placas-concreto") && (
-          <>
-            <SectionLabel>Producción</SectionLabel>
-            <div className="space-y-0.5">
-              <NavItem id="placas-concreto" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-            </div>
-            <Divider />
-          </>
-        )}
-
-        {/* FINANZAS */}
-        {(verContabilidad || puedeVerSeccion(user, "sync") || puedeVerSeccion(user, "facturas")) && (
-          <>
-            <SectionLabel>Finanzas</SectionLabel>
-            <div className="space-y-0.5">
-              <NavItem id="sync"     panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              <NavItem id="facturas" panel={panel} user={user} badges={badges} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              {verContabilidad && (
-                <ContabilidadSidebarGroup
-                  user={user}
-                  panel={panel}
-                  puedeVer={puedeVerSeccion}
-                  facturasPendientes={facturasPendientes}
-                  onNavigate={navegarPanel}
-                />
-              )}
-              <NavItem id="centros-costo" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-              <NavItem id="rentabilidad"  panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-            </div>
-            <Divider />
-          </>
-        )}
-
-        {/* CANALES & CONTENIDO */}
-        {(puedeVerSeccion(user, "whatsapp") || puedeVerSeccion(user, "publicaciones")) && (
-          <>
-            <SectionLabel>Canales</SectionLabel>
-            <div className="space-y-0.5">
-              <NavItem id="whatsapp"     panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              <NavItem id="publicaciones" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              <NavItem id="supervisor"   panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-              <NavItem id="voz"          panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-              <NavItem id="webchat"      panel={panel} user={user} badges={badges} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
-            </div>
-            <Divider />
-          </>
-        )}
-
-        {/* LOGÍSTICA INTERNACIONAL — solo en modo avanzado */}
-        <LogisticaGroup panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} />
-
-        {/* AJUSTES */}
-        <div className="mt-1 space-y-0.5">
+        <SectionLabel>Cuenta</SectionLabel>
+        <div className="space-y-0.5">
           <NavItem id="settings" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
         </div>
       </nav>
@@ -452,9 +351,9 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={resetHelps}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-muted hover:text-ink hover:bg-surface-hover transition-all"
+            className="mck-press flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-ink"
           >
-            <span>💡</span>
+            <Icon name="lightning" size={16} weight="duotone" />
             Volver a mostrar ayudas
           </button>
         )}
@@ -464,9 +363,9 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={logout}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+          className="mck-press flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-muted transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
         >
-          <span className="text-base">🚪</span>
+          <Icon name="signOut" size={18} weight="duotone" />
           Cerrar sesión
         </button>
       </div>
