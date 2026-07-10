@@ -101,7 +101,7 @@ export const ETIQUETA_STUDIO_DEFAULT: EtiquetaStudioDatos = {
   mostrar_formula_molecular: false,
   mostrar_cas: true,
   mostrar_concentracion: true,
-  modo_etiqueta: "alternativa",
+  modo_etiqueta: "original",
   b1_ancho_pct: 100,
 };
 
@@ -203,7 +203,7 @@ export function aplicarDefaultsAlternativa(
     mostrar_concentracion: d.mostrar_concentracion ?? true,
     mostrar_bloque_legal: d.mostrar_bloque_legal ?? true,
     mostrar_res_2674: d.mostrar_res_2674 ?? true,
-    modo_etiqueta: "alternativa",
+    modo_etiqueta: "original",
     b1_ancho_pct: d.b1_ancho_pct ?? 100,
   };
 }

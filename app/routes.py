@@ -13469,7 +13469,7 @@ REGLAS:
                 return jsonify({"error": str(e)}), 400
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
-        version = (body.get("version") or "alternativa").strip().lower()
+        version = (body.get("version") or "original").strip().lower()
         payload = {k: v for k, v in body.items() if k not in {"version", "accion", "origen", "destino"}}
         try:
             entry = guardar_studio_sku(sku, payload, version=version)

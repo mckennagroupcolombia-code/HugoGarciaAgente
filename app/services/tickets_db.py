@@ -2010,7 +2010,10 @@ def _mision_full(db, mision_id: int) -> dict | None:
         return None
     d = dict(m)
     creador = _usuario_full(db, m["creado_por"]) if m["creado_por"] else None
-    d["creado_por_info"] = {"id": creador["id"], "nombre": creador["nombre"]} if creador else None
+    d["creado_por_info"] = (
+        {"id": creador["id"], "nombre": creador["nombre"], "foto": creador.get("foto")}
+        if creador else None
+    )
     etapas = db.execute("""
         SELECT e.*,
                t.numero  AS ticket_numero,
@@ -3084,10 +3087,16 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
         return None
     d = dict(t)
     creador = _usuario_full(db, t["creado_por"])
-    d["creado_por_info"] = {"id": creador["id"], "nombre": creador["nombre"]} if creador else None
+    d["creado_por_info"] = (
+        {"id": creador["id"], "nombre": creador["nombre"], "foto": creador.get("foto")}
+        if creador else None
+    )
     if t["asignado_a"]:
         asig = _usuario_full(db, t["asignado_a"])
-        d["asignado_a_info"] = {"id": asig["id"], "nombre": asig["nombre"]} if asig else None
+        d["asignado_a_info"] = (
+            {"id": asig["id"], "nombre": asig["nombre"], "foto": asig.get("foto")}
+            if asig else None
+        )
     else:
         d["asignado_a_info"] = None
 

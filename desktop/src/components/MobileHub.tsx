@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { puedeVerSeccionPanel } from "./Sidebar";
-import { useAppStore, type Panel } from "../stores/app";
+import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon, type UiIconName } from "../icons";
+import UserAvatar from "./UserAvatar";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ function greeting(): string {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Tab = "home" | "chat" | "acciones" | "yo";
+type Tab = MobileHubTab;
 
 interface Ticket {
   id: number;
@@ -78,12 +79,12 @@ interface QuickCategory {
 // ── Quick categories ───────────────────────────────────────────────────────────
 
 const QUICK_CATS: QuickCategory[] = [
-  { slug: "etiquetas",    label: "Etiquetas",   icon: "tag",       tone: "plum",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "inventario",   label: "Inventario",  icon: "package",   tone: "sky",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "logistica",    label: "Logística",   icon: "truck",     tone: "leaf",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "sistemas",     label: "Sistemas",    icon: "nut",       tone: "sun",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "mantenimiento",label: "Mantenim.",   icon: "wrench",    tone: "rose",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "general",      label: "General",     icon: "chat",      tone: "neutral",color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
+  { slug: "etiquetas",     label: "Etiquetas",    icon: "tag",     tone: "plum",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "inventario",    label: "Inventario",   icon: "package", tone: "sky",     color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "ventas",        label: "Ventas MeLi",  icon: "cart",    tone: "sun",     color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "contabilidad",  label: "Contabilidad", icon: "receipt", tone: "leaf",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "mantenimiento", label: "Mantenim.",    icon: "wrench",  tone: "rose",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "general",       label: "General",      icon: "chat",    tone: "neutral", color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
 ];
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -305,7 +306,7 @@ function HomeTab({
               key={i}
               type="button"
               onClick={a.action}
-              className={`flex min-h-[100px] flex-col items-start justify-between rounded-2xl p-4 text-left transition-all active:scale-95 ${a.color} ${a.shadow}`}
+              className={`mck-press flex min-h-[100px] flex-col items-start justify-between rounded-2xl p-4 text-left transition-all ${a.color} ${a.shadow}`}
             >
               <IllustrationIcon name={a.icon} size={32} tone={a.tone} />
               <span className="mt-2 whitespace-pre-line text-sm font-bold leading-tight">{a.label}</span>
@@ -601,7 +602,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
               type="button"
               onClick={() => { if (res !== "loading") void fire(i, a); }}
               disabled={res === "loading"}
-              className="flex w-full items-center gap-4 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98] disabled:opacity-60"
+              className="mck-card mck-card-interactive mck-press flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left"
             >
               <IllustrationIcon name={a.icon} size={28} tone={a.tone} />
               <div className="flex-1 min-w-0">
@@ -628,13 +629,14 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
 
       {/* Direct panel shortcuts */}
       <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-muted">Ir a panel</p>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {([
           { panel: "preventa" as Panel, label: "Preventa MeLi" },
+          { panel: "postventa" as Panel, label: "Postventa" },
           { panel: "stock" as Panel, label: "Stock" },
+          { panel: "etiquetas" as Panel, label: "Etiquetas" },
           { panel: "facturas" as Panel, label: "Facturas" },
-          { panel: "pedidos" as Panel, label: "Pedidos web" },
-          { panel: "placas-concreto" as Panel, label: "Placas concreto" },
+          { panel: "sync" as Panel, label: "Sync" },
         ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (
           <button
             key={s.panel}
@@ -660,12 +662,16 @@ function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => v
     <div className="overflow-y-auto pb-24 pt-6 px-4">
       {/* Avatar block */}
       <div className="mb-6 flex flex-col items-center gap-3">
-        <div
-          className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white text-3xl font-black text-white shadow-lg"
-          style={{ background: user?.departamento?.color ?? "#0c6069" }}
-        >
-          {user?.nombre?.charAt(0).toUpperCase() ?? "?"}
-        </div>
+        {user && token ? (
+          <UserAvatar user={user} token={token} size="lg" expandable />
+        ) : (
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white text-3xl font-black text-white shadow-lg"
+            style={{ background: "#0c6069" }}
+          >
+            ?
+          </div>
+        )}
         <div className="text-center">
           <p className="font-extrabold text-ink text-lg">{user?.nombre ?? "Usuario"}</p>
           <p className="text-sm text-muted">{user?.departamento?.nombre ?? user?.rol?.nombre ?? ""}</p>
@@ -723,7 +729,7 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
             key={item.id}
             type="button"
             onClick={() => onChange(item.id)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
+            className={`mck-press flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
               isActive ? "text-accent" : "text-muted"
             }`}
           >
@@ -745,7 +751,7 @@ function FAB({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="fixed bottom-[72px] right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_6px_0_rgba(2,45,51,0.3)] transition-all active:translate-y-1.5 active:shadow-[0_2px_0_rgba(2,45,51,0.3)]"
+      className="mck-press fixed bottom-[72px] right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_6px_0_rgba(2,45,51,0.3)] transition-all active:translate-y-1.5 active:shadow-[0_2px_0_rgba(2,45,51,0.3)]"
       style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="Nueva solicitud"
     >
@@ -759,7 +765,8 @@ function FAB({ onClick }: { onClick: () => void }) {
 export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
   const { user, token, apiToken } = useTicketsAuth();
   const setPanel = useAppStore((s) => s.setPanel);
-  const [tab, setTab] = useState<Tab>("home");
+  const tab = useAppStore((s) => s.mobileTab);
+  const setTab = useAppStore((s) => s.setMobileTab);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetCat, setSheetCat] = useState("");
   const [solicitudCreated, setSolicitudCreated] = useState(0);

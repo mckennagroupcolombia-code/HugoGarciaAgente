@@ -24,59 +24,53 @@ _STOP = {
     "the", "and", "de", "la", "el", "en", "y", "a", "es", "se",
 }
 
-_PROMPT_CATALOGO = """Eres redactor técnico especializado en materias primas químicas, cosméticas, alimentarias, agrícolas e industriales de McKenna Group.
+_PROMPT_CATALOGO = """Eres redactor técnico de McKenna Group. Redactas el texto impreso en la capa de materia prima de una etiqueta (no fichas con encabezados ni copy de e-commerce).
 
-El usuario escribe palabras clave para identificar una materia prima (solo para buscar la ficha; NO las repitas en el texto):
+Palabras clave del usuario (solo para ubicar la ficha; no las repitas):
 "{fragmento}"
 
-NOMBRE CANÓNICO del ingrediente (mencionar como MÁXIMO 1 vez en TODO el texto, preferiblemente al inicio del párrafo 1; si el título ya está en otra capa de la etiqueta, NO lo menciones):
-"{nombre_canonico}"
+Ingrediente: «{nombre_canonico}»
+{instruccion_nombre}
 
-Usa SOLO la información de las fichas técnicas adjuntas (documentos técnicos del agente). No inventes datos: si algo no consta en la ficha, omítelo sin rellenar con cifras o afirmaciones falsas.
+FUENTE: usa únicamente las fichas técnicas adjuntas. Si un dato no consta, omítelo — no inventes ni rellenes con frases genéricas.
 
-TAREA: redacta {n_opciones} variante(s) de texto de descripción para una etiqueta de materia prima, en tono técnico de formulación — claro, profesional, dirigido a un público DIY que formula sus propios productos.
+SALIDA:
+- Exactamente 2 párrafos, separados por línea en blanco (\\n\\n en JSON).
+- 60–85 palabras por párrafo; máximo {max_chars} caracteres en total.
+- Prosa corrida y fluida: encadena ideas con conectores naturales (y, además, mientras que, por su parte, en cuanto a su uso). Evita listas encubiertas de oraciones cortas que empiecen igual.
 
-CONTENIDO A CUBRIR (intégralo en prosa fluida, sin viñetas ni encabezados; usa solo lo que conste en la ficha, sin inventar):
-- Naturaleza química o funcional: qué tipo de compuesto o ingrediente es.
-- Apariencia física: estado, color, textura.
-- Origen: vegetal, animal, mineral o de síntesis industrial.
-- Método general de obtención: extracción, síntesis, fermentación, refinación u otro proceso.
-- Solubilidad o comportamiento de disolución/dispersión.
-- Condiciones básicas de incorporación: fase (acuosa/oleosa), temperatura, agitación, % de uso habitual.
-- Aplicaciones permitidas, según el segmento del insumo (cosmético, alimentario, agrícola o industrial).
+ESTRUCTURA (integrada en prosa, sin subencabezados):
+Párrafo 1: DEBE comenzar con «Este ingrediente se presenta» (como / en / en forma de…) seguido de apariencia, aroma, sabor, origen, solubilidad o dispersión.
+Párrafo 2: en qué matrices o sectores se usa según la ficha; cierra con una frase breve sobre que el uso depende de la fórmula y la normativa.
 
 {instrucciones_segmento}
 
-PROHIBIDO POR NORMATIVA MERCADO LIBRE (rechazo automático si aparece cualquiera de estos elementos):
-- Claims de consumo, salud, bienestar, tratamiento, prevención o beneficio para el organismo.
-- Dosis recomendadas, modo de uso como suplemento, promesas nutricionales o cualquier frase que pueda interpretarse como indicación terapéutica.
-- Expresiones explícitamente prohibidas (y equivalentes): "mejora la salud", "beneficia al organismo", "dosis diaria", "suplemento dietético", "tratamiento", "previene", "cura".
-- McKenna comercializa MATERIA PRIMA reempacada para formulación — NO un suplemento ni un medicamento terminado.
-- PROHIBIDO también: grado farmacéutico como reclamo de consumo, uso medicinal, instrucciones de consumo ("tomar", "ingerir"), atletas, culturistas, rendimiento deportivo, ATP/trifosfato de adenosina, metabolismo energético, soporte celular.
-
-VOZ Y ESTILO (obligatorio):
-- Sobrio, informativo, enfocado en formulación: procesamiento, porcentajes de uso y aplicaciones — nunca en vender ni prometer resultados.
-- Redacción IMPERSONAL y OBJETIVA: describe la materia prima, no a un proveedor. PROHIBIDO primera persona ("nosotros", "nuestro", "ofrecemos", "le presentamos") y apropiación comercial ("nuestro producto", "garantiza su excelencia").
-- No repitas el título ni el subtítulo de la etiqueta (ya están impresos en otra capa): {contexto_otras_capas}
-- Tras la primera mención del ingrediente, varía referencias ("este compuesto", "el ingrediente", "la sustancia") — no repitas el nombre canónico más de la única vez ya permitida, ni encadenes "este insumo" en oraciones seguidas.
-- "materia prima" como MÁXIMO 1 vez en todo el texto (si el subtítulo ya lo dice, NO la uses). "formulación" no más de 3 veces — varía con "matriz", "proceso industrial", "elaboración".
-- Evita plantillas vacías ("características funcionales específicas", "optimizar el perfil"); cada oración debe aportar un dato distinto y concreto.
-
-EXTENSIÓN Y FORMA (obligatorio):
-- EXACTAMENTE 2 párrafos, separados por una línea en blanco (\\n\\n en JSON).
-- Cada párrafo: MÁXIMO 90 palabras.
-- No copies tablas de especificaciones, valores Máx/Min, unidades (g/100g), pH numérico exacto, ni encabezados o etiquetas sueltas de la ficha (Apariencia:, Solubilidad:, Olor y sabor:, etc.) — integra esos datos en prosa.
-- No uses emojis, comillas envolventes, listas ni encabezados en mayúsculas.
-- Máximo {max_chars} caracteres por variante.
-
-OTRAS CAPAS DE LA ETIQUETA (no repetir):
+CAPAS YA IMPRESAS EN LA ETIQUETA (no repetir ni parafrasear):
 {contexto_otras_capas}
+
+NORMATIVA MeLi (rechazo automático):
+- Es reenvase de materia prima para formulación, NO suplemento ni medicamento terminado.
+- Prohibido: claims de salud, dosis de consumo, beneficios corporales, rendimiento deportivo, ATP, metabolismo energético, «suplemento dietético», instrucciones de ingesta («tomar», «ingerir»), atletas, culturistas.
+
+ESTILO:
+- Español técnico claro y legible, como una ficha bien redactada para quien formula.
+- Impersonal: sin «nosotros», sin tono de venta ni de proveedor.
+- PROHIBIDO usar la palabra «descripción» y derivados («descripción física», «descripción funcional», etc.).
+- El párrafo 1 siempre abre con «Este ingrediente se presenta…»; no empieces con «Se presenta» o «Se presentan» sin ese sujeto.
+- Varía la estructura en el resto del párrafo; no encadenes oraciones que empiecen igual («Es soluble», «Se emplea»).
+- Evita muletillas («características funcionales específicas», «optimizar el perfil», «según normativa vigente» repetido, «este ingrediente» encadenado).
+- Usa «ingrediente» (o el nombre del producto); PROHIBIDO «insumo» y derivados («insumo alimentario», «este insumo»).
+- No uses «formulación industrial», «uso industrial» ni equivalentes; prefiere «elaboración», «mezcla en planta» o el sector concreto (alimentario, cosmético, agrícola).
+- Máximo 2 veces «formulación»; no abuses de «materia prima».
+
+REFERENCIA DE TONO (no copies; adapta a la ficha):
+«Este ingrediente se presenta como polvo cristalino blanco, obtenido por proceso enzimático a partir de lactosa, soluble en agua y dispersable en mezclas acuosas calientes con comportamiento estable en secado. En industria alimentaria se incorpora en bases lácteas, bebidas y productos de panificación como componente de la matriz, según el diseño de la fórmula y la normativa aplicable.»
 
 FICHAS TÉCNICAS:
 {contexto}
 
-Responde ÚNICAMENTE con JSON válido en este formato:
-{{"sugerencias": [{{"texto": "primer párrafo.\\n\\nsegundo párrafo."}}]}}"""
+Responde ÚNICAMENTE con JSON válido:
+{{"sugerencias": [{{"texto": "párrafo 1.\\n\\npárrafo 2."}}]}}"""
 
 PALABRAS_POR_PARRAFO = 80
 PALABRAS_POR_PARRAFO_MIN = 55
@@ -508,18 +502,17 @@ def _nombre_materia_prima(titulo: str) -> str:
 
 
 _ALTERNA_SUSTITUTO = (
-    "Este insumo",
+    "Este ingrediente",
     "El compuesto",
     "La sustancia",
-    "El ingrediente",
     "El material",
+    "El producto",
 )
 
 _SUSTITUTO_SIN_ARTICULO = (
-    "insumo",
+    "ingrediente",
     "compuesto",
     "sustancia",
-    "ingrediente",
     "material",
 )
 
@@ -590,7 +583,9 @@ def _repeticion_excesiva(
         return True
     if len(re.findall(r"\bformulaci[oó]n\b", _norm(texto))) > 3:
         return True
-    if len(re.findall(r"\beste insumo\b", _norm(texto))) > 2:
+    if len(re.findall(r"\beste ingrediente\b", _norm(texto))) > 2:
+        return True
+    if re.search(r"\binsumo\b", _norm(texto)):
         return True
     return False
 
@@ -645,7 +640,7 @@ def _suavizar_repeticiones(
         if n_mp <= max_mp:
             partes_mp.append(m.group(0))
         else:
-            rep = ("insumo técnico", "ingrediente industrial")[alt_idx % 2]
+            rep = "ingrediente técnico"
             alt_idx += 1
             partes_mp.append(rep)
         last = m.end()
@@ -678,17 +673,84 @@ _RE_REDACCION_ROBOT = re.compile(
 )
 
 
+def _normalizar_apertura_parrafo1(parrafo: str) -> str:
+    t = re.sub(r"\s+", " ", (parrafo or "").strip())
+    if not t:
+        return t
+    if re.match(r"^Este ingrediente se presenta\b", t, re.I):
+        return t
+    if re.match(r"^Se presentan\b", t, re.I):
+        return re.sub(
+            r"^Se presentan\b",
+            "Este ingrediente se presenta",
+            t,
+            count=1,
+            flags=re.I,
+        )
+    if re.match(r"^Se presenta\b", t, re.I):
+        return re.sub(
+            r"^Se presenta\b",
+            "Este ingrediente se presenta",
+            t,
+            count=1,
+            flags=re.I,
+        )
+    if re.match(r"^En apariencia,?\s+", t, re.I):
+        rest = re.sub(r"^En apariencia,?\s+", "", t, count=1, flags=re.I)
+        if rest:
+            return f"Este ingrediente se presenta con {rest[0].lower()}{rest[1:]}"
+        return t
+    if re.match(r"^(El|La|Los|Las)\s+", t, re.I):
+        return t
+    return f"Este ingrediente se presenta como {t[0].lower()}{t[1:]}"
+
+
+def _preferir_ingrediente_sobre_insumo(texto: str) -> str:
+    t = texto or ""
+    t = re.sub(r"\binsumo\s+alimentario\b", "ingrediente alimentario", t, flags=re.I)
+    t = re.sub(r"\binsumo\s+cosm[eé]tico\b", "ingrediente cosmético", t, flags=re.I)
+    t = re.sub(r"\binsumo\s+proteico\b", "ingrediente proteico", t, flags=re.I)
+    t = re.sub(r"\binsumo\s+t[eé]cnico\b", "ingrediente técnico", t, flags=re.I)
+    t = re.sub(r"\beste\s+insumo\b", "este ingrediente", t, flags=re.I)
+    t = re.sub(r"\bel\s+insumo\b", "el ingrediente", t, flags=re.I)
+    t = re.sub(r"\binsumo\b", "ingrediente", t, flags=re.I)
+    return t
+
+
+def _quitar_palabra_descripcion(texto: str) -> str:
+    t = texto or ""
+    t = re.sub(
+        r"\bdescripci[oó]n\s+(?:f[ií]sica|funcional|general|qu[ií]mica)\b",
+        "perfil",
+        t,
+        flags=re.I,
+    )
+    t = re.sub(r"\b(?:la|una|su)\s+descripci[oó]n\b", "", t, flags=re.I)
+    t = re.sub(r"\bdescripci[oó]n\b", "", t, flags=re.I)
+    t = re.sub(r"\s+,", ",", t)
+    t = re.sub(r"\s{2,}", " ", t)
+    t = re.sub(r"\.\s*\.", ".", t)
+    return t.strip()
+
+
 def _pulir_redaccion(texto: str) -> str:
     bloques = re.split(r"\n\s*\n", (texto or "").strip())
-    limpios = [_pulir_parrafo(b) for b in bloques if b.strip()]
+    limpios: list[str] = []
+    for i, bloque in enumerate(bloques):
+        if not bloque.strip():
+            continue
+        p = _pulir_parrafo(bloque)
+        if i == 0:
+            p = _normalizar_apertura_parrafo1(p)
+        limpios.append(p)
     return "\n\n".join(limpios)
 
 
 def _pulir_parrafo(parrafo: str) -> str:
     t = re.sub(r"\s+", " ", (parrafo or "").strip())
     sustituciones = (
-        (r"\bLa este insumo\b", "Este insumo"),
-        (r"\bEl este insumo\b", "Este insumo"),
+        (r"\bLa este insumo\b", "Este ingrediente"),
+        (r"\bEl este insumo\b", "Este ingrediente"),
         (r"\bLa el compuesto\b", "El compuesto"),
         (r"\bEl la sustancia\b", "La sustancia"),
         (r"\bLos el\b", "Los"),
@@ -702,7 +764,15 @@ def _pulir_parrafo(parrafo: str) -> str:
         (r"\bperfil energ[eé]tico\b", "perfil funcional"),
         (r"\bmetabolismo energ[eé]tico celular\b", "procesos de formulación"),
         (r"\btrifosfato de adenosina\s*\(\s*ATP\s*\)", "procesos de formulación"),
-        (r"\btrifosfato de adenosina\b", "procesos industriales"),
+        (r"\btrifosfato de adenosina\b", "procesos de mezcla"),
+        (r"\bformulaci[oó]n\s+industrial\b", "elaboración"),
+        (r"\bformulaci[oó]n\s+alimentaria\s+industrial\b", "elaboración de alimentos"),
+        (r"\bformulaci[oó]n\s+cosm[eé]tica\s+industrial\b", "formulación cosmética"),
+        (r"\bformulaci[oó]n\s+farmac[eé]utica\s+industrial\b", "formulación farmacéutica"),
+        (r"\bformulaciones\s+industriales\b", "diversas matrices"),
+        (r"\bde\s+uso\s+industrial\b", "de uso técnico"),
+        (r"\bprocesos\s+industriales\b", "procesos de mezcla"),
+        (r"\baplicaciones\s+industriales\b", "aplicaciones técnicas"),
         (r"\bprecursor clave en la s[ií]ntesis\b", "componente de uso en"),
         (r"\bofreciendo propiedades distintivas\b", "con propiedades técnicas"),
         (r"\bgarantizando un uso adecuado\b", "según criterio técnico"),
@@ -712,7 +782,9 @@ def _pulir_parrafo(parrafo: str) -> str:
     )
     for patron, repl in sustituciones:
         t = re.sub(patron, repl, t, flags=re.I)
-    t = re.sub(r"\bEste insumo\b(?:[^.]*\bEste insumo\b)+", "Este insumo", t, flags=re.I)
+    t = re.sub(r"\bEste ingrediente\b(?:[^.]*\bEste ingrediente\b)+", "Este ingrediente", t, flags=re.I)
+    t = _preferir_ingrediente_sobre_insumo(t)
+    t = _quitar_palabra_descripcion(t)
     t = re.sub(r" {2,}", " ", t).strip()
     return t
 
@@ -730,8 +802,8 @@ def _post_procesar_texto(texto: str) -> str:
     limpios: list[str] = []
     for bloque in bloques:
         t = _limpiar_apropiacion(bloque)
-        t = re.sub(r"\bApariencia:\s*", "Se presenta con ", t, flags=re.I)
-        t = re.sub(r"\bSolubilidad:\s*", "Presenta solubilidad: ", t, flags=re.I)
+        t = re.sub(r"\bApariencia:\s*", "", t, flags=re.I)
+        t = re.sub(r"\bSolubilidad:\s*", "Es soluble en ", t, flags=re.I)
         t = re.sub(
             r"En la industria alimentaria se emplea en Para la industria alimentaria",
             "En la industria alimentaria",
@@ -751,6 +823,8 @@ def _post_procesar_texto(texto: str) -> str:
         t = re.sub(r"\b(?:Y\s+)?ALMACENAMIENTO\b", "", t)
         t = re.sub(r"\bOlor y sabor:\s*", "Presenta ", t, flags=re.I)
         t = re.sub(r"\bAl[eé]rgenos:\s*", "", t, flags=re.I)
+        t = _preferir_ingrediente_sobre_insumo(t)
+        t = _quitar_palabra_descripcion(t)
         t = re.sub(r" {2,}", " ", t).strip()
         if t:
             limpios.append(t)
@@ -921,8 +995,8 @@ def _formatear_contexto_otras_capas(contexto_capas: dict | None) -> str:
     seg = _segmento_insumo(contexto_capas)
     if seg == "alimentario":
         lineas.append(
-            "- El producto es un insumo alimentario: la descripción debe centrarse "
-            "en formulación alimentaria industrial."
+            "- El producto es un ingrediente alimentario: el texto debe centrarse "
+            "en elaboración de alimentos y bebidas."
         )
     return "\n".join(lineas)
 
@@ -982,15 +1056,15 @@ def _inferir_funcional(texto: str, nombre: str) -> str:
     t = texto or ""
     for match in _RE_FUNCION.finditer(t):
         rol = match.group(1).lower()
-        return f"Actúa como {rol} en formulaciones industriales."
+        return f"Actúa como {rol} en diversas matrices."
     if re.search(r"fuente de prote[ií]nas|prote[ií]na de leche|prote[ií]nas", t, re.I):
         return (
-            f"Se trata de una fuente de proteínas e ingrediente de formulación "
-            f"de uso industrial y alimentario."
+            f"Se trata de una fuente de proteínas e ingrediente de elaboración "
+            f"de uso alimentario y técnico."
         )
     if re.search(r"ingrediente de uso industrial|materia prima", t, re.I):
-        return f"Se utiliza como ingrediente de formulación de uso industrial."
-    return f"Este insumo cumple una función técnica dentro de procesos de formulación industrial."
+        return "Se utiliza como ingrediente de elaboración de uso técnico."
+    return "Se utiliza como ingrediente de elaboración de uso técnico."
 
 
 def _inferir_mecanismo(alim: str, origen: str, nombre: str) -> str:
@@ -998,7 +1072,7 @@ def _inferir_mecanismo(alim: str, origen: str, nombre: str) -> str:
         a = _limpiar_fragmento_ficha(alim)
         if re.search(r"fuente de prote[ií]nas|otorga m[uú]ltiples propiedades", a, re.I):
             return (
-                f"En matrices alimentarias e industriales, aporta proteínas y propiedades "
+                f"En matrices alimentarias, aporta proteínas y propiedades "
                 f"funcionales que inciden en la textura, el valor nutricional y el "
                 f"comportamiento de la matriz elaborada."
             )
@@ -1008,16 +1082,16 @@ def _inferir_mecanismo(alim: str, origen: str, nombre: str) -> str:
                 f"obtención de productos tecnológicos derivados."
             )
         return (
-            f"Cumple un papel relevante en procesos industriales al aportar "
-            f"características funcionales a la formulación final."
+            f"Cumple un papel relevante en procesos de mezcla al aportar "
+            f"características funcionales a la matriz final."
         )
     if origen and re.search(r"concentraci|deshidrat|coagul|ferment", origen, re.I):
         return (
             f"Su obtención por procesos de concentración y deshidratación condiciona "
-            f"su comportamiento como insumo proteico en cadenas alimentarias e industriales."
+            f"su comportamiento como ingrediente proteico en cadenas alimentarias."
         )
     return (
-        f"Interviene en procesos químicos e industriales de formulación "
+        f"Interviene en procesos químicos de mezcla y elaboración "
         f"como componente funcional de matrices especializadas."
     )
 
@@ -1101,36 +1175,27 @@ _RE_ORACION_CONSUMIDOR = re.compile(
 )
 
 _P2_CIERRE = (
-    " La concentración y el modo de incorporación dependen de la matriz final, "
-    "la normativa aplicable y el criterio técnico del fabricante; se sugiere "
-    "consultar la ficha técnica correspondiente antes de definir rangos de uso "
-    "en la elaboración industrial."
+    " El porcentaje y el modo de incorporación dependen de la matriz final "
+    "y del criterio técnico del formulador."
 )
 
 _RELLENO_P1 = (
-    "Su perfil lo hace compatible con procesos de mezcla, homogeneización e "
-    "incorporación en matrices sólidas, líquidas o semisólidas. "
-    "La calidad del insumo condiciona la reproducibilidad del proceso y las "
-    "características organolépticas o funcionales de la matriz elaborada."
+    "Se integra en mezclas sólidas, líquidas o semisólidas mediante "
+    "homogeneización, con comportamiento estable en proceso."
 )
 
 _RELLENO_P1_ALIMENTARIO = (
-    "Su perfil lo hace apto para procesos de mezcla, tamizado y homogeneización "
-    "en planta alimentaria. La calidad del insumo incide en la estabilidad de "
-    "la mezcla, la solubilidad en la matriz y las características organolépticas "
-    "del producto elaborado."
+    "Se integra en mezclas acuosas o en polvo mediante homogeneización, "
+    "con buen comportamiento en planta alimentaria."
 )
 
 _RELLENO_P2 = (
-    "En formulación cosmética y farmacéutica, puede integrarse como componente "
-    "activo o excipiente según el diseño de la fórmula y los requisitos "
-    "regulatorios del mercado objetivo."
+    "También puede usarse en matrices cosméticas o farmacéuticas según "
+    "el diseño de la fórmula."
 )
 
 _RELLENO_P2_ALIMENTARIO = (
-    "También puede usarse en bases para bebidas, mezclas en polvo y productos "
-    "intermedios, siempre bajo criterio técnico del formulador y la normativa "
-    "sanitaria del producto terminado."
+    "También puede incorporarse en bases para bebidas y mezclas en polvo."
 )
 
 
@@ -1165,36 +1230,52 @@ def _segmento_insumo(
 def _instrucciones_segmento(segmento: str) -> str:
     if segmento == "alimentario":
         return (
-            "SEGMENTO ALIMENTARIO (obligatorio):\n"
-            "- Es un INSUMO ALIMENTARIO para formulación en planta; redacta para "
-            "fabricantes de alimentos y bebidas.\n"
-            "- Prioriza aplicaciones en industria alimentaria: premezclas, bases en "
-            "polvo, mezclas intermedias, bebidas y productos elaborados por terceros.\n"
-            "- NO menciones cosmética ni farmacéutica salvo que la ficha lo exija.\n"
-            "- NO repitas la frase exacta del subtítulo («materia prima alimentaria»); "
-            "usa «insumo alimentario», «ingrediente alimentario» o «formulación alimentaria».\n"
-            "- Tono: ingrediente de formulación alimentaria industrial, no producto "
-            "terminado ni orientación al consumidor."
+            "SEGMENTO ALIMENTARIO:\n"
+            "- Redacta para fabricantes de alimentos y bebidas.\n"
+            "- Párrafo 2: aplicaciones en industria alimentaria (premezclas, bases en polvo, "
+            "bebidas, productos intermedios).\n"
+            "- No menciones cosmética ni farmacéutica salvo en la ficha."
         )
     if segmento == "cosmetico":
         return (
-            "SEGMENTO COSMÉTICO: redacta para formulación cosmética industrial; "
-            "no menciones alimentaria ni farmacéutica salvo en la ficha."
+            "SEGMENTO COSMÉTICO:\n"
+            "- Redacta para formulación cosmética (emulsiones, geles, bases).\n"
+            "- No menciones alimentaria ni farmacéutica salvo en la ficha."
         )
     if segmento == "farmaceutico":
         return (
-            "SEGMENTO FARMACÉUTICO: redacta para formulación farmacéutica industrial; "
-            "no menciones alimentaria ni cosmética salvo en la ficha."
+            "SEGMENTO FARMACÉUTICO:\n"
+            "- Redacta para formulación farmacéutica (excipientes, vehículos).\n"
+            "- No menciones alimentaria ni cosmética salvo en la ficha."
         )
     if segmento == "agricola":
         return (
-            "SEGMENTO AGRÍCOLA: redacta para formulación agrícola industrial "
-            "(fertilizantes, fitosanitarios, sustratos, nutrición vegetal); "
-            "no menciones cosmética, alimentaria ni farmacéutica salvo en la ficha."
+            "SEGMENTO AGRÍCOLA:\n"
+            "- Redacta para formulación agrícola (fertilizantes, fitosanitarios, sustratos).\n"
+            "- No menciones cosmética, alimentaria ni farmacéutica salvo en la ficha."
         )
     return (
-        "Redacta según el segmento principal que indiquen las fichas técnicas "
+        "Redacta según el segmento principal de las fichas "
         "(alimentaria, cosmética, farmacéutica o agrícola)."
+    )
+
+
+def _instruccion_nombre_prompt(
+    nombre_canonico: str,
+    contexto_capas: dict | None,
+    titulo_ficha: str,
+) -> str:
+    titulo_en_capa = _titulo_ya_en_capa(titulo_ficha, nombre_canonico, contexto_capas)
+    if titulo_en_capa:
+        return (
+            "El nombre ya está impreso en la capa Título: NO lo menciones. "
+            "Abre el párrafo 1 obligatoriamente con «Este ingrediente se presenta» "
+            "(como / en / en forma de…)."
+        )
+    return (
+        f"Abre el párrafo 1 con «Este ingrediente se presenta» (como / en / en forma de…). "
+        f"Puedes mencionar «{nombre_canonico}» una sola vez más adelante en el párrafo, "
+        f"pero no al inicio."
     )
 
 
@@ -1227,28 +1308,17 @@ def _apertura_p1(
     titulo_en_capa: bool,
     nombre: str,
 ) -> str:
-    if segmento == "alimentario":
-        if titulo_en_capa:
-            return "Ingrediente alimentario de grado técnico para formulación en planta."
-        return (
-            f"El {nombre} es un ingrediente alimentario de grado técnico "
-            f"para formulación en planta."
-        )
-    if segmento == "cosmetico":
-        if titulo_en_capa:
-            return "Insumo cosmético de uso industrial para formulación en planta."
-        return f"El {nombre} es un insumo cosmético de uso industrial para formulación."
-    if segmento == "farmaceutico":
-        if titulo_en_capa:
-            return "Insumo de uso farmacéutico-industrial para formulación en planta."
-        return f"El {nombre} es un insumo de uso farmacéutico-industrial para formulación."
-    if segmento == "agricola":
-        if titulo_en_capa:
-            return "Insumo de uso agrícola-industrial para formulación en planta."
-        return f"El {nombre} es un insumo de uso agrícola-industrial para formulación."
     if titulo_en_capa:
-        return "Insumo de uso industrial y de formulación."
-    return f"El {nombre} es un insumo de uso industrial y de formulación."
+        return ""
+    if segmento == "alimentario":
+        return f"El {nombre} es un ingrediente alimentario de uso técnico."
+    if segmento == "cosmetico":
+        return f"El {nombre} es un ingrediente cosmético de uso técnico."
+    if segmento == "farmaceutico":
+        return f"El {nombre} es un ingrediente de uso farmacéutico-técnico."
+    if segmento == "agricola":
+        return f"El {nombre} es un ingrediente de uso agrícola-técnico."
+    return f"El {nombre} es un compuesto de uso técnico."
 
 
 def _relleno_p1(segmento: str) -> str:
@@ -1262,27 +1332,23 @@ def _relleno_p2(segmento: str) -> str:
 def _uso_generico_p2(segmento: str) -> str:
     if segmento == "alimentario":
         return (
-            "Se incorpora en la elaboración de alimentos y bebidas según la "
-            "aplicación prevista y la normativa sanitaria aplicable."
+            "Se emplea en la elaboración de alimentos y bebidas según el diseño "
+            "de la fórmula alimentaria."
         )
     if segmento == "cosmetico":
         return (
-            "Se incorpora en formulaciones cosméticas según la aplicación prevista "
-            "y la normativa vigente."
+            "Se emplea en formulaciones cosméticas según el diseño de la fórmula."
         )
     if segmento == "farmaceutico":
         return (
-            "Se incorpora en formulaciones farmacéuticas según la aplicación "
-            "prevista y la normativa vigente."
+            "Se emplea en formulaciones farmacéuticas según el diseño de la fórmula."
         )
     if segmento == "agricola":
         return (
-            "Se incorpora en formulaciones agrícolas según la aplicación "
-            "prevista y la normativa vigente."
+            "Se emplea en formulaciones agrícolas según el diseño de la fórmula."
         )
     return (
-        "Se incorpora en procesos industriales según la aplicación "
-        "prevista y la normativa aplicable."
+        "Se emplea en distintas aplicaciones según el diseño de la fórmula."
     )
 
 
@@ -1368,69 +1434,87 @@ def _ampliar_parrafo_si_corto(parrafo: str, relleno: str) -> str:
     return f"{p.rstrip('.')}. {relleno}".strip()
 
 
+def _unir_partes_parrafo(partes: list[str]) -> str:
+    out: list[str] = []
+    for p in partes:
+        t = (p or "").strip()
+        if not t:
+            continue
+        if not t.endswith((".", "!", "?")):
+            t += "."
+        out.append(t)
+    return " ".join(out)
+
+
 def _plantilla_respaldo_catalogo(
     contexto_capas: dict | None = None,
     segmento: str | None = None,
 ) -> str:
     seg = segmento or _segmento_insumo(contexto_capas)
-    titulo_en_capa = bool((contexto_capas or {}).get("titulo"))
-    p1_ini = _apertura_p1(seg, titulo_en_capa, "insumo").rstrip(".")
+    apertura = ""
     if seg == "alimentario":
-        p1 = (
-            f"{p1_ini}. Se presenta con apariencia y color característicos del "
-            "ingrediente, en forma acorde a su perfil físico-químico. Es soluble o "
-            "dispersable en medios acuosos y en mezclas húmedas o secas de la "
-            "industria de alimentos. Como materia prima aporta estabilidad de "
-            "proceso, solubilidad en la matriz y comportamiento organoléptico "
-            "predecible según la fórmula, el equipamiento de planta y las "
-            "condiciones de elaboración definidas por el fabricante."
+        cuerpo_p1 = (
+            "Este ingrediente se presenta como polvo de apariencia y color "
+            "característicos, soluble y dispersable en medios acuosos y en mezclas "
+            "húmedas o secas; se integra con estabilidad en procesos de mezcla, "
+            "tamizado y homogeneización en planta alimentaria, y su perfil "
+            "físico-químico condiciona la solubilidad en la matriz y las "
+            "características organolépticas del producto elaborado."
         )
         p2 = (
-            "En la industria de alimentos y bebidas se emplea en premezclas, bases "
-            "en polvo y mezclas intermedias para productos elaborados por terceros. "
-            "Su inclusión obedece al diseño de la formulación alimentaria y a la "
-            f"normativa sanitaria aplicable al producto.{_P2_CIERRE}"
+            "En industria alimentaria se utiliza como ingrediente alimentario en "
+            "premezclas, bases en polvo, bebidas, panificación y repostería, además "
+            "de procesos de secado y liofilización; la concentración y el punto de "
+            "incorporación quedan a criterio del equipamiento de planta, el diseño "
+            "de la fórmula y la normativa sanitaria vigente del producto terminado "
+            "elaborado por terceros."
         )
     elif seg == "cosmetico":
-        p1 = (
-            f"{p1_ini}. Se presenta con apariencia y estado físico propios de "
-            "insumos cosméticos industriales. Es soluble o dispersable en los "
-            "medios de formulación habituales (fase acuosa u oleosa según perfil). "
-            "Como materia prima aporta propiedades funcionales que condicionan "
-            "textura, estabilidad y compatibilidad en emulsiones, geles y bases."
+        cuerpo_p1 = (
+            "Este ingrediente se presenta con apariencia y estado físico propios del "
+            "segmento cosmético, soluble o dispersable en fase acuosa u oleosa según "
+            "su perfil, con buena compatibilidad en emulsiones, geles y bases donde "
+            "aporta textura, estabilidad y comportamiento predecible en mezcla y "
+            "homogeneización."
         )
         p2 = (
-            "En la industria cosmética se emplea como componente de formulación "
-            "según la aplicación prevista y la normativa vigente."
-            f"{_P2_CIERRE}"
+            "En industria cosmética se incorpora en emulsiones, geles, lociones y "
+            "bases según el diseño de la fórmula; el porcentaje de uso y la fase de "
+            "incorporación dependen de la matriz final y del criterio técnico del "
+            "formulador."
         )
     elif seg == "farmaceutico":
-        p1 = (
-            f"{p1_ini}. Se presenta con apariencia y pureza acordes a su uso en "
-            "formulación farmacéutica industrial. Es soluble o dispersable en "
-            "vehículos de formulación según su perfil químico. Como materia prima "
-            "aporta comportamiento reológico y compatibilidad en la mezcla final."
+        cuerpo_p1 = (
+            "Este ingrediente se presenta con apariencia y pureza acordes a uso "
+            "farmacéutico-técnico, soluble o dispersable en vehículos de mezcla según "
+            "su perfil químico, con comportamiento reológico estable y buena "
+            "compatibilidad en la matriz final."
         )
         p2 = (
-            "En la industria farmacéutica se emplea como excipiente o activo "
-            "según la aplicación prevista y la normativa aplicable."
-            f"{_P2_CIERRE}"
+            "En industria farmacéutica se emplea como excipiente o activo en "
+            "preparaciones sólidas, líquidas o semisólidas; el modo de incorporación "
+            "depende del diseño de la fórmula y de los requisitos regulatorios del "
+            "producto terminado."
         )
     else:
-        p1 = (
-            f"{p1_ini}. Se presenta con apariencia y estado físico definidos para "
-            "uso industrial (polvo, granular o líquido según presentación). Es "
-            "soluble o dispersable en los medios habituales de formulación, con "
-            "buena compatibilidad en procesos de mezcla en planta. Como materia "
-            "prima aporta propiedades funcionales que condicionan textura, "
-            "estabilidad de proceso y comportamiento reológico de la matriz final."
+        cuerpo_p1 = (
+            "Este ingrediente se presenta en polvo, gránulo o líquido según la "
+            "presentación comercial, con buena solubilidad o dispersión en los medios "
+            "habituales de mezcla en planta y compatibilidad en procesos de "
+            "elaboración, condicionando textura, estabilidad y comportamiento de la "
+            "matriz final."
         )
         p2 = (
-            "En aplicaciones industriales se incorpora como componente de "
-            "formulación según la aplicación prevista y la normativa "
-            f"aplicable.{_P2_CIERRE}"
+            "Se incorpora como componente de la matriz según el diseño de la "
+            "fórmula; el porcentaje y el modo de incorporación dependen del producto "
+            "terminado y del criterio técnico del formulador."
         )
-    return f"{_ajustar_parrafo_longitud(p1)}\n\n{_ajustar_parrafo_longitud(p2)}"
+    p1 = _ampliar_parrafo_si_corto(
+        _ajustar_parrafo_longitud(_unir_partes_parrafo([apertura, cuerpo_p1])),
+        _relleno_p1(seg),
+    )
+    p2 = _ampliar_parrafo_si_corto(_ajustar_parrafo_longitud(p2), _relleno_p2(seg))
+    return f"{p1}\n\n{p2}"
 
 
 def _contiene_basura_ficha(texto: str) -> bool:
@@ -1456,7 +1540,7 @@ def _contexto_ficha_para_ia(ficha: dict) -> str:
     if sol:
         lineas.append(f"Solubilidad: {sol}")
     if parsed.get("fisica") and not ap and not sol:
-        lineas.append(f"Descripción física: {parsed['fisica']}")
+        lineas.append(f"Perfil físico: {parsed['fisica']}")
     if parsed.get("organoleptica"):
         lineas.append(f"Olor y sabor: {parsed['organoleptica']}")
     if parsed.get("alergenos"):
@@ -1613,8 +1697,8 @@ def _oracion_apariencia_fisica(ap: str, blob: str) -> str:
             ap,
             re.I,
         ):
-            return f"Se presenta en forma de {ap[0].lower()}{ap[1:].rstrip('.')}."
-        return f"En apariencia, {ap[0].lower()}{ap[1:].rstrip('.')}."
+            return f"Este ingrediente se presenta en forma de {ap[0].lower()}{ap[1:].rstrip('.')}."
+        return f"Este ingrediente se presenta con {ap[0].lower()}{ap[1:].rstrip('.')}."
     if re.search(r"\bpolvo\b", blob, re.I):
         color = ""
         m = re.search(
@@ -1624,11 +1708,11 @@ def _oracion_apariencia_fisica(ap: str, blob: str) -> str:
         )
         if m:
             color = f" de {m.group(0).replace('color ', '').strip().rstrip('.')}"
-        return f"Se presenta como polvo fino{color}."
+        return f"Este ingrediente se presenta como polvo fino{color}."
     if re.search(r"\bl[ií]quido\b", blob, re.I):
-        return "Se presenta en estado líquido de uso industrial."
+        return "Este ingrediente se presenta en estado líquido de uso técnico."
     if re.search(r"\bgranul", blob, re.I):
-        return "Se presenta en forma granular de uso industrial."
+        return "Este ingrediente se presenta en forma granular de uso técnico."
     return ""
 
 
@@ -1665,8 +1749,8 @@ def _oracion_propiedades_mp(blob: str, parsed: dict[str, str], nombre: str) -> s
     if funcional:
         return funcional
     return (
-        "Como materia prima aporta propiedades funcionales que condicionan "
-        "textura, estabilidad y comportamiento de la mezcla final."
+        "Aporta propiedades funcionales que condicionan textura, estabilidad "
+        "y comportamiento de la mezcla final."
     )
 
 
@@ -1740,6 +1824,10 @@ def _validar_texto_catalogo(
     if _repeticion_excesiva(t, anclas, contexto_capas):
         return None
     if _redaccion_deficiente(t):
+        return None
+    if re.search(r"\bdescripci[oó]n\b", t, re.I):
+        return None
+    if re.search(r"\binsumo\b", t, re.I):
         return None
     if not _cumple_segmento(t, contexto_capas):
         return None
@@ -1843,7 +1931,7 @@ def _fallback_catalogo(
     elif fisica and not ap:
         fp = _oraciones_seguras_ficha(fisica, max_oraciones=1, max_palabras=35)
         if fp:
-            p1_partes.append(f"Se presenta como {fp[0].lower()}{fp[1:].rstrip('.')}.")
+            p1_partes.append(f"Este ingrediente se presenta como {fp[0].lower()}{fp[1:].rstrip('.')}.")
         elif not _contiene_riesgo_meli(fisica) and not _contiene_basura_ficha(fisica):
             p1_partes.append(f"Se presenta como {fisica[0].lower()}{fisica[1:].rstrip('.')}.")
     or_sol = _oracion_solubilidad(sol, blob)
@@ -1865,7 +1953,7 @@ def _fallback_catalogo(
         )
     p1_partes.append(_oracion_propiedades_mp(blob, parsed, nombre))
     p1 = _ampliar_parrafo_si_corto(
-        _ajustar_parrafo_longitud(" ".join(p1_partes)),
+        _ajustar_parrafo_longitud(_unir_partes_parrafo(p1_partes)),
         _relleno_p1(segmento),
     )
 
@@ -1890,7 +1978,7 @@ def _fallback_catalogo(
             elif segmento == "farmaceutico":
                 pref = "En la industria farmacéutica"
             else:
-                pref = "En aplicaciones industriales"
+                pref = "En distintas aplicaciones"
             usos = [
                 f"{pref}, {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
             ]
@@ -1954,7 +2042,11 @@ def _generar_con_gemini(
     prompt = _PROMPT_CATALOGO.format(
         fragmento=fragmento,
         nombre_canonico=nombre_canonico,
-        n_opciones=n_opciones,
+        instruccion_nombre=_instruccion_nombre_prompt(
+            nombre_canonico,
+            contexto_capas,
+            titulo_ficha,
+        ),
         max_chars=max_chars,
         contexto_otras_capas=_formatear_contexto_otras_capas(contexto_capas),
         instrucciones_segmento=_instrucciones_segmento(segmento),
@@ -2089,7 +2181,7 @@ def sugerir_texto_magico(
     if not sugerencias and fichas:
         mensaje_extra = (
             "No se pudo generar texto válido con la ficha disponible. "
-            "Revisa las palabras clave o edita manualmente la descripción."
+            "Revisa las palabras clave o edita manualmente el texto de la capa."
         )
     return {
         "ok": True,

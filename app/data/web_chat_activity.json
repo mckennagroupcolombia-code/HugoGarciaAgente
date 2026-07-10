@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-08T16:44:56",
+  "updated_at": "2026-07-09T12:37:26",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -44,9 +44,108 @@
     "2026-07-04": 1,
     "2026-07-06": 8,
     "2026-07-07": 22,
-    "2026-07-08": 3
+    "2026-07-08": 3,
+    "2026-07-09": 8
   },
   "sessions": [
+    {
+      "session_id": "web-90b2798f-580d-4e0b-8ff3-11e72dc7e4db",
+      "started_at": "2026-07-09T12:33:55",
+      "last_at": "2026-07-09T12:37:26",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/150.0.7871.51 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Tienes mct",
+      "last_agent_reply": "Veci, el MCT no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas disponibles en nuestra tienda en mckennagroup.co/tienda. Si es para un pedido especial, puede confirmar con un asesor humano por WhatsApp.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-09T12:33:55",
+          "user_message": "Hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T12:34:19",
+          "user_message": "Tienes Lteanina",
+          "agent_reply": "Veci, la L-Teanina no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas disponibles en nuestra tienda en mckennagroup.co/tienda. Si es para un pedido especial, puede confirmar con un asesor humano por WhatsApp.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T12:34:42",
+          "user_message": "Gracias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T12:37:26",
+          "user_message": "Tienes mct",
+          "agent_reply": "Veci, el MCT no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas disponibles en nuestra tienda en mckennagroup.co/tienda. Si es para un pedido especial, puede confirmar con un asesor humano por WhatsApp.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-0be1e7e2-bacc-4c36-b113-242b0d0c0396",
+      "started_at": "2026-07-09T11:19:00",
+      "last_at": "2026-07-09T11:25:33",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Ya ha usado los otros y mi piel ha respondido bien, solo el ácido glicolico me irritó",
+      "last_agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *Ya ha usado los otros y mi piel ha respondido bien*: no aparece en catálogo web. *solo el ácido glicolico me irritó*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-09T11:19:00",
+          "user_message": "Hola, compré con ustedes un ácido glicólico, pero al usarlo sentí que me quedaba un poco la piel. Podrían informarme las instrucciones de uso?",
+          "agent_reply": "¡De una, veci! Con gusto le colaboro con eso. Es clave tener en cuenta que lo que usted compró es la materia prima pura, por lo que no se debe aplicar directamente sobre la piel. Para un uso cosmético seguro en casa, como en tónicos o cremas, la concentración final debe estar entre el 5% y el 10%. Por ejemplo, para obtener una solución al 10%, debe mezclar una parte de nuestro ácido con cuatro partes de agua destilada o de la base cosmética que esté usando. Le recomiendo que antes de aplicarlo en una zona amplia, haga siempre una prueba de parche en un área pequeña para ver cómo reacciona su piel. Comience usándolo solo 2 o 3 veces por semana, preferiblemente en la noche. Y clave, veci: al día siguiente, ¡use siempre bloqueador solar! El ácido deja la piel más sensible al sol.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T11:20:47",
+          "user_message": "El ácido hialurónico, la vitamina c, la elastina y el retinol sí se pueden usar directamente en la piel?",
+          "agent_reply": "¡Claro, veci! Le aclaro esa duda de una, que es súper importante. Ojo a esto: **ninguno de esos productos se debe aplicar puro o directamente sobre la piel.** Lo que nosotros vendemos son las materias primas puras, en su máxima concentración. Si se las aplica así directamente, puede causar irritación, quemaduras o reacciones bien fuertes. Estos ingredientes son para que usted prepare sus propios productos cosméticos. Se deben diluir en una base (como una crema, un gel o agua destilada) en porcentajes muy pequeños. Por ejemplo, el Ácido Hialurónico o la Vitamina C se suelen usar entre el 1% y el 5% del total de la mezcla. El Retinol es aún más potente, se usa en concentraciones mucho más bajas. En resumen: siempre debe diluirlos antes de usarlos. ¡Póngale cuidado a eso, veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T11:22:05",
+          "user_message": "El ácido hialurónico, la vitamina c, la elastina y el retinol sí se pueden usar directamente en la piel?",
+          "agent_reply": "¡Claro, veci! Le aclaro esa duda de una, que es súper importante. Ojo a esto: **ninguno de esos productos se debe aplicar puro o directamente sobre la piel.** Lo que nosotros vendemos son las materias primas puras, en su máxima concentración. Si se las aplica así directamente, puede causar irritación, quemaduras o reacciones bien fuertes. Estos ingredientes son para que usted prepare sus propios productos cosméticos. Se deben diluir en una base (como una crema, un gel o agua destilada) en porcentajes muy pequeños. Por ejemplo, el Ácido Hialurónico o la Vitamina C se suelen usar entre el 1% y el 5% del total de la mezcla. El Retinol es aún más potente, se usa en concentraciones mucho más bajas. En resumen: siempre debe diluirlos antes de usarlos. ¡Póngale cuidado a eso, veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-09T11:25:33",
+          "user_message": "Ya ha usado los otros y mi piel ha respondido bien, solo el ácido glicolico me irritó",
+          "agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *Ya ha usado los otros y mi piel ha respondido bien*: no aparece en catálogo web. *solo el ácido glicolico me irritó*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-1ea3df6e-14e9-4c7c-bee2-cf06e8aa0cad",
       "started_at": "2026-07-08T16:44:56",

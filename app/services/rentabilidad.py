@@ -130,11 +130,16 @@ def cargar_config_producto(codigo: str) -> dict | None:
 
 # ─── Catálogo de costos (productos + facturas de compra Siigo) ────────────────
 
+def _cache_costos_valido(cache: dict) -> bool:
+    """Un caché vacío (fallo de Siigo) no debe bloquear reconstrucciones posteriores."""
+    return bool(cache.get("nombre_a_codigo")) and int(cache.get("productos_total") or 0) > 0
+
+
 def _cargar_cache_costos() -> dict | None:
     try:
         with open(_CACHE_PATH, encoding="utf-8") as f:
             cache = json.load(f)
-        if time.time() - float(cache.get("ts", 0)) < _CACHE_TTL:
+        if time.time() - float(cache.get("ts", 0)) < _CACHE_TTL and _cache_costos_valido(cache):
             return cache
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
         pass
@@ -159,14 +164,7 @@ def construir_catalogo_costos(forzar: bool = False) -> dict:
         if cache:
             return cache
 
-    from app.services.siigo import autenticar_siigo, PARTNER_ID
-    import requests
-
-    token = autenticar_siigo()
-    if not token:
-        return {}
-
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    from app.services.siigo import _siigo_get
 
     # ── Paso 1: catálogo completo de productos → nombre_norm → code ──────────
     nombre_a_codigo: dict[str, str] = {}
@@ -174,15 +172,11 @@ def construir_catalogo_costos(forzar: bool = False) -> dict:
     codigo_a_producto: dict[str, dict] = {}
 
     for page in range(1, 300):
-        try:
-            res = requests.get(
-                "https://api.siigo.com/v1/products",
-                params={"page": page, "page_size": 100, "active": "true"},
-                headers=headers, timeout=25,
-            )
-        except requests.RequestException:
-            break
-        if res.status_code != 200:
+        res = _siigo_get(
+            "https://api.siigo.com/v1/products",
+            params={"page": page, "page_size": 100, "active": "true"},
+        )
+        if res is None or res.status_code != 200:
             break
         data = res.json()
         results = data.get("results") or []
@@ -218,15 +212,11 @@ def construir_catalogo_costos(forzar: bool = False) -> dict:
     codigo_a_precio: dict[str, dict] = {}
 
     for page in range(1, 200):
-        try:
-            res = requests.get(
-                "https://api.siigo.com/v1/purchases",
-                params={"date_start": fecha_inicio, "page": page, "page_size": 100},
-                headers=headers, timeout=25,
-            )
-        except requests.RequestException:
-            break
-        if res.status_code != 200:
+        res = _siigo_get(
+            "https://api.siigo.com/v1/purchases",
+            params={"date_start": fecha_inicio, "page": page, "page_size": 100},
+        )
+        if res is None or res.status_code != 200:
             break
         data = res.json()
         results = data.get("results") or []
@@ -280,7 +270,8 @@ def construir_catalogo_costos(forzar: bool = False) -> dict:
         "productos_total": len(nombre_a_codigo),
         "con_precio_compra": len(por_codigo),
     }
-    _guardar_cache_costos(cache)
+    if _cache_costos_valido(cache):
+        _guardar_cache_costos(cache)
     return cache
 
 
@@ -321,12 +312,13 @@ def estado_catalogo() -> dict:
             cache = json.load(f)
         ts = float(cache.get("ts", 0))
         edad_h = (time.time() - ts) / 3600
+        valido = _cache_costos_valido(cache)
         return {
             "existe": True,
             "productos_total": cache.get("productos_total", 0),
             "con_precio_compra": cache.get("con_precio_compra", 0),
             "edad_horas": round(edad_h, 1),
-            "vigente": edad_h < 24,
+            "vigente": valido and edad_h < 24,
             "actualizado": datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M") if ts else None,
         }
     except (FileNotFoundError, json.JSONDecodeError):

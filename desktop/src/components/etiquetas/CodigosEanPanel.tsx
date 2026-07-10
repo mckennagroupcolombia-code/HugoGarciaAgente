@@ -79,6 +79,16 @@ export function CodigosEanPanel() {
     setAnio(2000 + c.anio);
   }
 
+  function duplicar(c: CodigoEan) {
+    setEditandoId(null);
+    setSku(c.sku);
+    setNombreProducto(c.nombre_producto || "");
+    setNumeroProducto("");
+    setPresentacion(c.presentacion);
+    setMes(c.bimestre * 2 + 1);
+    setAnio(2000 + c.anio);
+  }
+
   function guardar() {
     if (!puedeGuardar) return;
     const datos = {
@@ -268,6 +278,13 @@ export function CodigosEanPanel() {
                           size="sm"
                           disabled={guardando}
                           onClick={() => editar(c)}
+                        />
+                        <IconButton
+                          icon="plus"
+                          label={`Duplicar código de ${c.sku}`}
+                          size="sm"
+                          disabled={guardando}
+                          onClick={() => duplicar(c)}
                         />
                         <IconButton
                           icon="trash"

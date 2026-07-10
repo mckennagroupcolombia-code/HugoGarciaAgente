@@ -29,11 +29,12 @@
       "sku": "C-ALMNAT250g",
       "nombre_producto": "ALMENDRA NATURAL  250g",
       "numero_producto": 3,
-      "presentacion": "500",
+      "presentacion": "250",
       "anio": 26,
       "bimestre": 3,
-      "codigo": "7700035002637",
-      "creado_at": "2026-07-09T02:34:08"
+      "codigo": "7700032502635",
+      "creado_at": "2026-07-09T02:34:08",
+      "actualizado_at": "2026-07-09T03:30:00"
     },
     {
       "id": "3d77b0a9bc58",
@@ -71,13 +72,116 @@
     {
       "id": "05f53adaa120",
       "sku": "C-SEMGIR500g",
-      "nombre_producto": "C-SEMILLA GIRASOL 500g",
+      "nombre_producto": "SEMILLA GIRASOL 500g",
       "numero_producto": 7,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700075002635",
-      "creado_at": "2026-07-09T02:39:32"
+      "creado_at": "2026-07-09T02:39:32",
+      "actualizado_at": "2026-07-09T02:48:04"
+    },
+    {
+      "id": "d093bd665464",
+      "sku": "C-NUEBRA500g",
+      "nombre_producto": "NUEZ DEL BRASIL 500g",
+      "numero_producto": 9,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700095002639",
+      "creado_at": "2026-07-09T02:45:17",
+      "actualizado_at": "2026-07-09T02:47:54"
+    },
+    {
+      "id": "952449248827",
+      "sku": "C- PISTOS250g",
+      "nombre_producto": "PISTACHOS TOSTADOS  250g",
+      "numero_producto": 10,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700102502633",
+      "creado_at": "2026-07-09T02:46:02"
+    },
+    {
+      "id": "57510c2bd331",
+      "sku": "C-PISTOS500g",
+      "nombre_producto": "PISTACHOS TOSTADOS  500g",
+      "numero_producto": 11,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700115002632",
+      "creado_at": "2026-07-09T02:47:14",
+      "actualizado_at": "2026-07-09T17:27:19"
+    },
+    {
+      "id": "1daa9d27511f",
+      "sku": "C-SEMCAL250g",
+      "nombre_producto": "SEMILLA DE CALABAZA 250g",
+      "numero_producto": 12,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700122502637",
+      "creado_at": "2026-07-09T02:46:41"
+    },
+    {
+      "id": "bdd2237f7b05",
+      "sku": "C-SEMCAL500g",
+      "nombre_producto": "SEMILLA DE CALABAZA 500g",
+      "numero_producto": 13,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700135002636",
+      "creado_at": "2026-07-09T02:49:40"
+    },
+    {
+      "id": "fd53c815701a",
+      "sku": "C-MANNATTOS250g",
+      "nombre_producto": "MANI NATURAL TOSTADO 250g",
+      "numero_producto": 14,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700142502631",
+      "creado_at": "2026-07-09T02:50:22"
+    },
+    {
+      "id": "19957af1f0ce",
+      "sku": "C-NUEBRA250g",
+      "nombre_producto": "NUEZ DEL BRASIL 250g",
+      "numero_producto": 15,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700152502638",
+      "creado_at": "2026-07-09T02:50:58"
+    },
+    {
+      "id": "06e9c7dd9c0b",
+      "sku": "C-ARADES250g",
+      "nombre_producto": "ARANDANOS DESHIDRATADOS 250g",
+      "numero_producto": 16,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700162502635",
+      "creado_at": "2026-07-09T16:34:54",
+      "actualizado_at": "2026-07-09T16:35:43"
+    },
+    {
+      "id": "d865a5459f45",
+      "sku": "C-ARADES500g",
+      "nombre_producto": "ARANDANOS DESHIDRATADOS 500g",
+      "numero_producto": 17,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700175002634",
+      "creado_at": "2026-07-09T16:35:27"
     }
   ]
 }

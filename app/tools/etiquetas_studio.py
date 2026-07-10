@@ -38,19 +38,19 @@ def obtener_studio_sku(sku: str) -> dict | None:
         return None
     versiones = entry.get("_versiones")
     if isinstance(versiones, dict):
-        alt = versiones.get("alternativa")
-        if isinstance(alt, dict):
-            return alt
         org = versiones.get("original")
-        return org if isinstance(org, dict) else None
+        if isinstance(org, dict):
+            return org
+        alt = versiones.get("alternativa")
+        return alt if isinstance(alt, dict) else None
     return entry
 
 
-def obtener_studio_sku_version(sku: str, version: str = "alternativa") -> dict | None:
+def obtener_studio_sku_version(sku: str, version: str = "original") -> dict | None:
     sku = (sku or "").strip()
     if not sku:
         return None
-    version = (version or "alternativa").strip().lower()
+    version = (version or "original").strip().lower()
     entry = _load_studio_all().get(sku)
     if not isinstance(entry, dict):
         return None
@@ -58,7 +58,7 @@ def obtener_studio_sku_version(sku: str, version: str = "alternativa") -> dict |
     if isinstance(versiones, dict):
         data = versiones.get(version)
         return data if isinstance(data, dict) else None
-    return entry if version == "alternativa" else None
+    return entry if version == "original" else None
 
 
 def listar_versiones_studio_sku(sku: str) -> list[str]:
@@ -71,14 +71,14 @@ def listar_versiones_studio_sku(sku: str) -> list[str]:
     versiones = entry.get("_versiones")
     if isinstance(versiones, dict):
         return [k for k, v in versiones.items() if isinstance(v, dict)]
-    return ["alternativa"]
+    return ["original"]
 
 
-def guardar_studio_sku(sku: str, datos: dict, version: str = "alternativa") -> dict:
+def guardar_studio_sku(sku: str, datos: dict, version: str = "original") -> dict:
     sku = (sku or "").strip()
     if not sku:
         raise ValueError("SKU obligatorio")
-    version = (version or "alternativa").strip().lower()
+    version = (version or "original").strip().lower()
     if version not in {"original", "alternativa"}:
         raise ValueError("version inválida (usa 'original' o 'alternativa')")
     all_data = _load_studio_all()

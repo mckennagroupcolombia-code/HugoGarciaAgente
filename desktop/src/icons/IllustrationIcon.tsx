@@ -71,7 +71,14 @@ export function IllustrationIcon({
 
   return (
     <span
-      className={["mck-illus-icon", TONE_CLASS[tone], className].filter(Boolean).join(" ")}
+      className={[
+        "mck-illus-icon",
+        TONE_CLASS[tone],
+        bubble ? "mck-illus-icon--hoverable" : "",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{ width: size, height: size }}
       aria-hidden
     >

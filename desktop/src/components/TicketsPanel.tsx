@@ -27,6 +27,7 @@ import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs } from "./Cronometro";
+import UserAvatar from "./UserAvatar";
 import {
   InventarioCarritoBadge,
   InventarioCarritoModal,
@@ -136,35 +137,6 @@ function ImageLightbox({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-function UserAvatar({
-  user,
-  token,
-  size = "md",
-}: {
-  user: TicketsUser;
-  token: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const dims = size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-20 w-20 text-2xl" : "h-14 w-14 text-xl";
-  if (user.foto) {
-    return (
-      <img
-        src={ticketsUploadUrl(user.foto, token)}
-        alt={user.nombre}
-        className={`${dims} rounded-full border-2 border-white object-cover shadow`}
-      />
-    );
-  }
-  return (
-    <div
-      className={`flex ${dims} items-center justify-center rounded-full border-2 border-white font-black text-white shadow`}
-      style={{ background: user.departamento?.color || "#0c6069" }}
-    >
-      {user.nombre.charAt(0).toUpperCase()}
-    </div>
-  );
-}
-
 // ── InfoTooltip: botón ⓘ discreto con ayuda contextual ───────────────────────
 function InfoTooltip({ text, className = "" }: { text: string; className?: string }) {
   const [open, setOpen] = useState(false);
@@ -202,10 +174,10 @@ interface Ticket {
   prioridad: "baja" | "media" | "alta" | "urgente";
   creado_por: number;
   creado_por_nombre?: string;
-  creado_por_info?: { id: number; nombre: string } | null;
+  creado_por_info?: { id: number; nombre: string; foto?: string | null } | null;
   asignado_a: number | null;
   asignado_a_nombre?: string | null;
-  asignado_a_info?: { id: number; nombre: string } | null;
+  asignado_a_info?: { id: number; nombre: string; foto?: string | null } | null;
   soporte_archivo: string | null;
   creado_en: string;
   actualizado_en: string;
@@ -819,7 +791,7 @@ interface Mision {
   etapas_completadas: number;
   creado_por: number;
   creado_por_nombre?: string;
-  creado_por_info?: { id: number; nombre: string } | null;
+  creado_por_info?: { id: number; nombre: string; foto?: string | null } | null;
   creado_en: string;
   completada_en: string | null;
   frecuencia?: Frecuencia | null;
@@ -913,6 +885,7 @@ interface UserInfo {
   email?: string | null;
   telefono?: string | null;
   activo: number;
+  foto?: string | null;
   rol: { id: number; nombre: string; nivel: number } | null;
   departamento: { id: number; nombre: string; color: string } | null;
   departamentos: { id: number; nombre: string; color: string }[];
@@ -5594,10 +5567,24 @@ function TicketDetailView({
           </a>
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted border-t border-border pt-3">
-          <span>Creado por: <strong className="text-ink">{ticket.creado_por_info?.nombre || "—"}</strong></span>
+          <span className="inline-flex items-center gap-1.5">
+            Creado por:
+            {ticket.creado_por_info ? (
+              <>
+                <UserAvatar user={ticket.creado_por_info} token={token} size="sm" expandable className="!h-6 !w-6 !text-[10px]" />
+                <strong className="text-ink">{ticket.creado_por_info.nombre}</strong>
+              </>
+            ) : (
+              <strong className="text-ink">—</strong>
+            )}
+          </span>
           <span>{fmtDate(ticket.creado_en)}</span>
           {ticket.asignado_a_info && (
-            <span>Asignado a: <strong className="text-ink">{ticket.asignado_a_info.nombre}</strong></span>
+            <span className="inline-flex items-center gap-1.5">
+              Asignado a:
+              <UserAvatar user={ticket.asignado_a_info} token={token} size="sm" expandable className="!h-6 !w-6 !text-[10px]" />
+              <strong className="text-ink">{ticket.asignado_a_info.nombre}</strong>
+            </span>
           )}
         </div>
       </div>
@@ -6050,19 +6037,22 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
           </div>
           {usuarios.map((u) => (
             <div key={u.id} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-ink">{u.nombre}</span>
-                  <span className="font-mono text-xs text-muted">@{u.username}</span>
-                  {!u.activo && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Inactivo</span>}
-                </div>
-                <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
-                  <span>{u.rol?.nombre}</span>·<span style={{ color: u.departamento?.color }}>{u.departamento?.nombre}</span>
-                  {u.telefono ? (
-                    <span className="font-mono text-accent">📱 {u.telefono}</span>
-                  ) : (
-                    <span className="text-accent">Sin teléfono WA</span>
-                  )}
+              <div className="flex min-w-0 items-center gap-3">
+                <UserAvatar user={u} token={token} size="sm" expandable />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-ink">{u.nombre}</span>
+                    <span className="font-mono text-xs text-muted">@{u.username}</span>
+                    {!u.activo && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Inactivo</span>}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
+                    <span>{u.rol?.nombre}</span>·<span style={{ color: u.departamento?.color }}>{u.departamento?.nombre}</span>
+                    {u.telefono ? (
+                      <span className="font-mono text-accent">📱 {u.telefono}</span>
+                    ) : (
+                      <span className="text-accent">Sin teléfono WA</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button onClick={() => openModal("user", u)}
@@ -11688,8 +11678,9 @@ function WorkloadView({
             <div key={u.id} className="rounded-paper border-2 border-border bg-surface-panel shadow-paper-sm">
               <div className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <UserAvatar user={u} token={token} size="md" expandable className="!h-12 !w-12 !text-lg" />
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-ink">{u.nombre}</span>
                       {u.rol && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold text-muted">{u.rol.nombre}</span>}
                       {u.departamento && (
@@ -27637,6 +27628,12 @@ export default function TicketsPanel() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const setPanel = useAppStore((s) => s.setPanel);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
+  const hasHydrated = useAppStore((s) => s._hasHydrated);
+  const savedCentroView = useAppStore((s) => s.centroMandoView);
+  const savedTicketId = useAppStore((s) => s.ticketsSelectedId);
+  const savedMisionId = useAppStore((s) => s.ticketsSelectedMisionId);
+  const setTicketsSelectedId = useAppStore((s) => s.setTicketsSelectedId);
+  const setTicketsSelectedMisionId = useAppStore((s) => s.setTicketsSelectedMisionId);
   const ticketsBootView = useAppStore((s) => s.ticketsBootView);
   const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
   const solicitudBoot = useAppStore((s) => s.solicitudBoot);
@@ -27645,6 +27642,7 @@ export default function TicketsPanel() {
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const questDark = useQuestTheme((s) => s.dark);
   const [view, setView] = useState<View>("home");
+  const [navRestored, setNavRestored] = useState(false);
   const [hugoChatExpanded, setHugoChatExpanded] = useState(false);
   const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
@@ -27686,6 +27684,30 @@ export default function TicketsPanel() {
   useEffect(() => {
     setCentroMandoView(view);
   }, [view, setCentroMandoView]);
+
+  useEffect(() => {
+    setTicketsSelectedId(selectedId);
+  }, [selectedId, setTicketsSelectedId]);
+
+  useEffect(() => {
+    setTicketsSelectedMisionId(selectedMisionId);
+  }, [selectedMisionId, setTicketsSelectedMisionId]);
+
+  // Restaurar sub-vista tras refrescar (localStorage + hash)
+  useEffect(() => {
+    if (!hasHydrated || navRestored || ticketsBootView) return;
+    if (savedCentroView) setView(savedCentroView as View);
+    if (savedTicketId != null) setSelectedId(savedTicketId);
+    if (savedMisionId != null) setSelectedMisionId(savedMisionId);
+    setNavRestored(true);
+  }, [
+    hasHydrated,
+    navRestored,
+    ticketsBootView,
+    savedCentroView,
+    savedTicketId,
+    savedMisionId,
+  ]);
 
   useEffect(() => {
     if (!token || !user) return;

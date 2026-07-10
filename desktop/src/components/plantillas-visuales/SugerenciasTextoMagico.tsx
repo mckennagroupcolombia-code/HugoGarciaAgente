@@ -155,10 +155,9 @@ export default function SugerenciasTextoMagico({
           </div>
 
           <p className="mb-1.5 text-[10px] leading-snug text-muted">
-            2 párrafos técnicos (máximo 90 palabras c/u), tono de formulación DIY. Según el
-            subtítulo, la redacción se centra en el segmento correspondiente (cosmético,
-            alimentario, agrícola o industrial), sin repetir título/subtítulo ni claims de
-            consumo, salud o dosis.
+            2 párrafos técnicos (60–85 palabras c/u) en prosa fluida, extraídos de la
+            ficha. Párrafo 1 abre con «Este ingrediente se presenta…»; párrafo 2: usos concretos.
+            Sin la palabra «descripción» ni «insumo»; tampoco repetir título/subtítulo ni claims de salud.
           </p>
 
           {fichas.length > 0 && (

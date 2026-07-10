@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useAppStore, type Panel } from "./stores/app";
+import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
 import MobileHub, { useMobileLayout } from "./components/MobileHub";
 import Layout from "./components/Layout";
@@ -38,6 +38,7 @@ import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigati
 import { onPanelResume } from "./lib/panelRefresh";
 import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
 import { LOGISTICA_PANELS, puedeVerModuloLogistica } from "./lib/logisticaAccess";
+import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
@@ -186,13 +187,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
   );
 }
 
-const NAV_ORDER: Panel[] = [
-  "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "facturas", "costos-productos", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config",
-  "placas-concreto",
-  ...LOGISTICA_PANELS,
-  "settings",
-];
+const NAV_ORDER: Panel[] = NAV_PANEL_ORDER;
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (panel === "perfil") return true;
@@ -245,6 +240,7 @@ export default function App() {
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
+  const hasHydrated = useAppStore((s) => s._hasHydrated);
   const lastAppliedPrefs = useRef<string | null>(null);
   const isMobile = useMobileLayout();
   const [forceDesktop, setForceDesktop] = useState(
@@ -302,14 +298,14 @@ export default function App() {
 
   const navHistoryReset = useRef(false);
   useEffect(() => {
-    if (!user || !token) {
-      navHistoryReset.current = false;
+    if (!user || !token || !hasHydrated) {
+      if (!user || !token) navHistoryReset.current = false;
       return;
     }
     if (navHistoryReset.current) return;
     navHistoryReset.current = true;
     resetAppNavHistory();
-  }, [user, token]);
+  }, [user, token, hasHydrated]);
 
   // Revalidar sesión al abrir y al volver a la app (evita user.id obsoleto en filtros del móvil)
   useEffect(() => {
@@ -323,26 +319,14 @@ export default function App() {
     if (panel === "tickets") setPanel("hugo");
   }, [panel, setPanel]);
 
-  // Si el panel persistido no es visible para este usuario, ir al primero disponible
+  // Si el panel guardado no es visible para este usuario, ir al primero disponible
   useEffect(() => {
-    if (!user) return;
+    if (!user || !hasHydrated) return;
     if (!puedeVerPanel(user, panel)) {
       const first = NAV_ORDER.find((p) => puedeVerPanel(user, p)) ?? "settings";
       setPanel(first);
     }
-  }, [user, panel, setPanel]);
-
-  // Cada sesión arranca en Hugo · Centro (hub integrado)
-  useEffect(() => {
-    if (!user || !puedeVerPanel(user, "hugo")) return;
-    try {
-      if (sessionStorage.getItem("mck-boot-hugo")) return;
-      setPanel("hugo");
-      sessionStorage.setItem("mck-boot-hugo", "1");
-    } catch {
-      setPanel("hugo");
-    }
-  }, [user, setPanel]);
+  }, [user, panel, setPanel, hasHydrated]);
 
   if (!user || !token) {
     return (
@@ -350,11 +334,23 @@ export default function App() {
         onLogin={(t, u, apiToken) => {
           setAuth(t, u, apiToken);
           if (apiToken) mckennaAndroidBridge()?.saveApiToken?.(apiToken);
-          if (puedeVerPanel(u, "hugo")) {
-            useAppStore.getState().setPanel("hugo");
-          }
+          void waitForAppHydration().then(() => {
+            const current = useAppStore.getState().panel;
+            if (!puedeVerPanel(u, current)) {
+              const first = NAV_ORDER.find((p) => puedeVerPanel(u, p)) ?? "settings";
+              useAppStore.getState().setPanel(first);
+            }
+          });
         }}
       />
+    );
+  }
+
+  if (!hasHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
     );
   }
 

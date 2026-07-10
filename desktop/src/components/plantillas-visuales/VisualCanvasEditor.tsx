@@ -632,7 +632,10 @@ export default function VisualCanvasEditor({
           width: Math.max(20, o.width + dx),
           height: Math.max(12, o.height + dy),
         });
-      } else if (drag!.mode === "rotate" && (o.type === "rect" || o.type === "image")) {
+      } else if (
+        drag!.mode === "rotate" &&
+        (o.type === "rect" || o.type === "image" || o.type === "text")
+      ) {
         const pt = punteroEnLienzo(ev);
         if (
           !pt ||
@@ -1179,6 +1182,7 @@ export default function VisualCanvasEditor({
                       lineHeight: el.lineHeight ?? 1.2,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
+                      overflow: "visible",
                       outline: mostrandoCaja && !editandoEste ? OUTLINE_CAJA_ARRASTRE : undefined,
                       boxShadow: esHover ? SOMBRA_HOVER : undefined,
                     };
@@ -1250,12 +1254,29 @@ export default function VisualCanvasEditor({
                           <>
                             {el.content}
                             {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
-                              <span
-                                className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
-                                  mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                                }`}
-                                onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
-                              />
+                              <>
+                                <span
+                                  aria-hidden
+                                  className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${
+                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
+                                  }`}
+                                  style={{ top: -22, height: 22 }}
+                                />
+                                <span
+                                  title="Rotar (mantén Shift para 15°)"
+                                  className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${
+                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
+                                  }`}
+                                  style={{ top: -30 }}
+                                  onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
+                                />
+                                <span
+                                  className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
+                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
+                                  }`}
+                                  onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
+                                />
+                              </>
                             )}
                           </>
                         )}
@@ -1972,6 +1993,19 @@ export default function VisualCanvasEditor({
                       patchElemento(seleccionado.id, { lineHeight: Number(e.target.value) })
                     }
                     className="w-full accent-accent"
+                  />
+                </label>
+                <label>
+                  <span className="text-xs text-muted">Rotación (°)</span>
+                  <input
+                    type="number"
+                    step={1}
+                    disabled={seleccionado.locked}
+                    value={Math.round(seleccionado.rotation || 0)}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, { rotation: Number(e.target.value) })
+                    }
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
                   />
                 </label>
               </>
