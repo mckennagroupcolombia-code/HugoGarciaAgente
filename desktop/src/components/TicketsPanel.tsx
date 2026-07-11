@@ -2640,9 +2640,12 @@ function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) =>
     const token = p.get("_token");
     const err = p.get("auth_error");
     if (token || err) {
-      // Clean URL without reloading
+      // Conservar history.state de la app (mck) al limpiar query de OAuth
+      const keep = window.history.state && typeof window.history.state === "object"
+        ? window.history.state
+        : { mck: true };
       const clean = window.location.pathname;
-      window.history.replaceState({}, "", clean);
+      window.history.replaceState(keep, "", clean);
     }
     if (err) {
       setAuthError(decodeURIComponent(err));
@@ -27641,14 +27644,16 @@ export default function TicketsPanel() {
   const accionesBootTab = useAppStore((s) => s.accionesBootTab);
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const questDark = useQuestTheme((s) => s.dark);
-  const [view, setView] = useState<View>("home");
+  // Inicializar desde el store para que el botón atrás del mouse no caiga en "home"
+  // al remontar Hugo (el bridge aún no existe en el popstate).
+  const [view, setView] = useState<View>(() => (useAppStore.getState().centroMandoView as View) || "home");
   const [navRestored, setNavRestored] = useState(false);
   const [hugoChatExpanded, setHugoChatExpanded] = useState(false);
   const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
   const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo">("activas");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedId);
+  const [selectedMisionId, setSelectedMisionId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedMisionId);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [bajoStockCount, setBajoStockCount] = useState(0);
   const [navScope, setNavScope] = useState<NavScope>({ kind: "all" });

@@ -118,12 +118,18 @@ const WINDOWS_10_PRO_LABEL = "Windows 10 Pro";
 const WINDOWS_10_PRO_HOST_DEFAULT = "192.168.5.116";
 const WINDOWS_10_PRO_SHARE = "CW-C4000u";
 const SESION_JENNIFFER_LABEL = "Jenniffer";
+const UBUNTU_LABEL = "Ubuntu (.deb)";
 /** Descarga el .ps1 desde el agente (URL pública: el PC Windows no ve la LAN 192.168.1.8). */
 const SCRIPT_WINDOWS_PS1_URL = "/api/etiquetas/impresora/script-windows";
 const SCRIPT_WINDOWS_PS1_PUBLIC =
   "https://bot.mckennagroup.co/api/etiquetas/impresora/script-windows";
 const SCRIPT_WINDOWS_PS1_ONELINER =
   `powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '${SCRIPT_WINDOWS_PS1_PUBLIC}' -OutFile '$env:TEMP\\configurar_compartir_windows.ps1'; & '$env:TEMP\\configurar_compartir_windows.ps1'"`;
+const DEB_UBUNTU_URL = "/api/etiquetas/impresora/paquete-ubuntu";
+const DEB_UBUNTU_PUBLIC =
+  "https://bot.mckennagroup.co/api/etiquetas/impresora/paquete-ubuntu";
+const DEB_UBUNTU_ONELINER =
+  `curl -fsSL -o /tmp/mckenna-epson-cwc4000u_amd64.deb '${DEB_UBUNTU_PUBLIC}' && sudo dpkg -i /tmp/mckenna-epson-cwc4000u_amd64.deb && sudo apt-get install -f -y`;
 
 
 interface ImpResp {
@@ -2413,7 +2419,7 @@ function NavegadorArchivos({
 
 // ── Wizard instalación ────────────────────────────────────────────────────────
 
-type InstaladorTab = "windows10pro" | "usb";
+type InstaladorTab = "ubuntu" | "windows10pro";
 
 function esSesionJennifer(nombre?: string | null, username?: string | null): boolean {
   const n = `${nombre || ""} ${username || ""}`.toLowerCase();
@@ -2448,7 +2454,7 @@ function InstaladorWizard({
   const ticketsUser = useTicketsAuth((s) => s.user);
   const sesionJennifer = esSesionJennifer(ticketsUser?.nombre, ticketsUser?.username);
   const [tab, setTab] = useState<InstaladorTab>(
-    tabInicial === "usb" ? "usb" : "windows10pro",
+    tabInicial === "ubuntu" ? "ubuntu" : "windows10pro",
   );
   const [instalLog, setInstalLog] = useState<string[]>([]);
   const [instalDone, setInstalDone] = useState(false);
@@ -2474,6 +2480,26 @@ function InstaladorWizard({
     if (r?.share) setShareWin(String(r.share) || WINDOWS_10_PRO_SHARE);
   }, [remotoGet, diagData]);
 
+  const instalarUbuntuMut = useMutation({
+    mutationFn: () =>
+      api.post<InstalResp & { mensaje?: string; uri_actual?: string }>(
+        "/api/etiquetas/impresora/instalar-ubuntu",
+        {},
+      ),
+    onSuccess: (data) => {
+      setInstalLog(data.log ?? []);
+      setInstalDone(true);
+      setRemotoMsg(data.mensaje ?? "Ubuntu (.deb) instalado");
+      void refetchDiag();
+      void refetchRemoto();
+    },
+    onError: (err) => {
+      setInstalLog([`Error: ${err.message}`]);
+      setInstalDone(true);
+      setRemotoMsg(err.message);
+    },
+  });
+
   const instalarMut = useMutation({
     mutationFn: () => api.post<InstalResp>("/api/etiquetas/instalar", {}),
     onSuccess: (data) => { setInstalLog(data.log ?? []); setInstalDone(true); refetchDiag(); },
@@ -2494,7 +2520,6 @@ function InstaladorWizard({
       setInstalDone(true);
       setRemotoMsg(data.mensaje ?? "Impresora desinstalada");
       setPasosWin(data.pasos_windows ?? []);
-      setTab("windows10pro");
       void refetchDiag();
       void refetchRemoto();
     },
@@ -2537,10 +2562,14 @@ function InstaladorWizard({
 
   const todoOk = diagData?.todo_ok ?? false;
   const modoRedOk = Boolean(diagData?.modo_red || remotoGet?.modo_red);
-  const busy = instalarMut.isPending || remotoMut.isPending || desinstalarMut.isPending;
+  const busy =
+    instalarMut.isPending
+    || instalarUbuntuMut.isPending
+    || remotoMut.isPending
+    || desinstalarMut.isPending;
   const tituloSesion = sesionJennifer
-    ? `Sesión ${SESION_JENNIFFER_LABEL} · ${WINDOWS_10_PRO_LABEL}`
-    : `Epson CW-C4000u · ${WINDOWS_10_PRO_LABEL}`;
+    ? `Sesión ${SESION_JENNIFFER_LABEL} · elige Ubuntu o Windows 10`
+    : `Epson CW-C4000u · Ubuntu (.deb) o ${WINDOWS_10_PRO_LABEL}`;
 
   return (
     <Modal
@@ -2563,7 +2592,7 @@ function InstaladorWizard({
             loading={desinstalarMut.isPending}
             disabled={busy}
             onClick={() => {
-              if (!window.confirm(`¿Desinstalar CW-C4000u y reiniciar instalación para ${WINDOWS_10_PRO_LABEL}?`)) return;
+              if (!window.confirm("¿Desinstalar cola CW-C4000u del servidor y reiniciar instalación?")) return;
               setInstalLog([]);
               setInstalDone(false);
               setRemotoMsg(null);
@@ -2573,15 +2602,20 @@ function InstaladorWizard({
           >
             Desinstalar
           </Button>
-          {tab === "usb" && (
+          {tab === "ubuntu" && (
             <Button
               variant="primary"
               className="flex-1"
-              loading={instalarMut.isPending}
+              loading={instalarUbuntuMut.isPending || instalarMut.isPending}
               disabled={diagLoading || busy}
-              onClick={() => { setInstalLog([]); setInstalDone(false); instalarMut.mutate(); }}
+              onClick={() => {
+                setInstalLog([]);
+                setInstalDone(false);
+                setRemotoMsg(null);
+                instalarUbuntuMut.mutate();
+              }}
             >
-              {instalarMut.isPending ? "Instalando..." : "Instalar USB (Linux)"}
+              {instalarUbuntuMut.isPending ? "Instalando .deb..." : `Instalar ${UBUNTU_LABEL}`}
             </Button>
           )}
           {tab === "windows10pro" && (
@@ -2598,7 +2632,7 @@ function InstaladorWizard({
                 remotoMut.mutate();
               }}
             >
-              {remotoMut.isPending ? "Instalando..." : `Instalar para ${WINDOWS_10_PRO_LABEL}`}
+              {remotoMut.isPending ? "Instalando..." : `Instalar ${WINDOWS_10_PRO_LABEL}`}
             </Button>
           )}
         </div>
@@ -2610,6 +2644,25 @@ function InstaladorWizard({
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
+              onClick={() => setTab("ubuntu")}
+              className={`rounded-lg border-2 px-3 py-3 text-left transition ${
+                tab === "ubuntu"
+                  ? "border-accent bg-accent/5 shadow-sm"
+                  : "border-border bg-surface hover:border-accent/40"
+              }`}
+            >
+              <p className="text-sm font-bold text-ink">{UBUNTU_LABEL}</p>
+              <p className="mt-0.5 text-[10px] text-muted">
+                Paquete .deb · USB en este servidor Linux
+              </p>
+              {tab === "ubuntu" && (
+                <span className="mt-2 inline-block rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                  Seleccionado
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => setTab("windows10pro")}
               className={`rounded-lg border-2 px-3 py-3 text-left transition ${
                 tab === "windows10pro"
@@ -2619,28 +2672,9 @@ function InstaladorWizard({
             >
               <p className="text-sm font-bold text-ink">{WINDOWS_10_PRO_LABEL}</p>
               <p className="mt-0.5 text-[10px] text-muted">
-                PC {SESION_JENNIFFER_LABEL} · driver Epson oficial 64-bit · SMB
+                PC {SESION_JENNIFFER_LABEL} · driver Epson · SMB
               </p>
               {tab === "windows10pro" && (
-                <span className="mt-2 inline-block rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                  Seleccionado
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("usb")}
-              className={`rounded-lg border-2 px-3 py-3 text-left transition ${
-                tab === "usb"
-                  ? "border-accent bg-accent/5 shadow-sm"
-                  : "border-border bg-surface hover:border-accent/40"
-              }`}
-            >
-              <p className="text-sm font-bold text-ink">USB Linux</p>
-              <p className="mt-0.5 text-[10px] text-muted">
-                Solo si la Epson está en este servidor
-              </p>
-              {tab === "usb" && (
                 <span className="mt-2 inline-block rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
                   Seleccionado
                 </span>
@@ -2649,8 +2683,41 @@ function InstaladorWizard({
           </div>
         </div>
 
-        {tab === "usb" && (
-          <>
+        {tab === "ubuntu" && (
+          <div className="space-y-4">
+            <Banner tone="accent" className="text-xs leading-relaxed">
+              Instalación <strong>{UBUNTU_LABEL}</strong>: descarga el paquete McKenna
+              (<span className="font-mono"> mckenna-epson-cwc4000u</span> (PPD + elpu + cola CUPS)
+              o pulsa <strong>Instalar</strong> en este servidor.
+            </Banner>
+
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Paquete Ubuntu</p>
+              <a
+                href={DEB_UBUNTU_PUBLIC}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex text-xs font-semibold text-accent underline"
+              >
+                Descargar mckenna-epson-cwc4000u_amd64.deb
+              </a>
+              <p className="text-[10px] text-muted">
+                También:{" "}
+                <a href={DEB_UBUNTU_URL} download="mckenna-epson-cwc4000u_amd64.deb" className="underline text-accent">
+                  descarga desde este panel
+                </a>
+              </p>
+              <p className="text-[10px] text-muted">One-liner en el servidor:</p>
+              <button
+                type="button"
+                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-left font-mono text-[10px] text-ink break-all hover:border-accent"
+                title="Clic para copiar"
+                onClick={() => { void navigator.clipboard?.writeText(DEB_UBUNTU_ONELINER); }}
+              >
+                {DEB_UBUNTU_ONELINER}
+              </button>
+            </div>
+
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-muted">Diagnóstico del sistema</p>
               {diagLoading ? (
@@ -2681,10 +2748,17 @@ function InstaladorWizard({
 
             {!diagData?.usb_detectado && !diagLoading && (
               <Banner tone="warning" className="text-xs">
-                Sin USB en este PC. Elige <strong>{WINDOWS_10_PRO_LABEL}</strong> (sesión {SESION_JENNIFFER_LABEL}).
+                Sin USB en este servidor. Si la Epson está en el PC de {SESION_JENNIFFER_LABEL}, elige{" "}
+                <strong>{WINDOWS_10_PRO_LABEL}</strong>.
               </Banner>
             )}
-          </>
+
+            {remotoMsg && tab === "ubuntu" && (
+              <Banner tone={instalarUbuntuMut.isError ? "danger" : "success"} className="text-xs">
+                {remotoMsg}
+              </Banner>
+            )}
+          </div>
         )}
 
         {tab === "windows10pro" && (
@@ -2727,7 +2801,7 @@ function InstaladorWizard({
                 Descargar configurar_compartir_windows.ps1 (URL pública)
               </a>
               <p className="text-[10px] text-muted">
-                También desde este panel:{" "}
+                También:{" "}
                 <a href={SCRIPT_WINDOWS_PS1_URL} download="configurar_compartir_windows.ps1" className="underline text-accent">
                   descarga relativa
                 </a>
@@ -2756,7 +2830,7 @@ function InstaladorWizard({
               <li>USB + LCD Listo → el script comparte como <span className="font-mono">{WINDOWS_10_PRO_SHARE}</span></li>
               <li>
                 Anotar la IP que muestra el script → aquí pulsar{" "}
-                <strong>Instalar para {WINDOWS_10_PRO_LABEL}</strong>
+                <strong>Instalar {WINDOWS_10_PRO_LABEL}</strong>
               </li>
             </ol>
 
@@ -2822,9 +2896,9 @@ function InstaladorWizard({
           </div>
         )}
 
-        {todoOk && !instalarMut.isPending && tab === "usb" && (
+        {todoOk && !instalarUbuntuMut.isPending && tab === "ubuntu" && (
           <Banner tone="success" className="justify-center text-center text-sm font-semibold">
-            ✅ Todo está correctamente instalado (USB)
+            ✅ Ubuntu listo (USB / .deb)
           </Banner>
         )}
         {modoRedOk && tab === "windows10pro" && !remotoMut.isPending && (
@@ -4471,7 +4545,7 @@ function TabImprimir({
   const [rectangulosPlantilla, setRectangulosPlantilla] = useState<RectanguloPlantilla[]>([]);
   const [log, setLog] = useState<string[]>([]);
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
-  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("usb");
+  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("windows10pro");
   const abrirInstalador = (tab: InstaladorTab = "windows10pro") => {
     setInstaladorTab(tab);
     setMostrarInstalador(true);
@@ -4798,7 +4872,7 @@ function TabImprimir({
           <BannerErrorImpresora
             error={errorImpresion}
             onCerrar={() => setErrorImpresion(null)}
-            onInstalar={() => abrirInstalador("usb")}
+            onInstalar={() => abrirInstalador("ubuntu")}
             onWindowsRemoto={() => abrirInstalador("windows10pro")}
           />
         )}
@@ -5244,7 +5318,7 @@ function NivelesTintaImpresora({
 }) {
   const qc = useQueryClient();
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
-  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("usb");
+  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("windows10pro");
   const abrirInstalador = (tab: InstaladorTab = "windows10pro") => {
     setInstaladorTab(tab);
     setMostrarInstalador(true);
@@ -5403,7 +5477,7 @@ function NivelesTintaImpresora({
             severidad: "error",
             codigo: "desconocido",
           }}
-          onInstalar={() => abrirInstalador("usb")}
+          onInstalar={() => abrirInstalador("ubuntu")}
           onWindowsRemoto={() => abrirInstalador("windows10pro")}
         />
       )}
@@ -5417,7 +5491,7 @@ function NivelesTintaImpresora({
       {!isError && alerta && (
         <PanelAlertaEstadoImpresora
           alerta={alerta}
-          onInstalar={() => abrirInstalador("usb")}
+          onInstalar={() => abrirInstalador("ubuntu")}
           onWindowsRemoto={() => abrirInstalador("windows10pro")}
         />
       )}
@@ -6056,7 +6130,12 @@ export default function EtiquetasPanel() {
   const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
   const solicitudActivaStore = useAppStore((s) => s.etiquetasSolicitudActiva);
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
-  const [tab, setTabLocal] = useState<EtiquetasTab>(storeTab);
+  const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
+    const t = useAppStore.getState().etiquetasTab;
+    return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
+      ? t
+      : "imprimir";
+  });
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
   const [studioInmersivo, setStudioInmersivo] = useState(false);

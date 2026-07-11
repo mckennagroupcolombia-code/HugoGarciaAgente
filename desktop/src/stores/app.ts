@@ -144,7 +144,7 @@ function normalizePanel(panel: Panel): Panel {
 
 function syncNavHash(panel: Panel, view?: string) {
   const p = normalizePanel(panel);
-  writeNavHash(p, p === "hugo" ? view : undefined);
+  writeNavHash(p, view);
 }
 
 export const useAppStore = create<AppState>()(
@@ -158,26 +158,26 @@ export const useAppStore = create<AppState>()(
       _hasHydrated: false,
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
       setCentroMandoView: (centroMandoView) => {
+        if (get().centroMandoView === centroMandoView) return;
         set({ centroMandoView });
-        const { panel } = get();
-        if (panel === "hugo" || panel === "tickets") {
-          syncNavHash(panel, centroMandoView);
-        }
         queueMicrotask(() => notifyNavChange());
       },
       setTicketsSelectedId: (ticketsSelectedId) => {
+        if (get().ticketsSelectedId === ticketsSelectedId) return;
         set({ ticketsSelectedId });
         queueMicrotask(() => notifyNavChange());
       },
       setTicketsSelectedMisionId: (ticketsSelectedMisionId) => {
+        if (get().ticketsSelectedMisionId === ticketsSelectedMisionId) return;
         set({ ticketsSelectedMisionId });
         queueMicrotask(() => notifyNavChange());
       },
       setMobileTab: (mobileTab) => set({ mobileTab }),
       setPanel: (panel) => {
         const next = normalizePanel(panel);
+        const cur = get();
+        if (cur.panel === next && !cur.sidebarOpen) return;
         set({ panel: next, sidebarOpen: false });
-        syncNavHash(next, get().centroMandoView);
         queueMicrotask(() => notifyNavChange());
       },
       ticketsBootView: null,
@@ -190,6 +190,7 @@ export const useAppStore = create<AppState>()(
       setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
+        if (get().sidebarOpen === sidebarOpen) return;
         set({ sidebarOpen });
         queueMicrotask(() => notifyNavChange());
       },
@@ -198,7 +199,11 @@ export const useAppStore = create<AppState>()(
         queueMicrotask(() => notifyNavChange());
       },
       etiquetasTab: "imprimir",
-      setEtiquetasTab: (etiquetasTab) => set({ etiquetasTab }),
+      setEtiquetasTab: (etiquetasTab) => {
+        if (get().etiquetasTab === etiquetasTab) return;
+        set({ etiquetasTab });
+        queueMicrotask(() => notifyNavChange());
+      },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),
       etiquetasSolicitudActiva: null,
@@ -232,10 +237,27 @@ export const useAppStore = create<AppState>()(
           if (hash.view && (hash.panel === "hugo" || hash.panel === "tickets")) {
             state.centroMandoView = hash.view;
           }
+          if (
+            hash.view
+            && hash.panel === "etiquetas"
+            && (hash.view === "imprimir"
+              || hash.view === "inventario"
+              || hash.view === "studio"
+              || hash.view === "codigos_ean")
+          ) {
+            state.etiquetasTab = hash.view;
+          }
         }
         state?.setHasHydrated(true);
         if (state) {
-          syncNavHash(state.panel, state.centroMandoView);
+          syncNavHash(
+            state.panel,
+            state.panel === "hugo" || state.panel === "tickets"
+              ? state.centroMandoView
+              : state.panel === "etiquetas"
+                ? state.etiquetasTab
+                : undefined,
+          );
         }
       },
     },

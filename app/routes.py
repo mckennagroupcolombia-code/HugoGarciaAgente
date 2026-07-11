@@ -10428,6 +10428,170 @@ def register_routes(app):
             download_name="configurar_compartir_windows.ps1",
         )
 
+    def _ruta_deb_ubuntu_etiquetas() -> str:
+        """Ruta al .deb McKenna CW-C4000u (estable o versionado)."""
+        dist = os.path.join(_REPO_EPSON_DIR, "dist")
+        estable = os.path.join(dist, "mckenna-epson-cwc4000u_amd64.deb")
+        if os.path.isfile(estable) or os.path.islink(estable):
+            real = os.path.realpath(estable)
+            if os.path.isfile(real):
+                return real
+        if os.path.isdir(dist):
+            cands = sorted(
+                (
+                    os.path.join(dist, n)
+                    for n in os.listdir(dist)
+                    if n.startswith("mckenna-epson-cwc4000u_") and n.endswith(".deb")
+                ),
+                reverse=True,
+            )
+            for c in cands:
+                if os.path.isfile(c):
+                    return c
+        return ""
+
+    def _asegurar_deb_ubuntu_etiquetas() -> tuple[str, list[str]]:
+        """Devuelve ruta al .deb; si falta, intenta construirlo."""
+        import subprocess as _sp
+        log: list[str] = []
+        ruta = _ruta_deb_ubuntu_etiquetas()
+        if ruta:
+            return ruta, log
+        build = os.path.join(_REPO_EPSON_DIR, "build_deb_mckenna_cwc4000u.sh")
+        if not os.path.isfile(build):
+            return "", ["No hay script build_deb_mckenna_cwc4000u.sh"]
+        try:
+            r = _sp.run(
+                ["bash", build],
+                capture_output=True, text=True, timeout=120,
+                cwd=os.path.dirname(build),
+            )
+            out = (r.stdout or "") + (r.stderr or "")
+            log.append(out.strip() or f"rc={r.returncode}")
+            if r.returncode != 0:
+                return "", log
+        except Exception as e:
+            return "", [str(e)]
+        return _ruta_deb_ubuntu_etiquetas(), log
+
+    @app.route("/api/etiquetas/impresora/paquete-ubuntu", methods=["GET"])
+    @app.route("/app/api/etiquetas/impresora/paquete-ubuntu", methods=["GET"])
+    def api_etiquetas_impresora_paquete_ubuntu():
+        """Descarga el .deb Ubuntu para CW-C4000u (sin auth: instalación en el servidor)."""
+        from flask import send_file as _send_file
+
+        ruta, log = _asegurar_deb_ubuntu_etiquetas()
+        if not ruta:
+            return jsonify({
+                "error": "Paquete .deb no disponible",
+                "detalle": "\n".join(log[-8:]) if log else "Ejecuta scripts/epson/build_deb_mckenna_cwc4000u.sh",
+            }), 404
+        return _send_file(
+            ruta,
+            mimetype="application/vnd.debian.binary-package",
+            as_attachment=True,
+            download_name="mckenna-epson-cwc4000u_amd64.deb",
+        )
+
+    @app.route("/api/etiquetas/impresora/instalar-ubuntu", methods=["POST"])
+    @app.route("/app/api/etiquetas/impresora/instalar-ubuntu", methods=["POST"])
+    def api_etiquetas_impresora_instalar_ubuntu():
+        """Instala el .deb McKenna en este servidor Ubuntu y deja la cola CUPS lista."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+
+        log: list[str] = []
+        errores: list[str] = []
+
+        # Desactivar modo Windows remoto al instalar USB local
+        cfg = _load_impresora_remoto_etiquetas()
+        if cfg.get("activo"):
+            cfg["activo"] = False
+            cfg["motivo"] = "instalar_ubuntu_deb"
+            _save_impresora_remoto_etiquetas(cfg)
+            log.append("▶ Modo Windows remoto desactivado (instalación Ubuntu local)")
+
+        ruta, blog = _asegurar_deb_ubuntu_etiquetas()
+        log.extend(blog)
+        if not ruta:
+            return jsonify({
+                "ok": False,
+                "error": "No se pudo obtener el .deb",
+                "log": log,
+                "errores": ["deb ausente"],
+            }), 500
+
+        log.append(f"▶ Instalando {ruta}")
+        try:
+            r = _sp.run(
+                ["sudo", "-n", "dpkg", "-i", ruta],
+                capture_output=True, text=True, timeout=120,
+            )
+            out = ((r.stdout or "") + (r.stderr or "")).strip()
+            if out:
+                log.append(out[:800])
+            if r.returncode != 0:
+                # Intentar resolver dependencias
+                r2 = _sp.run(
+                    ["sudo", "-n", "apt-get", "install", "-f", "-y"],
+                    capture_output=True, text=True, timeout=180,
+                )
+                out2 = ((r2.stdout or "") + (r2.stderr or "")).strip()
+                if out2:
+                    log.append(out2[:600])
+                r3 = _sp.run(
+                    ["sudo", "-n", "dpkg", "-i", ruta],
+                    capture_output=True, text=True, timeout=120,
+                )
+                out3 = ((r3.stdout or "") + (r3.stderr or "")).strip()
+                if out3:
+                    log.append(out3[:600])
+                if r3.returncode != 0:
+                    errores.append(out3 or out or f"dpkg rc={r.returncode}")
+        except Exception as e:
+            errores.append(str(e))
+            log.append(f"✗ {e}")
+
+        # Completar con el instalador CUPS existente (elioud, sudoers, etc.)
+        # Reutiliza la lógica de /api/etiquetas/instalar vía llamada interna no HTTP:
+        # forzamos URI USB (no remoto) ya desactivamos remoto arriba.
+        try:
+            # Asegurar cola USB si dpkg no detectó dispositivo
+            uri = _epson_usb_detectado_etiquetas() or "usb://EPSON/CW-C4000u"
+            ppd = "/usr/share/ppd/mckenna/CW-C4000u.ppd"
+            if not os.path.isfile(ppd):
+                ppd = os.path.join(_REPO_EPSON_DIR, "CW-C4000u.ppd")
+            cmds = []
+            if os.path.isfile(ppd):
+                cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", uri, "-P", ppd])
+            cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", uri])
+            for cmd in cmds:
+                rr = _sp.run(cmd, capture_output=True, text=True, timeout=45)
+                log.append(f"{' '.join(cmd)} → {((rr.stdout or '') + (rr.stderr or '')).strip() or f'rc={rr.returncode}'}")
+                if rr.returncode == 0:
+                    break
+            for en in (["sudo", "-n", "cupsenable", _PRINTER_NAME], ["cupsenable", _PRINTER_NAME]):
+                _sp.run(en, capture_output=True, timeout=10)
+            for ac in (["sudo", "-n", "cupsaccept", _PRINTER_NAME], ["cupsaccept", _PRINTER_NAME]):
+                _sp.run(ac, capture_output=True, timeout=10)
+        except Exception as e:
+            log.append(f"⚠ Ajuste CUPS: {e}")
+
+        ok = len(errores) == 0
+        return jsonify({
+            "ok": ok,
+            "log": log,
+            "errores": errores,
+            "uri_actual": _uri_dispositivo_etiquetas(),
+            "mensaje": (
+                "Ubuntu (.deb) instalado. Cola CUPS lista para USB local."
+                if ok else "Instalación Ubuntu con errores — revisa el log."
+            ),
+            "sistema_operativo": "ubuntu",
+            "paquete": os.path.basename(ruta),
+        }), (200 if ok else 500)
+
     @app.route("/api/etiquetas/niveles-tinta", methods=["GET"])
     def api_etiquetas_niveles_tinta():
         if not _api_token_valido():

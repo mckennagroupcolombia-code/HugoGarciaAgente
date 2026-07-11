@@ -7,7 +7,7 @@ export interface NavHash {
   view?: string;
 }
 
-/** Lee panel (y sub-vista de Hugo) desde el hash `#/panel` o `#/hugo/acciones`. */
+/** Lee panel (y sub-vista) desde el hash `#/panel`, `#/hugo/acciones` o `#/etiquetas/studio`. */
 export function readNavHash(): NavHash | null {
   if (typeof window === "undefined") return null;
   const m = window.location.hash.match(PANEL_RE);
@@ -18,10 +18,7 @@ export function readNavHash(): NavHash | null {
 /** Sincroniza hash sin añadir entrada al historial del navegador. */
 export function writeNavHash(panel: Panel, view?: string) {
   if (typeof window === "undefined") return;
-  const next =
-    view && (panel === "hugo" || panel === "tickets")
-      ? `#/${panel}/${view}`
-      : `#/${panel}`;
+  const next = view ? `#/${panel}/${view}` : `#/${panel}`;
   if (window.location.hash === next) return;
   const url = `${window.location.pathname}${window.location.search}${next}`;
   window.history.replaceState(window.history.state, "", url);
