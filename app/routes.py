@@ -7552,6 +7552,9 @@ def register_routes(app):
     _ETIQUETAS_IMPRESORA_REMOTO_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_impresora_remoto.json",
     )
+    _ETIQUETAS_DIAG_RED_LOG_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_diagnostico_red.json",
+    )
     _PDF_ETIQUETAS_MAX_BYTES = 30 * 1024 * 1024
     _REPO_EPSON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "epson")
 
@@ -8084,56 +8087,36 @@ def register_routes(app):
                     "detalle": uri or "sin URI",
                 }
             # Comprobar que el Windows responde (SMB :445 o IPP :631 según URI)
-            host_remoto = ""
-            try:
-                from urllib.parse import urlparse as _urlparse
-                host_remoto = (_urlparse(uri).hostname or "").strip()
-            except Exception:
-                host_remoto = ""
-            if not host_remoto:
-                cfg = _load_impresora_remoto_etiquetas()
-                host_remoto = str(cfg.get("host") or "").strip()
-            if host_remoto:
-                uri_l = (uri or "").strip().lower()
-                es_smb = uri_l.startswith("smb://")
-                puertos = (445, 139) if es_smb else (631,)
-                ok_red = False
-                detalle_red = ""
-                import socket as _socket
-                for puerto in puertos:
-                    try:
-                        with _socket.create_connection((host_remoto, puerto), timeout=3):
-                            ok_red = True
-                            break
-                    except OSError as e_red:
-                        detalle_red = str(e_red)
-                if not ok_red:
-                    if es_smb:
-                        return {
-                            "error": f"Windows 10 Pro no responde en SMB ({host_remoto}:445)",
-                            "solucion": (
-                                "En el PC de Jenniffer (Windows 10 Pro): "
-                                "1) Comparte la impresora como CW-C4000u. "
-                                "2) Firewall: «Compartir archivos e impresoras» (red Privada). "
-                                "3) Perfil de red = Privado. "
-                                "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1. "
-                                "Luego reintenta imprimir."
-                            ),
-                            "codigo": "smb_sin_respuesta",
-                            "detalle": detalle_red or f"tcp://{host_remoto}:445",
-                        }
+            chequeo = _probar_conectividad_red_etiquetas(uri)
+            if not chequeo.get("omitido") and not chequeo.get("ok"):
+                host_remoto = chequeo.get("host", "")
+                detalle_red = chequeo.get("detalle", "")
+                if chequeo.get("protocolo") == "smb":
                     return {
-                        "error": f"Windows 10 Pro no responde en IPP ({host_remoto}:631)",
+                        "error": f"Windows 10 Pro no responde en SMB ({host_remoto}:445)",
                         "solucion": (
-                            "En el PC de Jenniffer (Windows 10 Pro): "
-                            "1) Preferible: comparte por SMB (recomendado) y reinstala desde el panel. "
-                            "2) Si usas IPP: activa Internet Printing Server / IIS. "
-                            "3) Firewall: permitir TCP 631 (red Privada). "
-                            "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1."
+                            "En el PC remoto (Windows 10 Pro): "
+                            "1) Comparte la impresora como CW-C4000u. "
+                            "2) Firewall: «Compartir archivos e impresoras» (red Privada). "
+                            "3) Perfil de red = Privado. "
+                            "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1. "
+                            "Luego reintenta imprimir."
                         ),
-                        "codigo": "ipp_sin_respuesta",
-                        "detalle": detalle_red or f"tcp://{host_remoto}:631",
+                        "codigo": "smb_sin_respuesta",
+                        "detalle": detalle_red or f"tcp://{host_remoto}:445",
                     }
+                return {
+                    "error": f"Windows 10 Pro no responde en IPP ({host_remoto}:631)",
+                    "solucion": (
+                        "En el PC remoto (Windows 10 Pro): "
+                        "1) Preferible: comparte por SMB (recomendado) y reinstala desde el panel. "
+                        "2) Si usas IPP: activa Internet Printing Server / IIS. "
+                        "3) Firewall: permitir TCP 631 (red Privada). "
+                        "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1."
+                    ),
+                    "codigo": "ipp_sin_respuesta",
+                    "detalle": detalle_red or f"tcp://{host_remoto}:631",
+                }
             return None
 
         usb_uri = _epson_usb_detectado_etiquetas()
@@ -8209,6 +8192,50 @@ def register_routes(app):
             "socket://", "lpd://", "smb://", "dnssd://",
         ))
 
+    def _probar_conectividad_red_etiquetas(uri: str) -> dict:
+        """Prueba en vivo si el PC remoto (Windows/Tailscale) responde en SMB (:445/:139) o IPP (:631).
+
+        Usada tanto en el pre-vuelo antes de imprimir como en el endpoint de diagnóstico
+        del panel (botón «Verificar conectividad» en la sede).
+        """
+        import socket as _socket
+        from urllib.parse import urlparse as _urlparse
+
+        host_remoto = ""
+        try:
+            host_remoto = (_urlparse(uri).hostname or "").strip()
+        except Exception:
+            host_remoto = ""
+        if not host_remoto:
+            cfg = _load_impresora_remoto_etiquetas()
+            host_remoto = str(cfg.get("host") or "").strip()
+        if not host_remoto:
+            return {"omitido": True, "ok": True, "host": "", "protocolo": "", "puerto": None, "detalle": "sin host remoto configurado"}
+
+        uri_l = (uri or "").strip().lower()
+        es_smb = uri_l.startswith("smb://")
+        protocolo = "smb" if es_smb else "ipp"
+        puertos = (445, 139) if es_smb else (631,)
+        ok_red = False
+        detalle_red = ""
+        puerto_ok = None
+        for puerto in puertos:
+            try:
+                with _socket.create_connection((host_remoto, puerto), timeout=3):
+                    ok_red = True
+                    puerto_ok = puerto
+                    break
+            except OSError as e_red:
+                detalle_red = str(e_red)
+        return {
+            "omitido": False,
+            "ok": ok_red,
+            "host": host_remoto,
+            "protocolo": protocolo,
+            "puerto": puerto_ok if ok_red else puertos[0],
+            "detalle": detalle_red if not ok_red else f"tcp://{host_remoto}:{puerto_ok}",
+        }
+
     def _load_impresora_remoto_etiquetas() -> dict:
         try:
             with open(_ETIQUETAS_IMPRESORA_REMOTO_PATH, encoding="utf-8") as f:
@@ -8223,6 +8250,25 @@ def register_routes(app):
         os.makedirs(os.path.dirname(_ETIQUETAS_IMPRESORA_REMOTO_PATH), exist_ok=True)
         with open(_ETIQUETAS_IMPRESORA_REMOTO_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+    _DIAG_RED_HISTORIAL_MAX = 40
+
+    def _cargar_historial_diag_red_etiquetas() -> list:
+        try:
+            with open(_ETIQUETAS_DIAG_RED_LOG_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def _guardar_evento_diag_red_etiquetas(evento: dict) -> list:
+        historial = _cargar_historial_diag_red_etiquetas()
+        historial.append(evento)
+        historial = historial[-_DIAG_RED_HISTORIAL_MAX:]
+        os.makedirs(os.path.dirname(_ETIQUETAS_DIAG_RED_LOG_PATH), exist_ok=True)
+        with open(_ETIQUETAS_DIAG_RED_LOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(historial, f, ensure_ascii=False, indent=2)
+        return historial
 
     def _impresora_modo_red_etiquetas() -> bool:
         """True si la cola CUPS o la config apuntan a Windows/red (no USB local)."""
@@ -10427,6 +10473,57 @@ def register_routes(app):
             as_attachment=True,
             download_name="configurar_compartir_windows.ps1",
         )
+
+    @app.route("/api/etiquetas/impresora/diagnostico-red", methods=["GET"])
+    @app.route("/app/api/etiquetas/impresora/diagnostico-red", methods=["GET"])
+    def api_etiquetas_impresora_diagnostico_red():
+        """Prueba en vivo la conectividad hacia el PC remoto (LAN o Tailscale) y guarda
+        el resultado en un historial corto para diagnóstico rápido desde cualquier sede."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        cfg = _load_impresora_remoto_etiquetas()
+        uri = _uri_dispositivo_etiquetas()
+        if not _uri_es_red_etiquetas(uri):
+            uri = str(cfg.get("uri") or "")
+
+        chequeo = _probar_conectividad_red_etiquetas(uri)
+        ahora = _dt.now().isoformat(timespec="seconds")
+
+        if chequeo.get("omitido"):
+            evento = {
+                "ok": None,
+                "mensaje": "Sin host remoto configurado (impresora en USB local o instalación pendiente)",
+                "detalle": "",
+                "host": "",
+                "protocolo": "",
+                "verificado_at": ahora,
+            }
+        else:
+            ok = bool(chequeo.get("ok"))
+            proto = chequeo.get("protocolo") or "smb"
+            host = chequeo.get("host") or ""
+            puerto = chequeo.get("puerto") or (445 if proto == "smb" else 631)
+            evento = {
+                "ok": ok,
+                "mensaje": (
+                    f"Conectada — {host} responde en {proto.upper()}:{puerto}"
+                    if ok
+                    else f"Sin respuesta — {host} no contesta en {proto.upper()}:{puerto}"
+                ),
+                "detalle": chequeo.get("detalle") or "",
+                "host": host,
+                "protocolo": proto,
+                "verificado_at": ahora,
+            }
+
+        historial = _guardar_evento_diag_red_etiquetas(evento)
+        return jsonify({
+            "ok": evento["ok"],
+            "actual": evento,
+            "historial": list(reversed(historial[-15:])),
+            "remoto": cfg,
+        })
 
     def _ruta_deb_ubuntu_etiquetas() -> str:
         """Ruta al .deb McKenna CW-C4000u (estable o versionado)."""

@@ -125,6 +125,10 @@ const SCRIPT_WINDOWS_PS1_PUBLIC =
   "https://bot.mckennagroup.co/api/etiquetas/impresora/script-windows";
 const SCRIPT_WINDOWS_PS1_ONELINER =
   `powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '${SCRIPT_WINDOWS_PS1_PUBLIC}' -OutFile '$env:TEMP\\configurar_compartir_windows.ps1'; & '$env:TEMP\\configurar_compartir_windows.ps1'"`;
+/** Misma preparación (SMB + firewall) pero además instala/activa Tailscale — para PCs
+ * en una sede distinta a la del servidor (sin LAN/VPN corporativa entre ambas). */
+const SCRIPT_WINDOWS_PS1_ONELINER_TAILSCALE =
+  `powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '${SCRIPT_WINDOWS_PS1_PUBLIC}' -OutFile '$env:TEMP\\configurar_compartir_windows.ps1'; & '$env:TEMP\\configurar_compartir_windows.ps1' -Tailscale"`;
 const DEB_UBUNTU_URL = "/api/etiquetas/impresora/paquete-ubuntu";
 const DEB_UBUNTU_PUBLIC =
   "https://bot.mckennagroup.co/api/etiquetas/impresora/paquete-ubuntu";
@@ -186,6 +190,22 @@ interface InstalResp {
   ok: boolean;
   log: string[];
   errores: string[];
+}
+
+interface DiagRedEvento {
+  ok: boolean | null;
+  mensaje: string;
+  detalle?: string;
+  host?: string;
+  protocolo?: string;
+  verificado_at: string;
+}
+
+interface DiagRedResp {
+  ok: boolean | null;
+  actual: DiagRedEvento;
+  historial: DiagRedEvento[];
+  remoto?: ImpResp["remoto"];
 }
 
 interface PreviewResp {
@@ -2462,6 +2482,7 @@ function InstaladorWizard({
   const [shareWin, setShareWin] = useState(WINDOWS_10_PRO_SHARE);
   const [remotoMsg, setRemotoMsg] = useState<string | null>(null);
   const [pasosWin, setPasosWin] = useState<string[]>([]);
+  const [usarTailscale, setUsarTailscale] = useState(false);
 
   const { data: diagData, isLoading: diagLoading, refetch: refetchDiag } = useQuery({
     queryKey: ["etiquetas-diagnostico"],
@@ -2472,6 +2493,20 @@ function InstaladorWizard({
     queryKey: ["etiquetas-impresora-remoto"],
     queryFn: () => api.get<RemotoResp>("/api/etiquetas/impresora/remoto"),
   });
+
+  const {
+    data: diagRed,
+    refetch: refetchDiagRed,
+    isFetching: diagRedFetching,
+  } = useQuery({
+    queryKey: ["etiquetas-impresora-diag-red"],
+    queryFn: () => api.get<DiagRedResp>("/api/etiquetas/impresora/diagnostico-red"),
+    enabled: false,
+  });
+
+  const scriptOneliner = usarTailscale
+    ? SCRIPT_WINDOWS_PS1_ONELINER_TAILSCALE
+    : SCRIPT_WINDOWS_PS1_ONELINER;
 
   useEffect(() => {
     const r = remotoGet?.remoto ?? diagData?.remoto;
@@ -2790,7 +2825,7 @@ function InstaladorWizard({
 
             <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                Script en el PC de {SESION_JENNIFFER_LABEL} (no uses la IP 192.168.1.8)
+                Script en el PC Windows (no uses la IP 192.168.1.8)
               </p>
               <a
                 href={SCRIPT_WINDOWS_PS1_PUBLIC}
@@ -2806,6 +2841,21 @@ function InstaladorWizard({
                   descarga relativa
                 </a>
               </p>
+
+              <label className="mt-2 flex items-start gap-2 rounded border border-border bg-surface px-2.5 py-2 text-[11px] text-ink-secondary">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={usarTailscale}
+                  onChange={(e) => setUsarTailscale(e.target.checked)}
+                />
+                <span>
+                  <strong>Sede en otra red (ej. Sede Sur)</strong> — sin LAN/VPN corporativa
+                  hacia este servidor. El script instala y une <strong>Tailscale</strong> y al
+                  final reporta la IP a usar (no la de LAN).
+                </span>
+              </label>
+
               <p className="text-[10px] text-muted leading-relaxed">
                 O en PowerShell <strong>como Administrador</strong>:
               </p>
@@ -2814,10 +2864,10 @@ function InstaladorWizard({
                 className="w-full rounded border border-border bg-surface px-2 py-1.5 text-left font-mono text-[10px] text-ink break-all hover:border-accent"
                 title="Clic para copiar"
                 onClick={() => {
-                  void navigator.clipboard?.writeText(SCRIPT_WINDOWS_PS1_ONELINER);
+                  void navigator.clipboard?.writeText(scriptOneliner);
                 }}
               >
-                {SCRIPT_WINDOWS_PS1_ONELINER}
+                {scriptOneliner}
               </button>
               <p className="text-[10px] text-muted">Clic en el comando para copiarlo.</p>
             </div>
@@ -2829,7 +2879,7 @@ function InstaladorWizard({
               <li>Instalar el driver Epson para Windows 10 Pro</li>
               <li>USB + LCD Listo → el script comparte como <span className="font-mono">{WINDOWS_10_PRO_SHARE}</span></li>
               <li>
-                Anotar la IP que muestra el script → aquí pulsar{" "}
+                Anotar la IP que muestra el script ({usarTailscale ? "IP de Tailscale" : "IP de LAN"}) → aquí pulsar{" "}
                 <strong>Instalar {WINDOWS_10_PRO_LABEL}</strong>
               </li>
             </ol>
@@ -2882,6 +2932,62 @@ function InstaladorWizard({
                 ))}
               </ol>
             )}
+
+            <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                  Conectividad en línea
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={diagRedFetching}
+                  onClick={() => { void refetchDiagRed(); }}
+                >
+                  Verificar conectividad
+                </Button>
+              </div>
+
+              {diagRed?.actual && (
+                <Banner
+                  tone={diagRed.actual.ok === true ? "success" : diagRed.actual.ok === false ? "danger" : "warning"}
+                  className="text-xs"
+                >
+                  {diagRed.actual.mensaje}
+                  {diagRed.actual.host ? ` · ${diagRed.actual.host}` : ""}
+                </Banner>
+              )}
+
+              {!diagRed && (
+                <p className="text-[10px] text-muted">
+                  Pulsa «Verificar conectividad» para probar en vivo si el PC remoto responde
+                  (SMB/IPP) y guardar el resultado en el historial de diagnóstico.
+                </p>
+              )}
+
+              {diagRed && diagRed.historial.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold text-muted">Historial (más reciente primero)</p>
+                  <div className="max-h-32 overflow-y-auto rounded border border-border">
+                    {diagRed.historial.map((h, i) => (
+                      <div
+                        key={`${h.verificado_at}-${i}`}
+                        className="flex items-start gap-2 border-b border-border px-2 py-1 text-[10px] last:border-b-0"
+                      >
+                        <span className="mt-0.5">{h.ok === true ? "✅" : h.ok === false ? "❌" : "⚠️"}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-ink">{h.mensaje}</p>
+                          <p className="truncate text-muted">
+                            {h.verificado_at}
+                            {h.detalle ? ` · ${h.detalle}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
