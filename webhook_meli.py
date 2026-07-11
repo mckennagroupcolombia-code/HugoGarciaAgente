@@ -608,6 +608,9 @@ def sync_stock():
 
 @app.route("/confirmar-pago", methods=["POST"])
 def confirmar_pago():
+    # Envía WhatsApp a un número arbitrario: exige Bearer como el resto de /sync/*.
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
     data = request.get_json() or {}
     numero_cliente = data.get("numero_cliente")
     confirmado = data.get("confirmado", False)
@@ -637,6 +640,9 @@ def confirmar_pago():
 
 @app.route("/training/agregar-caso", methods=["POST"])
 def agregar_caso():
+    # Escribe reglas que alimentan al agente IA: sin auth es envenenamiento del bot.
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
     import json
 
     data = request.get_json() or {}
