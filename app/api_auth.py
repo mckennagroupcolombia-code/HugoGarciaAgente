@@ -2,7 +2,9 @@
 Normalización de CHAT_API_TOKEN (Bearer) para evitar fallos por espacios o comillas en .env / systemd.
 """
 
+import hmac
 import os
+
 from flask import request
 
 
@@ -30,4 +32,5 @@ def chat_api_token_matches_request() -> bool:
     expected = chat_api_token_expected()
     if not expected:
         return False
-    return bearer_token_from_request() == expected
+    # compare_digest: tiempo constante, no filtra el token por timing.
+    return hmac.compare_digest(bearer_token_from_request(), expected)
