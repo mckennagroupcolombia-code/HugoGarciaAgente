@@ -208,6 +208,19 @@ interface DiagRedResp {
   remoto?: ImpResp["remoto"];
 }
 
+interface TailscalePeer {
+  hostname: string;
+  ip: string;
+  os: string;
+  online: boolean;
+}
+
+interface TailscalePeersResp {
+  ok: boolean;
+  peers: TailscalePeer[];
+  error?: string;
+}
+
 interface PreviewResp {
   imagen: string;
   mime: string;
@@ -2494,6 +2507,13 @@ function InstaladorWizard({
     queryFn: () => api.get<RemotoResp>("/api/etiquetas/impresora/remoto"),
   });
 
+  const { data: tailscalePeers, isLoading: peersLoading } = useQuery({
+    queryKey: ["etiquetas-impresora-tailscale-peers"],
+    queryFn: () => api.get<TailscalePeersResp>("/api/etiquetas/impresora/tailscale-peers"),
+    enabled: usarTailscale,
+    refetchInterval: usarTailscale ? 15000 : false,
+  });
+
   const {
     data: diagRed,
     refetch: refetchDiagRed,
@@ -2855,6 +2875,45 @@ function InstaladorWizard({
                   final reporta la IP a usar (no la de LAN).
                 </span>
               </label>
+
+              {usarTailscale && (
+                <div className="rounded border border-border bg-surface p-2 space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted">
+                    PCs ya conectados por Tailscale — clic para usar su IP
+                  </p>
+                  {peersLoading && (
+                    <div className="flex items-center gap-2 text-[10px] text-muted">
+                      <Spinner size="sm" /> Buscando...
+                    </div>
+                  )}
+                  {!peersLoading && (tailscalePeers?.peers?.length ?? 0) === 0 && (
+                    <p className="text-[10px] text-muted">
+                      Ninguno visible todavía. Corre el script en el PC Windows con{" "}
+                      <span className="font-mono">-Tailscale</span> e inicia sesión con la
+                      cuenta del tailnet; aparecerá aquí en unos segundos.
+                    </p>
+                  )}
+                  {tailscalePeers?.peers?.map((p) => (
+                    <button
+                      key={p.ip}
+                      type="button"
+                      onClick={() => setHostWin(p.ip)}
+                      className={`flex w-full items-center justify-between gap-2 rounded border px-2 py-1.5 text-left text-[11px] transition ${
+                        hostWin === p.ip
+                          ? "border-accent bg-accent/5"
+                          : "border-border hover:border-accent/40"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 text-ink">
+                        <span>{p.online ? "🟢" : "⚪"}</span>
+                        {p.hostname}
+                        <span className="text-muted">({p.os || "?"})</span>
+                      </span>
+                      <span className="font-mono text-muted">{p.ip}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <p className="text-[10px] text-muted leading-relaxed">
                 O en PowerShell <strong>como Administrador</strong>:
