@@ -10474,6 +10474,51 @@ def register_routes(app):
             download_name="configurar_compartir_windows.ps1",
         )
 
+    @app.route("/api/etiquetas/impresora/tailscale-peers", methods=["GET"])
+    @app.route("/app/api/etiquetas/impresora/tailscale-peers", methods=["GET"])
+    def api_etiquetas_impresora_tailscale_peers():
+        """Lista los PCs ya conectados al tailnet de McKenna (evita copiar/pegar la IP a mano
+        cuando se instala la impresora en una sede sin LAN/VPN corporativa, ej. Sede Sur)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        import subprocess as _sp
+        try:
+            r = _sp.run(
+                ["tailscale", "status", "--json"],
+                capture_output=True, text=True, timeout=8,
+            )
+            if r.returncode != 0:
+                return jsonify({
+                    "ok": False,
+                    "error": "No se pudo consultar Tailscale en este servidor",
+                    "detalle": (r.stderr or r.stdout or "").strip(),
+                    "peers": [],
+                }), 200
+            data = json.loads(r.stdout or "{}")
+        except Exception as e:
+            return jsonify({
+                "ok": False,
+                "error": "Tailscale no disponible en este servidor",
+                "detalle": str(e),
+                "peers": [],
+            }), 200
+
+        peers = []
+        for peer in (data.get("Peer") or {}).values():
+            ips = peer.get("TailscaleIPs") or []
+            ip4 = next((ip for ip in ips if ":" not in ip), "")
+            if not ip4:
+                continue
+            peers.append({
+                "hostname": peer.get("HostName") or ip4,
+                "ip": ip4,
+                "os": peer.get("OS") or "",
+                "online": bool(peer.get("Online")),
+            })
+        peers.sort(key=lambda p: (not p["online"], p["hostname"].lower()))
+        return jsonify({"ok": True, "peers": peers})
+
     @app.route("/api/etiquetas/impresora/diagnostico-red", methods=["GET"])
     @app.route("/app/api/etiquetas/impresora/diagnostico-red", methods=["GET"])
     def api_etiquetas_impresora_diagnostico_red():
