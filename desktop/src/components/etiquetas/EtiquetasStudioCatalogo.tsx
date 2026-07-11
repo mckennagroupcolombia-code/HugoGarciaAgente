@@ -646,11 +646,35 @@ export function EtiquetasStudioCatalogo({
   return (
     <div className="space-y-4 mck-stagger">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Productos" value={stats?.total_productos ?? "—"} icon="package" interactive />
-        <StatTile label="Con MeLi" value={stats?.con_meli ?? "—"} tone="accent" icon="tag" interactive />
-        <StatTile label="Con .ai" value={stats?.con_ai ?? "—"} tone="success" icon="check" interactive />
-        <StatTile label="Sin match" value={stats?.sin_match ?? "—"} tone="danger" icon="warning" interactive />
-        <StatTile label="PNG Studio" value={stats?.plantillas_png_total ?? "—"} tone="plum" icon="image" interactive />
+        <StatTile label="Productos" value={stats?.total_productos ?? "—"} icon="package" />
+        <StatTile
+          label="Con MeLi"
+          value={stats?.con_meli ?? "—"}
+          tone="accent"
+          icon="tag"
+          interactive
+          active={soloConMeli}
+          onClick={() => setSoloConMeli((v) => !v)}
+        />
+        <StatTile
+          label="Con .ai"
+          value={stats?.con_ai ?? "—"}
+          tone="success"
+          icon="check"
+          interactive
+          active={soloConAi}
+          onClick={() => setSoloConAi((v) => !v)}
+        />
+        <StatTile label="Sin match" value={stats?.sin_match ?? "—"} tone="danger" icon="warning" />
+        <StatTile
+          label="PNG Studio"
+          value={stats?.plantillas_png_total ?? "—"}
+          tone="plum"
+          icon="image"
+          interactive
+          active={plantillaPngAbierto}
+          onClick={() => setPlantillaPngAbierto((v) => !v)}
+        />
       </div>
 
       {mostrarDiagramacion && (

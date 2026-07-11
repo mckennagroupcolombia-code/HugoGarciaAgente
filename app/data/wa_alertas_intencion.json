@@ -335,11 +335,11 @@
       "jid": "573013362991@c.us",
       "primer_intencion_ts": 1783502063.0,
       "primer_intencion_texto": "Buen día hice un pedido y no me acepta el pago por nequi me colaboran",
-      "ultima_human_ts": null,
+      "ultima_human_ts": 1783702301.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": 1783502975.8823156,
-      "cancelada": false,
-      "cancelada_razon": null
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     },
     "573107386545@c.us": {
       "jid": "573107386545@c.us",
@@ -396,6 +396,36 @@
       "primer_intencion_ts": 1783620413.0,
       "primer_intencion_texto": "Si hago pedido ya",
       "ultima_human_ts": 1783620560.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573057069772@c.us": {
+      "jid": "573057069772@c.us",
+      "primer_intencion_ts": 1783708110.0,
+      "primer_intencion_texto": "Me pasas el valor  la llave BreB para hacer la transferencia, ya te di la dirección de envío",
+      "ultima_human_ts": 1783708190.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573102352086@c.us": {
+      "jid": "573102352086@c.us",
+      "primer_intencion_ts": 1783708834.0,
+      "primer_intencion_texto": "Cómo se hace el pedido",
+      "ultima_human_ts": 1783710207.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1783709740.039958,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573124790313@c.us": {
+      "jid": "573124790313@c.us",
+      "primer_intencion_ts": 1783720160.0,
+      "primer_intencion_texto": "Número para consignar",
+      "ultima_human_ts": 1783720475.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,

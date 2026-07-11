@@ -1252,6 +1252,14 @@
       "timestamp": "2026-07-09T15:25:27.972922",
       "respondida": true,
       "nota": "Respondida automáticamente por monitor (reintento) 2026-07-09"
+    },
+    {
+      "question_id": "13618610153",
+      "titulo_producto": "Aceite De Jojoba",
+      "pregunta": "Tienes de más cantidad",
+      "timestamp": "2026-07-10T11:43:24.619706",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! ¿Cómo estás?\n\nCon gusto le confirmo que la presentación que manejamos a través de Mercado Libre es la que encuentra en esta publicación.\n\nLe recuerdo que nuestro Aceite de Jojoba es muy rendidor; generalmente se requiere solo una pequeña cantidad para obtener excelentes resultados. Es un acondicionador ideal para la piel y el cabello, ya que su composición es muy similar al sebo natural y no obstruye los poros.\n\nSi tiene alguna otra pregunta, no dude en consultarme. ¡Con todo gusto le colaboro"
     }
   ]
 }

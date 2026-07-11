@@ -5270,8 +5270,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_941989-MCO110010203472_042026-O.jpg",
+          "meli_id": "MCO1339283727",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -5279,6 +5279,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
+          "photo_match_type": "name",
+          "photo_match_score": 92.5,
           "family_slug": "c-sebcor150g"
         }
       ]
@@ -7541,8 +7543,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 118000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_640231-MCO72678756963_112023-O.jpg",
-          "meli_id": "MCO595871199",
+          "photo": "https://http2.mlstatic.com/D_786608-MCO72678757627_112023-O.jpg",
+          "meli_id": "MCO1330892037",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -7660,8 +7662,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-btms50125g"
         },
         {
@@ -8101,8 +8103,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_617187-MCO110751068797_042026-O.jpg",
-          "meli_id": "MCO1910946156",
+          "photo": "https://http2.mlstatic.com/D_944337-MCO109564363762_042026-O.jpg",
+          "meli_id": "MCO1910972470",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -8765,8 +8767,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_638535-MCO72603785511_102023-O.jpg",
-          "meli_id": "MCO1377417818",
+          "photo": "https://http2.mlstatic.com/D_918472-MCO72533309702_102023-O.jpg",
+          "meli_id": "MCO851538777",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -8886,8 +8888,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 83.3,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-ala100g"
         },
         {
@@ -8905,8 +8907,139 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-          "meli_id": "MCO585538997",
+          "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
+          "meli_id": "MCO893531765",
+          "cat": "Humectantes",
+          "cat_color": "#4DB3A0",
+          "desc": "",
+          "ficha": {
+            "titulo": "D PANTENOL",
+            "descripcion": "D-Pantenol al 75%, también conocida como provitamina B5, es un compuesto soluble en agua ampliamente empleado en productos destinados al cuidado de la piel y el cabello. Cuando se aplica directamente sobre la piel, el D-Pantenol se transforma en ácido pantoténico, un nutriente esencial para la salud de nuestra piel y cabello.",
+            "secciones": [
+              {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Es conocido por su capacidad para retener la humedad, ayudando a mantener la piel y el cabello hidratados.",
+                  "Favorece la regeneración celular y puede ayudar en la reparación de la piel dañada.",
+                  "Tiene propiedades antiinflamatorias y puede aliviar la irritación de la piel, como la causada por quemaduras solares o afeitado.",
+                  "Fortalece el cabello, reduciendo la fragilidad y la rotura.",
+                  "Aporta suavidad a la piel y el cabello, mejorando su textura y flexibilidad.",
+                  "Puede contribuir a reducir la apariencia de arrugas y líneas finas.",
+                  "También se utiliza para fortalecer y mejorar la salud de las uñas.",
+                  "Se incorpora en acondicionadores capilares para suavizar y mejorar la manejabilidad del cabello."
+                ]
+              },
+              {
+                "titulo": "RECOMENDACIONES",
+                "items": [
+                  "Aplique una pequeña cantidad del producto en un área pequeña de su piel y espere 24 horas para ver si hay alguna reacción o irritación.",
+                  "Si experimenta cualquier reacción adversa después de usar, suspenda su uso inmediatamente y hable con un dermatólogo o un proveedor de atención médica.",
+                  "Guarde el envase en un lugar fresco, seco y alejado de la luz solar directa. Cierre bien el envase después de cada uso.",
+                  "Mantenga fuera del alcance de los niños."
+                ]
+              },
+              {
+                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "items": [
+                  "Nota: El producto cumple con el estándar USP."
+                ]
+              }
+            ],
+            "identidad": [
+              [
+                "NOMBRE QUÍMICO",
+                "No aplica"
+              ],
+              [
+                "SINÓNIMOS",
+                "Pantotenato de calcio.\nPantotenato de dexapantenol.\nPantotenato de dextropantenol.\nPantotenato de calcio dexpantenol."
+              ],
+              [
+                "CAS #",
+                "81-13-0"
+              ],
+              [
+                "FÓRMULA",
+                "C9H19NO4. H2O"
+              ],
+              [
+                "CONCENTRACIÓN",
+                "75%"
+              ],
+              [
+                "COMPONENTES",
+                "Agua desmineralizada, d-pantenol y conservante."
+              ],
+              [
+                "FECHA DE REVISIÓN",
+                "17 08 2024"
+              ]
+            ],
+            "propiedades": [
+              [
+                "Apariencia",
+                "Líquido transparente color amarillo claro con aroma característico."
+              ],
+              [
+                "Peso molecular  (g/mol)",
+                "205,25 g/mol"
+              ],
+              [
+                "Solubilidad",
+                "Soluble en agua y solventes orgánicos."
+              ],
+              [
+                "pH",
+                "7"
+              ],
+              [
+                "Impurezas orgánicas volátiles",
+                "Cumple"
+              ]
+            ],
+            "microbiologia": [
+              [
+                "Recuento total de placa cfu/g",
+                "≤ 5000"
+              ],
+              [
+                "Hongos  y levaduras",
+                "≤ 5000"
+              ],
+              [
+                "E. Coli",
+                "Negativo"
+              ],
+              [
+                "Salmonella",
+                "Negativo/ 25 gr"
+              ]
+            ]
+          },
+          "solo_vitrina": false,
+          "buyable": true,
+          "is_combo": true,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
+          "family_slug": "c-dpan50ml"
+        },
+        {
+          "name": "D PANTENOL 85% 120 mL",
+          "ref": "C-DPAN85P120mL",
+          "rep_sku": "C-DPAN85P120mL",
+          "slug": "c-dpan85p120ml",
+          "precio": "$80.912",
+          "precio_meli": "$96.900",
+          "precio_num": 80912,
+          "lista_num": 96900.0,
+          "precio_meli_num": 96900.0,
+          "ahorro": "$15.988",
+          "ahorro_num": 15988,
+          "envio_gratis_web": true,
+          "envio_referencia": 18000,
+          "precio_canal_label": "Directo web",
+          "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
+          "meli_id": "MCO893531765",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -9019,137 +9152,6 @@
           "is_combo": true,
           "photo_match_type": "sku",
           "photo_match_score": 100.0,
-          "family_slug": "c-dpan50ml"
-        },
-        {
-          "name": "D PANTENOL 85% 120 mL",
-          "ref": "C-DPAN85P120mL",
-          "rep_sku": "C-DPAN85P120mL",
-          "slug": "c-dpan85p120ml",
-          "precio": "$80.912",
-          "precio_meli": "$96.900",
-          "precio_num": 80912,
-          "lista_num": 96900.0,
-          "precio_meli_num": 96900.0,
-          "ahorro": "$15.988",
-          "ahorro_num": 15988,
-          "envio_gratis_web": true,
-          "envio_referencia": 18000,
-          "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-          "meli_id": "MCO585538997",
-          "cat": "Humectantes",
-          "cat_color": "#4DB3A0",
-          "desc": "",
-          "ficha": {
-            "titulo": "D PANTENOL",
-            "descripcion": "D-Pantenol al 75%, también conocida como provitamina B5, es un compuesto soluble en agua ampliamente empleado en productos destinados al cuidado de la piel y el cabello. Cuando se aplica directamente sobre la piel, el D-Pantenol se transforma en ácido pantoténico, un nutriente esencial para la salud de nuestra piel y cabello.",
-            "secciones": [
-              {
-                "titulo": "BENEFICIOS",
-                "items": [
-                  "Es conocido por su capacidad para retener la humedad, ayudando a mantener la piel y el cabello hidratados.",
-                  "Favorece la regeneración celular y puede ayudar en la reparación de la piel dañada.",
-                  "Tiene propiedades antiinflamatorias y puede aliviar la irritación de la piel, como la causada por quemaduras solares o afeitado.",
-                  "Fortalece el cabello, reduciendo la fragilidad y la rotura.",
-                  "Aporta suavidad a la piel y el cabello, mejorando su textura y flexibilidad.",
-                  "Puede contribuir a reducir la apariencia de arrugas y líneas finas.",
-                  "También se utiliza para fortalecer y mejorar la salud de las uñas.",
-                  "Se incorpora en acondicionadores capilares para suavizar y mejorar la manejabilidad del cabello."
-                ]
-              },
-              {
-                "titulo": "RECOMENDACIONES",
-                "items": [
-                  "Aplique una pequeña cantidad del producto en un área pequeña de su piel y espere 24 horas para ver si hay alguna reacción o irritación.",
-                  "Si experimenta cualquier reacción adversa después de usar, suspenda su uso inmediatamente y hable con un dermatólogo o un proveedor de atención médica.",
-                  "Guarde el envase en un lugar fresco, seco y alejado de la luz solar directa. Cierre bien el envase después de cada uso.",
-                  "Mantenga fuera del alcance de los niños."
-                ]
-              },
-              {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-                "items": [
-                  "Nota: El producto cumple con el estándar USP."
-                ]
-              }
-            ],
-            "identidad": [
-              [
-                "NOMBRE QUÍMICO",
-                "No aplica"
-              ],
-              [
-                "SINÓNIMOS",
-                "Pantotenato de calcio.\nPantotenato de dexapantenol.\nPantotenato de dextropantenol.\nPantotenato de calcio dexpantenol."
-              ],
-              [
-                "CAS #",
-                "81-13-0"
-              ],
-              [
-                "FÓRMULA",
-                "C9H19NO4. H2O"
-              ],
-              [
-                "CONCENTRACIÓN",
-                "75%"
-              ],
-              [
-                "COMPONENTES",
-                "Agua desmineralizada, d-pantenol y conservante."
-              ],
-              [
-                "FECHA DE REVISIÓN",
-                "17 08 2024"
-              ]
-            ],
-            "propiedades": [
-              [
-                "Apariencia",
-                "Líquido transparente color amarillo claro con aroma característico."
-              ],
-              [
-                "Peso molecular  (g/mol)",
-                "205,25 g/mol"
-              ],
-              [
-                "Solubilidad",
-                "Soluble en agua y solventes orgánicos."
-              ],
-              [
-                "pH",
-                "7"
-              ],
-              [
-                "Impurezas orgánicas volátiles",
-                "Cumple"
-              ]
-            ],
-            "microbiologia": [
-              [
-                "Recuento total de placa cfu/g",
-                "≤ 5000"
-              ],
-              [
-                "Hongos  y levaduras",
-                "≤ 5000"
-              ],
-              [
-                "E. Coli",
-                "Negativo"
-              ],
-              [
-                "Salmonella",
-                "Negativo/ 25 gr"
-              ]
-            ]
-          },
-          "solo_vitrina": false,
-          "buyable": true,
-          "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 72.5,
           "family_slug": "c-dpan85p120ml"
         },
         {
@@ -9774,8 +9776,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_900784-MCO83154149221_032025-O.jpg",
-          "meli_id": "MCO820157855",
+          "photo": "https://http2.mlstatic.com/D_673778-MCO82919929955_032025-O.jpg",
+          "meli_id": "MCO577075253",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -9887,8 +9889,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 85.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-ure500g"
         }
       ]
@@ -9911,8 +9913,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_918077-MCO89918422301_082025-O.jpg",
-          "meli_id": "MCO591316612",
+          "photo": "https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg",
+          "meli_id": "MCO845634553",
           "cat": "Arcillas",
           "cat_color": "#6B8F71",
           "desc": "",
@@ -9920,8 +9922,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 72.5,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-caoarc500g"
         },
         {
@@ -10476,8 +10478,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_726103-MCO94035896967_102025-O.jpg",
-          "meli_id": "MCO1049533041",
+          "photo": "https://http2.mlstatic.com/D_725434-MCO93991632597_102025-O.jpg",
+          "meli_id": "MCO1049818506",
           "cat": "Sales Minerales",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -10485,8 +10487,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 85.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-laccal250g"
         }
       ]
@@ -16029,8 +16031,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_727723-MCO93968267775_102025-O.jpg",
+          "meli_id": "MCO648703323",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -16186,6 +16188,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-mal500g"
         }
       ]
@@ -18249,8 +18253,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_870648-MCO94050552149_102025-O.jpg",
-          "meli_id": "MCO851988655",
+          "photo": "https://http2.mlstatic.com/D_863447-MCO93550994204_102025-O.jpg",
+          "meli_id": "MCO887872750",
           "cat": "Kits",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -18258,8 +18262,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 92.5,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-kitrepcos3"
         }
       ]
@@ -19641,8 +19645,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-      "meli_id": "MCO585538997",
+      "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
+      "meli_id": "MCO893531765",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -19753,8 +19757,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-dpan50ml"
     },
     {
@@ -22013,8 +22017,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_638535-MCO72603785511_102023-O.jpg",
-      "meli_id": "MCO1377417818",
+      "photo": "https://http2.mlstatic.com/D_918472-MCO72533309702_102023-O.jpg",
+      "meli_id": "MCO851538777",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -22134,8 +22138,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 83.3,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-ala100g"
     },
     {
@@ -23059,8 +23063,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_617187-MCO110751068797_042026-O.jpg",
-      "meli_id": "MCO1910946156",
+      "photo": "https://http2.mlstatic.com/D_944337-MCO109564363762_042026-O.jpg",
+      "meli_id": "MCO1910972470",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -24480,8 +24484,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-      "meli_id": "MCO585538997",
+      "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
+      "meli_id": "MCO893531765",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -24592,8 +24596,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 72.5,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-dpan85p120ml"
     },
     {
@@ -24611,8 +24615,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_870648-MCO94050552149_102025-O.jpg",
-      "meli_id": "MCO851988655",
+      "photo": "https://http2.mlstatic.com/D_863447-MCO93550994204_102025-O.jpg",
+      "meli_id": "MCO887872750",
       "cat": "Kits",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -24620,8 +24624,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 92.5,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-kitrepcos3"
     },
     {
@@ -25622,8 +25626,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_941989-MCO110010203472_042026-O.jpg",
+      "meli_id": "MCO1339283727",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -25631,6 +25635,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
+      "photo_match_type": "name",
+      "photo_match_score": 92.5,
       "family_slug": "c-sebcor150g"
     },
     {
@@ -26210,8 +26216,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_726103-MCO94035896967_102025-O.jpg",
-      "meli_id": "MCO1049533041",
+      "photo": "https://http2.mlstatic.com/D_725434-MCO93991632597_102025-O.jpg",
+      "meli_id": "MCO1049818506",
       "cat": "Sales Minerales",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -26219,8 +26225,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 85.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-laccal250g"
     },
     {
@@ -28486,8 +28492,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_900784-MCO83154149221_032025-O.jpg",
-      "meli_id": "MCO820157855",
+      "photo": "https://http2.mlstatic.com/D_673778-MCO82919929955_032025-O.jpg",
+      "meli_id": "MCO577075253",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -28599,8 +28605,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 85.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-ure500g"
     },
     {
@@ -30831,8 +30837,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 118000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_640231-MCO72678756963_112023-O.jpg",
-      "meli_id": "MCO595871199",
+      "photo": "https://http2.mlstatic.com/D_786608-MCO72678757627_112023-O.jpg",
+      "meli_id": "MCO1330892037",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -30950,8 +30956,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-btms50125g"
     },
     {
@@ -32465,8 +32471,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_918077-MCO89918422301_082025-O.jpg",
-      "meli_id": "MCO591316612",
+      "photo": "https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg",
+      "meli_id": "MCO845634553",
       "cat": "Arcillas",
       "cat_color": "#6B8F71",
       "desc": "",
@@ -32474,8 +32480,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 72.5,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-caoarc500g"
     },
     {
@@ -33754,8 +33760,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_727723-MCO93968267775_102025-O.jpg",
+      "meli_id": "MCO648703323",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -33911,6 +33917,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-mal500g"
     },
     {

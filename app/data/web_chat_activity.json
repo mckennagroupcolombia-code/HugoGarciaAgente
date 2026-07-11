@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-09T12:37:26",
+  "updated_at": "2026-07-10T13:29:01",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -45,9 +45,117 @@
     "2026-07-06": 8,
     "2026-07-07": 22,
     "2026-07-08": 3,
-    "2026-07-09": 8
+    "2026-07-09": 8,
+    "2026-07-10": 11
   },
   "sessions": [
+    {
+      "session_id": "web-479b9c92-9b6c-462d-ac69-89fcac0896bb",
+      "started_at": "2026-07-10T13:29:01",
+      "last_at": "2026-07-10T13:29:01",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Quisiera por favor cotizar acido tanico?",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-10T13:29:01",
+          "user_message": "Quisiera por favor cotizar acido tanico?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-cac14208-c39a-4149-b281-1d1b068238fd",
+      "started_at": "2026-07-10T11:39:53",
+      "last_at": "2026-07-10T11:40:24",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-proconsue80pkg",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0",
+      "last_user_message": "C-PROCONSUE80PKg",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-10T11:39:53",
+          "user_message": "C-PROCONSUE80PKg",
+          "agent_reply": "Claro, veci. Tenemos *PROTEINA CONCENTRADA SUERO LECHE 80P Kg* como materia prima. Presentación: $86,756 COP — Ref. C-PROCONSUE80PKg. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:40:03",
+          "user_message": "ficha tecnica",
+          "agent_reply": "Veci, con gusto le enviamos **ficha técnica** y/o **COA** (y ficha de seguridad si aplica). ¿Me indica el nombre exacto de cada materia prima o la referencia (ej. C-TAU250g)? Si prefiere recibir los PDF por correo, déjeme su email y el equipo se los envía en breve. Si necesita documentación o datos de lote puntuales, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:40:24",
+          "user_message": "C-PROCONSUE80PKg",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-687d7965-f641-4c8d-8051-5a50df79a2ee",
+      "started_at": "2026-07-10T09:18:47",
+      "last_at": "2026-07-10T09:21:59",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/contacto",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Ok. Gracias",
+      "last_agent_reply": "Con gusto veci, a la orden.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-10T09:18:47",
+          "user_message": "DMSO en presentación de 1 litro, marca y precio para uso farmacéutico.",
+          "agent_reply": "Claro veci, con gusto. El DMSO que manejamos es Dimetilsulfóxido al 99.9% de pureza, grado USP, ideal para uso farmacéutico. En este momento no me aparece la presentación de 1 litro en el catálogo web, pero le sugiero revisar nuestra tienda completa en mckennagroup.co/tienda. Si no lo encuentra allí, puede escribirnos por WhatsApp al +57 319 518 3596 para confirmar si hay algún stock especial y darle el precio actualizado del lote.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T09:20:52",
+          "user_message": "En que presentación la tiene y precio. Gracias",
+          "agent_reply": "Veci, le confirmo que en este momento no me aparece ninguna presentación en el catálogo web, debe ser que está agotado. Para ir a la fija, porfa escríbanos a nuestro WhatsApp +57 319 518 3596. Allá un asesor humano le confirma de una las presentaciones y precios que tenemos disponibles en bodega. Le aclaro que este chat no guarda el historial si cierra la ventana.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T09:21:59",
+          "user_message": "Ok. Gracias",
+          "agent_reply": "Con gusto veci, a la orden.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-90b2798f-580d-4e0b-8ff3-11e72dc7e4db",
       "started_at": "2026-07-09T12:33:55",
@@ -379,15 +487,15 @@
     {
       "session_id": "web-4741b94f-16ba-427c-b75c-84ec3e3845a2",
       "started_at": "2026-07-07T11:00:22",
-      "last_at": "2026-07-07T11:03:53",
-      "messages_count": 5,
+      "last_at": "2026-07-10T11:41:33",
+      "messages_count": 9,
       "attachments_count": 0,
       "reviewed": false,
       "reviewed_at": null,
       "page_url": "https://www.mckennagroup.co/catalogo/",
       "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
-      "last_user_message": "Si",
-      "last_agent_reply": "Listo veci. Para confirmar si le podemos conseguir esos productos, lo mejor es que le escriba a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le ayudan de una. Le recuerdo que este chat no guarda la conversación si cierra la ventana.",
+      "last_user_message": "Por cual otro elemento puedo reemplazar la cocoamida propil Betania para cremas dentales artesanal",
+      "last_agent_reply": "Veci, revisé nuestro archivo para Si [Consulta chat web — McKenna, NO terminado.], [Memoria McKenna:, [Casos similares recuperados de memoria], • Pregunta: ok, fragancias? Respuesta: Claro que sí y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
       "last_source": "agent",
       "last_upstream_error": "",
       "recent_turns": [
@@ -427,6 +535,38 @@
           "at": "2026-07-07T11:03:53",
           "user_message": "Si",
           "agent_reply": "Listo veci. Para confirmar si le podemos conseguir esos productos, lo mejor es que le escriba a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le ayudan de una. Le recuerdo que este chat no guarda la conversación si cierra la ventana.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:34:32",
+          "user_message": "Hola buenas tardes una pregunta la comida propil Betania por cual puedo reemplazar para la espuma en cremas dentales artesanales",
+          "agent_reply": "¡Claro que sí, veci! De una le ayudo con eso. Para reemplazar la Cocamidopropil Betaína en cremas dentales artesanales y conseguir buena espuma, una excelente alternativa es el **Sodium Cocoyl Isethionate (SCI)**. Es un tensioactivo muy suave derivado del coco, viene en polvo o en granos, y genera una espuma cremosa y estable sin ser tan fuerte como otros. Si busca una opción todavía más suave, puede usar tensioactivos de origen vegetal como el **Decyl Glucoside** o el **Coco Glucoside**. Son ultra suaves con las mucosas, aunque la espuma que producen es un poco más ligera. Como valor orientativo, para una crema dental se suele usar entre el 1% y el 3% de estos tensioactivos en la fórmula total. Cualquier otra duda sobre la formulación, me cuenta.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:38:30",
+          "user_message": "Hola qué precio tiene el SCI para espuma en crema dental",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:39:58",
+          "user_message": "Por favor me puede regalar el nombre del producto que puedo reemplazar la comida propil Betania y que precio tiene",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-10T11:41:33",
+          "user_message": "Por cual otro elemento puedo reemplazar la cocoamida propil Betania para cremas dentales artesanal",
+          "agent_reply": "Veci, revisé nuestro archivo para Si [Consulta chat web — McKenna, NO terminado.], [Memoria McKenna:, [Casos similares recuperados de memoria], • Pregunta: ok, fragancias? Respuesta: Claro que sí y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
           "attachments_count": 0,
           "source": "agent",
           "upstream_error": ""

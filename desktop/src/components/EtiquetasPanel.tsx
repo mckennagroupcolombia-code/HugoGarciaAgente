@@ -96,12 +96,35 @@ const CODIGOS_INSTALAR_IMPRESORA = new Set([
   "deshabilitada",
   "pausada",
   "sin_conexion",
+  "sin_usb",
+  "ipp_sin_respuesta",
+  "smb_sin_respuesta",
   "backend_incorrecto",
   "elpu",
   "cups_inactivo",
   "sudo",
   "preflight",
+  "remoto_sin_uri",
 ]);
+
+const DRIVER_EPSON_WINDOWS_URL =
+  "https://epson.com/Support/Printers/Label-Printers/ColorWorks-Series/Epson-ColorWorks-CW-C4000/s/SPT_C31CK03101";
+
+/** Driver Epson CW-C4000 para Windows 10 Pro 64-bit (PC Jenniffer). */
+const DRIVER_EPSON_WINDOWS_10_PRO_URL =
+  "https://epson.com/Support/Printers/Label-Printers/ColorWorks-Series/Epson-ColorWorks-CW-C4000/s/SPT_C31CK03101?review-filter=Windows+10+64-bit";
+
+const WINDOWS_10_PRO_LABEL = "Windows 10 Pro";
+const WINDOWS_10_PRO_HOST_DEFAULT = "192.168.5.116";
+const WINDOWS_10_PRO_SHARE = "CW-C4000u";
+const SESION_JENNIFFER_LABEL = "Jenniffer";
+/** Descarga el .ps1 desde el agente (URL pública: el PC Windows no ve la LAN 192.168.1.8). */
+const SCRIPT_WINDOWS_PS1_URL = "/api/etiquetas/impresora/script-windows";
+const SCRIPT_WINDOWS_PS1_PUBLIC =
+  "https://bot.mckennagroup.co/api/etiquetas/impresora/script-windows";
+const SCRIPT_WINDOWS_PS1_ONELINER =
+  `powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri '${SCRIPT_WINDOWS_PS1_PUBLIC}' -OutFile '$env:TEMP\\configurar_compartir_windows.ps1'; & '$env:TEMP\\configurar_compartir_windows.ps1'"`;
+
 
 interface ImpResp {
   impresora: string;
@@ -111,6 +134,15 @@ interface ImpResp {
   trabajos_en_cola?: number;
   impresora_conectada?: boolean;
   comunicacion_usb?: boolean;
+  modo_red?: boolean;
+  uri_dispositivo?: string;
+  remoto?: {
+    activo?: boolean;
+    modo?: string;
+    host?: string;
+    share?: string;
+    uri?: string;
+  };
   niveles_tinta?: NivelesTintaResp;
 }
 
@@ -124,6 +156,24 @@ interface DiagResp {
   checks: DiagCheck[];
   todo_ok: boolean;
   usb_detectado: string | null;
+  remoto?: ImpResp["remoto"];
+  modo_red?: boolean;
+}
+
+interface RemotoResp {
+  ok: boolean;
+  uri?: string;
+  log?: string[];
+  mensaje?: string;
+  error?: string;
+  detalle?: string;
+  solucion?: string;
+  remoto?: ImpResp["remoto"] & {
+    sistema_operativo?: string;
+    sesion?: string;
+  };
+  modo_red?: boolean;
+  uri_actual?: string;
 }
 
 interface InstalResp {
@@ -1841,12 +1891,15 @@ function BannerErrorImpresora({
   error,
   onCerrar,
   onInstalar,
+  onWindowsRemoto,
 }: {
   error: ErrorImpresora;
   onCerrar: () => void;
   onInstalar?: () => void;
+  onWindowsRemoto?: () => void;
 }) {
   const mostrarInstalar = onInstalar && (!error.codigo || CODIGOS_INSTALAR_IMPRESORA.has(error.codigo));
+  const esSinUsb = error.codigo === "sin_usb" || error.codigo === "remoto_sin_uri" || error.codigo === "smb_sin_respuesta";
   return (
     <Banner tone="danger" className="flex-shrink-0 items-start rounded-none border-x-0 border-t-0 px-4 py-3" onClose={onCerrar}>
       <div className="flex items-start gap-3">
@@ -1857,11 +1910,28 @@ function BannerErrorImpresora({
             <span className="font-semibold">Posible solución: </span>
             {error.solucion}
           </p>
-          {mostrarInstalar && (
-            <Button variant="secondary" size="sm" className="mt-2" onClick={onInstalar}>
-              Instalar impresora
-            </Button>
-          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {mostrarInstalar && (
+              <Button variant="secondary" size="sm" onClick={onInstalar}>
+                {esSinUsb ? "USB en este PC" : "Instalar impresora"}
+              </Button>
+            )}
+            {esSinUsb && onWindowsRemoto && (
+              <Button variant="primary" size="sm" onClick={onWindowsRemoto}>
+                Instalar Windows 10 Pro
+              </Button>
+            )}
+            {esSinUsb && (
+              <a
+                href={DRIVER_EPSON_WINDOWS_10_PRO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-semibold text-ink hover:bg-surface-hover"
+              >
+                Driver Windows 10 Pro
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </Banner>
@@ -2343,14 +2413,66 @@ function NavegadorArchivos({
 
 // ── Wizard instalación ────────────────────────────────────────────────────────
 
-function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
+type InstaladorTab = "windows10pro" | "usb";
+
+function esSesionJennifer(nombre?: string | null, username?: string | null): boolean {
+  const n = `${nombre || ""} ${username || ""}`.toLowerCase();
+  // Jenniffer Garcia (tickets), variantes de escritura, username jerry
+  return (
+    n.includes("jenniffer")
+    || n.includes("jennifer")
+    || n.includes("jenifer")
+    || n.trim() === "jerry"
+    || n.split(/\s+/).includes("jerry")
+  );
+}
+
+function nombreSesionRemoto(
+  sesionJennifer: boolean,
+  nombre?: string | null,
+  username?: string | null,
+): string {
+  if (sesionJennifer) {
+    return (nombre || "").trim() || "Jenniffer Garcia";
+  }
+  return (nombre || username || "operador").trim() || "operador";
+}
+
+function InstaladorWizard({
+  onCerrar,
+  tabInicial = "windows10pro",
+}: {
+  onCerrar: () => void;
+  tabInicial?: InstaladorTab;
+}) {
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const sesionJennifer = esSesionJennifer(ticketsUser?.nombre, ticketsUser?.username);
+  const [tab, setTab] = useState<InstaladorTab>(
+    tabInicial === "usb" ? "usb" : "windows10pro",
+  );
   const [instalLog, setInstalLog] = useState<string[]>([]);
   const [instalDone, setInstalDone] = useState(false);
+  const [hostWin, setHostWin] = useState(WINDOWS_10_PRO_HOST_DEFAULT);
+  const [shareWin, setShareWin] = useState(WINDOWS_10_PRO_SHARE);
+  const [remotoMsg, setRemotoMsg] = useState<string | null>(null);
+  const [pasosWin, setPasosWin] = useState<string[]>([]);
 
   const { data: diagData, isLoading: diagLoading, refetch: refetchDiag } = useQuery({
     queryKey: ["etiquetas-diagnostico"],
     queryFn: () => api.get<DiagResp>("/api/etiquetas/diagnostico"),
   });
+
+  const { data: remotoGet, refetch: refetchRemoto } = useQuery({
+    queryKey: ["etiquetas-impresora-remoto"],
+    queryFn: () => api.get<RemotoResp>("/api/etiquetas/impresora/remoto"),
+  });
+
+  useEffect(() => {
+    const r = remotoGet?.remoto ?? diagData?.remoto;
+    if (r?.host) setHostWin(String(r.host));
+    else setHostWin(WINDOWS_10_PRO_HOST_DEFAULT);
+    if (r?.share) setShareWin(String(r.share) || WINDOWS_10_PRO_SHARE);
+  }, [remotoGet, diagData]);
 
   const instalarMut = useMutation({
     mutationFn: () => api.post<InstalResp>("/api/etiquetas/instalar", {}),
@@ -2358,7 +2480,67 @@ function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
     onError: (err) => { setInstalLog([`Error: ${err.message}`]); setInstalDone(true); },
   });
 
+  const desinstalarMut = useMutation({
+    mutationFn: () =>
+      api.post<{
+        ok: boolean;
+        log?: string[];
+        mensaje?: string;
+        pasos_windows?: string[];
+        driver_windows_url?: string;
+      }>("/api/etiquetas/desinstalar", {}),
+    onSuccess: (data) => {
+      setInstalLog(data.log ?? []);
+      setInstalDone(true);
+      setRemotoMsg(data.mensaje ?? "Impresora desinstalada");
+      setPasosWin(data.pasos_windows ?? []);
+      setTab("windows10pro");
+      void refetchDiag();
+      void refetchRemoto();
+    },
+    onError: (err) => {
+      setInstalLog([`Error: ${err.message}`]);
+      setInstalDone(true);
+      setRemotoMsg(err.message);
+    },
+  });
+
+  const remotoMut = useMutation({
+    mutationFn: () =>
+      api.post<RemotoResp>("/api/etiquetas/impresora/remoto", {
+        host: hostWin.trim(),
+        share: shareWin.trim() || WINDOWS_10_PRO_SHARE,
+        sistema_operativo: "windows_10_pro",
+        sesion: nombreSesionRemoto(
+          sesionJennifer,
+          ticketsUser?.nombre,
+          ticketsUser?.username,
+        ),
+      }),
+    onSuccess: (data) => {
+      setInstalLog(data.log ?? []);
+      setInstalDone(true);
+      setRemotoMsg(
+        data.mensaje
+          ?? `Instalado para ${WINDOWS_10_PRO_LABEL} → ${data.uri ?? "SMB"}`,
+      );
+      setPasosWin([]);
+      void refetchDiag();
+      void refetchRemoto();
+    },
+    onError: (err) => {
+      setInstalLog([`Error: ${err.message}`]);
+      setInstalDone(true);
+      setRemotoMsg(err.message);
+    },
+  });
+
   const todoOk = diagData?.todo_ok ?? false;
+  const modoRedOk = Boolean(diagData?.modo_red || remotoGet?.modo_red);
+  const busy = instalarMut.isPending || remotoMut.isPending || desinstalarMut.isPending;
+  const tituloSesion = sesionJennifer
+    ? `Sesión ${SESION_JENNIFFER_LABEL} · ${WINDOWS_10_PRO_LABEL}`
+    : `Epson CW-C4000u · ${WINDOWS_10_PRO_LABEL}`;
 
   return (
     <Modal
@@ -2367,78 +2549,289 @@ function InstaladorWizard({ onCerrar }: { onCerrar: () => void }) {
       title={
         <>
           <h3 className="text-base font-bold text-ink">Instalación de impresora</h3>
-          <p className="text-xs font-normal text-muted">Epson ColorWorks CW-C4000u</p>
+          <p className="text-xs font-normal text-muted">{tituloSesion}</p>
         </>
       }
       footer={
-        <div className="flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={onCerrar}>
-            {instalDone || todoOk ? "Cerrar" : "Cancelar"}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" className="flex-1" onClick={onCerrar} disabled={busy}>
+            {instalDone || todoOk || modoRedOk ? "Cerrar" : "Cancelar"}
           </Button>
-          {!todoOk && (
+          <Button
+            variant="secondary"
+            className="flex-1"
+            loading={desinstalarMut.isPending}
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm(`¿Desinstalar CW-C4000u y reiniciar instalación para ${WINDOWS_10_PRO_LABEL}?`)) return;
+              setInstalLog([]);
+              setInstalDone(false);
+              setRemotoMsg(null);
+              setPasosWin([]);
+              desinstalarMut.mutate();
+            }}
+          >
+            Desinstalar
+          </Button>
+          {tab === "usb" && (
             <Button
               variant="primary"
               className="flex-1"
               loading={instalarMut.isPending}
-              disabled={diagLoading}
+              disabled={diagLoading || busy}
               onClick={() => { setInstalLog([]); setInstalDone(false); instalarMut.mutate(); }}
             >
-              {instalarMut.isPending ? "Instalando..." : "Instalar automáticamente"}
+              {instalarMut.isPending ? "Instalando..." : "Instalar USB (Linux)"}
             </Button>
           )}
-          {todoOk && (
-            <Button variant="secondary" className="flex-1" onClick={() => refetchDiag()}>
-              Actualizar
+          {tab === "windows10pro" && (
+            <Button
+              variant="primary"
+              className="flex-1"
+              loading={remotoMut.isPending}
+              disabled={!hostWin.trim() || busy}
+              onClick={() => {
+                setInstalLog([]);
+                setInstalDone(false);
+                setRemotoMsg(null);
+                setPasosWin([]);
+                remotoMut.mutate();
+              }}
+            >
+              {remotoMut.isPending ? "Instalando..." : `Instalar para ${WINDOWS_10_PRO_LABEL}`}
             </Button>
           )}
         </div>
       }
     >
       <div className="px-6 py-5 space-y-5">
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">Diagnóstico del sistema</p>
-            {diagLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <Spinner />
-                Verificando componentes...
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {diagData?.checks.map((c) => (
-                  <div key={c.nombre} className="flex items-start gap-3 rounded-lg border border-border bg-surface px-3 py-2">
-                    <span className="mt-0.5 text-base leading-none">{c.ok ? "✅" : "❌"}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-ink">{c.nombre}</p>
-                      {c.detalle && <p className="truncate text-[10px] text-muted">{c.detalle}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Sistema operativo</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setTab("windows10pro")}
+              className={`rounded-lg border-2 px-3 py-3 text-left transition ${
+                tab === "windows10pro"
+                  ? "border-accent bg-accent/5 shadow-sm"
+                  : "border-border bg-surface hover:border-accent/40"
+              }`}
+            >
+              <p className="text-sm font-bold text-ink">{WINDOWS_10_PRO_LABEL}</p>
+              <p className="mt-0.5 text-[10px] text-muted">
+                PC {SESION_JENNIFFER_LABEL} · driver Epson oficial 64-bit · SMB
+              </p>
+              {tab === "windows10pro" && (
+                <span className="mt-2 inline-block rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                  Seleccionado
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("usb")}
+              className={`rounded-lg border-2 px-3 py-3 text-left transition ${
+                tab === "usb"
+                  ? "border-accent bg-accent/5 shadow-sm"
+                  : "border-border bg-surface hover:border-accent/40"
+              }`}
+            >
+              <p className="text-sm font-bold text-ink">USB Linux</p>
+              <p className="mt-0.5 text-[10px] text-muted">
+                Solo si la Epson está en este servidor
+              </p>
+              {tab === "usb" && (
+                <span className="mt-2 inline-block rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                  Seleccionado
+                </span>
+              )}
+            </button>
           </div>
+        </div>
 
-          {diagData?.usb_detectado && (
-            <Banner tone="success" className="text-xs">
-              Impresora USB detectada: <span className="font-mono">{diagData.usb_detectado}</span>
+        {tab === "usb" && (
+          <>
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Diagnóstico del sistema</p>
+              {diagLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <Spinner />
+                  Verificando componentes...
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {diagData?.checks.map((c) => (
+                    <div key={c.nombre} className="flex items-start gap-3 rounded-lg border border-border bg-surface px-3 py-2">
+                      <span className="mt-0.5 text-base leading-none">{c.ok ? "✅" : "❌"}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-ink">{c.nombre}</p>
+                        {c.detalle && <p className="truncate text-[10px] text-muted">{c.detalle}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {diagData?.usb_detectado && (
+              <Banner tone="success" className="text-xs">
+                Impresora USB detectada: <span className="font-mono">{diagData.usb_detectado}</span>
+              </Banner>
+            )}
+
+            {!diagData?.usb_detectado && !diagLoading && (
+              <Banner tone="warning" className="text-xs">
+                Sin USB en este PC. Elige <strong>{WINDOWS_10_PRO_LABEL}</strong> (sesión {SESION_JENNIFFER_LABEL}).
+              </Banner>
+            )}
+          </>
+        )}
+
+        {tab === "windows10pro" && (
+          <div className="space-y-4">
+            <Banner tone="accent" className="text-xs leading-relaxed">
+              Instalación para <strong>{WINDOWS_10_PRO_LABEL}</strong> en el PC de {SESION_JENNIFFER_LABEL}:
+              driver Epson oficial → compartir <span className="font-mono">{WINDOWS_10_PRO_SHARE}</span> (SMB) →
+              conectar desde el panel.
             </Banner>
-          )}
 
-          {instalLog.length > 0 && (
-            <div className="rounded-lg border border-border bg-surface">
-              <p className="border-b border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">Log de instalación</p>
-              <div className="max-h-40 overflow-y-auto p-3 font-mono text-[11px] text-ink space-y-0.5">
-                {instalLog.map((l, i) => (
-                  <div key={i} className={l.startsWith("✗") || l.startsWith("⚠") ? "text-warning" : ""}>{l}</div>
-                ))}
+            <div className="rounded-lg border border-border bg-surface p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Driver para este SO</p>
+              <p className="mt-1 text-sm font-semibold text-ink">Epson ColorWorks CW-C4000 · {WINDOWS_10_PRO_LABEL} 64-bit</p>
+              <a
+                href={DRIVER_EPSON_WINDOWS_10_PRO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex text-xs font-semibold text-accent underline"
+              >
+                Descargar driver Windows 10 Pro
+              </a>
+              <p className="mt-1 text-[10px] text-muted">
+                También:{" "}
+                <a href={DRIVER_EPSON_WINDOWS_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                  página general Epson CW-C4000
+                </a>
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Script en el PC de {SESION_JENNIFFER_LABEL} (no uses la IP 192.168.1.8)
+              </p>
+              <a
+                href={SCRIPT_WINDOWS_PS1_PUBLIC}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex text-xs font-semibold text-accent underline"
+              >
+                Descargar configurar_compartir_windows.ps1 (URL pública)
+              </a>
+              <p className="text-[10px] text-muted">
+                También desde este panel:{" "}
+                <a href={SCRIPT_WINDOWS_PS1_URL} download="configurar_compartir_windows.ps1" className="underline text-accent">
+                  descarga relativa
+                </a>
+              </p>
+              <p className="text-[10px] text-muted leading-relaxed">
+                O en PowerShell <strong>como Administrador</strong>:
+              </p>
+              <button
+                type="button"
+                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-left font-mono text-[10px] text-ink break-all hover:border-accent"
+                title="Clic para copiar"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(SCRIPT_WINDOWS_PS1_ONELINER);
+                }}
+              >
+                {SCRIPT_WINDOWS_PS1_ONELINER}
+              </button>
+              <p className="text-[10px] text-muted">Clic en el comando para copiarlo.</p>
+            </div>
+
+            <ol className="list-decimal space-y-1 pl-4 text-xs text-ink-secondary">
+              <li>
+                Descargar el script (enlace de arriba) o pegar el one-liner en PowerShell Admin
+              </li>
+              <li>Instalar el driver Epson para Windows 10 Pro</li>
+              <li>USB + LCD Listo → el script comparte como <span className="font-mono">{WINDOWS_10_PRO_SHARE}</span></li>
+              <li>
+                Anotar la IP que muestra el script → aquí pulsar{" "}
+                <strong>Instalar para {WINDOWS_10_PRO_LABEL}</strong>
+              </li>
+            </ol>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-muted">
+                  IP del PC ({WINDOWS_10_PRO_LABEL})
+                </label>
+                <input
+                  type="text"
+                  value={hostWin}
+                  onChange={(e) => setHostWin(e.target.value)}
+                  placeholder={WINDOWS_10_PRO_HOST_DEFAULT}
+                  className="h-9 w-full rounded border border-border bg-surface px-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-muted">Nombre compartido</label>
+                <input
+                  type="text"
+                  value={shareWin}
+                  onChange={(e) => setShareWin(e.target.value)}
+                  placeholder={WINDOWS_10_PRO_SHARE}
+                  className="h-9 w-full rounded border border-border bg-surface px-2.5 text-sm text-ink outline-none focus:border-accent"
+                />
               </div>
             </div>
-          )}
+            {(remotoGet?.uri_actual || remotoGet?.remoto?.uri) && (
+              <p className="text-[11px] text-muted">
+                URI actual:{" "}
+                <span className="font-mono text-ink">
+                  {remotoGet?.uri_actual || remotoGet?.remoto?.uri}
+                </span>
+                {modoRedOk ? ` · ${WINDOWS_10_PRO_LABEL} activo` : ""}
+                {remotoGet?.remoto?.sistema_operativo
+                  ? ` · SO: ${remotoGet.remoto.sistema_operativo}`
+                  : ""}
+              </p>
+            )}
+            {remotoMsg && (
+              <Banner tone={remotoMut.isError || desinstalarMut.isError ? "danger" : "success"} className="text-xs">
+                {remotoMsg}
+              </Banner>
+            )}
+            {pasosWin.length > 0 && (
+              <ol className="list-decimal space-y-1 rounded-lg border border-border bg-surface p-3 pl-7 text-[11px] text-ink-secondary">
+                {pasosWin.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ol>
+            )}
+          </div>
+        )}
 
-          {todoOk && !instalarMut.isPending && (
-            <Banner tone="success" className="justify-center text-center text-sm font-semibold">
-              ✅ Todo está correctamente instalado
-            </Banner>
-          )}
+        {instalLog.length > 0 && (
+          <div className="rounded-lg border border-border bg-surface">
+            <p className="border-b border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">Log</p>
+            <div className="max-h-40 overflow-y-auto p-3 font-mono text-[11px] text-ink space-y-0.5">
+              {instalLog.map((l, i) => (
+                <div key={i} className={l.startsWith("✗") || l.startsWith("⚠") || l.startsWith("Error") ? "text-warning" : ""}>{l}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {todoOk && !instalarMut.isPending && tab === "usb" && (
+          <Banner tone="success" className="justify-center text-center text-sm font-semibold">
+            ✅ Todo está correctamente instalado (USB)
+          </Banner>
+        )}
+        {modoRedOk && tab === "windows10pro" && !remotoMut.isPending && (
+          <Banner tone="success" className="justify-center text-center text-sm font-semibold">
+            ✅ Instalado para {WINDOWS_10_PRO_LABEL} (SMB)
+          </Banner>
+        )}
       </div>
     </Modal>
   );
@@ -4078,6 +4471,11 @@ function TabImprimir({
   const [rectangulosPlantilla, setRectangulosPlantilla] = useState<RectanguloPlantilla[]>([]);
   const [log, setLog] = useState<string[]>([]);
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
+  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("usb");
+  const abrirInstalador = (tab: InstaladorTab = "windows10pro") => {
+    setInstaladorTab(tab);
+    setMostrarInstalador(true);
+  };
   const [tabRibbon, setTabRibbon] = useState<ImprimirRibbonTab>("inicio");
   const [errorImpresion, setErrorImpresion] = useState<ErrorImpresora | null>(null);
   const [mostrarPedidoEtiquetas, setMostrarPedidoEtiquetas] = useState(false);
@@ -4356,7 +4754,11 @@ function TabImprimir({
         />
       )}
       {mostrarInstalador && (
-        <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); refetchImpresora(); }} />
+        <InstaladorWizard
+          key={`instalador-${instaladorTab}`}
+          tabInicial={instaladorTab}
+          onCerrar={() => { setMostrarInstalador(false); refetchImpresora(); }}
+        />
       )}
 
       {vistaImpresion === "catalogo" ? (
@@ -4386,7 +4788,7 @@ function TabImprimir({
           onVistaChange={setVistaImpresion}
           solicitudesCount={solicitudesImprimir.length}
           onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
-          onInstalarClick={() => setMostrarInstalador(true)}
+          onInstalarClick={() => abrirInstalador("windows10pro")}
           impConectada={impConectada}
           impDeshabilitada={impDeshabilitada}
           avisoRollo={avisoRollo}
@@ -4396,7 +4798,8 @@ function TabImprimir({
           <BannerErrorImpresora
             error={errorImpresion}
             onCerrar={() => setErrorImpresion(null)}
-            onInstalar={() => setMostrarInstalador(true)}
+            onInstalar={() => abrirInstalador("usb")}
+            onWindowsRemoto={() => abrirInstalador("windows10pro")}
           />
         )}
 
@@ -4405,12 +4808,14 @@ function TabImprimir({
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs">
                 {impDeshabilitada
-                  ? "Conecta el cable USB e instala la impresora."
-                  : "Impresora no registrada en CUPS. Pulsa «Instalar impresora»."}
+                  ? "Impresora desinstalada o sin USB. Instala para Windows 10 Pro (sesión Jenniffer)."
+                  : "Impresora no registrada. Pulsa Instalar para Windows 10 Pro."}
               </p>
-              <Button variant="warning" size="sm" onClick={() => setMostrarInstalador(true)}>
-                Instalar
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="warning" size="sm" onClick={() => abrirInstalador("windows10pro")}>
+                  Instalar para Windows 10 Pro
+                </Button>
+              </div>
             </div>
           </Banner>
         )}
@@ -4786,13 +5191,16 @@ function estadoImpresoraLegible(data?: ImpResp | null): string {
 function PanelAlertaEstadoImpresora({
   alerta,
   onInstalar,
+  onWindowsRemoto,
 }: {
   alerta: AlertaImpresora;
   onInstalar?: () => void;
+  onWindowsRemoto?: () => void;
 }) {
   const sev = alerta.severidad ?? "error";
   const tone = sev === "info" ? "accent" : sev === "warning" ? "warning" : "danger";
   const mostrarInstalar = onInstalar && (!alerta.codigo || CODIGOS_INSTALAR_IMPRESORA.has(alerta.codigo));
+  const esSinUsb = alerta.codigo === "sin_usb" || alerta.codigo === "remoto_sin_uri" || alerta.codigo === "smb_sin_respuesta";
 
   return (
     <Banner tone={tone} className="mb-3 text-xs">
@@ -4809,12 +5217,19 @@ function PanelAlertaEstadoImpresora({
           {alerta.detalle ? (
             <p className="mt-2 font-mono text-[10px] opacity-70">{alerta.detalle}</p>
           ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {mostrarInstalar && (
+              <Button variant="secondary" size="sm" onClick={onInstalar}>
+                {esSinUsb ? "USB en este PC" : "Instalar impresora"}
+              </Button>
+            )}
+            {esSinUsb && onWindowsRemoto && (
+              <Button variant="primary" size="sm" onClick={onWindowsRemoto}>
+                Instalar Windows 10 Pro
+              </Button>
+            )}
+          </div>
         </div>
-        {mostrarInstalar && (
-          <Button variant="secondary" size="sm" className="shrink-0" onClick={onInstalar}>
-            Instalar impresora
-          </Button>
-        )}
       </div>
     </Banner>
   );
@@ -4829,6 +5244,11 @@ function NivelesTintaImpresora({
 }) {
   const qc = useQueryClient();
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
+  const [instaladorTab, setInstaladorTab] = useState<InstaladorTab>("usb");
+  const abrirInstalador = (tab: InstaladorTab = "windows10pro") => {
+    setInstaladorTab(tab);
+    setMostrarInstalador(true);
+  };
   const [leyendoUsb, setLeyendoUsb] = useState(false);
   const [errorUsb, setErrorUsb] = useState<string | null>(null);
   const [manualDraft, setManualDraft] = useState<Record<string, number>>(() =>
@@ -4938,7 +5358,11 @@ function NivelesTintaImpresora({
   return (
     <>
       {mostrarInstalador && (
-        <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); void leerImpresora(); }} />
+        <InstaladorWizard
+          key={`instalador-tinta-${instaladorTab}`}
+          tabInicial={instaladorTab}
+          onCerrar={() => { setMostrarInstalador(false); void leerImpresora(); }}
+        />
       )}
       <div className="rounded-xl border-2 border-accent/30 bg-surface-panel p-4 shadow-paper-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -4979,7 +5403,8 @@ function NivelesTintaImpresora({
             severidad: "error",
             codigo: "desconocido",
           }}
-          onInstalar={() => setMostrarInstalador(true)}
+          onInstalar={() => abrirInstalador("usb")}
+          onWindowsRemoto={() => abrirInstalador("windows10pro")}
         />
       )}
 
@@ -4992,7 +5417,8 @@ function NivelesTintaImpresora({
       {!isError && alerta && (
         <PanelAlertaEstadoImpresora
           alerta={alerta}
-          onInstalar={() => setMostrarInstalador(true)}
+          onInstalar={() => abrirInstalador("usb")}
+          onWindowsRemoto={() => abrirInstalador("windows10pro")}
         />
       )}
 

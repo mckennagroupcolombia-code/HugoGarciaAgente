@@ -101,7 +101,7 @@ export function ImpresionEtiquetasHeader({
           onClick={onInstalarClick}
           className="!border-white/30 !text-white hover:!bg-white/15"
         >
-          Instalar
+          Instalar Windows 10 Pro
         </Button>
       )}
 
