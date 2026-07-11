@@ -134,7 +134,11 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
     const token = p.get("_token");
     const err = p.get("auth_error");
     if (token || err) {
-      window.history.replaceState({}, "", window.location.pathname);
+      // Conservar history.state de la app (mck) al limpiar ?_token= / auth_error
+      const keep = window.history.state && typeof window.history.state === "object"
+        ? window.history.state
+        : { mck: true };
+      window.history.replaceState(keep, "", window.location.pathname);
     }
     if (err) {
       setAuthError(decodeURIComponent(err));
