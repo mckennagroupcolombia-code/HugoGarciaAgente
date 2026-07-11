@@ -49,6 +49,9 @@ memoria_vectorial/
 app/data/ciencia_borradores/
 app/data/etiquetas_ai_cache/
 .wwebjs_auth/
+# Sesión autenticada de WhatsApp: NUNCA commitear (tokens de sesión = secuestro
+# de la cuenta). Cubre la del bridge y cualquier copia en la raíz del repo.
+.wwebjs_auth_nueva/
 .wwebjs_cache/
 .cache/
 
