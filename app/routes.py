@@ -7549,6 +7549,9 @@ def register_routes(app):
     _ETIQUETAS_PDFS_GUARDADOS_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_pdfs_guardados.json",
     )
+    _ETIQUETAS_IMPRESORA_REMOTO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_impresora_remoto.json",
+    )
     _PDF_ETIQUETAS_MAX_BYTES = 30 * 1024 * 1024
     _REPO_EPSON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "epson")
 
@@ -7804,7 +7807,10 @@ def register_routes(app):
         ),
         (
             ("communication", "comunicación", "device not found", "i/o error",
-             "status_commerror", "commerror"),
+             "status_commerror", "commerror",
+             "esperando a que la impresora esté disponible",
+             "waiting for the printer to become available",
+             "err_invalidaddress"),
             "Error de comunicación USB",
             "Enciende la impresora, reconecta el cable USB (sin hub), reiníciala 30 s y pulsa «Instalar impresora». "
             "Si la cola tiene trabajos atascados, el panel los limpia al reintentar.",
@@ -7966,17 +7972,61 @@ def register_routes(app):
             )
             estado = (r.stdout + r.stderr).strip()
             el = estado.lower()
-            if r.returncode != 0 or "unknown" in el or "does not exist" in el or "no existe" in el:
-                return {
-                    "error": "Impresora CW-C4000u no registrada",
-                    "solucion": "Pulsa «Instalar impresora» en el panel para registrarla con el driver Epson.",
-                    "codigo": "no_registrada",
-                    "detalle": estado,
-                }
+            no_reg = (
+                r.returncode != 0
+                or "unknown" in el
+                or "does not exist" in el
+                or "no existe" in el
+                or "no válido" in el
+                or "no valido" in el
+                or "destino" in el and "inválid" in el
+            )
+            if no_reg:
+                # Auto-recuperar cola desde config Windows 10 Pro (Jenniffer)
+                cfg = _load_impresora_remoto_etiquetas()
+                host_cfg = str(cfg.get("host") or "").strip()
+                share_cfg = str(cfg.get("share") or "CW-C4000u").strip() or "CW-C4000u"
+                uri_cfg = str(cfg.get("uri") or "").strip()
+                # Config antigua IPP → migrar a SMB (transporte nativo Win10 Pro)
+                if uri_cfg.lower().startswith("ipp://") and host_cfg:
+                    uri_cfg = _armar_uri_windows_smb_etiquetas(host_cfg, share_cfg)
+                if host_cfg or _uri_es_red_etiquetas(uri_cfg):
+                    ok_r, det_r, log_r = _configurar_cola_windows_remoto_etiquetas(
+                        host_cfg,
+                        share_cfg,
+                        uri=uri_cfg or None,
+                        sistema_operativo=str(cfg.get("sistema_operativo") or "windows_10_pro"),
+                        sesion=str(cfg.get("sesion") or "Jenniffer Garcia"),
+                    )
+                    if ok_r:
+                        estado = _estado_cups_etiquetas()
+                        el = estado.lower()
+                        no_reg = False
+                    else:
+                        return {
+                            "error": "Impresora CW-C4000u no registrada",
+                            "solucion": (
+                                "Pulsa «Instalar Windows 10 Pro» en el panel (sesión Jenniffer) "
+                                f"con IP {host_cfg or '192.168.5.116'}. "
+                                f"Detalle: {det_r}"
+                            ),
+                            "codigo": "no_registrada",
+                            "detalle": "\n".join(log_r[-5:]) if log_r else estado,
+                        }
+                if no_reg:
+                    return {
+                        "error": "Impresora CW-C4000u no registrada",
+                        "solucion": (
+                            "Pulsa «Instalar Windows 10 Pro» en el panel (sesión Jenniffer) "
+                            "para registrar la cola CUPS hacia el PC Windows."
+                        ),
+                        "codigo": "no_registrada",
+                        "detalle": estado,
+                    }
             if "disabled" in el or "deshabilitad" in el:
                 return {
                     "error": "Impresora deshabilitada",
-                    "solucion": "Conecta el cable USB y pulsa «Instalar impresora», o ejecuta: sudo cupsenable CW-C4000u",
+                    "solucion": "Pulsa «Instalar Windows 10 Pro» o ejecuta: sudo cupsenable CW-C4000u",
                     "codigo": "deshabilitada",
                     "detalle": estado,
                 }
@@ -7987,7 +8037,7 @@ def register_routes(app):
                 if _cups_en_pausa_etiquetas(estado):
                     return {
                         "error": "Impresora en pausa",
-                        "solucion": "Pulsa «Instalar impresora» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
+                        "solucion": "Pulsa «Instalar Windows 10 Pro» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
                         "codigo": "pausada",
                         "detalle": estado,
                     }
@@ -8012,11 +8062,99 @@ def register_routes(app):
             }
 
         if not os.path.isfile(_ELPU_PATH) and not _shutil.which("elpu"):
+            if not _impresora_modo_red_etiquetas():
+                return {
+                    "error": "Utilidad ELPU no instalada",
+                    "solucion": "Pulsa «Instalar impresora» en el panel para instalar elpu (ajuste de posición).",
+                    "codigo": "elpu",
+                    "detalle": _ELPU_PATH,
+                }
+
+        if _impresora_modo_red_etiquetas():
+            uri = _uri_dispositivo_etiquetas()
+            if not _uri_es_red_etiquetas(uri):
+                cfg = _load_impresora_remoto_etiquetas()
+                return {
+                    "error": "Modo Windows remoto activo pero CUPS sigue en USB",
+                    "solucion": (
+                        "Pulsa «Instalar Windows 10 Pro» con host="
+                        f"{cfg.get('host') or '192.168.5.116'} y share=CW-C4000u"
+                    ),
+                    "codigo": "remoto_sin_uri",
+                    "detalle": uri or "sin URI",
+                }
+            # Comprobar que el Windows responde (SMB :445 o IPP :631 según URI)
+            host_remoto = ""
+            try:
+                from urllib.parse import urlparse as _urlparse
+                host_remoto = (_urlparse(uri).hostname or "").strip()
+            except Exception:
+                host_remoto = ""
+            if not host_remoto:
+                cfg = _load_impresora_remoto_etiquetas()
+                host_remoto = str(cfg.get("host") or "").strip()
+            if host_remoto:
+                uri_l = (uri or "").strip().lower()
+                es_smb = uri_l.startswith("smb://")
+                puertos = (445, 139) if es_smb else (631,)
+                ok_red = False
+                detalle_red = ""
+                import socket as _socket
+                for puerto in puertos:
+                    try:
+                        with _socket.create_connection((host_remoto, puerto), timeout=3):
+                            ok_red = True
+                            break
+                    except OSError as e_red:
+                        detalle_red = str(e_red)
+                if not ok_red:
+                    if es_smb:
+                        return {
+                            "error": f"Windows 10 Pro no responde en SMB ({host_remoto}:445)",
+                            "solucion": (
+                                "En el PC de Jenniffer (Windows 10 Pro): "
+                                "1) Comparte la impresora como CW-C4000u. "
+                                "2) Firewall: «Compartir archivos e impresoras» (red Privada). "
+                                "3) Perfil de red = Privado. "
+                                "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1. "
+                                "Luego reintenta imprimir."
+                            ),
+                            "codigo": "smb_sin_respuesta",
+                            "detalle": detalle_red or f"tcp://{host_remoto}:445",
+                        }
+                    return {
+                        "error": f"Windows 10 Pro no responde en IPP ({host_remoto}:631)",
+                        "solucion": (
+                            "En el PC de Jenniffer (Windows 10 Pro): "
+                            "1) Preferible: comparte por SMB (recomendado) y reinstala desde el panel. "
+                            "2) Si usas IPP: activa Internet Printing Server / IIS. "
+                            "3) Firewall: permitir TCP 631 (red Privada). "
+                            "4) Ejecuta como Admin: scripts\\epson\\configurar_compartir_windows.ps1."
+                        ),
+                        "codigo": "ipp_sin_respuesta",
+                        "detalle": detalle_red or f"tcp://{host_remoto}:631",
+                    }
+            return None
+
+        usb_uri = _epson_usb_detectado_etiquetas()
+        if not usb_uri:
             return {
-                "error": "Utilidad ELPU no instalada",
-                "solucion": "Pulsa «Instalar impresora» en el panel para instalar elpu (ajuste de posición).",
-                "codigo": "elpu",
-                "detalle": _ELPU_PATH,
+                "error": "Epson CW-C4000u no conectada por USB",
+                "solucion": (
+                    "Opción A (USB en este PC Linux): enciende la impresora, cable USB directo "
+                    "(sin hub) y espera a que el LCD diga Listo; luego «Instalar impresora». "
+                    "Opción B (Windows 10 Pro — sesión Jenniffer): "
+                    "instala el driver oficial Epson CW-C4000, comparte como «CW-C4000u» (SMB), "
+                    "activa «Compartir archivos e impresoras», y en el panel pulsa "
+                    "«Instalar Windows 10 Pro» con la IP de ese PC."
+                ),
+                "codigo": "sin_usb",
+                "detalle": "lsusb/lpinfo sin dispositivo Epson",
+                "windows_compatible": True,
+                "driver_windows_url": (
+                    "https://epson.com/Support/Printers/Label-Printers/ColorWorks-Series/"
+                    "Epson-ColorWorks-CW-C4000/s/SPT_C31CK03101?review-filter=Windows+10+64-bit"
+                ),
             }
 
         return None
@@ -8064,6 +8202,207 @@ def register_routes(app):
             pass
         return ""
 
+    def _uri_es_red_etiquetas(uri: str) -> bool:
+        u = (uri or "").strip().lower()
+        return u.startswith((
+            "ipp://", "ipps://", "http://", "https://",
+            "socket://", "lpd://", "smb://", "dnssd://",
+        ))
+
+    def _load_impresora_remoto_etiquetas() -> dict:
+        try:
+            with open(_ETIQUETAS_IMPRESORA_REMOTO_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except Exception:
+            return {}
+
+    def _save_impresora_remoto_etiquetas(data: dict) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_IMPRESORA_REMOTO_PATH), exist_ok=True)
+        with open(_ETIQUETAS_IMPRESORA_REMOTO_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def _impresora_modo_red_etiquetas() -> bool:
+        """True si la cola CUPS o la config apuntan a Windows/red (no USB local)."""
+        uri = _uri_dispositivo_etiquetas()
+        if _uri_es_red_etiquetas(uri):
+            return True
+        cfg = _load_impresora_remoto_etiquetas()
+        if cfg.get("activo") in (True, 1, "1", "true", "yes"):
+            return True
+        if _uri_es_red_etiquetas(str(cfg.get("uri") or "")):
+            return True
+        env_uri = (os.environ.get("ETIQUETAS_IMPRESORA_URI") or "").strip()
+        return _uri_es_red_etiquetas(env_uri)
+
+    def _armar_uri_windows_smb_etiquetas(host: str, share: str = "CW-C4000u") -> str:
+        """URI SMB nativa de Windows (compartir impresora). Preferida en Win10 Pro."""
+        h = (host or "").strip().rstrip("/")
+        s = (share or "CW-C4000u").strip().strip("/")
+        if not h:
+            return ""
+        return f"smb://{h}/{s}"
+
+    def _armar_uri_windows_ipp_etiquetas(host: str, share: str = "CW-C4000u") -> str:
+        """URI IPP opcional (requiere Internet Printing Server / IIS en Windows)."""
+        h = (host or "").strip().rstrip("/")
+        s = (share or "CW-C4000u").strip().strip("/")
+        if not h:
+            return ""
+        return f"ipp://{h}/printers/{s}"
+
+    def _protocolo_uri_etiquetas(uri: str) -> str:
+        u = (uri or "").strip().lower()
+        if u.startswith("smb://"):
+            return "smb"
+        if u.startswith(("ipp://", "ipps://")):
+            return "ipp"
+        if u.startswith(("http://", "https://")):
+            return "http"
+        if u.startswith("socket://"):
+            return "socket"
+        if u.startswith("lpd://"):
+            return "lpd"
+        return "red" if u else ""
+
+    def _configurar_cola_windows_remoto_etiquetas(
+        host: str,
+        share: str = "CW-C4000u",
+        *,
+        uri: str | None = None,
+        sistema_operativo: str = "windows_10_pro",
+        sesion: str = "Jenniffer Garcia",
+    ) -> tuple[bool, str, list[str]]:
+        """Apunta CW-C4000u a la impresora compartida en Windows 10 Pro (SMB por defecto)."""
+        import subprocess as _sp
+
+        log: list[str] = []
+        destino = (uri or "").strip() or _armar_uri_windows_smb_etiquetas(host, share)
+        if not destino or not _uri_es_red_etiquetas(destino):
+            return False, "URI remota inválida (usa smb://IP/Nombre o ipp://IP/printers/Nombre)", log
+
+        if destino.lower().startswith("smb://"):
+            smb_backend = "/usr/lib/cups/backend/smb"
+            if not os.path.exists(smb_backend):
+                return (
+                    False,
+                    "CUPS no tiene backend SMB (instala: sudo apt-get install -y smbclient)",
+                    log,
+                )
+
+        ppd_cups = f"/etc/cups/ppd/{_PRINTER_NAME}.ppd"
+        ppd_repo = os.path.join(_REPO_EPSON_DIR, "CW-C4000u.ppd")
+        ppd = ppd_cups if os.path.isfile(ppd_cups) else (ppd_repo if os.path.isfile(ppd_repo) else None)
+
+        cmds: list[list[str]] = []
+        if ppd:
+            cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", destino, "-P", ppd])
+        cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", destino, "-m", "everywhere"])
+        cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", destino])
+
+        ok = False
+        detalle = ""
+        for cmd in cmds:
+            try:
+                r = _sp.run(cmd, capture_output=True, text=True, timeout=45)
+                out = (r.stdout + r.stderr).strip()
+                log.append(f"{' '.join(cmd)} → {out or f'rc={r.returncode}'}")
+                if r.returncode == 0:
+                    ok = True
+                    detalle = destino
+                    break
+                detalle = out or f"rc={r.returncode}"
+            except Exception as e:
+                log.append(f"{cmd}: {e}")
+                detalle = str(e)
+
+        if ok:
+            for en in (["sudo", "-n", "cupsenable", _PRINTER_NAME], ["cupsenable", _PRINTER_NAME]):
+                _sp.run(en, capture_output=True, timeout=10)
+            for ac in (["sudo", "-n", "cupsaccept", _PRINTER_NAME], ["cupsaccept", _PRINTER_NAME]):
+                _sp.run(ac, capture_output=True, timeout=10)
+            so = (sistema_operativo or "windows_10_pro").strip() or "windows_10_pro"
+            ses = (sesion or "Jenniffer Garcia").strip() or "Jenniffer Garcia"
+            proto = _protocolo_uri_etiquetas(destino) or "smb"
+            _save_impresora_remoto_etiquetas({
+                "activo": True,
+                "modo": "windows_compartida",
+                "sistema_operativo": so,
+                "sistema_operativo_label": "Windows 10 Pro" if "10" in so else so,
+                "sesion": ses,
+                "host": (host or "").strip(),
+                "share": (share or "CW-C4000u").strip(),
+                "uri": destino,
+                "protocolo": proto,
+                "actualizado_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
+            })
+            log.append(f"Cola {_PRINTER_NAME} → {destino} ({so} / {ses} / {proto})")
+            return True, destino, log
+        return False, detalle or "lpadmin falló", log
+
+    def _epson_usb_detectado_etiquetas() -> str | None:
+        """URI usb:// si la CW-C4000u está presente (lpinfo o lsusb)."""
+        import subprocess as _sp
+        try:
+            r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
+            for line in (r.stdout or "").splitlines():
+                ll = line.lower()
+                if "usb" in ll and ("epson" in ll or "c4000" in ll):
+                    partes = line.split(None, 1)
+                    if len(partes) > 1:
+                        return _uri_usb_cups_desde_uri(partes[1].strip())
+        except Exception:
+            pass
+        try:
+            r = _sp.run(["lsusb"], capture_output=True, text=True, timeout=5)
+            # Epson vendor 04b8
+            if "04b8:" in (r.stdout or "").lower() or "epson" in (r.stdout or "").lower():
+                return _uri_dispositivo_etiquetas() or "usb://EPSON/CW-C4000u"
+        except Exception:
+            pass
+        return None
+
+    def _asegurar_apparmor_elioud_etiquetas() -> str:
+        """Permite a cupsd conectar a /run/elioud*.socket (sin esto falla el backend USB)."""
+        import subprocess as _sp
+        local_aa = "/etc/apparmor.d/local/usr.sbin.cupsd"
+        marker = "elioudSearch1.socket"
+        reglas = (
+            "# MCKG — Epson Label Printer I/O (elioud)\n"
+            "/run/elioudSearch1.socket wr,\n"
+            "/run/elioudPrint1.socket wr,\n"
+            "/run/elioudExeCmd1.socket wr,\n"
+            "/run/elioud*.socket wr,\n"
+        )
+        try:
+            actual = ""
+            if os.path.isfile(local_aa):
+                with open(local_aa, encoding="utf-8") as f:
+                    actual = f.read()
+            if marker in actual:
+                return "AppArmor elioud ya permitido"
+            nuevo = (actual.rstrip() + "\n\n" if actual.strip() else "") + reglas
+            tmp = "/tmp/mckg-apparmor-cupsd-local"
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(nuevo)
+            r = _sp.run(
+                ["sudo", "-n", "install", "-m", "644", "-o", "root", "-g", "root", tmp, local_aa],
+                capture_output=True, text=True, timeout=10,
+            )
+            if r.returncode != 0:
+                return f"AppArmor: no se pudo escribir {local_aa} ({(r.stderr or r.stdout or '').strip()})"
+            r2 = _sp.run(
+                ["sudo", "-n", "apparmor_parser", "-r", "/etc/apparmor.d/usr.sbin.cupsd"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if r2.returncode != 0:
+                return f"AppArmor escrito pero reload falló: {(r2.stderr or r2.stdout or '').strip()}"
+            return "AppArmor: sockets elioud permitidos para cupsd"
+        except Exception as e:
+            return f"AppArmor: {e}"
+
     def _uri_usb_cups_desde_uri(uri: str) -> str:
         """Normaliza a usb:// (CUPS imprime bien; epsonUSB:// falla con status 1)."""
         uri = (uri or "").strip()
@@ -8082,10 +8421,26 @@ def register_routes(app):
         return uri
 
     def _asegurar_backend_usb_cups_etiquetas() -> tuple[str, bool]:
-        """CUPS debe usar usb://; epsonUSB:// provoca «Backend epsonUSB returned status 1»."""
+        """CUPS debe usar usb://; epsonUSB:// provoca «Backend epsonUSB returned status 1».
+        En modo Windows remoto no toca la URI de red."""
         import subprocess as _sp
 
         uri = _uri_dispositivo_etiquetas()
+        if _uri_es_red_etiquetas(uri) or _impresora_modo_red_etiquetas():
+            cfg = _load_impresora_remoto_etiquetas()
+            deseada = (cfg.get("uri") or os.environ.get("ETIQUETAS_IMPRESORA_URI") or "").strip()
+            if deseada and _uri_es_red_etiquetas(deseada) and deseada != uri:
+                try:
+                    r = _sp.run(
+                        ["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-v", deseada],
+                        capture_output=True, text=True, timeout=15,
+                    )
+                    if r.returncode == 0:
+                        return deseada, True
+                except Exception:
+                    pass
+            return uri or deseada, False
+
         nueva = _uri_usb_cups_desde_uri(uri)
         if not nueva or nueva == uri:
             return uri or nueva, False
@@ -9569,9 +9924,29 @@ def register_routes(app):
                 usb_uri = _uri_usb_cups_desde_uri(usb_uri)
         except Exception:
             usb_uri = None
+        if not usb_uri:
+            usb_uri = _epson_usb_detectado_etiquetas()
+        if _impresora_modo_red_etiquetas():
+            chk(
+                "Modo Windows remoto (SMB)",
+                _uri_es_red_etiquetas(_uri_dispositivo_etiquetas()),
+                _uri_dispositivo_etiquetas() or "Config activa pero CUPS aún no apunta a smb://",
+            )
+        else:
+            chk(
+                "Epson detectada por USB",
+                bool(usb_uri),
+                usb_uri or "No aparece en lsusb/lpinfo — enciende y reconecta el cable",
+            )
 
         todo_ok = all(c["ok"] for c in checks)
-        return jsonify({"checks": checks, "todo_ok": todo_ok, "usb_detectado": usb_uri})
+        return jsonify({
+            "checks": checks,
+            "todo_ok": todo_ok,
+            "usb_detectado": usb_uri,
+            "modo_red": _impresora_modo_red_etiquetas(),
+            "remoto": _load_impresora_remoto_etiquetas(),
+        })
 
     @app.route("/api/etiquetas/instalar", methods=["POST"])
     def api_etiquetas_instalar():
@@ -9617,24 +9992,52 @@ def register_routes(app):
             log.append("⚠ PPD no encontrado — instala el driver Epson manualmente")
             errores.append("PPD no disponible")
 
-        # 3. URI USB — usb:// para CUPS (epsonUSB:// falla al imprimir)
-        try:
-            r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
-            usb_uri = next(
-                (line.split()[1] for line in r.stdout.splitlines()
-                 if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
-                "usb://EPSON/CW-C4000u",
-            )
-        except Exception:
-            usb_uri = "usb://EPSON/CW-C4000u"
-        usb_uri = _uri_usb_cups_desde_uri(usb_uri)
-        log.append(f"▶ URI impresora (usb://): {usb_uri}")
+        # 3. URI — USB local o Windows remoto (SMB)
+        cfg_remoto = _load_impresora_remoto_etiquetas()
+        uri_remoto = (
+            (os.environ.get("ETIQUETAS_IMPRESORA_URI") or "").strip()
+            or str(cfg_remoto.get("uri") or "").strip()
+        )
+        if _uri_es_red_etiquetas(uri_remoto) or cfg_remoto.get("activo") in (True, 1, "1", "true"):
+            host_r = str(cfg_remoto.get("host") or "").strip()
+            share_r = str(cfg_remoto.get("share") or "CW-C4000u").strip() or "CW-C4000u"
+            # Migrar IPP antiguo → SMB salvo URI explícita no-IPP en env
+            if uri_remoto.lower().startswith("ipp://") and host_r:
+                uri_remoto = _armar_uri_windows_smb_etiquetas(host_r, share_r)
+            if not uri_remoto and host_r:
+                uri_remoto = _armar_uri_windows_smb_etiquetas(host_r, share_r)
+            usb_uri = uri_remoto
+            log.append(f"▶ URI impresora (Windows remoto): {usb_uri}")
+        else:
+            try:
+                r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
+                usb_uri = next(
+                    (line.split()[1] for line in r.stdout.splitlines()
+                     if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
+                    "usb://EPSON/CW-C4000u",
+                )
+            except Exception:
+                usb_uri = "usb://EPSON/CW-C4000u"
+            usb_uri = _uri_usb_cups_desde_uri(usb_uri)
+            log.append(f"▶ URI impresora (usb://): {usb_uri}")
 
         # 4. Registrar o corregir impresora
         r_check = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
         uri_actual = _uri_dispositivo_etiquetas()
-        if r_check.returncode == 0:
+        if _uri_es_red_etiquetas(usb_uri):
             if uri_actual != usb_uri:
+                ok_r, det_r, log_r = _configurar_cola_windows_remoto_etiquetas(
+                    str(cfg_remoto.get("host") or ""),
+                    str(cfg_remoto.get("share") or "CW-C4000u"),
+                    uri=usb_uri,
+                )
+                log.extend(log_r)
+                if not ok_r:
+                    errores.append(f"Cola remota: {det_r}")
+            else:
+                log.append(f"▶ Impresora {_PRINTER_NAME} ya usa URI remota")
+        elif r_check.returncode == 0:
+            if uri_actual != usb_uri and not _uri_es_red_etiquetas(uri_actual):
                 run(
                     f"Corregir backend usb:// en {_PRINTER_NAME}",
                     ["sudo", "lpadmin", "-p", _PRINTER_NAME, "-v", usb_uri],
@@ -9661,6 +10064,9 @@ def register_routes(app):
         else:
             log.append("⚠ No se pudo iniciar elioud1 — verifica epson-printer-io-community")
             errores.append("elioud1 no disponible")
+
+        # 5c. AppArmor: cupsd → /run/elioud*.socket (sin esto el backend USB queda colgado)
+        log.append(f"▶ {_asegurar_apparmor_elioud_etiquetas()}")
 
         # 6. Instalar ELPU si falta
         elpu_local = os.path.join(_REPO_EPSON_DIR, "elpu")
@@ -9712,6 +10118,87 @@ def register_routes(app):
 
         ok = len(errores) == 0
         return jsonify({"ok": ok, "log": log, "errores": errores})
+
+    @app.route("/api/etiquetas/desinstalar", methods=["POST", "DELETE"])
+    @app.route("/app/api/etiquetas/desinstalar", methods=["POST", "DELETE"])
+    def api_etiquetas_desinstalar():
+        """Quita la cola CUPS CW-C4000u y desactiva modo Windows remoto (para reinstalar limpio)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+
+        log: list[str] = []
+        errores: list[str] = []
+
+        def run(desc: str, cmd: list[str]) -> bool:
+            log.append(f"▶ {desc}")
+            try:
+                r = _sp.run(cmd, capture_output=True, text=True, timeout=30)
+                out = (r.stdout + r.stderr).strip()
+                if out:
+                    log.append(f"  {out[:300]}")
+                if r.returncode != 0:
+                    # Ya no existe = OK para desinstalar
+                    if "no válido" in out.lower() or "unknown" in out.lower() or "does not exist" in out.lower():
+                        log.append("  (ya no estaba registrada)")
+                        return True
+                    errores.append(f"{desc}: {out or r.returncode}")
+                    return False
+                return True
+            except Exception as e:
+                errores.append(f"{desc}: {e}")
+                log.append(f"  ✗ {e}")
+                return False
+
+        # Cancelar trabajos pendientes
+        run("Cancelar trabajos", ["cancel", "-a", _PRINTER_NAME])
+        for cmd in (
+            ["sudo", "-n", "lpadmin", "-x", _PRINTER_NAME],
+            ["sudo", "lpadmin", "-x", _PRINTER_NAME],
+            ["lpadmin", "-x", _PRINTER_NAME],
+        ):
+            if run(f"Eliminar cola {_PRINTER_NAME}", cmd):
+                break
+
+        cfg = _load_impresora_remoto_etiquetas()
+        cfg["activo"] = False
+        cfg["desinstalado_at"] = __import__("datetime").datetime.now().isoformat(timespec="seconds")
+        cfg["motivo"] = "reinstalar_windows"
+        _save_impresora_remoto_etiquetas(cfg)
+        log.append("▶ Modo Windows remoto desactivado (config guardada)")
+
+        # Confirmar
+        r = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
+        registrada = r.returncode == 0 and bool((r.stdout or "").strip())
+        if registrada:
+            errores.append("La cola sigue apareciendo en CUPS")
+            log.append("⚠ lpstat aún ve la impresora")
+        else:
+            log.append(f"✅ {_PRINTER_NAME} desinstalada — usa Instalar → Windows remoto")
+
+        return jsonify({
+            "ok": len(errores) == 0 and not registrada,
+            "log": log,
+            "errores": errores,
+            "impresora_registrada": registrada,
+            "remoto": _load_impresora_remoto_etiquetas(),
+            "mensaje": (
+                "Impresora desinstalada en el servidor. "
+                "En el PC Windows de Jenniffer: quita/reinstala el driver Epson y vuelve a compartir. "
+                "Luego pulsa Instalar → Windows 10 Pro."
+            ),
+            "pasos_windows": [
+                "En Windows: Configuración → Bluetooth y dispositivos → Impresoras → CW-C4000u → Quitar",
+                "O PowerShell Admin: Remove-Printer -Name 'CW-C4000u'",
+                "Reinstalar driver Epson oficial (Windows 10/11)",
+                "USB + LCD Listo → compartir de nuevo como CW-C4000u (SMB)",
+                "En el panel: Instalar → Windows 10 Pro → IP de Jenniffer",
+            ],
+            "driver_windows_url": (
+                "https://epson.com/Support/Printers/Label-Printers/ColorWorks-Series/"
+                "Epson-ColorWorks-CW-C4000/s/SPT_C31CK03101"
+            ),
+        })
 
     @app.route("/api/etiquetas/pdfs", methods=["GET"])
     def api_etiquetas_pdfs():
@@ -9825,6 +10312,9 @@ def register_routes(app):
                 "trabajos_en_cola": cola,
                 "impresora_conectada": conectada,
                 "comunicacion_usb": conectada and _comunicacion_usb_etiquetas(),
+                "modo_red": _impresora_modo_red_etiquetas(),
+                "uri_dispositivo": _uri_dispositivo_etiquetas(),
+                "remoto": _load_impresora_remoto_etiquetas(),
                 "impresoras_disponibles": lista.stdout.strip(),
                 "niveles_tinta": _resumen_niveles_tinta_etiquetas(),
             })
@@ -9834,8 +10324,109 @@ def register_routes(app):
                 "estado": f"Error: {e}",
                 "impresora_conectada": False,
                 "comunicacion_usb": False,
+                "modo_red": _impresora_modo_red_etiquetas(),
                 "niveles_tinta": _resumen_niveles_tinta_etiquetas(),
             }), 200
+
+    @app.route("/api/etiquetas/impresora/remoto", methods=["GET", "POST", "DELETE"])
+    @app.route("/app/api/etiquetas/impresora/remoto", methods=["GET", "POST", "DELETE"])
+    def api_etiquetas_impresora_remoto():
+        """Configura CW-C4000u como cola SMB hacia Windows compartida (Win10 Pro)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        if request.method == "GET":
+            cfg = _load_impresora_remoto_etiquetas()
+            return jsonify({
+                "ok": True,
+                "remoto": cfg,
+                "modo_red": _impresora_modo_red_etiquetas(),
+                "uri_actual": _uri_dispositivo_etiquetas(),
+            })
+
+        if request.method == "DELETE":
+            cfg = _load_impresora_remoto_etiquetas()
+            cfg["activo"] = False
+            _save_impresora_remoto_etiquetas(cfg)
+            return jsonify({
+                "ok": True,
+                "mensaje": "Modo remoto desactivado (no cambia la URI CUPS; usa Instalar impresora para volver a USB)",
+                "remoto": cfg,
+            })
+
+        data = request.get_json(silent=True) or {}
+        host = str(data.get("host") or data.get("ip") or "").strip()
+        share = str(data.get("share") or data.get("nombre") or "CW-C4000u").strip() or "CW-C4000u"
+        uri = str(data.get("uri") or "").strip() or None
+        sistema_operativo = str(
+            data.get("sistema_operativo") or data.get("os") or "windows_10_pro"
+        ).strip() or "windows_10_pro"
+        sesion = str(data.get("sesion") or data.get("usuario") or "Jenniffer Garcia").strip() or "Jenniffer Garcia"
+        if not host and not uri:
+            return jsonify({
+                "error": "Indica host (IP del Windows 10 Pro de Jenniffer) o uri smb://...",
+                "ejemplo": {
+                    "host": "192.168.5.116",
+                    "share": "CW-C4000u",
+                    "sistema_operativo": "windows_10_pro",
+                    "sesion": "Jenniffer Garcia",
+                },
+            }), 400
+
+        ok, detalle, log = _configurar_cola_windows_remoto_etiquetas(
+            host,
+            share,
+            uri=uri,
+            sistema_operativo=sistema_operativo,
+            sesion=sesion,
+        )
+        if not ok:
+            return jsonify({
+                "ok": False,
+                "error": "No se pudo configurar la cola remota",
+                "detalle": detalle,
+                "log": log,
+                "solucion": (
+                    "En Windows 10 Pro (Jenniffer): instala el driver oficial Epson CW-C4000, "
+                    "comparte la impresora como CW-C4000u (SMB), activa «Compartir archivos e impresoras» "
+                    "(o ejecuta scripts/epson/configurar_compartir_windows.ps1). "
+                    "Firewall: perfil Privado. Guía: scripts/epson/GUIA_WINDOWS_CW-C4000u.md"
+                ),
+                "driver_windows_url": (
+                    "https://epson.com/Support/Printers/Label-Printers/ColorWorks-Series/"
+                    "Epson-ColorWorks-CW-C4000/s/SPT_C31CK03101?review-filter=Windows+10+64-bit"
+                ),
+            }), 500
+
+        return jsonify({
+            "ok": True,
+            "uri": detalle,
+            "log": log,
+            "remoto": _load_impresora_remoto_etiquetas(),
+            "mensaje": (
+                "Instalado para Windows 10 Pro (sesión Jenniffer). "
+                "Cola SMB apuntando al PC remoto. Prueba imprimir desde el panel."
+            ),
+        })
+
+    @app.route("/api/etiquetas/impresora/script-windows", methods=["GET"])
+    @app.route("/app/api/etiquetas/impresora/script-windows", methods=["GET"])
+    def api_etiquetas_impresora_script_windows():
+        """Descarga el .ps1 para preparar Windows (SMB + firewall). Sin auth: se usa en el PC de Jenniffer."""
+        from flask import send_file as _send_file
+
+        ruta = os.path.join(_REPO_EPSON_DIR, "configurar_compartir_windows.ps1")
+        if not os.path.isfile(ruta):
+            return jsonify({
+                "error": "Script no encontrado en el servidor",
+                "detalle": ruta,
+            }), 404
+        return _send_file(
+            ruta,
+            mimetype="text/plain; charset=utf-8",
+            as_attachment=True,
+            download_name="configurar_compartir_windows.ps1",
+        )
 
     @app.route("/api/etiquetas/niveles-tinta", methods=["GET"])
     def api_etiquetas_niveles_tinta():
@@ -10443,11 +11034,17 @@ def register_routes(app):
                 })
 
             _asegurar_backend_usb_cups_etiquetas()
-            _reiniciar_elioud_etiquetas()
-
-            preflight_elpu, aviso_elpu = _preflight_elpu_impresora_etiquetas(
-                omitir_comunicacion=True,
-            )
+            modo_red = _impresora_modo_red_etiquetas()
+            if modo_red:
+                log_lines.append(
+                    f"Modo red: Windows compartida ({_uri_dispositivo_etiquetas() or 'ipp'})"
+                )
+                preflight_elpu, aviso_elpu = None, None
+            else:
+                _reiniciar_elioud_etiquetas()
+                preflight_elpu, aviso_elpu = _preflight_elpu_impresora_etiquetas(
+                    omitir_comunicacion=True,
+                )
             if aviso_elpu:
                 log_lines.append(f"Pre-vuelo ELPU: aviso — {aviso_elpu}")
             if preflight_elpu:
@@ -10488,10 +11085,13 @@ def register_routes(app):
                 if info:
                     log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
-            _preparar_medio_elpu_etiquetas(forma_val, calidad_val, ancho, alto, log_lines)
-            _ejecutar_elpu_offset_etiquetas(offset_v, log_lines)
-            _suspender_elioud_impresion_etiquetas()
-            elioud_suspendido = True
+            if modo_red:
+                log_lines.append("elpu: omitido (impresora en Windows remoto)")
+            else:
+                _preparar_medio_elpu_etiquetas(forma_val, calidad_val, ancho, alto, log_lines)
+                _ejecutar_elpu_offset_etiquetas(offset_v, log_lines)
+                _suspender_elioud_impresion_etiquetas()
+                elioud_suspendido = True
 
             cmd = [
                 "lp", "-d", _PRINTER_NAME,

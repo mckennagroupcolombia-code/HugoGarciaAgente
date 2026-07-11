@@ -1,0 +1,12 @@
+{
+  "activo": true,
+  "modo": "windows_compartida",
+  "sistema_operativo": "windows_10_pro",
+  "sistema_operativo_label": "Windows 10 Pro",
+  "sesion": "Jenniffer Garcia",
+  "host": "192.168.5.116",
+  "share": "CW-C4000u",
+  "uri": "smb://192.168.5.116/CW-C4000u",
+  "protocolo": "smb",
+  "actualizado_at": "2026-07-10T16:36:23"
+}
