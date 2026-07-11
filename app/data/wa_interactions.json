@@ -1481,6 +1481,18 @@
       "tipo": "bot_pausado_global",
       "sender": "573194307523@c.us",
       "detalle": "Okay Y manejas aceite de coco liquido, pigmento y esencias de uso cosmético todas?"
+    },
+    {
+      "ts": 1783767293.8231256,
+      "tipo": "modo_humano",
+      "sender": "573196529076@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1783767297.7270658,
+      "tipo": "modo_humano",
+      "sender": "573196529076@c.us",
+      "detalle": "😂"
     }
   ]
 }
