@@ -119,6 +119,53 @@ Si el Linux está en `192.168.1.x` y el Windows en `192.168.5.x` sin ruta entre 
 
 Misma red LAN (o Tailscale) entre el PC Linux del agente y el Windows.
 
+## Sede Sur (PC en otra red — usar Tailscale)
+
+Cuando el PC Windows está en una sede distinta a la del servidor Linux (redes separadas,
+sin LAN ni VPN corporativa entre ambas), la IP de LAN del Windows **no es alcanzable**
+desde el agente. Se usa **Tailscale** (ya instalado y activo en el servidor:
+`mckenna-servidor`, cuenta `mckenna.group.colombia`) para tener una IP fija alcanzable
+entre las dos redes.
+
+Esto **reemplaza** la ColorWorks activa del panel (solo hay una cola a la vez, ver
+"Decisiones de Diseño" en `CLAUDE.md`). No es una segunda impresora simultánea.
+
+### 1. En el PC Windows de la Sede Sur
+
+PowerShell **como Administrador**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://bot.mckennagroup.co/api/etiquetas/impresora/script-windows' -OutFile '$env:TEMP\configurar_compartir_windows.ps1'; & '$env:TEMP\configurar_compartir_windows.ps1' -Tailscale"
+```
+
+Esto hace todo lo de los pasos 1–3 de arriba (red Privada, firewall, compartir SMB) **más**:
+
+1. Descarga e instala Tailscale (silencioso) si no está.
+2. Abre el navegador para iniciar sesión — usar la cuenta del tailnet **mckenna.group.colombia**.
+3. Imprime la **IP de Tailscale** (`100.x.x.x`) al final — esa es la IP a usar, no la de LAN.
+
+Antes de correr el script, instala el driver oficial Epson (paso 1 de arriba) y conecta la
+impresora por USB.
+
+### 2. En el servidor Linux del agente
+
+Con la IP de Tailscale que reportó el script (ej. `100.x.x.x`):
+
+```bash
+./scripts/configurar_impresora_windows_remota.sh 100.x.x.x CW-C4000u
+```
+
+O desde el panel → Etiquetas → Instalar impresora → Windows 10 Pro → esa IP.
+
+Verifica que el servidor alcance el PC por Tailscale antes de imprimir:
+
+```bash
+tailscale status               # el PC de la sede debe aparecer online
+ping -c 2 100.x.x.x
+timeout 3 bash -c "echo >/dev/tcp/100.x.x.x/445" && echo OK_SMB
+lpstat -v CW-C4000u
+```
+
 ### IPP (opcional, no recomendado)
 
 Windows 10 Pro **no** sirve IPP en el puerto 631 solo con “Internet Printing Client”. Eso requiere rol de servidor de impresión / IIS. Si ya tienes IPP, puedes forzar:

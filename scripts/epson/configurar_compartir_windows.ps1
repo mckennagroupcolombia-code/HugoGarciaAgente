@@ -1,17 +1,25 @@
 <#
 .SYNOPSIS
-  Prepara o limpia Windows para la Epson CW-C4000u (McKenna / Jenniffer).
+  Prepara o limpia Windows para la Epson CW-C4000u (McKenna).
   Transporte principal hacia el agente Linux: SMB (compartir impresora).
 
 .PARAMETER Desinstalar
   Quita la impresora compartida CW-C4000u de Windows (cola).
 
+.PARAMETER Tailscale
+  Instala (si falta) y activa Tailscale para que este PC sea alcanzable
+  desde el servidor Linux del agente aunque esté en otra sede/red distinta
+  a la LAN principal (ej. Sede Sur). Usa la IP de Tailscale (100.x.x.x)
+  en vez de la IP de LAN al configurar la impresora en el panel McKenna.
+
 .EXAMPLE
   .\configurar_compartir_windows.ps1
   .\configurar_compartir_windows.ps1 -Desinstalar
+  .\configurar_compartir_windows.ps1 -Tailscale
 #>
 param(
-  [switch]$Desinstalar
+  [switch]$Desinstalar,
+  [switch]$Tailscale
 )
 
 # Si no es Admin, se relanza elevado (UAC) y sale
@@ -22,6 +30,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
   Write-Host "Se necesitan permisos de administrador. Abriendo UAC..." -ForegroundColor Yellow
   $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
   if ($Desinstalar) { $argList += "-Desinstalar" }
+  if ($Tailscale) { $argList += "-Tailscale" }
   try {
     Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $argList -Wait
   } catch {
@@ -68,7 +77,7 @@ if ($Desinstalar) {
     }
 
   Write-Host ""
-  Write-Host "Siguiente en Windows (Jenniffer):" -ForegroundColor Cyan
+  Write-Host "Siguiente en este PC Windows:" -ForegroundColor Cyan
   Write-Host "  1. Conecta USB, LCD = Listo"
   Write-Host "  2. Instala driver Epson: $DriverUrl"
   Write-Host "  3. Comparte de nuevo como $ShareName"
@@ -83,7 +92,7 @@ if ($Desinstalar) {
   exit 0
 }
 
-Write-Host "[1/5] Perfil de red = Privado (recomendado para compartir)..." -ForegroundColor Yellow
+Write-Host "[Paso] Perfil de red = Privado (recomendado para compartir)..." -ForegroundColor Yellow
 try {
   Get-NetConnectionProfile | ForEach-Object {
     if ($_.NetworkCategory -ne "Private") {
@@ -98,7 +107,7 @@ try {
   Write-Host "  Configuración → Red e Internet → Propiedades → Perfil Privado." -ForegroundColor DarkYellow
 }
 
-Write-Host "[2/5] Firewall: Compartir archivos e impresoras (Privado)..." -ForegroundColor Yellow
+Write-Host "[Paso] Firewall: Compartir archivos e impresoras (Privado)..." -ForegroundColor Yellow
 try {
   Set-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Enabled True -Profile Private -ErrorAction Stop
   Write-Host "  OK." -ForegroundColor Green
@@ -111,7 +120,7 @@ try {
   }
 }
 
-Write-Host "[3/5] Asegurar impresora compartida como $ShareName..." -ForegroundColor Yellow
+Write-Host "[Paso] Asegurar impresora compartida como $ShareName..." -ForegroundColor Yellow
 $printer = Get-Printer -ErrorAction SilentlyContinue | Where-Object {
   $_.Name -like "*C4000*" -or $_.Name -eq $ShareName -or $_.ShareName -eq $ShareName
 } | Select-Object -First 1
@@ -133,7 +142,7 @@ if (-not $printer) {
   }
 }
 
-Write-Host "[4/5] (Opcional) Internet Printing Client — solo si usas IPP..." -ForegroundColor Yellow
+Write-Host "[Paso] (Opcional) Internet Printing Client — solo si usas IPP..." -ForegroundColor Yellow
 try {
   $feat = Get-WindowsOptionalFeature -Online -FeatureName Printing-InternetPrinting-Client -ErrorAction Stop
   if ($feat.State -ne "Enabled") {
@@ -146,7 +155,54 @@ try {
   Write-Host "  Omitido (no requerido para SMB): $_" -ForegroundColor DarkYellow
 }
 
-Write-Host "[5/5] IP de este PC (usa la de la LAN / Wi‑Fi)..." -ForegroundColor Yellow
+$tailscaleIp = $null
+if ($Tailscale) {
+  Write-Host "[Paso] Tailscale (conectividad entre sedes)..." -ForegroundColor Yellow
+  $tsExe = Get-Command tailscale.exe -ErrorAction SilentlyContinue
+  if (-not $tsExe) {
+    $tsDefault = "$env:ProgramFiles\Tailscale\tailscale.exe"
+    if (Test-Path $tsDefault) { $tsExe = Get-Item $tsDefault }
+  }
+
+  if (-not $tsExe) {
+    Write-Host "  No está instalado. Descargando instalador oficial..." -ForegroundColor DarkYellow
+    $msiPath = Join-Path $env:TEMP "tailscale-setup.msi"
+    try {
+      Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.msi" -OutFile $msiPath -UseBasicParsing
+      Write-Host "  Instalando (silencioso)..." -ForegroundColor Yellow
+      Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait
+      Start-Sleep -Seconds 3
+      $tsDefault = "$env:ProgramFiles\Tailscale\tailscale.exe"
+      if (Test-Path $tsDefault) { $tsExe = Get-Item $tsDefault }
+    } catch {
+      Write-Host "  No se pudo descargar/instalar Tailscale: $_" -ForegroundColor Red
+      Write-Host "  Instálalo manualmente: https://tailscale.com/download/windows" -ForegroundColor DarkYellow
+    }
+  } else {
+    Write-Host "  Ya instalado: $($tsExe.Source)" -ForegroundColor Green
+  }
+
+  if ($tsExe) {
+    $status = & $tsExe.Source status --json 2>$null | ConvertFrom-Json -ErrorAction SilentlyContinue
+    if (-not $status -or -not $status.Self -or -not $status.Self.Online) {
+      Write-Host "  Iniciando sesión (se abrirá el navegador)..." -ForegroundColor Yellow
+      Write-Host "  Inicia sesión con la cuenta del tailnet de McKenna (mckenna.group.colombia)." -ForegroundColor Cyan
+      & $tsExe.Source up
+    } else {
+      Write-Host "  Ya conectado al tailnet." -ForegroundColor Green
+    }
+    Start-Sleep -Seconds 2
+    $tailscaleIp = (& $tsExe.Source ip -4 2>$null | Select-Object -First 1)
+    if ($tailscaleIp) {
+      Write-Host "  IP Tailscale de este PC: $tailscaleIp" -ForegroundColor Green
+      Write-Host "    URI agente: smb://$tailscaleIp/$ShareName" -ForegroundColor Cyan
+    } else {
+      Write-Host "  No se pudo leer la IP de Tailscale. Ejecuta: tailscale ip -4" -ForegroundColor DarkYellow
+    }
+  }
+}
+
+Write-Host "[Paso] IP de este PC (LAN / Wi‑Fi)..." -ForegroundColor Yellow
 $ips = Get-NetIPAddress -AddressFamily IPv4 |
   Where-Object { $_.IPAddress -notlike "127.*" -and $_.PrefixOrigin -ne "WellKnown" } |
   Select-Object -ExpandProperty IPAddress
@@ -164,7 +220,12 @@ Write-Host "  1. Driver Epson instalado ($DriverUrl)"
 Write-Host "  2. USB conectado, LCD = Listo"
 Write-Host "  3. Compartir impresora con nombre exacto: $ShareName"
 Write-Host "  4. Firewall: Compartir archivos e impresoras (Privado)"
-Write-Host "  5. En el panel McKenna (Linux): Instalar → Windows 10 Pro → IP de arriba"
+if ($tailscaleIp) {
+  Write-Host "  5. En el panel McKenna (Linux): Instalar → Windows 10 Pro → IP Tailscale: $tailscaleIp"
+  Write-Host "     (no la IP de LAN — el servidor está en otra red y llega por Tailscale)"
+} else {
+  Write-Host "  5. En el panel McKenna (Linux): Instalar → Windows 10 Pro → IP de arriba"
+}
 Write-Host ""
 
 $open = Read-Host "¿Abrir página de descarga del driver Epson? (S/n)"
