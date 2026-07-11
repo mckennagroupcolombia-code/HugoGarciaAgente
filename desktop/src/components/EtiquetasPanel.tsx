@@ -5007,6 +5007,7 @@ function TabImprimir({
             onVistaChange={setVistaImpresion}
             solicitudesCount={solicitudesImprimir.length}
             onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
+            onInstalarClick={() => abrirInstalador("windows10pro")}
           />
           <div className="p-4">
             <EtiquetasStudioCatalogo
