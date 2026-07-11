@@ -107,4 +107,7 @@ app/data/web_chat_activity.json
 app/data/wa_interactions.json
 app/data/sync_schedule_state.json
 app/data/facturas_gmail_descargadas.json
+app/data/plantillas_visuales.json
+app/data/facturas_compra_pendientes.json
+app/data/wa_alertas_intencion.json
 PAGINA_WEB/site/data/cache.json
