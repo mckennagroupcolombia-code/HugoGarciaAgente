@@ -93,7 +93,7 @@ export function ImpresionEtiquetasHeader({
         </button>
       )}
 
-      {onInstalarClick && vista === "documento" && (
+      {onInstalarClick && (
         <Button
           variant="ghost"
           size="sm"
