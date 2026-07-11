@@ -31,6 +31,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "15 7 * * * cd ${REPO} && AGENTE_AUDITORIA_CRON_QUIET=1 ${PYTHON} ${REPO}/scripts/auditar_scripts_cron.py >>${LOG} 2>&1"
   echo "# MeLi compliance watchlist (estado publicaciones + alerta WA)"
   echo "30 8 * * * cd ${REPO} && AGENTE_COMPLIANCE_MONITOR_QUIET=1 ${PYTHON} ${REPO}/scripts/meli_compliance_monitor_cron.py >>${LOG} 2>&1"
+  echo "# Correos de proveedores: certificados de retención → solicitud a Cynthia"
+  echo "0 8 * * * cd ${REPO} && AGENTE_MONITOR_CORREOS_CRON_QUIET=1 ${PYTHON} ${REPO}/scripts/monitor_correos_certificados_retencion_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 
