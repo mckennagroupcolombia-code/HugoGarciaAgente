@@ -1,6 +1,222 @@
 {
   "historial": [
     {
+      "id": "20260711150923114-8654",
+      "sufijo": "8654",
+      "numero_factura": "FEE98654",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 1657450.0,
+      "fecha_factura": "2026-06-25",
+      "items_count": 6,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "panel",
+      "nuevos": 0,
+      "en_siigo": 6,
+      "items_resumen": [
+        {
+          "nombre": "CITRATO DE CALCIO USP",
+          "codigo": "CITCALg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 5.6,
+          "precio_unitario": 6.66,
+          "precio_proveedor": 5600.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO BCAA INSTANT POWDER",
+          "codigo": "AMIBCAg",
+          "cantidad_min": 3000.0,
+          "unidad_min": "g",
+          "precio_neto": 68.0,
+          "precio_unitario": 80.92,
+          "precio_proveedor": 68000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "EXTRACTO TE VERDE MATCHA POLVO",
+          "codigo": "EXTTEMATVERg",
+          "cantidad_min": 2000.0,
+          "unidad_min": "g",
+          "precio_neto": 68.0,
+          "precio_unitario": 80.92,
+          "precio_proveedor": 68000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "LECITINA DE SOYA POLVO",
+          "codigo": "LECSOYg",
+          "cantidad_min": 20000.0,
+          "unidad_min": "g",
+          "precio_neto": 13.0,
+          "precio_unitario": 15.47,
+          "precio_proveedor": 13000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA D-PANTENOL",
+          "codigo": "DPANg",
+          "cantidad_min": 2000.0,
+          "unidad_min": "g",
+          "precio_neto": 82.0,
+          "precio_unitario": 82.0,
+          "precio_proveedor": 82000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "PAPAINA",
+          "codigo": "PAPg",
+          "cantidad_min": 5000.0,
+          "unidad_min": "g",
+          "precio_neto": 103.0,
+          "precio_unitario": 122.57,
+          "precio_proveedor": 103000.0,
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": null,
+      "ruta_xml": "FEE98654 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "✅ Factura procesada desde el panel\n\n🔢 FEE98654\n🏢 FACTORES Y MERCADEO S.A.\n📦 0 producto(s) nuevo(s)  ·  6 en SIIGO (suman inventario)\n📎 Archivos generados en el servidor:\n   • _(sin Excel — todos los ítems ya existen en SIIGO)_\n   • FEE98654 codigos siigo.xml",
+      "timestamp": "2026-07-11T15:09:23.114352"
+    },
+    {
+      "id": "20260711144233739-5756",
+      "sufijo": "5756",
+      "numero_factura": "BO15756",
+      "proveedor": "PRODUCTOS 3A SAS",
+      "nit": "800158432",
+      "total": 5393258.5,
+      "fecha_factura": "2026-07-04",
+      "items_count": 8,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "panel",
+      "nuevos": 0,
+      "en_siigo": 8,
+      "items_resumen": [
+        {
+          "nombre": "ALMENDRA NATURAL AMERICANA CAJA 22.68 KG",
+          "codigo": "ALMNATg",
+          "cantidad_min": 22680.0,
+          "unidad_min": "g",
+          "precio_neto": 32.539683,
+          "precio_unitario": 38.72,
+          "precio_proveedor": 738000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ARANDANOS DESHIDRATADOS CAJA  11.34 KG OCEAN SPRAY",
+          "codigo": "ARADESg",
+          "cantidad_min": 11340.0,
+          "unidad_min": "g",
+          "precio_neto": 20.502646,
+          "precio_unitario": 24.4,
+          "precio_proveedor": 232500.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COCO DESHIDRATADO HILOS BULTO  25  KG ELMAR",
+          "codigo": "COCDESHILg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 24.226,
+          "precio_unitario": 28.83,
+          "precio_proveedor": 605650.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GIRASOL KERNEL BULTO 25 KG",
+          "codigo": "GIRKERg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 11.496,
+          "precio_unitario": 13.68,
+          "precio_proveedor": 287400.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "MANI TOSTADO NATURAL CAJA 25 KG RMCA",
+          "codigo": "MANTOSNATg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 9.12,
+          "precio_unitario": 10.85,
+          "precio_proveedor": 228000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "NUEZ DEL BRASIL PARTIDA CAJA 20 KG BROKEN A",
+          "codigo": "NUEBRAPARg",
+          "cantidad_min": 20000.0,
+          "unidad_min": "g",
+          "precio_neto": 57.0,
+          "precio_unitario": 67.83,
+          "precio_proveedor": 1140000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "PISTACHOS TOSTADOS SALADOS WONDERFUL CAJA 11.34 KG",
+          "codigo": "PISTOSSALg",
+          "cantidad_min": 11340.0,
+          "unidad_min": "g",
+          "precio_neto": 56.049383,
+          "precio_unitario": 66.7,
+          "precio_proveedor": 635600.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "SEMILLA DE CALABAZA CAJA 25 KG GRADO AA",
+          "codigo": "SEMCALGRAg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 26.6,
+          "precio_unitario": 31.65,
+          "precio_proveedor": 665000.0,
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": null,
+      "ruta_xml": "BO15756 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "✅ Factura procesada desde el panel\n\n🔢 BO15756\n🏢 PRODUCTOS 3A SAS\n📦 0 producto(s) nuevo(s)  ·  8 en SIIGO (suman inventario)\n📎 Archivos generados en el servidor:\n   • _(sin Excel — todos los ítems ya existen en SIIGO)_\n   • BO15756 codigos siigo.xml",
+      "timestamp": "2026-07-11T14:42:33.739963"
+    },
+    {
+      "id": "20260711143613960-9305",
+      "sufijo": "9305",
+      "numero_factura": "FEE99305",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 595000.0,
+      "fecha_factura": "2026-07-06",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "panel",
+      "nuevos": 0,
+      "en_siigo": 1,
+      "items_resumen": [
+        {
+          "nombre": "AMINOACIDO CREATINA MONOHIDRATO",
+          "codigo": "AMICREMONg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 20.0,
+          "precio_unitario": 23.8,
+          "precio_proveedor": 20000.0,
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": null,
+      "ruta_xml": "FEE99305 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "✅ Factura procesada desde el panel\n\n🔢 FEE99305\n🏢 FACTORES Y MERCADEO S.A.\n📦 0 producto(s) nuevo(s)  ·  1 en SIIGO (suman inventario)\n📎 Archivos generados en el servidor:\n   • _(sin Excel — todos los ítems ya existen en SIIGO)_\n   • FEE99305 codigos siigo.xml",
+      "timestamp": "2026-07-11T14:36:13.960265"
+    },
+    {
       "id": "imp-FA269967-20260620",
       "sufijo": "9967",
       "numero_factura": "FA269967",

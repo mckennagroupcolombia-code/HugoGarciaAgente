@@ -1,0 +1,18 @@
+[
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 192.168.5.117 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "192.168.5.117",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-11T04:20:45"
+  },
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 192.168.5.117 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "192.168.5.117",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-11T09:00:09"
+  }
+]

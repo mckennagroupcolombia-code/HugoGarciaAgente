@@ -735,7 +735,9 @@ def _bot_en_horario_servicio(modos=None) -> bool:
     if not horario.get("habilitado", False):
         return True
     # Colombia siempre UTC-5 (sin cambio de horario)
-    now_col = _dt.utcnow() - timedelta(hours=5)
+    from datetime import timezone
+
+    now_col = _dt.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=5)
     iso_day = now_col.isoweekday()  # 1=Lun … 7=Dom
     dias_activos = horario.get("dias", [1, 2, 3, 4, 5])
     if iso_day not in dias_activos:
@@ -2906,6 +2908,7 @@ def register_routes(app):
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
             response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers.add("Vary", "Origin")
         if request.method in ("GET", "HEAD") and request.path.startswith("/api/tickets"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"
@@ -2924,6 +2927,7 @@ def register_routes(app):
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
         resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
         resp.headers["Access-Control-Allow-Credentials"] = "true"
+        resp.headers.add("Vary", "Origin")
         return resp
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -11715,7 +11719,9 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     # ── Compliance MeLi — diagnóstico, corrección y autopublicación ─────────
+    # Duplicar bajo /app/api/…: el SPA /app/<path> solo acepta GET/HEAD (evita HTTP 405).
 
+    @app.route("/app/api/meli/compliance/pausadas", methods=["GET"])
     @app.route("/api/meli/compliance/pausadas", methods=["GET"])
     def api_meli_compliance_pausadas():
         if not _api_token_valido():
@@ -11731,6 +11737,7 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/diagnosticar", methods=["POST"])
     @app.route("/api/meli/compliance/diagnosticar", methods=["POST"])
     def api_meli_compliance_diagnosticar():
         if not _api_token_valido():
@@ -11749,6 +11756,7 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/generar", methods=["POST"])
     @app.route("/api/meli/compliance/generar", methods=["POST"])
     def api_meli_compliance_generar():
         if not _api_token_valido():
@@ -11773,6 +11781,7 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/republicar", methods=["POST"])
     @app.route("/api/meli/compliance/republicar", methods=["POST"])
     def api_meli_compliance_republicar():
         if not _api_token_valido():
@@ -11797,6 +11806,7 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/autopublicar", methods=["POST"])
     @app.route("/api/meli/compliance/autopublicar", methods=["POST"])
     def api_meli_compliance_autopublicar():
         if not _api_token_valido():
@@ -11819,11 +11829,13 @@ def register_routes(app):
                 texto_etiqueta=body.get("texto_etiqueta", ""),
                 stock=int(body.get("stock", 10) or 10),
                 foto_url=body.get("foto_url") or None,
+                foto_urls=body.get("foto_urls") or None,
                 dry_run=bool(body.get("dry_run", False)),
             ))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/crear-nueva", methods=["POST"])
     @app.route("/api/meli/compliance/crear-nueva", methods=["POST"])
     def api_meli_compliance_crear_nueva():
         if not _api_token_valido():
@@ -11849,14 +11861,20 @@ def register_routes(app):
                 item_origen_id=body.get("item_origen_id", ""),
                 referencia=body.get("referencia", "citrato_magnesio"),
                 foto_url=body.get("foto_url") or None,
+                foto_urls=body.get("foto_urls") or None,
                 stock=int(body.get("stock", 10) or 10),
                 contenido_generado=body.get("contenido_generado"),
                 categoria_catalogo=body.get("categoria_catalogo", ""),
+                category_id=body.get("category_id") or "",
+                domain_id=body.get("domain_id") or "",
+                line=body.get("line") or "",
+                taxonomia_item_id=body.get("taxonomia_item_id") or body.get("duplicar_desde_item_id") or "",
                 dry_run=bool(body.get("dry_run", False)),
             ))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/reemplazos", methods=["GET"])
     @app.route("/api/meli/compliance/reemplazos", methods=["GET"])
     def api_meli_compliance_reemplazos():
         if not _api_token_valido():
@@ -11873,17 +11891,36 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/watchlist", methods=["GET"])
     @app.route("/api/meli/compliance/watchlist", methods=["GET"])
     def api_meli_compliance_watchlist():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.tools.meli_compliance_monitor import listar_watchlist
         solo = request.args.get("activos", "1") == "1"
+        origen = (request.args.get("origen") or "").strip()
         try:
-            return jsonify(listar_watchlist(solo_activos=solo))
+            return jsonify(listar_watchlist(solo_activos=solo, origen=origen))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/watchlist/eliminar", methods=["POST", "DELETE"])
+    @app.route("/api/meli/compliance/watchlist/eliminar", methods=["POST", "DELETE"])
+    def api_meli_compliance_watchlist_eliminar():
+        """Quita del historial local (no cierra en MeLi)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import eliminar_de_watchlist
+        body = request.get_json(silent=True) or {}
+        item_id = (body.get("item_id") or request.args.get("item_id") or "").strip()
+        entry_id = (body.get("id") or request.args.get("id") or "").strip()
+        try:
+            r = eliminar_de_watchlist(item_id=item_id, entry_id=entry_id)
+            return jsonify(r), (200 if r.get("ok") else 404)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/app/api/meli/compliance/watchlist/revisar", methods=["POST"])
     @app.route("/api/meli/compliance/watchlist/revisar", methods=["POST"])
     def api_meli_compliance_watchlist_revisar():
         if not _api_token_valido():
@@ -11897,6 +11934,7 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/meli/compliance/referencia", methods=["GET"])
     @app.route("/api/meli/compliance/referencia", methods=["GET"])
     def api_meli_compliance_referencia():
         if not _api_token_valido():
@@ -11904,6 +11942,106 @@ def register_routes(app):
         from app.tools.meli_compliance_monitor import obtener_plantilla_referencia
         clave = request.args.get("clave", "citrato_magnesio")
         return jsonify(obtener_plantilla_referencia(clave))
+
+    @app.route("/app/api/meli/compliance/predecir-categoria", methods=["GET"])
+    @app.route("/api/meli/compliance/predecir-categoria", methods=["GET"])
+    def api_meli_compliance_predecir_categoria():
+        """Predice category_id MeLi con domain_discovery (para crear desde cero)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import predecir_categoria_meli
+
+        q = (request.args.get("q") or request.args.get("titulo") or "").strip()
+        presentacion = (request.args.get("presentacion") or "").strip()
+        perfil = (request.args.get("perfil") or "materia_prima_alimentaria").strip()
+        try:
+            return jsonify(predecir_categoria_meli(q, perfil=perfil, presentacion=presentacion))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/app/api/meli/compliance/duplicar-datos", methods=["GET"])
+    @app.route("/api/meli/compliance/duplicar-datos", methods=["GET"])
+    def api_meli_compliance_duplicar_datos():
+        """Borrador para duplicar una publicación (historial → crear desde cero)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import datos_para_duplicar_publicacion
+
+        item_id = (request.args.get("item_id") or "").strip()
+        if not item_id:
+            return jsonify({"ok": False, "error": "item_id requerido"}), 400
+        try:
+            return jsonify(datos_para_duplicar_publicacion(item_id))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/app/api/meli/compliance/fotos", methods=["GET"])
+    @app.route("/api/meli/compliance/fotos", methods=["GET"])
+    def api_meli_compliance_fotos():
+        """Lista fotos actuales de un ítem (para renovar / elegir al crear nueva)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import obtener_item_meli, _restricciones_republicacion
+        from app.services.publicaciones import _meli_get_pictures
+
+        item_id = (request.args.get("item_id") or "").strip()
+        if not item_id:
+            return jsonify({"error": "item_id requerido"}), 400
+        item = obtener_item_meli(item_id)
+        if not item:
+            return jsonify({"error": "No se pudo leer el ítem"}), 404
+        pics, err = _meli_get_pictures(item_id)
+        rest = _restricciones_republicacion(item)
+        return jsonify({
+            "ok": True,
+            "item_id": item_id,
+            "status": item.get("status"),
+            "sub_status": item.get("sub_status") or [],
+            "puede_fotos": rest.get("puede_fotos", False),
+            "imagenes": pics,
+            "error": err or None,
+        })
+
+    @app.route("/app/api/meli/compliance/subir-foto", methods=["POST"])
+    @app.route("/api/meli/compliance/subir-foto", methods=["POST"])
+    def api_meli_compliance_subir_foto():
+        """
+        Sube foto al CDN MeLi para renovar imágenes.
+        Si el ítem permite pictures, intenta adjuntarla; si no (405/under_review),
+        igual devuelve la URL para usarla al crear publicación nueva.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import subir_imagen_meli, subir_foto_cdn_meli
+
+        item_id = (request.form.get("item_id") or "").strip()
+        solo_cdn = (request.form.get("solo_cdn") or "").lower() in ("1", "true", "yes")
+        files = request.files.getlist("files[]") or request.files.getlist("file")
+        if not files or not files[0].filename:
+            return jsonify({"error": "Envíe archivo(s) en multipart «file» o «files[]»"}), 400
+
+        resultados = []
+        for f in files:
+            data = f.read()
+            ct = f.content_type or "image/jpeg"
+            if solo_cdn or not item_id:
+                r = subir_foto_cdn_meli(data, ct)
+                r["adjuntada"] = False
+            else:
+                r = subir_imagen_meli(item_id, data, ct, solo_cdn=False)
+            resultados.append({
+                "filename": f.filename,
+                **r,
+            })
+
+        ok = any(r.get("ok") for r in resultados)
+        urls = [r["url"] for r in resultados if r.get("ok") and r.get("url")]
+        return jsonify({
+            "ok": ok,
+            "item_id": item_id or None,
+            "urls": urls,
+            "archivos": resultados,
+        })
 
     # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
 

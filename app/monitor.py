@@ -33,6 +33,16 @@ def _get_enviar():
     return _enviar_whatsapp
 
 
+def _en_horario_silencioso_recordatorios(ahora: datetime | None = None) -> bool:
+    """
+    Ventana de descanso operativo (22:00–07:00): no se envían recordatorios/alertas
+    de colas preventa/postventa al grupo, para no interrumpir a los operarios de noche.
+    Fuera de esta ventana el patrón de recordatorios sigue igual que siempre.
+    """
+    hora = (ahora or datetime.now()).hour
+    return hora >= 22 or hora < 7
+
+
 def _sort_key_meli_msg(m: dict) -> str:
     """Misma heurística de fecha que scripts/postventa_cola_meli (API no garantiza orden)."""
     if not isinstance(m, dict):
@@ -768,6 +778,12 @@ def _monitor_preguntas_sin_responder():
                                 ).start()
 
                             if not respondida_ahora:
+                                if _en_horario_silencioso_recordatorios(ahora):
+                                    print(
+                                        f"🌙 [MONITOR] Recordatorio preventa {qid} silenciado "
+                                        f"(horario nocturno 22:00-07:00)"
+                                    )
+                                    continue
                                 sufijo = qid[-3:]
                                 enviar(
                                     f"⏰ *RECORDATORIO PREVENTA PENDIENTE*\n"
@@ -1067,19 +1083,25 @@ def _supervisar_colas_meli():
                 sufijo = qid[-3:] if len(qid) >= 3 else qid
                 ult = float(ultima_alerta_preventa.get(qid, 0))
                 if (ahora_epoch - ult) >= cooldown_preventa_seg:
-                    enviar(
-                        f"🚨 *SUPERVISOR PREVENTA*\n"
-                        f"Hay {len(atascadas_preventa)} pregunta(s) sin respuesta > {umbral_preventa} min.\n"
-                        f"📦 Más antigua: {top['producto']}\n"
-                        f"🗣 {top['pregunta'][:200]}\n"
-                        f"⌛ {top['mins']} min\n\n"
-                        f"✍️ Responde con:\n"
-                        f"`resp {sufijo}: tu respuesta`\n"
-                        f"o mejor:\n"
-                        f"`resp preventa {qid}: tu respuesta`",
-                        numero_destino=jid_grupo_preventa_wa(),
-                    )
-                    ultima_alerta_preventa[qid] = ahora_epoch
+                    if _en_horario_silencioso_recordatorios(ahora):
+                        print(
+                            f"🌙 [SUPERVISOR] Alerta preventa silenciada (horario nocturno "
+                            f"22:00-07:00): {len(atascadas_preventa)} pendiente(s)"
+                        )
+                    else:
+                        enviar(
+                            f"🚨 *SUPERVISOR PREVENTA*\n"
+                            f"Hay {len(atascadas_preventa)} pregunta(s) sin respuesta > {umbral_preventa} min.\n"
+                            f"📦 Más antigua: {top['producto']}\n"
+                            f"🗣 {top['pregunta'][:200]}\n"
+                            f"⌛ {top['mins']} min\n\n"
+                            f"✍️ Responde con:\n"
+                            f"`resp {sufijo}: tu respuesta`\n"
+                            f"o mejor:\n"
+                            f"`resp preventa {qid}: tu respuesta`",
+                            numero_destino=jid_grupo_preventa_wa(),
+                        )
+                        ultima_alerta_preventa[qid] = ahora_epoch
                 # Limpieza de memoria en claves viejas/no presentes
                 activos_prev = {x["id"] for x in atascadas_preventa}
                 for k in list(ultima_alerta_preventa.keys()):
@@ -1093,18 +1115,24 @@ def _supervisar_colas_meli():
                 codigo = top["codigo"]
                 ult = float(ultima_alerta_postventa.get(codigo, 0))
                 if (ahora_epoch - ult) >= cooldown_postventa_seg:
-                    enviar(
-                        f"🚨 *SUPERVISOR POSTVENTA*\n"
-                        f"Hay {len(atascadas_postventa)} mensaje(s) sin respuesta > {umbral_postventa} min.\n"
-                        f"👤 Comprador: {top['comprador'] or 'N/A'}\n"
-                        f"📦 Pack: {top['pack_id']} (código {top['codigo']})\n"
-                        f"🗣 {top['texto'][:200]}\n"
-                        f"⌛ {top['mins']} min\n\n"
-                        f"✍️ Responde con:\n"
-                        f"`posventa {top['codigo']}: tu respuesta`",
-                        numero_destino=jid_grupo_postventa_wa(),
-                    )
-                    ultima_alerta_postventa[codigo] = ahora_epoch
+                    if _en_horario_silencioso_recordatorios(ahora):
+                        print(
+                            f"🌙 [SUPERVISOR] Alerta postventa silenciada (horario nocturno "
+                            f"22:00-07:00): {len(atascadas_postventa)} pendiente(s)"
+                        )
+                    else:
+                        enviar(
+                            f"🚨 *SUPERVISOR POSTVENTA*\n"
+                            f"Hay {len(atascadas_postventa)} mensaje(s) sin respuesta > {umbral_postventa} min.\n"
+                            f"👤 Comprador: {top['comprador'] or 'N/A'}\n"
+                            f"📦 Pack: {top['pack_id']} (código {top['codigo']})\n"
+                            f"🗣 {top['texto'][:200]}\n"
+                            f"⌛ {top['mins']} min\n\n"
+                            f"✍️ Responde con:\n"
+                            f"`posventa {top['codigo']}: tu respuesta`",
+                            numero_destino=jid_grupo_postventa_wa(),
+                        )
+                        ultima_alerta_postventa[codigo] = ahora_epoch
                 activos_post = {x["codigo"] for x in atascadas_postventa}
                 for k in list(ultima_alerta_postventa.keys()):
                     if k not in activos_post and (ahora_epoch - ultima_alerta_postventa[k]) > (

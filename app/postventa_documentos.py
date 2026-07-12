@@ -38,10 +38,17 @@ _CLAVES_SOLICITUD = (
 )
 
 
+_CLAVES_SOLICITUD_RE = tuple(
+    re.compile(r"\b" + re.escape(k) + r"\b") for k in _CLAVES_SOLICITUD
+)
+
+
 def mensaje_solicita_documentos(texto: str) -> bool:
+    """Ojo: match por palabra completa — 'coa' en substring (p. ej. "cocoamida",
+    "cocoa") NO debe activar la solicitud de documentos."""
     t = (texto or "").lower()
     t = re.sub(r"\s+", " ", t)
-    return any(k in t for k in _CLAVES_SOLICITUD)
+    return any(p.search(t) for p in _CLAVES_SOLICITUD_RE)
 
 
 def _titulos_productos_pack(pack_id: str, token: str) -> list[str]:

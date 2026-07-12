@@ -32,8 +32,13 @@ def test_file_tool_guard_restricts_mutations(monkeypatch) -> None:
     assert "Herramienta de archivos restringida" in blocked
 
 
-def test_canales_cliente_flujo_sin_tools_api() -> None:
+def test_canales_cliente_flujo_sin_tools_api(monkeypatch) -> None:
+    from app.services import canales_config
     from app.services.canales_config import es_canal_cliente, listar_canales
+
+    # Aislar del override runtime (app/data/canales_modelos.json, editable
+    # desde el panel): aquí se valida el default del código.
+    monkeypatch.setattr(canales_config, "_load_overrides", lambda: {})
 
     assert es_canal_cliente("whatsapp")
     assert es_canal_cliente("web_chat")
@@ -1289,7 +1294,7 @@ def test_web_chat_invima_sin_basura_historial() -> None:
     assert out is not None
     assert "Usuario_web" not in out
     assert out.lower().count("no localicé el pdf") <= 1
-    assert "materias primas" in out.lower() or "marco regulatorio" in out.lower()
+    assert "materia prima" in out.lower() or "marco regulatorio" in out.lower()
 
 
 def test_web_chat_nota_regulatoria_invima() -> None:
@@ -1549,8 +1554,20 @@ def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:
     assert msgs[0]["enviado_por"] == "bot"
 
 
-def test_bot_debe_responder_ignora_horario() -> None:
-    from app.routes import _bot_debe_responder_global, _bot_en_horario_servicio
+def test_bot_debe_responder_ignora_horario(monkeypatch) -> None:
+    from datetime import datetime
+
+    import app.routes as routes
+
+    class _FakeDT(datetime):
+        """Congela la hora: el test no debe depender de cuándo corre pytest."""
+
+        @classmethod
+        def now(cls, tz=None):
+            # 2026-07-08 12:00 Colombia (17:00 UTC), miércoles.
+            return datetime(2026, 7, 8, 17, 0, tzinfo=tz)
+
+    monkeypatch.setattr(routes, "_dt", _FakeDT)
 
     modos = {
         "bot_global_activo": True,
@@ -1561,11 +1578,23 @@ def test_bot_debe_responder_ignora_horario() -> None:
             "dias": [1, 2, 3, 4, 5, 6, 7],
         },
     }
-    assert _bot_debe_responder_global(modos) is True
-    assert _bot_en_horario_servicio(modos) in (True, False)
+    # 12:00 COL está fuera de la ventana nocturna 18:00–07:00 → el bot responde.
+    assert routes._bot_en_horario_servicio(modos) is False
+    assert routes._bot_debe_responder_global(modos) is True
+
+    # 22:00 COL (03:00 UTC del día siguiente): dentro de la ventana → equipo
+    # humano atiende, bot en silencio.
+    class _FakeDTNoche(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 7, 9, 3, 0, tzinfo=tz)
+
+    monkeypatch.setattr(routes, "_dt", _FakeDTNoche)
+    assert routes._bot_en_horario_servicio(modos) is True
+    assert routes._bot_debe_responder_global(modos) is False
 
     modos["bot_global_activo"] = False
-    assert _bot_debe_responder_global(modos) is False
+    assert routes._bot_debe_responder_global(modos) is False
 
 
 def test_wa_metricas_calcular(tmp_path, monkeypatch) -> None:

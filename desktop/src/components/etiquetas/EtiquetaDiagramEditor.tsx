@@ -240,9 +240,9 @@ function clampEscala(n: number) {
 
 type ResizeHandle = "nw" | "ne" | "sw" | "se";
 
-/** Nodos estilo Illustrator: cuadrado pequeño, área de agarre amplia. */
-const NODO_VIS_PX = 6;
-const NODO_HIT_PX = 14;
+/** Nodos estilo Illustrator: cuadrado mínimo, hit un poco mayor. */
+const NODO_VIS_PX = 4;
+const NODO_HIT_PX = 10;
 const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
 
 const HANDLES: { id: ResizeHandle; cursor: string }[] = [
@@ -252,11 +252,11 @@ const HANDLES: { id: ResizeHandle; cursor: string }[] = [
   { id: "se", cursor: "se-resize" },
 ];
 
-function posicionAsaRedimension(h: ResizeHandle, box: CampoMedido) {
-  const half = NODO_HIT_PX / 2;
+function posicionAsaRedimension(h: ResizeHandle, box: { left: number; top: number; width: number; height: number }) {
+  // Coordenadas de la esquina del marco (el centro del nodo se ancla ahí).
   return {
-    left: h.includes("w") ? box.left - half : box.left + box.width - half,
-    top: h.includes("n") ? box.top - half : box.top + box.height - half,
+    left: h.includes("w") ? box.left : box.left + box.width,
+    top: h.includes("n") ? box.top : box.top + box.height,
   };
 }
 
@@ -275,18 +275,22 @@ function AsaRedimension({
     <button
       type="button"
       aria-label={`Redimensionar ${id}`}
-      className="absolute z-30 flex items-center justify-center border-0 bg-transparent p-0 touch-none"
+      className="absolute z-30 m-0 flex appearance-none items-center justify-center border-0 bg-transparent p-0 touch-none"
       style={{
         left: pos.left,
         top: pos.top,
         width: NODO_HIT_PX,
         height: NODO_HIT_PX,
+        minWidth: NODO_HIT_PX,
+        minHeight: NODO_HIT_PX,
+        transform: "translate(-50%, -50%)",
+        boxSizing: "border-box",
         cursor,
       }}
       onPointerDown={onPointerDown}
     >
       <span
-        className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)] transition-[transform,border-color] hover:scale-110 hover:border-[#016d82]"
+        className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
         style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
       />
     </button>
@@ -1187,45 +1191,52 @@ export function EtiquetaDiagramacionWorkspace({
                       setHoverCampo(null);
                     }}
                   >
-                    <button
-                      type="button"
-                      aria-label={label}
-                      title={`${label} · arrastra para mover${edicionInlineActiva ? " · doble clic para editar" : ""}`}
-                      className="absolute touch-none select-none border-0 bg-transparent p-0"
+                    {/* Caja de referencia sin borde: asas en 0%/100% = esquinas reales */}
+                    <div
+                      className="absolute"
                       style={{
                         left: padAsa,
                         top: padAsa,
                         width: c.width,
                         height: c.height,
                         cursor: arrastrando && activo ? "grabbing" : "grab",
-                        border: resaltado ? MARCO_SELECCION_CSS : "1px solid transparent",
-                        boxSizing: "border-box",
                       }}
-                      onDoubleClick={(ev) => {
-                        if (!edicionInlineActiva) return;
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        abrirEdicionTexto(c.id as CampoDiagramacionId);
-                      }}
-                      onPointerDown={onPointerDownCampo}
-                    />
-                    {mostrarAsas &&
-                      HANDLES.map((h) => {
-                        const posAsa = posicionAsaRedimension(h.id, {
-                          ...campoTexto,
-                          left: padAsa,
-                          top: padAsa,
-                        });
-                        return (
+                    >
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 box-border"
+                        style={{
+                          border: resaltado ? MARCO_SELECCION_CSS : "1px solid transparent",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        aria-label={label}
+                        title={`${label} · arrastra para mover${edicionInlineActiva ? " · doble clic para editar" : ""}`}
+                        className="absolute inset-0 m-0 touch-none select-none appearance-none border-0 bg-transparent p-0"
+                        style={{ cursor: "inherit" }}
+                        onDoubleClick={(ev) => {
+                          if (!edicionInlineActiva) return;
+                          ev.preventDefault();
+                          ev.stopPropagation();
+                          abrirEdicionTexto(c.id as CampoDiagramacionId);
+                        }}
+                        onPointerDown={onPointerDownCampo}
+                      />
+                      {mostrarAsas &&
+                        HANDLES.map((h) => (
                           <AsaRedimension
                             key={h.id}
                             id={h.id}
                             cursor={h.cursor}
-                            pos={posAsa}
+                            pos={{
+                              left: h.id.includes("w") ? 0 : c.width,
+                              top: h.id.includes("n") ? 0 : c.height,
+                            }}
                             onPointerDown={(ev) => iniciarRedimension(campoTexto, h.id, ev)}
                           />
-                        );
-                      })}
+                        ))}
+                    </div>
                   </div>
                 );
               }

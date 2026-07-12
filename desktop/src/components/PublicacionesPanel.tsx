@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ProseTextarea } from "./ProseTextarea";
-import MeliComplianceTab from "./MeliComplianceTab";
+import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
 import {
   usePublicaciones,
   usePublicacionDetalle,
@@ -1176,7 +1176,7 @@ export function EditorPanel({
 
 // ── Panel principal ────────────────────────────────────────────────────────
 
-type MainView = "catalogo" | "compliance";
+type MainView = "catalogo" | "compliance" | "crear";
 
 export default function PublicacionesPanel() {
   const [mainView, setMainView] = useState<MainView>("catalogo");
@@ -1230,9 +1230,26 @@ export default function PublicacionesPanel() {
               : "text-muted hover:text-ink"
           }`}
         >
-          🛡 Republicar en MeLi
+          🛡 Republicar MeLi
+        </button>
+        <button
+          onClick={() => setMainView("crear")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            mainView === "crear"
+              ? "bg-teal-600 text-white shadow-sm"
+              : "text-muted hover:text-ink"
+          }`}
+        >
+          ✦ Crear desde cero
         </button>
       </div>
+
+      {/* Vista crear desde cero */}
+      {mainView === "crear" && (
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+          <CrearDesdeCeroPanel onDone={() => setMainView("compliance")} />
+        </div>
+      )}
 
       {/* Vista compliance */}
       {mainView === "compliance" && (

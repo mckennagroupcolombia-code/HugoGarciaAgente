@@ -927,8 +927,8 @@ type RedimensionPlantilla =
       orig: { x1: number; y1: number; x2: number; y2: number };
     };
 
-const ASA_VIS_PX = 6;
-const ASA_HIT_PX = 14;
+const ASA_VIS_PX = 4;
+const ASA_HIT_PX = 10;
 const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
 
 const ASAS_REDIMENSION: { id: AsaRedimensionId; cursor: string }[] = [
@@ -946,11 +946,12 @@ const ASAS_LATERALES: { id: AsaRedimensionId; cursor: string }[] = [
 ];
 
 function estiloAsaEsquina(id: AsaRedimensionId): CSSProperties {
-  const half = ASA_HIT_PX / 2;
   const base: CSSProperties = {
     position: "absolute",
     width: ASA_HIT_PX,
     height: ASA_HIT_PX,
+    minWidth: ASA_HIT_PX,
+    minHeight: ASA_HIT_PX,
     margin: 0,
     padding: 0,
     boxSizing: "border-box",
@@ -960,27 +961,29 @@ function estiloAsaEsquina(id: AsaRedimensionId): CSSProperties {
     justifyContent: "center",
     background: "transparent",
     border: "none",
+    transform: "translate(-50%, -50%)",
   };
   switch (id) {
     case "nw":
-      return { ...base, left: 0, top: 0, transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: 0, top: 0 };
     case "ne":
-      return { ...base, left: "100%", top: 0, transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: "100%", top: 0 };
     case "sw":
-      return { ...base, left: 0, top: "100%", transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: 0, top: "100%" };
     case "se":
-      return { ...base, left: "100%", top: "100%", transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: "100%", top: "100%" };
     default:
       return base;
   }
 }
 
 function estiloAsaLado(id: AsaRedimensionId): CSSProperties {
-  const half = ASA_HIT_PX / 2;
   const base: CSSProperties = {
     position: "absolute",
     width: ASA_HIT_PX,
     height: ASA_HIT_PX,
+    minWidth: ASA_HIT_PX,
+    minHeight: ASA_HIT_PX,
     margin: 0,
     padding: 0,
     boxSizing: "border-box",
@@ -990,16 +993,17 @@ function estiloAsaLado(id: AsaRedimensionId): CSSProperties {
     justifyContent: "center",
     background: "transparent",
     border: "none",
+    transform: "translate(-50%, -50%)",
   };
   switch (id) {
     case "n":
-      return { ...base, left: "50%", top: 0, transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: "50%", top: 0 };
     case "s":
-      return { ...base, left: "50%", top: "100%", transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: "50%", top: "100%" };
     case "e":
-      return { ...base, left: "100%", top: "50%", transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: "100%", top: "50%" };
     case "w":
-      return { ...base, left: 0, top: "50%", transform: `translate(-${half}px, -${half}px)` };
+      return { ...base, left: 0, top: "50%" };
     default:
       return base;
   }
@@ -1632,9 +1636,14 @@ function MarcoRedimensionable({
   const asas = redimensionLibre ? [...ASAS_REDIMENSION, ...ASAS_LATERALES] : ASAS_REDIMENSION;
   const marco = (
     <div
-      className="pointer-events-none absolute inset-0 box-border"
-      style={{ overflow: "visible", border: MARCO_SELECCION_CSS }}
+      className="pointer-events-none absolute inset-0"
+      style={{ overflow: "visible" }}
     >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 box-border"
+        style={{ border: MARCO_SELECCION_CSS }}
+      />
       <button
         type="button"
         title="Mover"
@@ -1651,7 +1660,7 @@ function MarcoRedimensionable({
           onMouseDown={(e) => onRedimensionar(e, a.id)}
         >
           <span
-            className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+            className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
             style={estiloNodoVisualAsa(a.id)}
           />
         </button>

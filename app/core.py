@@ -204,7 +204,12 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
    **valores teóricos o rangos habituales** de literatura científica/técnica para esa materia prima, marcándolos como
    **orientativos** (no sustituyen el COA del lote). Vendemos materia prima, no producto terminado.
 5. DISPONIBILIDAD Y PRECIOS: Responda con el catálogo inyectado. Si no hay match, diga que no aparece en catálogo web ahora,
-   sugiera mckennagroup.co/tienda y ofrezca WhatsApp solo como canal para confirmar stock especial — no obligue a cambiar de canal para una simple consulta.
+   sugiera mckennagroup.co/tienda y **pregunte explícitamente** cómo prefiere seguir el cliente, ofreciendo las DOS opciones
+   (no elija una por él): (a) que lo atienda un asesor por WhatsApp, o (b) si busca **bultos o cantidades mayores** de esa
+   materia prima, que deje su **correo electrónico** (y la cantidad aproximada) para que el equipo comercial le envíe la
+   cotización por ese medio. No obligue a cambiar de canal para una simple consulta puntual de precio/disponibilidad.
+   Si el cliente ya dejó su correo y el producto/cantidad en un turno anterior, agradezca y confirme que el equipo comercial
+   le escribe a ese correo — no vuelva a repetir "no encontré esa presentación".
    Si el catálogo incluye un "Link MercadoLibre", inclúyalo siempre en la respuesta para que el cliente pueda comprar directamente.
 6. DOCUMENTOS: Lo habitual en materia prima es **ficha técnica** y/o **COA**. Las materias primas tienen marco regulatorio
    distinto a un producto terminado con registro INVIMA; no prometa "registro INVIMA" como documento estándar de MP.
@@ -995,6 +1000,30 @@ def _mensaje_parece_correccion_cliente_web(texto: str) -> bool:
     return any(re.search(p, low) for p in _PATRONES_CORRECCION_WEB)
 
 
+_AGRADECIMIENTOS_WEB = frozenset(
+    {
+        "ok",
+        "gracias",
+        "muchas gracias",
+        "vale",
+        "listo",
+        "perfecto",
+        "entiendo",
+        "entendido",
+        "de acuerdo",
+    }
+)
+
+
+def _es_agradecimiento_puro_web(texto: str) -> bool:
+    """Acuse de recibo ('gracias', 'listo', 'ok'...) — NO es un saludo nuevo."""
+    return _normalizar_texto_web(texto) in _AGRADECIMIENTOS_WEB
+
+
+def _respuesta_agradecimiento_web() -> str:
+    return "Con gusto, veci 🙏 ¿Le puedo ayudar con algo más?"
+
+
 def _respuesta_saludo_web() -> str:
     return (
         "Hola veci, soy Hugo García de McKenna Group S.A.S. "
@@ -1017,6 +1046,47 @@ def _es_reconocimiento_corto_web(texto: str) -> bool:
     if _es_saludo_puro_web(texto):
         return True
     return bool(re.match(r"^(ok|entiendo|entendido|gracias|vale|listo|si|sí)\b", low))
+
+
+_PATRONES_IRRITACION_WEB: tuple[str, ...] = (
+    r"\birrit[oó\w]*\b",
+    r"\bardor\b",
+    r"\benrojec[ie\w]*\b",
+    r"\bescoc[ie\w]*\b",
+    r"\bpicaz[oó]n\b",
+    r"\bquemaz[oó]n\b",
+    r"\bsensibiliz[a\w]*\b",
+    r"\breacci[oó]n\b",
+    r"\bme\s+(quem[oó]|ardi[oó])\b",
+    r"\bpiel\s+(ha\s+)?respondid[oa]\b",
+)
+
+# Ácidos exfoliantes (AHA/BHA) con guía propia publicada — para vincular al
+# cliente cuando reporta irritación tras el uso (posible efecto peeling
+# esperado, no necesariamente reacción adversa).
+_ACIDOS_HIDROXIACIDOS_GUIA_WEB: tuple[tuple[str, str, str], ...] = (
+    (r"\b[aá]cido\s+glic[oó]lico\b|\bglicolico\b", "Ácido Glicólico", "acido-glicolico"),
+    (r"\b[aá]cido\s+sal[ií]c[ií]lico\b|\bsalicilico\b", "Ácido Salicílico", "acido-salicilico"),
+    (r"\b[aá]cido\s+l[aá]ctico\b|\blactico\b", "Ácido Láctico", "acido-lactico"),
+    (r"\b[aá]cido\s+m[aá]lico\b|\bmalico\b", "Ácido Málico", "acido-malico"),
+    (r"\b[aá]cido\s+c[ií]trico\b|\bcitrico\b", "Ácido Cítrico", "acido-citrico"),
+    (r"\b[aá]cido\s+azelaico\b|\bazelaico\b", "Ácido Azelaico", "acido-azelaico"),
+    (r"\b[aá]cido\s+k[oó]jico\b|\bkojico\b", "Ácido Kójico", "acido-kojico"),
+)
+
+
+def _mensaje_reporta_irritacion_web(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    return any(re.search(p, low) for p in _PATRONES_IRRITACION_WEB)
+
+
+def _detectar_hidroxiacido_guia_web(*textos: str) -> tuple[str, str] | None:
+    """Busca en los textos dados un hidroxiácido con guía publicada. Retorna (nombre, slug)."""
+    low = " ".join(re.sub(r"\s+", " ", (t or "").strip().lower()) for t in textos)
+    for patron, nombre, slug in _ACIDOS_HIDROXIACIDOS_GUIA_WEB:
+        if re.search(patron, low):
+            return nombre, slug
+    return None
 
 
 def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
@@ -1049,7 +1119,7 @@ def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
         r"\bcontiene\s+el\s+kit\b",
         r"\bque\s+contiene\b",
     )
-    if any(re.search(p, low) for p in patrones):
+    if any(re.search(p, low) for p in patrones) or _mensaje_reporta_irritacion_web(texto):
         return True
     if "proteína" in low or "proteina" in low:
         if any(w in low for w in ("tomar", "toma", "dia", "día", "gramos", "dosis", "debe")):
@@ -1268,7 +1338,14 @@ def _respuesta_no_encontrado_catalogo_web(consulta: str = "") -> str:
     )
     if nota:
         base = f"{nota}\n\n{base}"
-    return f"{base} Si prefiere hablar con un asesor: WhatsApp {display}."
+    # Opciones con letras, no números: un dígito suelto ("1", "2") se interpreta
+    # como selección de presentación en _es_seleccion_presentacion_web.
+    return (
+        f"{base}\n\n¿Cómo prefiere seguir?\n"
+        f"a) Le atiende un asesor por WhatsApp: {display}\n"
+        "b) Si busca **bultos o cantidades mayores** de esta materia prima, déjeme su **correo "
+        "electrónico** y la cantidad aproximada, y el equipo comercial le envía la cotización por ese medio."
+    )
 
 
 def _formatear_bloque_producto_web(nombre_busqueda: str, items: list[dict]) -> str:
@@ -1403,33 +1480,37 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     disparadores = (
         "precio",
         "cuesta",
-        "tienen",
-        "tiene",
-        "venden",
-        "manejan",
         "dispon",
         "stock",
         "presentacion",
         "presentación",
         "referencia",
         "cotiz",
-        "comprar",
-        "pedir",
-        "necesito",
-        "busco",
-        "buscando",
-        "quiero",
-        "solicito",
         "interesado",
         "interesada",
         "interesa",
-        "conseguir",
         "aminoacido",
         "aminoácido",
         "proteina",
         "proteína",
     )
     if any(d in low for d in disparadores):
+        return True
+    # Verbos con conjugación variable (tú/usted/ustedes) — stem en vez de forma
+    # literal para no perder "manejas", "vendes", "necesitas", etc.
+    disparadores_regex = (
+        r"\btien\w*\b",
+        r"\bmanej\w*\b",
+        r"\bvend\w*\b",
+        r"\bnecesit\w*\b",
+        r"\bbusc\w*\b",
+        r"\bquier\w*\b",
+        r"\bsolicit\w*\b",
+        r"\bconsegu\w*\b",
+        r"\bcompr\w*\b",
+        r"\bped\w*\b",
+    )
+    if any(re.search(p, low) for p in disparadores_regex):
         return True
     if _es_seleccion_presentacion_web(texto):
         return True
@@ -1471,6 +1552,10 @@ def _es_seleccion_presentacion_web(texto: str) -> bool:
     """Cliente elige variante corta (ej. '250g', 'la grande') — no un producto nuevo."""
     low = (texto or "").strip().lower()
     if not low or len(low) > 70:
+        return False
+    # Referencia/SKU literal (ej. "C-PROCONSUE80PKg") — es una búsqueda nueva
+    # por código, NO la selección de una variante ("250g", "la grande").
+    if re.fullmatch(r"[a-z]-[a-z0-9]+", low) and re.search(r"\d", low):
         return False
     if re.fullmatch(r"\d{1,2}", low):
         return True
@@ -1587,7 +1672,10 @@ def _extraer_producto_reciente_historial_web(messages: list) -> str:
                 nombre = line[2:].split(":")[0].strip()
                 if nombre:
                     return nombre
-        m_star = re.search(r"\*([^*]+)\*", text)
+        # Solo *negrita simple* de nombre de producto — excluye **negrita doble**
+        # de énfasis genérico (p. ej. "**ficha técnica**", "**COA**") para no
+        # confundir esas palabras con el producto recién ofrecido.
+        m_star = re.search(r"(?<!\*)\*([^*]+)\*(?!\*)", text)
         if m_star:
             return m_star.group(1).strip()
     return ""
@@ -1870,6 +1958,34 @@ def _enriquecer_pregunta_tecnica_web(
         bloques.append(f"[Ficha técnica disponible:\n{ficha.strip()[:3200]}]")
     if (memoria_vec or "").strip():
         bloques.append(f"[Memoria McKenna:\n{memoria_vec.strip()[:1200]}]")
+    if _mensaje_reporta_irritacion_web(pregunta):
+        hist_txt = _contexto_historial_usuario_web(messages)
+        guia_acido = _detectar_hidroxiacido_guia_web(pregunta, prod, hist_txt)
+        bloques.append(
+            "[ALERTA — el cliente reporta irritación/ardor/enrojecimiento tras usar un "
+            "hidroxiácido (AHA/BHA) puro.]\n"
+            "Instrucciones específicas para esta respuesta:\n"
+            "- Siga el hilo de la conversación: no repita el catálogo, responda puntual a lo "
+            "que el cliente acaba de contar.\n"
+            "- Explique que un enrojecimiento o descamación LEVE y pasajera es, en general, el "
+            "efecto esperado de una buena exfoliación química (\"efecto peeling\") con "
+            "hidroxiácidos como este — no es necesariamente una reacción adversa.\n"
+            "- Distíngalo de una reacción adversa real (ardor intenso y persistente, ampollas, "
+            "hinchazón, dolor fuerte): en ese caso sí debe suspender el uso y consultar a un "
+            "profesional de la piel.\n"
+            "- Dé una recomendación concreta: bajar frecuencia de aplicación, reducir "
+            "concentración o tiempo de contacto, aplicar una crema hidratante después, y usar "
+            "bloqueador solar al día siguiente. Siempre recalque la prueba de parche antes de "
+            "extender el uso."
+            + (
+                f"\n- Invite al cliente a revisar la guía completa en la página web: "
+                f"https://mckennagroup.co/guias/{guia_acido[1]} ({guia_acido[0]}), donde "
+                "encuentra concentraciones, frecuencia y precauciones detalladas."
+                if guia_acido
+                else "\n- Invite al cliente a revisar la sección de guías de hidroxiácidos en "
+                "https://mckennagroup.co/guias para más detalle de uso y precauciones."
+            )
+        )
     bloques.extend(
         [
             f"\nPregunta del cliente: {base}",
@@ -2068,6 +2184,7 @@ def obtener_respuesta_ia(
     # ── Chat web: contacto, documentos, escalación pago/pedido ──
     if es_web and pregunta_visible and not adjuntos:
         from app.web_chat_intents import (
+            manejar_cotizacion_mayoreo_correo_web,
             manejar_escalacion_web,
             manejar_pregunta_contacto_web,
         )
@@ -2090,6 +2207,27 @@ def obtener_respuesta_ia(
             _historiales[usuario_id] = final_messages
             _guardar_historial_persistente(usuario_id, final_messages)
             return seg_out, final_messages
+
+        _ultimo_asst_txt = next(
+            (
+                _extraer_texto_visible_mensaje(m.get("content"))
+                for m in reversed(messages)
+                if m.get("role") == "assistant"
+            ),
+            "",
+        )
+        # "ok"/"listo" solo cierra como agradecimiento si el asistente NO dejó una
+        # pregunta abierta (confirmación de cantidad, opciones a/b, etc.).
+        if _es_agradecimiento_puro_web(pregunta_visible) and "?" not in _ultimo_asst_txt.strip()[-160:]:
+            ack_out = _sanitizar_respuesta_web_chat(_respuesta_agradecimiento_web())
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": ack_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return ack_out, final_messages
 
         if _es_saludo_puro_web(pregunta_visible):
             saludo_out = _sanitizar_respuesta_web_chat(_respuesta_saludo_web())
@@ -2124,7 +2262,23 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return lista_out, final_messages
 
-        multi_out_raw = _respuesta_multiproducto_web(pregunta_visible)
+        mayoreo_out_raw = manejar_cotizacion_mayoreo_correo_web(pregunta_visible)
+        if mayoreo_out_raw:
+            mayoreo_out = _sanitizar_respuesta_web_chat(mayoreo_out_raw)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": mayoreo_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return mayoreo_out, final_messages
+
+        multi_out_raw = (
+            None
+            if _mensaje_parece_consulta_tecnica_web(pregunta_visible)
+            else _respuesta_multiproducto_web(pregunta_visible)
+        )
         if multi_out_raw:
             multi_out = _sanitizar_respuesta_web_chat(multi_out_raw)
             messages.append(
@@ -2304,6 +2458,13 @@ def obtener_respuesta_ia(
     else:
         pregunta_para_ia = pregunta_visible
     texto_usuario = f"Usuario_{usuario_id}: {pregunta_para_ia}".strip()
+    # Lo que se persiste en el historial (y se relee en turnos futuros por
+    # heurísticas de texto) debe ser el mensaje VISIBLE del cliente, nunca el
+    # bloque enriquecido (ficha técnica, memoria vectorial, instrucciones
+    # internas) — de lo contrario ese contenido interno queda grabado como si
+    # el cliente lo hubiera escrito y se filtra en respuestas posteriores
+    # (p. ej. manejar_documentos_web parseándolo como nombres de producto).
+    texto_usuario_historial = f"Usuario_{usuario_id}: {pregunta_visible}".strip()
     if not pregunta_visible and not adjuntos:
         return "Veci, escribe un mensaje o adjunta un archivo 🙏", []
 
@@ -2314,7 +2475,7 @@ def obtener_respuesta_ia(
             bloques.append(_bloques_claude_adjuntos(mt, raw))
         messages.append({"role": "user", "content": bloques})
     else:
-        messages.append({"role": "user", "content": texto_usuario})
+        messages.append({"role": "user", "content": texto_usuario_historial})
 
     # Respuesta a cantidad tras ofertar producto (evita que "1" o "1 unidad" disparen nueva búsqueda).
     if not adjuntos:

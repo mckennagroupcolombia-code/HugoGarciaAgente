@@ -11,7 +11,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-16T18:09:40",
-      "ultima_revision": "2026-07-10T08:30:03",
+      "ultima_revision": "2026-07-11T08:30:03",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -288,6 +288,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-11T08:30:03",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": [
@@ -305,7 +315,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-1000-gramos-1000-gr-1000-gr-en-polvo-puro-1-kilo-1kg-1kg/up/MCOU3415632539",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T20:57:16",
-      "ultima_revision": "2026-07-10T08:30:04",
+      "ultima_revision": "2026-07-11T08:30:04",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -524,6 +534,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-11T08:30:04",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -539,7 +559,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T21:09:27",
-      "ultima_revision": "2026-07-10T08:30:06",
+      "ultima_revision": "2026-07-11T08:30:06",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -798,10 +818,128 @@
           "señales": [
             "suplemento dietario"
           ]
+        },
+        {
+          "fecha": "2026-07-11T08:30:06",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083548736-citrato-de-magnesio-puro-250-g-sin-sabor-_JM",
+          "señales": [
+            "suplemento dietario"
+          ]
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "55cc2a0f-529",
+      "item_id": "MCO4160718746",
+      "sku": "C-SEMCAL250g",
+      "nombre": "SEMILLA DE CALABAZA",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4160718746-semilla-de-calabaza-pura-250g-materia-prima-sin-sabor-_JM",
+      "item_origen_id": "",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "creado_en": "2026-07-11T15:56:28",
+      "ultima_revision": "2026-07-11T15:56:30",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva",
+      "historial": [
+        {
+          "fecha": "2026-07-11T15:56:30",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160718746-semilla-de-calabaza-pura-250g-materia-prima-sin-sabor-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "286ef719-d2e",
+      "item_id": "MCO4160901374",
+      "sku": "C-SEMCAL500g",
+      "nombre": "SEMILLA DE CALABAZA",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4160901374-semilla-de-calabaza-pura-500g-materia-prima-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 29800.0,
+      "presentacion": "500g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-07-11T21:19:13",
+      "ultima_revision": "2026-07-11T21:19:14",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 2,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-07-11T21:19:14",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160901374-semilla-de-calabaza-pura-500g-materia-prima-_JM",
+          "señales": [
+            "suplemento dietario"
+          ]
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "5d8360ca-1a4",
+      "item_id": "MCO4160912078",
+      "sku": "C-ARADES250g",
+      "nombre": "ARANDANOS DESHIDRATADOS",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4160912078-arandanos-deshidratados-250g-materia-prima-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 21900.0,
+      "presentacion": "250g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-07-11T22:55:16",
+      "ultima_revision": "2026-07-11T22:55:17",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-07-11T22:55:17",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160912078-arandanos-deshidratados-250g-materia-prima-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
     }
   ],
-  "ultima_revision_global": "2026-07-10T08:30:06"
+  "ultima_revision_global": "2026-07-11T08:30:06"
 }

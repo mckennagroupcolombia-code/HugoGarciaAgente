@@ -382,7 +382,7 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
             mensaje: textoNorm,
             es_grupo_contabilidad: GRUPOS_ADMIN.includes(chatId),
             hasMedia: false
-        });
+        }, { timeout: 120000 });
     } catch (error) {
         console.error("❌ Error enviando comando al agente:", error.message);
         logActividad('ERROR', { texto: `Comando al agente: ${error.message}` });
@@ -430,7 +430,7 @@ async function procesarMensajeSedeSur(msg, chatId) {
             mediaPath,
             mediaType,
             es_grupo_contabilidad: false,
-        });
+        }, { timeout: 120000 });
         if (responseIA.data && responseIA.data.respuesta) {
             const sentResp = await client.sendMessage(chatId, responseIA.data.respuesta);
             // Registrar ID para que message_create no procese la propia respuesta del bot
@@ -636,7 +636,7 @@ client.on('message', async (msg) => {
             mediaPath: mediaPath,
             mediaType: mediaType,
             es_grupo_contabilidad: false
-        });
+        }, { timeout: 120000 });
 
         if (responseIA.data && responseIA.data.respuesta) {
             const respuestaBot = responseIA.data.respuesta;
