@@ -30,26 +30,27 @@ REFERENCIAS_COMPETIDOR: dict[str, dict] = {
         "nombre": "Citrato de magnesio 500g (competidor activo)",
         "url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
         "item_id_ejemplo": "MCO3127214600",
-        "category_id": "MCO8830",
-        "domain_id": "MCO-SUPPLEMENTS",
-        "line": "Citrato de Magnesio",
+        "category_id": "MCO441116",
+        "domain_id": "",
+        "line": "Materias primas alimentarias",
         "family_name_ejemplo": "Citrato De Magnesio Puro 500 G",
-        "evitar": ["sal de magnesio", "suplemento", "MCO-SALT", "LINE: Sal"],
+        "evitar": ["sal de magnesio", "suplemento", "MCO-SALT", "LINE: Sal", "MCO8830", "MCO-SUPPLEMENTS"],
         "incluir": ["materia prima", "polvo puro", "formulación", "Res. 2674"],
+        "nota": "Competidor histórico en MCO8830; McKenna NO publica en suplementos.",
     },
     "citrato_magnesio_1kg": {
         "nombre": "Citrato de magnesio 1kg (competidor activo)",
         "url": "https://www.mercadolibre.com.co/citrato-de-magnesio-1000-gramos-1000-gr-1000-gr-en-polvo-puro-1-kilo-1kg-1kg/up/MCOU3415632539",
         "item_id_ejemplo": "MCO1670758887",
-        "category_id": "MCO8830",
-        "domain_id": "MCO-SUPPLEMENTS",
-        "line": "Citrato de Magnesio",
+        "category_id": "MCO441116",
+        "domain_id": "",
+        "line": "Materias primas alimentarias",
         "family_name_ejemplo": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo",
-        "evitar": ["sal de magnesio", "suplemento", "MCO-SALT", "LINE: Sal"],
+        "evitar": ["sal de magnesio", "suplemento", "MCO-SALT", "LINE: Sal", "MCO8830", "MCO-SUPPLEMENTS"],
         "incluir": ["materia prima", "polvo puro", "formulación", "Res. 2674"],
+        "nota": "Competidor histórico en MCO8830; McKenna NO publica en suplementos.",
     },
 }
-
 
 def _ahora_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
@@ -77,20 +78,29 @@ def _log_evento(evento: dict) -> None:
         f.write(json.dumps({**evento, "ts": _ahora_iso()}, ensure_ascii=False) + "\n")
 
 
-def listar_watchlist(solo_activos: bool = True) -> dict:
+def listar_watchlist(solo_activos: bool = True, origen: str = "") -> dict:
     data = _cargar_watchlist()
     pubs = data.get("publicaciones", [])
     if solo_activos:
         pubs = [p for p in pubs if p.get("seguimiento_activo", True)]
+    origen_f = (origen or "").strip().lower()
     enriched = []
     for p in pubs:
         row = dict(p)
+        # Inferir origen en entradas viejas sin el campo
+        if not row.get("origen"):
+            row["origen"] = "reemplazo" if (row.get("item_origen_id") or "").strip() else "desde_cero"
+        if origen_f and row.get("origen") != origen_f:
+            continue
         row["url_meli"] = permalink_meli(row.get("item_id", ""), row.get("permalink", ""))
         enriched.append(row)
+    # Más recientes primero
+    enriched.sort(key=lambda x: x.get("creado_en") or "", reverse=True)
     return {
         "publicaciones": enriched,
         "total": len(enriched),
         "ultima_revision_global": data.get("ultima_revision_global"),
+        "origen_filtro": origen_f or None,
     }
 
 
@@ -172,12 +182,20 @@ def registrar_seguimiento(
     referencia: str = "citrato_magnesio",
     categoria_catalogo: str = "",
     notas: str = "",
+    origen: str = "",
+    precio: float = 0,
+    presentacion: str = "",
+    perfil: str = "",
 ) -> dict:
     """Agrega o actualiza una publicación en la watchlist de monitoreo."""
     data = _cargar_watchlist()
     pubs: list[dict] = data.setdefault("publicaciones", [])
     existente = next((p for p in pubs if p.get("item_id") == item_id), None)
     ref = REFERENCIAS_COMPETIDOR.get(referencia, {})
+
+    origen_norm = (origen or "").strip().lower()
+    if origen_norm not in ("desde_cero", "reemplazo"):
+        origen_norm = "reemplazo" if (item_origen_id or "").strip() else "desde_cero"
 
     entrada = {
         "id": existente.get("id") if existente else str(uuid.uuid4())[:12],
@@ -186,9 +204,13 @@ def registrar_seguimiento(
         "nombre": nombre,
         "permalink": permalink,
         "item_origen_id": item_origen_id,
+        "origen": origen_norm,
         "referencia_competidor": referencia,
         "referencia_url": ref.get("url", ""),
         "categoria_catalogo": categoria_catalogo,
+        "precio": float(precio or 0) or (existente.get("precio") if existente else 0),
+        "presentacion": presentacion or (existente.get("presentacion") if existente else ""),
+        "perfil": perfil or (existente.get("perfil") if existente else ""),
         "creado_en": existente.get("creado_en") if existente else _ahora_iso(),
         "ultima_revision": None,
         "estado_actual": "unknown",
@@ -203,13 +225,71 @@ def registrar_seguimiento(
 
     if existente:
         idx = pubs.index(existente)
+        # Conservar revisión previa si re-registramos el mismo item
+        entrada["ultima_revision"] = existente.get("ultima_revision")
+        entrada["estado_actual"] = existente.get("estado_actual") or "unknown"
+        entrada["sub_status"] = existente.get("sub_status") or []
+        entrada["nivel_riesgo"] = existente.get("nivel_riesgo")
+        entrada["score_riesgo"] = existente.get("score_riesgo")
         pubs[idx] = entrada
     else:
         pubs.append(entrada)
 
     _guardar_watchlist(data)
-    _log_evento({"tipo": "registro_seguimiento", "item_id": item_id, "sku": sku})
+    _log_evento({"tipo": "registro_seguimiento", "item_id": item_id, "sku": sku, "origen": origen_norm})
     return entrada
+
+
+def eliminar_de_watchlist(
+    *,
+    item_id: str = "",
+    entry_id: str = "",
+) -> dict:
+    """
+    Quita una entrada del historial/watchlist local.
+    No cierra ni elimina la publicación en Mercado Libre.
+    """
+    iid = (item_id or "").strip()
+    eid = (entry_id or "").strip()
+    if not iid and not eid:
+        return {"ok": False, "error": "Indica item_id o id de la entrada"}
+
+    data = _cargar_watchlist()
+    pubs: list[dict] = data.get("publicaciones") or []
+    antes = len(pubs)
+    removed: list[dict] = []
+    kept: list[dict] = []
+    for p in pubs:
+        match = False
+        if eid and str(p.get("id") or "") == eid:
+            match = True
+        elif iid and str(p.get("item_id") or "") == iid:
+            match = True
+        if match:
+            removed.append(p)
+        else:
+            kept.append(p)
+
+    if not removed:
+        return {"ok": False, "error": "No se encontró la publicación en el historial"}
+
+    data["publicaciones"] = kept
+    _guardar_watchlist(data)
+    _log_evento({
+        "tipo": "eliminar_watchlist",
+        "item_id": removed[0].get("item_id"),
+        "id": removed[0].get("id"),
+        "sku": removed[0].get("sku"),
+    })
+    return {
+        "ok": True,
+        "eliminados": len(removed),
+        "restantes": len(kept),
+        "antes": antes,
+        "item_id": removed[0].get("item_id"),
+        "nombre": removed[0].get("nombre"),
+        "nota": "Quitada del historial local. La publicación en MeLi no se cerró.",
+    }
 
 
 def _headers_meli() -> Optional[dict]:
@@ -388,9 +468,14 @@ def crear_publicacion_nueva_compliance(
     item_origen_id: str = "",
     referencia: str = "citrato_magnesio",
     foto_url: Optional[str] = None,
+    foto_urls: Optional[list] = None,
     stock: int = 10,
     contenido_generado: Optional[dict] = None,
     categoria_catalogo: str = "",
+    category_id: str = "",
+    domain_id: str = "",
+    line: str = "",
+    taxonomia_item_id: str = "",
     dry_run: bool = False,
 ) -> dict:
     """
@@ -398,12 +483,23 @@ def crear_publicacion_nueva_compliance(
     y la registra para seguimiento diario.
 
     Usar cuando la publicación anterior está prohibida y no se puede corregir por API.
+    taxonomia_item_id: ítem MeLi de referencia solo para heredar category_id/domain/LINE
+    (p. ej. al duplicar desde historial); no implica reemplazo.
     """
     from app.tools.meli_compliance import (
         buscar_publicaciones_pausadas,
         crear_publicacion_meli,
         diagnosticar_riesgo,
         generar_contenido_compliance,
+        obtener_item_meli,
+        _extraer_line_item,
+        PERFILES,
+        es_category_id_meli,
+        es_domain_id_meli,
+        es_taxonomia_suplementos,
+        normalizar_category_id_meli,
+        predecir_categoria_meli,
+        CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
     )
     from app.utils import obtener_seller_id_meli
 
@@ -460,7 +556,7 @@ def crear_publicacion_nueva_compliance(
 
     item_referencia = None
     if item_origen_id:
-        from app.tools.meli_compliance import obtener_item_meli, _foto_desde_item, _precio_desde_item
+        from app.tools.meli_compliance import obtener_item_meli, _fotos_desde_item, _precio_desde_item
         item_referencia = obtener_item_meli(item_origen_id)
         if item_referencia:
             if not titulo_actual:
@@ -468,11 +564,13 @@ def crear_publicacion_nueva_compliance(
             if precio <= 0:
                 precio = _precio_desde_item(item_referencia, precio)
                 resultado["precio_resuelto"] = precio
-            if not foto_url:
-                foto_url = _foto_desde_item(item_referencia)
-                if foto_url:
+            if not foto_url and not foto_urls:
+                fotos_ref = _fotos_desde_item(item_referencia)
+                if fotos_ref:
+                    foto_urls = fotos_ref
+                    foto_url = fotos_ref[0]
                     resultado["foto_resuelta"] = True
-
+                    resultado["fotos_resueltas"] = len(fotos_ref)
     if precio <= 0 and not dry_run:
         resultado["paso_fallido"] = "precio: no se pudo determinar precio (> 0 COP requerido)"
         return resultado
@@ -495,12 +593,158 @@ def crear_publicacion_nueva_compliance(
 
     ref = REFERENCIAS_COMPETIDOR.get(referencia, {})
     atrs = dict(contenido.get("atributos") or {})
-    if perfil == "materia_prima_alimentaria":
-        atrs["category_id"] = ref.get("category_id") or "MCO8830"
-        atrs["LINE"] = ref.get("line") or atrs.get("LINE") or "Materias primas alimentarias"
-        atrs["domain_id"] = ref.get("domain_id") or "MCO-SUPPLEMENTS"
+
+    # La IA suele devolver category_id=MCO8830 (suplementos). NUNCA confiar en eso
+    # si hay taxonomía de un ítem de referencia (duplicar) o category_id explícito.
+    atrs.pop("category_id", None)
+
+    cat_explicita = (category_id or "").strip()
+    domain_explicito = (domain_id or "").strip()
+    line_explicita = (line or "").strip()
+
+    # Prioridad: taxonomía del ítem duplicado (si NO es suplementos)
+    tax_id = (taxonomia_item_id or "").strip()
+    item_tax = None
+    item_attrs_src = None
+    if tax_id:
+        item_tax = obtener_item_meli(tax_id)
+        if item_tax and not item_tax.get("error"):
+            item_attrs_src = item_tax
+            cat_tax = (item_tax.get("category_id") or "").strip()
+            dom_tax = (item_tax.get("domain_id") or "").strip()
+            if es_taxonomia_suplementos(cat_tax, dom_tax):
+                resultado["advertencias"] = list(resultado.get("advertencias") or [])
+                resultado["advertencias"].append(
+                    f"La referencia {tax_id} está en suplementos ({cat_tax}); "
+                    "se predice otra categoría alimentaria (nunca MCO8830)."
+                )
+            else:
+                cat_explicita = cat_tax or cat_explicita
+                domain_explicito = dom_tax or domain_explicito
+                line_explicita = _extraer_line_item(item_tax) or line_explicita
+                resultado["taxonomia_desde"] = tax_id
+
+    if not cat_explicita and item_referencia:
+        cat_ref = (item_referencia.get("category_id") or "").strip()
+        dom_ref = (item_referencia.get("domain_id") or "").strip()
+        if not es_taxonomia_suplementos(cat_ref, dom_ref):
+            cat_explicita = cat_ref
+            if not domain_explicito:
+                domain_explicito = dom_ref
+            if not line_explicita:
+                line_explicita = _extraer_line_item(item_referencia)
+        if not item_attrs_src:
+            item_attrs_src = item_referencia
+
+    # Rechazar suplementos aunque vengan en el body
+    if es_taxonomia_suplementos(cat_explicita, domain_explicito):
+        cat_explicita = ""
+        domain_explicito = ""
+
+    if cat_explicita and not es_category_id_meli(cat_explicita):
+        if es_domain_id_meli(cat_explicita) and not domain_explicito:
+            domain_explicito = cat_explicita
+        cat_explicita = ""
+
+    fallback_cat = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+    if ref.get("category_id") and not es_taxonomia_suplementos(str(ref.get("category_id")), str(ref.get("domain_id") or "")):
+        fallback_cat = str(ref.get("category_id"))
+    perfil_cat = PERFILES.get(perfil, {}).get("categoria_meli")
+    if perfil_cat and not es_taxonomia_suplementos(str(perfil_cat), ""):
+        fallback_cat = str(perfil_cat) or fallback_cat
+
+    if cat_explicita and es_category_id_meli(cat_explicita) and not es_taxonomia_suplementos(cat_explicita, domain_explicito):
+        dom_src = domain_explicito if es_domain_id_meli(domain_explicito) and not es_taxonomia_suplementos("", domain_explicito) else ""
+        cat_final, dom_final = normalizar_category_id_meli(
+            cat_explicita,
+            domain_id=dom_src,
+            fallback=cat_explicita,
+        )
+        atrs["category_id"] = cat_final
+        if dom_final:
+            atrs["domain_id"] = dom_final
+        if line_explicita:
+            atrs["LINE"] = line_explicita
+        elif perfil == "materia_prima_alimentaria" and not atrs.get("LINE"):
+            atrs["LINE"] = ref.get("line") or "Materias primas alimentarias"
+    else:
+        # Predecir (excluye suplementos) o Almacén > Otros
+        titulo_pred = (
+            (contenido.get("titulo") or "").strip()
+            or f"{nombre} {presentacion}".strip()
+            or nombre
+        )
+        pred = predecir_categoria_meli(
+            titulo_pred,
+            perfil=perfil,
+            presentacion=presentacion,
+        )
+        resultado["prediccion_categoria"] = {
+            k: pred.get(k)
+            for k in (
+                "ok", "category_id", "domain_id", "category_name", "line", "model",
+                "consulta", "error", "fallback_sin_suplementos", "nota",
+            )
+            if k in pred
+        }
+        if pred.get("ok") and es_category_id_meli(str(pred.get("category_id") or "")):
+            cat_final = str(pred["category_id"])
+            dom_final = str(pred.get("domain_id") or "")
+            if es_taxonomia_suplementos(cat_final, dom_final):
+                cat_final = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+                dom_final = ""
+            atrs["category_id"] = cat_final
+            if dom_final and es_domain_id_meli(dom_final):
+                atrs["domain_id"] = dom_final
+            else:
+                atrs.pop("domain_id", None)
+            if pred.get("line"):
+                atrs["LINE"] = pred["line"]
+            elif perfil == "materia_prima_alimentaria":
+                atrs["LINE"] = atrs.get("LINE") or "Materias primas alimentarias"
+            if pred.get("model"):
+                atrs.setdefault("MODEL", pred["model"])
+        else:
+            atrs["category_id"] = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+            atrs.pop("domain_id", None)
+            atrs["LINE"] = atrs.get("LINE") or "Materias primas alimentarias"
+            atrs.setdefault("MODEL", (nombre or titulo_pred or "Materia prima")[:60])
+
     contenido["atributos"] = atrs
-    perfil_info_cat = atrs.get("category_id", "MCO8830")
+    perfil_info_cat = atrs.get("category_id") or fallback_cat
+    if (
+        not es_category_id_meli(str(perfil_info_cat))
+        or es_taxonomia_suplementos(str(perfil_info_cat), str(atrs.get("domain_id") or ""))
+    ):
+        perfil_info_cat = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+        atrs["category_id"] = perfil_info_cat
+        atrs.pop("domain_id", None)
+        contenido["atributos"] = atrs
+
+    # Ítem para heredar atributos (MODEL, BRAND): duplicado > origen (aunque taxonomía sea suplementos)
+    item_attrs = item_attrs_src or item_referencia
+    if item_attrs:
+        for aid in ("MODEL", "BRAND"):
+            for a in item_attrs.get("attributes") or []:
+                if a.get("id") == aid and (a.get("value_name") or "").strip():
+                    atrs.setdefault(aid, a["value_name"].strip())
+                    break
+        contenido["atributos"] = atrs
+
+    # Atributos exigidos por Almacén > Otros
+    if str(perfil_info_cat) == CATEGORIA_FALLBACK_SIN_SUPLEMENTOS:
+        atrs.setdefault("MANUFACTURER", "McKenna Group")
+        atrs.setdefault("PRODUCT_NAME", (nombre or contenido.get("titulo") or sku or "Materia prima")[:60])
+        atrs.setdefault("MODEL", atrs.get("PRODUCT_NAME") or nombre or "Materia prima")
+        contenido["atributos"] = atrs
+
+    resultado["category_id_usado"] = perfil_info_cat
+    resultado["domain_id_usado"] = atrs.get("domain_id")
+    resultado["line_usada"] = atrs.get("LINE")
+    resultado["model_usado"] = atrs.get("MODEL")
+    if es_taxonomia_suplementos(str(perfil_info_cat), str(atrs.get("domain_id") or "")):
+        resultado["paso_fallido"] = "categoria: se bloqueó publicación en suplementos"
+        return resultado
 
     if dry_run:
         resultado["publicacion"] = {
@@ -520,10 +764,11 @@ def crear_publicacion_nueva_compliance(
         atributos_compliance=contenido.get("atributos", {}),
         stock=stock,
         foto_url=foto_url,
+        foto_urls=foto_urls,
         usar_user_product=True,
         presentacion=presentacion,
         nombre=nombre,
-        item_referencia=item_referencia,
+        item_referencia=item_attrs,
     )
     resultado["publicacion"] = pub
 
@@ -539,7 +784,15 @@ def crear_publicacion_nueva_compliance(
         item_origen_id=item_origen_id,
         referencia=referencia,
         categoria_catalogo=categoria_catalogo,
-        notas="Creada por compliance monitor — publicación nueva",
+        notas=(
+            "Creada desde cero (panel Publicaciones)"
+            if not (item_origen_id or "").strip()
+            else "Creada por compliance monitor — publicación nueva (reemplazo)"
+        ),
+        origen="reemplazo" if (item_origen_id or "").strip() else "desde_cero",
+        precio=precio,
+        presentacion=presentacion,
+        perfil=perfil,
     )
     resultado["seguimiento"] = seg
 

@@ -36,6 +36,7 @@ import {
   seleccionTieneGrupo,
   snapLinea90,
   unionBounds,
+  idsSeleccionVentana,
   VARIANTES_MONTSERRAT,
   varianteDesdeFontWeight,
   zoomAjusteLienzo,
@@ -112,7 +113,35 @@ function ToolSep() {
   return <div className={`my-1 h-px w-6 ${studio.sep}`} />;
 }
 
-type DragMode = "move" | "resize-se" | "resize-line-end" | "rotate" | null;
+type ResizeCorner = "nw" | "ne" | "sw" | "se";
+type DragMode =
+  | "move"
+  | `resize-${ResizeCorner}`
+  | "resize-line-end"
+  | "rotate"
+  | null;
+
+/** Nodos estilo Illustrator: cuadrado mínimo, hit area un poco mayor. */
+const NODO_VIS_PX = 4;
+const NODO_HIT_PX = 10;
+const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
+const MARCO_HOVER_CSS = "1px dashed rgba(1, 109, 130, 0.32)";
+
+const CORNERS: { id: ResizeCorner; cursor: string }[] = [
+  { id: "nw", cursor: "nw-resize" },
+  { id: "ne", cursor: "ne-resize" },
+  { id: "sw", cursor: "sw-resize" },
+  { id: "se", cursor: "se-resize" },
+];
+
+function esModoResizeEsquina(mode: DragMode): mode is `resize-${ResizeCorner}` {
+  return (
+    mode === "resize-nw" ||
+    mode === "resize-ne" ||
+    mode === "resize-sw" ||
+    mode === "resize-se"
+  );
+}
 
 export function estiloElemento(el: ElementoVisual): React.CSSProperties {
   const base: React.CSSProperties = {
@@ -127,6 +156,62 @@ export function estiloElemento(el: ElementoVisual): React.CSSProperties {
     cursor: el.locked ? "default" : "move",
   };
   return base;
+}
+
+/** Posición en el stage del editor (artboard + margen pasteboard para objetos fuera). */
+export function estiloElementoEnStage(
+  el: ElementoVisual,
+  pasteboard: number,
+): React.CSSProperties {
+  const base = estiloElemento(el);
+  return {
+    ...base,
+    left: (typeof base.left === "number" ? base.left : el.x) + pasteboard,
+    top: (typeof base.top === "number" ? base.top : el.y) + pasteboard,
+  };
+}
+
+/** Área mínima clicable de un texto (el glifo a menudo desborda width/height guardados). */
+function tamanoHitTexto(el: ElementoTexto): { w: number; h: number } {
+  const lh = el.lineHeight ?? 1.2;
+  const raw = el.content ?? "";
+  const lineasExplicitas = Math.max(1, raw.split("\n").length);
+  const chars = Math.max(1, raw.replace(/\n/g, "").length);
+  const anchoChar = Math.max(4, el.fontSize * 0.5);
+  const anchoUtil = Math.max(el.width, 8);
+  const lineasWrap = Math.ceil((chars * anchoChar) / anchoUtil);
+  // Ampliar por wrap estimado, pero sin crear un hit enorme que tape otras capas.
+  const lineas = Math.max(lineasExplicitas, Math.min(lineasWrap, Math.max(lineasExplicitas, 8)));
+  const h = Math.max(
+    el.height,
+    Math.ceil(el.fontSize * lh * lineas),
+    Math.ceil(el.fontSize * lh),
+    12,
+  );
+  const w = Math.max(el.width, Math.ceil(el.fontSize * 0.5), 12);
+  return { w, h };
+}
+
+/** Margen alrededor del artboard para poder seleccionar/mover objetos fuera del área. */
+export function margenPasteboard(
+  elementos: ElementoVisual[],
+  canvasW: number,
+  canvasH: number,
+  minimo = 120,
+): number {
+  let extra = minimo;
+  for (const el of elementos) {
+    if (el.visible === false) continue;
+    const b = boundsElemento(el);
+    extra = Math.max(
+      extra,
+      minimo - Math.min(0, b.left),
+      minimo - Math.min(0, b.top),
+      minimo + Math.max(0, b.right - canvasW),
+      minimo + Math.max(0, b.bottom - canvasH),
+    );
+  }
+  return Math.min(2400, Math.ceil(extra));
 }
 
 function mostrandoCajaArrastre(
@@ -144,14 +229,155 @@ function mostrandoCajaArrastre(
     !!drag &&
     drag.ids.includes(elId) &&
     (drag.mode === "move" ||
-      drag.mode === "resize-se" ||
+      esModoResizeEsquina(drag.mode) ||
       drag.mode === "rotate" ||
       drag.mode === "resize-line-end")
   );
 }
 
-const OUTLINE_CAJA_ARRASTRE = "1px solid rgba(8, 145, 178, 0.45)";
-const SOMBRA_HOVER = "0 0 0 2px rgba(99,102,241,0.75)";
+function SeleccionChrome({
+  width,
+  height,
+  showFrame,
+  showHandles,
+  hover,
+  onRotate,
+  onResize,
+}: {
+  width: number;
+  height: number;
+  showFrame: boolean;
+  showHandles: boolean;
+  hover?: boolean;
+  onRotate: (e: ReactPointerEvent) => void;
+  onResize: (e: ReactPointerEvent, corner: ResizeCorner) => void;
+}) {
+  if (!showFrame && !hover && !showHandles) return null;
+  const w = Math.max(1, width);
+  const h = Math.max(1, height);
+  const border = showHandles || showFrame ? MARCO_SELECCION_CSS : MARCO_HOVER_CSS;
+
+  const startAsa = (
+    e: ReactPointerEvent,
+    fn: (ev: ReactPointerEvent) => void,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fn(e);
+  };
+
+  return (
+    <>
+      {/* Solo marco visual: NUNCA captura clics (el arrastre lo hace el elemento). */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: w,
+          height: h,
+          boxSizing: "border-box",
+          border,
+          pointerEvents: "none",
+          zIndex: 20,
+          overflow: "visible",
+        }}
+      />
+      {showHandles && (
+        <>
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: w / 2,
+              top: -14,
+              width: 1,
+              height: 14,
+              transform: "translateX(-50%)",
+              background: "rgba(1, 109, 130, 0.4)",
+              pointerEvents: "none",
+              zIndex: 21,
+            }}
+          />
+          <div
+            role="button"
+            tabIndex={-1}
+            data-asa="rotate"
+            title="Rotar (mantén Shift para 15°)"
+            aria-label="Rotar"
+            style={{
+              position: "absolute",
+              left: w / 2,
+              top: -14,
+              width: NODO_HIT_PX,
+              height: NODO_HIT_PX,
+              transform: "translate(-50%, -50%)",
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "grab",
+              pointerEvents: "auto",
+              zIndex: 30,
+              touchAction: "none",
+            }}
+            onPointerDown={(e) => startAsa(e, onRotate)}
+          >
+            <span
+              style={{
+                width: NODO_VIS_PX,
+                height: NODO_VIS_PX,
+                borderRadius: 999,
+                border: "1px solid #016d82",
+                background: "#fff",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+          {CORNERS.map((c) => (
+            <div
+              key={c.id}
+              role="button"
+              tabIndex={-1}
+              data-asa={c.id}
+              title={`Redimensionar ${c.id}`}
+              aria-label={`Redimensionar ${c.id}`}
+              style={{
+                position: "absolute",
+                left: c.id.includes("w") ? 0 : w,
+                top: c.id.includes("n") ? 0 : h,
+                width: NODO_HIT_PX,
+                height: NODO_HIT_PX,
+                transform: "translate(-50%, -50%)",
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: c.cursor,
+                pointerEvents: "auto",
+                zIndex: 30,
+                touchAction: "none",
+              }}
+              onPointerDown={(e) => startAsa(e, (ev) => onResize(ev, c.id))}
+            >
+              <span
+                style={{
+                  width: NODO_VIS_PX,
+                  height: NODO_VIS_PX,
+                  borderRadius: 0.5,
+                  border: "1px solid #016d82",
+                  background: "#fff",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+          ))}
+        </>
+      )}
+    </>
+  );
+}
 
 export default function VisualCanvasEditor({
   doc,
@@ -177,6 +403,24 @@ export default function VisualCanvasEditor({
     rotateStartAngle?: number;
     rotateOrig?: number;
   } | null>(null);
+  const [marquee, setMarquee] = useState<{
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  } | null>(null);
+  const marqueeRef = useRef<{
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+    shift: boolean;
+    baseIds: string[];
+  } | null>(null);
+  const elementosRef = useRef(doc.elementos);
+  elementosRef.current = doc.elementos;
+  const seleccionIdsRef = useRef(seleccionIds);
+  seleccionIdsRef.current = seleccionIds;
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
@@ -532,20 +776,34 @@ export default function VisualCanvasEditor({
     [doc.elementos, doc.formato.ancho_px, doc.formato.alto_px, patchElementos, seleccionIds],
   );
 
+  const pasteboardRef = useRef(120);
+
   const punteroEnLienzo = useCallback(
     (ev: { clientX: number; clientY: number }) => {
       const node = canvasRef.current;
       if (!node) return null;
       const rect = node.getBoundingClientRect();
+      const pb = pasteboardRef.current;
       return {
-        x: (ev.clientX - rect.left) / zoom,
-        y: (ev.clientY - rect.top) / zoom,
+        x: (ev.clientX - rect.left) / zoom - pb,
+        y: (ev.clientY - rect.top) / zoom - pb,
       };
     },
     [zoom],
   );
 
+  const dragRef = useRef<{
+    ids: string[];
+    mode: DragMode;
+    startX: number;
+    startY: number;
+    origs: Map<string, ElementoVisual>;
+    rotateStartAngle?: number;
+    rotateOrig?: number;
+  } | null>(null);
+
   const onPointerDownEl = (e: ReactPointerEvent, el: ElementoVisual, mode: DragMode) => {
+    e.preventDefault();
     e.stopPropagation();
 
     const nextIds = resolverSeleccionAlClic(el, doc.elementos, seleccionIds, e.shiftKey);
@@ -570,7 +828,12 @@ export default function VisualCanvasEditor({
       if (found) origs.set(id, structuredClone(found));
     }
 
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // Capturar en el lienzo (estable), no en el asa: al re-render se desmontaba el botón y se perdía el gesto.
+    try {
+      canvasRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
 
     const dragBase = {
       ids: mode === "move" ? idsDrag : [el.id],
@@ -586,37 +849,103 @@ export default function VisualCanvasEditor({
       if (!pt || !o) return;
       const cx = o.x + o.width / 2;
       const cy = o.y + o.height / 2;
-      setDrag({
+      const full = {
         ...dragBase,
         rotateStartAngle: (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI,
         rotateOrig: o.rotation || 0,
-      });
+      };
+      dragRef.current = full;
+      setDrag(full);
       return;
     }
 
+    dragRef.current = dragBase;
     setDrag(dragBase);
   };
 
+  const iniciarMarquee = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    if (dragRef.current || marqueeRef.current) return;
+    // Solo vacío del stage (artboard/grid son pointer-events:none → el target es el stage).
+    if (e.target !== e.currentTarget) return;
+    const pt = punteroEnLienzo(e);
+    if (!pt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    cancelEditInline();
+    const m = {
+      x0: pt.x,
+      y0: pt.y,
+      x1: pt.x,
+      y1: pt.y,
+      shift: e.shiftKey,
+      baseIds: e.shiftKey ? [...seleccionIdsRef.current] : [],
+    };
+    marqueeRef.current = m;
+    setMarquee({ x0: m.x0, y0: m.y0, x1: m.x1, y1: m.y1 });
+    if (!e.shiftKey) setSeleccionIds([]);
+    try {
+      canvasRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const aplicarMarqueeSeleccion = (m: {
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+    shift: boolean;
+    baseIds: string[];
+  }) => {
+    const left = Math.min(m.x0, m.x1);
+    const right = Math.max(m.x0, m.x1);
+    const top = Math.min(m.y0, m.y1);
+    const bottom = Math.max(m.y0, m.y1);
+    if (right - left < 3 && bottom - top < 3) {
+      if (!m.shift) setSeleccionIds([]);
+      return;
+    }
+    const ids = idsSeleccionVentana(elementosRef.current, { left, right, top, bottom });
+    if (m.shift) {
+      setSeleccionIds([...new Set([...m.baseIds, ...ids])]);
+    } else {
+      setSeleccionIds(ids);
+    }
+  };
+
   useEffect(() => {
-    if (!drag) return;
-    const scale = zoom;
     function onMove(ev: PointerEvent) {
-      const dx = (ev.clientX - drag!.startX) / scale;
-      const dy = (ev.clientY - drag!.startY) / scale;
-      if (drag!.mode === "move") {
+      const mq = marqueeRef.current;
+      if (mq) {
+        const pt = punteroEnLienzo(ev);
+        if (!pt) return;
+        const next = { ...mq, x1: pt.x, y1: pt.y };
+        marqueeRef.current = next;
+        setMarquee({ x0: next.x0, y0: next.y0, x1: next.x1, y1: next.y1 });
+        aplicarMarqueeSeleccion(next);
+        return;
+      }
+      const d = dragRef.current;
+      if (!d) return;
+      const scale = zoom;
+      const dx = (ev.clientX - d.startX) / scale;
+      const dy = (ev.clientY - d.startY) / scale;
+      if (d.mode === "move") {
         patchElementos((els) =>
           els.map((e) => {
-            const o = drag!.origs.get(e.id);
+            const o = d.origs.get(e.id);
             if (!o) return e;
             return { ...e, ...patchMoverElemento(o, dx, dy) } as ElementoVisual;
           }),
         );
         return;
       }
-      const id = drag!.ids[0];
-      const o = drag!.origs.get(id);
+      const id = d.ids[0];
+      const o = d.origs.get(id);
       if (!o) return;
-      if (drag!.mode === "resize-line-end" && o.type === "line") {
+      if (d.mode === "resize-line-end" && o.type === "line") {
         const ox2 = o.x2 ?? o.x + o.width;
         const oy2 = o.y2 ?? o.y;
         let nx2 = ox2 + dx;
@@ -627,27 +956,44 @@ export default function VisualCanvasEditor({
           y2: ny2,
           width: Math.max(1, Math.hypot(nx2 - o.x, ny2 - o.y)),
         });
-      } else if (drag!.mode === "resize-se" && o.type !== "line") {
-        patchElemento(id, {
-          width: Math.max(20, o.width + dx),
-          height: Math.max(12, o.height + dy),
-        });
+      } else if (esModoResizeEsquina(d.mode) && o.type !== "line") {
+        const minW = 20;
+        const minH = 12;
+        let x = o.x;
+        let y = o.y;
+        let w = o.width;
+        let h = o.height;
+        const mode = d.mode;
+        if (mode === "resize-se") {
+          w = Math.max(minW, o.width + dx);
+          h = Math.max(minH, o.height + dy);
+        } else if (mode === "resize-sw") {
+          w = Math.max(minW, o.width - dx);
+          h = Math.max(minH, o.height + dy);
+          x = o.x + (o.width - w);
+        } else if (mode === "resize-ne") {
+          w = Math.max(minW, o.width + dx);
+          h = Math.max(minH, o.height - dy);
+          y = o.y + (o.height - h);
+        } else {
+          w = Math.max(minW, o.width - dx);
+          h = Math.max(minH, o.height - dy);
+          x = o.x + (o.width - w);
+          y = o.y + (o.height - h);
+        }
+        patchElemento(id, { x, y, width: w, height: h });
       } else if (
-        drag!.mode === "rotate" &&
+        d.mode === "rotate" &&
         (o.type === "rect" || o.type === "image" || o.type === "text")
       ) {
         const pt = punteroEnLienzo(ev);
-        if (
-          !pt ||
-          drag!.rotateStartAngle === undefined ||
-          drag!.rotateOrig === undefined
-        ) {
+        if (!pt || d.rotateStartAngle === undefined || d.rotateOrig === undefined) {
           return;
         }
         const cx = o.x + o.width / 2;
         const cy = o.y + o.height / 2;
         const angle = (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI;
-        let next = drag!.rotateOrig + (angle - drag!.rotateStartAngle);
+        let next = d.rotateOrig + (angle - d.rotateStartAngle);
         if (ev.shiftKey) {
           next = Math.round(next / 15) * 15;
         }
@@ -655,16 +1001,26 @@ export default function VisualCanvasEditor({
       }
     }
     function onUp() {
-      if (drag) suppressDeselectRef.current = true;
+      if (marqueeRef.current) {
+        aplicarMarqueeSeleccion(marqueeRef.current);
+        marqueeRef.current = null;
+        setMarquee(null);
+        suppressDeselectRef.current = true;
+        return;
+      }
+      if (dragRef.current) suppressDeselectRef.current = true;
+      dragRef.current = null;
       setDrag(null);
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
-  }, [drag, patchElemento, patchElementos, punteroEnLienzo, zoom]);
+  }, [patchElemento, patchElementos, punteroEnLienzo, zoom]);
 
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
@@ -672,6 +1028,8 @@ export default function VisualCanvasEditor({
       const editando = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if (ev.key === "Escape") {
         setSeleccionIds([]);
+        setMarquee(null);
+        marqueeRef.current = null;
         return;
       }
       if (
@@ -762,11 +1120,20 @@ export default function VisualCanvasEditor({
 
   const canvasW = doc.formato.ancho_px;
   const canvasH = doc.formato.alto_px;
+  const pasteboard = useMemo(
+    () => margenPasteboard(doc.elementos, canvasW, canvasH),
+    [doc.elementos, canvasW, canvasH],
+  );
+  pasteboardRef.current = pasteboard;
+  const stageW = canvasW + pasteboard * 2;
+  const stageH = canvasH + pasteboard * 2;
   const reglaPx = 18;
   const gridStepPx = 20;
   const rulerMinor = Math.max(6, Math.round(10 * zoom));
   const rulerMajor = Math.max(30, Math.round(50 * zoom));
   const formatoKey = `${doc.formato.id}-${canvasW}x${canvasH}`;
+  const artboardLeft = reglaPx + pasteboard * zoom;
+  const artboardTop = reglaPx + pasteboard * zoom;
 
   const aplicarZoomAjuste = useCallback(() => {
     const vp = viewportRef.current;
@@ -1074,15 +1441,17 @@ export default function VisualCanvasEditor({
           <div
             className="relative shrink-0"
             style={{
-              width: canvasW * zoom + reglaPx,
-              height: canvasH * zoom + reglaPx,
+              width: stageW * zoom + reglaPx,
+              height: stageH * zoom + reglaPx,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Regla horizontal */}
+            {/* Regla horizontal — alineada al artboard */}
             <div
-              className="absolute left-[18px] top-0 z-20 h-[18px] border-b border-white/10 bg-[#3a3a3a]"
+              className="absolute z-20 h-[18px] border-b border-white/10 bg-[#3a3a3a]"
               style={{
+                left: artboardLeft,
+                top: 0,
                 width: canvasW * zoom,
                 backgroundImage: [
                   `repeating-linear-gradient(to right, rgba(15,23,42,0.24) 0 1px, transparent 1px ${rulerMajor}px)`,
@@ -1092,8 +1461,10 @@ export default function VisualCanvasEditor({
             />
             {/* Regla vertical */}
             <div
-              className="absolute left-0 top-[18px] z-20 w-[18px] border-r border-white/10 bg-[#3a3a3a]"
+              className="absolute z-20 w-[18px] border-r border-white/10 bg-[#3a3a3a]"
               style={{
+                left: 0,
+                top: artboardTop,
                 height: canvasH * zoom,
                 backgroundImage: [
                   `repeating-linear-gradient(to bottom, rgba(15,23,42,0.24) 0 1px, transparent 1px ${rulerMajor}px)`,
@@ -1101,10 +1472,14 @@ export default function VisualCanvasEditor({
                 ].join(", "),
               }}
             />
-            <div className="absolute left-0 top-0 z-20 h-[18px] w-[18px] border-b border-r border-white/10 bg-[#3a3a3a]" />
+            <div
+              className="absolute z-20 h-[18px] w-[18px] border-b border-r border-white/10 bg-[#3a3a3a]"
+              style={{ left: 0, top: 0 }}
+            />
             <div
               ref={canvasRef}
-              className="relative origin-top-left overflow-visible rounded-sm shadow-2xl ring-1 ring-black/20"
+              className="relative origin-top-left overflow-visible"
+              onPointerDown={iniciarMarquee}
               onDragOver={(e) => {
                 if (e.dataTransfer.types.includes("application/ghs-icon")) {
                   e.preventDefault();
@@ -1116,8 +1491,9 @@ export default function VisualCanvasEditor({
                 if (!svg || !canvasRef.current) return;
                 e.preventDefault();
                 const rect = canvasRef.current.getBoundingClientRect();
-                const px = (e.clientX - rect.left) / zoom;
-                const py = (e.clientY - rect.top) / zoom;
+                const pb = pasteboardRef.current;
+                const px = (e.clientX - rect.left) / zoom - pb;
+                const py = (e.clientY - rect.top) / zoom - pb;
                 // EAN-13 SVGs have monospace text — wide aspect ratio, base on canvas width
                 const isEAN = svg.includes("monospace") && svg.includes("<rect");
                 const w = isEAN ? canvasW * 0.80 : Math.min(canvasW, canvasH) * 0.18;
@@ -1140,20 +1516,34 @@ export default function VisualCanvasEditor({
                 position: "absolute",
                 left: reglaPx,
                 top: reglaPx,
-                width: canvasW,
-                height: canvasH,
+                width: stageW,
+                height: stageH,
                 transform: `scale(${zoom})`,
-                backgroundColor: fondoTransparente ? undefined : doc.fondo,
-                backgroundImage: fondoTransparente
-                  ? "repeating-conic-gradient(#cbd5e1 0% 25%, #f8fafc 0% 50%)"
-                  : undefined,
-                backgroundSize: fondoTransparente ? "10px 10px" : undefined,
               }}
             >
-              {/* Cuadrícula casi invisible para guía de alineación */}
+              {/* Artboard (área de trabajo) */}
               <div
-                className="pointer-events-none absolute inset-0"
+                className="pointer-events-none absolute rounded-sm shadow-2xl ring-1 ring-black/20"
                 style={{
+                  left: pasteboard,
+                  top: pasteboard,
+                  width: canvasW,
+                  height: canvasH,
+                  backgroundColor: fondoTransparente ? undefined : doc.fondo,
+                  backgroundImage: fondoTransparente
+                    ? "repeating-conic-gradient(#cbd5e1 0% 25%, #f8fafc 0% 50%)"
+                    : undefined,
+                  backgroundSize: fondoTransparente ? "10px 10px" : undefined,
+                }}
+              />
+              {/* Cuadrícula solo sobre el artboard */}
+              <div
+                className="pointer-events-none absolute"
+                style={{
+                  left: pasteboard,
+                  top: pasteboard,
+                  width: canvasW,
+                  height: canvasH,
                   backgroundImage: [
                     "linear-gradient(to right, rgba(15,23,42,0.05) 1px, transparent 1px)",
                     "linear-gradient(to bottom, rgba(15,23,42,0.05) 1px, transparent 1px)",
@@ -1172,8 +1562,13 @@ export default function VisualCanvasEditor({
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
                     const editandoEste = editandoInlineId === el.id;
                     const esHover = hoveredId === el.id && !sel && !drag && !editandoEste;
+                    const mostrarManijas =
+                      !el.locked &&
+                      !editandoEste &&
+                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
+                    const hit = tamanoHitTexto(el);
                     const estiloTexto: React.CSSProperties = {
-                      ...estiloElemento(el),
+                      ...estiloElementoEnStage(el, pasteboard),
                       color: el.color,
                       fontSize: `${el.fontSize}px`,
                       fontFamily: el.fontFamily,
@@ -1183,8 +1578,6 @@ export default function VisualCanvasEditor({
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
                       overflow: "visible",
-                      outline: mostrandoCaja && !editandoEste ? OUTLINE_CAJA_ARRASTRE : undefined,
-                      boxShadow: esHover ? SOMBRA_HOVER : undefined,
                     };
                     return (
                       <div
@@ -1193,24 +1586,39 @@ export default function VisualCanvasEditor({
                         style={estiloTexto}
                         onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
                         onPointerLeave={() => setHoveredId(null)}
-                        onPointerDown={(e) => {
-                          if (editandoEste) { e.stopPropagation(); return; }
-                          onPointerDownEl(e, el, "move");
-                        }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          if (el.locked) return;
-                          setEditandoInlineId(el.id);
-                          setEditandoInlineTexto(el.content);
-                          setTimeout(() => {
-                            const ta = editandoInlineRef.current;
-                            if (ta) { ta.focus(); ta.select(); }
-                          }, 0);
-                        }}
                       >
+                        {/* Hit area ≥ glifo visible: si height/width guardados son chicos, el texto
+                            se ve (overflow) pero no se podía agarrar al hacer clic en las letras. */}
+                        <div
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            width: hit.w,
+                            height: hit.h,
+                            cursor: el.locked ? "default" : "move",
+                            touchAction: "none",
+                            zIndex: 1,
+                          }}
+                          onPointerDown={(e) => {
+                            if (editandoEste) { e.stopPropagation(); return; }
+                            onPointerDownEl(e, el, "move");
+                          }}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (el.locked) return;
+                            setEditandoInlineId(el.id);
+                            setEditandoInlineTexto(el.content);
+                            setTimeout(() => {
+                              const ta = editandoInlineRef.current;
+                              if (ta) { ta.focus(); ta.select(); }
+                            }, 0);
+                          }}
+                        />
                         {esHover && (
                           <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
                             T · {labelCapa(el)}
                           </div>
                         )}
@@ -1241,7 +1649,7 @@ export default function VisualCanvasEditor({
                               wordBreak: "break-word",
                               resize: "none",
                               background: "rgba(255,255,255,0.93)",
-                              border: "2px solid #6366f1",
+                              border: "1px solid rgba(1, 109, 130, 0.85)",
                               borderRadius: "2px",
                               outline: "none",
                               padding: 0,
@@ -1252,32 +1660,24 @@ export default function VisualCanvasEditor({
                           />
                         ) : (
                           <>
-                            {el.content}
-                            {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
-                              <>
-                                <span
-                                  aria-hidden
-                                  className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${
-                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                                  }`}
-                                  style={{ top: -22, height: 22 }}
-                                />
-                                <span
-                                  title="Rotar (mantén Shift para 15°)"
-                                  className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${
-                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                                  }`}
-                                  style={{ top: -30 }}
-                                  onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
-                                />
-                                <span
-                                  className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
-                                    mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                                  }`}
-                                  onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
-                                />
-                              </>
-                            )}
+                            <div
+                              style={{
+                                position: "relative",
+                                zIndex: 2,
+                                pointerEvents: "none",
+                              }}
+                            >
+                              {el.content}
+                            </div>
+                            <SeleccionChrome
+                              width={el.width}
+                              height={el.height}
+                              showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                              showHandles={mostrarManijas}
+                              hover={esHover}
+                              onRotate={(e) => onPointerDownEl(e, el, "rotate")}
+                              onResize={(e, corner) => onPointerDownEl(e, el, `resize-${corner}`)}
+                            />
                           </>
                         )}
                       </div>
@@ -1285,25 +1685,22 @@ export default function VisualCanvasEditor({
                   }
                   if (el.type === "rect") {
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
-                    const manijasVisibles =
-                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
-                    const mostrarManijas =
-                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
                     const esHover = hoveredId === el.id && !sel && !drag;
+                    const mostrarManijas =
+                      !el.locked &&
+                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
                     return (
                       <div
                         key={el.id}
                         className="group/elem"
                         style={{
-                          ...estiloElemento(el),
+                          ...estiloElementoEnStage(el, pasteboard),
                           background: el.fill,
                           border:
                             el.strokeWidth > 0
                               ? `${el.strokeWidth}px solid ${el.stroke}`
                               : undefined,
                           borderRadius: el.borderRadius,
-                          outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
-                          boxShadow: esHover ? SOMBRA_HOVER : undefined,
                           overflow: "visible",
                         }}
                         onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
@@ -1312,29 +1709,19 @@ export default function VisualCanvasEditor({
                       >
                         {esHover && (
                           <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
                             ▢ · {labelCapa(el)}
                           </div>
                         )}
-                        {mostrarManijas && (
-                          <>
-                            <span
-                              aria-hidden
-                              className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${manijasVisibles}`}
-                              style={{ top: -22, height: 22 }}
-                            />
-                            <span
-                              title="Rotar (mantén Shift para 15°)"
-                              className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${manijasVisibles}`}
-                              style={{ top: -30 }}
-                              onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
-                            />
-                            <span
-                              className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${manijasVisibles}`}
-                              onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
-                            />
-                          </>
-                        )}
+                        <SeleccionChrome
+                          width={el.width}
+                          height={el.height}
+                          showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                          showHandles={mostrarManijas}
+                          hover={esHover}
+                          onRotate={(e) => onPointerDownEl(e, el, "rotate")}
+                          onResize={(e, corner) => onPointerDownEl(e, el, `resize-${corner}`)}
+                        />
                       </div>
                     );
                   }
@@ -1354,14 +1741,9 @@ export default function VisualCanvasEditor({
                     const ly2 = y2 - minY + pad;
                     const hitStroke = Math.max(14, el.strokeWidth + 10);
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
-                    const manijasVisibles =
-                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
                     const mostrarManijas =
-                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
-                    const nodoLinea =
-                      "absolute z-10 flex h-2 w-2 -translate-x-1/2 -translate-y-1/2 items-center justify-center";
-                    const puntoLinea =
-                      "h-1.5 w-1.5 rounded-full border border-accent/35 bg-white/90 shadow-sm dark:border-accent/50 dark:bg-zinc-900/90";
+                      !el.locked &&
+                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
                     const esHoverLinea = hoveredId === el.id && !sel && !drag;
                     return (
                       <div
@@ -1369,8 +1751,8 @@ export default function VisualCanvasEditor({
                         className="group/elem"
                         style={{
                           position: "absolute",
-                          left: minX - pad,
-                          top: minY - pad,
+                          left: minX - pad + pasteboard,
+                          top: minY - pad + pasteboard,
                           width: svgW,
                           height: svgH,
                           zIndex: el.zIndex,
@@ -1378,7 +1760,7 @@ export default function VisualCanvasEditor({
                       >
                         {esHoverLinea && (
                           <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
                             ─ · {labelCapa(el)}
                           </div>
                         )}
@@ -1417,20 +1799,42 @@ export default function VisualCanvasEditor({
                         </svg>
                         {mostrarManijas && (
                           <>
-                            <span
-                              className={`${nodoLinea} cursor-move ${manijasVisibles}`}
-                              style={{ left: el.x - (minX - pad), top: el.y - (minY - pad) }}
+                            <button
+                              type="button"
+                              title="Mover extremo"
+                              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center border-0 bg-transparent p-0 touch-none"
+                              style={{
+                                left: el.x - (minX - pad),
+                                top: el.y - (minY - pad),
+                                width: NODO_HIT_PX,
+                                height: NODO_HIT_PX,
+                                cursor: "move",
+                              }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                             >
-                              <span className={puntoLinea} />
-                            </span>
-                            <span
-                              className={`${nodoLinea} cursor-crosshair ${manijasVisibles}`}
-                              style={{ left: x2 - (minX - pad), top: y2 - (minY - pad) }}
+                              <span
+                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+                                style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              title="Estirar extremo"
+                              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center border-0 bg-transparent p-0 touch-none"
+                              style={{
+                                left: x2 - (minX - pad),
+                                top: y2 - (minY - pad),
+                                width: NODO_HIT_PX,
+                                height: NODO_HIT_PX,
+                                cursor: "crosshair",
+                              }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "resize-line-end")}
                             >
-                              <span className={puntoLinea} />
-                            </span>
+                              <span
+                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+                                style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
+                              />
+                            </button>
                           </>
                         )}
                       </div>
@@ -1439,19 +1843,16 @@ export default function VisualCanvasEditor({
                   if (el.type === "image") {
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
                     const esHover = hoveredId === el.id && !sel && !drag;
-                    const manijasVisibles =
-                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
                     const mostrarManijas =
-                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
+                      !el.locked &&
+                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
                     return (
                       <div
                         key={el.id}
                         className="group/elem"
                         style={{
-                          ...estiloElemento(el),
+                          ...estiloElementoEnStage(el, pasteboard),
                           overflow: "visible",
-                          outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
-                          boxShadow: esHover ? SOMBRA_HOVER : undefined,
                         }}
                         onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
                         onPointerLeave={() => setHoveredId(null)}
@@ -1459,36 +1860,22 @@ export default function VisualCanvasEditor({
                       >
                         {esHover && (
                           <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
                             🖼 · {labelCapa(el)}
                           </div>
                         )}
                         <div className="h-full w-full overflow-hidden">
                           <ImagenCanvasElement src={el.src} objectFit={el.objectFit} />
                         </div>
-                        {mostrarManijas && (
-                          <span
-                            aria-hidden
-                            className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${manijasVisibles}`}
-                            style={{ top: -22, height: 22 }}
-                          />
-                        )}
-                        {mostrarManijas && (
-                          <span
-                            title="Rotar (mantén Shift para 15°)"
-                            className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${manijasVisibles}`}
-                            style={{ top: -30 }}
-                            onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
-                          />
-                        )}
-                        {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
-                          <span
-                            className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
-                              mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                            }`}
-                            onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
-                          />
-                        )}
+                        <SeleccionChrome
+                          width={el.width}
+                          height={el.height}
+                          showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                          showHandles={mostrarManijas}
+                          hover={esHover}
+                          onRotate={(e) => onPointerDownEl(e, el, "rotate")}
+                          onResize={(e, corner) => onPointerDownEl(e, el, `resize-${corner}`)}
+                        />
                       </div>
                     );
                   }
@@ -1500,14 +1887,30 @@ export default function VisualCanvasEditor({
                   onPointerDown={(e) => onPointerDownEl(e, elementosGrupoActivo[0], "move")}
                   style={{
                     position: "absolute",
-                    left: cajaGrupoActivo.left,
-                    top: cajaGrupoActivo.top,
+                    left: cajaGrupoActivo.left + pasteboard,
+                    top: cajaGrupoActivo.top + pasteboard,
                     width: cajaGrupoActivo.right - cajaGrupoActivo.left,
                     height: cajaGrupoActivo.bottom - cajaGrupoActivo.top,
                     zIndex: Math.min(...elementosGrupoActivo.map((e) => e.zIndex)) - 0.01,
-                    border: "1px dashed rgba(99,102,241,0.6)",
+                    border: "1px dashed rgba(1, 109, 130, 0.55)",
                     cursor: elementosGrupoActivo.some((e) => e.locked) ? "default" : "move",
                     background: "transparent",
+                  }}
+                />
+              )}
+              {marquee && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: Math.min(marquee.x0, marquee.x1) + pasteboard,
+                    top: Math.min(marquee.y0, marquee.y1) + pasteboard,
+                    width: Math.max(1, Math.abs(marquee.x1 - marquee.x0)),
+                    height: Math.max(1, Math.abs(marquee.y1 - marquee.y0)),
+                    border: "1px solid rgba(1, 109, 130, 0.9)",
+                    background: "rgba(1, 109, 130, 0.12)",
+                    pointerEvents: "none",
+                    zIndex: 10000,
                   }}
                 />
               )}

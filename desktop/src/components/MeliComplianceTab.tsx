@@ -1,6 +1,89 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
+
+type FotoNueva = {
+  id: string;
+  url: string;
+  filename?: string;
+  adjuntada?: boolean;
+  nota?: string;
+};
+
+/** URLs en orden de galería: principal primero, sin duplicados. */
+function ordenarFotoUrls(fotos: FotoNueva[], principalUrl: string): string[] {
+  const urls = fotos.map((f) => f.url).filter(Boolean);
+  const principal = (principalUrl || "").trim();
+  if (!principal) return [...new Set(urls)];
+  return [principal, ...urls.filter((u) => u !== principal)];
+}
+
+// ── Biblioteca de docs técnicos (fichas) ───────────────────────────────────
+
+interface ArchivoBiblioteca {
+  nombre: string;
+  tipo: string;
+  tamano: number;
+  fecha: number;
+}
+
+interface BibliotecaDatosResult {
+  tipo: string;
+  titulo: string;
+  datos: Record<string, unknown>;
+  tiene_datos: boolean;
+}
+
+function normalizarTexto(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tituloDesdeArchivoBiblioteca(nombre: string): string {
+  return nombre
+    .replace(/^FT\s+COA\s+SDS\s+/i, "")
+    .replace(/^COMPLETO\s+FT\s+/i, "")
+    .replace(/^FT\s+/i, "")
+    .replace(/\.(pdf|docx)$/i, "")
+    .trim();
+}
+
+function coincideFichaBiblioteca(producto: string, archivo: string): boolean {
+  const p = normalizarTexto(producto);
+  const a = normalizarTexto(tituloDesdeArchivoBiblioteca(archivo));
+  if (!p || !a) return false;
+  if (a.includes(p) || p.includes(a)) return true;
+  const palabras = p.split(" ").filter((w) => w.length >= 4);
+  if (palabras.length >= 2 && palabras.every((w) => a.includes(w))) return true;
+  if (palabras.length === 1 && a.includes(palabras[0])) return true;
+  return false;
+}
+
+function datosFichaATexto(datos: Record<string, unknown>): string {
+  const lines: string[] = [];
+  const titulo = String(datos.titulo || datos.nombre_producto || "").trim();
+  if (titulo) lines.push(`Producto: ${titulo}`);
+  if (datos.sinonimos) lines.push(`Sinónimos: ${String(datos.sinonimos)}`);
+  if (datos.cas) lines.push(`CAS: ${String(datos.cas)}`);
+  if (datos.descripcion) lines.push(`Descripción: ${String(datos.descripcion)}`);
+  const cf = datos.caracteristicas_fisicas;
+  if (cf && typeof cf === "object") {
+    const parts = Object.entries(cf as Record<string, unknown>)
+      .filter(([, v]) => String(v || "").trim())
+      .map(([k, v]) => `${k}: ${v}`);
+    if (parts.length) lines.push(`Características: ${parts.join("; ")}`);
+  }
+  const apps = datos.aplicaciones;
+  if (Array.isArray(apps) && apps.length) {
+    lines.push(`Aplicaciones: ${apps.slice(0, 8).map(String).join("; ")}`);
+  }
+  return lines.join("\n").slice(0, 1500);
+}
 
 // ── Helpers MeLi ───────────────────────────────────────────────────────────
 
@@ -128,12 +211,26 @@ type ResultadoRepublicacion = {
 type CrearNuevaResult = {
   paso_fallido?: string;
   advertencias?: string[];
+  category_id_usado?: string;
+  domain_id_usado?: string;
+  line_usada?: string;
+  taxonomia_desde?: string;
+  model_usado?: string;
+  prediccion_categoria?: {
+    ok?: boolean;
+    category_id?: string;
+    category_name?: string;
+    domain_id?: string;
+    line?: string;
+  };
   publicacion?: {
     ok: boolean;
     item_id?: string;
     permalink?: string;
     status?: string;
     error?: string;
+    fotos_enviadas?: number;
+    fotos_en_item?: number;
   };
   seguimiento?: {
     item_id: string;
@@ -156,6 +253,7 @@ type WatchEntry = {
   permalink?: string;
   url_meli?: string;
   item_origen_id?: string;
+  origen?: "desde_cero" | "reemplazo" | string;
   estado_actual: string;
   sub_status?: string[];
   nivel_riesgo?: string;
@@ -163,7 +261,178 @@ type WatchEntry = {
   creado_en?: string;
   categoria_catalogo?: string;
   seguimiento_activo?: boolean;
+  precio?: number;
+  presentacion?: string;
+  perfil?: string;
+  notas?: string;
 };
+
+function formatFechaCorta(iso?: string): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/** Historial de publicaciones creadas desde cero (watchlist origen=desde_cero). */
+function HistorialCrearDesdeCero({
+  onDuplicar,
+  duplicandoId,
+}: {
+  onDuplicar?: (entry: WatchEntry) => void;
+  duplicandoId?: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const { data, refetch, isFetching } = useQuery<{
+    publicaciones: WatchEntry[];
+    total: number;
+    ultima_revision_global?: string;
+  }>({
+    queryKey: ["meli-compliance-watchlist", "desde_cero"],
+    queryFn: () => api.get("/api/meli/compliance/watchlist?activos=0&origen=desde_cero"),
+    staleTime: 15_000,
+  });
+
+  const revisarMut = useMutation({
+    mutationFn: () =>
+      api.post("/api/meli/compliance/watchlist/revisar", { whatsapp: false }, { timeoutMs: 120_000 }),
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
+  const eliminarMut = useMutation({
+    mutationFn: (entry: WatchEntry) =>
+      api.post<{ ok: boolean; error?: string; nota?: string; item_id?: string }>(
+        "/api/meli/compliance/watchlist/eliminar",
+        { item_id: entry.item_id, id: entry.id },
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["meli-compliance-watchlist"] });
+      void queryClient.invalidateQueries({ queryKey: ["meli-compliance-reemplazos"] });
+    },
+  });
+
+  const pubs = data?.publicaciones ?? [];
+  const eliminandoKey =
+    eliminarMut.isPending && eliminarMut.variables
+      ? eliminarMut.variables.id || eliminarMut.variables.item_id
+      : null;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-bold text-ink">Historial · creadas desde cero</p>
+          <p className="mt-0.5 text-[10px] text-muted">
+            Publicaciones generadas en este panel. «Eliminar» solo quita del historial (no cierra en MeLi).
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="text-[11px] font-semibold text-muted underline disabled:opacity-40"
+          >
+            {isFetching ? "…" : "Actualizar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => revisarMut.mutate()}
+            disabled={revisarMut.isPending}
+            className="text-[11px] font-semibold text-teal-800 underline disabled:opacity-40"
+          >
+            {revisarMut.isPending ? "Revisando…" : "Revisar estados"}
+          </button>
+        </div>
+      </div>
+
+      {eliminarMut.isError && (
+        <p className="text-[11px] text-red-700">
+          {eliminarMut.error instanceof Error ? eliminarMut.error.message : "No se pudo eliminar"}
+        </p>
+      )}
+
+      {pubs.length === 0 ? (
+        <p className="text-[11px] text-muted">
+          Aún no hay creaciones desde cero. Al publicar aquí, aparecerán en esta lista.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {pubs.map((p) => {
+            const url = p.url_meli || meliUrl(p.permalink, p.item_id);
+            const badge = estadoMeliBadge(p.estado_actual, p.sub_status);
+            const cargando = duplicandoId === p.item_id;
+            const key = p.id || p.item_id;
+            const eliminando = eliminandoKey === key || eliminandoKey === p.item_id;
+            return (
+              <div
+                key={key}
+                className="rounded-xl border border-border bg-white px-3 py-2.5 space-y-1.5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{p.nombre}</p>
+                    <p className="font-mono text-[10px] text-muted">
+                      {(p.sku || "sin-sku") + " · " + p.item_id}
+                      {p.presentacion ? ` · ${p.presentacion}` : ""}
+                    </p>
+                    <p className="text-[10px] text-muted">
+                      Creada: {formatFechaCorta(p.creado_en)}
+                      {p.precio && p.precio > 0
+                        ? ` · $${Number(p.precio).toLocaleString("es-CO")}`
+                        : ""}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <MeliLinkButton url={url} label="Abrir en MeLi" compact />
+                  {onDuplicar && (
+                    <button
+                      type="button"
+                      disabled={Boolean(duplicandoId) || eliminarMut.isPending}
+                      onClick={() => onDuplicar(p)}
+                      className="inline-flex items-center rounded-lg border border-teal-300 bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-40"
+                    >
+                      {cargando ? "Duplicando…" : "⎘ Duplicar"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={eliminarMut.isPending}
+                    onClick={() => {
+                      const ok = window.confirm(
+                        `¿Quitar «${p.nombre}» (${p.item_id}) del historial?\n\nEsto no cierra la publicación en Mercado Libre.`,
+                      );
+                      if (ok) eliminarMut.mutate(p);
+                    }}
+                    className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-40"
+                  >
+                    {eliminando ? "Eliminando…" : "Eliminar"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PERFILES = [
   { value: "materia_prima_alimentaria", label: "Materia prima alimentaria", emoji: "🌾" },
@@ -225,6 +494,15 @@ function ChecklistGrid({ checklist }: { checklist: Record<string, boolean> }) {
 
 function esProhibida(item: ItemPausado) {
   return (item.sub_status ?? []).includes("forbidden");
+}
+
+function esEnRevision(item: ItemPausado) {
+  return item.status === "under_review";
+}
+
+/** MeLi bloquea edición por API: hay que crear publicación nueva. */
+function requierePublicacionNueva(item: ItemPausado) {
+  return esProhibida(item) || esEnRevision(item);
 }
 
 function tituloLista(item: ItemPausado) {
@@ -299,11 +577,22 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
     return "";
   });
   const [fichaTecnica, setFichaTecnica] = useState("");
+  const [usarFichaBiblioteca, setUsarFichaBiblioteca] = useState(true);
+  const [archivoFicha, setArchivoFicha] = useState("");
+  const [fichaAutoOk, setFichaAutoOk] = useState(false);
+  const [fotoUrlNueva, setFotoUrlNueva] = useState("");
+  const [fotosNuevas, setFotosNuevas] = useState<FotoNueva[]>([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
+  const [errorFotos, setErrorFotos] = useState<string | null>(null);
+  const [dropFotosActivo, setDropFotosActivo] = useState(false);
+  const [dragFotoId, setDragFotoId] = useState<string | null>(null);
   const [tituloEditado, setTituloEditado] = useState("");
   const [descEditada, setDescEditada] = useState("");
   const [step, setStep] = useState<"idle" | "generando" | "listo" | "publicando" | "creando_nueva" | "done" | "done_nueva">("idle");
   const [resultado, setResultado] = useState<ResultadoRepublicacion | null>(null);
   const [resultadoNueva, setResultadoNueva] = useState<CrearNuevaResult | null>(null);
+
+  const productoNombre = nombreProducto(item);
 
   // Diagnóstico inicial (automático al montar)
   const { data: diag } = useQuery<Diagnostico>({
@@ -311,12 +600,95 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
     queryFn: () =>
       api.post("/api/meli/compliance/diagnosticar", {
         sku: item.sku,
-        nombre: nombreProducto(item),
+        nombre: productoNombre,
         titulo_meli: item.title,
         atributos_meli: { domain_id: item.domain_id, LINE: item.line ?? "" },
       }),
     staleTime: Infinity,
   });
+
+  const { data: fotosItem } = useQuery({
+    queryKey: ["compliance-fotos", item.item_id],
+    queryFn: () =>
+      api.get<{
+        ok: boolean;
+        puede_fotos: boolean;
+        imagenes: { id: string; url: string; principal: boolean }[];
+        error?: string;
+      }>(`/api/meli/compliance/fotos?item_id=${encodeURIComponent(item.item_id)}`),
+    staleTime: 30_000,
+  });
+
+  // Si hay fotos actuales y aún no eligió renovada, usar la principal como default
+  useEffect(() => {
+    if (fotoUrlNueva) return;
+    const principal = fotosItem?.imagenes?.find((i) => i.principal)?.url
+      || fotosItem?.imagenes?.[0]?.url;
+    if (principal) setFotoUrlNueva(principal);
+  }, [fotosItem, fotoUrlNueva]);
+
+  const { data: bibliotecaData, isLoading: cargandoBiblioteca } = useQuery({
+    queryKey: ["fichas-biblioteca"],
+    queryFn: () => api.get<{ archivos: ArchivoBiblioteca[] }>("/api/fichas/biblioteca"),
+    staleTime: 60_000,
+  });
+
+  const fichasBiblioteca = useMemo(() => {
+    const archivos = (bibliotecaData?.archivos ?? []).filter((a) => a.tipo === "pdf");
+    const coincidentes = archivos.filter((a) =>
+      coincideFichaBiblioteca(productoNombre, a.nombre)
+      || (item.sku ? coincideFichaBiblioteca(item.sku, a.nombre) : false),
+    );
+    return coincidentes.length > 0 ? coincidentes : archivos;
+  }, [bibliotecaData, productoNombre, item.sku]);
+
+  const hayCoincidenciaExacta = useMemo(() => {
+    return (bibliotecaData?.archivos ?? []).some(
+      (a) =>
+        a.tipo === "pdf" &&
+        (coincideFichaBiblioteca(productoNombre, a.nombre)
+          || (item.sku ? coincideFichaBiblioteca(item.sku, a.nombre) : false)),
+    );
+  }, [bibliotecaData, productoNombre, item.sku]);
+
+  // Auto-seleccionar ficha coincidente de la biblioteca
+  useEffect(() => {
+    if (!usarFichaBiblioteca || archivoFicha || !fichasBiblioteca.length) return;
+    const match = fichasBiblioteca.find(
+      (a) =>
+        coincideFichaBiblioteca(productoNombre, a.nombre)
+        || (item.sku ? coincideFichaBiblioteca(item.sku, a.nombre) : false),
+    );
+    if (match) setArchivoFicha(match.nombre);
+  }, [usarFichaBiblioteca, fichasBiblioteca, archivoFicha, productoNombre, item.sku]);
+
+  // Cargar datos de la ficha seleccionada → texto para la IA
+  useEffect(() => {
+    if (!usarFichaBiblioteca || !archivoFicha) {
+      if (!usarFichaBiblioteca) {
+        setFichaAutoOk(false);
+      }
+      return;
+    }
+    let cancelado = false;
+    setFichaAutoOk(false);
+    void (async () => {
+      try {
+        const r = await api.get<BibliotecaDatosResult>(
+          `/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(archivoFicha)}`,
+        );
+        if (cancelado) return;
+        const texto = datosFichaATexto(r.datos || { titulo: r.titulo });
+        setFichaTecnica(texto);
+        setFichaAutoOk(Boolean(texto.trim()));
+      } catch {
+        if (!cancelado) setFichaAutoOk(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [usarFichaBiblioteca, archivoFicha]);
 
   const generarMut = useMutation({
     mutationFn: () =>
@@ -324,7 +696,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
         "/api/meli/compliance/generar",
         {
           sku: item.sku,
-          nombre: nombreProducto(item),
+          nombre: productoNombre,
           presentacion,
           perfil,
           ficha_tecnica: fichaTecnica,
@@ -349,7 +721,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
         {
           item_id: item.item_id,
           sku: item.sku,
-          nombre: nombreProducto(item),
+          nombre: productoNombre,
           presentacion,
           precio: parseFloat(precio) || 0,
           perfil,
@@ -369,7 +741,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
         "/api/meli/compliance/crear-nueva",
         {
           sku: item.sku,
-          nombre: nombreProducto(item),
+          nombre: productoNombre,
           presentacion,
           precio: parseFloat(precio) || item.price || 0,
           perfil,
@@ -378,6 +750,8 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
           item_origen_id: item.item_id,
           categoria_catalogo: item.categoria_catalogo ?? "",
           referencia: "citrato_magnesio",
+          foto_url: fotoUrlNueva || undefined,
+          foto_urls: ordenarFotoUrls(fotosNuevas, fotoUrlNueva),
           contenido_generado:
             generarMut.data && !generarMut.data.error ? generarMut.data : undefined,
         },
@@ -388,6 +762,86 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
       setStep("done_nueva");
     },
   });
+
+  async function handleSubirFotos(files: FileList | File[] | null) {
+    if (!files || (Array.isArray(files) ? files.length === 0 : files.length === 0)) return;
+    const lista = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (lista.length === 0) {
+      setErrorFotos("Solo se aceptan imágenes (JPEG, PNG, WebP)");
+      return;
+    }
+    setSubiendoFotos(true);
+    setErrorFotos(null);
+    try {
+      const form = new FormData();
+      for (const f of lista) form.append("files[]", f);
+      form.append("item_id", item.item_id);
+      // Si MeLi bloquea pictures, solo CDN; si permite, intenta adjuntar
+      if (fotosItem && fotosItem.puede_fotos === false) {
+        form.append("solo_cdn", "1");
+      }
+      const r = await api.upload<{
+        ok: boolean;
+        urls: string[];
+        archivos: {
+          filename?: string;
+          ok?: boolean;
+          url?: string;
+          adjuntada?: boolean;
+          nota?: string;
+          error?: string;
+          error_adjuntar?: string;
+        }[];
+      }>("/api/meli/compliance/subir-foto", form);
+
+      const okOnes = (r.archivos || []).filter((a) => a.ok && a.url);
+      if (okOnes.length === 0) {
+        const err = r.archivos?.[0]?.error || "No se pudo subir la foto";
+        setErrorFotos(err);
+        return;
+      }
+      const nuevas: FotoNueva[] = okOnes.map((a, i) => ({
+        id: `up-${Date.now()}-${i}-${a.url}`,
+        url: a.url!,
+        filename: a.filename,
+        adjuntada: a.adjuntada,
+        nota: a.nota || a.error_adjuntar,
+      }));
+      setFotosNuevas((prev) => [...nuevas, ...prev]);
+      // La primera subida pasa a ser la foto principal para crear nueva
+      if (nuevas[0]?.url) setFotoUrlNueva(nuevas[0].url);
+    } catch (e) {
+      setErrorFotos(e instanceof Error ? e.message : "Error al subir fotos");
+    } finally {
+      setSubiendoFotos(false);
+    }
+  }
+
+  function eliminarFotoNueva(id: string) {
+    setFotosNuevas((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      const eliminada = prev.find((f) => f.id === id);
+      if (eliminada && fotoUrlNueva === eliminada.url) {
+        setFotoUrlNueva(next[0]?.url || fotosItem?.imagenes?.[0]?.url || "");
+      }
+      return next;
+    });
+  }
+
+  function reordenarFotoNueva(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    setFotosNuevas((prev) => {
+      const from = prev.findIndex((f) => f.id === fromId);
+      const to = prev.findIndex((f) => f.id === toId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      // La primera del orden es la principal para la publicación nueva
+      if (next[0]?.url) setFotoUrlNueva(next[0].url);
+      return next;
+    });
+  }
 
   function handleGenerar() {
     setStep("generando");
@@ -404,7 +858,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
     crearNuevaMut.mutate();
   }
 
-  const precioValido = parseFloat(precio) > 0 || item.price > 0 || esProhibida(item);
+  const precioValido = parseFloat(precio) > 0 || item.price > 0 || requierePublicacionNueva(item);
 
   return (
     <div className="flex flex-col gap-5">
@@ -477,14 +931,29 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
         </div>
       )}
 
-      {/* Aviso publicación prohibida */}
-      {esProhibida(item) && step !== "done" && step !== "done_nueva" && (
+      {/* Aviso publicación bloqueada (prohibida o en revisión) */}
+      {requierePublicacionNueva(item) && step !== "done" && step !== "done_nueva" && (
         <div className="rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 space-y-1.5">
-          <p className="text-xs font-bold text-orange-900">Publicación prohibida — crear una nueva</p>
+          <p className="text-xs font-bold text-orange-900">
+            {esEnRevision(item)
+              ? "Publicación en revisión — MeLi bloquea ediciones por API"
+              : "Publicación prohibida — crear una nueva"}
+          </p>
           <p className="text-[11px] leading-relaxed text-orange-800">
-            MeLi no deja corregir título, foto ni reactivar esta publicación por API.
-            El camino recomendado es <strong>crear una publicación nueva</strong> (modelo competidor activo:
-            nombre químico, MCO8830, LINE materias primas) y dejarla en <strong>seguimiento diario</strong>.
+            {esEnRevision(item) ? (
+              <>
+                Mientras el ítem está <strong>under_review</strong>, MeLi no deja cambiar título,
+                atributos, precio ni reactivar por API. El camino recomendado es{" "}
+                <strong>crear una publicación nueva</strong> compliant y dejarla en{" "}
+                <strong>seguimiento diario</strong>.
+              </>
+            ) : (
+              <>
+                MeLi no deja corregir título, foto ni reactivar esta publicación por API.
+                El camino recomendado es <strong>crear una publicación nueva</strong> (modelo competidor activo:
+                nombre químico, MCO8830, LINE materias primas) y dejarla en <strong>seguimiento diario</strong>.
+              </>
+            )}
           </p>
         </div>
       )}
@@ -539,18 +1008,256 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
             </div>
           </div>
 
-          {/* Ficha técnica */}
-          <div>
-            <label className="mb-1 block text-[11px] font-semibold text-muted">
-              Ficha técnica (opcional — la IA filtra claims de salud automáticamente)
+          {/* Ficha técnica — conectada a biblioteca de docs técnicos */}
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface-input/60 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={usarFichaBiblioteca}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setUsarFichaBiblioteca(on);
+                  if (!on) {
+                    setArchivoFicha("");
+                    setFichaTecnica("");
+                    setFichaAutoOk(false);
+                  }
+                }}
+                className="mt-0.5"
+              />
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold text-ink">
+                  Ficha técnica de la biblioteca de docs técnicos
+                </span>
+                <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
+                  Usa el documento ya generado en Docs técnicos. La IA filtra claims de salud automáticamente.
+                </span>
+              </span>
             </label>
-            <textarea
-              value={fichaTecnica}
-              onChange={(e) => setFichaTecnica(e.target.value)}
-              rows={3}
-              placeholder="Pega aquí datos de la ficha técnica. Claude eliminará frases de riesgo antes de usarlos."
-              className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-            />
+
+            {usarFichaBiblioteca ? (
+              <div className="space-y-2">
+                <select
+                  value={archivoFicha}
+                  onChange={(e) => setArchivoFicha(e.target.value)}
+                  disabled={cargandoBiblioteca || fichasBiblioteca.length === 0}
+                  className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-50"
+                >
+                  <option value="">
+                    {cargandoBiblioteca
+                      ? "Cargando biblioteca…"
+                      : fichasBiblioteca.length === 0
+                        ? "No hay fichas en la biblioteca"
+                        : "Selecciona una ficha…"}
+                  </option>
+                  {fichasBiblioteca.map((a) => (
+                    <option key={a.nombre} value={a.nombre}>
+                      {tituloDesdeArchivoBiblioteca(a.nombre)}
+                      {hayCoincidenciaExacta
+                      && (coincideFichaBiblioteca(productoNombre, a.nombre)
+                        || (item.sku ? coincideFichaBiblioteca(item.sku, a.nombre) : false))
+                        ? " · coincidencia"
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+                {fichaAutoOk && (
+                  <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800">
+                    ✓ Datos cargados desde la biblioteca
+                    {archivoFicha ? ` · ${tituloDesdeArchivoBiblioteca(archivoFicha)}` : ""}
+                  </p>
+                )}
+                {!hayCoincidenciaExacta && fichasBiblioteca.length > 0 && (
+                  <p className="text-[10px] text-muted">
+                    No hay coincidencia automática con «{productoNombre}». Elige la ficha manualmente o genérala en Docs técnicos.
+                  </p>
+                )}
+                {fichaTecnica && (
+                  <textarea
+                    value={fichaTecnica}
+                    onChange={(e) => setFichaTecnica(e.target.value)}
+                    rows={3}
+                    className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+                  />
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={fichaTecnica}
+                onChange={(e) => setFichaTecnica(e.target.value)}
+                rows={3}
+                placeholder="Pega aquí datos de la ficha técnica (opcional)."
+                className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+              />
+            )}
+          </div>
+
+          {/* Renovar fotos */}
+          <div className="space-y-2 rounded-xl border border-border bg-surface-input/40 p-3">
+            <div>
+              <p className="text-[11px] font-bold text-ink">Renovar fotos</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-muted">
+                {fotosItem?.puede_fotos === false
+                  ? "Este ítem no deja cambiar fotos por API. Arrastra la etiqueta alternativa aquí (CDN) y úsala al crear la publicación nueva."
+                  : "Arrastra fotos aquí o elígelas. La primera es la principal para la publicación nueva."}
+              </p>
+            </div>
+
+            {/* Zona drag & drop */}
+            <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer.types.includes("Files")) setDropFotosActivo(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer.types.includes("Files")) {
+                  e.dataTransfer.dropEffect = "copy";
+                  setDropFotosActivo(true);
+                }
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setDropFotosActivo(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDropFotosActivo(false);
+                const files = e.dataTransfer.files;
+                if (files?.length) void handleSubirFotos(files);
+              }}
+              className={`rounded-xl border-2 border-dashed px-3 py-5 text-center transition ${
+                dropFotosActivo
+                  ? "border-accent bg-accent/10"
+                  : "border-border bg-surface hover:border-accent/40"
+              } ${subiendoFotos ? "opacity-60" : ""}`}
+            >
+              {subiendoFotos ? (
+                <p className="text-[11px] font-semibold text-ink">Subiendo fotos…</p>
+              ) : (
+                <>
+                  <p className="text-[11px] font-semibold text-ink">
+                    Arrastra imágenes aquí
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted">JPEG, PNG o WebP · varias a la vez</p>
+                  <label className="mt-2 inline-block cursor-pointer rounded-lg bg-ink px-3 py-1.5 text-[11px] font-bold text-white hover:bg-ink/90">
+                    Elegir archivos
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      disabled={subiendoFotos}
+                      className="hidden"
+                      onChange={(e) => {
+                        void handleSubirFotos(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+
+            {errorFotos && (
+              <p className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] text-red-700">{errorFotos}</p>
+            )}
+
+            {fotosNuevas.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-muted">
+                  Fotos nuevas · arrastra para reordenar · ✕ para quitar
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {fotosNuevas.map((f, i) => (
+                    <div
+                      key={f.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragFotoId(f.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/foto-id", f.id);
+                      }}
+                      onDragEnd={() => setDragFotoId(null)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const fromId = e.dataTransfer.getData("text/foto-id") || dragFotoId;
+                        if (fromId) reordenarFotoNueva(fromId, f.id);
+                        setDragFotoId(null);
+                      }}
+                      className={`group relative overflow-hidden rounded-lg border-2 ${
+                        fotoUrlNueva === f.url ? "border-accent" : "border-border"
+                      } ${dragFotoId === f.id ? "opacity-50" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setFotoUrlNueva(f.url)}
+                        className="block"
+                        title={f.nota || f.filename || "Usar como principal"}
+                      >
+                        <img src={f.url} alt="" className="h-16 w-16 object-cover" draggable={false} />
+                        <span className="absolute bottom-0 left-0 right-0 bg-teal-700/90 px-1 py-0.5 text-[8px] font-bold text-white">
+                          {i === 0 ? "★ principal" : f.adjuntada ? "en ítem" : `#${i + 1}`}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          eliminarFotoNueva(f.id);
+                        }}
+                        title="Quitar de la lista"
+                        className="absolute right-0.5 top-0.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] font-bold text-white opacity-80 hover:bg-danger hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(fotosItem?.imagenes?.length ?? 0) > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-muted">Fotos actuales del ítem</p>
+                <div className="flex flex-wrap gap-2">
+                  {(fotosItem?.imagenes ?? []).map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setFotoUrlNueva(img.url)}
+                      className={`relative overflow-hidden rounded-lg border-2 ${
+                        fotoUrlNueva === img.url ? "border-accent" : "border-border"
+                      }`}
+                      title={img.principal ? "Principal actual" : img.id}
+                    >
+                      <img src={img.url} alt="" className="h-16 w-16 object-cover" />
+                      {img.principal && (
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 text-[8px] font-bold text-white">
+                          actual
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fotoUrlNueva && (
+              <p className="truncate text-[10px] text-muted">
+                Foto para publicación nueva:{" "}
+                <span className="font-mono text-ink">{fotoUrlNueva.slice(0, 72)}…</span>
+              </p>
+            )}
           </div>
 
           {/* Botón generar */}
@@ -647,7 +1354,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
             disabled={
               step === "publicando"
               || republicarMut.isPending
-              || (!precio && !esProhibida(item))
+              || (!precio && !requierePublicacionNueva(item))
             }
             className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-40"
           >
@@ -656,10 +1363,10 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Aplicando correcciones en MeLi…
               </span>
-            ) : !precio && !esProhibida(item) ? (
+            ) : !precio && !requierePublicacionNueva(item) ? (
               "Ingresa el precio para continuar"
-            ) : esProhibida(item) ? (
-              "Aplicar correcciones permitidas por API"
+            ) : requierePublicacionNueva(item) ? (
+              "Intentar correcciones permitidas por API (limitado)"
             ) : (
               "🚀 Corregir y republicar en MeLi"
             )}
@@ -763,7 +1470,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               {resultado.contenido_generado?.checklist && (
                 <ChecklistGrid checklist={resultado.contenido_generado.checklist} />
               )}
-              {resultado.republicacion.parcial && esProhibida(item) && (
+              {resultado.republicacion.parcial && requierePublicacionNueva(item) && (
                 <p className="text-[11px] font-semibold text-yellow-900">
                   Siguiente paso: usa «Crear publicación nueva» (arriba) para publicar desde cero con seguimiento diario.
                 </p>
@@ -777,15 +1484,27 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
             </>
           ) : (
             <>
-              <p className="text-sm font-bold text-red-800">Error al republicar</p>
+              <p className="text-sm font-bold text-red-800">No se pudo editar este ítem por API</p>
               <p className="text-xs text-red-700">
                 {resultado.paso_fallido ?? resultado.republicacion?.error ?? "Error desconocido"}
               </p>
+              {(resultado.republicacion?.acciones_manuales?.length ?? 0) > 0 && (
+                <ul className="space-y-1 rounded-lg bg-orange-50 px-3 py-2">
+                  {resultado.republicacion!.acciones_manuales!.map((a, i) => (
+                    <li key={i} className="text-[11px] text-orange-900">→ {a}</li>
+                  ))}
+                </ul>
+              )}
+              {requierePublicacionNueva(item) && (
+                <p className="text-[11px] font-semibold text-teal-800">
+                  Usa el botón «Crear publicación nueva + seguimiento diario» (vuelve a Generar si hace falta).
+                </p>
+              )}
               <button
                 onClick={() => setStep("listo")}
                 className="w-full rounded-lg border border-red-300 bg-white py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100"
               >
-                Reintentar
+                Volver al contenido generado
               </button>
             </>
           )}
@@ -953,9 +1672,954 @@ function ComplianceWatchlist() {
 
 // ── Panel principal de compliance ──────────────────────────────────────────
 
+function presentacionDesdeEan(c: CodigoEan): string {
+  const p = (c.presentacion || "").replace(/\D/g, "");
+  if (!p || p === "000") {
+    const m = (c.sku || c.nombre_producto || "").match(/(\d+)\s*(g|kg|ml|l)\b/i);
+    if (m) return `${m[1]}${m[2].toLowerCase()}`;
+    return "250g";
+  }
+  return `${parseInt(p, 10)}g`;
+}
+
+function coincideCodigoEan(c: CodigoEan, q: string): boolean {
+  const t = q.trim().toLowerCase();
+  if (!t) return true;
+  return (
+    c.sku.toLowerCase().includes(t) ||
+    (c.nombre_producto || "").toLowerCase().includes(t) ||
+    c.codigo.includes(t) ||
+    String(c.numero_producto).includes(t)
+  );
+}
+
+/** Selector de SKU conectado al módulo Códigos EAN. */
+function SkuEanCombobox({
+  value,
+  onChange,
+  onSelectCodigo,
+}: {
+  value: string;
+  onChange: (sku: string) => void;
+  onSelectCodigo: (c: CodigoEan) => void;
+}) {
+  const { data: codigos, isLoading } = useCodigosEan();
+  const [abierto, setAbierto] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const coincidencias = useMemo(() => {
+    const list = (codigos ?? []).filter((c) => coincideCodigoEan(c, value));
+    return list.slice(0, 40);
+  }, [codigos, value]);
+
+  const seleccionadoExacto = useMemo(
+    () => (codigos ?? []).find((c) => c.sku.toLowerCase() === value.trim().toLowerCase()) ?? null,
+    [codigos, value],
+  );
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!wrapRef.current?.contains(e.target as Node)) setAbierto(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="mb-1 block text-[11px] font-semibold text-muted">
+        SKU <span className="font-normal text-muted">(Códigos EAN)</span>
+      </label>
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setAbierto(true);
+        }}
+        onFocus={() => setAbierto(true)}
+        placeholder={isLoading ? "Cargando SKUs…" : "Buscar SKU o producto…"}
+        autoComplete="off"
+        className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+      />
+      {seleccionadoExacto && (
+        <p className="mt-1 truncate text-[10px] text-teal-700">
+          ✓ EAN {seleccionadoExacto.codigo}
+          {seleccionadoExacto.nombre_producto ? ` · ${seleccionadoExacto.nombre_producto}` : ""}
+        </p>
+      )}
+      {abierto && (
+        <div className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-surface-panel shadow-paper-lg">
+          {isLoading && (
+            <p className="px-3 py-2 text-[11px] text-muted">Cargando códigos EAN…</p>
+          )}
+          {!isLoading && coincidencias.length === 0 && (
+            <p className="px-3 py-2 text-[11px] text-muted">
+              Sin coincidencias en Códigos EAN. Puedes escribir el SKU manualmente.
+            </p>
+          )}
+          {coincidencias.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                onSelectCodigo(c);
+                setAbierto(false);
+              }}
+              className={`flex w-full flex-col gap-0.5 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-surface-hover ${
+                c.sku === value ? "bg-accent/5" : ""
+              }`}
+            >
+              <span className="font-mono text-xs font-bold text-ink">{c.sku}</span>
+              <span className="truncate text-[10px] text-muted">
+                {c.nombre_producto || "Sin nombre"} · EAN {c.codigo} · #{c.numero_producto}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Crear publicación desde cero (sin ítem origen) ─────────────────────────
+
+export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
+  const queryClient = useQueryClient();
+  const formTopRef = useRef<HTMLDivElement>(null);
+  const [nombre, setNombre] = useState("");
+  const [sku, setSku] = useState("");
+  const [presentacion, setPresentacion] = useState("250g");
+  const [precio, setPrecio] = useState("");
+  const [perfil, setPerfil] = useState("materia_prima_alimentaria");
+  const [fichaTecnica, setFichaTecnica] = useState("");
+  const [usarFichaBiblioteca, setUsarFichaBiblioteca] = useState(true);
+  const [archivoFicha, setArchivoFicha] = useState("");
+  const [fichaAutoOk, setFichaAutoOk] = useState(false);
+  const [fotoUrlNueva, setFotoUrlNueva] = useState("");
+  const [fotosNuevas, setFotosNuevas] = useState<FotoNueva[]>([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
+  const [errorFotos, setErrorFotos] = useState<string | null>(null);
+  const [dropFotosActivo, setDropFotosActivo] = useState(false);
+  const [dragFotoId, setDragFotoId] = useState<string | null>(null);
+  const [tituloEditado, setTituloEditado] = useState("");
+  const [descEditada, setDescEditada] = useState("");
+  const [step, setStep] = useState<"idle" | "generando" | "listo" | "creando" | "done">("idle");
+  const [resultado, setResultado] = useState<CrearNuevaResult | null>(null);
+  const [eanSeleccionado, setEanSeleccionado] = useState<CodigoEan | null>(null);
+  const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
+  const [avisoDuplicado, setAvisoDuplicado] = useState<string | null>(null);
+  const [errorDuplicar, setErrorDuplicar] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState("");
+  const [domainId, setDomainId] = useState("");
+  const [lineMeli, setLineMeli] = useState("");
+  const [taxonomiaItemId, setTaxonomiaItemId] = useState("");
+
+  const { data: bibliotecaData, isLoading: cargandoBiblioteca } = useQuery({
+    queryKey: ["fichas-biblioteca"],
+    queryFn: () => api.get<{ archivos: ArchivoBiblioteca[] }>("/api/fichas/biblioteca"),
+    staleTime: 60_000,
+  });
+
+  const fichasBiblioteca = useMemo(() => {
+    const archivos = (bibliotecaData?.archivos ?? []).filter((a) => a.tipo === "pdf");
+    if (!nombre.trim()) return archivos;
+    const coincidentes = archivos.filter(
+      (a) =>
+        coincideFichaBiblioteca(nombre, a.nombre)
+        || (sku ? coincideFichaBiblioteca(sku, a.nombre) : false),
+    );
+    return coincidentes.length > 0 ? coincidentes : archivos;
+  }, [bibliotecaData, nombre, sku]);
+
+  const hayCoincidenciaExacta = useMemo(() => {
+    if (!nombre.trim()) return false;
+    return (bibliotecaData?.archivos ?? []).some(
+      (a) =>
+        a.tipo === "pdf" &&
+        (coincideFichaBiblioteca(nombre, a.nombre)
+          || (sku ? coincideFichaBiblioteca(sku, a.nombre) : false)),
+    );
+  }, [bibliotecaData, nombre, sku]);
+
+  useEffect(() => {
+    if (!usarFichaBiblioteca || archivoFicha || !fichasBiblioteca.length || !nombre.trim()) return;
+    const match = fichasBiblioteca.find(
+      (a) =>
+        coincideFichaBiblioteca(nombre, a.nombre)
+        || (sku ? coincideFichaBiblioteca(sku, a.nombre) : false),
+    );
+    if (match) setArchivoFicha(match.nombre);
+  }, [usarFichaBiblioteca, fichasBiblioteca, archivoFicha, nombre, sku]);
+
+  useEffect(() => {
+    if (!usarFichaBiblioteca || !archivoFicha) {
+      if (!usarFichaBiblioteca) setFichaAutoOk(false);
+      return;
+    }
+    let cancelado = false;
+    setFichaAutoOk(false);
+    void (async () => {
+      try {
+        const r = await api.get<BibliotecaDatosResult>(
+          `/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(archivoFicha)}`,
+        );
+        if (cancelado) return;
+        const texto = datosFichaATexto(r.datos || { titulo: r.titulo });
+        setFichaTecnica(texto);
+        setFichaAutoOk(Boolean(texto.trim()));
+      } catch {
+        if (!cancelado) setFichaAutoOk(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [usarFichaBiblioteca, archivoFicha]);
+
+  const generarMut = useMutation({
+    mutationFn: () =>
+      api.post<ContenidoGenerado>(
+        "/api/meli/compliance/generar",
+        {
+          sku,
+          nombre: nombre.trim(),
+          presentacion,
+          perfil,
+          ficha_tecnica: fichaTecnica,
+          titulo_actual: "",
+          descripcion_actual: "",
+        },
+        { timeoutMs: 120_000 },
+      ),
+    onSuccess: (data) => {
+      if (!data.error) {
+        setTituloEditado(data.titulo ?? "");
+        setDescEditada(data.descripcion ?? "");
+        setStep("listo");
+        // Sin duplicado: predecir categoría MeLi (evitar forzar suplementos)
+        if (!taxonomiaItemId) {
+          const q = (data.titulo || `${nombre.trim()} ${presentacion}`).trim();
+          void (async () => {
+            try {
+              const pred = await api.get<{
+                ok: boolean;
+                category_id?: string;
+                domain_id?: string;
+                category_name?: string;
+                line?: string;
+                model?: string;
+              }>(
+                `/api/meli/compliance/predecir-categoria?q=${encodeURIComponent(q)}&presentacion=${encodeURIComponent(presentacion)}&perfil=${encodeURIComponent(perfil)}`,
+                { timeoutMs: 20_000 },
+              );
+              if (pred.ok && pred.category_id && /^[A-Z]{3}\d+$/i.test(pred.category_id)) {
+                setCategoryId(pred.category_id);
+                if (pred.domain_id) setDomainId(pred.domain_id);
+                if (pred.line) setLineMeli(pred.line);
+                setAvisoDuplicado(
+                  `Categoría MeLi sugerida: ${pred.category_id}`
+                    + (pred.category_name ? ` · ${pred.category_name}` : "")
+                    + (pred.line ? ` · LINE ${pred.line}` : "")
+                    + ". Se usará al publicar (puedes quitarla si no aplica).",
+                );
+              }
+            } catch {
+              /* si falla la predicción, el backend igual predice al crear */
+            }
+          })();
+        }
+      }
+    },
+  });
+
+  const crearMut = useMutation({
+    mutationFn: () =>
+      api.post<CrearNuevaResult>(
+        "/api/meli/compliance/crear-nueva",
+        {
+          sku: sku.trim(),
+          nombre: nombre.trim(),
+          presentacion,
+          precio: parseFloat(precio) || 0,
+          perfil,
+          ficha_tecnica: fichaTecnica,
+          foto_url: fotoUrlNueva || undefined,
+          foto_urls: ordenarFotoUrls(fotosNuevas, fotoUrlNueva),
+          referencia: "citrato_magnesio",
+          category_id: categoryId || undefined,
+          domain_id: domainId || undefined,
+          line: lineMeli || undefined,
+          taxonomia_item_id: taxonomiaItemId || undefined,
+          contenido_generado:
+            generarMut.data && !generarMut.data.error
+              ? {
+                  ...generarMut.data,
+                  titulo: tituloEditado,
+                  descripcion: descEditada,
+                  // No dejar que la IA pise la categoría de la referencia
+                  atributos: {
+                    ...(generarMut.data.atributos || {}),
+                    ...(categoryId ? { category_id: categoryId } : {}),
+                    ...(domainId ? { domain_id: domainId } : {}),
+                    ...(lineMeli ? { LINE: lineMeli } : {}),
+                  },
+                }
+              : undefined,
+        },
+        { timeoutMs: 120_000 },
+      ),
+    onSuccess: (data) => {
+      setResultado(data);
+      setStep("done");
+      void queryClient.invalidateQueries({ queryKey: ["meli-compliance-watchlist"] });
+      void queryClient.invalidateQueries({ queryKey: ["meli-compliance-reemplazos"] });
+    },
+  });
+
+  async function handleDuplicarDesdeHistorial(entry: WatchEntry) {
+    if (!entry.item_id || duplicandoId) return;
+    setDuplicandoId(entry.item_id);
+    setErrorDuplicar(null);
+    setAvisoDuplicado(null);
+    try {
+      const r = await api.get<{
+        ok: boolean;
+        error?: string;
+        sku?: string;
+        nombre?: string;
+        presentacion?: string;
+        precio?: number;
+        perfil?: string;
+        category_id?: string;
+        domain_id?: string;
+        line?: string;
+        titulo?: string;
+        descripcion?: string;
+        fotos?: { picture_id?: string; url: string }[];
+      }>(`/api/meli/compliance/duplicar-datos?item_id=${encodeURIComponent(entry.item_id)}`, {
+        timeoutMs: 30_000,
+      });
+
+      if (!r.ok) {
+        // Fallback mínimo con datos del historial
+        setNombre(entry.nombre || "");
+        setSku(entry.sku || "");
+        setPresentacion(entry.presentacion || "250g");
+        setPrecio(entry.precio && entry.precio > 0 ? String(entry.precio) : "");
+        if (entry.perfil) setPerfil(entry.perfil);
+        setCategoryId("");
+        setDomainId("");
+        setLineMeli("");
+        setTaxonomiaItemId("");
+        setFotosNuevas([]);
+        setFotoUrlNueva("");
+        setErrorDuplicar(
+          r.error
+            || "No se pudieron cargar fotos desde MeLi; completa SKU/nombre y sube fotos de nuevo.",
+        );
+      } else {
+        setNombre(r.nombre || entry.nombre || "");
+        setSku(r.sku || entry.sku || "");
+        setPresentacion(r.presentacion || entry.presentacion || "250g");
+        const p = r.precio && r.precio > 0 ? r.precio : entry.precio;
+        setPrecio(p && p > 0 ? String(p) : "");
+        if (r.perfil) setPerfil(r.perfil);
+        else if (entry.perfil) setPerfil(entry.perfil);
+        const catOk = r.category_id && /^[A-Z]{3}\d+$/i.test(r.category_id) ? r.category_id : "";
+        setCategoryId(catOk);
+        setDomainId(
+          r.domain_id && /^[A-Z]{3}-[A-Z0-9_]+$/i.test(r.domain_id)
+            ? r.domain_id
+            : "",
+        );
+        setLineMeli(r.line || "");
+        setTaxonomiaItemId(entry.item_id);
+        const fotos: FotoNueva[] = (r.fotos || [])
+          .filter((f) => f.url)
+          .map((f, i) => ({
+            id: f.picture_id || `dup-${entry.item_id}-${i}`,
+            url: f.url,
+            filename: f.picture_id,
+            adjuntada: false,
+            nota: `De ${entry.item_id}`,
+          }));
+        setFotosNuevas(fotos);
+        setFotoUrlNueva(fotos[0]?.url || "");
+        const catInfo = catOk
+          ? ` · categoría ${catOk}${r.line ? ` (${r.line})` : ""}${r.domain_id ? ` · ${r.domain_id}` : ""}`
+          : " · ⚠ sin category_id válido — revisa en MeLi";
+        setAvisoDuplicado(
+          `Borrador desde ${entry.item_id}`
+            + (fotos.length ? ` · ${fotos.length} foto(s)` : "")
+            + catInfo
+            + ". Al publicar se relee la categoría en vivo desde esa publicación.",
+        );
+      }
+
+      setEanSeleccionado(null);
+      setTituloEditado("");
+      setDescEditada("");
+      setResultado(null);
+      setStep("idle");
+      generarMut.reset();
+      crearMut.reset();
+      setArchivoFicha("");
+      window.setTimeout(() => {
+        formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    } catch (e) {
+      setErrorDuplicar(e instanceof Error ? e.message : "Error al duplicar");
+    } finally {
+      setDuplicandoId(null);
+    }
+  }
+
+  async function handleSubirFotos(files: FileList | File[] | null) {
+    if (!files || files.length === 0) return;
+    const lista = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (lista.length === 0) {
+      setErrorFotos("Solo se aceptan imágenes (JPEG, PNG, WebP)");
+      return;
+    }
+    setSubiendoFotos(true);
+    setErrorFotos(null);
+    try {
+      const form = new FormData();
+      for (const f of lista) form.append("files[]", f);
+      form.append("solo_cdn", "1");
+      const r = await api.upload<{
+        ok: boolean;
+        urls: string[];
+        archivos: {
+          filename?: string;
+          ok?: boolean;
+          url?: string;
+          adjuntada?: boolean;
+          nota?: string;
+          error?: string;
+        }[];
+      }>("/api/meli/compliance/subir-foto", form);
+      const okOnes = (r.archivos || []).filter((a) => a.ok && a.url);
+      if (okOnes.length === 0) {
+        setErrorFotos(r.archivos?.[0]?.error || "No se pudo subir la foto");
+        return;
+      }
+      const nuevas: FotoNueva[] = okOnes.map((a, i) => ({
+        id: `up-${Date.now()}-${i}-${a.url}`,
+        url: a.url!,
+        filename: a.filename,
+        adjuntada: false,
+        nota: a.nota,
+      }));
+      setFotosNuevas((prev) => [...nuevas, ...prev]);
+      if (nuevas[0]?.url) setFotoUrlNueva(nuevas[0].url);
+    } catch (e) {
+      setErrorFotos(e instanceof Error ? e.message : "Error al subir fotos");
+    } finally {
+      setSubiendoFotos(false);
+    }
+  }
+
+  function eliminarFotoNueva(id: string) {
+    setFotosNuevas((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      const eliminada = prev.find((f) => f.id === id);
+      if (eliminada && fotoUrlNueva === eliminada.url) {
+        setFotoUrlNueva(next[0]?.url || "");
+      }
+      return next;
+    });
+  }
+
+  function reordenarFotoNueva(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    setFotosNuevas((prev) => {
+      const from = prev.findIndex((f) => f.id === fromId);
+      const to = prev.findIndex((f) => f.id === toId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      if (next[0]?.url) setFotoUrlNueva(next[0].url);
+      return next;
+    });
+  }
+
+  const precioValido = parseFloat(precio) > 0;
+  const nombreOk = nombre.trim().length >= 3;
+  const fotoOk = Boolean(fotoUrlNueva);
+  const puedeCrear = nombreOk && precioValido && fotoOk && step === "listo";
+
+  if (step === "done" && resultado) {
+    const pub = resultado.publicacion;
+    const ok = pub?.ok && !resultado.paso_fallido;
+    return (
+      <div className="space-y-4">
+        <div className={`rounded-xl border p-4 space-y-2 ${ok ? "border-teal-200 bg-teal-50" : "border-red-200 bg-red-50"}`}>
+          <p className={`text-sm font-bold ${ok ? "text-teal-900" : "text-red-800"}`}>
+            {ok ? "✅ Publicación creada en MeLi" : "No se pudo crear la publicación"}
+          </p>
+          {resultado.paso_fallido && (
+            <p className="text-xs text-red-700">{resultado.paso_fallido}</p>
+          )}
+          {pub?.error && <p className="text-xs text-red-700">{pub.error}</p>}
+          {pub?.item_id && (
+            <p className="text-xs text-ink">
+              ID: <span className="font-mono font-semibold">{pub.item_id}</span>
+              {pub.status ? ` · ${pub.status}` : ""}
+            </p>
+          )}
+          {(resultado.category_id_usado || resultado.taxonomia_desde || resultado.prediccion_categoria) && (
+            <p className="text-[11px] text-teal-900">
+              Categoría publicada:{" "}
+              <span className="font-mono font-semibold">{resultado.category_id_usado || "—"}</span>
+              {resultado.prediccion_categoria?.category_name
+                ? ` · ${resultado.prediccion_categoria.category_name}`
+                : ""}
+              {resultado.line_usada ? ` · ${resultado.line_usada}` : ""}
+              {resultado.domain_id_usado ? ` · ${resultado.domain_id_usado}` : ""}
+              {resultado.model_usado ? ` · Modelo: ${resultado.model_usado}` : ""}
+              {resultado.taxonomia_desde
+                ? ` (desde ${resultado.taxonomia_desde})`
+                : resultado.prediccion_categoria?.ok
+                  ? " (predicción MeLi)"
+                  : ""}
+            </p>
+          )}
+          {pub?.permalink && (
+            <a href={meliUrl(pub.permalink, pub.item_id)} target="_blank" rel="noopener noreferrer"
+              className="inline-block text-xs font-semibold text-blue-600 underline">
+              Ver en MeLi ↗
+            </a>
+          )}
+          {(resultado.advertencias?.length ?? 0) > 0 && (
+            <ul className="space-y-1">
+              {resultado.advertencias!.map((a, i) => (
+                <li key={i} className="text-[11px] text-orange-800">⚠ {a}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("idle");
+            setResultado(null);
+            setTituloEditado("");
+            setDescEditada("");
+            setCategoryId("");
+            setDomainId("");
+            setLineMeli("");
+            setTaxonomiaItemId("");
+            setAvisoDuplicado(null);
+            setErrorDuplicar(null);
+            generarMut.reset();
+            crearMut.reset();
+          }}
+          className="w-full rounded-lg border border-border bg-white py-2 text-sm font-semibold text-ink hover:bg-surface-hover"
+        >
+          Crear otra
+        </button>
+        {onDone && (
+          <button
+            type="button"
+            onClick={onDone}
+            className="w-full rounded-lg bg-accent py-2 text-sm font-bold text-white hover:bg-accent-hover"
+          >
+            Volver
+          </button>
+        )}
+        <HistorialCrearDesdeCero
+          onDuplicar={(e) => void handleDuplicarDesdeHistorial(e)}
+          duplicandoId={duplicandoId}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5" ref={formTopRef}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-ink">Crear publicación desde cero</p>
+          <p className="mt-0.5 text-[11px] text-muted leading-relaxed">
+            Alta nueva en MeLi (User Product, compliant). No usa un ítem prohibido como base.
+          </p>
+        </div>
+        {onDone && (
+          <button type="button" onClick={onDone}
+            className="shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface-hover hover:text-ink">
+            ✕
+          </button>
+        )}
+      </div>
+
+      {avisoDuplicado && (
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-[11px] text-teal-900">
+          {avisoDuplicado}
+          <button
+            type="button"
+            className="ml-2 underline"
+            onClick={() => setAvisoDuplicado(null)}
+          >
+            ocultar
+          </button>
+        </div>
+      )}
+      {errorDuplicar && (
+        <p className="rounded-lg bg-orange-50 px-3 py-2 text-[11px] text-orange-800">{errorDuplicar}</p>
+      )}
+
+      <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
+        <SkuEanCombobox
+          value={sku}
+          onChange={(v) => {
+            setSku(v);
+            setEanSeleccionado(null);
+          }}
+          onSelectCodigo={(c) => {
+            setSku(c.sku);
+            setEanSeleccionado(c);
+            if (c.nombre_producto?.trim()) {
+              // Quitar presentación del nombre si viene al final (ej. "ALMENDRA 500g")
+              const nom = c.nombre_producto.replace(/\s+\d+\s*(g|kg|ml|l)\s*$/i, "").trim();
+              setNombre(nom || c.nombre_producto.trim());
+            }
+            setPresentacion(presentacionDesdeEan(c));
+          }}
+        />
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-muted">Nombre del producto *</label>
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej. Lactato de calcio"
+            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold text-muted">Presentación</label>
+            <input
+              value={presentacion}
+              onChange={(e) => setPresentacion(e.target.value)}
+              placeholder="250g"
+              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold text-muted">
+              Precio MeLi (COP) *
+            </label>
+            <input
+              type="number"
+              value={precio}
+              onChange={(e) => setPrecio(e.target.value)}
+              placeholder="25000"
+              min={0}
+              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            />
+          </div>
+        </div>
+        {eanSeleccionado && (
+          <p className="rounded-lg bg-teal-50 px-3 py-1.5 text-[11px] text-teal-800">
+            Producto EAN #{eanSeleccionado.numero_producto} · código{" "}
+            <span className="font-mono font-semibold">{eanSeleccionado.codigo}</span>
+          </p>
+        )}
+
+        <div>
+          <label className="mb-1.5 block text-[11px] font-semibold text-muted">Perfil del producto</label>
+          <div className="grid grid-cols-3 gap-2">
+            {PERFILES.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setPerfil(p.value)}
+                className={`rounded-xl border-2 px-2 py-2.5 text-center text-[11px] font-semibold transition ${
+                  perfil === p.value
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-muted hover:border-accent/30 hover:text-ink"
+                }`}
+              >
+                <span className="block text-lg">{p.emoji}</span>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {categoryId || taxonomiaItemId ? (
+            <p className="mt-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-1.5 text-[10px] text-teal-900">
+              Categoría MeLi (desde referencia
+              {taxonomiaItemId ? ` ${taxonomiaItemId}` : ""}):{" "}
+              <span className="font-mono font-semibold">{categoryId || "se leerá al publicar"}</span>
+              {lineMeli ? ` · LINE: ${lineMeli}` : ""}
+              {domainId ? ` · ${domainId}` : ""}
+              <button
+                type="button"
+                className="ml-2 underline"
+                onClick={() => {
+                  setCategoryId("");
+                  setDomainId("");
+                  setLineMeli("");
+                  setTaxonomiaItemId("");
+                }}
+              >
+                quitar
+              </button>
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[10px] text-muted">
+              Sin categoría de referencia: se predice con MeLi (nunca suplementos).
+              Si no hay mejor opción, se usa Almacén › Otros (MCO441116).
+            </p>
+          )}
+        </div>
+
+        {/* Ficha técnica biblioteca */}
+        <div className="space-y-2">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface-input/60 px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={usarFichaBiblioteca}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setUsarFichaBiblioteca(on);
+                if (!on) {
+                  setArchivoFicha("");
+                  setFichaTecnica("");
+                  setFichaAutoOk(false);
+                }
+              }}
+              className="mt-0.5"
+            />
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold text-ink">
+                Ficha técnica de la biblioteca de docs técnicos
+              </span>
+            </span>
+          </label>
+          {usarFichaBiblioteca ? (
+            <div className="space-y-2">
+              <select
+                value={archivoFicha}
+                onChange={(e) => setArchivoFicha(e.target.value)}
+                disabled={cargandoBiblioteca || fichasBiblioteca.length === 0}
+                className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-50"
+              >
+                <option value="">
+                  {cargandoBiblioteca ? "Cargando…" : "Selecciona una ficha…"}
+                </option>
+                {fichasBiblioteca.map((a) => (
+                  <option key={a.nombre} value={a.nombre}>
+                    {tituloDesdeArchivoBiblioteca(a.nombre)}
+                    {hayCoincidenciaExacta
+                    && (coincideFichaBiblioteca(nombre, a.nombre)
+                      || (sku ? coincideFichaBiblioteca(sku, a.nombre) : false))
+                      ? " · coincidencia"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+              {fichaAutoOk && (
+                <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800">
+                  ✓ Datos cargados desde la biblioteca
+                </p>
+              )}
+              {fichaTecnica && (
+                <textarea
+                  value={fichaTecnica}
+                  onChange={(e) => setFichaTecnica(e.target.value)}
+                  rows={3}
+                  className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+                />
+              )}
+            </div>
+          ) : (
+            <textarea
+              value={fichaTecnica}
+              onChange={(e) => setFichaTecnica(e.target.value)}
+              rows={3}
+              placeholder="Pega datos de ficha (opcional)"
+              className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            />
+          )}
+        </div>
+
+        {/* Fotos */}
+        <div className="space-y-2 rounded-xl border border-border bg-surface-input/40 p-3">
+          <p className="text-[11px] font-bold text-ink">Fotos *</p>
+          <p className="text-[10px] text-muted">Obligatoria para publicar. Arrastra o elige archivos.</p>
+          <div
+            onDragEnter={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.types.includes("Files")) setDropFotosActivo(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.types.includes("Files")) {
+                e.dataTransfer.dropEffect = "copy";
+                setDropFotosActivo(true);
+              }
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+              setDropFotosActivo(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDropFotosActivo(false);
+              if (e.dataTransfer.files?.length) void handleSubirFotos(e.dataTransfer.files);
+            }}
+            className={`rounded-xl border-2 border-dashed px-3 py-5 text-center transition ${
+              dropFotosActivo ? "border-accent bg-accent/10" : "border-border bg-surface"
+            }`}
+          >
+            {subiendoFotos ? (
+              <p className="text-[11px] font-semibold">Subiendo…</p>
+            ) : (
+              <>
+                <p className="text-[11px] font-semibold text-ink">Arrastra imágenes aquí</p>
+                <label className="mt-2 inline-block cursor-pointer rounded-lg bg-ink px-3 py-1.5 text-[11px] font-bold text-white">
+                  Elegir archivos
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      void handleSubirFotos(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </>
+            )}
+          </div>
+          {errorFotos && <p className="text-[11px] text-red-700">{errorFotos}</p>}
+          {fotosNuevas.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {fotosNuevas.map((f, i) => (
+                <div
+                  key={f.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragFotoId(f.id);
+                    e.dataTransfer.setData("text/foto-id", f.id);
+                  }}
+                  onDragEnd={() => setDragFotoId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const fromId = e.dataTransfer.getData("text/foto-id") || dragFotoId;
+                    if (fromId) reordenarFotoNueva(fromId, f.id);
+                    setDragFotoId(null);
+                  }}
+                  className={`group relative overflow-hidden rounded-lg border-2 ${
+                    fotoUrlNueva === f.url ? "border-accent" : "border-border"
+                  }`}
+                >
+                  <button type="button" onClick={() => setFotoUrlNueva(f.url)}>
+                    <img src={f.url} alt="" className="h-16 w-16 object-cover" draggable={false} />
+                    <span className="absolute bottom-0 left-0 right-0 bg-teal-700/90 px-1 py-0.5 text-[8px] font-bold text-white">
+                      {i === 0 ? "★ principal" : `#${i + 1}`}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => eliminarFotoNueva(f.id)}
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[10px] font-bold text-white hover:bg-danger"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStep("generando");
+            generarMut.mutate();
+          }}
+          disabled={!nombreOk || step === "generando" || generarMut.isPending}
+          className="w-full rounded-lg bg-accent py-3 text-sm font-bold text-white hover:bg-accent-hover disabled:opacity-40"
+        >
+          {generarMut.isPending ? "Generando…" : "✦ Generar contenido compliant con IA"}
+        </button>
+        {!nombreOk && (
+          <p className="text-[10px] text-muted">Escribe el nombre del producto (mín. 3 caracteres).</p>
+        )}
+        {generarMut.isError && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            {generarMut.error instanceof Error ? generarMut.error.message : "Error"}
+          </p>
+        )}
+        {generarMut.data?.error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{generarMut.data.error}</p>
+        )}
+      </div>
+
+      {(step === "listo" || step === "creando") && generarMut.data && !generarMut.data.error && (
+        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50/50 p-4">
+          <p className="text-xs font-bold text-green-800">Contenido generado — revisa antes de publicar</p>
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold text-muted">Título MeLi</label>
+            <input
+              value={tituloEditado}
+              onChange={(e) => setTituloEditado(e.target.value)}
+              maxLength={80}
+              className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold text-muted">Descripción</label>
+            <textarea
+              value={descEditada}
+              onChange={(e) => setDescEditada(e.target.value)}
+              rows={8}
+              className="w-full resize-y rounded-lg border border-green-300 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setStep("creando");
+              crearMut.mutate();
+            }}
+            disabled={!puedeCrear || crearMut.isPending}
+            className="w-full rounded-lg bg-teal-600 py-3 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-40"
+          >
+            {crearMut.isPending
+              ? "Creando en MeLi…"
+              : !precioValido
+                ? "Ingresa el precio"
+                : !fotoOk
+                  ? "Sube al menos una foto"
+                  : "✦ Crear publicación en MeLi + seguimiento"}
+          </button>
+          {crearMut.isError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              {crearMut.error instanceof Error ? crearMut.error.message : "Error"}
+            </p>
+          )}
+        </div>
+      )}
+
+      <HistorialCrearDesdeCero
+        onDuplicar={(e) => void handleDuplicarDesdeHistorial(e)}
+        duplicandoId={duplicandoId}
+      />
+    </div>
+  );
+}
+
 export default function MeliComplianceTab() {
   const queryClient = useQueryClient();
   const [selectedItem, setSelectedItem] = useState<ItemPausado | null>(null);
+  const [modoCrear, setModoCrear] = useState(false);
   const [buscar, setBuscar] = useState("");
   const [incluirPausadas, setIncluirPausadas] = useState(false);
 
@@ -1016,9 +2680,18 @@ export default function MeliComplianceTab() {
 
   function cerrarWorkspace() {
     setSelectedItem(null);
+    setModoCrear(false);
     refetch();
     queryClient.invalidateQueries({ queryKey: ["meli-compliance-watchlist"] });
     queryClient.invalidateQueries({ queryKey: ["meli-compliance-reemplazos"] });
+  }
+
+  if (modoCrear) {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+        <CrearDesdeCeroPanel onDone={cerrarWorkspace} />
+      </div>
+    );
   }
 
   if (selectedItem) {
@@ -1077,7 +2750,7 @@ export default function MeliComplianceTab() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       {/* Header explicativo */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5 space-y-1">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5 space-y-2">
         <p className="text-sm font-bold text-blue-900">
           Republicar productos bajados en MeLi — Compliance McKenna
         </p>
@@ -1087,6 +2760,13 @@ export default function MeliComplianceTab() {
           reenvasada <strong>(Res. 2674/2013 Art. 37-3)</strong>. Si la publicación está prohibida,
           usa <strong>Crear publicación nueva</strong> (modelo competidor activo) con seguimiento diario.
         </p>
+        <button
+          type="button"
+          onClick={() => setModoCrear(true)}
+          className="rounded-lg bg-teal-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700"
+        >
+          ✦ Crear publicación desde cero
+        </button>
       </div>
 
       <ComplianceWatchlist />

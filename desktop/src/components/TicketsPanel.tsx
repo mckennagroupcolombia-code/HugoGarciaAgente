@@ -6272,6 +6272,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "preventa",  label: "Preventa MeLi" },
                     { id: "stock",     label: "Stock" },
                     { id: "fichas",    label: "Fichas técnicas" },
+                    { id: "publicaciones", label: "Publicaciones" },
                     { id: "pedidos",   label: "Pedidos Web" },
                     { id: "logistica-internacional", label: "Logística Internacional" },
                     { id: "etiquetas", label: "Impresora · Etiquetas" },

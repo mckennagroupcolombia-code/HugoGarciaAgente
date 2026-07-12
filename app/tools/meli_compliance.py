@@ -48,6 +48,12 @@ _RE_SAL_DE_MINERAL = re.compile(
     re.I,
 )
 
+# McKenna: NUNCA publicar en suplementos alimenticios
+CATEGORIA_SUPLEMENTOS_BLOQUEADA = "MCO8830"
+DOMAIN_SUPLEMENTOS_BLOQUEADO = "MCO-SUPPLEMENTS"
+# Fallback alimentario genérico (Alimentos y Bebidas > Almacén > Otros)
+CATEGORIA_FALLBACK_SIN_SUPLEMENTOS = "MCO441116"
+
 PERFILES = {
     "materia_prima_alimentaria": {
         "subtitulo_etiqueta": "Insumo alimentario 100% puro · Res. 2674/2013 Art. 37-3",
@@ -56,8 +62,8 @@ PERFILES = {
             "e industria alimentaria"
         ),
         "linea_meli": "Materias primas alimentarias",
-        "categoria_meli": "MCO8830",
-        "domain_meli": "MCO-SUPPLEMENTS",
+        "categoria_meli": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+        "domain_meli": "",
     },
     "insumo_cosmetico": {
         "subtitulo_etiqueta": "Insumo cosmético — materia prima para formulación",
@@ -66,8 +72,8 @@ PERFILES = {
             "y productos de cuidado personal a nivel industrial"
         ),
         "linea_meli": "Insumos cosméticos",
-        "categoria_meli": "MCO8830",
-        "domain_meli": "MCO-SUPPLEMENTS",
+        "categoria_meli": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+        "domain_meli": "",
     },
     "insumo_tecnico": {
         "subtitulo_etiqueta": "Materia prima técnica para uso industrial",
@@ -76,8 +82,8 @@ PERFILES = {
             "síntesis química y aplicaciones técnicas"
         ),
         "linea_meli": "Insumos técnicos",
-        "categoria_meli": "MCO8830",
-        "domain_meli": "MCO-SUPPLEMENTS",
+        "categoria_meli": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+        "domain_meli": "",
     },
 }
 
@@ -87,6 +93,245 @@ PIE_LEGAL = (
     "No es medicamento · No es suplemento dietario terminado\n"
     "Uso exclusivo en formulación y elaboración de productos"
 )
+
+# category_id MeLi: sitio + dígitos. domain_id: sitio-NOMBRE.
+_RE_CATEGORY_ID = re.compile(r"^[A-Z]{3}\d+$", re.I)
+_RE_DOMAIN_ID = re.compile(r"^[A-Z]{3}-[A-Z0-9_]+$", re.I)
+
+
+def es_category_id_meli(valor: str) -> bool:
+    """True si parece category_id real (MCO389309), no domain (MCO-EDIBLE_SEEDS)."""
+    return bool(_RE_CATEGORY_ID.fullmatch((valor or "").strip()))
+
+
+def es_domain_id_meli(valor: str) -> bool:
+    return bool(_RE_DOMAIN_ID.fullmatch((valor or "").strip()))
+
+
+def es_taxonomia_suplementos(category_id: str = "", domain_id: str = "") -> bool:
+    """True si category/domain es suplementos (prohibido para publicaciones nuevas McKenna)."""
+    cat = (category_id or "").strip().upper()
+    dom = (domain_id or "").strip().upper()
+    if cat == CATEGORIA_SUPLEMENTOS_BLOQUEADA:
+        return True
+    if "SUPPLEMENT" in dom:
+        return True
+    return False
+
+
+def normalizar_category_id_meli(
+    category_id: str = "",
+    *,
+    domain_id: str = "",
+    fallback: str = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+) -> tuple[str, str]:
+    """
+    Separa category_id vs domain_id cuando la IA / callers los mezclan.
+    Nunca devuelve categoría/dominio de suplementos.
+    Returns: (category_id_valido, domain_id_opcional)
+    """
+    cat = (category_id or "").strip()
+    dom = (domain_id or "").strip()
+
+    if cat and not es_category_id_meli(cat):
+        if es_domain_id_meli(cat) and not dom:
+            dom = cat
+        cat = ""
+
+    if dom and not es_domain_id_meli(dom):
+        if es_category_id_meli(dom) and not cat:
+            cat = dom
+        dom = ""
+
+    if es_taxonomia_suplementos(cat, dom):
+        cat = ""
+        dom = ""
+
+    fb = (fallback or "").strip()
+    if not fb or not es_category_id_meli(fb) or es_taxonomia_suplementos(fb, ""):
+        fb = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+
+    if not cat or not es_category_id_meli(cat) or es_taxonomia_suplementos(cat, dom):
+        cat = fb
+        if es_taxonomia_suplementos("", dom):
+            dom = ""
+
+    return cat, dom
+
+
+# Dominios alimentarios preferidos vs jardinería/agricultura al predecir categoría
+_DOMAIN_FOOD_BOOST = (
+    "EDIBLE_SEED", "FLOUR", "NUT", "GRAIN", "CEREAL", "LEGUME", "BEAN",
+    "DRIED_FRUIT", "SPICE", "HERB", "OIL", "SUGAR", "SALT", "HONEY",
+    "COCOA", "COFFEE", "TEA", "RICE", "PASTA", "ALMOND", "SEED",
+)
+_DOMAIN_PENALIZE = (
+    "GARDENING", "AGRICULTURAL", "PET_", "FERTILIZER", "PLANT_SEED",
+)
+_DOMAIN_SUPPLEMENT = ("SUPPLEMENT",)
+_RE_MINERAL_SUPP = re.compile(
+    r"\b(citrato|magnesio|calcio|zinc|hierro|potasio|vitamina|colina|inositol|"
+    r"creatina|colageno|colágeno|proteina|proteína|aminoacido|aminoácido)\b",
+    re.I,
+)
+
+
+def predecir_categoria_meli(
+    consulta: str,
+    *,
+    perfil: str = "materia_prima_alimentaria",
+    presentacion: str = "",
+) -> dict:
+    """
+    Usa domain_discovery de MeLi para elegir category_id.
+    NUNCA elige suplementos (MCO8830 / *SUPPLEMENT*): si solo hay eso,
+    cae a Almacén > Otros (MCO441116).
+    """
+    del perfil  # reservado por compatibilidad
+    q = " ".join(x for x in [(consulta or "").strip(), (presentacion or "").strip()] if x).strip()
+    if len(q) < 3:
+        return {"ok": False, "error": "Consulta muy corta para predecir categoría"}
+
+    headers = _headers()
+    if not headers:
+        return {"ok": False, "error": "Sin token MeLi"}
+
+    try:
+        r = requests.get(
+            "https://api.mercadolibre.com/sites/MCO/domain_discovery/search",
+            params={"q": q, "limit": 8},
+            headers=headers,
+            timeout=15,
+        )
+    except Exception as e:
+        return {
+            "ok": True,
+            "consulta": q,
+            "category_id": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+            "domain_id": "",
+            "category_name": "Otros (Almacén)",
+            "line": "Materias primas alimentarias",
+            "model": (q.split()[0] if q else "Materia prima")[:60],
+            "fallback_sin_suplementos": True,
+            "error_red": str(e),
+            "nota": f"Error de red; se usa {CATEGORIA_FALLBACK_SIN_SUPLEMENTOS} (nunca suplementos).",
+        }
+
+    if r.status_code != 200:
+        return {
+            "ok": True,
+            "consulta": q,
+            "category_id": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+            "domain_id": "",
+            "category_name": "Otros (Almacén)",
+            "line": "Materias primas alimentarias",
+            "model": (q.split()[0] if q else "Materia prima")[:60],
+            "fallback_sin_suplementos": True,
+            "error_http": r.status_code,
+            "nota": f"Discovery HTTP {r.status_code}; se usa {CATEGORIA_FALLBACK_SIN_SUPLEMENTOS} (nunca suplementos).",
+        }
+    candidatos = r.json() if r.text else []
+    if not isinstance(candidatos, list):
+        candidatos = []
+
+    scored: list[tuple[float, dict]] = []
+    rechazados_suplementos: list[dict] = []
+    for i, c in enumerate(candidatos):
+        if not isinstance(c, dict):
+            continue
+        cat = (c.get("category_id") or "").strip()
+        dom = (c.get("domain_id") or "").strip()
+        if not es_category_id_meli(cat):
+            continue
+        if es_taxonomia_suplementos(cat, dom):
+            rechazados_suplementos.append(c)
+            continue
+        du = dom.upper()
+        score = 10.0 - i
+        if any(b in du for b in _DOMAIN_FOOD_BOOST):
+            score += 8
+        if any(p in du for p in _DOMAIN_PENALIZE):
+            score -= 12
+        if "materia prima" in q.lower() and any(b in du for b in _DOMAIN_FOOD_BOOST):
+            score += 3
+        # "semilla de X" debe ir a EDIBLE_SEEDS, no a Frutos Secos (snacks)
+        if "semilla" in q.lower():
+            if "EDIBLE_SEED" in du:
+                score += 12
+            if "DRIED_FRUIT" in du:
+                score -= 8
+        scored.append((score, c))
+
+    if not scored:
+        # Solo suplementos o vacío → fallback alimentario genérico (nunca MCO8830)
+        return {
+            "ok": True,
+            "consulta": q,
+            "category_id": CATEGORIA_FALLBACK_SIN_SUPLEMENTOS,
+            "domain_id": "",
+            "category_name": "Otros (Almacén)",
+            "line": "Materias primas alimentarias",
+            "model": (q.split()[0] if q else "Materia prima")[:60],
+            "score": 0,
+            "fallback_sin_suplementos": True,
+            "rechazados_suplementos": len(rechazados_suplementos),
+            "candidatos": [],
+            "nota": (
+                "MeLi solo sugirió suplementos u opciones inválidas; "
+                f"se usa {CATEGORIA_FALLBACK_SIN_SUPLEMENTOS} (Almacén > Otros)."
+            ),
+        }
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    best = scored[0][1]
+    cat = best.get("category_id", "")
+    dom = best.get("domain_id", "")
+    cat_name = best.get("category_name") or best.get("domain_name") or ""
+
+    line = "Materias primas alimentarias"
+    du = (dom or "").upper()
+    if "EDIBLE_SEED" in du or (du.endswith("_SEEDS") and "GARDEN" not in du and "AGRI" not in du):
+        line = "Semillas"
+    elif "FLOUR" in du:
+        line = "Harinas"
+    elif "NUT" in du or "ALMOND" in du:
+        line = "Frutos secos"
+    elif "SPICE" in du or "HERB" in du:
+        line = "Especias"
+    elif cat == CATEGORIA_FALLBACK_SIN_SUPLEMENTOS:
+        line = "Materias primas alimentarias"
+
+    model = ""
+    if "EDIBLE_SEED" in du or line == "Semillas":
+        model = "Frutos secos"
+    elif "FLOUR" in du:
+        model = "Harina"
+    elif "NUT" in du:
+        model = "Frutos secos"
+    elif cat == CATEGORIA_FALLBACK_SIN_SUPLEMENTOS:
+        model = (consulta or q or "Materia prima").strip()[:60]
+
+    return {
+        "ok": True,
+        "consulta": q,
+        "category_id": cat,
+        "domain_id": dom,
+        "category_name": cat_name,
+        "line": line,
+        "model": model,
+        "score": scored[0][0],
+        "rechazados_suplementos": len(rechazados_suplementos),
+        "candidatos": [
+            {
+                "category_id": c.get("category_id"),
+                "domain_id": c.get("domain_id"),
+                "category_name": c.get("category_name") or c.get("domain_name"),
+                "score": s,
+            }
+            for s, c in scored[:5]
+        ],
+    }
+
 
 # ── Diagnóstico de riesgo ──────────────────────────────────────────────────
 
@@ -258,7 +503,7 @@ def generar_contenido_compliance(
     if descripcion_actual:
         contenido_actual += f"\nDescripción actual (fragmento): {descripcion_actual[:500]}"
     if ficha_tecnica:
-        contenido_actual += f"\nFicha técnica (filtrar claims de salud): {ficha_tecnica[:800]}"
+        contenido_actual += f"\nFicha técnica (filtrar claims de salud): {ficha_tecnica[:1500]}"
 
     prompt_usuario = f"""Genera contenido de compliance para este producto McKenna:
 
@@ -275,6 +520,7 @@ REGLAS ESTRICTAS:
 - Título MeLi máx 60 chars, formato: "{{Ingrediente}} En Polvo Puro {{presentación}} — Materia Prima"
 - LINE MeLi: "{perfil_info['linea_meli']}"
 - domain_id: "{perfil_info['domain_meli']}"
+- category_id: "{perfil_info['categoria_meli']}" (formato MCO + números, NUNCA un domain tipo MCO-ALGO)
 
 Responde SOLO con JSON válido con esta estructura exacta:
 {{
@@ -285,8 +531,8 @@ Responde SOLO con JSON válido con esta estructura exacta:
   "atributos": {{
     "LINE": "...",
     "INGREDIENTS": "...",
-    "domain_id": "...",
-    "category_id": "..."
+    "domain_id": "{perfil_info['domain_meli']}",
+    "category_id": "{perfil_info['categoria_meli']}"
   }}
 }}
 
@@ -345,6 +591,17 @@ def _sanear_salida_compliance(data: dict) -> dict:
         for k in ("LINE", "INGREDIENTS"):
             if isinstance(atrs.get(k), str):
                 atrs[k] = _sanear_texto_compliance(atrs[k])
+        # La IA a menudo pone domain (MCO-OTROS_SUPLEMENTOS) en category_id
+        cat, dom = normalizar_category_id_meli(
+            str(atrs.get("category_id") or ""),
+            domain_id=str(atrs.get("domain_id") or ""),
+            fallback=PERFILES["materia_prima_alimentaria"]["categoria_meli"],
+        )
+        atrs["category_id"] = cat
+        if dom:
+            atrs["domain_id"] = dom
+        elif atrs.get("domain_id") and not es_domain_id_meli(str(atrs.get("domain_id"))):
+            atrs.pop("domain_id", None)
         out["atributos"] = atrs
     out = _forzar_clausulas_obligatorias(out)
     return out
@@ -646,6 +903,108 @@ def obtener_item_meli(item_id: str) -> Optional[dict]:
         return None
 
 
+def _presentacion_desde_item(item: dict) -> str:
+    """Intenta NET_VOLUME / NET_WEIGHT / título → '500g', '1kg', etc."""
+    for attr in item.get("attributes") or []:
+        aid = attr.get("id") or ""
+        if aid not in ("NET_VOLUME", "NET_WEIGHT", "PACKAGE_WEIGHT"):
+            continue
+        name = (attr.get("value_name") or "").strip()
+        if name:
+            return name.replace(" ", "")
+        struct = attr.get("value_struct") or {}
+        num = struct.get("number")
+        unit = (struct.get("unit") or "").lower()
+        if num is not None and unit:
+            n = int(num) if float(num) == int(float(num)) else num
+            return f"{n}{unit}"
+    titulo = (item.get("title") or item.get("family_name") or "")
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(kg|g|ml|l|lt)\b", titulo, re.I)
+    if m:
+        return f"{m.group(1).replace(',', '.')}{m.group(2).lower()}"
+    return "250g"
+
+
+def _perfil_desde_item(item: dict) -> str:
+    line = (_extraer_line_item(item) or "").lower()
+    if "cosmetic" in line or "cosmét" in line:
+        return "insumo_cosmetico"
+    if "técnic" in line or "tecnic" in line or "industrial" in line:
+        return "insumo_tecnico"
+    return "materia_prima_alimentaria"
+
+
+def _descripcion_item_meli(item_id: str) -> str:
+    headers = _headers()
+    if not headers:
+        return ""
+    try:
+        r = requests.get(
+            f"https://api.mercadolibre.com/items/{item_id}/description",
+            headers=headers,
+            timeout=10,
+        )
+        if r.status_code == 200:
+            body = r.json()
+            return (body.get("plain_text") or body.get("text") or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
+def datos_para_duplicar_publicacion(item_id: str) -> dict:
+    """
+    Arma un borrador para crear una publicación nueva a partir de una existente
+    (historial desde cero / cualquier item MeLi).
+    """
+    iid = (item_id or "").strip()
+    if not iid:
+        return {"ok": False, "error": "item_id requerido"}
+
+    item = obtener_item_meli(iid)
+    if not item or item.get("error"):
+        return {"ok": False, "error": f"No se pudo leer el ítem {iid}"}
+
+    sku = _extraer_sku_item(item)
+    family = (item.get("family_name") or "").strip()
+    titulo = (item.get("title") or family or "").strip()
+    nombre = family or _titulo_a_family_name(titulo) or titulo
+    presentacion = _presentacion_desde_item(item)
+    try:
+        precio = float(item.get("price") or 0)
+    except (TypeError, ValueError):
+        precio = 0.0
+
+    fotos = []
+    for pic in item.get("pictures") or []:
+        if not isinstance(pic, dict):
+            continue
+        pid = (pic.get("id") or "").strip()
+        url = (pic.get("secure_url") or pic.get("url") or "").strip()
+        if not url and pid:
+            url = f"https://http2.mlstatic.com/D_NQ_NP_{pid}-O.jpg"
+        if url:
+            fotos.append({"picture_id": pid, "url": url})
+
+    return {
+        "ok": True,
+        "item_id": iid,
+        "sku": sku,
+        "nombre": nombre,
+        "presentacion": presentacion,
+        "precio": precio,
+        "perfil": _perfil_desde_item(item),
+        "category_id": (item.get("category_id") or "").strip(),
+        "domain_id": (item.get("domain_id") or "").strip(),
+        "line": _extraer_line_item(item),
+        "titulo": titulo[:80],
+        "descripcion": _descripcion_item_meli(iid),
+        "fotos": fotos,
+        "permalink": item.get("permalink") or "",
+        "status": item.get("status"),
+    }
+
+
 def _titulo_a_family_name(titulo: str) -> str:
     """Nombre de familia UP: sin sufijo de presentación ni 'Materia Prima'."""
     t = (titulo or "").strip()
@@ -670,6 +1029,10 @@ def _restricciones_republicacion(item: dict) -> dict:
         or "waiting_for_patch" in sub
     ) and not forbidden
 
+    # under_review: MeLi responde item.attributes.not_modifiable (cause_id 247).
+    # forbidden: a veces deja tocar LINE/atributos; under_review no.
+    puede_atributos = status != "under_review"
+
     return {
         "forbidden": forbidden,
         "under_review": status == "under_review",
@@ -684,7 +1047,7 @@ def _restricciones_republicacion(item: dict) -> dict:
         "puede_descripcion": puede_descripcion,
         "puede_category": False,
         "puede_fotos": not bloqueado,
-        "puede_atributos": True,
+        "puede_atributos": puede_atributos,
     }
 
 
@@ -747,6 +1110,20 @@ def republicar_item(
         payload["attributes"] = correcciones["attributes"]
         if "attributes" not in aplicado:
             aplicado.append("attributes")
+    elif correcciones.get("attributes"):
+        omitido.append({
+            "campo": "attributes",
+            "razon": (
+                "MeLi no permite modificar attributes mientras el ítem está en revisión (under_review)"
+                if rest["under_review"]
+                else "Atributos no modificables en el estado actual"
+            ),
+        })
+        if rest["under_review"]:
+            acciones_manuales.append(
+                "Este ítem está en revisión (under_review): MeLi bloquea título, precio, status y atributos. "
+                "Lo recomendado es crear una publicación nueva compliant con seguimiento diario."
+            )
 
     if correcciones.get("category_id") and rest["puede_category"]:
         payload["category_id"] = correcciones["category_id"]
@@ -775,10 +1152,11 @@ def republicar_item(
             "campo": "status",
             "razon": "No se puede reactivar por API en under_review/forbidden",
         })
-        acciones_manuales.append(
-            "No se puede reactivar por API mientras MeLi marca la publicación como prohibida. "
-            "Corrige foto de etiqueta, descripción y atributos; luego solicita revisión en MeLi."
-        )
+        if not rest["under_review"]:
+            acciones_manuales.append(
+                "No se puede reactivar por API mientras MeLi marca la publicación como prohibida. "
+                "Corrige foto de etiqueta, descripción y atributos; luego solicita revisión en MeLi."
+            )
 
     resultado_put: Optional[dict] = None
     if payload:
@@ -789,6 +1167,45 @@ def republicar_item(
                 headers=headers,
                 timeout=15,
             )
+            # MeLi a veces marca attributes.not_modifiable aunque el status no sea under_review.
+            if (
+                r.status_code == 400
+                and "attributes" in payload
+                and "not_modifiable" in (r.text or "")
+            ):
+                payload_sin_attrs = {k: v for k, v in payload.items() if k != "attributes"}
+                omitido.append({
+                    "campo": "attributes",
+                    "razon": "MeLi rechazó attributes (item.attributes.not_modifiable); reintento sin ellos",
+                })
+                if "attributes" in aplicado:
+                    aplicado = [a for a in aplicado if a != "attributes"]
+                if payload_sin_attrs:
+                    r = requests.put(
+                        f"https://api.mercadolibre.com/items/{item_id}",
+                        json=payload_sin_attrs,
+                        headers=headers,
+                        timeout=15,
+                    )
+                    payload = payload_sin_attrs
+                else:
+                    acciones_manuales.append(
+                        "MeLi no permite modificar este ítem por API en el estado actual. "
+                        "Usa «Crear publicación nueva + seguimiento diario»."
+                    )
+                    return {
+                        "ok": False,
+                        "parcial": True,
+                        "item_id": item_id,
+                        "error": (
+                            "MeLi bloquea la edición (attributes.not_modifiable). "
+                            "Crea una publicación nueva compliant."
+                        ),
+                        "restricciones": rest,
+                        "omitido": omitido,
+                        "acciones_manuales": list(dict.fromkeys(acciones_manuales)),
+                        "aplicado": aplicado,
+                    }
             if r.status_code in (200, 201):
                 resultado_put = r.json()
             else:
@@ -798,7 +1215,7 @@ def republicar_item(
                     "error": f"HTTP {r.status_code}: {r.text[:400]}",
                     "restricciones": rest,
                     "omitido": omitido,
-                    "acciones_manuales": acciones_manuales,
+                    "acciones_manuales": list(dict.fromkeys(acciones_manuales)),
                 }
         except Exception as e:
             return {
@@ -808,13 +1225,23 @@ def republicar_item(
                 "restricciones": rest,
             }
     elif not aplicado:
+        if rest["under_review"]:
+            acciones_manuales.append(
+                "Ítem en revisión: no se puede corregir ni reactivar por API. "
+                "Crea una publicación nueva compliant con seguimiento diario."
+            )
         return {
             "ok": False,
             "item_id": item_id,
-            "error": "MeLi no permite modificar ningún campo solicitado en el estado actual",
+            "error": (
+                "MeLi no permite modificar este ítem en under_review. "
+                "Crea una publicación nueva."
+                if rest["under_review"]
+                else "MeLi no permite modificar ningún campo solicitado en el estado actual"
+            ),
             "restricciones": rest,
             "omitido": omitido,
-            "acciones_manuales": acciones_manuales,
+            "acciones_manuales": list(dict.fromkeys(acciones_manuales)),
             "parcial": True,
         }
 
@@ -971,6 +1398,199 @@ def _inferir_dimensiones_paquete(
     return {"height": 19, "width": 17, "length": 9, "weight": peso_heuristico}
 
 
+def _attr_desde_item(item: Optional[dict], attr_id: str) -> Optional[dict]:
+    """Copia un atributo del ítem MeLi (value_id si existe; si no, value_name)."""
+    if not item:
+        return None
+    for attr in item.get("attributes") or []:
+        if attr.get("id") != attr_id:
+            continue
+        out: dict = {"id": attr_id}
+        if attr.get("value_id") is not None:
+            out["value_id"] = str(attr["value_id"])
+        name = (attr.get("value_name") or "").strip()
+        if name:
+            out["value_name"] = name
+        struct = attr.get("value_struct")
+        if isinstance(struct, dict) and struct:
+            out["value_struct"] = struct
+        if "value_id" in out or "value_name" in out or "value_struct" in out:
+            return out
+    return None
+
+
+def _ids_en_atributos(attributes: list[dict]) -> set[str]:
+    return {str(a.get("id") or "") for a in attributes if a.get("id")}
+
+
+def _fetch_atributos_categoria(category_id: str) -> list[dict]:
+    """GET /categories/{id}/attributes (cache corto en memoria del proceso)."""
+    cat = (category_id or "").strip()
+    if not cat:
+        return []
+    cache: dict = getattr(_fetch_atributos_categoria, "_cache", {})
+    if cat in cache:
+        return cache[cat]
+    headers = _headers()
+    if not headers:
+        return []
+    try:
+        r = requests.get(
+            f"https://api.mercadolibre.com/categories/{cat}/attributes",
+            headers=headers,
+            timeout=20,
+        )
+        data = r.json() if r.status_code == 200 and r.text else []
+        if not isinstance(data, list):
+            data = []
+    except Exception:
+        data = []
+    cache[cat] = data
+    _fetch_atributos_categoria._cache = cache  # type: ignore[attr-defined]
+    return data
+
+
+def _elegir_valor_atributo_lista(
+    attr_def: dict,
+    *,
+    texto: str,
+    preferidos: Optional[list[str]] = None,
+) -> Optional[dict]:
+    """Elige value_id/value_name de la lista de valores del atributo según el texto del producto."""
+    valores = attr_def.get("values") or []
+    if not valores:
+        return None
+    low = (texto or "").lower()
+    # 1) match por nombre contenido en el texto
+    for v in valores:
+        name = (v.get("name") or "").strip()
+        if name and name.lower() in low:
+            out = {"id": attr_def["id"], "value_name": name}
+            if v.get("id") is not None:
+                out["value_id"] = str(v["id"])
+            return out
+    # 2) preferidos explícitos
+    for pref in preferidos or []:
+        for v in valores:
+            name = (v.get("name") or "").strip()
+            if name.lower() == pref.lower():
+                out = {"id": attr_def["id"], "value_name": name}
+                if v.get("id") is not None:
+                    out["value_id"] = str(v["id"])
+                return out
+    # 3) Mix / Otros / Genérico si existen
+    for cand in ("Mix", "Otros", "Otro", "Varios", "Sin especificar"):
+        for v in valores:
+            name = (v.get("name") or "").strip()
+            if name.lower() == cand.lower():
+                out = {"id": attr_def["id"], "value_name": name}
+                if v.get("id") is not None:
+                    out["value_id"] = str(v["id"])
+                return out
+    # 4) primer valor
+    v0 = valores[0]
+    name = (v0.get("name") or "").strip() or "Mix"
+    out = {"id": attr_def["id"], "value_name": name}
+    if v0.get("id") is not None:
+        out["value_id"] = str(v0["id"])
+    return out
+
+
+def _completar_atributos_requeridos_categoria(
+    attributes: list[dict],
+    *,
+    category_id: str,
+    nombre: str = "",
+    titulo: str = "",
+    sku: str = "",
+    atributos_compliance: Optional[dict] = None,
+    item_referencia: Optional[dict] = None,
+) -> list[dict]:
+    """
+    Asegura atributos required/catalog_required de la categoría (p. ej. DRIED_FRUIT_TYPE).
+    """
+    atrs = atributos_compliance or {}
+    texto = f"{nombre} {titulo} {sku} {atrs.get('INGREDIENTS', '')}"
+    presentes = _ids_en_atributos(attributes)
+    out = list(attributes)
+
+    for attr_def in _fetch_atributos_categoria(category_id):
+        aid = attr_def.get("id") or ""
+        if not aid or aid in presentes:
+            continue
+        tags = attr_def.get("tags") or {}
+        if not (tags.get("required") or tags.get("catalog_required")):
+            continue
+        # 1) compliance explícito
+        if atrs.get(aid):
+            val = atrs[aid]
+            if isinstance(val, dict):
+                out.append({"id": aid, **{k: v for k, v in val.items() if k != "id"}})
+            else:
+                out.append(_attr_value_name(aid, str(val)))
+            presentes.add(aid)
+            continue
+        # 2) ítem referencia
+        ref = _attr_desde_item(item_referencia, aid)
+        if ref:
+            out.append(ref)
+            presentes.add(aid)
+            continue
+        # 3) heurísticas por atributo conocido
+        if aid == "DRIED_FRUIT_TYPE":
+            elegido = _elegir_valor_atributo_lista(
+                attr_def,
+                texto=texto,
+                preferidos=["Mix", "Almendra", "Nuez"],
+            )
+            if elegido:
+                # calabaza / chía / linaza no están en la lista → Mix
+                low = texto.lower()
+                if any(x in low for x in ("calabaza", "chia", "chía", "linaza", "girasol", "sesamo", "sésamo")):
+                    for v in attr_def.get("values") or []:
+                        if (v.get("name") or "").lower() == "mix":
+                            elegido = {
+                                "id": aid,
+                                "value_name": "Mix",
+                                "value_id": str(v.get("id")),
+                            }
+                            break
+                out.append(elegido)
+                presentes.add(aid)
+                continue
+        if aid in ("BRAND", "MODEL", "MANUFACTURER", "PRODUCT_NAME", "LINE"):
+            defaults = {
+                "BRAND": "MCKENNA GROUP",
+                "MODEL": (nombre or titulo or "Materia prima")[:60],
+                "MANUFACTURER": "McKenna Group",
+                "PRODUCT_NAME": (nombre or titulo or sku or "Materia prima")[:60],
+                "LINE": "Materias primas alimentarias",
+            }
+            valores = attr_def.get("values") or []
+            if valores:
+                elegido = _elegir_valor_atributo_lista(attr_def, texto=texto, preferidos=[defaults[aid]])
+                if elegido:
+                    out.append(elegido)
+                    presentes.add(aid)
+                    continue
+            out.append(_attr_value_name(aid, defaults[aid]))
+            presentes.add(aid)
+            continue
+        # 4) lista de valores → pick
+        if attr_def.get("values"):
+            elegido = _elegir_valor_atributo_lista(attr_def, texto=texto)
+            if elegido:
+                out.append(elegido)
+                presentes.add(aid)
+                continue
+        # 5) free text
+        if (attr_def.get("value_type") or "") in ("string", "number"):
+            out.append(_attr_value_name(aid, (nombre or titulo or "N/A")[:60]))
+            presentes.add(aid)
+
+    return out
+
+
 def _construir_atributos_publicacion(
     *,
     sku: str,
@@ -979,8 +1599,9 @@ def _construir_atributos_publicacion(
     titulo: str,
     atributos_compliance: dict,
     item_referencia: Optional[dict] = None,
+    category_id: str = "",
 ) -> list[dict]:
-    """Atributos MeLi para publicación nueva en MCO8830 / materias primas."""
+    """Atributos MeLi para publicación nueva (hereda MODEL/BRAND/LINE del ítem de referencia)."""
     line = atributos_compliance.get("LINE", "Materias primas alimentarias")
     ingredients = atributos_compliance.get("INGREDIENTS", nombre or titulo)
     cantidad, unidad = _parsear_cantidad_presentacion(presentacion)
@@ -989,10 +1610,27 @@ def _construir_atributos_publicacion(
     marca = str(
         atributos_compliance.get("BRAND")
         or atributos_compliance.get("brand")
-        or nombre
-        or titulo
-    ).strip()[:60]
+        or ""
+    ).strip()
+    if not marca:
+        brand_ref = _attr_desde_item(item_referencia, "BRAND")
+        marca = (brand_ref or {}).get("value_name") or "MCKENNA GROUP"
+    marca = marca[:60]
     main_supp = str(atributos_compliance.get("MAIN_SUPPLEMENT") or nombre or ingredients).strip()[:60]
+
+    # Modelo: obligatorio en varias categorías (p. ej. semillas MCO389309)
+    model = str(atributos_compliance.get("MODEL") or atributos_compliance.get("model") or "").strip()
+    if not model:
+        model_ref = _attr_desde_item(item_referencia, "MODEL")
+        model = (model_ref or {}).get("value_name") or ""
+    if not model:
+        # Heurística: nombre corto / familia del producto
+        model = (nombre or titulo or sku or "Materia prima").strip()[:60]
+        # Para semillas/legumbres MeLi suele usar tipología genérica
+        cat = (category_id or "").upper()
+        low = f"{nombre} {titulo} {line}".lower()
+        if "semilla" in low or cat in {"MCO389309"} or "edible_seed" in low:
+            model = "Frutos secos"
 
     catalog_defaults = {
         "FLAVOR": atributos_compliance.get("FLAVOR", "Sin sabor"),
@@ -1014,6 +1652,7 @@ def _construir_atributos_publicacion(
         _attr_value_name("INGREDIENTS", ingredients),
         _attr_value_name("SELLER_SKU", sku),
         _attr_value_name("BRAND", marca),
+        _attr_value_name("MODEL", model),
         _attr_value_name("MAIN_SUPPLEMENT", main_supp),
         {"id": "QUANTITY", "value_name": f"{cantidad:g}"},
         _attr_value_name("UNIT_TYPE", unidad),
@@ -1024,11 +1663,44 @@ def _construir_atributos_publicacion(
         {"id": "SELLER_PACKAGE_TYPE", "value_id": "47115156"},
         {"id": "EMPTY_GTIN_REASON", "value_id": "17055161"},
     ]
+
+    # Almacén > Otros (MCO441116) exige fabricante y nombre de producto
+    cat = (category_id or "").strip().upper()
+    if cat == CATEGORIA_FALLBACK_SIN_SUPLEMENTOS or cat == "MCO8383":
+        manufacturer = str(
+            atributos_compliance.get("MANUFACTURER") or "McKenna Group"
+        ).strip()[:60]
+        product_name = str(
+            atributos_compliance.get("PRODUCT_NAME") or nombre or titulo or sku or "Materia prima"
+        ).strip()[:60]
+        attributes.append(_attr_value_name("MANUFACTURER", manufacturer))
+        attributes.append(_attr_value_name("PRODUCT_NAME", product_name))
+
+    # Preferir LINE/BRAND/MODEL del ítem de referencia si traen value_id (más estable en MeLi)
+    for aid in ("LINE", "BRAND", "MODEL"):
+        ref_attr = _attr_desde_item(item_referencia, aid)
+        if not ref_attr:
+            continue
+        attributes = [a for a in attributes if a.get("id") != aid]
+        attributes.insert(0, ref_attr)
+
     for attr_id, value in catalog_defaults.items():
         if attr_id == "UNITS_PER_PACK":
             attributes.append({"id": attr_id, "value_name": str(int(float(value)))})
         else:
             attributes.append(_attr_value_name(attr_id, str(value)))
+
+    # Completar required de la categoría (DRIED_FRUIT_TYPE, MODEL, etc.)
+    if category_id:
+        attributes = _completar_atributos_requeridos_categoria(
+            attributes,
+            category_id=category_id,
+            nombre=nombre,
+            titulo=titulo,
+            sku=sku,
+            atributos_compliance=atributos_compliance,
+            item_referencia=item_referencia,
+        )
     return attributes
 
 
@@ -1109,13 +1781,24 @@ def _asignar_stock_user_product(user_product_id: str, stock: int = 10) -> dict:
 
 
 def _foto_desde_item(item: Optional[dict]) -> Optional[str]:
+    fotos = _fotos_desde_item(item)
+    return fotos[0] if fotos else None
+
+
+def _fotos_desde_item(item: Optional[dict]) -> list[str]:
+    """Todas las fotos del ítem (id MeLi preferido; si no, URL)."""
     if not item:
-        return None
+        return []
+    out: list[str] = []
     for pic in item.get("pictures") or []:
-        url = pic.get("secure_url") or pic.get("url")
-        if url:
-            return url
-    return None
+        if not isinstance(pic, dict):
+            continue
+        pid = (pic.get("id") or "").strip()
+        url = (pic.get("secure_url") or pic.get("url") or "").strip()
+        ref = pid or url
+        if ref and ref not in out:
+            out.append(ref)
+    return out
 
 
 def _precio_desde_item(item: Optional[dict], fallback: float = 0) -> float:
@@ -1128,6 +1811,26 @@ def _precio_desde_item(item: Optional[dict], fallback: float = 0) -> float:
         return fallback
 
 
+def _picture_ref_para_crear(foto_url: str) -> dict:
+    """
+    Para crear ítem: si la foto ya está en CDN MeLi, enviar {"id": ...};
+    si no, {"source": url} para que MeLi la descargue.
+    """
+    import re
+
+    u = (foto_url or "").strip()
+    if not u:
+        return {"source": ""}
+    # URL CDN: .../D_NQ_NP_{id}-O.jpg  o  .../D_NQ_NP_2X_{id}-F.webp
+    m = re.search(r"D_NQ_NP_(?:2X_)?([0-9]+-[A-Z]{3}[0-9]+_[0-9]+)", u, re.I)
+    if m:
+        return {"id": m.group(1)}
+    # picture_id crudo
+    if re.fullmatch(r"[0-9]+-[A-Z]{3}[0-9]+_[0-9]+", u, re.I):
+        return {"id": u}
+    return {"source": u}
+
+
 def crear_publicacion_meli(
     sku: str,
     titulo: str,
@@ -1138,6 +1841,7 @@ def crear_publicacion_meli(
     stock: int = 10,
     listing_type_id: str = "gold_special",
     foto_url: Optional[str] = None,
+    foto_urls: Optional[list] = None,
     usar_user_product: bool = True,
     presentacion: str = "",
     nombre: str = "",
@@ -1161,9 +1865,20 @@ def crear_publicacion_meli(
     if precio <= 0:
         return {"ok": False, "error": "Precio inválido (debe ser > 0 COP)"}
 
-    if not foto_url and item_referencia:
-        foto_url = _foto_desde_item(item_referencia)
-    if not foto_url:
+    urls: list[str] = []
+    for u in foto_urls or []:
+        s = (u or "").strip()
+        if s and s not in urls:
+            urls.append(s)
+    principal = (foto_url or "").strip()
+    if principal:
+        if principal in urls:
+            urls = [principal] + [u for u in urls if u != principal]
+        else:
+            urls = [principal] + urls
+    if not urls and item_referencia:
+        urls = _fotos_desde_item(item_referencia)
+    if not urls:
         return {"ok": False, "error": "Foto obligatoria para gold_special — sube imagen o indica item_origen con fotos"}
 
     attributes = _construir_atributos_publicacion(
@@ -1173,17 +1888,36 @@ def crear_publicacion_meli(
         titulo=titulo,
         atributos_compliance=atributos_compliance,
         item_referencia=item_referencia,
+        category_id=str(categoria_id or ""),
     )
 
+    # Hasta 12 fotos (límite habitual MeLi); id CDN si ya están subidas, si no source
+    pictures = [_picture_ref_para_crear(u) for u in urls[:12]]
+
+    cat_ok, _dom = normalizar_category_id_meli(
+        str(categoria_id or ""),
+        domain_id=str((atributos_compliance or {}).get("domain_id") or ""),
+        fallback=(
+            str(categoria_id)
+            if es_category_id_meli(str(categoria_id or ""))
+            and not es_taxonomia_suplementos(str(categoria_id or ""), "")
+            else CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+        ),
+    )
+    if es_taxonomia_suplementos(cat_ok, _dom):
+        cat_ok = CATEGORIA_FALLBACK_SIN_SUPLEMENTOS
+        _dom = ""
+
+
     payload: dict = {
-        "category_id": categoria_id,
+        "category_id": cat_ok,
         "price": precio,
         "currency_id": "COP",
         "buying_mode": "buy_it_now",
         "condition": "new",
         "listing_type_id": listing_type_id,
         "attributes": attributes,
-        "pictures": [{"source": foto_url}],
+        "pictures": pictures,
         "channels": ["marketplace"],
     }
 
@@ -1255,6 +1989,8 @@ def crear_publicacion_meli(
                 "family_name": data.get("family_name", payload.get("family_name", "")),
                 "user_product_id": user_product_id,
                 "multiwarehouse": bool(multiwarehouse and depositos),
+                "fotos_enviadas": len(pictures),
+                "fotos_en_item": len(data.get("pictures") or []),
             }
         return {"ok": False, "error": f"HTTP {r.status_code}: {r.text[:800]}"}
     except Exception as e:
@@ -1277,6 +2013,7 @@ def autopublicar_producto(
     foto_url: Optional[str] = None,
     listing_type_id: str = "gold_special",
     dry_run: bool = False,
+    foto_urls: Optional[list] = None,
 ) -> dict:
     """
     Pipeline completo para publicar (o republicar) un producto con compliance.
@@ -1348,6 +2085,7 @@ def autopublicar_producto(
         stock=stock,
         listing_type_id=listing_type_id,
         foto_url=foto_url,
+        foto_urls=foto_urls,
         usar_user_product=True,
         presentacion=presentacion,
         nombre=nombre,

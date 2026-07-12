@@ -140,6 +140,44 @@ def manejar_pregunta_contacto_web(texto: str) -> str | None:
     )
 
 
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}")
+
+_PATRONES_MAYOREO: list[str] = [
+    r"\bbultos?\b",
+    r"\bal\s+por\s+mayor\b",
+    r"\bmayoreo\b",
+    r"\bmayorista\b",
+    r"\bgran(?:des)?\s+cantidad(?:es)?\b",
+    r"\bcantidad(?:es)?\s+mayor(?:es)?\b",
+    r"\btonelad[ao]s?\b",
+    r"\bsacos?\b",
+]
+
+
+def manejar_cotizacion_mayoreo_correo_web(texto: str) -> str | None:
+    """Cliente deja correo + mención de bultos/mayor cantidad → confirma seguimiento por correo.
+
+    Evita que ese mensaje se enrute al buscador de catálogo (que respondería
+    "no encontré esa presentación" sobre un texto que ni siquiera es un
+    nombre de producto).
+    """
+    low = _normalizar(texto)
+    if not low:
+        return None
+    m_email = _EMAIL_RE.search(texto or "")
+    if not m_email:
+        return None
+    if not _coincide(low, _PATRONES_MAYOREO):
+        return None
+    correo = m_email.group(0)
+    return (
+        f"Listo veci, quedó registrado su correo **{correo}** 📩. "
+        "El equipo comercial le envía la cotización de esa materia prima para bultos/cantidad mayor "
+        "a ese correo. Si quiere, cuénteme aquí mismo el nombre exacto del producto y la cantidad "
+        "aproximada para agilizar la respuesta."
+    )
+
+
 def clasificar_escalacion_web(texto: str, historial_texto: str = "") -> str | None:
     """
     Retorna: 'humano' | 'pago_pedido' | 'frustracion_pago' | None

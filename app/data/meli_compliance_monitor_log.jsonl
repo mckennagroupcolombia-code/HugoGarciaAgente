@@ -28,3 +28,19 @@
 {"tipo": "revision_diaria", "revisadas": 3, "alertas": 0, "activas": 3, "problemas": 0, "ts": "2026-07-08T08:30:06"}
 {"tipo": "revision_diaria", "revisadas": 3, "alertas": 0, "activas": 3, "problemas": 0, "ts": "2026-07-09T08:30:06"}
 {"tipo": "revision_diaria", "revisadas": 3, "alertas": 0, "activas": 3, "problemas": 0, "ts": "2026-07-10T08:30:06"}
+{"tipo": "revision_diaria", "revisadas": 3, "alertas": 0, "activas": 3, "problemas": 0, "ts": "2026-07-11T08:30:06"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4160718746", "sku": "C-SEMCAL250g", "ts": "2026-07-11T15:56:28"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4160718746", "sku": "C-SEMCAL250g", "origen": "", "ts": "2026-07-11T15:56:30"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4160719848", "sku": "C-SEMCAL500g", "origen": "desde_cero", "ts": "2026-07-11T16:26:37"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4160719848", "sku": "C-SEMCAL500g", "origen": "", "ts": "2026-07-11T16:26:40"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4160719914", "sku": "C-SEMCAL500g", "origen": "desde_cero", "ts": "2026-07-11T16:35:50"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4160719914", "sku": "C-SEMCAL500g", "origen": "", "ts": "2026-07-11T16:35:51"}
+{"tipo": "eliminar_watchlist", "item_id": "MCO4160719914", "id": "3cfae68d-bf2", "sku": "C-SEMCAL500g", "ts": "2026-07-11T16:51:12"}
+{"tipo": "eliminar_watchlist", "item_id": "MCO4160719848", "id": "37f1a762-a4a", "sku": "C-SEMCAL500g", "ts": "2026-07-11T16:51:15"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2034026877", "sku": "C-SEMCAL500g", "origen": "desde_cero", "ts": "2026-07-11T19:57:37"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2034026877", "sku": "C-SEMCAL500g", "origen": "", "ts": "2026-07-11T19:57:39"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4160901374", "sku": "C-SEMCAL500g", "origen": "desde_cero", "ts": "2026-07-11T21:19:13"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4160901374", "sku": "C-SEMCAL500g", "origen": "", "ts": "2026-07-11T21:19:14"}
+{"tipo": "eliminar_watchlist", "item_id": "MCO2034026877", "id": "a5329459-262", "sku": "C-SEMCAL500g", "ts": "2026-07-11T21:19:38"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4160912078", "sku": "C-ARADES250g", "origen": "desde_cero", "ts": "2026-07-11T22:55:16"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4160912078", "sku": "C-ARADES250g", "origen": "", "ts": "2026-07-11T22:55:17"}

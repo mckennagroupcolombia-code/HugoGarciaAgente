@@ -638,16 +638,33 @@ def subir_imagen_web(sku: str, file_bytes: bytes, original_filename: str) -> dic
     }
 
 
-def subir_imagen_meli(meli_item_id: str, file_bytes: bytes, content_type: str) -> dict:
+def _url_desde_respuesta_picture(pic: dict, picture_id: str = "") -> str:
+    """Extrae secure_url/url de la respuesta MeLi o construye la URL CDN estándar."""
+    url = (pic.get("secure_url") or pic.get("url") or "").strip()
+    if url:
+        return url
+    for v in pic.get("variations") or []:
+        if not isinstance(v, dict):
+            continue
+        url = (v.get("secure_url") or v.get("url") or "").strip()
+        if url:
+            return url
+    pid = (picture_id or pic.get("id") or "").strip()
+    if pid:
+        # Formato actual del CDN MeLi (docs: D_NQ_NP_{id}-O.jpg)
+        return f"https://http2.mlstatic.com/D_NQ_NP_{pid}-O.jpg"
+    return ""
+
+
+def subir_foto_cdn_meli(file_bytes: bytes, content_type: str = "image/jpeg") -> dict:
     """
-    Sube imagen al CDN de MeLi y la añade al frente de la publicación.
-    Devuelve {"ok": True, "picture_id": ..., "url": ..., "pictures": [...]}
+    Sube una imagen al CDN de MeLi sin adjuntarla a un ítem.
+    Útil para renovar fotos cuando el listing está under_review/forbidden (PUT pictures → 405).
+    Nota: POST /pictures a menudo solo devuelve `id` (sin url); en ese caso se construye la URL CDN.
     """
     token = _meli_token()
     if not token:
         return {"ok": False, "error": "Sin token MeLi. Verifica credenciales_meli.json"}
-    if not meli_item_id:
-        return {"ok": False, "error": "Se requiere ID de publicación MeLi"}
 
     ct = content_type or "image/jpeg"
     ext = ".jpg" if "jpeg" in ct or "jpg" in ct else ".png" if "png" in ct else ".jpg"
@@ -665,26 +682,93 @@ def subir_imagen_meli(meli_item_id: str, file_bytes: bytes, content_type: str) -
     if up.status_code not in (200, 201):
         return {"ok": False, "error": f"MeLi upload HTTP {up.status_code}: {up.text[:300]}"}
 
-    pic = up.json()
-    picture_id = pic.get("id", "")
-    picture_url = pic.get("secure_url") or pic.get("url", "")
+    try:
+        pic = up.json() if up.text else {}
+    except Exception:
+        pic = {}
+    if not isinstance(pic, dict):
+        pic = {}
+
+    picture_id = (pic.get("id") or "").strip()
     if not picture_id:
-        return {"ok": False, "error": f"MeLi no devolvió picture_id. Resp: {up.text[:200]}"}
+        return {"ok": False, "error": f"MeLi no devolvió picture id. Resp: {up.text[:200]}"}
+
+    picture_url = _url_desde_respuesta_picture(pic, picture_id)
+    variations = pic.get("variations") or []
+
+    # Si el upload no trajo variations/url, intentar GET /pictures/{id}
+    if not variations or not (pic.get("secure_url") or pic.get("url")):
+        try:
+            det = _req.get(
+                f"https://api.mercadolibre.com/pictures/{picture_id}",
+                params={"access_token": token},
+                timeout=20,
+            )
+            if det.status_code == 200:
+                det_json = det.json() if det.text else {}
+                if isinstance(det_json, dict):
+                    picture_url = _url_desde_respuesta_picture(det_json, picture_id) or picture_url
+                    variations = det_json.get("variations") or variations
+        except Exception:
+            pass
+
+    return {
+        "ok": True,
+        "picture_id": picture_id,
+        "url": picture_url,
+        "variations": variations,
+    }
+
+
+def subir_imagen_meli(
+    meli_item_id: str,
+    file_bytes: bytes,
+    content_type: str,
+    sku: str = "",
+    *,
+    solo_cdn: bool = False,
+) -> dict:
+    """
+    Sube imagen al CDN de MeLi y, si es posible, la añade al frente de la publicación.
+    Si el ítem bloquea pictures (under_review → HTTP 405), igual devuelve la URL del CDN.
+    """
+    del sku  # reservado por compatibilidad con callers
+    cdn = subir_foto_cdn_meli(file_bytes, content_type)
+    if not cdn.get("ok"):
+        return cdn
+
+    picture_id = cdn["picture_id"]
+    picture_url = cdn["url"]
+
+    if solo_cdn or not meli_item_id:
+        return {**cdn, "adjuntada": False}
 
     existing_pics, _ = _meli_get_pictures(meli_item_id)
     existing_ids = [p["id"] for p in existing_pics if p["id"] != picture_id]
     new_ids = [picture_id] + existing_ids
     result = _meli_set_pictures(meli_item_id, new_ids)
     if not result["ok"]:
+        # 405 / not_modifiable: foto lista en CDN para usar en publicación nueva
         return {
-            **result,
+            "ok": True,
+            "adjuntada": False,
             "picture_id": picture_id,
             "url": picture_url,
-            "nota": "Imagen subida al CDN pero fallo al actualizar listing",
+            "error_adjuntar": result.get("error", ""),
+            "nota": (
+                "Imagen subida al CDN de MeLi, pero el listing no permite renovar fotos "
+                "(p. ej. under_review). Úsala al crear una publicación nueva."
+            ),
         }
 
     updated_pics, _ = _meli_get_pictures(meli_item_id)
-    return {"ok": True, "picture_id": picture_id, "url": picture_url, "pictures": updated_pics}
+    return {
+        "ok": True,
+        "adjuntada": True,
+        "picture_id": picture_id,
+        "url": picture_url,
+        "pictures": updated_pics,
+    }
 
 
 def reordenar_imagenes_web(sku: str, filenames: list[str]) -> dict:

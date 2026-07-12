@@ -3052,6 +3052,47 @@ def api_pedido_envio():
     return jsonify({"ok": ok, "message": msg})
 
 
+# ── Rate limit del chat público ───────────────────────────────────────────────
+# /api/chat es anónimo y cada llamada consume cuota de Claude/Gemini: sin freno,
+# un bucle desde una sola IP quema el presupuesto de API.
+_CHAT_RL_LOCK = threading.Lock()
+_CHAT_RL_HITS: defaultdict[str, list[float]] = defaultdict(list)
+_CHAT_RL_WINDOW_SEC = 60
+_CHAT_RL_MAX_POR_MIN = int(os.getenv("WEB_CHAT_RATE_LIMIT", "12") or 12)
+_CHAT_RL_MAX_CLAVES = 5000
+
+
+def _client_ip() -> str:
+    """IP real del visitante: tras el túnel Cloudflare, remote_addr es 127.0.0.1."""
+    cf = (request.headers.get("CF-Connecting-IP") or "").strip()
+    if cf:
+        return cf
+    xff = (request.headers.get("X-Forwarded-For") or "").strip()
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def _chat_rate_limit_excedido(session_id: str) -> bool:
+    """Ventana deslizante de 60 s por IP y por sesión (la más restrictiva manda)."""
+    ahora = time.time()
+    claves = [f"ip:{_client_ip()}", f"sid:{session_id}"]
+    with _CHAT_RL_LOCK:
+        # Cota de memoria: purga cubetas inactivas si el dict crece demasiado.
+        if len(_CHAT_RL_HITS) > _CHAT_RL_MAX_CLAVES:
+            for k, ts in list(_CHAT_RL_HITS.items()):
+                if not ts or ahora - ts[-1] > _CHAT_RL_WINDOW_SEC:
+                    _CHAT_RL_HITS.pop(k, None)
+        for k in claves:
+            hits = _CHAT_RL_HITS[k]
+            hits[:] = [t for t in hits if ahora - t < _CHAT_RL_WINDOW_SEC]
+            if len(hits) >= _CHAT_RL_MAX_POR_MIN:
+                return True
+        for k in claves:
+            _CHAT_RL_HITS[k].append(ahora)
+    return False
+
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     """Proxy público hacia el agente Hugo García (puerto 8081)."""
@@ -3067,6 +3108,17 @@ def api_chat():
             session_id = f"web-{uuid.uuid4()}"
             session["hugo_chat_session"] = session_id
             session.modified = True
+    if _chat_rate_limit_excedido(session_id):
+        log.warning("api_chat: rate limit excedido (ip=%s sid=%s)", _client_ip(), session_id)
+        return jsonify({
+            "reply": (
+                "Veci, vamos muy rápido 🙏 Espere un momentico y me vuelve a escribir. "
+                "Si es urgente, escríbanos por WhatsApp."
+            ),
+            "ok": True,
+            "source": "rate_limited",
+        }), 429
+
     page_url = request.headers.get("X-Chat-Page", "").strip() or request.referrer or ""
     user_agent = request.headers.get("User-Agent", "")
     chat_url = (os.getenv("AGENTE_CHAT_URL") or "http://127.0.0.1:8081/chat").strip()

@@ -1,31 +1,42 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
 import MobileHub, { useMobileLayout } from "./components/MobileHub";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
-import Chat from "./components/Chat";
-import VozIA from "./components/VozIA";
-import PreventaPanel from "./components/PreventaPanel";
-import PostventaPanel from "./components/PostventaPanel";
-import SyncPanel from "./components/SyncPanel";
-import StockPanel from "./components/StockPanel";
-import FichasTecnicasPanel from "./components/FichasTecnicasPanel";
-import PedidosWebPanel from "./components/PedidosWebPanel";
-import FacturasCompraPanel from "./components/FacturasCompraPanel";
-import CostosProductosPanel from "./components/CostosProductosPanel";
-import CentroCostosPanel from "./components/CentroCostosPanel";
-import RentabilidadPanel from "./components/RentabilidadPanel";
 import TicketsPanel from "./components/TicketsPanel";
-import WebChatPanel from "./components/WebChatPanel";
-import WhatsAppPanel from "./components/WhatsAppPanel";
-import SupervisorPanel from "./components/SupervisorPanel";
-import EtiquetasPanel, { ConfigurarProductosPanel } from "./components/EtiquetasPanel";
-import PlacasConcretoPanel from "./components/PlacasConcretoPanel";
-import PublicacionesPanel from "./components/PublicacionesPanel";
-import LogisticaInternacionalPanel from "./components/LogisticaInternacionalPanel";
-import Settings from "./components/Settings";
-import PerfilPanel from "./components/PerfilPanel";
+
+// Paneles bajo demanda: cada uno baja en su propio chunk al abrirlo, en vez de
+// inflar el bundle inicial. Dashboard y TicketsPanel quedan estáticos por ser
+// los paneles de aterrizaje.
+const Chat = lazy(() => import("./components/Chat"));
+const VozIA = lazy(() => import("./components/VozIA"));
+const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
+const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
+const SyncPanel = lazy(() => import("./components/SyncPanel"));
+const StockPanel = lazy(() => import("./components/StockPanel"));
+const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
+const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
+const FacturasCompraPanel = lazy(() => import("./components/FacturasCompraPanel"));
+const CostosProductosPanel = lazy(() => import("./components/CostosProductosPanel"));
+const CentroCostosPanel = lazy(() => import("./components/CentroCostosPanel"));
+const RentabilidadPanel = lazy(() => import("./components/RentabilidadPanel"));
+const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
+const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
+const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
+const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
+const ConfigurarProductosPanel = lazy(() =>
+  import("./components/EtiquetasPanel").then((m) => ({
+    default: m.ConfigurarProductosPanel,
+  })),
+);
+const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
+const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
+const LogisticaInternacionalPanel = lazy(
+  () => import("./components/LogisticaInternacionalPanel"),
+);
+const Settings = lazy(() => import("./components/Settings"));
+const PerfilPanel = lazy(() => import("./components/PerfilPanel"));
 import { usePanelTheme } from "./stores/panelTheme";
 import { useQuestTheme } from "./stores/questTheme";
 import {
@@ -40,7 +51,23 @@ import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
 import { LOGISTICA_PANELS, puedeVerModuloLogistica } from "./lib/logisticaAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
+function PanelCargando() {
+  return (
+    <div className="flex h-full min-h-[40vh] items-center justify-center text-sm text-muted">
+      Cargando panel…
+    </div>
+  );
+}
+
 function PanelRouter() {
+  return (
+    <Suspense fallback={<PanelCargando />}>
+      <PanelRouterInner />
+    </Suspense>
+  );
+}
+
+function PanelRouterInner() {
   const panel = useAppStore((s) => s.panel);
   switch (panel) {
     case "hugo":

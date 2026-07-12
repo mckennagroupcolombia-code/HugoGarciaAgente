@@ -1,0 +1,173 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-07-11">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>BO15756</NumeroFacturaProveedor>
+    <FechaFactura>2026-07-04</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800158432</NIT>
+      <Nombre>PRODUCTOS 3A SAS</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="8">
+    <Item numero="1">
+      <CodigoSiigo>ALMNATg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ALMENDRA NATURAL AMERICANA CAJA 22.68 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">22680.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 22680.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>738000.00</Subtotal>
+        <IVA>140220.00</IVA>
+        <Total>878220.00</Total>
+        <PrecioUnitarioMin>38.7200</PrecioUnitarioMin>
+        <PrecioNetoMin>32.539683</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 878220.00 COP / 22680.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>ARADESg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ARANDANOS DESHIDRATADOS CAJA  11.34 KG OCEAN SPRAY</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">11340.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 11340.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>232500.00</Subtotal>
+        <IVA>44175.00</IVA>
+        <Total>276675.00</Total>
+        <PrecioUnitarioMin>24.4000</PrecioUnitarioMin>
+        <PrecioNetoMin>20.502646</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 276675.00 COP / 11340.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>COCDESHILg</CodigoSiigo>
+      <DescripcionOriginalProveedor>COCO DESHIDRATADO HILOS BULTO  25  KG ELMAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>605650.00</Subtotal>
+        <IVA>115073.50</IVA>
+        <Total>720723.50</Total>
+        <PrecioUnitarioMin>28.8300</PrecioUnitarioMin>
+        <PrecioNetoMin>24.226000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 720723.50 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>GIRKERg</CodigoSiigo>
+      <DescripcionOriginalProveedor>GIRASOL KERNEL BULTO 25 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>287400.00</Subtotal>
+        <IVA>54606.00</IVA>
+        <Total>342006.00</Total>
+        <PrecioUnitarioMin>13.6800</PrecioUnitarioMin>
+        <PrecioNetoMin>11.496000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 342006.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>MANTOSNATg</CodigoSiigo>
+      <DescripcionOriginalProveedor>MANI TOSTADO NATURAL CAJA 25 KG RMCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>228000.00</Subtotal>
+        <IVA>43320.00</IVA>
+        <Total>271320.00</Total>
+        <PrecioUnitarioMin>10.8500</PrecioUnitarioMin>
+        <PrecioNetoMin>9.120000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 271320.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>NUEBRAPARg</CodigoSiigo>
+      <DescripcionOriginalProveedor>NUEZ DEL BRASIL PARTIDA CAJA 20 KG BROKEN A</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1140000.00</Subtotal>
+        <IVA>216600.00</IVA>
+        <Total>1356600.00</Total>
+        <PrecioUnitarioMin>67.8300</PrecioUnitarioMin>
+        <PrecioNetoMin>57.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1356600.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>PISTOSSALg</CodigoSiigo>
+      <DescripcionOriginalProveedor>PISTACHOS TOSTADOS SALADOS WONDERFUL CAJA 11.34 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">11340.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 11340.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>635600.00</Subtotal>
+        <IVA>120764.00</IVA>
+        <Total>756364.00</Total>
+        <PrecioUnitarioMin>66.7000</PrecioUnitarioMin>
+        <PrecioNetoMin>56.049383</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 756364.00 COP / 11340.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>SEMCALGRAg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SEMILLA DE CALABAZA CAJA 25 KG GRADO AA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>665000.00</Subtotal>
+        <IVA>126350.00</IVA>
+        <Total>791350.00</Total>
+        <PrecioUnitarioMin>31.6500</PrecioUnitarioMin>
+        <PrecioNetoMin>26.600000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 791350.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>4532150.00</Subtotal>
+    <TotalIVA>861108.50</TotalIVA>
+    <TotalGeneral>5393258.50</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: BO15756 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

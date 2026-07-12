@@ -632,6 +632,29 @@ export function unionBounds(bounds: RectBounds[]): RectBounds {
   );
 }
 
+/** ¿Se solapan dos cajas? (selección por ventana). */
+export function rectsIntersectan(a: RectBounds, b: RectBounds): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+/** IDs cuyo bounds toca la ventana; expande grupos enteros. */
+export function idsSeleccionVentana(
+  elementos: ElementoVisual[],
+  ventana: RectBounds,
+): string[] {
+  const tocados = new Set<string>();
+  for (const el of elementos) {
+    if (el.visible === false) continue;
+    if (!rectsIntersectan(boundsElemento(el), ventana)) continue;
+    if (el.groupId) {
+      for (const id of idsGrupo(elementos, el.groupId)) tocados.add(id);
+    } else {
+      tocados.add(el.id);
+    }
+  }
+  return [...tocados];
+}
+
 export function patchMoverElemento(
   el: ElementoVisual,
   dx: number,

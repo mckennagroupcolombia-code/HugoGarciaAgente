@@ -16,6 +16,15 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true,
+    // "hidden": genera el .map para depurar pero no lo referencia desde el JS
+    // público (evita que el browser descargue ~6 MB extra).
+    sourcemap: "hidden",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "@tanstack/react-query", "zustand"],
+        },
+      },
+    },
   },
 });
