@@ -479,26 +479,65 @@ def exportar_pdf(plantilla: dict) -> bytes:
     return buf.getvalue()
 
 
+_FUENTES_RASTER = {
+    # El editor DOM usa Montserrat; DejaVu queda de respaldo.
+    "400": ("montserrat/Montserrat-Regular.ttf", "dejavu/DejaVuSans.ttf"),
+    "500": ("montserrat/Montserrat-Medium.ttf", "dejavu/DejaVuSans.ttf"),
+    "600": ("montserrat/Montserrat-SemiBold.ttf", "dejavu/DejaVuSans-Bold.ttf"),
+    "700": ("montserrat/Montserrat-Bold.ttf", "dejavu/DejaVuSans-Bold.ttf"),
+}
+
+
+def _fuente_raster(weight: str, size: int):
+    from PIL import ImageFont
+
+    w = str(weight or "400")
+    if w in ("bold",):
+        w = "700"
+    if w not in _FUENTES_RASTER:
+        w = "700" if w in ("800", "900") else "400"
+    for rel in _FUENTES_RASTER[w]:
+        try:
+            return ImageFont.truetype(f"/usr/share/fonts/truetype/{rel}", max(4, size))
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _wrap_texto_raster(texto: str, fnt, medidor, ancho: float) -> list[str]:
+    """Word-wrap equivalente al DOM (rompe en espacios, respeta \\n)."""
+    lineas: list[str] = []
+    for parrafo in (texto or "").split("\n"):
+        actual = ""
+        for palabra in parrafo.split(" "):
+            cand = (actual + " " + palabra).strip()
+            if actual and medidor.textlength(cand, font=fnt) > ancho:
+                lineas.append(actual)
+                actual = palabra
+            else:
+                actual = cand
+        lineas.append(actual)
+    return lineas
+
+
 def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) -> bytes:
-    from PIL import Image, ImageDraw, ImageFont
+    """Render fiel al editor DOM: Montserrat con word-wrap y line-height 1.2,
+    alineación por línea e imágenes con objectFit contain (incluye SVG data-URI
+    vía cairosvg cuando está disponible). Se dibuja a 3× y se reescala."""
+    from PIL import Image, ImageDraw
 
     escala = max(0.25, min(8.0, float(escala or 1)))
+    ss = 3  # supersampling interno para nitidez de texto
     fmt = plantilla.get("formato") or {}
     w = int(fmt.get("ancho_px") or 800)
     h = int(fmt.get("alto_px") or 600)
     fondo = (plantilla.get("fondo") or "#ffffff").strip()
     if fondo.lower() in ("transparent", "none"):
-        img = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+        img = Image.new("RGBA", (w * ss, h * ss), (255, 255, 255, 0))
     else:
-        img = Image.new("RGB", (w, h), fondo)
+        img = Image.new("RGBA", (w * ss, h * ss), fondo)
     draw = ImageDraw.Draw(img)
-
-    try:
-        font_bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-        font_reg = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
-    except Exception:
-        font_bold = ImageFont.load_default()
-        font_reg = ImageFont.load_default()
+    medidor = ImageDraw.Draw(Image.new("RGB", (8, 8)))
 
     elementos = sorted(
         plantilla.get("elementos") or [],
@@ -506,77 +545,113 @@ def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) 
     )
 
     for el in elementos:
+        if el.get("visible") is False:
+            continue
         tipo = (el.get("type") or "").strip()
-        x = int(el.get("x") or 0)
-        y = int(el.get("y") or 0)
-        ew = int(el.get("width") or 0)
-        eh = int(el.get("height") or 0)
+        x = float(el.get("x") or 0)
+        y = float(el.get("y") or 0)
+        ew = float(el.get("width") or 0)
+        eh = float(el.get("height") or 0)
 
         if tipo == "rect":
             fill = el.get("fill") or None
             stroke = el.get("stroke") or None
             sw = int(el.get("strokeWidth") or 0)
+            caja = [x * ss, y * ss, (x + ew) * ss, (y + eh) * ss]
             if fill and str(fill).lower() not in ("transparent", "none"):
-                draw.rectangle([x, y, x + ew, y + eh], fill=fill, outline=stroke, width=sw)
+                draw.rectangle(caja, fill=fill, outline=stroke, width=sw * ss)
             elif stroke and sw > 0:
-                draw.rectangle([x, y, x + ew, y + eh], outline=stroke, width=sw)
+                draw.rectangle(caja, outline=stroke, width=sw * ss)
 
         elif tipo == "line":
-            x2 = int(el.get("x2") or x)
-            y2 = int(el.get("y2") or y)
-            draw.line([x, y, x2, y2], fill=el.get("stroke") or "#000000", width=int(el.get("strokeWidth") or 1))
+            x2 = float(el.get("x2") or x)
+            y2 = float(el.get("y2") or y)
+            draw.line(
+                [x * ss, y * ss, x2 * ss, y2 * ss],
+                fill=el.get("stroke") or "#000000",
+                width=max(1, int(float(el.get("strokeWidth") or 1) * ss)),
+            )
 
         elif tipo == "text":
-            size = int(el.get("fontSize") or 16)
-            try:
-                fnt = ImageFont.truetype(
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-                    if str(el.get("fontWeight") or "") in ("bold", "700")
-                    else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    size,
-                )
-            except Exception:
-                fnt = font_bold if str(el.get("fontWeight") or "") in ("bold", "700") else font_reg
-            draw.multiline_text((x, y), str(el.get("content") or ""), fill=el.get("color") or "#000000", font=fnt)
+            contenido = str(el.get("content") or "")
+            if not contenido:
+                continue
+            size = float(el.get("fontSize") or 16)
+            lh = float(el.get("lineHeight") or 1.2)
+            align = (el.get("align") or "left").lower()
+            fnt = _fuente_raster(str(el.get("fontWeight") or ""), int(round(size * ss)))
+            lineas = _wrap_texto_raster(contenido, fnt, medidor, ew * ss)
+            cy = y * ss
+            for linea in lineas:
+                ancho_ln = medidor.textlength(linea, font=fnt)
+                if align == "center":
+                    cx = x * ss + (ew * ss - ancho_ln) / 2
+                elif align == "right":
+                    cx = x * ss + ew * ss - ancho_ln
+                else:
+                    cx = x * ss
+                draw.text((cx, cy), linea, fill=el.get("color") or "#000000", font=fnt)
+                cy += size * lh * ss
 
         elif tipo == "image":
             src = (el.get("src") or "").strip()
             if not src:
                 continue
             try:
-                if src.startswith("data:"):
-                    raw = src.split(",", 1)[1]
-                    blob = base64.b64decode(raw)
-                    piece = Image.open(io.BytesIO(blob)).convert("RGBA")
+                bw, bh = max(1, int(ew * ss)), max(1, int(eh * ss))
+                if src.startswith("data:image/svg+xml"):
+                    import cairosvg
+
+                    svg = base64.b64decode(src.split(",", 1)[1])
+                    png = cairosvg.svg2png(bytestring=svg, output_width=bw, output_height=bh)
+                    piece = Image.open(io.BytesIO(png)).convert("RGBA")
+                elif src.startswith("data:"):
+                    piece = Image.open(io.BytesIO(base64.b64decode(src.split(",", 1)[1]))).convert("RGBA")
                 else:
                     path = None
-                    if src.startswith("/api/plantillas-visuales/assets/"):
+                    m = re.match(r"^/(?:app/)?api/etiquetas/recursos-png/archivo/(.+)$", src)
+                    if m:
+                        from urllib.parse import unquote
+
+                        from app.tools.etiquetas_studio import _carpeta_recursos_png
+
+                        nombre = unquote(m.group(1))
+                        base = _carpeta_recursos_png()
+                        for cand in [base / nombre, *base.rglob(nombre)]:
+                            if cand.is_file():
+                                path = cand
+                                break
+                    elif src.startswith("/api/plantillas-visuales/assets/") or src.startswith("/app/api/plantillas-visuales/assets/"):
                         path = ruta_asset(src.rsplit("/", 1)[-1])
                     elif Path(src).is_file():
                         path = Path(src)
                     if not path:
                         continue
                     piece = Image.open(path).convert("RGBA")
-                piece = piece.resize((max(1, ew), max(1, eh)))
-                if img.mode != "RGBA":
-                    img = img.convert("RGBA")
-                    draw = ImageDraw.Draw(img)
-                img.paste(piece, (x, y), piece)
+                # objectFit contain (comportamiento del editor): conserva proporción
+                if (el.get("objectFit") or "contain").lower() == "fill":
+                    piece = piece.resize((bw, bh))
+                    ox = oy = 0
+                else:
+                    ratio = min(bw / piece.width, bh / piece.height)
+                    nw, nh = max(1, int(piece.width * ratio)), max(1, int(piece.height * ratio))
+                    piece = piece.resize((nw, nh))
+                    ox, oy = (bw - nw) // 2, (bh - nh) // 2
+                img.paste(piece, (int(x * ss) + ox, int(y * ss) + oy), piece)
             except Exception:
                 continue
 
-    if escala != 1.0:
-        new_w = max(1, int(round(w * escala)))
-        new_h = max(1, int(round(h * escala)))
+    new_w = max(1, int(round(w * escala)))
+    new_h = max(1, int(round(h * escala)))
+    if (new_w, new_h) != img.size:
         img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
     out = io.BytesIO()
     formato = (formato or "png").lower()
     if formato in ("jpg", "jpeg"):
-        if img.mode == "RGBA":
-            bg = Image.new("RGB", img.size, (255, 255, 255))
-            bg.paste(img, mask=img.split()[3])
-            img = bg
+        bg = Image.new("RGB", img.size, (255, 255, 255))
+        bg.paste(img, mask=img.split()[3])
+        img = bg
         img.save(out, format="JPEG", quality=92)
     else:
         img.save(out, format="PNG")
