@@ -19,6 +19,7 @@ export type Panel =
   | "fichas"
   | "pedidos"
   | "publicaciones"
+  | "sitioweb"
   | "facturas"
   | "costos-productos"
   | "centros-costo"

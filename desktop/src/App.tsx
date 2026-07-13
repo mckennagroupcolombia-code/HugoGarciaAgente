@@ -32,6 +32,7 @@ const ConfigurarProductosPanel = lazy(() =>
 );
 const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
+const SitioWebPanel = lazy(() => import("./components/SitioWebPanel"));
 const LogisticaInternacionalPanel = lazy(
   () => import("./components/LogisticaInternacionalPanel"),
 );
@@ -113,6 +114,8 @@ function PanelRouterInner() {
       return <PlacasConcretoPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
+    case "sitioweb":
+      return <SitioWebPanel />;
     case "logistica-importaciones":
     case "logistica-embarques":
     case "logistica-aduanas":
@@ -237,6 +240,8 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   const p = user.permisos_secciones;
   if (!p) return panel === "settings";
   if (panel === "postventa" && p.preventa) return true;
+  // Sitio Web comparte permiso con Publicaciones (ambos editan contenido de la tienda)
+  if (panel === "sitioweb" && p.publicaciones) return true;
   return Boolean(p[panel]);
 }
 

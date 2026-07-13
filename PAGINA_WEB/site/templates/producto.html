@@ -19,6 +19,15 @@
   </div>
 </div>
 
+{% if TEMA_ACTIVO == 'pureza' %}
+<div class="pz-trust-strip">
+  {% for b in TW.badges_producto %}
+  <span class="pz-chip"><i class="ph ph-seal-check"></i> {{ b }}</span>
+  {% endfor %}
+  <span class="pz-chip"><i class="ph ph-scales"></i> Reenvasado Res. 2674/2013</span>
+</div>
+{% endif %}
+
 {% if p.get('is_combo') %}
 <!-- ═══ Página de producto COMBO (comprable directo) ═══ -->
 <div class="section">

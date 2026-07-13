@@ -40,6 +40,18 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260530">
+{% if TEMA_ACTIVO == 'pureza' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260713">
+<style>
+  body.tema-pureza {
+    --pz-acento:        {{ TW.colores.acento | default('#0c6069') }};
+    --pz-acento-oscuro: {{ TW.colores.acento_oscuro | default('#04353b') }};
+    --pz-fondo:         {{ TW.colores.fondo | default('#f8f6f1') }};
+    --pz-tinta:         {{ TW.colores.tinta | default('#1c2b2a') }};
+    --pz-destacado:     {{ TW.colores.destacado | default('#b9862f') }};
+  }
+</style>
+{% endif %}
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 {% block head %}{% endblock %}
 {% block jsonld %}
@@ -48,15 +60,26 @@ fbq('track','PageView');
 </script>
 {% endblock %}
 </head>
-<body>
+<body class="tema-{{ TEMA_ACTIVO | default('clasico') }}">
 {% set account_nav_href = url_for('cuenta_entrar') if (google_oauth_ready and not customer_logged_in) else url_for('mis_pedidos') %}
 {% set account_nav_label = 'Iniciar sesión' if (google_oauth_ready and not customer_logged_in) else 'Mis pedidos' %}
 {% set show_admin_pedidos_link = admin_panel_enabled and admin_orders_session_ok %}
 
+{% if TEMA_PREVIEW %}
+<div style="background:#1c2b2a;color:#f5e9d0;text-align:center;padding:6px 16px;font-size:0.72rem;letter-spacing:1px;">
+  👁 Vista previa del tema <strong style="text-transform:uppercase;">{{ TEMA_PREVIEW }}</strong> (solo tú la ves) ·
+  <a href="?vista_tema=auto" style="color:#fff;text-decoration:underline;">volver al tema publicado</a>
+</div>
+{% endif %}
+
 <!-- Barra anuncio -->
 <div class="announcement-bar">
+  {% if TEMA_ACTIVO == 'pureza' and TW.anuncio %}
+  🌿 {{ TW.anuncio }}
+  {% else %}
   🌿 Materias primas farmacéuticas y cosméticas certificadas &nbsp;|&nbsp;
   <strong>Bogotá, Colombia</strong> &nbsp;·&nbsp; Lun–Vie 8:00–17:30
+  {% endif %}
 </div>
 
 <!-- Header -->

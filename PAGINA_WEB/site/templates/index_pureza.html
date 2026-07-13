@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}McKenna Group — Materias Primas Puras y Trazables{% endblock %}
+{% block description %}Materias primas farmacéuticas y cosméticas con COA por lote, ficha técnica y trazabilidad completa. Importación legal VUCE/INVIMA. Despachos a todo Colombia.{% endblock %}
+
+{% block content %}
+
+<!-- ════════════════════════════════════════════════════════
+     HERO — tema Pureza & Trazabilidad
+════════════════════════════════════════════════════════ -->
+<section class="pz-hero">
+  <div class="pz-hero-inner">
+    <div class="pz-hero-copy">
+      <span class="pz-eyebrow">{{ TW.hero.eyebrow }}</span>
+      <h1 class="pz-hero-title">
+        {{ TW.hero.titulo }} <em>{{ TW.hero.titulo_em }}</em>
+      </h1>
+      <p class="pz-hero-sub">{{ TW.hero.subtitulo }}</p>
+
+      <div class="pz-hero-cta">
+        <a href="{{ url_for('catalogo') }}" class="btn pz-btn-solid btn-lg">
+          <i class="ph ph-storefront"></i> {{ TW.hero.cta_principal }}
+        </a>
+        <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20asesor%C3%ADa%20t%C3%A9cnica"
+           target="_blank" rel="noopener" class="btn pz-btn-outline btn-lg">
+          <i class="ph ph-whatsapp-logo"></i> {{ TW.hero.cta_secundario }}
+        </a>
+      </div>
+
+      <div class="pz-hero-chips">
+        {% for b in TW.badges_producto %}
+        <span class="pz-chip"><i class="ph ph-seal-check"></i> {{ b }}</span>
+        {% endfor %}
+        <span class="pz-chip"><i class="ph ph-scales"></i> Res. 2674/2013</span>
+      </div>
+    </div>
+
+    <div class="pz-hero-doc" aria-hidden="true">
+      <div class="pz-doc-card">
+        <div class="pz-doc-head">
+          <i class="ph ph-flask"></i>
+          <div>
+            <div class="pz-doc-title">Certificado de Análisis</div>
+            <div class="pz-doc-sub">COA · emitido por laboratorio</div>
+          </div>
+        </div>
+        <div class="pz-doc-row"><span>Pureza</span><strong>≥ 99%</strong></div>
+        <div class="pz-doc-row"><span>N° CAS</span><strong>declarado</strong></div>
+        <div class="pz-doc-row"><span>Lote</span><strong>trazable</strong></div>
+        <div class="pz-doc-row"><span>Importación</span><strong>VUCE / INVIMA</strong></div>
+        <div class="pz-doc-stamp"><i class="ph ph-seal-check"></i> Verificado por lote</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if TW.secciones.metricas %}
+<!-- MÉTRICAS DE CONFIANZA -->
+<div class="pz-metrics">
+  {% for m in TW.metricas %}
+  <div class="pz-metric reveal reveal-delay-{{ loop.index0 % 4 }}">
+    <div class="pz-metric-val">{{ m.valor }}</div>
+    <div class="pz-metric-label">{{ m.etiqueta }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if TW.secciones.trazabilidad %}
+<!-- ════════════════════════════════════════════════════════
+     RUTA DE TRAZABILIDAD
+════════════════════════════════════════════════════════ -->
+<section class="pz-section">
+  <div class="pz-section-head reveal">
+    <span class="pz-eyebrow">{{ TW.trazabilidad.eyebrow }}</span>
+    <h2 class="pz-title">{{ TW.trazabilidad.titulo }}</h2>
+    <p class="pz-lead">{{ TW.trazabilidad.texto }}</p>
+  </div>
+
+  <ol class="pz-route">
+    {% for paso in TW.trazabilidad.pasos %}
+    <li class="pz-route-step reveal reveal-delay-{{ loop.index0 % 5 }}">
+      <div class="pz-route-icon"><i class="ph ph-{{ paso.icono | default('circle') }}"></i></div>
+      <div class="pz-route-num">{{ '%02d' | format(loop.index) }}</div>
+      <h3>{{ paso.titulo }}</h3>
+      <p>{{ paso.texto }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{% if TW.secciones.pilares %}
+<!-- PILARES -->
+<section class="pz-section pz-section-alt">
+  <div class="pz-pillars">
+    {% for pilar in TW.pilares %}
+    <div class="pz-pillar reveal reveal-delay-{{ loop.index0 % 3 }}">
+      <div class="pz-pillar-icon"><i class="ph ph-{{ pilar.icono | default('star') }}"></i></div>
+      <h3>{{ pilar.titulo }}</h3>
+      <p>{{ pilar.texto }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if TW.secciones.categorias %}
+<!-- CATEGORÍAS -->
+<section class="pz-section">
+  <div class="pz-section-head reveal">
+    <span class="pz-eyebrow">Portafolio</span>
+    <h2 class="pz-title">Explora por categoría</h2>
+  </div>
+  <div class="pz-cats">
+    {% for section in catalog %}
+    <a href="{{ url_for('catalogo', cat=section.name) }}" class="pz-cat reveal reveal-delay-{{ loop.index0 % 4 }}">
+      <span class="pz-cat-name">{{ section.name }}</span>
+      <span class="pz-cat-count">{{ section.products|length }} producto{% if section.products|length != 1 %}s{% endif %}</span>
+      <i class="ph ph-arrow-right pz-cat-arrow"></i>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if TW.secciones.destacados %}
+<!-- DESTACADOS -->
+<section class="pz-section pz-section-alt">
+  <div class="pz-section-head reveal">
+    <span class="pz-eyebrow">Selección</span>
+    <h2 class="pz-title">Productos destacados</h2>
+    <p class="pz-lead">Todos con COA, ficha técnica y 10% de descuento frente al precio de catálogo.</p>
+  </div>
+
+  <div class="shop-grid shop-grid-4 reveal">
+    {% for p in featured %}
+    <div class="shop-card reveal reveal-delay-{{ loop.index0 % 4 }}">
+      <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-img-link">
+        <div class="shop-card-img">
+          {% if p.photo %}
+          <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
+          {% else %}
+          <div class="shop-card-img-ph"><i class="ph ph-flask"></i></div>
+          {% endif %}
+        </div>
+        <span class="shop-card-cat-label">{{ p.cat }}</span>
+      </a>
+      <div class="shop-card-body">
+        <div class="shop-card-name">{{ p.name }}</div>
+        <div class="pz-card-trust">
+          <span><i class="ph ph-seal-check"></i> COA</span>
+          <span><i class="ph ph-file-text"></i> Ficha técnica</span>
+        </div>
+        <div class="shop-card-price-row">
+          <span class="shop-card-price">{{ p.precio }}</span>
+          {% if not p.solo_vitrina %}
+          <span class="shop-card-price-old">{{ p.precio_meli }}</span>
+          <span class="shop-card-saving">{{ p.ahorro }}</span>
+          {% endif %}
+        </div>
+        <div class="shop-card-actions">
+          {% if p.solo_vitrina %}
+          <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
+             class="btn btn-primary btn-sm shop-card-btn-sole">
+            <i class="ph ph-list"></i> Ver referencias
+          </a>
+          {% else %}
+          <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:flex;">
+            <input type="hidden" name="slug" value="{{ p.slug }}">
+            <input type="hidden" name="qty" value="1">
+            <input type="hidden" name="next" value="{{ request.url }}">
+            <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
+              <i class="ph ph-shopping-cart"></i> Agregar
+            </button>
+          </form>
+          {% endif %}
+          <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-link" title="Ver detalle">
+            Ver <i class="ph ph-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="text-align:center;margin-top:48px;">
+    <a href="{{ url_for('catalogo') }}" class="btn pz-btn-solid btn-lg">
+      Ver catálogo completo <i class="ph ph-arrow-right"></i>
+    </a>
+  </div>
+</section>
+{% endif %}
+
+{% if TW.secciones.cta %}
+<!-- CTA FINAL -->
+<section class="pz-cta-band">
+  <div class="pz-cta-inner reveal">
+    <h2>{{ TW.cta.titulo }}</h2>
+    <p>{{ TW.cta.texto }}</p>
+    <div class="pz-hero-cta" style="justify-content:center;">
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
+         target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+        <i class="ph ph-whatsapp-logo"></i> {{ TW.cta.boton }}
+      </a>
+      <a href="{{ url_for('contacto') }}" class="btn pz-btn-outline btn-lg">Formulario de contacto</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
