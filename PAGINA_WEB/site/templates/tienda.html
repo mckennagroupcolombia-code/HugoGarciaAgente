@@ -108,6 +108,13 @@
       <div class="shop-card-body">
         <div class="shop-card-name">{{ p.name }}</div>
         <div class="shop-card-ref">Ref: {{ p.ref }}</div>
+        {% if TEMA_ACTIVO == 'pureza' %}
+        <div class="pz-card-trust">
+          {% for b in TW.badges_producto[:2] %}
+          <span><i class="ph ph-seal-check"></i> {{ b }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Precio -->
         <div class="shop-card-price-row">

@@ -22,6 +22,7 @@ load_dotenv(ROOT / '.env')
 import site_auth
 from app.api_auth import normalize_api_token
 from app.web_chat_activity import record_interaction
+from app.tools.tema_web import cargar_tema_web
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -2129,6 +2130,42 @@ def _inject_site_auth():
     }
 
 
+# ── Tema visual del sitio (clásico / pureza) ──────────────────────────
+# Editable desde el Panel de Operaciones (/app → Sitio Web); config compartida
+# en data/tema_web.json vía app/tools/tema_web.py.
+
+def tema_web_activo() -> str:
+    override = session.get("vista_tema")
+    if override in ("clasico", "pureza"):
+        return override
+    return cargar_tema_web().get("tema_activo", "clasico")
+
+
+@app.before_request
+def _tema_preview_override():
+    """?vista_tema=pureza|clasico permite previsualizar un tema solo en esta
+    sesión de navegador sin cambiar el tema activo para el público.
+    ?vista_tema=auto vuelve al tema configurado."""
+    v = request.args.get("vista_tema")
+    if v is None:
+        return
+    v = v.strip().lower()
+    if v in ("clasico", "pureza"):
+        session["vista_tema"] = v
+    elif v in ("", "auto", "off"):
+        session.pop("vista_tema", None)
+
+
+@app.context_processor
+def _inject_tema_web():
+    cfg = cargar_tema_web()
+    return {
+        "TEMA_ACTIVO": tema_web_activo(),
+        "TW": cfg.get("pureza", {}),
+        "TEMA_PREVIEW": session.get("vista_tema") or "",
+    }
+
+
 @app.route("/imagenes-productos-catalogo/<path:filename>")
 def imagen_producto_catalogo(filename: str):
     return send_from_directory(ROOT / "IMAGENES_PRODUCTOS_CATALOGO", filename)
@@ -2143,7 +2180,8 @@ def index():
         featured.extend(s["products"][:2])
         if len(featured) >= 8:
             break
-    return render_template("index.html",
+    plantilla = "index_pureza.html" if tema_web_activo() == "pureza" else "index.html"
+    return render_template(plantilla,
         catalog=catalog,
         cats=cats,
         featured=featured[:8])

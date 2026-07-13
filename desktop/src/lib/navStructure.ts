@@ -71,7 +71,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
   {
     id: "contenido",
     label: "Contenido",
-    items: [{ panel: "publicaciones", tier: "standard" }],
+    items: [
+      { panel: "publicaciones", tier: "standard" },
+      { panel: "sitioweb", tier: "standard" },
+    ],
   },
   {
     id: "produccion",

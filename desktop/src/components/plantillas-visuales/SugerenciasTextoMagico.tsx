@@ -22,12 +22,6 @@ function contarPalabras(texto: string): number {
   return texto.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function previewTexto(texto: string, expandido: boolean): string {
-  if (expandido) return texto;
-  if (texto.length <= 520) return texto;
-  return `${texto.slice(0, 520).trim()}…`;
-}
-
 export default function SugerenciasTextoMagico({
   fragmento,
   onElegir,
@@ -36,17 +30,14 @@ export default function SugerenciasTextoMagico({
 }: Props) {
   const [activo, setActivo] = useState(false);
   const [sugerencias, setSugerencias] = useState<SugerenciaTextoMagico[]>([]);
+  /** Copias editables de cada sugerencia (el usuario puede corregir a mano). */
+  const [borradores, setBorradores] = useState<string[]>([]);
   const [fichas, setFichas] = useState<{ titulo?: string; fuente?: string }[]>([]);
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const [expandida, setExpandida] = useState<number | null>(null);
   const reqIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Muchas materias primas son una sola palabra (Creatina, Inulina,
-  // Lanolina...): exigir 2 palabras bloqueaba el caso de uso principal
-  // (generar texto con la descripción todavía vacía, solo a partir del
-  // título del producto en `fragmento`).
   const puedeGenerar = contarPalabras(fragmento) >= 1;
 
   useEffect(() => {
@@ -54,9 +45,9 @@ export default function SugerenciasTextoMagico({
     setActivo(false);
     setCargando(false);
     setSugerencias([]);
+    setBorradores([]);
     setFichas([]);
     setMensaje(null);
-    setExpandida(null);
   }, [fragmento]);
 
   useEffect(() => {
@@ -69,7 +60,6 @@ export default function SugerenciasTextoMagico({
     if (!puedeGenerar || cargando) return;
 
     setActivo(true);
-    setExpandida(null);
     setMensaje(null);
 
     const reqId = ++reqIdRef.current;
@@ -90,7 +80,9 @@ export default function SugerenciasTextoMagico({
     )
       .then((res) => {
         if (reqId !== reqIdRef.current) return;
-        setSugerencias(res.sugerencias ?? []);
+        const lista = res.sugerencias ?? [];
+        setSugerencias(lista);
+        setBorradores(lista.map((s) => s.texto));
         setFichas(res.fichas ?? []);
         setMensaje(res.mensaje || res.error || null);
       })
@@ -98,6 +90,7 @@ export default function SugerenciasTextoMagico({
         if (reqId !== reqIdRef.current) return;
         if (err.name === "AbortError") return;
         setSugerencias([]);
+        setBorradores([]);
         setFichas([]);
         const msg = err.message || "No se pudieron obtener sugerencias";
         setMensaje(
@@ -155,10 +148,8 @@ export default function SugerenciasTextoMagico({
           </div>
 
           <p className="mb-1.5 text-[10px] leading-snug text-muted">
-            Formato etiqueta: un párrafo intro (origen, forma física, pH/% si
-            constan) + encabezado «Propiedades:» + 4–6 viñetas técnicas de la
-            ficha. Sin «descripción» ni «insumo»; tampoco repetir título/subtítulo
-            ni claims de suplemento/medicamento.
+            Puedes editar la sugerencia a mano antes de usarla. Formato: intro +
+            «Propiedades:» + viñetas.
           </p>
 
           {fichas.length > 0 && (
@@ -174,14 +165,11 @@ export default function SugerenciasTextoMagico({
           {sugerencias.length > 0 && (
             <ul className="space-y-2">
               {sugerencias.map((s, i) => {
-                const abierta = expandida === i;
-                const largo = s.texto.length > 520;
-                const palabras = contarPalabras(s.texto);
-                const parrafos = s.texto.split(/\n\s*\n/).filter(Boolean);
-                const palabrasPorParrafo = parrafos.map((p) => contarPalabras(p));
+                const texto = borradores[i] ?? s.texto;
+                const palabras = contarPalabras(texto);
                 return (
                   <li
-                    key={`${i}-${s.texto.slice(0, 24)}`}
+                    key={`sug-${i}`}
                     className="rounded-md border border-border bg-surface p-2"
                   >
                     {s.titulo && (
@@ -189,29 +177,41 @@ export default function SugerenciasTextoMagico({
                         {s.titulo}
                         {sugerencias.length > 1 ? ` · variante ${i + 1}` : ""}
                         <span className="ml-1 font-normal text-muted">
-                          · {palabras} palabras
-                          {palabrasPorParrafo.length > 1
-                            ? ` (${palabrasPorParrafo.join(" + ")}/párr.)`
-                            : ""}
+                          · {palabras} palabras · editable
                         </span>
                       </p>
                     )}
-                    <pre className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-ink">
-                      {previewTexto(s.texto, abierta)}
-                    </pre>
+                    <textarea
+                      value={texto}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setBorradores((prev) => {
+                          const next = [...prev];
+                          next[i] = v;
+                          return next;
+                        });
+                      }}
+                      className="min-h-[160px] w-full resize-y rounded border border-border bg-white px-2.5 py-2 text-sm leading-relaxed text-ink"
+                      spellCheck
+                    />
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {largo && (
-                        <button
-                          type="button"
-                          onClick={() => setExpandida(abierta ? null : i)}
-                          className="rounded border border-border px-2 py-0.5 text-[10px] text-muted hover:bg-surface-hover"
-                        >
-                          {abierta ? "Ver menos" : "Ver completo"}
-                        </button>
-                      )}
                       <button
                         type="button"
-                        onClick={() => onElegir(s.texto)}
+                        onClick={() =>
+                          setBorradores((prev) => {
+                            const next = [...prev];
+                            next[i] = s.texto;
+                            return next;
+                          })
+                        }
+                        disabled={texto === s.texto}
+                        className="rounded border border-border px-2 py-0.5 text-[10px] text-muted hover:bg-surface-hover disabled:opacity-40"
+                      >
+                        Restaurar original
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onElegir(texto)}
                         className="rounded border border-accent bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/20"
                       >
                         Usar en capa

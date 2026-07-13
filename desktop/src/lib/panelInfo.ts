@@ -152,6 +152,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "contenido",
   },
 
+  sitioweb: {
+    emoji: "🌐",
+    label: "Sitio Web",
+    description: "Controla la apariencia de la tienda mckennagroup.co: elige entre el tema Clásico y el tema Pureza & Trazabilidad, y edita los textos del home (hero, ruta de trazabilidad, métricas y llamados a la acción).",
+    tips: [
+      "Usa 'Vista previa' para ver el tema en tu navegador sin cambiarlo para los clientes.",
+      "Los cambios guardados se publican de inmediato — no hace falta reiniciar el sitio.",
+      "'Restaurar textos' vuelve al contenido recomendado del tema Pureza.",
+    ],
+    tier: "standard",
+    category: "contenido",
+  },
+
   // ── Finanzas ─────────────────────────────────────────────────────────────────
   sync: {
     emoji: "🔄",

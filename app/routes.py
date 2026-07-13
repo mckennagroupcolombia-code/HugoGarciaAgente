@@ -3277,6 +3277,41 @@ def register_routes(app):
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
 
+    # ── Tema visual del sitio web público (mckennagroup.co) ──────────────────
+    # Config compartida en PAGINA_WEB/site/data/tema_web.json; website.py (8083)
+    # la relee por mtime, así que los cambios aplican sin reiniciar el sitio.
+
+    @app.route("/app/api/web/tema", methods=["GET", "PUT", "POST"])
+    @app.route("/api/web/tema", methods=["GET", "PUT", "POST"])
+    def api_web_tema():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.tema_web import (
+            TEMAS_VALIDOS,
+            cargar_tema_web,
+            guardar_tema_web,
+            restaurar_tema_pureza,
+        )
+
+        if request.method == "GET":
+            return jsonify({
+                "config": cargar_tema_web(),
+                "temas": list(TEMAS_VALIDOS),
+                "site_url": "https://mckennagroup.co",
+            })
+
+        body = request.get_json(silent=True) or {}
+        if body.get("accion") == "restaurar":
+            return jsonify({
+                "config": restaurar_tema_pureza(),
+                "mensaje": "Contenido del tema Pureza restaurado a los valores por defecto",
+            })
+        try:
+            nuevo = guardar_tema_web(body.get("config") or {})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"config": nuevo, "mensaje": "Tema del sitio guardado"})
+
     def _titulo_documento_datos(datos: dict | None) -> str:
         if not isinstance(datos, dict):
             return ""

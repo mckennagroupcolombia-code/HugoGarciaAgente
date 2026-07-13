@@ -61,8 +61,9 @@ import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
-import EditorDescripcionMp from "./EditorDescripcionMp";
+import EditorDescripcionMp, { ContenidoTextoSimple } from "./EditorDescripcionMp";
 import TextosRapidos from "./TextosRapidos";
+import TextoCapaLienzo from "./TextoCapaLienzo";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
 import { esTextoDescripcionMpEstructurado } from "../../lib/descripcionMpTexto";
@@ -172,24 +173,23 @@ export function estiloElementoEnStage(
   };
 }
 
-/** Área mínima clicable de un texto (el glifo a menudo desborda width/height guardados). */
+/** Área clicable de un texto: cubre el glifo completo (sin tope artificial de 8 líneas). */
 function tamanoHitTexto(el: ElementoTexto): { w: number; h: number } {
   const lh = el.lineHeight ?? 1.2;
   const raw = el.content ?? "";
   const lineasExplicitas = Math.max(1, raw.split("\n").length);
   const chars = Math.max(1, raw.replace(/\n/g, "").length);
-  const anchoChar = Math.max(4, el.fontSize * 0.5);
+  const anchoChar = Math.max(4.5, el.fontSize * 0.52);
   const anchoUtil = Math.max(el.width, 8);
-  const lineasWrap = Math.ceil((chars * anchoChar) / anchoUtil);
-  // Ampliar por wrap estimado, pero sin crear un hit enorme que tape otras capas.
-  const lineas = Math.max(lineasExplicitas, Math.min(lineasWrap, Math.max(lineasExplicitas, 8)));
+  const lineasWrap = Math.max(1, Math.ceil((chars * anchoChar) / anchoUtil));
+  const lineas = Math.max(lineasExplicitas, lineasWrap);
   const h = Math.max(
     el.height,
-    Math.ceil(el.fontSize * lh * lineas),
-    Math.ceil(el.fontSize * lh),
-    12,
+    Math.ceil(el.fontSize * lh * lineas) + 6,
+    Math.ceil(el.fontSize * lh) + 4,
+    16,
   );
-  const w = Math.max(el.width, Math.ceil(el.fontSize * 0.5), 12);
+  const w = Math.max(el.width, 16);
   return { w, h };
 }
 
@@ -450,19 +450,35 @@ export default function VisualCanvasEditor({
   const [editandoInlineId, setEditandoInlineId] = useState<string | null>(null);
   const [editandoInlineTexto, setEditandoInlineTexto] = useState("");
   const editandoInlineRef = useRef<HTMLTextAreaElement | null>(null);
+  const editandoInlineBlurTimerRef = useRef<number | null>(null);
+  const editandoInlineTextoRef = useRef("");
+  const editandoInlineIdRef = useRef<string | null>(null);
+  editandoInlineTextoRef.current = editandoInlineTexto;
+  editandoInlineIdRef.current = editandoInlineId;
 
   function commitEditInline() {
-    if (editandoInlineId) {
-      patchElemento(editandoInlineId, {
-        content: autoCorregirTextoContenido(editandoInlineTexto),
+    if (editandoInlineBlurTimerRef.current != null) {
+      window.clearTimeout(editandoInlineBlurTimerRef.current);
+      editandoInlineBlurTimerRef.current = null;
+    }
+    const id = editandoInlineIdRef.current;
+    if (id) {
+      patchElemento(id, {
+        content: autoCorregirTextoContenido(editandoInlineTextoRef.current),
       });
     }
     setEditandoInlineId(null);
     setEditandoInlineTexto("");
+    editandoInlineIdRef.current = null;
   }
   function cancelEditInline() {
+    if (editandoInlineBlurTimerRef.current != null) {
+      window.clearTimeout(editandoInlineBlurTimerRef.current);
+      editandoInlineBlurTimerRef.current = null;
+    }
     setEditandoInlineId(null);
     setEditandoInlineTexto("");
+    editandoInlineIdRef.current = null;
   }
 
   const seleccionado = useMemo(() => {
@@ -616,9 +632,14 @@ export default function VisualCanvasEditor({
   );
 
   const actualizarContenidoTexto = useCallback(
-    (id: string, valor: string, selStart?: number, selEnd?: number) => {
-      const start = selStart ?? valor.length;
-      const end = selEnd ?? start;
+    (id: string, valor: string, opts?: { autocorregir?: boolean; selStart?: number; selEnd?: number }) => {
+      const autocorregir = opts?.autocorregir ?? false;
+      if (!autocorregir) {
+        patchElemento(id, { content: valor });
+        return;
+      }
+      const start = opts?.selStart ?? valor.length;
+      const end = opts?.selEnd ?? start;
       const { texto, selStart: ns, selEnd: ne } = autoCorregirConSeleccion(
         valor,
         start,
@@ -808,31 +829,46 @@ export default function VisualCanvasEditor({
 
   const iniciarEdicionInline = useCallback((el: ElementoTexto) => {
     if (el.locked) return;
+    pendingTextEditRef.current = null;
+    dragRef.current = null;
+    setDrag(null);
+    editandoInlineIdRef.current = el.id;
+    editandoInlineTextoRef.current = el.content ?? "";
     setEditandoInlineId(el.id);
-    setEditandoInlineTexto(el.content);
+    setEditandoInlineTexto(el.content ?? "");
     setSeleccionIds([el.id]);
-    setTimeout(() => {
-      const ta = editandoInlineRef.current;
-      if (ta) {
-        ta.focus();
-        // No select() todo el bloque largo: cursor al final es más usable.
-        const len = ta.value.length;
-        ta.setSelectionRange(len, len);
-      }
-    }, 0);
   }, []);
+
+  // Asegurar foco del textarea del lienzo al entrar en edición.
+  useEffect(() => {
+    if (!editandoInlineId) return;
+    const t = window.setTimeout(() => {
+      const ta = editandoInlineRef.current;
+      if (!ta) return;
+      ta.focus({ preventScroll: true });
+      const len = ta.value.length;
+      try {
+        ta.setSelectionRange(len, len);
+      } catch {
+        /* ignore */
+      }
+    }, 20);
+    return () => window.clearTimeout(t);
+  }, [editandoInlineId]);
 
   const onPointerDownEl = (e: ReactPointerEvent, el: ElementoVisual, mode: DragMode) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const yaSolo =
+    // Texto ya seleccionado: posible edición al soltar si no hubo arrastre.
+    const textoYaSeleccionado =
       mode === "move" &&
       el.type === "text" &&
+      !el.locked &&
       !e.shiftKey &&
-      seleccionIds.length === 1 &&
-      seleccionIds[0] === el.id;
-    pendingTextEditRef.current = yaSolo ? el.id : null;
+      e.button === 0 &&
+      seleccionIds.includes(el.id);
+    pendingTextEditRef.current = textoYaSeleccionado ? el.id : null;
 
     const nextIds = resolverSeleccionAlClic(el, doc.elementos, seleccionIds, e.shiftKey);
     setSeleccionIds(nextIds);
@@ -856,7 +892,6 @@ export default function VisualCanvasEditor({
       if (found) origs.set(id, structuredClone(found));
     }
 
-    // Capturar en el lienzo (estable), no en el asa: al re-render se desmontaba el botón y se perdía el gesto.
     try {
       canvasRef.current?.setPointerCapture(e.pointerId);
     } catch {
@@ -1049,14 +1084,8 @@ export default function VisualCanvasEditor({
       const d = dragRef.current;
       const pendingId = pendingTextEditRef.current;
       pendingTextEditRef.current = null;
-      if (
-        pendingId &&
-        d &&
-        d.mode === "move" &&
-        !d.moved &&
-        d.ids.length === 1 &&
-        d.ids[0] === pendingId
-      ) {
+      // Clic (sin arrastre) sobre texto ya seleccionado → editar en lienzo.
+      if (pendingId && d && d.mode === "move" && !d.moved) {
         const el = elementosRef.current.find((x) => x.id === pendingId);
         if (el && el.type === "text" && !el.locked) {
           suppressDeselectRef.current = true;
@@ -1639,134 +1668,47 @@ export default function VisualCanvasEditor({
                       !el.locked &&
                       !editandoEste &&
                       (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
-                    const hit = tamanoHitTexto(el);
-                    const estiloTexto: React.CSSProperties = {
-                      ...estiloElementoEnStage(el, pasteboard),
-                      color: el.color,
-                      fontSize: `${el.fontSize}px`,
-                      fontFamily: el.fontFamily,
-                      fontWeight: pesoFontWeightCss(el.fontWeight),
-                      textAlign: el.align,
-                      lineHeight: el.lineHeight ?? 1.2,
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflow: "visible",
-                    };
+                    const hitH = Math.max(el.height, tamanoHitTexto(el).h);
                     return (
-                      <div
+                      <TextoCapaLienzo
                         key={el.id}
-                        className="group/elem"
-                        style={estiloTexto}
-                        onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
-                        onPointerLeave={() => setHoveredId(null)}
-                      >
-                        {/* Hit area ≥ glifo visible: si height/width guardados son chicos, el texto
-                            se ve (overflow) pero no se podía agarrar al hacer clic en las letras. */}
-                        <div
-                          aria-hidden
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            width: hit.w,
-                            height: hit.h,
-                            cursor: el.locked
-                              ? "default"
-                              : sel && !editandoEste
-                                ? "text"
-                                : "move",
-                            touchAction: "none",
-                            zIndex: 1,
-                          }}
-                          onPointerDown={(e) => {
-                            if (editandoEste) { e.stopPropagation(); return; }
-                            onPointerDownEl(e, el, "move");
-                          }}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            if (el.locked) return;
-                            pendingTextEditRef.current = null;
-                            iniciarEdicionInline(el);
-                          }}
-                        />
-                        {esHover && (
-                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
-                            T · {labelCapa(el)}
-                          </div>
-                        )}
-                        {sel && !editandoEste && !esHover && (
-                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
-                            Clic para editar · Enter
-                          </div>
-                        )}
-                        {editandoEste ? (
-                          <textarea
-                            ref={editandoInlineRef}
-                            value={editandoInlineTexto}
-                            onChange={(e) => setEditandoInlineTexto(e.target.value)}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onBlur={commitEditInline}
-                            onKeyDown={(e) => {
-                              e.stopPropagation();
-                              if (e.key === "Escape") { e.preventDefault(); cancelEditInline(); }
-                              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                                e.preventDefault();
-                                commitEditInline();
-                              }
-                            }}
-                            style={{
-                              position: "absolute",
-                              left: 0,
-                              top: 0,
-                              width: Math.max(hit.w, el.width, 120),
-                              height: Math.max(hit.h, el.height, el.fontSize * 3),
-                              minWidth: el.width,
-                              minHeight: Math.max(el.height, el.fontSize * 2),
-                              color: el.color,
-                              fontSize: `${el.fontSize}px`,
-                              fontFamily: el.fontFamily,
-                              fontWeight: pesoFontWeightCss(el.fontWeight),
-                              textAlign: el.align,
-                              whiteSpace: "pre-wrap",
-                              lineHeight: el.lineHeight ?? 1.2,
-                              wordBreak: "break-word",
-                              resize: "both",
-                              background: "rgba(255,255,255,0.96)",
-                              border: "1.5px solid rgba(1, 109, 130, 0.9)",
-                              borderRadius: "2px",
-                              outline: "none",
-                              padding: "2px 3px",
-                              margin: 0,
-                              overflow: "auto",
-                              zIndex: 9999,
-                              boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
-                            }}
+                        el={el}
+                        left={el.x + pasteboard}
+                        top={el.y + pasteboard}
+                        seleccionado={sel}
+                        esPrincipal={esPrincipal}
+                        mostrandoCaja={mostrandoCaja || esHover}
+                        locked={!!el.locked}
+                        editando={editandoEste}
+                        textoEdicion={editandoInlineTexto}
+                        onHover={setHoveredId}
+                        onPointerDownMove={(e) => onPointerDownEl(e, el, "move")}
+                        onIniciarEdicion={() => {
+                          pendingTextEditRef.current = null;
+                          dragRef.current = null;
+                          setDrag(null);
+                          iniciarEdicionInline(el);
+                        }}
+                        onTextoEdicionChange={(v) => {
+                          editandoInlineTextoRef.current = v;
+                          setEditandoInlineTexto(v);
+                        }}
+                        onCommitEdicion={commitEditInline}
+                        onCancelEdicion={cancelEditInline}
+                        chrome={
+                          <SeleccionChrome
+                            width={el.width}
+                            height={hitH}
+                            showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                            showHandles={mostrarManijas}
+                            hover={esHover}
+                            onRotate={(e) => onPointerDownEl(e, el, "rotate")}
+                            onResize={(e, corner) =>
+                              onPointerDownEl(e, el, `resize-${corner}`)
+                            }
                           />
-                        ) : (
-                          <>
-                            <div
-                              style={{
-                                position: "relative",
-                                zIndex: 2,
-                                pointerEvents: "none",
-                              }}
-                            >
-                              {el.content}
-                            </div>
-                            <SeleccionChrome
-                              width={el.width}
-                              height={el.height}
-                              showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
-                              showHandles={mostrarManijas}
-                              hover={esHover}
-                              onRotate={(e) => onPointerDownEl(e, el, "rotate")}
-                              onResize={(e, corner) => onPointerDownEl(e, el, `resize-${corner}`)}
-                            />
-                          </>
-                        )}
-                      </div>
+                        }
+                      />
                     );
                   }
                   if (el.type === "rect") {
@@ -2311,47 +2253,36 @@ export default function VisualCanvasEditor({
                             })
                           }
                           textareaRef={contenidoTextareaRef}
-                          onPlainChange={(valor, selStart, selEnd) =>
-                            actualizarContenidoTexto(
-                              seleccionado.id,
-                              valor,
-                              selStart,
-                              selEnd,
-                            )
+                          onPlainChange={(valor) =>
+                            actualizarContenidoTexto(seleccionado.id, valor, {
+                              autocorregir: false,
+                            })
+                          }
+                          onPlainBlur={(valor) =>
+                            actualizarContenidoTexto(seleccionado.id, valor, {
+                              autocorregir: true,
+                            })
                           }
                         />
                       );
                     }
 
                     return (
-                      <label>
-                        <span className="text-xs text-muted">Contenido</span>
-                        <textarea
-                          ref={contenidoTextareaRef}
-                          rows={Math.min(
-                            10,
-                            Math.max(3, (seleccionado.content || "").split("\n").length),
-                          )}
-                          value={seleccionado.content}
-                          onChange={(e) =>
-                            actualizarContenidoTexto(
-                              seleccionado.id,
-                              e.target.value,
-                              e.target.selectionStart,
-                              e.target.selectionEnd,
-                            )
-                          }
-                          onBlur={(e) =>
-                            actualizarContenidoTexto(
-                              seleccionado.id,
-                              e.target.value,
-                              e.target.selectionStart,
-                              e.target.selectionEnd,
-                            )
-                          }
-                          className="min-h-[64px] w-full resize-y rounded border border-border bg-surface px-2 py-1 text-xs leading-relaxed"
-                        />
-                      </label>
+                      <ContenidoTextoSimple
+                        key={seleccionado.id}
+                        value={seleccionado.content || ""}
+                        textareaRef={contenidoTextareaRef}
+                        onLiveChange={(valor) =>
+                          actualizarContenidoTexto(seleccionado.id, valor, {
+                            autocorregir: false,
+                          })
+                        }
+                        onCommit={(valor) =>
+                          actualizarContenidoTexto(seleccionado.id, valor, {
+                            autocorregir: true,
+                          })
+                        }
+                      />
                     );
                   })()}
                   {(() => {

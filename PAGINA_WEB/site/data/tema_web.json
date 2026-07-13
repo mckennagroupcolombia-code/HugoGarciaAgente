@@ -1,0 +1,107 @@
+{
+  "tema_activo": "clasico",
+  "actualizado": "2026-07-13T01:20:38",
+  "pureza": {
+    "colores": {
+      "acento": "#0c6069",
+      "acento_oscuro": "#04353b",
+      "fondo": "#f8f6f1",
+      "tinta": "#1c2b2a",
+      "destacado": "#b9862f"
+    },
+    "anuncio": "Pureza verificada por lote · COA + ficha técnica en cada despacho · Bogotá, Colombia",
+    "hero": {
+      "eyebrow": "Materias primas farmacéuticas y cosméticas",
+      "titulo": "Pureza que puedes",
+      "titulo_em": "verificar",
+      "subtitulo": "Cada lote llega con Certificado de Análisis (COA), ficha técnica y trazabilidad completa desde el fabricante hasta tu puerta. Importación 100% legal con visto bueno INVIMA.",
+      "cta_principal": "Explorar catálogo",
+      "cta_secundario": "Hablar con un asesor"
+    },
+    "metricas": [
+      {
+        "valor": "+200",
+        "etiqueta": "referencias en stock"
+      },
+      {
+        "valor": "100%",
+        "etiqueta": "lotes con COA"
+      },
+      {
+        "valor": "15",
+        "etiqueta": "años en la industria"
+      },
+      {
+        "valor": "48 h",
+        "etiqueta": "despacho nacional"
+      }
+    ],
+    "trazabilidad": {
+      "eyebrow": "Nuestro valor agregado",
+      "titulo": "La ruta de tu materia prima",
+      "texto": "No vendemos ingredientes anónimos: cada producto conserva su identidad de origen a destino. Esta es la ruta que garantiza pureza y legalidad en cada envase.",
+      "pasos": [
+        {
+          "titulo": "Origen certificado",
+          "texto": "Fabricantes auditados con estándares farmacéuticos y cosméticos internacionales.",
+          "icono": "globe-hemisphere-west"
+        },
+        {
+          "titulo": "Importación legal",
+          "texto": "Ingreso al país con Visto Bueno de Importación (VUCE) e INVIMA. Sin atajos.",
+          "icono": "shield-check"
+        },
+        {
+          "titulo": "Control de calidad",
+          "texto": "Certificado de Análisis (COA) de laboratorio por cada lote que entra a bodega.",
+          "icono": "flask"
+        },
+        {
+          "titulo": "Reenvase trazable",
+          "texto": "Reenvasado bajo Res. 2674/2013 con etiqueta que conserva lote, CAS y concentración.",
+          "icono": "package"
+        },
+        {
+          "titulo": "Entrega documentada",
+          "texto": "Tu pedido viaja con ficha técnica descargable y soporte técnico de formulación.",
+          "icono": "truck"
+        }
+      ]
+    },
+    "pilares": [
+      {
+        "titulo": "Pureza verificada",
+        "texto": "Concentración y número CAS declarados en cada etiqueta, respaldados por el COA del lote.",
+        "icono": "seal-check"
+      },
+      {
+        "titulo": "Trazabilidad total",
+        "texto": "Del fabricante a tu formulación: lote, origen y documentos disponibles en todo momento.",
+        "icono": "path"
+      },
+      {
+        "titulo": "Acompañamiento técnico",
+        "texto": "Asesoría real de formulación por WhatsApp, sin costo, antes y después de tu compra.",
+        "icono": "chats-circle"
+      }
+    ],
+    "badges_producto": [
+      "COA por lote",
+      "Ficha técnica",
+      "Trazable VUCE"
+    ],
+    "cta": {
+      "titulo": "¿Formulando algo nuevo?",
+      "texto": "Nuestro equipo técnico te ayuda a elegir la materia prima correcta, con documentación completa.",
+      "boton": "Cotizar por WhatsApp"
+    },
+    "secciones": {
+      "metricas": true,
+      "trazabilidad": true,
+      "pilares": true,
+      "categorias": true,
+      "destacados": true,
+      "cta": true
+    }
+  }
+}
