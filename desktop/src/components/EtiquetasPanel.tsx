@@ -42,6 +42,7 @@ import { SelectorFormatoEtiqueta, type FormatoEtiquetaValor } from "./etiquetas/
 import {
   EtiquetasStudioCatalogo,
   type CatalogoStudioFila,
+  type RecursoPngCatalogo,
 } from "./etiquetas/EtiquetasStudioCatalogo";
 import { EtiquetaMckennaPreview } from "./etiquetas/EtiquetaMckennaPreview";
 import { CodigosEanPanel } from "./etiquetas/CodigosEanPanel";
@@ -59,6 +60,10 @@ import { useGuardarPublicacion } from "../hooks/usePublicaciones";
 import PlantillasVisualesPanel from "./plantillas-visuales/PlantillasVisualesPanel";
 import { EtiquetasTabNav } from "./etiquetas/EtiquetasTabNav";
 import { ImpresionEtiquetasHeader } from "./etiquetas/ImpresionEtiquetasHeader";
+import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
+import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
+import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
+import { puedeVerTabEtiquetas, esCynthiaEtiquetas, esTabEtiquetasSoloCynthia, tabsEtiquetasVisibles } from "../lib/studioVisualAccess";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -358,6 +363,9 @@ interface RecursoPng {
   subido_at?: string;
   bytes?: number;
   thumb_b64?: string | null;
+  tipo_etiqueta?: string;
+  ancho_mm?: number;
+  alto_mm?: number;
 }
 
 interface ImagenPlantilla {
@@ -1896,6 +1904,11 @@ const PREVIEW_IMG_LARGE =
   "block max-h-[min(58vh,640px)] max-w-full w-auto h-auto rounded-lg shadow-md transition-opacity duration-200";
 const PREVIEW_CONTAINER_LARGE =
   "flex items-center justify-center w-full h-full min-h-[min(52vh,460px)] p-3 sm:p-5";
+/** PNG de Studio (600 DPI): mostrar más grande con scroll, no comprimir a miniatura. */
+const PREVIEW_IMG_ETIQUETA_PNG =
+  "block h-auto max-w-none rounded-lg shadow-md transition-opacity duration-200";
+const PREVIEW_CONTAINER_ETIQUETA_PNG =
+  "flex items-start justify-center w-full h-full min-h-[min(52vh,460px)] overflow-auto p-3 sm:p-5";
 /** Misma resolución que `_pdf_a_imagen` en Flask (180 DPI). */
 const PREVIEW_DPI = 180;
 
@@ -2044,6 +2057,7 @@ function pctDesdePuntero(rect: DOMRect, clientX: number, clientY: number): { x: 
 
 function VistaPreviaConLote({
   imagen,
+  srcUrl,
   mime = "image/png",
   loading,
   emptyText = "Selecciona un PDF para ver la vista previa",
@@ -2057,6 +2071,7 @@ function VistaPreviaConLote({
   containerClassName = "flex items-center justify-center w-full h-full min-h-[8rem]",
 }: {
   imagen?: string;
+  srcUrl?: string;
   mime?: string;
   loading?: boolean;
   emptyText?: string;
@@ -2071,28 +2086,54 @@ function VistaPreviaConLote({
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const [imgMetrics, setImgMetrics] = useState({ displayH: 0, naturalH: 0 });
+  const [imgMetrics, setImgMetrics] = useState({ displayH: 0, naturalH: 0, displayW: 0, naturalW: 0 });
   const [dragging, setDragging] = useState(false);
+  const esPngAltaRes = Boolean(srcUrl);
 
   const syncImgMetrics = useCallback(() => {
     const img = imgRef.current;
+    const stage = stageRef.current;
     if (!img || !img.naturalHeight) return;
-    setImgMetrics({ displayH: img.offsetHeight, naturalH: img.naturalHeight });
-  }, []);
+    let displayW = img.offsetWidth;
+    if (esPngAltaRes && img.naturalWidth > 500) {
+      const contW = stage?.parentElement?.clientWidth ?? 720;
+      const ratioExport = img.naturalWidth >= 900 ? img.naturalWidth / Math.max(1, Math.round(img.naturalWidth / 6.25)) : 1;
+      const lienzoEst = ratioExport >= 4 ? img.naturalWidth / ratioExport : img.naturalWidth;
+      displayW = Math.min(
+        img.naturalWidth,
+        Math.max(Math.round(lienzoEst * 3), Math.round(contW * 0.9), 520),
+      );
+    }
+    const displayH =
+      displayW > 0 && img.naturalWidth > 0
+        ? Math.round((displayW * img.naturalHeight) / img.naturalWidth)
+        : img.offsetHeight;
+    setImgMetrics({
+      displayH,
+      naturalH: img.naturalHeight,
+      displayW,
+      naturalW: img.naturalWidth,
+    });
+  }, [esPngAltaRes]);
 
   useEffect(() => {
     syncImgMetrics();
     const ro = new ResizeObserver(syncImgMetrics);
     if (stageRef.current) ro.observe(stageRef.current);
     return () => ro.disconnect();
-  }, [syncImgMetrics, imagen]);
+  }, [syncImgMetrics, imagen, srcUrl]);
 
+  const imgSrc = srcUrl ?? (imagen ? `data:${mime};base64,${imagen}` : undefined);
   const lineas = [loteText, vencText].filter(Boolean);
-  const puedeArrastrar = Boolean(onPositionChange && lineas.length > 0 && imagen);
+  const puedeArrastrar = Boolean(onPositionChange && lineas.length > 0 && imgSrc);
   const fontPx =
     imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
       ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
       : Math.max(TAMANO_TEXTO_PT_MIN, loteFont);
+  const anchoImg =
+    esPngAltaRes && imgMetrics.displayW > 0 && imgMetrics.naturalW > 500
+      ? imgMetrics.displayW
+      : undefined;
 
   const moverDesdeEvento = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2131,13 +2172,21 @@ function VistaPreviaConLote({
 
   return (
     <div className={containerClassName}>
-      {imagen ? (
-        <div ref={stageRef} className="relative inline-block max-w-full max-h-[min(58vh,640px)] leading-none">
+      {imgSrc ? (
+        <div
+          ref={stageRef}
+          className={
+            anchoImg
+              ? "relative inline-block leading-none"
+              : "relative inline-block max-w-full max-h-[min(58vh,640px)] leading-none"
+          }
+        >
           <img
             ref={imgRef}
-            src={`data:${mime};base64,${imagen}`}
+            src={imgSrc}
             alt="Vista previa"
             className={`${imgClassName} ${loading ? "opacity-50" : "opacity-100"}`}
+            style={anchoImg ? { width: anchoImg, height: "auto", maxWidth: "none" } : undefined}
             onLoad={syncImgMetrics}
             draggable={false}
           />
@@ -2186,6 +2235,67 @@ function VistaPreviaConLote({
         <p className="text-xs text-muted text-center px-8">{emptyText}</p>
       )}
     </div>
+  );
+}
+
+function VistaPreviaPngConLote({
+  nombre,
+  loteText,
+  vencText,
+  loteFont,
+  xPct,
+  yPct,
+  onPositionChange,
+  imgClassName = PREVIEW_IMG_ETIQUETA_PNG,
+  containerClassName = PREVIEW_CONTAINER_ETIQUETA_PNG,
+}: {
+  nombre: string;
+  loteText?: string;
+  vencText?: string;
+  loteFont: number;
+  xPct: number;
+  yPct: number;
+  onPositionChange?: (x: number, y: number) => void;
+  imgClassName?: string;
+  containerClassName?: string;
+}) {
+  const [srcUrl, setSrcUrl] = useState<string | null>(null);
+  const [fallo, setFallo] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    setSrcUrl(null);
+    setFallo(false);
+    resolverUrlImagenCanvas(`/api/etiquetas/recursos-png/archivo/${codificarRutaRecursoPng(nombre)}`)
+      .then((url) => {
+        if (!cancelado) setSrcUrl(url);
+      })
+      .catch(() => {
+        if (!cancelado) setFallo(true);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [nombre]);
+
+  if (fallo) {
+    return <p className="px-6 text-center text-xs text-danger">No se pudo cargar la imagen.</p>;
+  }
+
+  return (
+    <VistaPreviaConLote
+      srcUrl={srcUrl ?? undefined}
+      loading={!srcUrl}
+      emptyText="Cargando PNG…"
+      loteText={loteText}
+      vencText={vencText}
+      loteFont={loteFont}
+      xPct={xPct}
+      yPct={yPct}
+      onPositionChange={onPositionChange}
+      imgClassName={imgClassName}
+      containerClassName={containerClassName}
+    />
   );
 }
 
@@ -3668,16 +3778,11 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                 <>
                   <RibbonGroup label="Formato">
                     <SelectorFormatoEtiqueta
+                      readOnly
                       value={{
                         nombre: form.tipo_etiqueta ?? "",
                         anchoMm: form.ancho_mm ?? mmInitW,
                         altoMm: form.alto_mm ?? mmInitH,
-                      }}
-                      onChange={(v) => {
-                        set("tipo_etiqueta", v.nombre);
-                        set("ancho_mm", v.anchoMm);
-                        set("alto_mm", v.altoMm);
-                        set("rotacion", rotacionDefaultEtiqueta(v.nombre));
                       }}
                       inputClass={RIB_INP}
                       selectClass={RIB_SEL}
@@ -4729,6 +4834,8 @@ function TabImprimir({
   const [mostrarPedidoEtiquetas, setMostrarPedidoEtiquetas] = useState(false);
   const [pdfStudioRuta, setPdfStudioRuta] = useState("");
   const [pdfStudioNombre, setPdfStudioNombre] = useState("");
+  const [pngImpresion, setPngImpresion] = useState<RecursoPngCatalogo | null>(null);
+  const [preparandoPngImpresion, setPreparandoPngImpresion] = useState(false);
   const tokenTickets = ticketsToken || panelBearerToken();
 
   const { data: solicitudesImprimir = [], refetch: refetchSolicitudesImprimir } = useQuery({
@@ -4938,7 +5045,49 @@ function TabImprimir({
     setTabRibbon("inicio");
   }
 
-  const productoListo = !!pdfStudioRuta
+  function abrirPngParaImprimir(item: RecursoPngCatalogo) {
+    setPngImpresion(item);
+    setPdfStudioRuta("");
+    setPdfStudioNombre("");
+    setSkuActivoImpresion("");
+    setFilaActiva(null);
+    setStudioDatos({ ...ETIQUETA_STUDIO_DEFAULT });
+    setCamposTexto([]);
+    setLineasPlantilla([]);
+    setImagenesPlantilla([]);
+    setRectangulosPlantilla([]);
+    setLote(LOTE_PREFIJO);
+    setVencimiento(EXP_PREFIJO);
+
+    const tipo = (item.tipo_etiqueta || "").trim();
+    if (tipo) {
+      const [anchoMm, altoMm] = mmParaTipoEtiqueta(tipo, TIPOS_ETIQUETA_DEFAULT);
+      setFormato({
+        nombre: tipo,
+        anchoMm: item.ancho_mm ?? anchoMm,
+        altoMm: item.alto_mm ?? altoMm,
+      });
+      setRotacion(rotacionDefaultEtiqueta(tipo));
+    } else if (item.ancho_mm != null && item.alto_mm != null && item.ancho_mm > 0 && item.alto_mm > 0) {
+      setFormato((f) => ({
+        nombre: f.nombre,
+        anchoMm: item.ancho_mm!,
+        altoMm: item.alto_mm!,
+      }));
+    }
+    setVistaImpresion("documento");
+    setTabRibbon("inicio");
+  }
+
+  function volverACatalogoPng() {
+    setPngImpresion(null);
+    setPdfStudioRuta("");
+    setPdfStudioNombre("");
+    setVistaImpresion("catalogo");
+  }
+
+  const productoListo = !!pngImpresion
+    || !!pdfStudioRuta
     || (!!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim());
 
   const estadoTxt = estadoData?.estado ?? "";
@@ -4958,12 +5107,65 @@ function TabImprimir({
     const loteVal = loteParaEtiqueta(lote);
     const expVal = expParaEtiqueta(vencimiento);
     const loteInfo = (loteVal || expVal) ? ` · ${loteVal || "–"} / ${expVal || "–"}` : "";
-    const plantilla = pdfStudioNombre || filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "SVG";
+    const plantilla = pngImpresion?.nombre
+      || pdfStudioNombre
+      || filaActiva?.archivo_ai
+      || studioDatosImpresion.archivo_ai
+      || "SVG";
     setLog((prev) => [
       ...prev,
       `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · ${plantilla}...`,
     ]);
     setErrorImpresion(null);
+
+    if (pngImpresion) {
+      void (async () => {
+        setPreparandoPngImpresion(true);
+        try {
+          const body: Record<string, unknown> = { nombre: pngImpresion.nombre };
+          if (formato.nombre) body.tipo_etiqueta = formato.nombre;
+          body.ancho_mm = formato.anchoMm;
+          body.alto_mm = formato.altoMm;
+          if (pngImpresion.dpi != null && Number(pngImpresion.dpi) > 0) body.dpi = pngImpresion.dpi;
+
+          const res = await api.post<{
+            ok: boolean;
+            nombre: string;
+            ruta_completa: string;
+            tipo_etiqueta?: string;
+            ancho_mm?: number;
+            alto_mm?: number;
+            error?: string;
+          }>("/api/etiquetas/recursos-png/imprimir-pdf", body);
+
+          imprimirMut.mutate({
+            producto: formato.nombre,
+            ancho_mm: formato.anchoMm,
+            alto_mm: formato.altoMm,
+            forma,
+            calidad,
+            rotacion,
+            cantidad,
+            offset_v: offsetV,
+            offset_h: offsetH,
+            ruta_pdf: res.ruta_completa,
+            lote: loteParaEtiqueta(lote),
+            vencimiento: expParaEtiqueta(vencimiento),
+            lote_font: loteFont,
+            lote_x_pct: loteXPct,
+            lote_y_pct: loteYPct,
+          });
+        } catch (err) {
+          const det = errorDesdeExcepcion(err instanceof Error ? err.message : "Error al preparar PNG");
+          setErrorImpresion(det);
+          setLog((prev) => [...prev, `[${ts}] ❌ ${det.error}`]);
+        } finally {
+          setPreparandoPngImpresion(false);
+        }
+      })();
+      return;
+    }
+
     imprimirMut.mutate({
       producto: formato.nombre,
       ancho_mm: formato.anchoMm,
@@ -5021,11 +5223,13 @@ function TabImprimir({
           <div className="p-4">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
+              onAbrirPng={abrirPngParaImprimir}
               skuActivo={skuActivoImpresion}
               modoSeleccion="fila"
               accionLabel={null}
               mostrarDiagramacion={false}
               layout="stack"
+              soloArchivosPng
             />
           </div>
         </div>
@@ -5034,7 +5238,10 @@ function TabImprimir({
         <ImpresionEtiquetasHeader
           vista="documento"
           skuActivo={skuActivoImpresion}
-          onVistaChange={setVistaImpresion}
+          onVistaChange={(v) => {
+            setVistaImpresion(v);
+            if (v === "catalogo") volverACatalogoPng();
+          }}
           solicitudesCount={solicitudesImprimir.length}
           onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
           onInstalarClick={() => abrirInstalador("windows10pro")}
@@ -5086,21 +5293,8 @@ function TabImprimir({
               <>
                 <RibbonGroup label="Formato">
                   <SelectorFormatoEtiqueta
+                    readOnly
                     value={formato}
-                    onChange={(v) => {
-                      setFormato(v);
-                      setRotacion(rotacionDefaultEtiqueta(v.nombre));
-                      const pres = presentacionDesdeTipoEtiqueta(v.nombre);
-                      setStudioDatos((d) => ({
-                        ...d,
-                        tipo_etiqueta: v.nombre,
-                        ancho_mm: v.anchoMm,
-                        alto_mm: v.altoMm,
-                        contenido_neto: pres.contenido_neto ?? d.contenido_neto,
-                        unidad: pres.unidad ?? d.unidad,
-                        archivo_ai: undefined,
-                      }));
-                    }}
                     inputClass={RIB_INP}
                     selectClass={RIB_SEL}
                     labelClass={RIB_LBL}
@@ -5137,15 +5331,13 @@ function TabImprimir({
                     </div>
                   </div>
                 </RibbonGroup>
-                <RibbonGroup label="Ajuste">
-                  <div>
-                    <label className={RIB_LBL}>Offset V</label>
-                    <input type="number" step="0.1" value={offsetV} onChange={(e) => setOffsetV(parseFloat(e.target.value) || 0)} className={`${RIB_INP} w-14 text-center`} />
-                  </div>
-                  <div>
-                    <label className={RIB_LBL}>Offset H</label>
-                    <input type="number" step="0.1" value={offsetH} onChange={(e) => setOffsetH(parseFloat(e.target.value) || 0)} className={`${RIB_INP} w-14 text-center`} />
-                  </div>
+                <RibbonGroup label="Posición">
+                  <AjusteOffsetImpresion
+                    offsetV={offsetV}
+                    offsetH={offsetH}
+                    onOffsetVChange={setOffsetV}
+                    onOffsetHChange={setOffsetH}
+                  />
                 </RibbonGroup>
                 <RibbonGroup label="Cantidad">
                   <div className="flex items-center gap-1">
@@ -5189,7 +5381,9 @@ function TabImprimir({
                 </RibbonGroup>
                 <RibbonGroup label="Plantilla">
                   <p className={`max-w-[220px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>
-                    Lote y vencimiento se aplican en la posición original del archivo .ai
+                    {pngImpresion
+                      ? "Lote y vencimiento se superponen al imprimir sobre el PNG."
+                      : "Lote y vencimiento se aplican en la posición original del archivo .ai"}
                   </p>
                 </RibbonGroup>
               </>
@@ -5209,7 +5403,37 @@ function TabImprimir({
             </div>
           </div>
           <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
-            {pdfStudioRuta ? (
+            {pngImpresion ? (
+              <div className="flex h-full w-full flex-col items-center gap-2">
+                <div className="flex w-full items-center justify-between gap-2 px-1">
+                  <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pngImpresion.nombre}>
+                    🖼 {pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={volverACatalogoPng}
+                    className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent"
+                  >
+                    Volver a archivos
+                  </button>
+                </div>
+                <VistaPreviaPngConLote
+                  nombre={pngImpresion.nombre}
+                  loteText={loteParaEtiqueta(lote)}
+                  vencText={expParaEtiqueta(vencimiento)}
+                  loteFont={loteFont}
+                  xPct={loteXPct}
+                  yPct={loteYPct}
+                  imgClassName={PREVIEW_IMG_ETIQUETA_PNG}
+                  containerClassName={PREVIEW_CONTAINER_ETIQUETA_PNG}
+                  onPositionChange={(x, y) => {
+                    setLoteXPct(x);
+                    setLoteYPct(y);
+                    setLotePos("custom");
+                  }}
+                />
+              </div>
+            ) : pdfStudioRuta ? (
               <div className="flex h-full w-full flex-col items-center gap-2">
                 <div className="flex w-full items-center justify-between gap-2 px-1">
                   <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pdfStudioNombre}>
@@ -5275,20 +5499,22 @@ function TabImprimir({
         {/* Barra inferior — imprimir */}
         <div className="flex flex-shrink-0 flex-col items-center gap-2 border-t border-border bg-surface-panel px-4 py-4">
           <p className="max-w-lg truncate text-center text-[11px] text-muted">
-            {pdfStudioRuta
+            {pngImpresion
+              ? `🖼 ${pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre}`
+              : pdfStudioRuta
               ? `📄 ${pdfStudioNombre || "PDF de Studio"}`
               : productoListo
               ? `${skuActivoImpresion} · ${filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "plantilla SVG"}`
-              : "Selecciona un producto en el catálogo"}
+              : "Selecciona un archivo PNG del catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
           <button
             type="button"
             onClick={handleImprimir}
-            disabled={imprimirMut.isPending || !productoListo}
+            disabled={imprimirMut.isPending || preparandoPngImpresion || !productoListo}
             className="w-full max-w-md rounded-xl border-2 border-success bg-success py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:opacity-90 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
           >
-            {imprimirMut.isPending ? "Imprimiendo…" : (
+            {imprimirMut.isPending || preparandoPngImpresion ? "Imprimiendo…" : (
               <span className="inline-flex items-center justify-center gap-2">
                 <Icon name="printer" size={20} />
                 IMPRIMIR
@@ -6305,8 +6531,13 @@ export default function EtiquetasPanel() {
   const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
   const solicitudActivaStore = useAppStore((s) => s.etiquetasSolicitudActiva);
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const verAvanzado = esCynthiaEtiquetas(ticketsUser);
+  const tabsVisibles = tabsEtiquetasVisibles(ticketsUser);
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
+    const user = useTicketsAuth.getState().user;
+    if (esTabEtiquetasSoloCynthia(t) && !esCynthiaEtiquetas(user)) return "imprimir";
     return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
       ? t
       : "imprimir";
@@ -6316,13 +6547,18 @@ export default function EtiquetasPanel() {
   const [studioInmersivo, setStudioInmersivo] = useState(false);
 
   useEffect(() => {
+    if (esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
+      setTabLocal("imprimir");
+      setStoreTab("imprimir");
+      return;
+    }
     if (storeTab === "imprimir" || storeTab === "inventario" || storeTab === "studio" || storeTab === "codigos_ean") {
       setTabLocal(storeTab);
       return;
     }
     setTabLocal("imprimir");
     setStoreTab("imprimir");
-  }, [storeTab, setStoreTab]);
+  }, [storeTab, setStoreTab, verAvanzado]);
 
   useEffect(() => {
     if (!handoff) return;
@@ -6338,17 +6574,28 @@ export default function EtiquetasPanel() {
   }, [solicitudActivaStore, setSolicitudActivaStore]);
 
   function setTab(t: EtiquetasTab) {
+    if (!puedeVerTabEtiquetas(ticketsUser, t)) {
+      setTabLocal("imprimir");
+      setStoreTab("imprimir");
+      return;
+    }
     setTabLocal(t);
     setStoreTab(t);
   }
 
-  const studioFullscreen = tab === "studio" && studioInmersivo;
+  const studioFullscreen = tab === "studio" && verAvanzado && studioInmersivo;
 
   return (
     <div className={`mck-animate-enter space-y-5 px-1 sm:px-0 ${
       studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"
     }`}>
-      {!studioFullscreen && <EtiquetasTabNav active={tab} onChange={setTab} />}
+      {!studioFullscreen && (
+        <EtiquetasTabNav
+          active={tab}
+          onChange={setTab}
+          allowedTabs={tabsVisibles}
+        />
+      )}
 
       {tab === "imprimir" && (
         <TabImprimir
@@ -6356,12 +6603,14 @@ export default function EtiquetasPanel() {
           solicitudInicial={solicitudInicial}
           onPrecargarConsumido={() => setPrecargarImpresion(null)}
           onSolicitudInicialConsumida={() => setSolicitudInicial(null)}
-          onIrInventarioTinta={() => setTab("inventario")}
+          onIrInventarioTinta={verAvanzado ? () => setTab("inventario") : undefined}
         />
       )}
-      {tab === "studio" && <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />}
-      {tab === "inventario" && <TabInventarioPapelTinta />}
-      {tab === "codigos_ean" && <CodigosEanPanel />}
+      {tab === "studio" && verAvanzado && (
+        <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />
+      )}
+      {tab === "inventario" && verAvanzado && <TabInventarioPapelTinta />}
+      {tab === "codigos_ean" && verAvanzado && <CodigosEanPanel />}
     </div>
   );
 }

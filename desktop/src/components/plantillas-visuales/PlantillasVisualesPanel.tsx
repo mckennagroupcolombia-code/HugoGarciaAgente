@@ -15,7 +15,9 @@ import {
   subirImagenBlobAEtiquetas,
 } from "../../lib/plantillasVisualesExport";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
-import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso } from "../etiquetas/RecursoPngViewer";
+import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
+import { useTicketsAuth } from "../../stores/ticketsAuth";
+import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoPng } from "../etiquetas/RecursoPngViewer";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
@@ -27,12 +29,18 @@ interface RecursoPngBiblioteca {
   bytes?: number;
   thumb_b64?: string | null;
   thumb_mime?: string | null;
+  tipo_etiqueta?: string | null;
+  ancho_mm?: number | null;
+  alto_mm?: number | null;
+  dpi?: number | null;
 }
 
 const formatoBytes = formatoBytesRecurso;
 
 function BibliotecaEtiquetasSection() {
   const qc = useQueryClient();
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const puedeEliminarPng = puedeEliminarPngEtiquetas(ticketsUser);
   const [buscar, setBuscar] = useState("");
   const [descargandoId, setDescargandoId] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
@@ -375,7 +383,7 @@ function BibliotecaEtiquetasSection() {
             )}
           </div>
         )}
-        {seleccionados.size > 0 && (
+        {puedeEliminarPng && seleccionados.size > 0 && (
           <button
             type="button"
             onClick={eliminarSeleccionados}
@@ -490,6 +498,11 @@ function BibliotecaEtiquetasSection() {
                 <p className="truncate text-[10px] text-ink" title={r.nombre}>
                   {r.nombre}
                 </p>
+                {labelFormatoPng(r) ? (
+                  <p className="truncate text-[9px] font-medium text-ink/70" title={labelFormatoPng(r)}>
+                    {labelFormatoPng(r)}
+                  </p>
+                ) : null}
                 <p className="truncate text-[9px] text-muted">{formatoBytes(r.bytes)}</p>
               </div>
               <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
@@ -502,18 +515,20 @@ function BibliotecaEtiquetasSection() {
                 >
                   {descargandoId === r.nombre ? "…" : "⬇"}
                 </button>
-                <button
-                  type="button"
-                  title="Eliminar"
-                  disabled={eliminandoId === r.nombre}
-                  onClick={() => {
-                    if (!window.confirm(`¿Eliminar "${r.nombre}" de la biblioteca?`)) return;
-                    eliminarMut.mutate(r.nombre);
-                  }}
-                  className="rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80"
-                >
-                  {eliminandoId === r.nombre ? "…" : "✕"}
-                </button>
+                {puedeEliminarPng ? (
+                  <button
+                    type="button"
+                    title="Eliminar"
+                    disabled={eliminandoId === r.nombre}
+                    onClick={() => {
+                      if (!window.confirm(`¿Eliminar "${r.nombre}" de la biblioteca?`)) return;
+                      eliminarMut.mutate(r.nombre);
+                    }}
+                    className="rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80"
+                  >
+                    {eliminandoId === r.nombre ? "…" : "✕"}
+                  </button>
+                ) : null}
               </div>
             </div>
             );
@@ -524,14 +539,19 @@ function BibliotecaEtiquetasSection() {
       {vistaPreviaNombre && (
         <LightboxImagen
           nombre={vistaPreviaNombre}
+          formato={recursos.find((r) => r.nombre === vistaPreviaNombre) ?? null}
           onCerrar={() => setVistaPreviaNombre(null)}
           onDescargar={() => void descargar(vistaPreviaNombre)}
-          onEliminar={() => {
-            if (!window.confirm(`¿Eliminar "${vistaPreviaNombre}" de la biblioteca?`)) return;
-            eliminarMut.mutate(vistaPreviaNombre, {
-              onSuccess: () => setVistaPreviaNombre(null),
-            });
-          }}
+          onEliminar={
+            puedeEliminarPng
+              ? () => {
+                  if (!window.confirm(`¿Eliminar "${vistaPreviaNombre}" de la biblioteca?`)) return;
+                  eliminarMut.mutate(vistaPreviaNombre, {
+                    onSuccess: () => setVistaPreviaNombre(null),
+                  });
+                }
+              : undefined
+          }
           descargando={descargandoId === vistaPreviaNombre}
           eliminando={eliminandoId === vistaPreviaNombre}
         />
@@ -841,12 +861,25 @@ export default function PlantillasVisualesPanel({
       const suf = escala !== 1 ? `@${escala}x` : "";
       const nombreArchivo = `${safe}${suf}.png`;
       descargarBlob(blob, nombreArchivo);
-      await subirImagenBlobAEtiquetas(blob, nombreArchivo);
+      const esEtiqueta = Boolean(doc.formato.tipo_etiqueta || doc.formato.ancho_mm);
+      await subirImagenBlobAEtiquetas(blob, nombreArchivo, {
+        carpeta: esEtiqueta ? "ETIQUETAS STUDIO" : undefined,
+        tipo_etiqueta: doc.formato.tipo_etiqueta || (esEtiqueta ? doc.formato.nombre : undefined),
+        ancho_mm: doc.formato.ancho_mm,
+        alto_mm: doc.formato.alto_mm,
+        dpi: Math.round((doc.formato.dpi || 96) * escala),
+        escala,
+      });
       void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
       void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
 
+      const dimMm =
+        doc.formato.ancho_mm && doc.formato.alto_mm
+          ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm`
+          : "";
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
-      setMsg(`Exportado PNG (${dim} px) · guardado en biblioteca de etiquetas ✓`);
+      setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓`);
       setTimeout(() => setMsg(null), 2500);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al exportar");

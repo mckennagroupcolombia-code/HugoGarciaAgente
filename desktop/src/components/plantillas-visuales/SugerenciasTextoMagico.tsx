@@ -155,9 +155,10 @@ export default function SugerenciasTextoMagico({
           </div>
 
           <p className="mb-1.5 text-[10px] leading-snug text-muted">
-            2 párrafos técnicos (60–85 palabras c/u) en prosa fluida, extraídos de la
-            ficha. Párrafo 1 abre con «Este ingrediente se presenta…»; párrafo 2: usos concretos.
-            Sin la palabra «descripción» ni «insumo»; tampoco repetir título/subtítulo ni claims de salud.
+            Formato etiqueta: un párrafo intro (origen, forma física, pH/% si
+            constan) + encabezado «Propiedades:» + 4–6 viñetas técnicas de la
+            ficha. Sin «descripción» ni «insumo»; tampoco repetir título/subtítulo
+            ni claims de suplemento/medicamento.
           </p>
 
           {fichas.length > 0 && (

@@ -44,3 +44,8 @@
 {"tipo": "eliminar_watchlist", "item_id": "MCO2034026877", "id": "a5329459-262", "sku": "C-SEMCAL500g", "ts": "2026-07-11T21:19:38"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4160912078", "sku": "C-ARADES250g", "origen": "desde_cero", "ts": "2026-07-11T22:55:16"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4160912078", "sku": "C-ARADES250g", "origen": "", "ts": "2026-07-11T22:55:17"}
+{"tipo": "revision_diaria", "revisadas": 6, "alertas": 0, "activas": 6, "problemas": 0, "ts": "2026-07-12T08:30:10"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2035213641", "sku": "C- PISTOS250g", "origen": "desde_cero", "ts": "2026-07-12T13:51:43"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2035213641", "sku": "C- PISTOS250g", "origen": "", "ts": "2026-07-12T13:51:45"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4162681806", "sku": "C-PISTOS500g", "origen": "desde_cero", "ts": "2026-07-12T14:21:30"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4162681806", "sku": "C-PISTOS500g", "origen": "", "ts": "2026-07-12T14:21:31"}

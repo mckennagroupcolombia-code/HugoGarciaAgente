@@ -15,40 +15,61 @@ import { estiloElemento } from "./VisualCanvasEditor";
 export interface Props {
   doc: PlantillaVisualDoc;
   /**
-   * Factor de resolución de exportación (2×, 3×, "Máxima"…). Se aplica como
-   * `transform: scale()` sobre el lienzo a tamaño natural, en vez de dejar
-   * que html-to-image estire un bitmap ya rasterizado a 1× — así el texto se
-   * pinta nítido directamente a la resolución final, no borroso por upscale.
+   * 1 = mismo layout que el editor (recomendado con pixelRatio en export).
+   * >1 solo si se captura sin pixelRatio (legado).
    */
   escala?: number;
   /** true en composiciones multi-pasada: el fondo ya lo pintó otro paso. */
   fondoTransparente?: boolean;
 }
 
-function ElementoEstatico({ el }: { el: ElementoVisual }) {
+function estiloElementoEscalado(el: ElementoVisual, escala: number): React.CSSProperties {
+  if (escala === 1) return estiloElemento(el);
+  const base = estiloElemento(el);
+  return {
+    ...base,
+    left: el.x * escala,
+    top: el.y * escala,
+    width:
+      el.type === "line"
+        ? Math.abs((el.x2 ?? el.x) - el.x) * escala || el.width * escala
+        : el.width * escala,
+    height:
+      el.type === "line"
+        ? Math.abs((el.y2 ?? el.y) - el.y) * escala || el.height * escala
+        : el.height * escala,
+  };
+}
+
+function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }) {
   if (el.type === "text") {
     const estilo: React.CSSProperties = {
-      ...estiloElemento(el),
+      ...estiloElementoEscalado(el, escala),
       color: el.color,
-      fontSize: `${el.fontSize}px`,
+      fontSize: `${el.fontSize * escala}px`,
       fontFamily: el.fontFamily,
       fontWeight: pesoFontWeightCss(el.fontWeight),
       textAlign: el.align,
-      lineHeight: 1.2,
+      lineHeight: el.lineHeight ?? 1.2,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
+      overflow: "visible",
+      WebkitFontSmoothing: "antialiased",
+      MozOsxFontSmoothing: "grayscale",
+      textRendering: "geometricPrecision",
     };
     return <div style={estilo}>{el.content}</div>;
   }
 
   if (el.type === "rect") {
-    const r = el.borderRadius || 0;
+    const r = (el.borderRadius || 0) * escala;
+    const strokeW = (el.strokeWidth || 0) * escala;
     return (
       <div
         style={{
-          ...estiloElemento(el),
+          ...estiloElementoEscalado(el, escala),
           background: el.fill,
-          border: el.strokeWidth > 0 ? `${el.strokeWidth}px solid ${el.stroke}` : undefined,
+          border: strokeW > 0 ? `${strokeW}px solid ${el.stroke}` : undefined,
           borderRadius: r,
         }}
       />
@@ -69,32 +90,24 @@ export default function PlantillaVisualEstaticoDom({
   fondoTransparente = false,
 }: Props) {
   const { ancho_px: w, alto_px: h } = doc.formato;
+  const ancho = Math.max(1, Math.round(w * escala));
+  const alto = Math.max(1, Math.round(h * escala));
   return (
     <div
       style={{
         position: "relative",
         overflow: "hidden",
-        width: w * escala,
-        height: h * escala,
+        width: ancho,
+        height: alto,
+        background: fondoTransparente ? "transparent" : doc.fondo || "#ffffff",
       }}
     >
-      <div
-        style={{
-          position: "relative",
-          width: w,
-          height: h,
-          background: fondoTransparente ? "transparent" : doc.fondo || "#ffffff",
-          transform: escala !== 1 ? `scale(${escala})` : undefined,
-          transformOrigin: "top left",
-        }}
-      >
-        {doc.elementos
-          .filter((el) => el.visible !== false)
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((el) => (
-            <ElementoEstatico key={el.id} el={el} />
-          ))}
-      </div>
+      {doc.elementos
+        .filter((el) => el.visible !== false)
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map((el) => (
+          <ElementoEstatico key={el.id} el={el} escala={escala} />
+        ))}
     </div>
   );
 }

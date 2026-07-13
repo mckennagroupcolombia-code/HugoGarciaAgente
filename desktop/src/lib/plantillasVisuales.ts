@@ -2,9 +2,13 @@
 
 import type { TipoEtiqueta } from "./etiquetasTipos";
 
-/** Mismo DPI que el lienzo de impresión en Etiquetas (96 dpi ≈ tamaño real en pantalla). */
+/** Mismo DPI que el lienzo en pantalla (96 ≈ tamaño real al 100% zoom). */
 export const ETIQUETA_IMPRESION_DPI = 96;
 export const CANVAS_DPI = 96;
+/** DPI nativo Epson ColorWorks CW-C4000 — export PNG para impresión física. */
+export const ETIQUETA_EXPORT_DPI_IMPRESION = 600;
+/** Tope de escala de exportación (600÷96 ≈ 6.25; margen para formatos raros). */
+export const EXPORT_ESCALA_MAX = 10;
 
 export type ElementoTipo = "text" | "rect" | "image" | "line";
 
@@ -551,21 +555,32 @@ export function dimensionesExportPx(
   formato: FormatoCanvas,
   escala: number,
 ): { ancho: number; alto: number } {
-  const s = Math.max(0.25, Math.min(8, escala));
+  const s = Math.max(0.25, Math.min(EXPORT_ESCALA_MAX, escala));
   return {
     ancho: Math.max(1, Math.round(formato.ancho_px * s)),
     alto: Math.max(1, Math.round(formato.alto_px * s)),
   };
 }
 
+/** Escala para exportar a un DPI de impresión (p. ej. 600) desde el DPI del lienzo. */
+export function escalaParaDpiImpresion(
+  formato: FormatoCanvas,
+  dpiObjetivo = ETIQUETA_EXPORT_DPI_IMPRESION,
+): number {
+  const base = formato.dpi || CANVAS_DPI;
+  const s = dpiObjetivo / Math.max(1, base);
+  return Math.round(Math.max(0.25, Math.min(EXPORT_ESCALA_MAX, s)) * 1000) / 1000;
+}
+
 export function presetsResolucionExport(formato: FormatoCanvas): PresetResolucionExport[] {
   const seen = new Set<number>();
   const out: PresetResolucionExport[] = [];
   const dpiBase = formato.dpi || CANVAS_DPI;
+  const esEtiqueta = Boolean(formato.tipo_etiqueta || (formato.ancho_mm && formato.alto_mm));
 
   const push = (id: string, label: string, escala: number) => {
     const s = Math.round(escala * 1000) / 1000;
-    if (seen.has(s) || s < 0.25 || s > 8) return;
+    if (seen.has(s) || s < 0.25 || s > EXPORT_ESCALA_MAX) return;
     seen.add(s);
     const dim = dimensionesExportPx(formato, s);
     let hint = `${dim.ancho}×${dim.alto} px`;
@@ -578,12 +593,31 @@ export function presetsResolucionExport(formato: FormatoCanvas): PresetResolucio
 
   push("1x", "1× Lienzo", 1);
   push("2x", "2× Alta", 2);
-  push("3x", "3× Impresión", 3);
-  for (const target of [150, 200, 300]) {
-    if (target !== dpiBase) push(`dpi-${target}`, `${target} DPI`, target / dpiBase);
+  for (const target of [300, 600]) {
+    if (target !== dpiBase) {
+      push(
+        `dpi-${target}`,
+        target === 600 ? "600 DPI Impresión" : "300 DPI",
+        target / dpiBase,
+      );
+    }
   }
-  push("4x", "4× Máxima", 4);
+  if (!esEtiqueta) {
+    push("3x", "3×", 3);
+    push("4x", "4×", 4);
+  }
   return out;
+}
+
+/** Preset por defecto al exportar PNG desde Studio (etiquetas → 600 DPI Epson). */
+export function presetExportImpresionDefault(formato: FormatoCanvas): PresetResolucionExport {
+  const presets = presetsResolucionExport(formato);
+  return (
+    presets.find((p) => p.id === "dpi-600")
+    ?? presets.find((p) => p.id === "dpi-300")
+    ?? presets[presets.length - 1]
+    ?? { id: "1x", label: "1×", escala: 1, hint: "" }
+  );
 }
 
 export type AlineacionObjetos =

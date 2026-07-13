@@ -1,14 +1,30 @@
 import { useEffect, useState } from "react";
-import { api } from "../../api/client";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
-import { useAppStore } from "../../stores/app";
-import { Modal, Button, Banner, Spinner } from "./ui";
+import { Modal, Button, Spinner } from "./ui";
 
 /** Codifica un nombre de recurso para usarlo en una ruta `/archivo/<path:nombre>`.
  * Codifica cada segmento por separado para preservar las '/' de subcarpetas
  * (encodeURIComponent normal las escaparía a %2F y rompería el <path:...>). */
 export function codificarRutaRecursoPng(nombre: string): string {
   return nombre.split("/").map(encodeURIComponent).join("/");
+}
+
+export type FormatoPngAsociado = {
+  tipo_etiqueta?: string | null;
+  ancho_mm?: number | null;
+  alto_mm?: number | null;
+  dpi?: number | null;
+};
+
+export function labelFormatoPng(f?: FormatoPngAsociado | null): string {
+  if (!f) return "";
+  const mm =
+    f.ancho_mm != null && f.alto_mm != null && Number(f.ancho_mm) > 0 && Number(f.alto_mm) > 0
+      ? `${f.ancho_mm}×${f.alto_mm} mm`
+      : "";
+  const tipo = (f.tipo_etiqueta || "").trim();
+  if (tipo && mm) return `${tipo} · ${mm}`;
+  return tipo || mm;
 }
 
 /** Miniatura de un recurso PNG/JPG de la biblioteca de Etiquetas. Usa la
@@ -64,10 +80,67 @@ export function MiniaturaRecursoPng({ nombre, thumbB64, thumbMime }: {
   );
 }
 
+/** Vista previa PNG a tamaño completo (p. ej. panel Imprimir, misma pestaña). */
+export function VistaPreviaPngGrande({
+  nombre,
+  imgClassName = "max-h-full max-w-full object-contain",
+  containerClassName = "flex min-h-[200px] w-full flex-1 items-center justify-center",
+}: {
+  nombre: string;
+  imgClassName?: string;
+  containerClassName?: string;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [fallo, setFallo] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setSrc(null);
+    setFallo(false);
+    setLoading(true);
+    resolverUrlImagenCanvas(`/api/etiquetas/recursos-png/archivo/${codificarRutaRecursoPng(nombre)}`)
+      .then((url) => {
+        if (!cancelado) {
+          setSrc(url);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setFallo(true);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [nombre]);
+
+  if (fallo) {
+    return <p className="px-6 text-center text-xs text-danger">No se pudo cargar la imagen.</p>;
+  }
+  if (loading || !src) {
+    return <Spinner size="lg" />;
+  }
+  return (
+    <div className={containerClassName}>
+      <img
+        src={src}
+        alt={nombre}
+        className={imgClassName}
+        draggable={false}
+        onError={() => setFallo(true)}
+      />
+    </div>
+  );
+}
+
 /** Vista previa a tamaño completo de un recurso PNG/JPG de la biblioteca de
- * Etiquetas, con acciones de imprimir, descargar y eliminar. */
+ * Etiquetas, con acciones de descargar y eliminar. */
 export function LightboxImagen({
   nombre,
+  formato,
   onCerrar,
   onDescargar,
   onEliminar,
@@ -75,20 +148,16 @@ export function LightboxImagen({
   eliminando,
 }: {
   nombre: string;
+  formato?: FormatoPngAsociado | null;
   onCerrar: () => void;
   onDescargar: () => void;
-  onEliminar: () => void;
+  onEliminar?: () => void;
   descargando: boolean;
   eliminando: boolean;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [fallo, setFallo] = useState(false);
-  const [enviandoImprimir, setEnviandoImprimir] = useState(false);
-  const [errorImprimir, setErrorImprimir] = useState<string | null>(null);
-
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
-  const setEtiquetasHandoff = useAppStore((s) => s.setEtiquetasHandoff);
+  const labelFmt = labelFormatoPng(formato);
 
   useEffect(() => {
     let cancelado = false;
@@ -106,59 +175,31 @@ export function LightboxImagen({
     };
   }, [nombre]);
 
-  // Convierte esta imagen en PDF y la envía al mismo flujo de vista previa +
-  // impresión física que usan los archivos .ai/PDF en Imprimir Etiquetas.
-  async function enviarAImprimir() {
-    setEnviandoImprimir(true);
-    setErrorImprimir(null);
-    try {
-      const res = await api.post<{ ok: boolean; nombre: string; ruta_completa: string; error?: string }>(
-        "/api/etiquetas/recursos-png/imprimir-pdf",
-        { nombre },
-      );
-      setEtiquetasHandoff({ pdf_ruta: res.ruta_completa, pdf_nombre: res.nombre });
-      setEtiquetasTab("imprimir");
-      setPanel("etiquetas");
-      onCerrar();
-    } catch (e) {
-      setErrorImprimir(e instanceof Error ? e.message : "Error al preparar la impresión");
-    } finally {
-      setEnviandoImprimir(false);
-    }
-  }
-
   return (
     <Modal
       onClose={onCerrar}
-      title={<span title={nombre}>{nombre}</span>}
+      title={
+        <span title={nombre}>
+          {nombre}
+          {labelFmt ? (
+            <span className="ml-2 font-normal text-muted">({labelFmt})</span>
+          ) : null}
+        </span>
+      }
       maxWidthClassName="max-w-4xl"
       headerExtra={
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon="printer"
-            loading={enviandoImprimir}
-            disabled={!src}
-            title="Envía la imagen al centro de Imprimir Etiquetas"
-            onClick={enviarAImprimir}
-          >
-            Imprimir
-          </Button>
           <Button variant="secondary" size="sm" icon="download" loading={descargando} onClick={onDescargar}>
             Descargar
           </Button>
-          <Button variant="destructive" size="sm" icon="trash" loading={eliminando} onClick={onEliminar}>
-            Eliminar
-          </Button>
+          {onEliminar ? (
+            <Button variant="destructive" size="sm" icon="trash" loading={eliminando} onClick={onEliminar}>
+              Eliminar
+            </Button>
+          ) : null}
         </div>
       }
     >
-      {errorImprimir && (
-        <Banner tone="danger" className="rounded-none border-x-0 border-t-0">
-          {errorImprimir}
-        </Banner>
-      )}
       <div className="flex min-h-[300px] flex-1 items-center justify-center overflow-auto bg-surface-hover p-4">
         {fallo ? (
           <p className="text-sm text-muted">No se pudo cargar la imagen.</p>

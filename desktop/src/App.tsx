@@ -226,7 +226,7 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (logistica !== null) return logistica;
   const contab = puedeVerModuloContabilidad(user, panel);
   if (contab !== null) return contab;
-  if (panel === "etiquetas" || panel === "etiquetas-config") return true;
+  if (panel === "etiquetas") return true;
   if (panel === "hugo" || panel === "tickets") {
     if ((user.rol?.nivel ?? 0) >= 3) return true;
     const p = user.permisos_secciones;

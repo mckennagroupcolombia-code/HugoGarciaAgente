@@ -5104,6 +5104,35 @@ def eliminar_categoria(slug: str) -> tuple:
         return True, None
 
 
+# ── ETIQUETAS AVANZADAS (Cynthia) ─────────────────────────────────────────────
+
+_CYNTHIA_ETIQUETAS_EMAILS = frozenset({
+    "cynthua0418@gmail.com",
+})
+
+
+def es_cynthia_etiquetas(usuario: dict | None) -> bool:
+    """Studio / Papel-tinta / EAN: solo Cynthia Ruiz (usuarios.id=6). Sin bypass admin."""
+    if not usuario:
+        return False
+    try:
+        uid = int(usuario.get("id") or 0)
+    except (TypeError, ValueError):
+        uid = 0
+    if uid == 6:
+        return True
+    username = (usuario.get("username") or "").strip().lower().lstrip("@")
+    if username == "cynthia":
+        return True
+    email = (usuario.get("email") or "").strip().lower()
+    return email in _CYNTHIA_ETIQUETAS_EMAILS
+
+
+def puede_ver_studio_visual(usuario: dict | None) -> bool:
+    """Alias histórico; misma regla que es_cynthia_etiquetas."""
+    return es_cynthia_etiquetas(usuario)
+
+
 # ── PROTOCOLOS ────────────────────────────────────────────────────────────────
 
 _PROTOCOLOS_CREAR_EMAILS = frozenset({

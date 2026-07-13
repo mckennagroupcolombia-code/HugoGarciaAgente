@@ -4,6 +4,7 @@ import { toCanvas } from "html-to-image";
 import {
   esFuenteMontserrat,
   pesoFontWeightCss,
+  EXPORT_ESCALA_MAX,
   type ElementoTexto,
   type ElementoVisual,
   type PlantillaVisualDoc,
@@ -22,7 +23,7 @@ export interface OpcionesExportPlantilla {
 
 function clampEscalaExport(escala: number | undefined): number {
   const s = escala ?? 1;
-  return Math.max(0.25, Math.min(8, s));
+  return Math.max(0.25, Math.min(EXPORT_ESCALA_MAX, s));
 }
 
 function fontFamilyCanvas(fontFamily: string): string {
@@ -36,18 +37,25 @@ function fontCssTexto(el: ElementoTexto): string {
   return `${fw} ${el.fontSize}px ${fontFamilyCanvas(el.fontFamily)}`;
 }
 
-async function asegurarFuentesLienzo(doc: PlantillaVisualDoc): Promise<void> {
+async function asegurarFuentesLienzo(doc: PlantillaVisualDoc, escala = 1): Promise<void> {
   if (typeof document === "undefined" || !document.fonts) return;
   await document.fonts.ready;
   const specs = new Set<string>();
   for (const el of doc.elementos) {
     if (el.type !== "text" || el.visible === false) continue;
     const fw = pesoFontWeightCss(el.fontWeight);
-    const size = Math.max(4, Math.round(el.fontSize));
+    const size = Math.max(4, Math.round(el.fontSize * escala));
+    const family = fontFamilyCanvas(el.fontFamily);
+    specs.add(`${fw} ${size}px ${family}`);
     specs.add(`${fw} ${size}px Montserrat`);
     specs.add(`${fw} ${size}px sans-serif`);
   }
   await Promise.all([...specs].map((spec) => document.fonts.load(spec).catch(() => undefined)));
+}
+
+/** Alias explícito: el export DOM pinta tipografía ya multiplicada por escala. */
+async function asegurarFuentesLienzoEscalado(doc: PlantillaVisualDoc, escala: number): Promise<void> {
+  await asegurarFuentesLienzo(doc, escala);
 }
 
 export function normalizarSrcImagen(src: string): string {
@@ -153,10 +161,8 @@ function cargarImagenDesde(src: string): Promise<HTMLImageElement> {
  * Dibuja una imagen directamente sobre el canvas, a su resolución nativa (con
  * `ctx.drawImage`), en vez de confiar en el bitmap que `html-to-image`
  * generaría dentro de un `foreignObject`. Ese `foreignObject` rasteriza el
- * `<img>` a la resolución de layout (1×) antes de escalar al tamaño final,
- * así que a "Alta"/"Máxima" el resultado quedaba pixelado — el texto no
- * sufre esto porque se redibuja como fuente vectorial, pero una imagen ya
- * rasterizada sí.
+ * `<img>` a la resolución de layout antes de escalar al tamaño final,
+ * así que a "Alta"/"Máxima" el resultado quedaba pixelado.
  */
 async function dibujarImagenEnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -259,9 +265,11 @@ export async function renderPlantillaToCanvasDom(
   opts?: OpcionesExportPlantilla,
 ): Promise<HTMLCanvasElement> {
   if (typeof document === "undefined") throw new Error("Exportación no disponible en este entorno");
-  if (document.fonts) await document.fonts.ready;
 
   const escala = clampEscalaExport(opts?.escala);
+  // DOM idéntico al editor (escala 1); la resolución de impresión va en pixelRatio.
+  await asegurarFuentesLienzoEscalado(doc, 1);
+
   const { ancho_px: w, alto_px: h } = doc.formato;
   const forzarOpaco = opts?.forzarFondoOpaco === true;
   const imagenesResueltas = await resolverImagenesPlantilla(doc);
@@ -315,7 +323,7 @@ export async function renderPlantillaToCanvasDom(
         raiz.render(
           <PlantillaVisualEstaticoDom
             doc={{ ...doc, elementos: run.elementos }}
-            escala={escala}
+            escala={1}
             fondoTransparente
           />,
         );
@@ -324,19 +332,26 @@ export async function renderPlantillaToCanvasDom(
       if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
 
       try {
-        // pixelRatio se deja en 1: si se usara `escala` aquí, html-to-image
-        // tomaría el bitmap ya renderizado a 1× y lo estiraría, produciendo
-        // letras borrosas en "Alta"/"Máxima" (el nodo ya está pintado a
-        // tamaño w*escala × h*escala, ver PlantillaVisualEstaticoDom).
+        if (document.fonts) await document.fonts.ready;
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
         const subCanvas = await toCanvas(nodo, {
-          width: anchoFinal,
-          height: altoFinal,
-          pixelRatio: 1,
+          width: w,
+          height: h,
+          pixelRatio: escala,
           backgroundColor: undefined,
           cacheBust: true,
           imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
+          quality: 1,
+          skipAutoScale: true,
         });
-        ctx.drawImage(subCanvas, 0, 0);
+        if (subCanvas.width === anchoFinal && subCanvas.height === altoFinal) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(subCanvas, 0, 0);
+        } else {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(subCanvas, 0, 0, anchoFinal, altoFinal);
+        }
       } catch (err) {
         throw normalizarErrorExportDom(err);
       }
@@ -565,18 +580,47 @@ function nombreArchivoPlantilla(nombre: string, ext: string): string {
 }
 
 /** Sube un blob de imagen (PNG o JPG) ya renderizado a la biblioteca de etiquetas. */
+export type MetaFormatoPngEtiqueta = {
+  carpeta?: string;
+  tipo_etiqueta?: string;
+  ancho_mm?: number;
+  alto_mm?: number;
+  dpi?: number;
+  escala?: number;
+};
+
 export async function subirImagenBlobAEtiquetas(
   blob: Blob,
   nombreSugerido: string,
-): Promise<{ nombre: string }> {
+  meta?: MetaFormatoPngEtiqueta,
+): Promise<{
+  nombre: string;
+  tipo_etiqueta?: string;
+  ancho_mm?: number;
+  alto_mm?: number;
+}> {
   const { api } = await import("../api/client");
   const fd = new FormData();
   fd.append("archivo", new File([blob], nombreSugerido, { type: blob.type || "image/png" }));
-  const res = await api.upload<{ ok: boolean; nombre: string }>(
-    "/api/etiquetas/recursos-png",
-    fd,
-  );
-  return { nombre: res.nombre };
+  if (meta?.carpeta) fd.append("carpeta", meta.carpeta);
+  if (meta?.tipo_etiqueta) fd.append("tipo_etiqueta", meta.tipo_etiqueta);
+  if (meta?.ancho_mm != null && meta.ancho_mm > 0) fd.append("ancho_mm", String(meta.ancho_mm));
+  if (meta?.alto_mm != null && meta.alto_mm > 0) fd.append("alto_mm", String(meta.alto_mm));
+  if (meta?.dpi != null && meta.dpi > 0) fd.append("dpi", String(meta.dpi));
+  if (meta?.escala != null && meta.escala > 0) fd.append("escala", String(meta.escala));
+  const res = await api.upload<{
+    ok: boolean;
+    nombre: string;
+    tipo_etiqueta?: string;
+    ancho_mm?: number;
+    alto_mm?: number;
+  }>("/api/etiquetas/recursos-png", fd);
+  return {
+    nombre: res.nombre,
+    tipo_etiqueta: res.tipo_etiqueta,
+    ancho_mm: res.ancho_mm,
+    alto_mm: res.alto_mm,
+  };
 }
 
 /** Sube el lienzo renderizado como JPG a la galería compartida del Studio. */
@@ -585,7 +629,15 @@ export async function guardarPlantillaJpgEnGaleria(
   opts?: Pick<OpcionesExportPlantilla, "escala">,
 ): Promise<{ nombre: string }> {
   const blob = await exportarPlantillaBlob(doc, "jpeg", opts);
-  return subirImagenBlobAEtiquetas(blob, nombreArchivoPlantilla(doc.nombre, "jpg"));
+  const esEtiqueta = Boolean(doc.formato.tipo_etiqueta || doc.formato.ancho_mm);
+  return subirImagenBlobAEtiquetas(blob, nombreArchivoPlantilla(doc.nombre, "jpg"), {
+    carpeta: esEtiqueta ? "ETIQUETAS STUDIO" : undefined,
+    tipo_etiqueta: doc.formato.tipo_etiqueta || (esEtiqueta ? doc.formato.nombre : undefined),
+    ancho_mm: doc.formato.ancho_mm,
+    alto_mm: doc.formato.alto_mm,
+    dpi: doc.formato.dpi,
+    escala: opts?.escala,
+  });
 }
 
 /** Sube un PDF (ya renderizado, en base64) a la biblioteca de PDFs de Etiquetas para poder imprimirlo. */

@@ -33,7 +33,7 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   if (seccion === "settings") return true;
-  if (seccion === "etiquetas" || seccion === "etiquetas-config") return true;
+  if (seccion === "etiquetas") return true;
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;

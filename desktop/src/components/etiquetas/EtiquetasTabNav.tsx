@@ -19,7 +19,7 @@ const TABS: TabDef[] = [
     shortLabel: "Imprimir",
     icon: "printer",
     tone: "accent",
-    description: "Catálogo SKU y envío a Epson",
+    description: "Archivos PNG listos para imprimir",
   },
   {
     id: "studio",
@@ -50,10 +50,16 @@ const TABS: TabDef[] = [
 interface Props {
   active: EtiquetasTab;
   onChange: (tab: EtiquetasTab) => void;
+  /** Pestañas permitidas (si no se pasa, solo Imprimir). */
+  allowedTabs: readonly EtiquetasTab[];
 }
 
-export function EtiquetasTabNav({ active, onChange }: Props) {
-  const current = TABS.find((t) => t.id === active) ?? TABS[0];
+export function EtiquetasTabNav({ active, onChange, allowedTabs }: Props) {
+  const permitidas = new Set(allowedTabs.length > 0 ? allowedTabs : (["imprimir"] as EtiquetasTab[]));
+  const tabs = TABS.filter((t) => permitidas.has(t.id));
+  const current = tabs.find((t) => t.id === active) ?? tabs[0] ?? TABS[0];
+  /** Con una sola sección no tiene sentido mostrar el botón de pestaña. */
+  const mostrarNav = tabs.length > 1;
 
   return (
     <div className="space-y-3">
@@ -70,36 +76,38 @@ export function EtiquetasTabNav({ active, onChange }: Props) {
         </div>
       </div>
 
-      <nav
-        className="mck-card flex gap-1 overflow-x-auto p-1"
-        aria-label="Secciones de etiquetas"
-      >
-        {TABS.map((t) => {
-          const isActive = active === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onChange(t.id)}
-              className={`mck-press flex min-w-0 flex-1 items-center justify-center gap-2 rounded-paper px-2 py-2.5 text-sm font-semibold transition sm:px-3 ${
-                isActive
-                  ? "bg-accent text-white shadow-paper-sm"
-                  : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
-              }`}
-            >
-              <IllustrationIcon
-                name={t.icon}
-                size={22}
-                tone={isActive ? "accent" : t.tone}
-                bubble={!isActive}
-                className={isActive ? "text-white [&_.mck-illus-icon__glyph]:text-white" : ""}
-              />
-              <span className="hidden truncate sm:inline">{t.label}</span>
-              <span className="truncate sm:hidden">{t.shortLabel}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {mostrarNav && (
+        <nav
+          className="mck-card flex gap-1 overflow-x-auto p-1"
+          aria-label="Secciones de etiquetas"
+        >
+          {tabs.map((t) => {
+            const isActive = active === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onChange(t.id)}
+                className={`mck-press flex min-w-0 flex-1 items-center justify-center gap-2 rounded-paper px-2 py-2.5 text-sm font-semibold transition sm:px-3 ${
+                  isActive
+                    ? "bg-accent text-white shadow-paper-sm"
+                    : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
+                }`}
+              >
+                <IllustrationIcon
+                  name={t.icon}
+                  size={22}
+                  tone={isActive ? "accent" : t.tone}
+                  bubble={!isActive}
+                  className={isActive ? "text-white [&_.mck-illus-icon__glyph]:text-white" : ""}
+                />
+                <span className="hidden truncate sm:inline">{t.label}</span>
+                <span className="truncate sm:hidden">{t.shortLabel}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

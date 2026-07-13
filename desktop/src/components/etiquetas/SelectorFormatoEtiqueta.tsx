@@ -23,6 +23,14 @@ export function etiquetaOpcionLabel(t: TipoEtiqueta): string {
   return `${t.nombre} · ${t.ancho_mm}×${t.alto_mm} mm`;
 }
 
+export function formatoEtiquetaValorLabel(v: FormatoEtiquetaValor): string {
+  const nombre = (v.nombre || "").trim();
+  const mm =
+    v.anchoMm > 0 && v.altoMm > 0 ? `${v.anchoMm}×${v.altoMm} mm` : "";
+  if (nombre && mm) return `${nombre} · ${mm}`;
+  return nombre || mm || "—";
+}
+
 interface MenuFormatoProps {
   tipos: TipoEtiqueta[];
   selectValue: string;
@@ -176,7 +184,7 @@ function MenuFormatoDropdown({
 
 interface SelectorFormatoEtiquetaProps {
   value: FormatoEtiquetaValor;
-  onChange: (v: FormatoEtiquetaValor) => void;
+  onChange?: (v: FormatoEtiquetaValor) => void;
   labelNombre?: string;
   inputClass?: string;
   selectClass?: string;
@@ -185,6 +193,8 @@ interface SelectorFormatoEtiquetaProps {
   dark?: boolean;
   /** Barra horizontal en vista previa Studio */
   previewBar?: boolean;
+  /** Solo muestra el formato precargado; sin menú ni campos editables. */
+  readOnly?: boolean;
 }
 
 export function SelectorFormatoEtiqueta({
@@ -197,6 +207,7 @@ export function SelectorFormatoEtiqueta({
   compact = false,
   dark = false,
   previewBar = false,
+  readOnly = false,
 }: SelectorFormatoEtiquetaProps) {
   const { data, isLoading } = useTiposEtiqueta();
   const guardar = useGuardarTiposEtiqueta();
@@ -209,7 +220,45 @@ export function SelectorFormatoEtiqueta({
     [tipos, value.nombre],
   );
 
+  const etiquetaLectura = formatoEtiquetaValorLabel(value);
+  const lecturaCls = dark
+    ? "inline-flex min-h-9 items-center rounded border border-white/30 bg-white/10 px-2 py-1 text-xs text-white"
+    : `${inputClass || "rounded border border-border bg-surface-panel px-2 py-1.5 text-xs text-ink"} inline-flex min-h-9 items-center font-semibold tabular-nums`;
+
+  if (readOnly) {
+    if (previewBar) {
+      return (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+          <span className="shrink-0 text-xs font-semibold text-ink-secondary">Formato impresión</span>
+          <span className="text-xs font-bold text-accent tabular-nums" title={etiquetaLectura}>
+            {etiquetaLectura}
+          </span>
+        </div>
+      );
+    }
+    if (compact) {
+      return (
+        <div>
+          <label className={labelClass}>{labelNombre}</label>
+          <div className={lecturaCls} title={etiquetaLectura}>
+            {etiquetaLectura}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-1">
+        <label className={labelClass}>{labelNombre}</label>
+        <div className={lecturaCls} title={etiquetaLectura}>
+          {etiquetaLectura}
+        </div>
+      </div>
+    );
+  }
+
   const selectValue = nombreEnCatalogo ? value.nombre.trim() : CUSTOM_KEY;
+
+  const setValue = onChange ?? (() => {});
 
   const selCls = selectClass || inputClass;
   const triggerClass = dark
@@ -220,13 +269,13 @@ export function SelectorFormatoEtiqueta({
     setMsgGuardar("");
     if (key === CUSTOM_KEY) {
       if (nombreEnCatalogo) {
-        onChange({ nombre: "", anchoMm: value.anchoMm, altoMm: value.altoMm });
+        setValue({ nombre: "", anchoMm: value.anchoMm, altoMm: value.altoMm });
       }
       return;
     }
     const t = tipos.find((x) => x.nombre === key);
     if (!t) return;
-    onChange({ nombre: t.nombre, anchoMm: t.ancho_mm, altoMm: t.alto_mm });
+    setValue({ nombre: t.nombre, anchoMm: t.ancho_mm, altoMm: t.alto_mm });
   }
 
   function persistirTipos(next: TipoEtiqueta[], onOk?: () => void) {
@@ -265,9 +314,9 @@ export function SelectorFormatoEtiqueta({
       if (value.nombre.trim() === nombre) {
         const first = next[0];
         if (first) {
-          onChange({ nombre: first.nombre, anchoMm: first.ancho_mm, altoMm: first.alto_mm });
+          setValue({ nombre: first.nombre, anchoMm: first.ancho_mm, altoMm: first.alto_mm });
         } else {
-          onChange({ nombre: "", anchoMm: value.anchoMm, altoMm: value.altoMm });
+          setValue({ nombre: "", anchoMm: value.anchoMm, altoMm: value.altoMm });
         }
       }
     });
@@ -315,7 +364,7 @@ export function SelectorFormatoEtiqueta({
               value={value.nombre}
               onChange={(e) => {
                 setMsgGuardar("");
-                onChange({ ...value, nombre: e.target.value });
+                setValue({ ...value, nombre: e.target.value });
               }}
               placeholder="Nombre formato"
               className="w-24 rounded-lg border border-border bg-surface-panel px-2 py-1 text-xs"
@@ -328,7 +377,7 @@ export function SelectorFormatoEtiqueta({
               value={value.anchoMm}
               onChange={(e) => {
                 setMsgGuardar("");
-                onChange({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
+                setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
               title="Ancho mm"
@@ -342,7 +391,7 @@ export function SelectorFormatoEtiqueta({
               value={value.altoMm}
               onChange={(e) => {
                 setMsgGuardar("");
-                onChange({ ...value, altoMm: parseFloat(e.target.value) || 0 });
+                setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
               title="Alto mm"
@@ -381,7 +430,7 @@ export function SelectorFormatoEtiqueta({
             <input
               type="text"
               value={value.nombre}
-              onChange={(e) => onChange({ ...value, nombre: e.target.value })}
+              onChange={(e) => setValue({ ...value, nombre: e.target.value })}
               placeholder="Nombre"
               className="w-[5rem] rounded border border-white/30 bg-white/10 px-1.5 py-1 text-xs text-white focus:border-white focus:outline-none"
             />
@@ -391,7 +440,7 @@ export function SelectorFormatoEtiqueta({
               max={108}
               step={0.1}
               value={value.anchoMm}
-              onChange={(e) => onChange({ ...value, anchoMm: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 })}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
               title="Ancho mm"
             />
@@ -402,7 +451,7 @@ export function SelectorFormatoEtiqueta({
               max={406}
               step={0.1}
               value={value.altoMm}
-              onChange={(e) => onChange({ ...value, altoMm: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 })}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
               title="Alto mm"
             />
@@ -435,7 +484,7 @@ export function SelectorFormatoEtiqueta({
             value={value.nombre}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, nombre: e.target.value });
+              setValue({ ...value, nombre: e.target.value });
             }}
             placeholder="30 mL"
             className={`${inputClass} min-w-[5.5rem]`}
@@ -451,7 +500,7 @@ export function SelectorFormatoEtiqueta({
             value={value.anchoMm}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
+              setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
             }}
             className={mmInputClass}
             title="Ancho mm"
@@ -467,7 +516,7 @@ export function SelectorFormatoEtiqueta({
             value={value.altoMm}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, altoMm: parseFloat(e.target.value) || 0 });
+              setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
             }}
             className={mmInputClass}
             title="Alto mm"
@@ -504,7 +553,7 @@ export function SelectorFormatoEtiqueta({
             value={value.nombre}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, nombre: e.target.value });
+              setValue({ ...value, nombre: e.target.value });
             }}
             placeholder="30 mL"
             className={`${inputClass} w-full`}
@@ -520,7 +569,7 @@ export function SelectorFormatoEtiqueta({
             value={value.anchoMm}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
+              setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
             }}
             className={mmInputClass}
             title="Ancho mm"
@@ -536,7 +585,7 @@ export function SelectorFormatoEtiqueta({
             value={value.altoMm}
             onChange={(e) => {
               setMsgGuardar("");
-              onChange({ ...value, altoMm: parseFloat(e.target.value) || 0 });
+              setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
             }}
             className={mmInputClass}
             title="Alto mm"
