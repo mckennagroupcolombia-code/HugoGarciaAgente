@@ -1,12 +1,13 @@
 {
   "activo": true,
   "modo": "windows_compartida",
-  "sistema_operativo": "windows_10_pro",
-  "sistema_operativo_label": "Windows 10 Pro",
+  "sistema_operativo": "windows_11",
+  "sistema_operativo_label": "Windows 11",
   "sesion": "Victor Garcia",
-  "host": "192.168.5.117",
+  "host": "100.100.95.57",
   "share": "CW-C4000u",
-  "uri": "smb://192.168.5.117/CW-C4000u",
+  "uri": "smb://100.100.95.57/CW-C4000u",
+  "autenticacion_configurada": true,
   "protocolo": "smb",
-  "actualizado_at": "2026-07-11T01:43:01"
+  "actualizado_at": "2026-07-12T17:26:00"
 }

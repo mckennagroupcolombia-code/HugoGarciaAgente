@@ -24,7 +24,7 @@ _STOP = {
     "the", "and", "de", "la", "el", "en", "y", "a", "es", "se",
 }
 
-_PROMPT_CATALOGO = """Eres redactor técnico de McKenna Group. Redactas el texto impreso en la capa de materia prima de una etiqueta (no fichas con encabezados ni copy de e-commerce).
+_PROMPT_DESCRIPCION_MP = """Eres redactor técnico de McKenna Group. Redactas la capa «Descripción MP» de una etiqueta de materia prima (texto impreso en el envase).
 
 Palabras clave del usuario (solo para ubicar la ficha; no las repitas):
 "{fragmento}"
@@ -32,45 +32,60 @@ Palabras clave del usuario (solo para ubicar la ficha; no las repitas):
 Ingrediente: «{nombre_canonico}»
 {instruccion_nombre}
 
-FUENTE: usa únicamente las fichas técnicas adjuntas. Si un dato no consta, omítelo — no inventes ni rellenes con frases genéricas.
+FUENTE: usa únicamente las fichas técnicas adjuntas. Si un dato no consta, omítelo — no inventes.
 
-SALIDA:
-- Exactamente 2 párrafos, separados por línea en blanco (\\n\\n en JSON).
-- 60–85 palabras por párrafo; máximo {max_chars} caracteres en total.
-- Prosa corrida y fluida: encadena ideas con conectores naturales (y, además, mientras que, por su parte, en cuanto a su uso). Evita listas encubiertas de oraciones cortas que empiecen igual.
+FORMATO OBLIGATORIO (igual a una etiqueta técnica):
+1) Un párrafo introductorio (3–5 oraciones, ~60–110 palabras).
+2) Una línea en blanco.
+3) Exactamente el encabezado: Propiedades:
+4) 4 a 6 viñetas, cada una en su propia línea, empezando con «• » (bullet + espacio).
 
-ESTRUCTURA (integrada en prosa, sin subencabezados):
-Párrafo 1: DEBE comenzar con «Este ingrediente se presenta» (como / en / en forma de…) seguido de apariencia, aroma, sabor, origen, solubilidad o dispersión.
-Párrafo 2: en qué matrices o sectores se usa según la ficha; cierra con una frase breve sobre que el uso depende de la fórmula y la normativa.
+CONTENIDO DEL PÁRRAFO INTRO:
+- Qué es el ingrediente (activo / compuesto / extracto…) y su propósito en formulación.
+- Estado físico, pureza y grado (cosmético, alimentario, etc.) según la ficha.
+- Origen o proceso de obtención si consta.
+- Datos técnicos de uso si constan: rango de pH, concentración % recomendada, solubilidad.
+- NO abras con «Este ingrediente se presenta…» de forma obligatoria; varía el inicio
+  (p. ej. «Ingrediente activo…», «Compuesto…», «Activo de origen…»).
+
+CONTENIDO DE «Propiedades:»:
+- Cada viñeta = UNA función o beneficio técnico concreto (mecanismo, efecto en fórmula o en piel/matriz según el segmento).
+- Oraciones cortas y precisas; sin encabezados internos ni numeración.
+- Prioriza la sección PROPIEDADES / BENEFICIOS de la ficha; no copies RECOMENDACIONES de uso personal ni DOSIFICACIÓN de consumo.
 
 {instrucciones_segmento}
 
 CAPAS YA IMPRESAS EN LA ETIQUETA (no repetir ni parafrasear):
 {contexto_otras_capas}
 
-NORMATIVA MeLi (rechazo automático):
-- Es reenvase de materia prima para formulación, NO suplemento ni medicamento terminado.
-- Prohibido: claims de salud, dosis de consumo, beneficios corporales, rendimiento deportivo, ATP, metabolismo energético, «suplemento dietético», instrucciones de ingesta («tomar», «ingerir»), atletas, culturistas.
+PROHIBIDO:
+- «suplemento», «medicamento», «dosis diaria», «tomar», «ingerir», atletas, culturistas.
+- La palabra «descripción» y derivados; la palabra «insumo».
+- Instrucciones de aplicación al consumidor (lavar el rostro, aplicar noches alternas, etc.).
+- Tono de venta («nosotros», «le ofrecemos»).
 
 ESTILO:
-- Español técnico claro y legible, como una ficha bien redactada para quien formula.
-- Impersonal: sin «nosotros», sin tono de venta ni de proveedor.
-- PROHIBIDO usar la palabra «descripción» y derivados («descripción física», «descripción funcional», etc.).
-- El párrafo 1 siempre abre con «Este ingrediente se presenta…»; no empieces con «Se presenta» o «Se presentan» sin ese sujeto.
-- Varía la estructura en el resto del párrafo; no encadenes oraciones que empiecen igual («Es soluble», «Se emplea»).
-- Evita muletillas («características funcionales específicas», «optimizar el perfil», «según normativa vigente» repetido, «este ingrediente» encadenado).
-- Usa «ingrediente» (o el nombre del producto); PROHIBIDO «insumo» y derivados («insumo alimentario», «este insumo»).
-- No uses «formulación industrial», «uso industrial» ni equivalentes; prefiere «elaboración», «mezcla en planta» o el sector concreto (alimentario, cosmético, agrícola).
-- Máximo 2 veces «formulación»; no abuses de «materia prima».
+- Español técnico claro, impersonal, como ficha de etiqueta.
+- Máximo {max_chars} caracteres en total.
 
-REFERENCIA DE TONO (no copies; adapta a la ficha):
-«Este ingrediente se presenta como polvo cristalino blanco, obtenido por proceso enzimático a partir de lactosa, soluble en agua y dispersable en mezclas acuosas calientes con comportamiento estable en secado. En industria alimentaria se incorpora en bases lácteas, bebidas y productos de panificación como componente de la matriz, según el diseño de la fórmula y la normativa aplicable.»
+REFERENCIA DE FORMATO (adapta al producto de la ficha; no copies el contenido):
+«Ingrediente activo de origen natural con eficacia comprobada en el tratamiento del acné, la rosácea y la hiperpigmentación. Este polvo blanco cristalino, de alta pureza y grado cosmético, se extrae de cereales como el trigo, la cebada y el centeno. Se comporta de forma estable en fórmulas cosméticas con un pH entre 4.0 y 5.5, y puede utilizarse en concentraciones de 5% a 10% para aplicaciones de uso cosmético.
+
+Propiedades:
+• Inhibe el crecimiento de Propionibacterium acnes, reduciendo brotes e inflamación.
+• Disminuye el enrojecimiento, ardor y pápulas sin agredir la piel.
+• Actúa sobre la hiperpigmentación postinflamatoria (PIH), melasma y tono desigual.
+• Suaviza la superficie de la piel, reduce asperezas y mejora la uniformidad.
+• No es fotosensibilizante ni sensibilizante, ideal para pieles sensibles y reactivas.»
 
 FICHAS TÉCNICAS:
 {contexto}
 
 Responde ÚNICAMENTE con JSON válido:
-{{"sugerencias": [{{"texto": "párrafo 1.\\n\\npárrafo 2."}}]}}"""
+{{"sugerencias": [{{"texto": "párrafo intro.\\n\\nPropiedades:\\n• viñeta 1.\\n• viñeta 2.\\n• viñeta 3.\\n• viñeta 4."}}]}}"""
+
+# Alias legacy: el catálogo de Studio usa el mismo formato de etiqueta.
+_PROMPT_CATALOGO = _PROMPT_DESCRIPCION_MP
 
 PALABRAS_POR_PARRAFO = 80
 PALABRAS_POR_PARRAFO_MIN = 55
@@ -78,8 +93,48 @@ PALABRAS_POR_PARRAFO_MAX = 90
 PALABRAS_OBJETIVO = PALABRAS_POR_PARRAFO * 2
 PALABRAS_MIN = 110
 PALABRAS_MAX = 180
+# Descripción MP (intro + Propiedades + viñetas): rangos más amplios.
+PALABRAS_INTRO_MP_MIN = 45
+PALABRAS_INTRO_MP_MAX = 130
+PALABRAS_TOTAL_MP_MIN = 90
+PALABRAS_TOTAL_MP_MAX = 280
+VIÑETAS_MP_MIN = 3
+VIÑETAS_MP_MAX = 7
 MAX_CHARS_CATALOGO = 2600
 _JOB_TTL_SEC = 600
+
+# Riesgos duros para etiqueta física (no el filtro MeLi completo: «acné»,
+# «tratamiento» cosmético, etc. son válidos en Descripción MP).
+_RIESGO_DESCRIPCION_MP_DURO = (
+    "suplemento deportivo",
+    "suplementos deportivos",
+    "culturistas",
+    "atletas",
+    "dosis sugerida",
+    "dosis recomendada",
+    "dosis diaria",
+    "gramos diarios",
+    "gramos al dia",
+    "gramos al día",
+    "fase de carga",
+    "post-entrenamiento",
+    "post entrenamiento",
+    "aumento de masa muscular",
+    "ganancia muscular",
+    "consumo diario",
+    "porcion diaria",
+    "porción diaria",
+    "suplemento dietario",
+    "suplemento dietético",
+    "suplemento terminado",
+    "medicamento terminado",
+    "medicamento para",
+    "rendimiento deportivo",
+    "tomar",
+    "ingerir",
+    "tómalo",
+    "consumir de una",
+)
 
 _jobs_texto_magico: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
@@ -677,7 +732,13 @@ def _normalizar_apertura_parrafo1(parrafo: str) -> str:
     t = re.sub(r"\s+", " ", (parrafo or "").strip())
     if not t:
         return t
-    if re.match(r"^Este ingrediente se presenta\b", t, re.I):
+    # Formato etiqueta: permitir aperturas naturales (no forzar «Este ingrediente…»).
+    if re.match(
+        r"^(Este ingrediente se presenta|Ingrediente|Compuesto|Activo|Extracto|"
+        r"Polvo|L[ií]quido|Aceite|Sal|La\s|El\s|Los\s|Las\s)",
+        t,
+        re.I,
+    ):
         return t
     if re.match(r"^Se presentan\b", t, re.I):
         return re.sub(
@@ -700,9 +761,7 @@ def _normalizar_apertura_parrafo1(parrafo: str) -> str:
         if rest:
             return f"Este ingrediente se presenta con {rest[0].lower()}{rest[1:]}"
         return t
-    if re.match(r"^(El|La|Los|Las)\s+", t, re.I):
-        return t
-    return f"Este ingrediente se presenta como {t[0].lower()}{t[1:]}"
+    return t
 
 
 def _preferir_ingrediente_sobre_insumo(texto: str) -> str:
@@ -734,6 +793,13 @@ def _quitar_palabra_descripcion(texto: str) -> str:
 
 
 def _pulir_redaccion(texto: str) -> str:
+    if re.search(r"(?i)\bPropiedades\s*:", texto or ""):
+        partido = _partir_descripcion_mp(_normalizar_formato_descripcion_mp(texto))
+        if partido:
+            intro, bullets = partido
+            intro = _normalizar_apertura_parrafo1(_pulir_parrafo(intro))
+            bullets_limpios = [_pulir_parrafo(b) for b in bullets if b.strip()]
+            return _formatear_descripcion_mp(intro, bullets_limpios)
     bloques = re.split(r"\n\s*\n", (texto or "").strip())
     limpios: list[str] = []
     for i, bloque in enumerate(bloques):
@@ -798,6 +864,28 @@ def _redaccion_deficiente(texto: str) -> bool:
 
 
 def _post_procesar_texto(texto: str) -> str:
+    # Si ya trae el formato intro + Propiedades + viñetas, normalízalo entero
+    # sin aplastar las viñetas a prosa.
+    if re.search(r"(?i)\bPropiedades\s*:", texto or ""):
+        t = _normalizar_formato_descripcion_mp(texto)
+        partido = _partir_descripcion_mp(t)
+        if partido:
+            intro, bullets = partido
+            intro = _limpiar_apropiacion(intro)
+            intro = re.sub(r"\bApariencia:\s*", "", intro, flags=re.I)
+            intro = _preferir_ingrediente_sobre_insumo(intro)
+            intro = _quitar_palabra_descripcion(intro)
+            intro = re.sub(r" {2,}", " ", intro).strip()
+            bullets_limpios: list[str] = []
+            for b in bullets:
+                bb = _limpiar_apropiacion(b)
+                bb = _preferir_ingrediente_sobre_insumo(bb)
+                bb = _quitar_palabra_descripcion(bb)
+                bb = re.sub(r" {2,}", " ", bb).strip()
+                if bb:
+                    bullets_limpios.append(bb)
+            return _formatear_descripcion_mp(intro, bullets_limpios)
+
     bloques = re.split(r"\n\s*\n", (texto or "").strip())
     limpios: list[str] = []
     for bloque in bloques:
@@ -839,8 +927,9 @@ def _es_texto_generico(texto: str) -> bool:
 
 
 _SECCION_RE = re.compile(
-    r"(?:^|\s)(DESCRIPCI[OÓ]N|APLICACIONES|PROPIEDADES(?:\s+ORGANOL[EÉ]PTICAS)?|"
-    r"ESTABILIDAD|ALMACENAMIENTO|INFORMACI[OÓ]N NUTRICIONAL)\b",
+    r"(?:^|\s)(DESCRIPCI[OÓ]N|APLICACIONES|PROPIEDADES(?:\s+(?:ORGANOL[EÉ]PTICAS|F[IÍ]SICO[\s\-]?QU[IÍ]MICAS))?|"
+    r"BENEFICIOS|RECOMENDACIONES|DOSIFICACI[OÓ]N|ESTABILIDAD|ALMACENAMIENTO|"
+    r"INFORMACI[OÓ]N NUTRICIONAL|COMPONENTES|ADVERTENCIAS|USOS?)\b",
 )
 
 _RE_ESPECIFICACIONES = re.compile(
@@ -1003,6 +1092,148 @@ def _formatear_contexto_otras_capas(contexto_capas: dict | None) -> str:
 
 def _contiene_riesgo_meli(texto: str) -> bool:
     return bool(_señales_riesgo_meli(texto))
+
+
+def _contiene_riesgo_descripcion_mp(texto: str) -> bool:
+    """Filtro suave: solo bloquea claims de suplemento/medicamento/consumo."""
+    t = _norm(texto)
+    for p in _RIESGO_DESCRIPCION_MP_DURO:
+        pn = _norm(p).strip()
+        if pn and re.search(rf"\b{re.escape(pn)}\b", t):
+            return True
+    return False
+
+
+def _partir_descripcion_mp(texto: str) -> tuple[str, list[str]] | None:
+    """Separa intro y viñetas tras el encabezado «Propiedades:»."""
+    t = (texto or "").strip()
+    if not t:
+        return None
+    m = re.search(r"(?im)^[ \t]*Propiedades[ \t]*:[ \t]*$", t)
+    if not m:
+        # Encabezado inline en la misma línea que la primera viñeta.
+        m = re.search(r"(?im)^[ \t]*Propiedades[ \t]*:[ \t]*\n", t)
+    if not m:
+        m = re.search(r"(?i)\bPropiedades[ \t]*:", t)
+        if not m:
+            return None
+    intro = t[: m.start()].strip()
+    resto = t[m.end() :].strip()
+    # Si el match dejó el resto empezando por ":" residual, limpia.
+    resto = re.sub(r"^:\s*", "", resto)
+    bullets: list[str] = []
+    for ln in resto.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        ln = re.sub(r"^[\u2022•\-\*·\.]\s*", "", ln).strip()
+        if not ln:
+            continue
+        if not ln.endswith((".", "!", "?")):
+            ln += "."
+        bullets.append(ln)
+    if not intro or len(bullets) < 1:
+        return None
+    return intro, bullets
+
+
+def _formatear_descripcion_mp(intro: str, bullets: list[str]) -> str:
+    intro_l = re.sub(r"\s+", " ", (intro or "").strip())
+    lineas = [intro_l, "", "Propiedades:"]
+    for b in bullets:
+        t = re.sub(r"\s+", " ", (b or "").strip())
+        t = re.sub(r"^[\u2022•\-\*·\.]\s*", "", t).strip()
+        if not t:
+            continue
+        if not t.endswith((".", "!", "?")):
+            t += "."
+        lineas.append(f"• {t}")
+    return "\n".join(lineas)
+
+
+def _normalizar_formato_descripcion_mp(texto: str) -> str:
+    partido = _partir_descripcion_mp(texto)
+    if not partido:
+        return (texto or "").strip()
+    intro, bullets = partido
+    return _formatear_descripcion_mp(intro, bullets[:VIÑETAS_MP_MAX])
+
+
+def _extraer_ph_concentracion(blob: str) -> tuple[str, str]:
+    """Devuelve (frase_ph, frase_concentracion) si constan en la ficha."""
+    t = re.sub(r"\s+", " ", (blob or "").replace("\r\n", "\n"))
+    ph = ""
+    conc = ""
+    m_ph = re.search(
+        r"\bpH\b[^0-9]{0,40}?"
+        r"(\d+(?:[.,]\d+)?)\s*(?:[-–]|a|y|e)\s*(\d+(?:[.,]\d+)?)",
+        t,
+        re.I,
+    )
+    if m_ph:
+        a = m_ph.group(1).replace(",", ".")
+        b = m_ph.group(2).replace(",", ".")
+        ph = f"Se comporta de forma estable en fórmulas con un pH entre {a} y {b}."
+    else:
+        m_ph1 = re.search(r"\bpH\b[^0-9]{0,20}(\d+(?:[.,]\d+)?)", t, re.I)
+        if m_ph1:
+            v = m_ph1.group(1).replace(",", ".")
+            ph = f"Se comporta de forma estable en fórmulas con un pH cercano a {v}."
+
+    m_c = re.search(
+        r"(\d+(?:[.,]\d+)?)\s*%\s*(?:[-–]|a|al|y|e)\s*(?:el\s+)?(\d+(?:[.,]\d+)?)\s*%",
+        t,
+        re.I,
+    )
+    if m_c:
+        a = m_c.group(1).replace(",", ".")
+        b = m_c.group(2).replace(",", ".")
+        conc = (
+            f"Puede utilizarse en concentraciones de {a}% a {b}% "
+            f"según el diseño de la fórmula."
+        )
+    return ph, conc
+
+
+def _bullets_desde_ficha(blob: str, max_n: int = VIÑETAS_MP_MAX) -> list[str]:
+    """Extrae viñetas de PROPIEDADES / BENEFICIOS de la ficha."""
+    props = _seccion_ficha(blob, "PROPIEDADES") or _seccion_ficha(blob, "BENEFICIOS")
+    candidatos: list[str] = []
+    skip_uso = re.compile(
+        r"\b(lave|aplique|apliqu|espere|mantenga el producto|noches? alternas|"
+        r"limpiador|guisante|frijol|hormigueo|picor|est[aá]ndar de oro|"
+        r"lo mejor es que)\b",
+        re.I,
+    )
+    if props:
+        for o in re.split(r"(?<=[.!?])\s+", props):
+            o = o.strip()
+            if len(o) < 40:
+                continue
+            if _contiene_basura_ficha(o) or _contiene_riesgo_descripcion_mp(o):
+                continue
+            if _RE_ORACION_CONSUMIDOR.search(o) or skip_uso.search(o):
+                continue
+            candidatos.append(o if o.endswith((".", "!", "?")) else f"{o}.")
+            if len(candidatos) >= max_n:
+                break
+    if len(candidatos) >= VIÑETAS_MP_MIN:
+        return candidatos[:max_n]
+    for o in re.split(r"(?<=[.!?])\s+", blob or ""):
+        o = o.strip()
+        if len(o) < 40 or len(o) > 180:
+            continue
+        if _contiene_basura_ficha(o) or _contiene_riesgo_descripcion_mp(o):
+            continue
+        if _RE_ORACION_CONSUMIDOR.search(o) or skip_uso.search(o):
+            continue
+        if re.search(r"\b(apariencia|solubilidad|cas\b|f[oó]rmula molecular)\b", o, re.I):
+            continue
+        if o not in candidatos:
+            candidatos.append(o if o.endswith((".", "!", "?")) else f"{o}.")
+        if len(candidatos) >= max_n:
+            break
+    return candidatos[:max_n]
 
 
 def _repite_capas_etiqueta(texto: str, contexto_capas: dict | None) -> bool:
@@ -1232,20 +1463,24 @@ def _instrucciones_segmento(segmento: str) -> str:
         return (
             "SEGMENTO ALIMENTARIO:\n"
             "- Redacta para fabricantes de alimentos y bebidas.\n"
-            "- Párrafo 2: aplicaciones en industria alimentaria (premezclas, bases en polvo, "
-            "bebidas, productos intermedios).\n"
+            "- Intro: forma física, origen y rol en elaboración alimentaria.\n"
+            "- Propiedades: funciones técnicas en matriz alimentaria "
+            "(solubilidad, textura, estabilización, etc.).\n"
             "- No menciones cosmética ni farmacéutica salvo en la ficha."
         )
     if segmento == "cosmetico":
         return (
             "SEGMENTO COSMÉTICO:\n"
-            "- Redacta para formulación cosmética (emulsiones, geles, bases).\n"
+            "- Redacta para formulación cosmética (emulsiones, geles, bases, activos).\n"
+            "- Intro: origen, forma física, pH/concentración si constan, uso cosmético.\n"
+            "- Propiedades: efectos técnicos sobre piel/fórmula "
+            "(sin instrucciones de aplicación personal).\n"
             "- No menciones alimentaria ni farmacéutica salvo en la ficha."
         )
     if segmento == "farmaceutico":
         return (
             "SEGMENTO FARMACÉUTICO:\n"
-            "- Redacta para formulación farmacéutica (excipientes, vehículos).\n"
+            "- Redacta para formulación farmacéutica (excipientes, vehículos, activos técnicos).\n"
             "- No menciones alimentaria ni cosmética salvo en la ficha."
         )
     if segmento == "agricola":
@@ -1268,14 +1503,12 @@ def _instruccion_nombre_prompt(
     titulo_en_capa = _titulo_ya_en_capa(titulo_ficha, nombre_canonico, contexto_capas)
     if titulo_en_capa:
         return (
-            "El nombre ya está impreso en la capa Título: NO lo menciones. "
-            "Abre el párrafo 1 obligatoriamente con «Este ingrediente se presenta» "
-            "(como / en / en forma de…)."
+            "El nombre ya está impreso en la capa Título: NO lo menciones en el párrafo "
+            "ni en las viñetas. Habla de «este ingrediente», «el compuesto», etc."
         )
     return (
-        f"Abre el párrafo 1 con «Este ingrediente se presenta» (como / en / en forma de…). "
-        f"Puedes mencionar «{nombre_canonico}» una sola vez más adelante en el párrafo, "
-        f"pero no al inicio."
+        f"Puedes mencionar «{nombre_canonico}» como máximo una vez en el párrafo intro "
+        f"(no hace falta al inicio). No lo repitas en las viñetas."
     )
 
 
@@ -1358,7 +1591,7 @@ def _oracion_apta_descripcion_mp(oracion: str) -> bool:
         return False
     if _contiene_basura_ficha(o):
         return False
-    if _contiene_riesgo_meli(o):
+    if _contiene_riesgo_descripcion_mp(o):
         return False
     if _RE_ORACION_CONSUMIDOR.search(o):
         return False
@@ -1509,12 +1742,19 @@ def _plantilla_respaldo_catalogo(
             "fórmula; el porcentaje y el modo de incorporación dependen del producto "
             "terminado y del criterio técnico del formulador."
         )
-    p1 = _ampliar_parrafo_si_corto(
+    intro = _ampliar_parrafo_si_corto(
         _ajustar_parrafo_longitud(_unir_partes_parrafo([apertura, cuerpo_p1])),
         _relleno_p1(seg),
     )
-    p2 = _ampliar_parrafo_si_corto(_ajustar_parrafo_longitud(p2), _relleno_p2(seg))
-    return f"{p1}\n\n{p2}"
+    # Primer bullet desde el párrafo de usos del segmento; completar a 4.
+    b0 = p2 if p2.endswith((".", "!", "?")) else f"{p2.rstrip('.')}."
+    bullets = [
+        b0,
+        "Aporta estabilidad y comportamiento predecible en mezcla y homogeneización.",
+        "La concentración y el punto de incorporación dependen del diseño de la fórmula.",
+        "Compatible con matrices habituales del segmento según el perfil físico-químico.",
+    ]
+    return _formatear_descripcion_mp(intro, bullets)
 
 
 def _contiene_basura_ficha(texto: str) -> bool:
@@ -1548,17 +1788,24 @@ def _contexto_ficha_para_ia(ficha: dict) -> str:
     estab = _estabilidad_material(blob)
     if estab:
         lineas.append(f"Estabilidad del material: {estab}")
-    props = _seccion_ficha(blob, "PROPIEDADES")
+    ph, conc = _extraer_ph_concentracion(blob)
+    if ph:
+        lineas.append(f"Dato pH: {ph}")
+    if conc:
+        lineas.append(f"Dato concentración: {conc}")
+    dosis = _seccion_ficha(blob, "DOSIFICACIÓN")
+    if dosis:
+        lineas.append(f"Dosificación / rangos de uso (solo datos técnicos): {dosis[:350]}")
+    props = _seccion_ficha(blob, "PROPIEDADES") or _seccion_ficha(blob, "BENEFICIOS")
     if props:
-        lineas.append(f"Propiedades como materia prima: {props[:420]}")
+        lineas.append(f"Propiedades (usar como base de viñetas): {props[:700]}")
     if parsed.get("origen"):
         lineas.append(f"Tipo y origen: {parsed['origen']}")
     funcional = _inferir_funcional(blob + " " + parsed.get("origen", ""), parsed.get("titulo") or "")
-    lineas.append(f"Función principal: {funcional}")
-    mecanismo = _inferir_mecanismo(parsed.get("alimentaria", ""), parsed.get("origen", ""), "")
-    lineas.append(f"Mecanismo general: {mecanismo}")
+    if funcional:
+        lineas.append(f"Función principal: {funcional}")
     if parsed.get("alimentaria"):
-        lineas.append(f"Aplicaciones (párrafo 2): {parsed['alimentaria']}")
+        lineas.append(f"Aplicaciones técnicas: {parsed['alimentaria'][:350]}")
     return "\n".join(lineas)
 
 
@@ -1652,9 +1899,32 @@ def _parsear_ficha_estructurada(cuerpo: str) -> dict[str, str]:
                 break
 
     if not out.get("origen"):
+        header_stop = re.compile(
+            r"^(APLICACIONES|RECOMENDACIONES|PROPIEDADES|DOSIFICACI[OÓ]N|"
+            r"COMPONENTES|BENEFICIOS|ESTABILIDAD|ALMACENAMIENTO)\b",
+            re.I,
+        )
+        skip_uso = re.compile(
+            r"\b(aplique|apliqu|lave el|espere|noches? alternas|hormigueo|picor|"
+            r"guisante|frijol|limpiador|rostro|piel h[uú]meda)\b",
+            re.I,
+        )
         for ln in (cuerpo or "").splitlines():
             ln = ln.strip()
-            if len(ln) > 50 and re.search(r"obtenid|proceso|concentraci|deshidrat", ln, re.I):
+            if not ln:
+                continue
+            if header_stop.match(ln):
+                # Tras RECOMENDACIONES / DOSIFICACIÓN no hay origen del material.
+                if re.match(r"^(RECOMENDACIONES|DOSIFICACI[OÓ]N)\b", ln, re.I):
+                    break
+                continue
+            if skip_uso.search(ln):
+                continue
+            if len(ln) > 50 and re.search(
+                r"obtenid|extra[eí]d|derivad|sinteti[zs]|ferment|concentraci|deshidrat",
+                ln,
+                re.I,
+            ):
                 out["origen"] = _limpiar_fragmento_ficha(ln)
                 break
 
@@ -1673,15 +1943,20 @@ def _extraer_apariencia_solubilidad_blob(cuerpo: str) -> tuple[str, str]:
     t = re.sub(r"\s+", " ", (cuerpo or "").replace("\r\n", "\n")).strip()
     ap = ""
     sol = ""
+    stop = (
+        r"Olor y sabor|Solubilidad:|Libre de|Peso molecular|Punto de|"
+        r"Pureza:|Perdidas|Pérdidas|Residuos|Cloruro|Hierro|Sulfatos|"
+        r"Metales|Densidad|Acidez:|\bPROPIEDADES\b|\bAPLICACIONES\b|\bDESCRIPCI\b|$"
+    )
     m_ap = re.search(
-        r"Apariencia:\s*(.+?)(?=Olor y sabor|Solubilidad:|Libre de|\bPROPIEDADES\b|\bAPLICACIONES\b|\bDESCRIPCI\b|$)",
+        rf"Apariencia:\s*(.+?)(?={stop})",
         t,
         re.I,
     )
     if m_ap:
         ap = _sanitizar_campo_ficha(m_ap.group(1))
     m_sol = re.search(
-        r"Solubilidad:\s*(.+?)(?=Olor y sabor|Libre de|\bPROPIEDADES\b|\bAPLICACIONES\b|\bDESCRIPCI\b|$)",
+        rf"Solubilidad:\s*(.+?)(?={stop})",
         t,
         re.I,
     )
@@ -1778,46 +2053,52 @@ def _validar_texto_catalogo(
     contexto_capas: dict | None = None,
     anclas: list[str] | None = None,
 ) -> str | None:
-    t = _asegurar_dos_parrafos(_post_procesar_texto(texto))
-    if len(t) < 200:
+    t = _normalizar_formato_descripcion_mp(_post_procesar_texto(texto))
+    partido = _partir_descripcion_mp(t)
+    if not partido:
         return None
-    paras = [p for p in re.split(r"\n\s*\n", t) if p.strip()]
-    if len(paras) < 2:
+    intro, bullets = partido
+    if len(t) < 160:
         return None
-    min_p = PALABRAS_POR_PARRAFO_MIN if estricto else max(40, PALABRAS_POR_PARRAFO_MIN - 15)
-    # Margen de tolerancia reducido: el límite explícito ahora es "máximo 90
-    # palabras por párrafo" (antes el margen +25/+40 lo estiraba hasta 120/135).
-    max_p = PALABRAS_POR_PARRAFO_MAX + (10 if estricto else 20)
-    for p in paras[:2]:
-        wp = _contar_palabras(p)
-        if wp < min_p or wp > max_p:
-            return None
+
+    n_bullets = len(bullets)
+    min_b = VIÑETAS_MP_MIN if estricto else max(2, VIÑETAS_MP_MIN - 1)
+    max_b = VIÑETAS_MP_MAX if estricto else VIÑETAS_MP_MAX + 2
+    if n_bullets < min_b or n_bullets > max_b:
+        return None
+
+    w_intro = _contar_palabras(intro)
+    min_intro = PALABRAS_INTRO_MP_MIN if estricto else max(35, PALABRAS_INTRO_MP_MIN - 15)
+    max_intro = PALABRAS_INTRO_MP_MAX if estricto else PALABRAS_INTRO_MP_MAX + 30
+    if w_intro < min_intro or w_intro > max_intro:
+        return None
+
     palabras = _contar_palabras(t)
-    min_total = min_palabras if estricto else max(90, min_palabras - 30)
-    if palabras < min_total or palabras > max_palabras + 40:
+    min_total = PALABRAS_TOTAL_MP_MIN if estricto else max(70, PALABRAS_TOTAL_MP_MIN - 20)
+    max_total = PALABRAS_TOTAL_MP_MAX if estricto else PALABRAS_TOTAL_MP_MAX + 40
+    if min_palabras != PALABRAS_MIN:
+        min_total = min(min_total, min_palabras)
+    if max_palabras != PALABRAS_MAX:
+        max_total = max(max_total, max_palabras)
+    if palabras < min_total or palabras > max_total:
         return None
+
     if re.search(
         r"(DESCRIPCIÓN FÍSICA|DESCRIPCIÓN FUNCIONAL|IMPORTANCIA Y MECANISMO|"
-        r"REFERENCIA DE USO|^\s*[•\-]\s)",
+        r"REFERENCIA DE USO)",
         t,
-        re.I | re.M,
+        re.I,
     ):
         return None
-    # "APLICACIONES" sin re.I: en mayúsculas es un encabezado de ficha que se
-    # coló sin limpiar; en minúsculas ("aplicaciones industriales...") es una
-    # palabra normal e inevitable al describir usos de un insumo — con
-    # re.I cualquier texto que la usara en prosa (casi todos) se rechazaba.
     if re.search(r"\bAPLICACIONES\b", t):
         return None
     if _APROPIACION_RE.search(t):
         return None
-    if re.search(r"se emplea en Para la industria|se emplea en En la industria", t, re.I):
-        return None
     if _contiene_basura_ficha(t):
         return None
-    if _RE_ALMACENAMIENTO_P1.search(paras[0]):
+    if _RE_ALMACENAMIENTO_P1.search(intro):
         return None
-    if _contiene_riesgo_meli(t):
+    if _contiene_riesgo_descripcion_mp(t):
         return None
     if _repite_capas_etiqueta(t, contexto_capas):
         return None
@@ -1862,6 +2143,7 @@ def _aceptar_texto_ia(
         limpio = _suavizar_repeticiones(limpio, anclas, contexto_capas)
     else:
         limpio = _pulir_redaccion(limpio)
+    limpio = _normalizar_formato_descripcion_mp(limpio)
     for estricto in (True, False):
         ok = _validar_texto_catalogo(
             limpio,
@@ -1907,9 +2189,6 @@ def _fallback_catalogo(
         return []
     ficha = fichas[0]
     titulo = (ficha.get("titulo") or fragmento).strip()
-    # `titulo` puede traer el prefijo de familia de documento ("FT/COA/SDS ...")
-    # que antepone `_buscar_en_fichas_word` — útil para mostrar la fuente,
-    # pero nunca para construir el nombre del ingrediente en la prosa.
     titulo_nombre = _titulo_sin_prefijo_fuente(titulo)
     nombre = _nombre_materia_prima(titulo_nombre)
     blob = ficha.get("texto") or ""
@@ -1918,78 +2197,106 @@ def _fallback_catalogo(
 
     fisica = parsed.get("fisica", "")
     organo = parsed.get("organoleptica", "")
-    alergenos = parsed.get("alergenos", "")
     origen = parsed.get("origen", "")
-    alim = parsed.get("alimentaria", "")
-
     titulo_en_capa = _titulo_ya_en_capa(titulo_nombre, nombre, contexto_capas)
     ap, sol = _extraer_apariencia_solubilidad_blob(blob)
-    p1_partes = [_apertura_p1(segmento, titulo_en_capa, nombre)]
-    or_ap = _oracion_apariencia_fisica(ap, blob)
+
+    if titulo_en_capa:
+        if segmento == "cosmetico":
+            apertura = (
+                "Ingrediente activo de uso cosmético con perfil técnico para formulación."
+            )
+        elif segmento == "alimentario":
+            apertura = (
+                "Ingrediente alimentario de uso técnico en elaboración de matrices."
+            )
+        else:
+            apertura = "Ingrediente de uso técnico para formulación."
+    else:
+        apertura = _apertura_p1(segmento, False, nombre)
+
+    intro_partes = [apertura]
+    # Apariencia: solo la frase corta, sin arrastrar la tabla de specs.
+    ap_corta = ""
+    if ap:
+        ap_corta = re.split(r"(?<=\.)\s+|Peso molecular|Pureza:|Punto ", ap, maxsplit=1)[0].strip()
+        ap_corta = ap_corta.rstrip(".,;")
+    or_ap = _oracion_apariencia_fisica(ap_corta, blob) if ap_corta else ""
+    if not or_ap:
+        or_ap = _oracion_apariencia_fisica("", blob)
     if or_ap:
-        p1_partes.append(or_ap)
-    elif fisica and not ap:
-        fp = _oraciones_seguras_ficha(fisica, max_oraciones=1, max_palabras=35)
+        intro_partes.append(or_ap)
+    elif fisica and not ap_corta:
+        fp = _oraciones_seguras_ficha(fisica, max_oraciones=1, max_palabras=25)
         if fp:
-            p1_partes.append(f"Este ingrediente se presenta como {fp[0].lower()}{fp[1:].rstrip('.')}.")
-        elif not _contiene_riesgo_meli(fisica) and not _contiene_basura_ficha(fisica):
-            p1_partes.append(f"Se presenta como {fisica[0].lower()}{fisica[1:].rstrip('.')}.")
+            intro_partes.append(
+                f"Se presenta como {fp[0].lower()}{fp[1:].rstrip('.')}."
+            )
     or_sol = _oracion_solubilidad(sol, blob)
     if or_sol:
-        p1_partes.append(or_sol)
+        intro_partes.append(or_sol)
     if organo and _oracion_apta_descripcion_mp(organo):
-        ya_libre = re.search(r"libre de olores", " ".join(p1_partes), re.I)
-        if not (ya_libre and re.search(r"libre de olores", organo, re.I)):
-            p1_partes.append(organo)
-    if alergenos and _oracion_apta_descripcion_mp(alergenos):
-        p1_partes.append(alergenos)
-    estab_mat = _estabilidad_material(blob)
-    if estab_mat:
-        p1_partes.append(estab_mat)
-    origen_safe = _oraciones_seguras_ficha(origen, max_oraciones=2, max_palabras=50)
+        intro_partes.append(organo)
+    origen_safe = _oraciones_seguras_ficha(origen, max_oraciones=2, max_palabras=45)
     if origen_safe and origen_safe != fisica:
-        p1_partes.append(
+        intro_partes.append(
             origen_safe if origen_safe.endswith((".", "!", "?")) else f"{origen_safe}."
         )
-    p1_partes.append(_oracion_propiedades_mp(blob, parsed, nombre))
-    p1 = _ampliar_parrafo_si_corto(
-        _ajustar_parrafo_longitud(_unir_partes_parrafo(p1_partes)),
-        _relleno_p1(segmento),
-    )
+    ph, conc = _extraer_ph_concentracion(blob)
+    if ph:
+        intro_partes.append(ph)
+    if conc:
+        intro_partes.append(conc)
 
-    alim_safe = _oraciones_seguras_ficha(alim, max_oraciones=2, max_palabras=55)
-    if alim_safe:
-        if re.search(r"^en la industria", alim_safe, re.I):
-            usos = [
-                alim_safe if alim_safe.endswith((".", "!", "?")) else f"{alim_safe}."
-            ]
-        elif re.search(r"^industria ", alim_safe, re.I):
-            usos = [
-                f"Se emplea en la {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
-            ]
-        else:
-            # "alimentaria" solo cuando el segmento realmente lo es — asumirlo
-            # por defecto en el segmento "general" etiquetaba usos no
-            # alimentarios (ej. plaguicidas) como si lo fueran.
-            if segmento == "alimentario":
-                pref = "En la industria alimentaria"
-            elif segmento == "cosmetico":
-                pref = "En la industria cosmética"
-            elif segmento == "farmaceutico":
-                pref = "En la industria farmacéutica"
-            else:
-                pref = "En distintas aplicaciones"
-            usos = [
-                f"{pref}, {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
-            ]
-    else:
-        usos = [_uso_generico_p2(segmento)]
-
-    p2 = _ampliar_parrafo_si_corto(
-        _ajustar_parrafo_longitud(" ".join(usos) + _P2_CIERRE),
-        _relleno_p2(segmento),
+    intro = _ajustar_parrafo_longitud(
+        _unir_partes_parrafo(intro_partes),
+        max_palabras=PALABRAS_INTRO_MP_MAX,
     )
-    texto = _asegurar_dos_parrafos(_post_procesar_texto(f"{p1}\n\n{p2}"))
+    if _contar_palabras(intro) < PALABRAS_INTRO_MP_MIN:
+        intro = _ampliar_parrafo_si_corto(intro, _relleno_p1(segmento))
+
+    bullets = _bullets_desde_ficha(blob, max_n=VIÑETAS_MP_MAX)
+    # Filtrar viñetas demasiado cortas o coloquiales.
+    bullets = [
+        b for b in bullets
+        if len(b) >= 40
+        and not re.search(r'est[aá]ndar de oro|lo mejor es que', b, re.I)
+    ]
+    extras = {
+        "alimentario": [
+            "Mejora la solubilidad y dispersión en matrices alimentarias húmedas o secas.",
+            "Aporta estabilidad en procesos de mezcla, tamizado y homogeneización.",
+            "Condiciona textura y comportamiento organoléptico del producto elaborado.",
+            "La dosis de uso en planta depende del diseño de la fórmula alimentaria.",
+        ],
+        "cosmetico": [
+            "Aporta funcionalidad técnica en emulsiones, geles y bases cosméticas.",
+            "Favorece textura, estabilidad y comportamiento predecible en mezcla.",
+            "Compatible con fase acuosa u oleosa según su perfil físico-químico.",
+            "La concentración de uso depende del diseño de la fórmula cosmética.",
+        ],
+        "farmaceutico": [
+            "Se emplea como activo o excipiente en preparaciones técnicas.",
+            "Presenta comportamiento reológico estable en vehículos de mezcla.",
+            "Compatible con matrices sólidas, líquidas o semisólidas según perfil.",
+            "El modo de incorporación depende del diseño de la fórmula.",
+        ],
+    }.get(
+        segmento,
+        [
+            "Aporta propiedades funcionales a la matriz de formulación.",
+            "Presenta comportamiento estable en procesos de mezcla habituales.",
+            "Compatible con distintos vehículos según su perfil físico-químico.",
+            "El porcentaje de uso depende del diseño de la fórmula.",
+        ],
+    )
+    for e in extras:
+        if len(bullets) >= VIÑETAS_MP_MIN:
+            break
+        if e not in bullets:
+            bullets.append(e)
+
+    texto = _formatear_descripcion_mp(intro, bullets[:VIÑETAS_MP_MAX])
     anclas = _terminos_ancla_repeticion(fragmento, contexto_capas, titulo_nombre)
     aceptado = _aceptar_texto_ia(
         texto,

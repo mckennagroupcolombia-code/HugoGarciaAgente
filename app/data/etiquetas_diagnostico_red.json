@@ -14,5 +14,53 @@
     "host": "192.168.5.117",
     "protocolo": "smb",
     "verificado_at": "2026-07-11T09:00:09"
+  },
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 192.168.5.117 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "192.168.5.117",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T15:48:17"
+  },
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 192.168.5.107 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "192.168.5.107",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T16:36:10"
+  },
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 100.112.57.117 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "100.112.57.117",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T16:45:52"
+  },
+  {
+    "ok": false,
+    "mensaje": "Sin respuesta — 100.100.95.57 no contesta en SMB:445",
+    "detalle": "timed out",
+    "host": "100.100.95.57",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T16:55:03"
+  },
+  {
+    "ok": true,
+    "mensaje": "Conectada — 100.100.95.57 responde en SMB:445",
+    "detalle": "tcp://100.100.95.57:445",
+    "host": "100.100.95.57",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T17:03:53"
+  },
+  {
+    "ok": true,
+    "mensaje": "Conectada — 100.100.95.57 responde en SMB:445",
+    "detalle": "tcp://100.100.95.57:445",
+    "host": "100.100.95.57",
+    "protocolo": "smb",
+    "verificado_at": "2026-07-12T17:24:43"
   }
 ]

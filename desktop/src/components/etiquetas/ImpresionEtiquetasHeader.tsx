@@ -41,26 +41,21 @@ export function ImpresionEtiquetasHeader({
           <p className="text-sm font-bold">Impresión de etiquetas</p>
           <p className="truncate text-[10px] opacity-80">
             {vista === "catalogo"
-              ? "Catálogo SKU · MeLi · plantilla .ai"
+              ? "Archivos PNG listos para imprimir"
               : `Epson ColorWorks CW-C4000u${skuActivo ? ` · ${skuActivo}` : ""}`}
           </p>
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-lg border border-white/25 bg-white/10 p-0.5">
-        {(["catalogo", "documento"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onVistaChange(v)}
-            className={`mck-press rounded-md px-3 py-1.5 text-[10px] font-semibold transition ${
-              vista === v ? "bg-white text-accent shadow-sm" : "text-white/90 hover:bg-white/15"
-            }`}
-          >
-            {v === "catalogo" ? "Catálogo" : "Ajustar"}
-          </button>
-        ))}
-      </div>
+      {vista === "documento" && (
+        <button
+          type="button"
+          onClick={() => onVistaChange("catalogo")}
+          className="mck-press rounded-lg border border-white/30 px-3 py-1.5 text-[10px] font-semibold text-white/90 hover:bg-white/15"
+        >
+          ← Volver a archivos
+        </button>
+      )}
 
       {mostrarEstado && (
         <Badge

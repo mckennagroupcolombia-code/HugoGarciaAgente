@@ -725,7 +725,6 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "pedidos",    label: "Pedidos Web" },
   { id: "logistica-internacional", label: "Logística Internacional" },
   { id: "etiquetas",  label: "Impresora · Etiquetas" },
-  { id: "etiquetas-config", label: "Configurar productos" },
   { id: "placas-concreto", label: "Placas de Concreto" },
   { id: "tickets",    label: "Centro de Mando" },
   { id: "settings",   label: "Ajustes" },
@@ -809,7 +808,7 @@ function PermisosEditor({
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Secciones del panel</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
           {SIDEBAR_SECCIONES.map((s) => {
-            const siempreActivo = s.id === "etiquetas" || s.id === "etiquetas-config";
+            const siempreActivo = s.id === "etiquetas";
             return (
             <label key={s.id} className={`flex items-center gap-2 text-sm text-ink ${siempreActivo ? "opacity-70" : "cursor-pointer"}`}>
               <input

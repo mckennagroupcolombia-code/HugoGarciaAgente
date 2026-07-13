@@ -26,11 +26,10 @@ import {
   TAMANO_TEXTO_MIN,
   TAMANO_TEXTO_MAX,
   ajustarTamanoTexto,
-  escalarPlantillaAFormato,
   labelFormato,
   patchMoverElemento,
   posicionNuevoElemento,
-  presetsResolucionExport,
+  presetExportImpresionDefault,
   pesoMontserratVariante,
   resolverSeleccionAlClic,
   seleccionTieneGrupo,
@@ -60,11 +59,13 @@ import {
 import { GHSIconsPicker } from "../GHSIconsPicker";
 import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
-import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
+import EditorDescripcionMp from "./EditorDescripcionMp";
+import TextosRapidos from "./TextosRapidos";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
+import { esTextoDescripcionMpEstructurado } from "../../lib/descripcionMpTexto";
 
 interface Props {
   doc: PlantillaVisualDoc;
@@ -402,6 +403,8 @@ export default function VisualCanvasEditor({
     origs: Map<string, ElementoVisual>;
     rotateStartAngle?: number;
     rotateOrig?: number;
+    /** true cuando el gesto ya superó el umbral de arrastre */
+    moved?: boolean;
   } | null>(null);
   const [marquee, setMarquee] = useState<{
     x0: number;
@@ -424,20 +427,18 @@ export default function VisualCanvasEditor({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
-  const [formatoModalAbierto, setFormatoModalAbierto] = useState(false);
-  const presetsExport = useMemo(() => presetsResolucionExport(doc.formato), [doc.formato]);
-  // Export siempre a máxima resolución: se quitó el selector de escala.
+  // Etiquetas: 600 DPI (Epson). Otros formatos: mejor preset disponible.
   const presetExportActivo = useMemo(
-    () => presetsExport.find((p) => p.id === "4x") ?? presetsExport[presetsExport.length - 1],
-    [presetsExport],
+    () => presetExportImpresionDefault(doc.formato),
+    [doc.formato],
   );
-  const escalaExport = presetExportActivo?.escala ?? 4;
+  const escalaExport = presetExportActivo?.escala ?? 1;
   const [ghsAbierto, setGhsAbierto] = useState(false);
   const [ean13Abierto, setEan13Abierto] = useState(false);
   // Ancho del panel derecho y alto de la sección "Capas" (Inspector ocupa el resto),
   // ambos ajustables arrastrando los separadores — ver `iniciarResizePanel`.
-  const [panelAncho, setPanelAncho] = useState(240);
-  const [capasAltura, setCapasAltura] = useState(200);
+  const [panelAncho, setPanelAncho] = useState(300);
+  const [capasAltura, setCapasAltura] = useState(180);
   const resizingPanelRef = useRef<{ kind: "ancho" | "altura"; startPos: number; startVal: number } | null>(null);
   const suppressDeselectRef = useRef(false);
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -800,11 +801,38 @@ export default function VisualCanvasEditor({
     origs: Map<string, ElementoVisual>;
     rotateStartAngle?: number;
     rotateOrig?: number;
+    moved?: boolean;
   } | null>(null);
+  /** Segundo clic en texto ya seleccionado → editar en lienzo (si no hubo arrastre). */
+  const pendingTextEditRef = useRef<string | null>(null);
+
+  const iniciarEdicionInline = useCallback((el: ElementoTexto) => {
+    if (el.locked) return;
+    setEditandoInlineId(el.id);
+    setEditandoInlineTexto(el.content);
+    setSeleccionIds([el.id]);
+    setTimeout(() => {
+      const ta = editandoInlineRef.current;
+      if (ta) {
+        ta.focus();
+        // No select() todo el bloque largo: cursor al final es más usable.
+        const len = ta.value.length;
+        ta.setSelectionRange(len, len);
+      }
+    }, 0);
+  }, []);
 
   const onPointerDownEl = (e: ReactPointerEvent, el: ElementoVisual, mode: DragMode) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const yaSolo =
+      mode === "move" &&
+      el.type === "text" &&
+      !e.shiftKey &&
+      seleccionIds.length === 1 &&
+      seleccionIds[0] === el.id;
+    pendingTextEditRef.current = yaSolo ? el.id : null;
 
     const nextIds = resolverSeleccionAlClic(el, doc.elementos, seleccionIds, e.shiftKey);
     setSeleccionIds(nextIds);
@@ -841,6 +869,7 @@ export default function VisualCanvasEditor({
       startX: e.clientX,
       startY: e.clientY,
       origs,
+      moved: false,
     };
 
     if (mode === "rotate") {
@@ -853,6 +882,7 @@ export default function VisualCanvasEditor({
         ...dragBase,
         rotateStartAngle: (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI,
         rotateOrig: o.rotation || 0,
+        moved: true,
       };
       dragRef.current = full;
       setDrag(full);
@@ -933,6 +963,13 @@ export default function VisualCanvasEditor({
       const dx = (ev.clientX - d.startX) / scale;
       const dy = (ev.clientY - d.startY) / scale;
       if (d.mode === "move") {
+        // Umbral: sin esto, un segundo clic para editar mueve el texto 1–2 px.
+        if (!d.moved) {
+          if (Math.hypot(dx, dy) < 5) return;
+          d.moved = true;
+          dragRef.current = d;
+          pendingTextEditRef.current = null;
+        }
         patchElementos((els) =>
           els.map((e) => {
             const o = d.origs.get(e.id);
@@ -1006,7 +1043,28 @@ export default function VisualCanvasEditor({
         marqueeRef.current = null;
         setMarquee(null);
         suppressDeselectRef.current = true;
+        pendingTextEditRef.current = null;
         return;
+      }
+      const d = dragRef.current;
+      const pendingId = pendingTextEditRef.current;
+      pendingTextEditRef.current = null;
+      if (
+        pendingId &&
+        d &&
+        d.mode === "move" &&
+        !d.moved &&
+        d.ids.length === 1 &&
+        d.ids[0] === pendingId
+      ) {
+        const el = elementosRef.current.find((x) => x.id === pendingId);
+        if (el && el.type === "text" && !el.locked) {
+          suppressDeselectRef.current = true;
+          dragRef.current = null;
+          setDrag(null);
+          iniciarEdicionInline(el);
+          return;
+        }
       }
       if (dragRef.current) suppressDeselectRef.current = true;
       dragRef.current = null;
@@ -1020,17 +1078,37 @@ export default function VisualCanvasEditor({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [patchElemento, patchElementos, punteroEnLienzo, zoom]);
+  }, [iniciarEdicionInline, patchElemento, patchElementos, punteroEnLienzo, zoom]);
 
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
       const tag = (ev.target as HTMLElement)?.tagName;
       const editando = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if (ev.key === "Escape") {
+        if (editandoInlineId) {
+          cancelEditInline();
+          return;
+        }
         setSeleccionIds([]);
         setMarquee(null);
         marqueeRef.current = null;
         return;
+      }
+      if (
+        !editando &&
+        !editandoInlineId &&
+        ev.key === "Enter" &&
+        !ev.ctrlKey &&
+        !ev.metaKey &&
+        !ev.altKey &&
+        seleccionIds.length === 1
+      ) {
+        const el = doc.elementos.find((x) => x.id === seleccionIds[0]);
+        if (el && el.type === "text" && !el.locked) {
+          ev.preventDefault();
+          iniciarEdicionInline(el);
+          return;
+        }
       }
       if (
         !editando &&
@@ -1074,7 +1152,7 @@ export default function VisualCanvasEditor({
         desagruparSeleccion();
         return;
       }
-      if ((ev.key === "Delete" || ev.key === "Backspace") && !editando && seleccionIds.length) {
+      if ((ev.key === "Delete" || ev.key === "Backspace") && !editando && !editandoInlineId && seleccionIds.length) {
         ev.preventDefault();
         const quitar = new Set(seleccionIds);
         patchElementos((els) => els.filter((e) => !quitar.has(e.id)));
@@ -1087,6 +1165,7 @@ export default function VisualCanvasEditor({
           ev.key === "ArrowLeft" ||
           ev.key === "ArrowRight") &&
         !editando &&
+        !editandoInlineId &&
         seleccionIds.length
       ) {
         ev.preventDefault();
@@ -1113,6 +1192,8 @@ export default function VisualCanvasEditor({
     deshacer,
     desagruparSeleccion,
     doc.elementos,
+    editandoInlineId,
+    iniciarEdicionInline,
     patchElementos,
     rehacer,
     seleccionIds,
@@ -1193,12 +1274,15 @@ export default function VisualCanvasEditor({
 
   function labelCapa(el: ElementoVisual): string {
     if (el.type === "text") {
-      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
-      if (palabras.length > 0) return palabras.slice(0, 2).join(" ");
       const rol = inferirRolTextoCapa(el, doc.elementos);
-      if (rol === "descripcion") return "Descripción MP";
-      if (rol && rol !== "otro") return labelRolTextoCapa(rol);
-      return "Texto";
+      const rolLabel = labelRolTextoCapa(rol);
+      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
+      if (palabras.length === 0) return rolLabel;
+      // Roles clave: mostrar el rol, no las primeras palabras del párrafo.
+      if (rol === "descripcion" || rol === "titulo" || rol === "subtitulo") {
+        return rolLabel;
+      }
+      return palabras.slice(0, 2).join(" ");
     }
     if (el.type === "image") return "Imagen";
     if (el.type === "rect") return "Rectángulo";
@@ -1287,23 +1371,12 @@ export default function VisualCanvasEditor({
           onChange={(e) => onChange({ ...doc, nombre: e.target.value })}
           className="min-w-[8rem] flex-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium text-white outline-none focus:border-accent/50"
         />
-        <button
-          type="button"
-          onClick={() => setFormatoModalAbierto(true)}
-          title="Cambiar el formato de esta plantilla"
-          className="hidden rounded px-1.5 py-0.5 text-[11px] text-neutral-400 hover:bg-white/10 hover:text-white sm:inline"
+        <span
+          className="hidden rounded px-1.5 py-0.5 text-[11px] text-neutral-400 sm:inline"
+          title="Formato de la plantilla"
         >
-          {labelFormato(doc.formato)} ✎
-        </button>
-        <CambiarFormatoModal
-          abierta={formatoModalAbierto}
-          formatoActual={doc.formato}
-          onCerrar={() => setFormatoModalAbierto(false)}
-          onElegir={(formato, categoriaId) => {
-            onChange(escalarPlantillaAFormato(doc, formato, categoriaId));
-            setFormatoModalAbierto(false);
-          }}
-        />
+          {labelFormato(doc.formato)}
+        </span>
         <ToolBtn
           title="Deshacer (Ctrl+Z)"
           onClick={deshacer}
@@ -1369,7 +1442,7 @@ export default function VisualCanvasEditor({
           )}
           <div
             className="flex max-w-[11rem] items-center gap-1 rounded-md border border-white/15 px-2 py-1"
-            title={`Escala fija a máxima resolución${presetExportActivo?.hint ? ` · ${presetExportActivo.hint}` : ""}`}
+            title={`Exportar a resolución de impresión${presetExportActivo?.hint ? ` · ${presetExportActivo.hint}` : ""}`}
           >
             <span className="shrink-0 text-[10px] text-neutral-400">Export</span>
             <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-neutral-200">
@@ -1597,7 +1670,11 @@ export default function VisualCanvasEditor({
                             top: 0,
                             width: hit.w,
                             height: hit.h,
-                            cursor: el.locked ? "default" : "move",
+                            cursor: el.locked
+                              ? "default"
+                              : sel && !editandoEste
+                                ? "text"
+                                : "move",
                             touchAction: "none",
                             zIndex: 1,
                           }}
@@ -1608,12 +1685,8 @@ export default function VisualCanvasEditor({
                           onDoubleClick={(e) => {
                             e.stopPropagation();
                             if (el.locked) return;
-                            setEditandoInlineId(el.id);
-                            setEditandoInlineTexto(el.content);
-                            setTimeout(() => {
-                              const ta = editandoInlineRef.current;
-                              if (ta) { ta.focus(); ta.select(); }
-                            }, 0);
+                            pendingTextEditRef.current = null;
+                            iniciarEdicionInline(el);
                           }}
                         />
                         {esHover && (
@@ -1622,23 +1695,35 @@ export default function VisualCanvasEditor({
                             T · {labelCapa(el)}
                           </div>
                         )}
+                        {sel && !editandoEste && !esHover && (
+                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
+                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            Clic para editar · Enter
+                          </div>
+                        )}
                         {editandoEste ? (
                           <textarea
                             ref={editandoInlineRef}
                             value={editandoInlineTexto}
                             onChange={(e) => setEditandoInlineTexto(e.target.value)}
+                            onPointerDown={(e) => e.stopPropagation()}
                             onBlur={commitEditInline}
                             onKeyDown={(e) => {
                               e.stopPropagation();
                               if (e.key === "Escape") { e.preventDefault(); cancelEditInline(); }
-                              if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); commitEditInline(); }
-                              // Enter solo inserta línea nueva (comportamiento nativo del textarea)
+                              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                e.preventDefault();
+                                commitEditInline();
+                              }
                             }}
                             style={{
                               position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
+                              left: 0,
+                              top: 0,
+                              width: Math.max(hit.w, el.width, 120),
+                              height: Math.max(hit.h, el.height, el.fontSize * 3),
+                              minWidth: el.width,
+                              minHeight: Math.max(el.height, el.fontSize * 2),
                               color: el.color,
                               fontSize: `${el.fontSize}px`,
                               fontFamily: el.fontFamily,
@@ -1647,15 +1732,16 @@ export default function VisualCanvasEditor({
                               whiteSpace: "pre-wrap",
                               lineHeight: el.lineHeight ?? 1.2,
                               wordBreak: "break-word",
-                              resize: "none",
-                              background: "rgba(255,255,255,0.93)",
-                              border: "1px solid rgba(1, 109, 130, 0.85)",
+                              resize: "both",
+                              background: "rgba(255,255,255,0.96)",
+                              border: "1.5px solid rgba(1, 109, 130, 0.9)",
                               borderRadius: "2px",
                               outline: "none",
-                              padding: 0,
+                              padding: "2px 3px",
                               margin: 0,
-                              overflow: "hidden",
+                              overflow: "auto",
                               zIndex: 9999,
+                              boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
                             }}
                           />
                         ) : (
@@ -2037,6 +2123,17 @@ export default function VisualCanvasEditor({
                             <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
                               {labelCapa(el)}
                             </span>
+                            {el.type === "text" && (() => {
+                              const rol = inferirRolTextoCapa(el, doc.elementos);
+                              if (!rol || rol === "otro") return null;
+                              const short =
+                                rol === "descripcion" ? "MP" : rol === "titulo" ? "Tít" : "Sub";
+                              return (
+                                <span className="ml-auto shrink-0 rounded bg-accent/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-accent">
+                                  {short}
+                                </span>
+                              );
+                            })()}
                           </button>
                           <button
                             type="button"
@@ -2071,6 +2168,11 @@ export default function VisualCanvasEditor({
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
               Inspector
             </p>
+            <TextosRapidos
+              elementos={doc.elementos}
+              seleccionId={seleccionIds.length === 1 ? seleccionIds[0] : null}
+              onSeleccionar={(id) => setSeleccionIds([id])}
+            />
               <>
                 {seleccionIds.length > 1 ? (
                   <div className="space-y-3 text-sm">
@@ -2182,39 +2284,76 @@ export default function VisualCanvasEditor({
                       </label>
                       {esDescripcion && (
                         <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-2 py-1.5 text-[10px] leading-snug text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-                          Texto de descripción para etiqueta: describe la materia prima en tono
-                          técnico de formulación. Evita repetir título/subtítulo y claims de
-                          consumo (dosis, suplemento, salud) que MeLi puede marcar como
-                          infracción.
+                          Edita intro y viñetas por separado. Evita claims de suplemento /
+                          medicamento / dosis de consumo.
                         </p>
                       )}
                     </>
                   );
                 })()}
-                <label>
-                  <span className="text-xs text-muted">Contenido</span>
-                  <textarea
-                    ref={contenidoTextareaRef}
-                    rows={Math.min(16, Math.max(3, (seleccionado.content || "").split("\n").length))}
-                    value={seleccionado.content}
-                    onChange={(e) =>
-                      actualizarContenidoTexto(
-                        seleccionado.id,
-                        e.target.value,
-                        e.target.selectionStart,
-                        e.target.selectionEnd,
-                      )
+                <div>
+                  {(() => {
+                    const esDescripcionMP = esCapaDescripcionMateriaPrima(
+                      seleccionado,
+                      doc.elementos,
+                    );
+                    const usarEstructurado =
+                      esDescripcionMP ||
+                      esTextoDescripcionMpEstructurado(seleccionado.content || "");
+
+                    if (usarEstructurado) {
+                      return (
+                        <EditorDescripcionMp
+                          value={seleccionado.content || ""}
+                          onChange={(texto) =>
+                            patchElemento(seleccionado.id, {
+                              content: autoCorregirTextoContenido(texto),
+                            })
+                          }
+                          textareaRef={contenidoTextareaRef}
+                          onPlainChange={(valor, selStart, selEnd) =>
+                            actualizarContenidoTexto(
+                              seleccionado.id,
+                              valor,
+                              selStart,
+                              selEnd,
+                            )
+                          }
+                        />
+                      );
                     }
-                    onBlur={(e) =>
-                      actualizarContenidoTexto(
-                        seleccionado.id,
-                        e.target.value,
-                        e.target.selectionStart,
-                        e.target.selectionEnd,
-                      )
-                    }
-                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs leading-relaxed"
-                  />
+
+                    return (
+                      <label>
+                        <span className="text-xs text-muted">Contenido</span>
+                        <textarea
+                          ref={contenidoTextareaRef}
+                          rows={Math.min(
+                            10,
+                            Math.max(3, (seleccionado.content || "").split("\n").length),
+                          )}
+                          value={seleccionado.content}
+                          onChange={(e) =>
+                            actualizarContenidoTexto(
+                              seleccionado.id,
+                              e.target.value,
+                              e.target.selectionStart,
+                              e.target.selectionEnd,
+                            )
+                          }
+                          onBlur={(e) =>
+                            actualizarContenidoTexto(
+                              seleccionado.id,
+                              e.target.value,
+                              e.target.selectionStart,
+                              e.target.selectionEnd,
+                            )
+                          }
+                          className="min-h-[64px] w-full resize-y rounded border border-border bg-surface px-2 py-1 text-xs leading-relaxed"
+                        />
+                      </label>
+                    );
+                  })()}
                   {(() => {
                     const esDescripcionMP = esCapaDescripcionMateriaPrima(
                       seleccionado,
@@ -2286,7 +2425,7 @@ export default function VisualCanvasEditor({
                       />
                     );
                   })()}
-                </label>
+                </div>
                 <label>
                   <span className="text-xs text-muted">Tipografía</span>
                   <select

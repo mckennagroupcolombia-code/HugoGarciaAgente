@@ -8288,12 +8288,21 @@ def register_routes(app):
         return _uri_es_red_etiquetas(env_uri)
 
     def _armar_uri_windows_smb_etiquetas(host: str, share: str = "CW-C4000u") -> str:
-        """URI SMB nativa de Windows (compartir impresora). Preferida en Win10 Pro."""
+        """URI SMB nativa de Windows (compartir impresora). Preferida en Win10/11.
+
+        Si hay credenciales de la cuenta de servicio en ETIQUETAS_SMB_USER/ETIQUETAS_SMB_PASS
+        (la cuenta Invitado viene deshabilitada de fábrica en Windows), se embeben en la URI
+        codificadas para autenticar el backend smb:// de CUPS.
+        """
+        from urllib.parse import quote as _quote_smb
         h = (host or "").strip().rstrip("/")
         s = (share or "CW-C4000u").strip().strip("/")
         if not h:
             return ""
-        return f"smb://{h}/{s}"
+        usuario = os.environ.get("ETIQUETAS_SMB_USER", "").strip()
+        clave = os.environ.get("ETIQUETAS_SMB_PASS", "")
+        cred = f"{_quote_smb(usuario, safe='')}:{_quote_smb(clave, safe='')}@" if usuario and clave else ""
+        return f"smb://{cred}{h}/{s}"
 
     def _armar_uri_windows_ipp_etiquetas(host: str, share: str = "CW-C4000u") -> str:
         """URI IPP opcional (requiere Internet Printing Server / IIS en Windows)."""
@@ -8325,8 +8334,13 @@ def register_routes(app):
         sistema_operativo: str = "windows_10_pro",
         sesion: str = "Jenniffer Garcia",
     ) -> tuple[bool, str, list[str]]:
-        """Apunta CW-C4000u a la impresora compartida en Windows 10 Pro (SMB por defecto)."""
+        """Apunta CW-C4000u a la impresora compartida en Windows (SMB por defecto)."""
+        import re as _re_smb
         import subprocess as _sp
+
+        def _sin_credenciales(u: str) -> str:
+            # No persistir ni loguear user:pass@ embebidos en la URI SMB.
+            return _re_smb.sub(r"//[^@/]+@", "//", u or "")
 
         log: list[str] = []
         destino = (uri or "").strip() or _armar_uri_windows_smb_etiquetas(host, share)
@@ -8346,6 +8360,9 @@ def register_routes(app):
         ppd_repo = os.path.join(_REPO_EPSON_DIR, "CW-C4000u.ppd")
         ppd = ppd_cups if os.path.isfile(ppd_cups) else (ppd_repo if os.path.isfile(ppd_repo) else None)
 
+        destino_log = _sin_credenciales(destino)
+        tiene_credenciales = destino_log != destino
+
         cmds: list[list[str]] = []
         if ppd:
             cmds.append(["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", destino, "-P", ppd])
@@ -8355,17 +8372,18 @@ def register_routes(app):
         ok = False
         detalle = ""
         for cmd in cmds:
+            cmd_log = [_sin_credenciales(arg) if arg == destino else arg for arg in cmd]
             try:
                 r = _sp.run(cmd, capture_output=True, text=True, timeout=45)
-                out = (r.stdout + r.stderr).strip()
-                log.append(f"{' '.join(cmd)} → {out or f'rc={r.returncode}'}")
+                out = _sin_credenciales((r.stdout + r.stderr).strip())
+                log.append(f"{' '.join(cmd_log)} → {out or f'rc={r.returncode}'}")
                 if r.returncode == 0:
                     ok = True
-                    detalle = destino
+                    detalle = destino_log
                     break
                 detalle = out or f"rc={r.returncode}"
             except Exception as e:
-                log.append(f"{cmd}: {e}")
+                log.append(f"{cmd_log}: {e}")
                 detalle = str(e)
 
         if ok:
@@ -8376,20 +8394,23 @@ def register_routes(app):
             so = (sistema_operativo or "windows_10_pro").strip() or "windows_10_pro"
             ses = (sesion or "Jenniffer Garcia").strip() or "Jenniffer Garcia"
             proto = _protocolo_uri_etiquetas(destino) or "smb"
+            so_labels = {"windows_10_pro": "Windows 10 Pro", "windows_11": "Windows 11"}
             _save_impresora_remoto_etiquetas({
                 "activo": True,
                 "modo": "windows_compartida",
                 "sistema_operativo": so,
-                "sistema_operativo_label": "Windows 10 Pro" if "10" in so else so,
+                "sistema_operativo_label": so_labels.get(so, so),
                 "sesion": ses,
                 "host": (host or "").strip(),
                 "share": (share or "CW-C4000u").strip(),
-                "uri": destino,
+                "uri": destino_log,
+                "autenticacion_configurada": tiene_credenciales,
                 "protocolo": proto,
                 "actualizado_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
             })
-            log.append(f"Cola {_PRINTER_NAME} → {destino} ({so} / {ses} / {proto})")
-            return True, destino, log
+            log.append(f"Cola {_PRINTER_NAME} → {destino_log} ({so} / {ses} / {proto}"
+                        + (", con autenticación" if tiene_credenciales else "") + ")")
+            return True, destino_log, log
         return False, detalle or "lpadmin falló", log
 
     def _epson_usb_detectado_etiquetas() -> str | None:
@@ -12330,11 +12351,27 @@ def register_routes(app):
 
     # ── Editor Plantillas Visuales ───────────────────────────────────────────
 
+    def _require_studio_visual():
+        """Auth + acceso Etiquetas avanzadas (solo Cynthia). Response de error o None."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tickets_db import es_cynthia_etiquetas
+
+        if not es_cynthia_etiquetas(_panel_tickets_usuario()):
+            return jsonify({
+                "error": "Esta sección de Etiquetas solo está disponible para Cynthia",
+            }), 403
+        return None
+
+    def _require_cynthia_etiquetas():
+        return _require_studio_visual()
+
     @app.route("/api/plantillas-visuales", methods=["GET", "POST"])
     @app.route("/app/api/plantillas-visuales", methods=["GET", "POST"])
     def api_plantillas_visuales():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import (
             guardar_plantilla,
             listar_carpetas_plantillas,
@@ -12363,8 +12400,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/carpetas", methods=["GET", "POST"])
     @app.route("/app/api/plantillas-visuales/carpetas", methods=["GET", "POST"])
     def api_plantillas_visuales_carpetas():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import (
             crear_carpeta_plantilla,
             listar_todas_carpetas_plantillas,
@@ -12385,8 +12423,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/mover", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/mover", methods=["POST"])
     def api_plantillas_visuales_mover():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import mover_plantillas
 
         body = request.get_json(silent=True) or {}
@@ -12399,8 +12438,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/carpetas/renombrar", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/carpetas/renombrar", methods=["POST"])
     def api_plantillas_visuales_renombrar_carpeta():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import renombrar_carpeta_plantilla
 
         body = request.get_json(silent=True) or {}
@@ -12415,8 +12455,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
     @app.route("/app/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
     def api_plantillas_visuales_id(plantilla_id: str):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import eliminar_plantilla, obtener_plantilla
 
         if request.method == "GET":
@@ -12433,8 +12474,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/exportar", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/exportar", methods=["POST"])
     def api_plantillas_visuales_exportar():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         import base64 as _b64
 
         from app.tools.plantillas_visuales import exportar_pdf, exportar_raster, obtener_plantilla
@@ -12471,8 +12513,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/assets", methods=["GET", "POST"])
     @app.route("/app/api/plantillas-visuales/assets", methods=["GET", "POST"])
     def api_plantillas_visuales_assets_upload():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import guardar_asset, listar_assets
 
         if request.method == "GET":
@@ -12493,11 +12536,12 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/assets/<path:nombre>", methods=["GET", "DELETE"])
     @app.route("/app/api/plantillas-visuales/assets/<path:nombre>", methods=["GET", "DELETE"])
     def api_plantillas_visuales_assets_get(nombre: str):
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_visuales import eliminar_asset, ruta_asset
 
         if request.method == "DELETE":
-            if not _api_token_valido():
-                return jsonify({"error": "No autorizado"}), 401
             if not eliminar_asset(nombre):
                 return jsonify({"error": "No encontrado"}), 404
             return jsonify({"ok": True})
@@ -12518,8 +12562,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/texto-sugerir", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/texto-sugerir", methods=["POST"])
     def api_plantillas_visuales_texto_sugerir():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_texto_ia import iniciar_sugerencia_texto_job
 
         body = request.get_json(silent=True) or {}
@@ -12541,8 +12586,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/texto-sugerir/<job_id>", methods=["GET"])
     @app.route("/app/api/plantillas-visuales/texto-sugerir/<job_id>", methods=["GET"])
     def api_plantillas_visuales_texto_sugerir_job(job_id: str):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_texto_ia import estado_sugerencia_texto_job
 
         job = estado_sugerencia_texto_job(job_id)
@@ -12562,8 +12608,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/cas-por-titulo", methods=["GET"])
     @app.route("/app/api/plantillas-visuales/cas-por-titulo", methods=["GET"])
     def api_plantillas_visuales_cas_por_titulo():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         from app.tools.plantillas_texto_ia import buscar_cas_por_titulo
 
         titulo = (request.args.get("titulo") or "").strip()
@@ -12580,8 +12627,9 @@ def register_routes(app):
     @app.route("/api/plantillas-visuales/generar-ia", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/generar-ia", methods=["POST"])
     def api_plantillas_visuales_generar_ia():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_studio_visual()
+        if denied:
+            return denied
         import json as _json
         import anthropic
 
@@ -12812,15 +12860,85 @@ REGLAS:
                 pass
         return None, None
 
-    def _registrar_png_recurso(nombre: str, ruta_completa: str, bytes_size: int) -> dict:
+    def _meta_formato_png_desde_request() -> dict:
+        """Lee tipo_etiqueta / mm / dpi / escala desde form (POST multipart) o JSON."""
+        src = request.form if request.form else {}
+        if not src and request.is_json:
+            src = request.get_json(silent=True) or {}
+        out: dict = {}
+        tipo = (src.get("tipo_etiqueta") or "").strip()
+        if tipo:
+            out["tipo_etiqueta"] = tipo[:80]
+        for key in ("ancho_mm", "alto_mm", "dpi", "escala"):
+            raw = src.get(key)
+            if raw in (None, ""):
+                continue
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if val > 0:
+                out[key] = round(val, 4) if key != "escala" else round(val, 2)
+        return out
+
+    def _meta_formato_png_de_indice(ruta: str, nombre: str = "") -> dict:
+        """Recupera formato guardado; si falta, infiere desde nombre/píxeles."""
+        ruta_real = os.path.realpath(ruta or "")
+        base = os.path.basename(nombre or ruta_real)
+        for it in _load_png_recursos_etiquetas():
+            if os.path.realpath(it.get("ruta_completa") or "") == ruta_real:
+                meta = {
+                    k: it[k]
+                    for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala")
+                    if it.get(k) not in (None, "")
+                }
+                if meta.get("ancho_mm") and meta.get("alto_mm"):
+                    return meta
+                break
+        try:
+            from app.tools.etiquetas_studio import enriquecer_recurso_png
+            carpeta = os.path.realpath(_carpeta_png_recursos_etiquetas())
+            if ruta_real.startswith(carpeta + os.sep):
+                rel = os.path.relpath(ruta_real, carpeta).replace("\\", "/")
+            else:
+                rel = base
+            enr = enriquecer_recurso_png(rel)
+            return {
+                k: enr[k]
+                for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi")
+                if enr.get(k) not in (None, "")
+            }
+        except Exception:
+            return {}
+
+    def _registrar_png_recurso(
+        nombre: str,
+        ruta_completa: str,
+        bytes_size: int,
+        meta: dict | None = None,
+    ) -> dict:
         import uuid as _uuid_png
         items = _load_png_recursos_etiquetas()
+        prev = next(
+            (a for a in items if a.get("ruta_completa") == ruta_completa),
+            None,
+        )
         items = [a for a in items if a.get("ruta_completa") != ruta_completa]
         rel = os.path.relpath(ruta_completa, _PDF_DIR) if ruta_completa.startswith(_PDF_DIR) else nombre
+        # Nombre relativo dentro de Recursos PNG (permite subcarpetas en el índice).
+        try:
+            carpeta_png = os.path.realpath(_carpeta_png_recursos_etiquetas())
+            ruta_real = os.path.realpath(ruta_completa)
+            if ruta_real.startswith(carpeta_png + os.sep):
+                nombre_idx = os.path.relpath(ruta_real, carpeta_png).replace("\\", "/")
+            else:
+                nombre_idx = nombre
+        except Exception:
+            nombre_idx = nombre
         thumb_b64, thumb_mime = _thumb_png_b64(ruta_completa)
         entry = {
             "id": _uuid_png.uuid4().hex[:12],
-            "nombre": nombre,
+            "nombre": nombre_idx,
             "ruta": rel.replace("\\", "/"),
             "ruta_completa": ruta_completa,
             "subido_at": _dt.now().isoformat(timespec="seconds"),
@@ -12828,27 +12946,43 @@ REGLAS:
             "thumb_b64": thumb_b64,
             "thumb_mime": thumb_mime or "image/png",
         }
+        # Conserva formato previo si el nuevo upload no lo trae.
+        if isinstance(prev, dict):
+            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala"):
+                if prev.get(k) not in (None, "") and (not meta or meta.get(k) in (None, "")):
+                    entry[k] = prev[k]
+        if meta:
+            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala"):
+                if meta.get(k) not in (None, ""):
+                    entry[k] = meta[k]
         items.insert(0, entry)
         _save_png_recursos_etiquetas(items)
         return entry
 
     def _ruta_png_recurso_ok(nombre: str) -> tuple:
-        nombre = os.path.basename((nombre or "").strip())
-        if not nombre or not _extension_imagen_recurso_ok(nombre):
+        nombre = (nombre or "").strip().replace("\\", "/").lstrip("/")
+        base_name = os.path.basename(nombre)
+        if not base_name or not _extension_imagen_recurso_ok(base_name):
             return None, "Nombre de imagen inválido (PNG o JPG)"
         carpeta = os.path.realpath(_carpeta_png_recursos_etiquetas())
+        # Ruta relativa (p. ej. ETIQUETAS STUDIO/foo.png) — preferida.
+        if "/" in nombre:
+            cand = os.path.realpath(os.path.join(carpeta, nombre))
+            if cand.startswith(carpeta + os.sep) and os.path.isfile(cand):
+                return cand, None
         for it in _load_png_recursos_etiquetas():
-            if it.get("nombre") == nombre:
+            nom_it = (it.get("nombre") or "").replace("\\", "/")
+            if nom_it == nombre or nom_it == base_name or os.path.basename(nom_it) == base_name:
                 ruta = os.path.realpath(it.get("ruta_completa") or "")
                 if (ruta == carpeta or ruta.startswith(carpeta + os.sep)) and os.path.isfile(ruta):
                     return ruta, None
-        ruta_directa = os.path.realpath(os.path.join(carpeta, nombre))
+        ruta_directa = os.path.realpath(os.path.join(carpeta, base_name))
         if ruta_directa.startswith(carpeta + os.sep) and os.path.isfile(ruta_directa):
             return ruta_directa, None
         # Recorre subcarpetas: archivos movidos o nunca indexados (biblioteca legacy).
         for dirpath, _dirs, files in os.walk(carpeta):
-            if nombre in files:
-                ruta = os.path.realpath(os.path.join(dirpath, nombre))
+            if base_name in files:
+                ruta = os.path.realpath(os.path.join(dirpath, base_name))
                 if ruta.startswith(carpeta + os.sep):
                     return ruta, None
         return None, "Imagen no encontrada"
@@ -12882,18 +13016,24 @@ REGLAS:
                 ruta_abs = os.path.realpath(e.path)
                 registrado = indice.get(ruta_abs)
                 if registrado:
-                    archivos.append(registrado)
-                    continue
-                st = e.stat()
-                archivos.append({
-                    "id": None,
-                    "nombre": e.name,
-                    "ruta_completa": ruta_abs,
-                    "bytes": st.st_size,
-                    "subido_at": _dt.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
-                    "thumb_b64": None,
-                    "thumb_mime": None,
-                })
+                    item = dict(registrado)
+                else:
+                    st = e.stat()
+                    item = {
+                        "id": None,
+                        "nombre": e.name,
+                        "ruta_completa": ruta_abs,
+                        "bytes": st.st_size,
+                        "subido_at": _dt.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
+                        "thumb_b64": None,
+                        "thumb_mime": None,
+                    }
+                # Completa formato (mm) si falta en el índice.
+                if not (item.get("ancho_mm") and item.get("alto_mm")):
+                    meta_inf = _meta_formato_png_de_indice(ruta_abs, e.name)
+                    for k, v in meta_inf.items():
+                        item.setdefault(k, v)
+                archivos.append(item)
             archivos.sort(key=lambda x: x.get("subido_at") or "", reverse=True)
 
             return jsonify({
@@ -12932,7 +13072,11 @@ REGLAS:
         destino = os.path.join(carpeta_destino, nombre)
         with open(destino, "wb") as f:
             f.write(raw)
-        entry = _registrar_png_recurso(nombre, destino, len(raw))
+        meta = _meta_formato_png_desde_request()
+        # Si no enviaron mm, intenta inferir del nombre / píxeles.
+        if not (meta.get("ancho_mm") and meta.get("alto_mm")):
+            meta = {**_meta_formato_png_de_indice(destino, nombre), **meta}
+        entry = _registrar_png_recurso(nombre, destino, len(raw), meta=meta or None)
         return jsonify({"ok": True, **entry})
 
     @app.route("/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
@@ -13082,6 +13226,9 @@ REGLAS:
     def api_etiquetas_recurso_png_delete(nombre: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         ruta, err = _ruta_png_recurso_ok(nombre)
         if err:
             return jsonify({"error": err}), 404
@@ -13098,6 +13245,9 @@ REGLAS:
     def api_etiquetas_recursos_png_eliminar_lote():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         body = request.get_json(silent=True) or {}
         nombres = body.get("nombres")
         if not isinstance(nombres, list) or not nombres:
@@ -13158,6 +13308,22 @@ REGLAS:
 
         from PIL import Image as _PILImgPdf
 
+        meta = _meta_formato_png_de_indice(ruta_png, nombre)
+        # El cliente puede forzar formato (p. ej. desde el lightbox).
+        for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi"):
+            raw = body.get(k)
+            if raw in (None, ""):
+                continue
+            if k == "tipo_etiqueta":
+                meta[k] = str(raw).strip()[:80]
+                continue
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if val > 0:
+                meta[k] = round(val, 4)
+
         base_nombre = os.path.splitext(os.path.basename(ruta_png))[0]
         nombre_pdf = _nombre_pdf_etiqueta_seguro(f"{base_nombre}.pdf")
         carpeta = _carpeta_pdfs_etiquetas()
@@ -13169,21 +13335,61 @@ REGLAS:
             destino = os.path.join(carpeta, nombre_pdf)
 
         try:
+            # Pillow.save(..., "PDF") comprime la imagen como JPEG (DCTDecode) y
+            # destroza la nitidez en la impresora. Embebemos el PNG sin pérdida
+            # con ReportLab a exactamente el tamaño físico de la etiqueta.
+            from reportlab.pdfgen import canvas as _rl_canvas
+            from reportlab.lib.units import mm as _rl_mm
+            from reportlab.lib.utils import ImageReader as _rl_ImageReader
+
             with _PILImgPdf.open(ruta_png) as im:
-                im = im.convert("RGB")
-                im.save(destino, "PDF", resolution=300.0)
+                w_px, h_px = im.size
+                modo = im.mode
+                tiene_alpha = "A" in modo or (modo == "P" and "transparency" in (im.info or {}))
+
+            ancho_mm = meta.get("ancho_mm")
+            alto_mm = meta.get("alto_mm")
+            if ancho_mm and alto_mm and float(ancho_mm) > 0 and float(alto_mm) > 0:
+                page_w = float(ancho_mm) * float(_rl_mm)
+                page_h = float(alto_mm) * float(_rl_mm)
+            elif w_px > 0 and h_px > 0:
+                # Sin mm: asumir 300 DPI de la imagen.
+                page_w = (float(w_px) / 300.0) * 72.0
+                page_h = (float(h_px) / 300.0) * 72.0
+            else:
+                return jsonify({"error": "Imagen sin dimensiones válidas"}), 400
+
+            c = _rl_canvas.Canvas(destino, pagesize=(page_w, page_h))
+            # Fondo blanco si el PNG tiene transparencia (etiquetas opacas).
+            if tiene_alpha:
+                c.setFillColorRGB(1, 1, 1)
+                c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+            c.drawImage(
+                _rl_ImageReader(ruta_png),
+                0,
+                0,
+                width=page_w,
+                height=page_h,
+                preserveAspectRatio=False,
+                mask="auto",
+            )
+            c.save()
         except Exception as e:
             return jsonify({"error": f"No se pudo generar el PDF para imprimir: {e}"}), 500
 
         bytes_size = os.path.getsize(destino)
         entry = _registrar_pdf_guardado_etiqueta(nombre_pdf, destino, bytes_size)
         rel = entry.get("ruta") or os.path.relpath(destino, _PDF_DIR)
-        return jsonify({
+        resp = {
             "ok": True,
             "nombre": nombre_pdf,
             "ruta": rel,
             "ruta_completa": destino,
-        })
+        }
+        for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi"):
+            if meta.get(k) not in (None, ""):
+                resp[k] = meta[k]
+        return jsonify(resp)
 
     # ── Etiquetas: catálogo de formatos (nombre + mm) ────────────────────────
 
@@ -13342,6 +13548,10 @@ REGLAS:
         if request.method == "GET":
             return jsonify({"codigos": items, "total": len(items)})
 
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
+
         body = request.get_json(silent=True) or {}
         sku = (body.get("sku") or "").strip()
         nombre_producto = (body.get("nombre_producto") or "").strip()
@@ -13410,8 +13620,9 @@ REGLAS:
     @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["PUT", "PATCH"])
     @app.route("/app/api/etiquetas/codigos-ean/<codigo_id>", methods=["PUT", "PATCH"])
     def api_etiquetas_codigo_ean_editar(codigo_id: str):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         codigo_id = (codigo_id or "").strip()
         items = _load_codigos_ean()
         idx = next((i for i, c in enumerate(items) if c.get("id") == codigo_id), None)
@@ -13489,8 +13700,9 @@ REGLAS:
     @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
     @app.route("/app/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
     def api_etiquetas_codigo_ean_delete(codigo_id: str):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         codigo_id = (codigo_id or "").strip()
         items = _load_codigos_ean()
         nuevo = [c for c in items if c.get("id") != codigo_id]
@@ -13888,8 +14100,9 @@ REGLAS:
     @app.route("/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
     def api_etiquetas_inventario_consumibles():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         if request.method == "GET":
             data = _load_etiquetas_inventario()
             return jsonify({**data, "total": len(data.get("items") or [])})
@@ -13945,8 +14158,9 @@ REGLAS:
     @app.route("/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
     @app.route("/app/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
     def api_etiquetas_inventario_item(item_id: str):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
         item_id = (item_id or "").strip()
         items = _load_etiquetas_inventario().get("items") or []
         idx = next((i for i, it in enumerate(items) if it.get("id") == item_id), None)

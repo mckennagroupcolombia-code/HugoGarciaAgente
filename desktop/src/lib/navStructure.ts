@@ -54,7 +54,6 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "stock", tier: "core" },
       { panel: "etiquetas", tier: "core" },
       { panel: "fichas", tier: "standard" },
-      { panel: "etiquetas-config", tier: "advanced" },
     ],
   },
   {

@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { resolverUrlImagenCanvas, liberarCacheImagenCanvas } from "../../lib/plantillasVisualesImagen";
+import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
+import { useTicketsAuth } from "../../stores/ticketsAuth";
 
 interface RecursoPng {
   id: string | null;
@@ -50,7 +52,7 @@ function MiniaturaGaleria({
   modoSeleccion: boolean;
   eliminando: boolean;
   onElegir: () => void;
-  onEliminar: () => void;
+  onEliminar?: () => void;
   onAlternarSeleccion: () => void;
   onArrastrarInicio?: () => void;
   onArrastrarFin?: () => void;
@@ -131,9 +133,9 @@ function MiniaturaGaleria({
         title="Eliminar imagen"
         onClick={(e) => {
           e.stopPropagation();
-          onEliminar();
+          onEliminar?.();
         }}
-        className="absolute right-1 top-1 rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 opacity-0 shadow-sm transition hover:bg-red-50 group-hover:opacity-100 disabled:opacity-40 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80"
+        className={`absolute right-1 top-1 rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 opacity-0 shadow-sm transition hover:bg-red-50 group-hover:opacity-100 disabled:opacity-40 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80 ${onEliminar ? "" : "hidden"}`}
       >
         {eliminando ? "…" : "✕"}
       </button>
@@ -156,6 +158,8 @@ interface ProgresoCarpeta {
 
 export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Props) {
   const qc = useQueryClient();
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const puedeEliminarPng = puedeEliminarPngEtiquetas(ticketsUser);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCarpetaRef = useRef<HTMLInputElement>(null);
   const [buscar, setBuscar] = useState("");
@@ -502,10 +506,18 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
 
   function eliminarSeleccionados() {
     const items = imagenes.filter((i) => seleccionados.has(claveItem(i)));
-    if (items.length === 0) return;
-    if (!window.confirm(`¿Eliminar ${items.length} imagen(es) seleccionada(s) de la galería?`)) return;
-    eliminarLoteMut.mutate(items);
+    const itemsOk = items.filter((i) => i.origen !== "recursos" || puedeEliminarPng);
+    if (itemsOk.length === 0) return;
+    if (!window.confirm(`¿Eliminar ${itemsOk.length} imagen(es) seleccionada(s) de la galería?`)) return;
+    eliminarLoteMut.mutate(itemsOk);
   }
+
+  const seleccionEliminable = useMemo(() => {
+    if (seleccionados.size === 0) return false;
+    return imagenes.some(
+      (i) => seleccionados.has(claveItem(i)) && (i.origen !== "recursos" || puedeEliminarPng),
+    );
+  }, [imagenes, seleccionados, puedeEliminarPng]);
 
   const subirMut = useMutation({
     mutationFn: async (files: File[]) => {
@@ -694,7 +706,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
               )}
             </div>
           )}
-          {seleccionados.size > 0 && (
+          {seleccionEliminable && (
             <button
               type="button"
               onClick={eliminarSeleccionados}
@@ -893,16 +905,20 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                   onAlternarSeleccion={() => alternarSeleccion(item)}
                   onArrastrarInicio={() => iniciarArrastre(item)}
                   onArrastrarFin={finalizarArrastre}
-                  onEliminar={() => {
-                    if (
-                      !window.confirm(
-                        `¿Eliminar "${item.nombre}" de la galería? No se quitará de plantillas ya guardadas.`,
-                      )
-                    ) {
-                      return;
-                    }
-                    eliminarMut.mutate(item);
-                  }}
+                  onEliminar={
+                    item.origen === "recursos" && !puedeEliminarPng
+                      ? undefined
+                      : () => {
+                          if (
+                            !window.confirm(
+                              `¿Eliminar "${item.nombre}" de la galería? No se quitará de plantillas ya guardadas.`,
+                            )
+                          ) {
+                            return;
+                          }
+                          eliminarMut.mutate(item);
+                        }
+                  }
                 />
               ))}
             </div>

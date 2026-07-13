@@ -259,6 +259,26 @@ def mapa_sku_por_archivo_pdf() -> dict[str, dict[str, str]]:
 
 _PNG_RECURSOS_SUBDIR = "Recursos PNG"
 _PDF_ETIQUETAS_SUBDIR = "Etiquetas McKenna"
+# Carpeta visible en Imprimir · archivos PNG (resto queda en Studio / galería).
+_CARPETA_PNG_IMPRIMIR = "ETIQUETAS STUDIO"
+_PNG_INDEX_PATH = _REPO / "app" / "data" / "etiquetas_recursos_png.json"
+_TIPOS_ETIQUETAS_PATH = _REPO / "app" / "data" / "etiquetas_tipos.json"
+
+# Mismos defaults que /api/etiquetas/tipos (fallback si no hay JSON).
+_TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
+    ("30 mL", 102.0, 38.0),
+    ("5 mL", 66.0, 22.0),
+    ("125 g", 70.0, 70.0),
+    ("250 g", 76.0, 66.0),
+    ("500 g", 76.0, 66.0),
+    ("1 Lt", 108.0, 76.0),
+    ("100 g", 69.0, 51.0),
+    ("Lactato", 38.0, 140.0),
+    ("Circular", 55.0, 55.0),
+    ("Circular 70", 70.0, 70.0),
+    ("5 g", 50.0, 42.0),
+    ("54mm", 54.0, 58.0),
+]
 
 
 def _carpeta_recursos_png() -> Path:
@@ -268,20 +288,225 @@ def _carpeta_recursos_png() -> Path:
     return base
 
 
-def listar_recursos_png_sueltos(q: str = "") -> list[str]:
-    """PNG/JPG generados en Studio (transición .ai → PNG): no se emparejan con
-    SKU todavía, se listan tal cual existan en la biblioteca de imágenes
-    (incluye subcarpetas, con la ruta relativa como nombre)."""
-    carpeta = _carpeta_recursos_png()
+def _load_png_index_entries() -> list[dict]:
+    if not _PNG_INDEX_PATH.exists():
+        return []
+    try:
+        with open(_PNG_INDEX_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        items = data.get("recursos") if isinstance(data, dict) else []
+        return [it for it in items if isinstance(it, dict)] if isinstance(items, list) else []
+    except Exception:
+        return []
+
+
+def _tipos_etiqueta_mm() -> list[tuple[str, float, float]]:
+    out: list[tuple[str, float, float]] = []
+    seen: set[str] = set()
+    if _TIPOS_ETIQUETAS_PATH.exists():
+        try:
+            with open(_TIPOS_ETIQUETAS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+            items = data.get("tipos") if isinstance(data, dict) else data
+            if isinstance(items, list):
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    nombre = (it.get("nombre") or "").strip()
+                    try:
+                        aw = float(it.get("ancho_mm") or 0)
+                        ah = float(it.get("alto_mm") or 0)
+                    except (TypeError, ValueError):
+                        continue
+                    if nombre and aw > 0 and ah > 0 and nombre not in seen:
+                        seen.add(nombre)
+                        out.append((nombre, aw, ah))
+        except Exception:
+            pass
+    for nombre, aw, ah in _TIPOS_ETIQUETA_DEFAULT:
+        if nombre not in seen:
+            seen.add(nombre)
+            out.append((nombre, aw, ah))
+    return out
+
+
+def _norm_clave_formato(s: str) -> str:
+    return "".join(ch for ch in (s or "").lower() if ch.isalnum())
+
+
+def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float]]) -> dict | None:
+    """Asocia PNG→tipo por el tamaño en el nombre (p. ej. …_250g_…), no por el producto."""
+    import re as _re_fmt
+
+    stem = Path(nombre).stem
+    # 1) Contenido neto explícito: 250g, 100_g, 30ml, 1kg…
+    for m in _re_fmt.finditer(
+        r"(?<![a-z0-9])(\d+(?:[.,]\d+)?)\s*[_\-]?\s*(g|ml|mL|lt|l|kg|mm)\b",
+        stem.replace("_", " "),
+        flags=_re_fmt.IGNORECASE,
+    ):
+        neto = m.group(1).replace(",", ".")
+        if neto.endswith(".0"):
+            neto = neto[:-2]
+        unidad = m.group(2).lower()
+        if unidad == "l":
+            unidad = "lt"
+        candidatos = {
+            _norm_clave_formato(f"{neto}{unidad}"),
+            _norm_clave_formato(f"{neto} {unidad}"),
+        }
+        if unidad == "lt":
+            candidatos.add(_norm_clave_formato(f"{neto} Lt"))
+            candidatos.add(_norm_clave_formato(f"{neto}Lt"))
+        if unidad == "ml":
+            candidatos.add(_norm_clave_formato(f"{neto} mL"))
+            candidatos.add(_norm_clave_formato(f"{neto}mL"))
+        for nombre_t, aw, ah in tipos:
+            if _norm_clave_formato(nombre_t) in candidatos:
+                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+
+    # 2) Tipos con dígitos como segmento completo (_250_g_, _54mm_), no substrings de producto.
+    segmentos = {_norm_clave_formato(s) for s in _re_fmt.split(r"[_\s\-]+", stem) if s}
+    ordenados = sorted(tipos, key=lambda t: len(_norm_clave_formato(t[0])), reverse=True)
+    for nombre_t, aw, ah in ordenados:
+        clave_t = _norm_clave_formato(nombre_t)
+        if not clave_t or not any(ch.isdigit() for ch in clave_t):
+            continue
+        if clave_t in segmentos or clave_t in _norm_clave_formato(stem):
+            # Evita que "5g" matchee dentro de "125g": exige borde de dígito/unidad.
+            if clave_t in segmentos or _re_fmt.search(
+                rf"(?<![a-z0-9]){_re_fmt.escape(clave_t)}(?![a-z0-9])",
+                _norm_clave_formato(stem),
+            ):
+                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+    return None
+
+
+def _inferir_formato_por_pixeles(
+    ruta: Path,
+    tipos: list[tuple[str, float, float]],
+) -> dict | None:
+    """Empareja tamaño en px con formato mm × DPI × escala de exportación (1–4×)."""
+    try:
+        from PIL import Image as _PILImg
+        with _PILImg.open(ruta) as im:
+            w_px, h_px = im.size
+    except Exception:
+        return None
+    if w_px <= 0 or h_px <= 0:
+        return None
+
+    mejor: tuple[float, str, float, float] | None = None
+    for nombre_t, aw, ah in tipos:
+        for dpi in (96.0, 300.0, 150.0):
+            for esc in (1, 2, 3, 4):
+                for (mm_w, mm_h) in ((aw, ah), (ah, aw)):
+                    ew = (mm_w / 25.4) * dpi * esc
+                    eh = (mm_h / 25.4) * dpi * esc
+                    if ew <= 0 or eh <= 0:
+                        continue
+                    err = abs(ew - w_px) / ew + abs(eh - h_px) / eh
+                    if err > 0.06:
+                        continue
+                    if mejor is None or err < mejor[0]:
+                        # Conservar orientación del tipo catalogado (aw×ah), no la rotada.
+                        mejor = (err, nombre_t, aw, ah)
+    if not mejor:
+        return None
+    _, nombre_t, aw, ah = mejor
+    return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+
+
+def _lookup_meta_png_index(rel: str, ruta_abs: Path, index: list[dict]) -> dict:
+    """Busca metadatos de formato en el índice PNG (por ruta o basename)."""
+    rel_n = rel.replace("\\", "/")
+    base_n = Path(rel_n).name
+    ruta_real = str(ruta_abs.resolve()) if ruta_abs.exists() else ""
+    for it in index:
+        ruta_it = str(Path(it.get("ruta_completa") or "").resolve()) if it.get("ruta_completa") else ""
+        if ruta_real and ruta_it and ruta_it == ruta_real:
+            return it
+        nombre_it = (it.get("nombre") or "").replace("\\", "/")
+        if nombre_it == rel_n or nombre_it == base_n or Path(nombre_it).name == base_n:
+            return it
+        ruta_rel = (it.get("ruta") or "").replace("\\", "/")
+        if ruta_rel.endswith("/" + rel_n) or ruta_rel.endswith("/" + base_n) or ruta_rel == rel_n:
+            return it
+    return {}
+
+
+def enriquecer_recurso_png(
+    rel: str,
+    *,
+    index: list[dict] | None = None,
+    tipos: list[tuple[str, float, float]] | None = None,
+) -> dict[str, Any]:
+    """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi} para un PNG relativo."""
+    base = _carpeta_recursos_png()
+    rel_n = (rel or "").replace("\\", "/").lstrip("/")
+    ruta = base / rel_n
+    idx = index if index is not None else _load_png_index_entries()
+    tipos_l = tipos if tipos is not None else _tipos_etiqueta_mm()
+    entry = _lookup_meta_png_index(rel_n, ruta, idx)
+
+    tipo = (entry.get("tipo_etiqueta") or "").strip() or None
+    try:
+        ancho = float(entry["ancho_mm"]) if entry.get("ancho_mm") not in (None, "") else None
+        alto = float(entry["alto_mm"]) if entry.get("alto_mm") not in (None, "") else None
+    except (TypeError, ValueError):
+        ancho, alto = None, None
+    try:
+        dpi = float(entry["dpi"]) if entry.get("dpi") not in (None, "") else None
+    except (TypeError, ValueError):
+        dpi = None
+
+    if not (tipo and ancho and alto):
+        inferido = _inferir_formato_por_nombre(rel_n, tipos_l)
+        if not inferido and ruta.is_file():
+            inferido = _inferir_formato_por_pixeles(ruta, tipos_l)
+        if inferido:
+            tipo = tipo or inferido.get("tipo_etiqueta")
+            ancho = ancho or inferido.get("ancho_mm")
+            alto = alto or inferido.get("alto_mm")
+
+    out: dict[str, Any] = {"nombre": rel_n}
+    if tipo:
+        out["tipo_etiqueta"] = tipo
+    if ancho and alto:
+        out["ancho_mm"] = round(float(ancho), 2)
+        out["alto_mm"] = round(float(alto), 2)
+    if dpi:
+        out["dpi"] = round(float(dpi), 2)
+    return out
+
+
+def listar_recursos_png_sueltos(
+    q: str = "",
+    *,
+    carpeta: str | None = _CARPETA_PNG_IMPRIMIR,
+) -> list[dict[str, Any]]:
+    """PNG/JPG de la biblioteca con formato asociado (mm / tipo).
+
+    Por defecto solo la subcarpeta ETIQUETAS STUDIO (impresión).
+    Pasar carpeta=None para listar todo el árbol (galería / Studio).
+    """
+    base = _carpeta_recursos_png()
+    pref = (carpeta or "").strip().strip("/\\")
+    raiz = base / pref if pref else base
+    if pref and not raiz.is_dir():
+        return []
     nombres = sorted(
-        p.relative_to(carpeta).as_posix()
-        for p in carpeta.rglob("*")
+        p.relative_to(base).as_posix()
+        for p in raiz.rglob("*")
         if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg")
     )
     ql = (q or "").strip().lower()
     if ql:
         nombres = [n for n in nombres if ql in n.lower()]
-    return nombres
+
+    index = _load_png_index_entries()
+    tipos = _tipos_etiqueta_mm()
+    return [enriquecer_recurso_png(n, index=index, tipos=tipos) for n in nombres]
 
 
 def listar_catalogo_studio(
