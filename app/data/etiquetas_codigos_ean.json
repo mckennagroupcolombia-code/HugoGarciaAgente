@@ -193,6 +193,138 @@
       "bimestre": 3,
       "codigo": "7700180012635",
       "creado_at": "2026-07-12T14:05:19"
+    },
+    {
+      "id": "95084f36017e",
+      "sku": "C-AGUDES250mL",
+      "nombre_producto": "AGUA DESTILADA 250mL",
+      "numero_producto": 19,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700192502636",
+      "creado_at": "2026-07-13T12:59:24"
+    },
+    {
+      "id": "1b7f56a78c06",
+      "sku": "C-MANCACREF500g",
+      "nombre_producto": "MANTECA DE CACAO REFINADA",
+      "numero_producto": 20,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700205002634",
+      "creado_at": "2026-07-13T13:08:46"
+    },
+    {
+      "id": "e8604f23e2ed",
+      "sku": "C-DPG500mL",
+      "nombre_producto": "DPG 500mL",
+      "numero_producto": 21,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700215002631",
+      "creado_at": "2026-07-13T13:09:18"
+    },
+    {
+      "id": "fdd9649d3c67",
+      "sku": "C-BTMS125g",
+      "nombre_producto": "BTMS 125g",
+      "numero_producto": 22,
+      "presentacion": "125",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700221252631",
+      "creado_at": "2026-07-13T13:11:49"
+    },
+    {
+      "id": "5c998649c583",
+      "sku": "C-INUKg",
+      "nombre_producto": "INULINA",
+      "numero_producto": 23,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700230012639",
+      "creado_at": "2026-07-13T13:12:17"
+    },
+    {
+      "id": "59dfa4ca9348",
+      "sku": "C-ACIASAL30mL",
+      "nombre_producto": "ACIDO SALICILICO 30mL",
+      "numero_producto": 24,
+      "presentacion": "030",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700240302638",
+      "creado_at": "2026-07-13T13:12:57"
+    },
+    {
+      "id": "ec1b2114a46c",
+      "sku": "C-PROSUELECKg",
+      "nombre_producto": "PROTEINA DE SUERO DE LECHE Kg",
+      "numero_producto": 25,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700250012633",
+      "creado_at": "2026-07-13T13:13:31"
+    },
+    {
+      "id": "7d05d59f38cb",
+      "sku": "C-CITMAG500g",
+      "nombre_producto": "CITRATO DE MAGNESIO 500g",
+      "numero_producto": 26,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700265002636",
+      "creado_at": "2026-07-13T13:14:03"
+    },
+    {
+      "id": "10f1f8094451",
+      "sku": "C-ACIGLI30mL",
+      "nombre_producto": "ACIDO GLICOLICO 30mL",
+      "numero_producto": 27,
+      "presentacion": "030",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700270302639",
+      "creado_at": "2026-07-13T13:14:32"
+    },
+    {
+      "id": "7cf3ec833c88",
+      "sku": "C-ACEJOJ30mL",
+      "nombre_producto": "ACEITE DE JOJOBA 30mL",
+      "numero_producto": 28,
+      "presentacion": "030",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700280302636",
+      "creado_at": "2026-07-13T13:15:05"
+    },
+    {
+      "id": "2511c8ce0c06",
+      "sku": "C-ACIHIAALTPES30mL",
+      "nombre_producto": "ACIDO HIALURONICO ALTO PESO 30mL",
+      "numero_producto": 29,
+      "presentacion": "030",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700290302633",
+      "creado_at": "2026-07-13T13:15:46"
+    },
+    {
+      "id": "15cdcbd52e3f",
+      "sku": "C-FRALIP120mL",
+      "nombre_producto": "FREGANCIA LIPOSOLUBLE 120mL",
+      "numero_producto": 30,
+      "presentacion": "120",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700301202631",
+      "creado_at": "2026-07-13T22:54:32"
     }
   ]
 }

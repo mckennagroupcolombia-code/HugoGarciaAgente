@@ -54,6 +54,9 @@ export interface ElementoTexto extends ElementoBase {
   lineHeight?: number;
   /** Capa semántica en plantillas de etiqueta (p. ej. descripción materia prima = capa 1). */
   textRole?: RolTextoCapa;
+  /** Curvatura del texto en arco: -200 a 200; ±100 = semicírculo, ±200 = círculo
+   *  completo. Positivo domo (por arriba), negativo valle (por abajo); 0/undefined = recto. */
+  arco?: number;
 }
 
 export interface ElementoRect extends ElementoBase {

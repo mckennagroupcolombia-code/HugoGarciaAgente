@@ -4,6 +4,7 @@ import {
   type PlantillaVisualDoc,
 } from "../../lib/plantillasVisuales";
 import { estiloElemento } from "./VisualCanvasEditor";
+import TextoArcoSvg from "./TextoArcoSvg";
 
 /**
  * Render estático (sin interactividad) de una plantilla, con exactamente el
@@ -58,6 +59,13 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
       MozOsxFontSmoothing: "grayscale",
       textRendering: "geometricPrecision",
     };
+    if ((el.arco ?? 0) !== 0) {
+      return (
+        <div style={estilo}>
+          <TextoArcoSvg el={el} escala={escala} />
+        </div>
+      );
+    }
     return <div style={estilo}>{el.content}</div>;
   }
 

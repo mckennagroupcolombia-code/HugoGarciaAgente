@@ -68,9 +68,20 @@ def _save_all(items: list[dict]) -> None:
 
 def listar_plantillas(q: str = "", carpeta: str | None = None) -> list[dict]:
     items = _load_all()
-    if carpeta is not None:
-        items = [p for p in items if (p.get("carpeta") or "") == carpeta]
     q = (q or "").strip().lower()
+    if carpeta is not None:
+        if q:
+            # Con búsqueda activa se incluye también lo que está DENTRO de las
+            # subcarpetas (p. ej. "Generadas AI" al buscar desde la raíz).
+            prefijo = f"{carpeta}/" if carpeta else ""
+            items = [
+                p for p in items
+                if (c := (p.get("carpeta") or "")) == carpeta
+                or (not carpeta and c)
+                or (prefijo and c.startswith(prefijo))
+            ]
+        else:
+            items = [p for p in items if (p.get("carpeta") or "") == carpeta]
     if not q:
         return sorted(items, key=lambda x: x.get("updated_at") or "", reverse=True)
     out = []
@@ -78,7 +89,8 @@ def listar_plantillas(q: str = "", carpeta: str | None = None) -> list[dict]:
         nombre = (p.get("nombre") or "").lower()
         cat = (p.get("categoria") or "").lower()
         fmt = (p.get("formato") or {}).get("nombre", "").lower()
-        if q in nombre or q in cat or q in fmt:
+        carp = (p.get("carpeta") or "").lower()
+        if q in nombre or q in cat or q in fmt or q in carp:
             out.append(p)
     return sorted(out, key=lambda x: x.get("updated_at") or "", reverse=True)
 
@@ -504,6 +516,70 @@ def _fuente_raster(weight: str, size: int):
     return ImageFont.load_default()
 
 
+def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> None:
+    """Texto sobre un arco (misma geometría que TextoArcoSvg.tsx):
+    arco ∈ [-200, 200]; hasta ±100 la sagitta crece a semicírculo
+    (diámetro = ancho de la caja); de ±100 a ±200 el radio queda fijo en
+    ancho/2 y el barrido crece de 180° a 360° (±200 = círculo completo)."""
+    import math
+
+    from PIL import Image, ImageDraw
+
+    texto = " ".join((contenido or "").split())
+    if not texto:
+        return
+    x = float(el.get("x") or 0) * ss
+    y = float(el.get("y") or 0) * ss
+    w = float(el.get("width") or 0) * ss
+    fs = float(el.get("fontSize") or 16) * ss
+    arco = max(-200.0, min(200.0, float(el.get("arco") or 0)))
+    mag = abs(arco)
+    sag = (min(mag, 100.0) / 100.0) * (w / 2.0)
+    if sag <= 0 or w <= 0:
+        return
+    up = arco > 0
+    if mag > 100.0:
+        R = w / 2.0
+        theta = math.pi * (1.0 + (mag - 100.0) / 100.0)
+    else:
+        R = sag / 2.0 + (w * w) / (8.0 * sag)
+        theta = 2.0 * math.asin(min(1.0, (w / 2.0) / R))
+    y0 = (sag + fs) if up else fs
+    L = R * theta
+
+    anchos = [medidor.textlength(ch, font=fnt) for ch in texto]
+    W = sum(anchos)
+    cx = x + w / 2.0
+    cy = (y + y0 + (R - sag)) if up else (y + y0 + sag - R)
+
+    s = max(0.0, L / 2.0 - W / 2.0)  # centrado como textAnchor=middle
+    for ch, cw in zip(texto, anchos):
+        centro_s = s + cw / 2.0
+        s += cw
+        a = (centro_s / L) * theta - theta / 2.0  # ángulo respecto al ápice
+        if up:
+            px = cx + R * math.sin(a)
+            py = cy - R * math.cos(a)
+            radial = (math.sin(a), -math.cos(a))
+            rot = -math.degrees(a)
+        else:
+            px = cx + R * math.sin(a)
+            py = cy + R * math.cos(a)
+            radial = (math.sin(a), math.cos(a))
+            rot = math.degrees(a)
+        # centro del glifo ligeramente hacia afuera de la línea base
+        gx = px + radial[0] * fs * 0.35
+        gy = py + radial[1] * fs * 0.35
+
+        lado = int(math.ceil(max(cw, fs) * 2))
+        tile = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
+        ImageDraw.Draw(tile).text(
+            (lado / 2, lado / 2), ch, font=fnt, fill=el.get("color") or "#000", anchor="mm"
+        )
+        tile = tile.rotate(rot, resample=Image.Resampling.BICUBIC, expand=False)
+        img.paste(tile, (int(gx - lado / 2), int(gy - lado / 2)), tile)
+
+
 def _wrap_texto_raster(texto: str, fnt, medidor, ancho: float) -> list[str]:
     """Word-wrap equivalente al DOM (rompe en espacios, respeta \\n)."""
     lineas: list[str] = []
@@ -556,12 +632,26 @@ def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) 
         if tipo == "rect":
             fill = el.get("fill") or None
             stroke = el.get("stroke") or None
-            sw = int(el.get("strokeWidth") or 0)
+            # strokeWidth admite fracciones (pasos de 0.25 en el editor)
+            sw = float(el.get("strokeWidth") or 0)
+            sw_px = max(1, int(round(sw * ss))) if sw > 0 else 0
             caja = [x * ss, y * ss, (x + ew) * ss, (y + eh) * ss]
+            # borderRadius como en CSS: se limita a la mitad del lado menor,
+            # de modo que un cuadrado con radio grande es un círculo.
+            radio = min(
+                float(el.get("borderRadius") or 0) * ss,
+                min(ew, eh) * ss / 2,
+            )
+            kwargs = {}
             if fill and str(fill).lower() not in ("transparent", "none"):
-                draw.rectangle(caja, fill=fill, outline=stroke, width=sw * ss)
-            elif stroke and sw > 0:
-                draw.rectangle(caja, outline=stroke, width=sw * ss)
+                kwargs["fill"] = fill
+            if stroke and sw_px:
+                kwargs.update(outline=stroke, width=sw_px)
+            if kwargs:
+                if radio > 0:
+                    draw.rounded_rectangle(caja, radius=radio, **kwargs)
+                else:
+                    draw.rectangle(caja, **kwargs)
 
         elif tipo == "line":
             x2 = float(el.get("x2") or x)
@@ -580,6 +670,9 @@ def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) 
             lh = float(el.get("lineHeight") or 1.2)
             align = (el.get("align") or "left").lower()
             fnt = _fuente_raster(str(el.get("fontWeight") or ""), int(round(size * ss)))
+            if float(el.get("arco") or 0):
+                _texto_arco_raster(img, el, contenido, fnt, medidor, ss)
+                continue
             lineas = _wrap_texto_raster(contenido, fnt, medidor, ew * ss)
             cy = y * ss
             for linea in lineas:

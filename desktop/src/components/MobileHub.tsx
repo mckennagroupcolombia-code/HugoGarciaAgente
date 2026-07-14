@@ -287,7 +287,7 @@ function HomeTab({
   ];
 
   return (
-    <div className="overflow-y-auto pb-24 pt-2">
+    <div className="h-full overflow-y-auto pb-24 pt-2">
       {/* Greeting */}
       <div className="px-4 pb-5">
         <p className="text-xs font-semibold text-muted">{greeting()},</p>
@@ -574,7 +574,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
   }
 
   return (
-    <div className="overflow-y-auto pb-24 pt-4 px-4">
+    <div className="h-full overflow-y-auto pb-24 pt-4 px-4">
       <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Operaciones rápidas</p>
 
       {/* Preventa banner */}
@@ -659,7 +659,7 @@ function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => v
   const { user, token } = useTicketsAuth();
 
   return (
-    <div className="overflow-y-auto pb-24 pt-6 px-4">
+    <div className="h-full overflow-y-auto pb-24 pt-6 px-4">
       {/* Avatar block */}
       <div className="mb-6 flex flex-col items-center gap-3">
         {user && token ? (
@@ -810,7 +810,7 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "home" && (
           <HomeTab
             token={token}

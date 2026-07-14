@@ -15,6 +15,8 @@ import {
 interface Props {
   onElegir: (formato: FormatoCanvas, categoriaId: string) => void;
   onCancelar: () => void;
+  titulo?: string;
+  subtitulo?: string;
 }
 
 const CAT_ICONS: Record<string, UiIconName> = {
@@ -27,7 +29,7 @@ const CAT_ICONS: Record<string, UiIconName> = {
   personalizado: "palette",
 };
 
-export default function SelectorFormatoCanvas({ onElegir, onCancelar }: Props) {
+export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, subtitulo }: Props) {
   const { data: tiposData, isLoading: tiposLoading } = useTiposEtiqueta();
   const tipos = tiposData?.tipos ?? [];
 
@@ -72,8 +74,8 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar }: Props) {
     <div className="mx-auto max-w-4xl">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-ink">Nuevo lienzo</h2>
-          <p className="mt-0.5 text-sm text-muted">Formato predefinido o dimensiones a medida.</p>
+          <h2 className="text-base font-bold text-ink">{titulo ?? "Nuevo lienzo"}</h2>
+          <p className="mt-0.5 text-sm text-muted">{subtitulo ?? "Formato predefinido o dimensiones a medida."}</p>
         </div>
         <button
           type="button"

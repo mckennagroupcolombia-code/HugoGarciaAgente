@@ -746,12 +746,12 @@ def render_verificacion(p: dict, out_png: Path, escala: int = 3, revisar_ids: se
         if tipo == "rect":
             fill = el.get("fill")
             stroke = el.get("stroke")
-            sw = int(el.get("strokeWidth") or 0)
+            sw = float(el.get("strokeWidth") or 0)
             kw = {}
             if fill and str(fill).lower() not in ("transparent", "none"):
                 kw["fill"] = fill
-            if stroke and sw:
-                kw.update(outline=stroke, width=sw * escala)
+            if stroke and sw > 0:
+                kw.update(outline=stroke, width=max(1, int(round(sw * escala))))
             if kw:
                 draw.rectangle([x * escala, y * escala, (x + w) * escala, (y + h) * escala], **kw)
 

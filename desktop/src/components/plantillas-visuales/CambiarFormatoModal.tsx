@@ -25,7 +25,12 @@ export default function CambiarFormatoModal({ abierta, formatoActual, onCerrar, 
           Formato actual: <strong>{formatoActual.nombre}</strong> ({formatoActual.ancho_px}×{formatoActual.alto_px} px).
           Al elegir uno nuevo, los elementos del lienzo se reescalan proporcionalmente para conservar el diseño.
         </p>
-        <SelectorFormatoCanvas onElegir={onElegir} onCancelar={onCerrar} />
+        <SelectorFormatoCanvas
+          onElegir={onElegir}
+          onCancelar={onCerrar}
+          titulo="Cambiar tamaño del formato"
+          subtitulo="Elige un formato predefinido o escribe medidas a medida (mm o px)."
+        />
       </div>
     </div>,
     document.body,

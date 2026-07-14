@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const showPanelIcon = panel !== "perfil" && !hubIntegrado && panelInfo;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
+    <div className="flex h-dvh overflow-hidden bg-surface">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm transition-opacity duration-200 lg:hidden"
