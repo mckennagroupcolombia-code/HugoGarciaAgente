@@ -16,6 +16,7 @@ import {
   type ElementoTexto,
 } from "../../lib/plantillasVisuales";
 import TextoArcoSvg from "./TextoArcoSvg";
+import TextoCirculoDom from "./TextoCirculoDom";
 
 type Props = {
   el: ElementoTexto;
@@ -80,7 +81,7 @@ export default function TextoCapaLienzo({
     // contenido real. Solo con el elemento seleccionado: así abrir una
     // plantilla vieja no la marca como "con cambios" hasta que se interactúa.
     if (seleccionado && onAltoMedido && Math.abs(h - el.height) > 1) onAltoMedido(el.id, h);
-  }, [el.content, el.width, el.fontSize, el.lineHeight, el.fontFamily, el.fontWeight, el.height, el.id, editando, seleccionado, onAltoMedido]);
+  }, [el.content, el.width, el.fontSize, el.lineHeight, el.fontFamily, el.fontWeight, el.height, el.id, el.arco, el.forma, el.marcoAncho, editando, seleccionado, onAltoMedido]);
 
   useEffect(() => {
     if (!editando) {
@@ -183,7 +184,13 @@ export default function TextoCapaLienzo({
           </div>
         )}
         <div style={{ pointerEvents: "none", width: "100%" }}>
-          {(el.arco ?? 0) !== 0 ? <TextoArcoSvg el={el} /> : el.content}
+          {el.forma === "circulo" ? (
+            <TextoCirculoDom el={el} />
+          ) : (el.arco ?? 0) !== 0 ? (
+            <TextoArcoSvg el={el} />
+          ) : (
+            el.content
+          )}
         </div>
         <div
           style={{

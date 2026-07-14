@@ -51,13 +51,27 @@ export default function TextoArcoSvg({ el, escala = 1 }: { el: ElementoTexto; es
   const pid = `arc-${el.id}-${uid}`;
   // El arco es de una sola línea: los saltos se colapsan a espacios
   const texto = (el.content || "").replace(/\s*\n\s*/g, " ").trim();
+  const marcoAncho = (el.marcoAncho ?? 0) * escala;
+  // Anillo concéntrico al círculo del texto (útil en marco 360°).
+  const dibujarAnillo = marcoAncho > 0 && R > 0;
+  const svgH = Math.max(el.height * escala, altoTotal, dibujarAnillo ? cy + R + marcoAncho : 0);
   return (
     <svg
       width={w}
-      height={Math.max(el.height * escala, altoTotal)}
+      height={svgH}
       style={{ overflow: "visible", display: "block", pointerEvents: "none" }}
       aria-hidden
     >
+      {dibujarAnillo && (
+        <circle
+          cx={w / 2}
+          cy={cy}
+          r={Math.max(0, R - fs * 0.15)}
+          fill="none"
+          stroke={el.marcoColor || el.color}
+          strokeWidth={marcoAncho}
+        />
+      )}
       <path id={pid} d={d} fill="none" />
       <text
         fill={el.color}
