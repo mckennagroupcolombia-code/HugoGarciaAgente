@@ -37,11 +37,10 @@ interface RecursoPngBiblioteca {
 
 const formatoBytes = formatoBytesRecurso;
 
-function BibliotecaEtiquetasSection() {
+function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: string }) {
   const qc = useQueryClient();
   const ticketsUser = useTicketsAuth((s) => s.user);
   const puedeEliminarPng = puedeEliminarPngEtiquetas(ticketsUser);
-  const [buscar, setBuscar] = useState("");
   const [descargandoId, setDescargandoId] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
@@ -71,7 +70,10 @@ function BibliotecaEtiquetasSection() {
   });
 
   const recursos = data?.recursos ?? [];
-  const q = buscar.trim().toLowerCase();
+  // La biblioteca se filtra con el buscador principal del Studio: un solo
+  // buscador para plantillas e imágenes (el interno confundía — parecía que
+  // "solo buscaba PNG").
+  const q = filtroExterno.trim().toLowerCase();
   const filtrados = q ? recursos.filter((r) => r.nombre.toLowerCase().includes(q)) : recursos;
   const subcarpetas = useMemo(() => {
     const nombres = data?.carpetas ?? [];
@@ -329,13 +331,9 @@ function BibliotecaEtiquetasSection() {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          value={buscar}
-          onChange={(e) => setBuscar(e.target.value)}
-          placeholder="Buscar imagen…"
-          className="min-w-0 flex-1 max-w-sm rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
-        />
-        <span className="shrink-0 text-xs text-muted">{filtrados.length} imagen(es)</span>
+        <span className="shrink-0 text-xs text-muted">
+          {q ? `${filtrados.length} imagen(es) para «${filtroExterno.trim()}»` : `${filtrados.length} imagen(es)`}
+        </span>
         {filtrados.length > 0 && (
           <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-secondary">
             <input
@@ -407,7 +405,9 @@ function BibliotecaEtiquetasSection() {
         </div>
       ) : filtrados.length === 0 && subcarpetas.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted">
-          {q ? "No hay imágenes ni carpetas con ese nombre." : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
+          {q
+            ? "No hay imágenes PNG con ese nombre (las plantillas que coinciden aparecen arriba)."
+            : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
@@ -851,6 +851,15 @@ export default function PlantillasVisualesPanel({
     }
   }, []);
 
+  /** PNG generado pendiente de confirmación: se muestra en vista previa antes
+   *  de descargarlo y guardarlo en la biblioteca. */
+  const [previewExport, setPreviewExport] = useState<{
+    blob: Blob;
+    url: string;
+    escala: number;
+    nombreArchivo: string;
+  } | null>(null);
+
   const exportar = async (escala = 1) => {
     if (!doc) return;
     setExportando(true);
@@ -859,7 +868,29 @@ export default function PlantillasVisualesPanel({
       const blob = await exportarPlantillaBlob(doc, "png", { escala });
       const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
       const suf = escala !== 1 ? `@${escala}x` : "";
-      const nombreArchivo = `${safe}${suf}.png`;
+      setPreviewExport({
+        blob,
+        url: URL.createObjectURL(blob),
+        escala,
+        nombreArchivo: `${safe}${suf}.png`,
+      });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Error al exportar");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const cancelarExport = () => {
+    if (previewExport) URL.revokeObjectURL(previewExport.url);
+    setPreviewExport(null);
+  };
+
+  const confirmarExport = async () => {
+    if (!doc || !previewExport) return;
+    const { blob, escala, nombreArchivo } = previewExport;
+    setExportando(true);
+    try {
       descargarBlob(blob, nombreArchivo);
       const esEtiqueta = Boolean(doc.formato.tipo_etiqueta || doc.formato.ancho_mm);
       await subirImagenBlobAEtiquetas(blob, nombreArchivo, {
@@ -881,6 +912,7 @@ export default function PlantillasVisualesPanel({
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
       setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓`);
       setTimeout(() => setMsg(null), 2500);
+      cancelarExport();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al exportar");
     } finally {
@@ -929,6 +961,79 @@ export default function PlantillasVisualesPanel({
           duplicando={guardarMut.isPending}
           exportando={exportando}
         />
+
+        {previewExport && (
+          <div
+            className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={cancelarExport}
+          >
+            <div
+              className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div>
+                  <p className="text-sm font-bold text-ink">Vista previa de la descarga</p>
+                  <p className="text-[11px] text-muted">
+                    {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
+                    {Math.round(doc.formato.alto_px * previewExport.escala)} px
+                    {doc.formato.ancho_mm && doc.formato.alto_mm
+                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm`
+                      : ""}
+                    {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={cancelarExport}
+                  className="rounded-md px-2 py-1 text-sm text-muted hover:bg-surface-hover"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+              <div
+                className="flex min-h-[240px] flex-1 items-center justify-center overflow-auto p-6"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%),linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%)",
+                  backgroundSize: "16px 16px",
+                  backgroundPosition: "0 0, 8px 8px",
+                  backgroundColor: "#f0f0f0",
+                }}
+              >
+                <img
+                  src={previewExport.url}
+                  alt="Vista previa del PNG a descargar"
+                  className="max-h-[55vh] max-w-full rounded shadow-lg"
+                />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <p className="text-[11px] text-muted">
+                  Al confirmar se descarga y se guarda en la biblioteca de imágenes.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelarExport}
+                    disabled={exportando}
+                    className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void confirmarExport()}
+                    disabled={exportando}
+                    className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+                  >
+                    {exportando ? "Guardando…" : "⬇ Descargar y guardar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -941,7 +1046,7 @@ export default function PlantillasVisualesPanel({
           <input
             value={buscar}
             onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Buscar plantillas…"
+            placeholder="Buscar plantillas e imágenes en todas las carpetas…"
             className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
           />
         </div>
@@ -1063,9 +1168,13 @@ export default function PlantillasVisualesPanel({
         </button>
       </div>
 
-      <div className="mb-5">
-        <BibliotecaEtiquetasSection />
-      </div>
+      {/* Con búsqueda activa, las plantillas van primero y la biblioteca PNG
+          (filtrada por el mismo texto) baja al final. */}
+      {!buscarDebounced && (
+        <div className="mb-5">
+          <BibliotecaEtiquetasSection />
+        </div>
+      )}
 
       {msg && (
         <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm">
@@ -1078,19 +1187,31 @@ export default function PlantillasVisualesPanel({
           <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
       ) : plantillas.length === 0 && subcarpetas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-20 text-center">
-          <p className="text-sm font-medium text-ink">Sin plantillas todavía</p>
-          <p className="mt-1 max-w-sm text-sm text-muted">
-            Elige un formato de lienzo y diseña tu primera etiqueta o recurso visual.
-          </p>
-          <button
-            type="button"
-            onClick={abrirNuevo}
-            className="mt-5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"
-          >
-            Crear plantilla
-          </button>
-        </div>
+        buscarDebounced ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-12 text-center">
+            <p className="text-sm font-medium text-ink">
+              Sin plantillas que coincidan con «{buscarDebounced}»
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-muted">
+              La búsqueda revisa todas las carpetas (incluida Generadas AI). Abajo se
+              muestran las imágenes de la biblioteca que coinciden.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-20 text-center">
+            <p className="text-sm font-medium text-ink">Sin plantillas todavía</p>
+            <p className="mt-1 max-w-sm text-sm text-muted">
+              Elige un formato de lienzo y diseña tu primera etiqueta o recurso visual.
+            </p>
+            <button
+              type="button"
+              onClick={abrirNuevo}
+              className="mt-5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"
+            >
+              Crear plantilla
+            </button>
+          </div>
+        )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {subcarpetas.map((nombreCarpeta) => {
@@ -1184,6 +1305,19 @@ export default function PlantillasVisualesPanel({
                 <div className="px-3 py-2.5">
                   <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
                   <p className="mt-0.5 text-[11px] text-muted">{labelFormato(p.formato)}</p>
+                  {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
+                    <button
+                      type="button"
+                      title={`Ir a la carpeta ${p.carpeta || "raíz"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        irACarpeta(p.carpeta || "");
+                      }}
+                      className="mt-1 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-muted transition hover:border-accent hover:text-accent"
+                    >
+                      📁 {p.carpeta || "raíz"}
+                    </button>
+                  )}
                 </div>
                 <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
                   <button
@@ -1213,6 +1347,12 @@ export default function PlantillasVisualesPanel({
               </article>
             );
           })}
+        </div>
+      )}
+
+      {buscarDebounced && (
+        <div className="mt-6">
+          <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
         </div>
       )}
     </div>

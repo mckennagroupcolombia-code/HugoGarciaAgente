@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { calcCheck, generarEAN13 } from "../../lib/ean13";
 import {
   BIMESTRE_LABEL,
@@ -21,6 +21,13 @@ function anioActualCorto(): number {
   return new Date().getFullYear() % 100;
 }
 
+/** Prefijo estándar de los SKU de combos SIIGO (C-ACIASC250g, C-UREA500g…). */
+const SKU_PREFIJO = "C-";
+
+function sinPrefijoSku(sku: string): string {
+  return sku.replace(/^c-\s*/i, "");
+}
+
 export function CodigosEanPanel() {
   const { data: codigos, isLoading, error } = useCodigosEan();
   const crear = useCrearCodigoEan();
@@ -38,6 +45,25 @@ export function CodigosEanPanel() {
   const guardando = crear.isPending || actualizar.isPending;
   const errorGuardar = editandoId ? actualizar.error : crear.error;
   const huboError = editandoId ? actualizar.isError : crear.isError;
+
+  // Consecutivo: el número que sigue al último (mayor) registrado.
+  const siguienteNumero = useMemo(() => {
+    const nums = (codigos ?? [])
+      .map((c) => Number(c.numero_producto))
+      .filter((n) => Number.isFinite(n) && n >= 1);
+    return nums.length ? Math.max(...nums) + 1 : 1;
+  }, [codigos]);
+
+  // Autocompletar el consecutivo al abrir y tras cada registro; si el usuario
+  // borra el campo para escribir otro número, no se vuelve a rellenar solo.
+  const autoFillHecho = useRef(false);
+  useEffect(() => {
+    if (editandoId || !codigos || autoFillHecho.current) return;
+    if (numeroProducto === "" && siguienteNumero <= 900) {
+      setNumeroProducto(String(siguienteNumero));
+      autoFillHecho.current = true;
+    }
+  }, [codigos, siguienteNumero, editandoId, numeroProducto]);
 
   const numeroValido = /^\d+$/.test(numeroProducto) && Number(numeroProducto) >= 1 && Number(numeroProducto) <= 900;
   const numeroDuplicado = useMemo(
@@ -64,6 +90,7 @@ export function CodigosEanPanel() {
     setSku("");
     setNombreProducto("");
     setNumeroProducto("");
+    autoFillHecho.current = false; // vuelve a proponer el consecutivo
     setPresentacion("000");
     setMes(new Date().getMonth() + 1);
     setAnio(anioActualCorto());
@@ -71,7 +98,7 @@ export function CodigosEanPanel() {
 
   function editar(c: CodigoEan) {
     setEditandoId(c.id);
-    setSku(c.sku);
+    setSku(sinPrefijoSku(c.sku));
     setNombreProducto(c.nombre_producto || "");
     setNumeroProducto(String(c.numero_producto));
     setPresentacion(c.presentacion);
@@ -81,9 +108,9 @@ export function CodigosEanPanel() {
 
   function duplicar(c: CodigoEan) {
     setEditandoId(null);
-    setSku(c.sku);
+    setSku(sinPrefijoSku(c.sku));
     setNombreProducto(c.nombre_producto || "");
-    setNumeroProducto("");
+    setNumeroProducto(siguienteNumero <= 900 ? String(siguienteNumero) : "");
     setPresentacion(c.presentacion);
     setMes(c.bimestre * 2 + 1);
     setAnio(2000 + c.anio);
@@ -92,7 +119,7 @@ export function CodigosEanPanel() {
   function guardar() {
     if (!puedeGuardar) return;
     const datos = {
-      sku: sku.trim(),
+      sku: SKU_PREFIJO + sinPrefijoSku(sku.trim()),
       nombre_producto: nombreProducto.trim(),
       numero_producto: Number(numeroProducto),
       presentacion,
@@ -110,6 +137,7 @@ export function CodigosEanPanel() {
           setSku("");
           setNombreProducto("");
           setNumeroProducto("");
+          autoFillHecho.current = false; // al refrescar la lista, propone el nuevo consecutivo
         },
       });
     }
@@ -128,13 +156,19 @@ export function CodigosEanPanel() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">SKU</label>
-            <input
-              type="text"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              placeholder="AS-123"
-              className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
-            />
+            <div className="flex items-center overflow-hidden rounded-lg border border-border bg-surface focus-within:border-accent">
+              <span className="shrink-0 select-none border-r border-border bg-surface-panel px-2 py-1.5 font-mono text-sm font-semibold text-muted">
+                {SKU_PREFIJO}
+              </span>
+              <input
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(sinPrefijoSku(e.target.value))}
+                placeholder="ACIASC250g"
+                className="w-full min-w-0 bg-transparent px-2.5 py-1.5 text-sm text-ink outline-none"
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-muted">Se guarda como {SKU_PREFIJO}{sku.trim() || "…"}</p>
           </div>
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">Nombre del producto</label>
@@ -163,6 +197,20 @@ export function CodigosEanPanel() {
             )}
             {numeroDuplicado && (
               <p className="mt-1 text-[10px] text-danger">Ese número de producto ya está registrado.</p>
+            )}
+            {!editandoId && siguienteNumero <= 900 && (
+              <p className="mt-1 text-[10px] text-muted">
+                Consecutivo del último: <strong>{String(siguienteNumero).padStart(3, "0")}</strong>
+                {Number(numeroProducto) !== siguienteNumero && (
+                  <button
+                    type="button"
+                    onClick={() => setNumeroProducto(String(siguienteNumero))}
+                    className="ml-1.5 font-semibold text-accent underline"
+                  >
+                    usar
+                  </button>
+                )}
+              </p>
             )}
           </div>
           <div>

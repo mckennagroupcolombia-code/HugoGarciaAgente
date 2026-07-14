@@ -15,6 +15,7 @@ import {
   pesoFontWeightCss,
   type ElementoTexto,
 } from "../../lib/plantillasVisuales";
+import TextoArcoSvg from "./TextoArcoSvg";
 
 type Props = {
   el: ElementoTexto;
@@ -33,6 +34,8 @@ type Props = {
   onTextoEdicionChange: (v: string) => void;
   onCommitEdicion: () => void;
   onCancelEdicion: () => void;
+  /** Notifica el alto real del contenido para sincronizar el height guardado. */
+  onAltoMedido?: (id: string, alto: number) => void;
   chrome: ReactNode;
 };
 
@@ -56,9 +59,12 @@ export default function TextoCapaLienzo({
   onTextoEdicionChange,
   onCommitEdicion,
   onCancelEdicion,
+  onAltoMedido,
   chrome,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  // La caja de texto se ciñe al CONTENIDO (no al height guardado): el marco
+  // de selección debe corresponder a lo que realmente ocupa el texto.
   const [boxH, setBoxH] = useState(Math.max(el.height, el.fontSize * 1.2));
   const [flotante, setFlotante] = useState<{ left: number; top: number; width: number } | null>(
     null,
@@ -68,9 +74,13 @@ export default function TextoCapaLienzo({
   useLayoutEffect(() => {
     const node = wrapRef.current;
     if (!node || editando) return;
-    const h = Math.max(el.height, Math.ceil(node.scrollHeight), Math.ceil(el.fontSize * 1.2));
+    const h = Math.max(Math.ceil(node.scrollHeight), Math.ceil(el.fontSize * 1.2));
     setBoxH((prev) => (prev === h ? prev : h));
-  }, [el.content, el.width, el.fontSize, el.lineHeight, el.fontFamily, el.fontWeight, el.height, editando]);
+    // Persistir el alto medido para que el height guardado coincida con el
+    // contenido real. Solo con el elemento seleccionado: así abrir una
+    // plantilla vieja no la marca como "con cambios" hasta que se interactúa.
+    if (seleccionado && onAltoMedido && Math.abs(h - el.height) > 1) onAltoMedido(el.id, h);
+  }, [el.content, el.width, el.fontSize, el.lineHeight, el.fontFamily, el.fontWeight, el.height, el.id, editando, seleccionado, onAltoMedido]);
 
   useEffect(() => {
     if (!editando) {
@@ -106,7 +116,7 @@ export default function TextoCapaLienzo({
     width: el.width,
     // Crítico: no fijar height al valor guardado (suele ser una franja chica).
     height: "auto",
-    minHeight: Math.max(el.height, boxH),
+    minHeight: boxH,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
     transformOrigin: "center center",
     zIndex: el.zIndex,
@@ -127,7 +137,7 @@ export default function TextoCapaLienzo({
     isValidElement(chrome)
       ? cloneElement(chrome as ReactElement<{ width?: number; height?: number }>, {
           width: el.width,
-          height: Math.max(boxH, el.height),
+          height: boxH,
         })
       : chrome;
 
@@ -172,7 +182,9 @@ export default function TextoCapaLienzo({
             {esPrincipal ? "Doble clic o Enter para editar" : "Texto"}
           </div>
         )}
-        <div style={{ pointerEvents: "none", width: "100%" }}>{el.content}</div>
+        <div style={{ pointerEvents: "none", width: "100%" }}>
+          {(el.arco ?? 0) !== 0 ? <TextoArcoSvg el={el} /> : el.content}
+        </div>
         <div
           style={{
             position: "absolute",

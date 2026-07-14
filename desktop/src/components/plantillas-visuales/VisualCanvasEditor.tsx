@@ -21,6 +21,7 @@ import {
   elementoLineaDefecto,
   elementoRectDefecto,
   elementoTextoDefecto,
+  escalarPlantillaAFormato,
   TAMANO_TEXTO_DEFECTO,
   PASO_TAMANO_TEXTO,
   TAMANO_TEXTO_MIN,
@@ -44,6 +45,7 @@ import {
   type AlineacionObjetos,
   type ElementoTexto,
   type ElementoVisual,
+  type FormatoCanvas,
   type PlantillaVisualDoc,
   type RolTextoCapa,
   contextoCapasParaDescripcion,
@@ -59,6 +61,7 @@ import {
 import { GHSIconsPicker } from "../GHSIconsPicker";
 import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
+import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
 import EditorDescripcionMp, { ContenidoTextoSimple } from "./EditorDescripcionMp";
@@ -120,6 +123,7 @@ type DragMode =
   | "move"
   | `resize-${ResizeCorner}`
   | "resize-line-end"
+  | "resize-grupo"
   | "rotate"
   | null;
 
@@ -403,6 +407,9 @@ export default function VisualCanvasEditor({
     origs: Map<string, ElementoVisual>;
     rotateStartAngle?: number;
     rotateOrig?: number;
+    /** Redimensionar grupo: esquina fija (ancla) y esquina arrastrada. */
+    grupoAnchor?: { x: number; y: number };
+    grupoCorner0?: { x: number; y: number };
     /** true cuando el gesto ya superó el umbral de arrastre */
     moved?: boolean;
   } | null>(null);
@@ -427,6 +434,10 @@ export default function VisualCanvasEditor({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
+  const [cambiarFormatoAbierto, setCambiarFormatoAbierto] = useState(false);
+  const [coloresAbierto, setColoresAbierto] = useState(false);
+  const [colorDesde, setColorDesde] = useState<string | null>(null);
+  const [colorHacia, setColorHacia] = useState("#0396f1");
   // Etiquetas: 600 DPI (Epson). Otros formatos: mejor preset disponible.
   const presetExportActivo = useMemo(
     () => presetExportImpresionDefault(doc.formato),
@@ -622,6 +633,157 @@ export default function VisualCanvasEditor({
   const puedeDeshacer = historialVersion >= 0 && historialRef.current.pasado.length > 0;
   const puedeRehacer = historialVersion >= 0 && historialRef.current.futuro.length > 0;
 
+  const aplicarNuevoFormato = useCallback(
+    (formato: FormatoCanvas, categoriaId: string) => {
+      setCambiarFormatoAbierto(false);
+      if (
+        formato.ancho_px === doc.formato.ancho_px &&
+        formato.alto_px === doc.formato.alto_px &&
+        formato.id === doc.formato.id
+      ) {
+        return;
+      }
+      // El historial solo versiona elementos+fondo; con otro lienzo esas
+      // instantáneas quedan en coordenadas inválidas.
+      historialRef.current = { pasado: [], futuro: [] };
+      historialRafagaActivaRef.current = false;
+      historialAplicandoRef.current = true;
+      if (historialDebounceRef.current) {
+        window.clearTimeout(historialDebounceRef.current);
+        historialDebounceRef.current = null;
+      }
+      setHistorialVersion((v) => v + 1);
+      onChange(escalarPlantillaAFormato(doc, formato, categoriaId));
+    },
+    [doc, onChange],
+  );
+
+  /** Colores usados en textos, líneas y recuadros (para reemplazo global). */
+  const coloresPlantilla = useMemo(() => {
+    const conteo = new Map<string, number>();
+    const sumar = (c?: string) => {
+      const k = (c || "").trim().toLowerCase();
+      if (!k || k === "transparent" || k === "none") return;
+      conteo.set(k, (conteo.get(k) ?? 0) + 1);
+    };
+    for (const el of doc.elementos) {
+      if (el.type === "text") sumar(el.color);
+      else if (el.type === "line") sumar(el.stroke);
+      else if (el.type === "rect") {
+        sumar(el.fill);
+        sumar(el.stroke);
+      }
+    }
+    return [...conteo.entries()].sort((a, b) => b[1] - a[1]);
+  }, [doc.elementos]);
+
+  /** Reemplaza un color en TODOS los elementos que lo usan (títulos,
+   *  subtítulos, líneas, recuadros…). Un solo cambio → un solo deshacer. */
+  const reemplazarColorGlobal = useCallback(
+    (desde: string, hacia: string) => {
+      const d = desde.trim().toLowerCase();
+      const h = hacia.trim();
+      if (!d || !h || d === h.toLowerCase()) return;
+      onChange({
+        ...doc,
+        elementos: doc.elementos.map((el) => {
+          if (el.type === "text" && (el.color || "").trim().toLowerCase() === d) {
+            return { ...el, color: h };
+          }
+          if (el.type === "line" && (el.stroke || "").trim().toLowerCase() === d) {
+            return { ...el, stroke: h };
+          }
+          if (el.type === "rect") {
+            const f = (el.fill || "").trim().toLowerCase() === d;
+            const s = (el.stroke || "").trim().toLowerCase() === d;
+            if (f || s) {
+              return { ...el, ...(f ? { fill: h } : null), ...(s ? { stroke: h } : null) };
+            }
+          }
+          return el;
+        }),
+      });
+      setColorDesde(null);
+    },
+    [doc, onChange],
+  );
+
+  /** Inicia el redimensionado proporcional de un grupo desde una esquina. */
+  const iniciarResizeGrupo = (e: ReactPointerEvent, corner: ResizeCorner) => {
+    if (!elementosGrupoActivo || !cajaGrupoActivo) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const b = cajaGrupoActivo;
+    const esquinas = {
+      nw: { x: b.left, y: b.top },
+      ne: { x: b.right, y: b.top },
+      sw: { x: b.left, y: b.bottom },
+      se: { x: b.right, y: b.bottom },
+    } as const;
+    const opuesta = { nw: "se", ne: "sw", sw: "ne", se: "nw" } as const;
+    const origs = new Map<string, ElementoVisual>();
+    for (const el of elementosGrupoActivo) origs.set(el.id, structuredClone(el));
+    try {
+      canvasRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    const full = {
+      ids: elementosGrupoActivo.map((el) => el.id),
+      mode: "resize-grupo" as DragMode,
+      startX: e.clientX,
+      startY: e.clientY,
+      origs,
+      grupoAnchor: esquinas[opuesta[corner]],
+      grupoCorner0: esquinas[corner],
+      moved: true,
+    };
+    dragRef.current = full;
+    setDrag(full);
+  };
+
+  /** Alto real del texto medido en el DOM → sincroniza el height guardado
+   *  para que el marco de la caja corresponda al contenido.
+   *
+   *  Los avisos se acumulan y se aplican en UN solo patch por frame: si varias
+   *  capas seleccionadas (grupo) parchearan por separado, cada una partiría de
+   *  un doc obsoleto y se revertirían mutuamente en bucle (React #185). */
+  const altosPendientesRef = useRef<Map<string, number>>(new Map());
+  const altosRafRef = useRef<number | null>(null);
+  const patchElementosRef = useRef(patchElementos);
+  patchElementosRef.current = patchElementos;
+
+  const sincronizarAltoTexto = useCallback((id: string, alto: number) => {
+    altosPendientesRef.current.set(id, alto);
+    if (altosRafRef.current != null) return;
+    altosRafRef.current = requestAnimationFrame(() => {
+      altosRafRef.current = null;
+      const pendientes = altosPendientesRef.current;
+      altosPendientesRef.current = new Map();
+      let huboCambio = false;
+      const siguiente = (els: ElementoVisual[]) =>
+        els.map((e) => {
+          const alto2 = pendientes.get(e.id);
+          if (alto2 === undefined || e.type !== "text" || Math.abs(e.height - alto2) <= 1) {
+            return e;
+          }
+          huboCambio = true;
+          return { ...e, height: alto2 };
+        });
+      const resultado = siguiente(elementosRef.current);
+      if (huboCambio) {
+        patchElementosRef.current(() => resultado);
+      }
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (altosRafRef.current != null) cancelAnimationFrame(altosRafRef.current);
+    },
+    [],
+  );
+
   const patchElemento = useCallback(
     (id: string, patch: Partial<ElementoVisual>) => {
       patchElementos((els) =>
@@ -689,6 +851,19 @@ export default function VisualCanvasEditor({
   const agregarRect = () => {
     const { x, y } = posicionNuevoElemento(doc.elementos.length, 56, 96);
     const el = elementoRectDefecto(x, y);
+    el.zIndex = maxZ + 1;
+    patchElementos((els) => [...els, el]);
+    setSeleccionIds([el.id]);
+  };
+
+  const agregarCirculo = () => {
+    const { x, y } = posicionNuevoElemento(doc.elementos.length, 56, 96);
+    const el = elementoRectDefecto(x, y);
+    // Un círculo es un rect cuadrado con radio de borde a tope: mismo modelo
+    // de datos, así hereda relleno/borde/rotación y todas las exportaciones.
+    el.width = 90;
+    el.height = 90;
+    el.borderRadius = 9999;
     el.zIndex = maxZ + 1;
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
@@ -822,6 +997,8 @@ export default function VisualCanvasEditor({
     origs: Map<string, ElementoVisual>;
     rotateStartAngle?: number;
     rotateOrig?: number;
+    grupoAnchor?: { x: number; y: number };
+    grupoCorner0?: { x: number; y: number };
     moved?: boolean;
   } | null>(null);
   /** Segundo clic en texto ya seleccionado → editar en lienzo (si no hubo arrastre). */
@@ -874,13 +1051,26 @@ export default function VisualCanvasEditor({
     setSeleccionIds(nextIds);
     if (!nextIds.includes(el.id)) return;
 
-    if (el.locked) return;
+    // Grupo completo seleccionado: se mueve ENTERO, incluidos los elementos
+    // con candado (el candado protege ediciones individuales; mover el grupo
+    // es una acción explícita). Sin esto, los grupos con capas bloqueadas se
+    // desarmaban o directamente no se podían arrastrar.
+    const gid = el.groupId;
+    const esGrupoCompleto =
+      mode === "move" &&
+      !!gid &&
+      (() => {
+        const miembros = doc.elementos.filter((x) => x.groupId === gid).map((x) => x.id);
+        return miembros.length >= 2 && miembros.every((id) => nextIds.includes(id));
+      })();
+
+    if (el.locked && !esGrupoCompleto) return;
 
     const idsDrag =
       mode === "move"
         ? nextIds.filter((id) => {
             const o = doc.elementos.find((x) => x.id === id);
-            return o && !o.locked;
+            return o && (esGrupoCompleto || !o.locked);
           })
         : [el.id];
 
@@ -1010,6 +1200,39 @@ export default function VisualCanvasEditor({
             const o = d.origs.get(e.id);
             if (!o) return e;
             return { ...e, ...patchMoverElemento(o, dx, dy) } as ElementoVisual;
+          }),
+        );
+        return;
+      }
+      if (d.mode === "resize-grupo" && d.grupoAnchor && d.grupoCorner0) {
+        // Escala proporcional del grupo desde la esquina opuesta (ancla)
+        const ax = d.grupoAnchor.x;
+        const ay = d.grupoAnchor.y;
+        const d0 = Math.hypot(d.grupoCorner0.x - ax, d.grupoCorner0.y - ay) || 1;
+        const d1 = Math.hypot(d.grupoCorner0.x + dx - ax, d.grupoCorner0.y + dy - ay);
+        const s = Math.min(20, Math.max(0.05, d1 / d0));
+        patchElementos((els) =>
+          els.map((e) => {
+            const o = d.origs.get(e.id);
+            if (!o) return e;
+            const base = {
+              x: ax + (o.x - ax) * s,
+              y: ay + (o.y - ay) * s,
+              width: Math.max(1, o.width * s),
+              height: Math.max(1, o.height * s),
+            };
+            if (o.type === "text" && e.type === "text") {
+              return { ...e, ...base, fontSize: ajustarTamanoTexto(o.fontSize * s) };
+            }
+            if (o.type === "line" && e.type === "line") {
+              return {
+                ...e,
+                ...base,
+                x2: ax + ((o.x2 ?? o.x + o.width) - ax) * s,
+                y2: ay + ((o.y2 ?? o.y) - ay) * s,
+              };
+            }
+            return { ...e, ...base } as ElementoVisual;
           }),
         );
         return;
@@ -1206,9 +1429,12 @@ export default function VisualCanvasEditor({
         if (ev.key === "ArrowUp") dy = -paso;
         if (ev.key === "ArrowDown") dy = paso;
         const ids = new Set(seleccionIds);
+        // Grupo completo seleccionado → las flechas mueven también las capas
+        // con candado (mismo criterio que el arrastre de grupo).
+        const grupoCompleto = !!elementosGrupoActivo;
         patchElementos((els) =>
           els.map((e) => {
-            if (!ids.has(e.id) || e.locked) return e;
+            if (!ids.has(e.id) || (e.locked && !grupoCompleto)) return e;
             return { ...e, ...patchMoverElemento(e, dx, dy) } as ElementoVisual;
           }),
         );
@@ -1222,6 +1448,7 @@ export default function VisualCanvasEditor({
     desagruparSeleccion,
     doc.elementos,
     editandoInlineId,
+    elementosGrupoActivo,
     iniciarEdicionInline,
     patchElementos,
     rehacer,
@@ -1314,7 +1541,9 @@ export default function VisualCanvasEditor({
       return palabras.slice(0, 2).join(" ");
     }
     if (el.type === "image") return "Imagen";
-    if (el.type === "rect") return "Rectángulo";
+    if (el.type === "rect") {
+      return el.borderRadius >= Math.min(el.width, el.height) / 2 ? "Círculo" : "Rectángulo";
+    }
     if (el.type === "line") return "Línea";
     return "Elemento";
   }
@@ -1400,12 +1629,82 @@ export default function VisualCanvasEditor({
           onChange={(e) => onChange({ ...doc, nombre: e.target.value })}
           className="min-w-[8rem] flex-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium text-white outline-none focus:border-accent/50"
         />
-        <span
-          className="hidden rounded px-1.5 py-0.5 text-[11px] text-neutral-400 sm:inline"
-          title="Formato de la plantilla"
+        <button
+          type="button"
+          onClick={() => setCambiarFormatoAbierto(true)}
+          className="hidden items-center gap-1 rounded border border-white/10 px-1.5 py-0.5 text-[11px] text-neutral-400 transition hover:border-accent/60 hover:text-white sm:inline-flex"
+          title="Cambiar tamaño del formato — el diseño se reescala proporcionalmente"
         >
           {labelFormato(doc.formato)}
-        </span>
+          <span aria-hidden>✎</span>
+        </button>
+        <div className="relative hidden sm:block">
+          <button
+            type="button"
+            onClick={() => {
+              setColoresAbierto((v) => !v);
+              setColorDesde(null);
+            }}
+            title="Cambiar un color en toda la plantilla (títulos, subtítulos, líneas…)"
+            className="inline-flex items-center gap-1 rounded border border-white/10 px-1.5 py-0.5 text-[11px] text-neutral-400 transition hover:border-accent/60 hover:text-white"
+          >
+            <span className="flex gap-0.5">
+              {coloresPlantilla.slice(0, 3).map(([c]) => (
+                <span key={c} className="h-3 w-3 rounded-full border border-white/30" style={{ background: c }} />
+              ))}
+            </span>
+            Colores
+          </button>
+          {coloresAbierto && (
+            <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-white/10 bg-neutral-900 p-3 shadow-2xl">
+              <p className="mb-2 text-[11px] leading-snug text-neutral-400">
+                1. Elige el color a cambiar &nbsp;2. Escoge el nuevo &nbsp;3. Aplicar.
+                Cambia ese color en todos los elementos a la vez (Ctrl+Z lo revierte).
+              </p>
+              <div className="max-h-44 space-y-1 overflow-y-auto">
+                {coloresPlantilla.map(([col, n]) => (
+                  <button
+                    key={col}
+                    type="button"
+                    onClick={() => setColorDesde(col)}
+                    className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
+                      colorDesde === col
+                        ? "border-accent bg-accent/15"
+                        : "border-white/10 hover:border-white/30"
+                    }`}
+                  >
+                    <span className="h-5 w-5 shrink-0 rounded border border-white/25" style={{ background: col }} />
+                    <code className="flex-1 truncate text-[11px] text-neutral-300">{col}</code>
+                    <span className="shrink-0 text-[10px] text-neutral-500">
+                      {n} uso{n !== 1 ? "s" : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+                <input
+                  type="color"
+                  value={colorHacia}
+                  onChange={(e) => setColorHacia(e.target.value)}
+                  className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent"
+                  title="Color nuevo"
+                />
+                <code className="flex-1 text-[11px] text-neutral-300">{colorHacia}</code>
+                <button
+                  type="button"
+                  disabled={!colorDesde}
+                  onClick={() => {
+                    if (colorDesde) reemplazarColorGlobal(colorDesde, colorHacia);
+                    setColoresAbierto(false);
+                  }}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <ToolBtn
           title="Deshacer (Ctrl+Z)"
           onClick={deshacer}
@@ -1490,6 +1789,13 @@ export default function VisualCanvasEditor({
         </div>
       </header>
 
+      <CambiarFormatoModal
+        abierta={cambiarFormatoAbierto}
+        formatoActual={doc.formato}
+        onCerrar={() => setCambiarFormatoAbierto(false)}
+        onElegir={aplicarNuevoFormato}
+      />
+
       <div className="flex min-h-0 flex-1">
         {/* Herramientas — columna izquierda */}
         <aside className={`flex w-14 shrink-0 flex-col items-center gap-1.5 border-r py-2 ${studio.toolbar}`}>
@@ -1498,6 +1804,9 @@ export default function VisualCanvasEditor({
           </ToolBtn>
           <ToolBtn title="Rectángulo" onClick={agregarRect}>
             <span className="text-2xl">▢</span>
+          </ToolBtn>
+          <ToolBtn title="Círculo / elipse" onClick={agregarCirculo}>
+            <span className="text-2xl leading-none">◯</span>
           </ToolBtn>
           <ToolBtn title="Línea" onClick={agregarLinea}>
             <span className="text-2xl leading-none">─</span>
@@ -1695,6 +2004,7 @@ export default function VisualCanvasEditor({
                         }}
                         onCommitEdicion={commitEditInline}
                         onCancelEdicion={cancelEditInline}
+                        onAltoMedido={sincronizarAltoTexto}
                         chrome={
                           <SeleccionChrome
                             width={el.width}
@@ -1921,11 +2231,48 @@ export default function VisualCanvasEditor({
                     height: cajaGrupoActivo.bottom - cajaGrupoActivo.top,
                     zIndex: Math.min(...elementosGrupoActivo.map((e) => e.zIndex)) - 0.01,
                     border: "1px dashed rgba(1, 109, 130, 0.55)",
-                    cursor: elementosGrupoActivo.some((e) => e.locked) ? "default" : "move",
+                    cursor: "move",
                     background: "transparent",
                   }}
                 />
               )}
+              {cajaGrupoActivo &&
+                elementosGrupoActivo &&
+                CORNERS.map(({ id: corner, cursor }) => {
+                  const cx = corner.includes("w") ? cajaGrupoActivo.left : cajaGrupoActivo.right;
+                  const cy = corner.includes("n") ? cajaGrupoActivo.top : cajaGrupoActivo.bottom;
+                  return (
+                    <div
+                      key={`grupo-${corner}`}
+                      title="Arrastra para redimensionar el grupo (proporcional)"
+                      onPointerDown={(e) => iniciarResizeGrupo(e, corner)}
+                      style={{
+                        position: "absolute",
+                        left: cx + pasteboard - NODO_HIT_PX / 2,
+                        top: cy + pasteboard - NODO_HIT_PX / 2,
+                        width: NODO_HIT_PX,
+                        height: NODO_HIT_PX,
+                        zIndex: 9999,
+                        cursor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "transparent",
+                        touchAction: "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: NODO_VIS_PX + 2,
+                          height: NODO_VIS_PX + 2,
+                          background: "#fff",
+                          border: "1.5px solid rgba(1, 109, 130, 0.9)",
+                          borderRadius: 1,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
               {marquee && (
                 <div
                   aria-hidden
@@ -2469,6 +2816,39 @@ export default function VisualCanvasEditor({
                   />
                 </label>
                 <label>
+                  <span className="flex items-center justify-between text-xs text-muted">
+                    <span>
+                      Texto en arco ({seleccionado.arco ?? 0})
+                      {Math.abs(seleccionado.arco ?? 0) >= 200 && " · círculo completo"}
+                    </span>
+                    {(seleccionado.arco ?? 0) !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => patchElemento(seleccionado.id, { arco: 0 })}
+                        className="text-[10px] font-semibold text-accent underline"
+                      >
+                        recto
+                      </button>
+                    )}
+                  </span>
+                  <input
+                    type="range"
+                    min={-200}
+                    max={200}
+                    step={5}
+                    value={seleccionado.arco ?? 0}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, { arco: Number(e.target.value) })
+                    }
+                    className="w-full accent-accent"
+                  />
+                  <span className="block text-[10px] leading-snug text-muted">
+                    Positivo curva hacia arriba (domo), negativo hacia abajo. ±100 =
+                    semicírculo, ±200 = círculo completo (el diámetro es el ancho de la
+                    caja). El arco usa una sola línea de texto.
+                  </span>
+                </label>
+                <label>
                   <span className="text-xs text-muted">Rotación (°)</span>
                   <input
                     type="number"
@@ -2561,17 +2941,19 @@ export default function VisualCanvasEditor({
                   />
                 </label>
                 <label>
-                  <span className="text-xs text-muted">Grosor borde</span>
+                  <span className="text-xs text-muted">Grosor borde (pasos de 0,25)</span>
                   <input
                     type="number"
                     min={0}
                     max={20}
+                    step={0.25}
                     value={seleccionado.strokeWidth}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
                       patchElemento(seleccionado.id, {
-                        strokeWidth: Math.max(0, Number(e.target.value)),
-                      })
-                    }
+                        strokeWidth: Math.max(0, Number.isFinite(v) ? v : 0),
+                      });
+                    }}
                     className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
                   />
                 </label>
