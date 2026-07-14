@@ -325,6 +325,28 @@
       "bimestre": 3,
       "codigo": "7700301202631",
       "creado_at": "2026-07-13T22:54:32"
+    },
+    {
+      "id": "dcf92499f799",
+      "sku": "C-MANKAR125g",
+      "nombre_producto": "MANTECA KARITE 125g",
+      "numero_producto": 31,
+      "presentacion": "125",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700311252633",
+      "creado_at": "2026-07-14T00:14:19"
+    },
+    {
+      "id": "65e9f08fcd45",
+      "sku": "C-VAS400g",
+      "nombre_producto": "VASELINA 400g",
+      "numero_producto": 32,
+      "presentacion": "400",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700324002638",
+      "creado_at": "2026-07-14T00:14:52"
     }
   ]
 }

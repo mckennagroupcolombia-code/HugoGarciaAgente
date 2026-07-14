@@ -57,6 +57,15 @@ export interface ElementoTexto extends ElementoBase {
   /** Curvatura del texto en arco: -200 a 200; ±100 = semicírculo, ±200 = círculo
    *  completo. Positivo domo (por arriba), negativo valle (por abajo); 0/undefined = recto. */
   arco?: number;
+  /** "circulo" → el bloque se envuelve/justifica dentro de un círculo inscrito
+   *  en la caja (diámetro = ancho). Tiene prioridad sobre `arco`.
+   *  No confundir con `arco` (±200 = letras siguiendo el borde del círculo). */
+  forma?: "circulo";
+  /** Grosor del anillo decorativo (con `forma: "circulo"` o con `arco` casi
+   *  completo). 0/undefined = sin anillo. */
+  marcoAncho?: number;
+  /** Color del anillo; por defecto el color del texto. */
+  marcoColor?: string;
 }
 
 export interface ElementoRect extends ElementoBase {

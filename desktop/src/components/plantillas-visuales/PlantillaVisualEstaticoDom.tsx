@@ -5,6 +5,7 @@ import {
 } from "../../lib/plantillasVisuales";
 import { estiloElemento } from "./VisualCanvasEditor";
 import TextoArcoSvg from "./TextoArcoSvg";
+import TextoCirculoDom from "./TextoCirculoDom";
 
 /**
  * Render estático (sin interactividad) de una plantilla, con exactamente el
@@ -59,6 +60,13 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
       MozOsxFontSmoothing: "grayscale",
       textRendering: "geometricPrecision",
     };
+    if (el.forma === "circulo") {
+      return (
+        <div style={estilo}>
+          <TextoCirculoDom el={el} escala={escala} />
+        </div>
+      );
+    }
     if ((el.arco ?? 0) !== 0) {
       return (
         <div style={estilo}>

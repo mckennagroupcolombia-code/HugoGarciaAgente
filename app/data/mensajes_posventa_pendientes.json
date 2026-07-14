@@ -1,34 +1,5 @@
 {
-  "pendientes": {
-    "2000013995274653": {
-      "pack_id": "2000013995274653",
-      "codigo": "653",
-      "comprador": "Comprador 480818092",
-      "from_id": "480818092",
-      "texto": "Hola buenos dias hice compra de L Glutamina 100 Gr dice llega mañna me podrias decir como se toma grcias",
-      "msg_id": "019f5c5bd03671c4b36b3950068a32b4",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "timestamp": "2026-07-13T11:57:17"
-    },
-    "653": {
-      "pack_id": "2000013995274653",
-      "codigo": "653",
-      "comprador": "Comprador 480818092",
-      "from_id": "480818092",
-      "texto": "Hola buenos dias hice compra de L Glutamina 100 Gr dice llega mañna me podrias decir como se toma grcias",
-      "msg_id": "019f5c5bd03671c4b36b3950068a32b4",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "timestamp": "2026-07-13T11:57:17"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019ee5a1af267987af12a46c9bf2a5bb",
     "019e933af0047e66bc56760c08b2b606",

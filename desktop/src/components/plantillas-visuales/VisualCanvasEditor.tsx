@@ -67,6 +67,7 @@ import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
 import EditorDescripcionMp, { ContenidoTextoSimple } from "./EditorDescripcionMp";
 import TextosRapidos from "./TextosRapidos";
 import TextoCapaLienzo from "./TextoCapaLienzo";
+import { geometriaArco } from "./TextoArcoSvg";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
 import { esTextoDescripcionMpEstructurado } from "../../lib/descripcionMpTexto";
@@ -846,6 +847,73 @@ export default function VisualCanvasEditor({
     };
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
+  };
+
+  /** Texto en un arco (solo una parte del círculo), típico título de etiqueta. */
+  const agregarTextoMarcoCircular = () => {
+    const ancho = Math.min(
+      260,
+      Math.max(160, Math.round(doc.formato.ancho_px * 0.7)),
+    );
+    const fs = 16;
+    const arco = 80; // ~arco superior (no círculo completo)
+    const { altoTotal } = geometriaArco(ancho, fs, arco);
+    const alto = Math.ceil(altoTotal);
+    const { x, y } = posicionNuevoElemento(
+      doc.elementos.length,
+      Math.round((doc.formato.ancho_px - ancho) / 2),
+      Math.round(doc.formato.alto_px * 0.08),
+    );
+    const base = elementoTextoDefecto(x, y);
+    const el: ElementoTexto = {
+      ...base,
+      content: "NOMBRE DEL PRODUCTO",
+      width: ancho,
+      height: alto,
+      fontSize: fs,
+      fontWeight: "700",
+      align: "center",
+      color: "#c4781a",
+      arco,
+      forma: undefined,
+      marcoAncho: 0,
+      zIndex: maxZ + 1,
+    };
+    patchElementos((els) => [...els, el]);
+    setSeleccionIds([el.id]);
+  };
+
+  const aplicarArcoPreset = (arco: number) => {
+    if (!seleccionado || seleccionado.type !== "text") return;
+    const w = Math.max(40, seleccionado.width);
+    const fs = seleccionado.fontSize || 12;
+    if (arco === 0) {
+      patchElemento(seleccionado.id, {
+        arco: 0,
+        marcoAncho: 0,
+        height: Math.ceil(fs * 1.6),
+      });
+      return;
+    }
+    const abs = Math.abs(arco);
+    const square = abs >= 150;
+    const side = Math.max(w, seleccionado.height);
+    const { altoTotal } = geometriaArco(square ? side : w, fs, arco);
+    patchElemento(seleccionado.id, {
+      arco,
+      forma: undefined,
+      width: square ? side : w,
+      height: square ? side : Math.ceil(altoTotal),
+      ...(square
+        ? {
+            marcoAncho:
+              seleccionado.marcoAncho && seleccionado.marcoAncho > 0
+                ? seleccionado.marcoAncho
+                : 1.5,
+            marcoColor: seleccionado.marcoColor || seleccionado.color,
+          }
+        : { marcoAncho: seleccionado.marcoAncho ?? 0 }),
+    });
   };
 
   const agregarRect = () => {
@@ -1801,6 +1869,15 @@ export default function VisualCanvasEditor({
         <aside className={`flex w-14 shrink-0 flex-col items-center gap-1.5 border-r py-2 ${studio.toolbar}`}>
           <ToolBtn title="Texto (T)" onClick={agregarTexto}>
             <span className="text-lg font-bold">T</span>
+          </ToolBtn>
+          <ToolBtn
+            title="Texto en arco (solo una parte del círculo)"
+            onClick={agregarTextoMarcoCircular}
+          >
+            <span className="relative inline-flex h-6 w-6 items-center justify-center">
+              <span className="absolute inset-x-0 top-0.5 h-3 rounded-t-full border border-b-0 border-current opacity-80" />
+              <span className="text-[10px] font-black leading-none">T</span>
+            </span>
           </ToolBtn>
           <ToolBtn title="Rectángulo" onClick={agregarRect}>
             <span className="text-2xl">▢</span>
@@ -2815,39 +2892,172 @@ export default function VisualCanvasEditor({
                     className="w-full accent-accent"
                   />
                 </label>
-                <label>
-                  <span className="flex items-center justify-between text-xs text-muted">
-                    <span>
-                      Texto en arco ({seleccionado.arco ?? 0})
-                      {Math.abs(seleccionado.arco ?? 0) >= 200 && " · círculo completo"}
-                    </span>
-                    {(seleccionado.arco ?? 0) !== 0 && (
-                      <button
-                        type="button"
-                        onClick={() => patchElemento(seleccionado.id, { arco: 0 })}
-                        className="text-[10px] font-semibold text-accent underline"
-                      >
-                        recto
-                      </button>
-                    )}
+                <div className="space-y-1.5 rounded-md border border-border/80 bg-surface-hover/30 p-2">
+                  <span className="block text-xs font-semibold text-ink">
+                    Texto en arco
                   </span>
-                  <input
-                    type="range"
-                    min={-200}
-                    max={200}
-                    step={5}
-                    value={seleccionado.arco ?? 0}
-                    onChange={(e) =>
-                      patchElemento(seleccionado.id, { arco: Number(e.target.value) })
-                    }
-                    className="w-full accent-accent"
-                  />
                   <span className="block text-[10px] leading-snug text-muted">
-                    Positivo curva hacia arriba (domo), negativo hacia abajo. ±100 =
-                    semicírculo, ±200 = círculo completo (el diámetro es el ancho de la
-                    caja). El arco usa una sola línea de texto.
+                    Solo una parte del círculo (título arriba o aviso abajo). Ajusta
+                    la curvatura; 100 = media luna, 200 = círculo completo.
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {(
+                      [
+                        { label: "Arco suave", v: 55 },
+                        { label: "Arriba", v: 85 },
+                        { label: "Media luna", v: 100 },
+                        { label: "Abajo", v: -85 },
+                        { label: "360°", v: 200 },
+                        { label: "Recto", v: 0 },
+                      ] as const
+                    ).map((p) => {
+                      const activo =
+                        p.v === 0
+                          ? (seleccionado.arco ?? 0) === 0
+                          : (seleccionado.arco ?? 0) === p.v;
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => aplicarArcoPreset(p.v)}
+                          className={`rounded border px-2 py-0.5 text-[10px] font-medium ${
+                            activo
+                              ? "border-accent bg-accent/15 text-accent"
+                              : "border-border text-muted hover:bg-surface-hover"
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="block">
+                    <span className="flex items-center justify-between text-[10px] text-muted">
+                      <span>
+                        Curvatura ({seleccionado.arco ?? 0})
+                        {Math.abs(seleccionado.arco ?? 0) >= 200
+                          ? " · círculo completo"
+                          : Math.abs(seleccionado.arco ?? 0) >= 100
+                            ? " · media luna"
+                            : (seleccionado.arco ?? 0) !== 0
+                              ? " · arco parcial"
+                              : ""}
+                      </span>
+                    </span>
+                    <input
+                      type="range"
+                      min={-200}
+                      max={200}
+                      step={5}
+                      value={seleccionado.arco ?? 0}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (v === 0) {
+                          patchElemento(seleccionado.id, {
+                            arco: 0,
+                            height: Math.ceil(seleccionado.fontSize * 1.6),
+                          });
+                          return;
+                        }
+                        const abs = Math.abs(v);
+                        const square = abs >= 150;
+                        const side = Math.max(seleccionado.width, seleccionado.height);
+                        const w = square ? side : seleccionado.width;
+                        const { altoTotal } = geometriaArco(w, seleccionado.fontSize, v);
+                        patchElemento(seleccionado.id, {
+                          arco: v,
+                          forma: undefined,
+                          width: w,
+                          height: square ? side : Math.ceil(altoTotal),
+                        });
+                      }}
+                      className="w-full accent-accent"
+                    />
+                    <span className="block text-[10px] leading-snug text-muted">
+                      + arco arriba · − arco abajo. El ancho de la caja es la cuerda
+                      del arco (diámetro si es círculo completo).
+                    </span>
+                  </label>
+                  {(seleccionado.arco ?? 0) !== 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted">Anillo</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        step={0.5}
+                        value={seleccionado.marcoAncho ?? 0}
+                        onChange={(e) =>
+                          patchElemento(seleccionado.id, {
+                            marcoAncho: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                        className="w-14 rounded border border-border bg-surface-input px-1.5 py-0.5 text-xs text-ink"
+                        title="Grosor del anillo (0 = sin anillo; suele usarse solo en 360°)"
+                      />
+                      <input
+                        type="color"
+                        value={seleccionado.marcoColor || seleccionado.color}
+                        onChange={(e) =>
+                          patchElemento(seleccionado.id, { marcoColor: e.target.value })
+                        }
+                        className="h-7 w-9 cursor-pointer rounded border border-border bg-surface-input p-0.5"
+                        title="Color del anillo"
+                      />
+                    </div>
+                  )}
+                </div>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={seleccionado.forma === "circulo"}
+                    onChange={(e) =>
+                      patchElemento(
+                        seleccionado.id,
+                        e.target.checked
+                          ? { forma: "circulo", arco: 0, align: "justify" }
+                          : { forma: undefined },
+                      )
+                    }
+                    className="mt-0.5 accent-accent"
+                  />
+                  <span className="text-xs text-muted">
+                    <span className="font-semibold text-ink">Párrafo en círculo</span>
+                    <span className="block text-[10px] leading-snug">
+                      Distinto al marco: el texto central se rellena en forma de
+                      círculo (líneas cortas arriba/abajo). No sigue el borde.
+                    </span>
                   </span>
                 </label>
+                {seleccionado.forma === "circulo" && (
+                  <div className="ml-6 flex items-center gap-2">
+                    <span className="text-xs text-muted">Marco</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      value={seleccionado.marcoAncho ?? 0}
+                      onChange={(e) =>
+                        patchElemento(seleccionado.id, {
+                          marcoAncho: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      className="w-16 rounded border border-border bg-surface-input px-2 py-1 text-xs text-ink"
+                      title="Grosor del marco circular (0 = sin marco)"
+                    />
+                    <input
+                      type="color"
+                      value={seleccionado.marcoColor || seleccionado.color}
+                      onChange={(e) =>
+                        patchElemento(seleccionado.id, { marcoColor: e.target.value })
+                      }
+                      className="h-7 w-9 cursor-pointer rounded border border-border bg-surface-input p-0.5"
+                      title="Color del marco circular"
+                    />
+                    <span className="text-[10px] text-muted">grosor · color</span>
+                  </div>
+                )}
                 <label>
                   <span className="text-xs text-muted">Rotación (°)</span>
                   <input
