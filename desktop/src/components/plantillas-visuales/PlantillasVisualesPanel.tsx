@@ -14,6 +14,7 @@ import {
   exportarPlantillaBlob,
   subirImagenBlobAEtiquetas,
 } from "../../lib/plantillasVisualesExport";
+import { sanitizarAltosTextoPlantilla } from "./TextoArcoSvg";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
@@ -843,8 +844,9 @@ export default function PlantillasVisualesPanel({
       const res = await api.get<{ plantilla: PlantillaVisualDoc }>(
         `/api/plantillas-visuales/${id}`,
       );
-      setDoc(res.plantilla);
-      docGuardadoRef.current = res.plantilla;
+      const limpio = sanitizarAltosTextoPlantilla(res.plantilla);
+      setDoc(limpio);
+      docGuardadoRef.current = limpio;
       setVista("editor");
     } catch {
       setMsg("No se pudo abrir la plantilla");

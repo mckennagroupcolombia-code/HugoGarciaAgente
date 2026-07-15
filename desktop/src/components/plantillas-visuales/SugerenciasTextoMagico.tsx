@@ -13,6 +13,8 @@ interface Props {
   /** Descripción materia prima (capa 1): tono MeLi-safe y sin repetir título/subtítulo. */
   modoDescripcionMateriaPrima?: boolean;
   contextoCapas?: ContextoCapasTexto;
+  /** En la barra bajo el lienzo: sin margen superior raro. */
+  compact?: boolean;
 }
 
 const MAX_CHARS_CATALOGO = 2600;
@@ -27,6 +29,7 @@ export default function SugerenciasTextoMagico({
   onElegir,
   modoDescripcionMateriaPrima,
   contextoCapas,
+  compact,
 }: Props) {
   const [activo, setActivo] = useState(false);
   const [sugerencias, setSugerencias] = useState<SugerenciaTextoMagico[]>([]);
@@ -105,7 +108,7 @@ export default function SugerenciasTextoMagico({
   }, [cargando, contextoCapas, fragmento, modoDescripcionMateriaPrima, puedeGenerar]);
 
   return (
-    <div className="mt-2">
+    <div className={compact ? "" : "mt-2"}>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -113,7 +116,7 @@ export default function SugerenciasTextoMagico({
           disabled={!puedeGenerar || cargando}
           className="rounded border border-accent/40 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {cargando ? "Generando texto mágico…" : "✨ Texto mágico"}
+          {cargando ? "Generando…" : "✨ Texto mágico"}
         </button>
         {activo && !cargando && (
           <button

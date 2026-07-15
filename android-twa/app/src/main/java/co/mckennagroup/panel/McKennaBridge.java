@@ -20,7 +20,14 @@ public final class McKennaBridge {
     private McKennaBridge() {}
 
     public static void handleUri(Context context, Uri data) {
-        if (data == null || !SCHEME.equals(data.getScheme())) return;
+        if (data == null) return;
+
+        // HTTPS puente OAuth: /app/auth/android-return?token=… o /app?_token=…
+        if ("https".equalsIgnoreCase(data.getScheme()) || "http".equalsIgnoreCase(data.getScheme())) {
+            if (handleHttpsAuthReturn(context, data)) return;
+        }
+
+        if (!SCHEME.equals(data.getScheme())) return;
 
         String host = data.getHost();
         if (HOST_AUTH.equals(host)) {
@@ -40,6 +47,27 @@ public final class McKennaBridge {
         }
     }
 
+    /** Devuelve true si la URI era un retorno OAuth HTTPS y ya se abrió el panel. */
+    static boolean handleHttpsAuthReturn(Context context, Uri data) {
+        if (data == null || data.getHost() == null) return false;
+        String host = data.getHost().toLowerCase();
+        if (!host.contains("mckennagroup.co")) return false;
+
+        String path = data.getPath() != null ? data.getPath() : "";
+        String token = null;
+        if ("/app/auth/android-return".equals(path)) {
+            token = data.getQueryParameter("token");
+        } else if ("/app".equals(path) || "/app/".equals(path)) {
+            token = data.getQueryParameter("_token");
+        }
+        if (token == null || token.isEmpty()) return false;
+
+        String url = panelBaseUrl(context) + "/app?_token=" + Uri.encode(token);
+        Log.i(TAG, "OAuth HTTPS return → panel");
+        openPanel(context, url);
+        return true;
+    }
+
     private static void handleAuth(Context context, Uri data) {
         String token = data.getQueryParameter("token");
         if (token == null || token.isEmpty()) {
@@ -56,13 +84,25 @@ public final class McKennaBridge {
     }
 
     static void openPanel(Context context, String url) {
+        if (context instanceof McKennaWebViewActivity) {
+            ((McKennaWebViewActivity) context).loadUrl(url);
+            return;
+        }
         Intent i = new Intent(context, McKennaWebViewActivity.class);
         i.putExtra(McKennaWebViewActivity.EXTRA_URL, url);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // CLEAR_TOP + SINGLE_TOP reutiliza el panel vivo.
+        // NEW_TASK solo si no somos Activity (p. ej. Application); si no, misma tarea = no se cierra sola.
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         if (!(context instanceof Activity)) {
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } else if (context instanceof DeepLinkActivity) {
+            // Venimos de Custom Tab / intent externo: necesitamos task propio del panel.
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         }
         context.startActivity(i);
+        // No finish() aquí: DeepLinkActivity/LauncherActivity cierran cuando corresponde.
     }
 
     static String panelBaseUrl(Context ctx) {

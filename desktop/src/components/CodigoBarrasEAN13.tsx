@@ -9,14 +9,18 @@ interface Props {
 }
 
 function coincide(c: CodigoEan, q: string): boolean {
-  const t = q.trim().toLowerCase();
+  const t = (q || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
   if (!t) return true;
-  return (
-    c.sku.toLowerCase().includes(t) ||
-    (c.nombre_producto || "").toLowerCase().includes(t) ||
-    String(c.numero_producto).includes(t) ||
-    c.codigo.includes(t)
-  );
+  const blob = [c.nombre_producto, c.sku, c.codigo, String(c.numero_producto)]
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return t.split(/\s+/).filter(Boolean).every((palabra) => blob.includes(palabra));
 }
 
 export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
@@ -108,10 +112,10 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por SKU, producto o número…"
+              placeholder="Buscar por nombre del producto…"
               className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
             />
-            <div className="max-h-40 space-y-1 overflow-y-auto">
+            <div className="max-h-48 space-y-1 overflow-y-auto">
               {isLoading ? (
                 <p className="py-4 text-center text-[10px] text-muted">Cargando…</p>
               ) : coincidencias.length === 0 ? (
@@ -121,7 +125,7 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
                     : "Sin coincidencias."}
                 </p>
               ) : (
-                coincidencias.map((c) => (
+                coincidencias.slice(0, 80).map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -133,14 +137,23 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
                     }`}
                   >
                     <p className="truncate text-xs font-semibold text-ink">
-                      {c.sku} <span className="font-normal text-muted">· {String(c.numero_producto).padStart(3, "0")}</span>
+                      {c.nombre_producto || c.sku}
                     </p>
-                    {c.nombre_producto && (
-                      <p className="truncate text-[10px] text-muted">{c.nombre_producto}</p>
-                    )}
+                    <p className="truncate text-[10px] text-muted">
+                      {c.sku}
+                      <span className="font-normal">
+                        {" "}
+                        · {String(c.numero_producto).padStart(3, "0")}
+                      </span>
+                    </p>
                     <p className="mt-0.5 font-mono text-[9px] tracking-wide text-muted">{c.codigo}</p>
                   </button>
                 ))
+              )}
+              {coincidencias.length > 80 && (
+                <p className="py-1 text-center text-[9px] text-muted">
+                  Mostrando 80 de {coincidencias.length}. Afina la búsqueda.
+                </p>
               )}
             </div>
           </>

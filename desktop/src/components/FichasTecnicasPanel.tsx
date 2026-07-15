@@ -29,6 +29,8 @@ interface ArchivoGenerado {
   tipo: "pdf" | "docx";
   tamano: number;
   fecha: number;
+  /** "ft" = ficha simple; "completo" = FT+COA+SDS */
+  categoria?: "ft" | "completo";
 }
 
 function fmt_bytes(bytes: number): string {
@@ -193,7 +195,15 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
               return (
                 <tr key={a.nombre} className={`border-b border-border/50 transition-colors hover:bg-surface-panel ${i % 2 === 0 ? "" : "bg-surface/30"}`}>
                   <td className="px-4 py-2.5">
-                    <span className="font-medium text-ink">{a.nombre.replace(/\.(pdf|docx)$/i, "")}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-ink">{a.nombre.replace(/\.(pdf|docx)$/i, "")}</span>
+                      {a.categoria === "ft" && (
+                        <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-accent/15 text-accent">FT</span>
+                      )}
+                      {a.categoria === "completo" && (
+                        <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-emerald-100 text-emerald-800">Completo</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2.5 text-center">
                     <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${a.tipo === "pdf" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>

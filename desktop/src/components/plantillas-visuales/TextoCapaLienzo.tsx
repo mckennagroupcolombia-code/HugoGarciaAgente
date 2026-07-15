@@ -1,13 +1,9 @@
 import {
-  cloneElement,
-  isValidElement,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
-  type ReactElement,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -15,6 +11,8 @@ import {
   pesoFontWeightCss,
   type ElementoTexto,
 } from "../../lib/plantillasVisuales";
+import { LINE_HEIGHT_DEFECTO } from "../../lib/textoCirculo";
+import { alturaCajaTexto } from "./TextoArcoSvg";
 import TextoArcoSvg from "./TextoArcoSvg";
 import TextoCirculoDom from "./TextoCirculoDom";
 
@@ -35,14 +33,12 @@ type Props = {
   onTextoEdicionChange: (v: string) => void;
   onCommitEdicion: () => void;
   onCancelEdicion: () => void;
-  /** Notifica el alto real del contenido para sincronizar el height guardado. */
-  onAltoMedido?: (id: string, alto: number) => void;
   chrome: ReactNode;
 };
 
 /**
- * Capa de texto del lienzo: la caja interactiva crece con el glifo (height:auto)
- * y la edición se hace en un panel flotante (portal) para no pelear con zoom/drag.
+ * Capa de texto del lienzo. Nunca reescribe `el.height` del documento.
+ * El marco de selección usa un alto estimado estable (sin useLayoutEffect).
  */
 export default function TextoCapaLienzo({
   el,
@@ -60,28 +56,14 @@ export default function TextoCapaLienzo({
   onTextoEdicionChange,
   onCommitEdicion,
   onCancelEdicion,
-  onAltoMedido,
   chrome,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  // La caja de texto se ciñe al CONTENIDO (no al height guardado): el marco
-  // de selección debe corresponder a lo que realmente ocupa el texto.
-  const [boxH, setBoxH] = useState(Math.max(el.height, el.fontSize * 1.2));
   const [flotante, setFlotante] = useState<{ left: number; top: number; width: number } | null>(
     null,
   );
   const taRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useLayoutEffect(() => {
-    const node = wrapRef.current;
-    if (!node || editando) return;
-    const h = Math.max(Math.ceil(node.scrollHeight), Math.ceil(el.fontSize * 1.2));
-    setBoxH((prev) => (prev === h ? prev : h));
-    // Persistir el alto medido para que el height guardado coincida con el
-    // contenido real. Solo con el elemento seleccionado: así abrir una
-    // plantilla vieja no la marca como "con cambios" hasta que se interactúa.
-    if (seleccionado && onAltoMedido && Math.abs(h - el.height) > 1) onAltoMedido(el.id, h);
-  }, [el.content, el.width, el.fontSize, el.lineHeight, el.fontFamily, el.fontWeight, el.height, el.id, el.arco, el.forma, el.marcoAncho, editando, seleccionado, onAltoMedido]);
+  const hitH = alturaCajaTexto(el);
 
   useEffect(() => {
     if (!editando) {
@@ -115,9 +97,7 @@ export default function TextoCapaLienzo({
     left,
     top,
     width: el.width,
-    // Crítico: no fijar height al valor guardado (suele ser una franja chica).
-    height: "auto",
-    minHeight: boxH,
+    height: hitH,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
     transformOrigin: "center center",
     zIndex: el.zIndex,
@@ -126,21 +106,13 @@ export default function TextoCapaLienzo({
     fontFamily: el.fontFamily,
     fontWeight: pesoFontWeightCss(el.fontWeight),
     textAlign: el.align,
-    lineHeight: el.lineHeight ?? 1.2,
+    lineHeight: `${(el.lineHeight ?? LINE_HEIGHT_DEFECTO) * el.fontSize}px`,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     overflow: "visible",
     cursor: locked ? "default" : seleccionado ? "text" : "move",
     touchAction: "none",
   };
-
-  const chromeMedido: ReactNode =
-    isValidElement(chrome)
-      ? cloneElement(chrome as ReactElement<{ width?: number; height?: number }>, {
-          width: el.width,
-          height: boxH,
-        })
-      : chrome;
 
   return (
     <>
@@ -198,12 +170,15 @@ export default function TextoCapaLienzo({
             left: 0,
             top: 0,
             width: el.width,
-            height: Math.max(boxH, el.height),
+            height: hitH,
+            // Los handles activan pointerEvents:auto; el contenedor no debe
+            // tragarse el clic (mover vs rotar).
             pointerEvents: "none",
             overflow: "visible",
+            zIndex: 40,
           }}
         >
-          {chromeMedido}
+          {chrome}
         </div>
         {seleccionado && !editando && !locked && (
           <button
@@ -283,7 +258,7 @@ export default function TextoCapaLienzo({
                 fontFamily: el.fontFamily,
                 fontWeight: pesoFontWeightCss(el.fontWeight),
                 textAlign: el.align,
-                lineHeight: el.lineHeight ?? 1.3,
+                lineHeight: `${(el.lineHeight ?? LINE_HEIGHT_DEFECTO) * el.fontSize}px`,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
                 border: "1px solid #cbd5e1",

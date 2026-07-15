@@ -13746,6 +13746,108 @@ REGLAS:
         _save_codigos_ean(nuevo)
         return jsonify({"ok": True})
 
+    @app.route("/api/etiquetas/codigos-ean/importar-siigo", methods=["POST"])
+    @app.route("/app/api/etiquetas/codigos-ean/importar-siigo", methods=["POST"])
+    def api_etiquetas_codigos_ean_importar_siigo():
+        """Registra EAN para combos SIIGO activos (prefijo C-) que aún no estén en la planilla."""
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
+
+        from app.tools.etiquetas_codigos_ean import (
+            anio_bimestre_actual,
+            normalizar_sku_ean,
+            presentacion_ean_desde_sku,
+            siguiente_numero_producto,
+        )
+
+        try:
+            from app.services.siigo import listar_productos_combo_siigo
+            combos = listar_productos_combo_siigo()
+        except Exception as e:
+            return jsonify({"error": f"No se pudieron listar combos SIIGO: {e}"}), 502
+
+        items = _load_codigos_ean()
+        existentes = {normalizar_sku_ean(str(c.get("sku") or "")) for c in items}
+        anio, bimestre = anio_bimestre_actual()
+        numeros = [int(c.get("numero_producto") or 0) for c in items]
+        import uuid as _uuid_ean
+
+        creados = []
+        omitidos = 0
+        errores: list[str] = []
+
+        # Orden estable por código para consecutivos predecibles
+        candidatos = []
+        for p in combos:
+            code = (p.get("code") or "").strip()
+            if not code.upper().startswith("C-"):
+                continue
+            if normalizar_sku_ean(code) in existentes:
+                omitidos += 1
+                continue
+            candidatos.append(p)
+        candidatos.sort(key=lambda p: normalizar_sku_ean(p.get("code") or ""))
+
+        for p in candidatos:
+            code = (p.get("code") or "").strip()
+            nombre = (p.get("name") or "").strip()
+            num = siguiente_numero_producto(numeros)
+            if num is None:
+                errores.append("Se alcanzó el límite de 900 números de producto")
+                break
+            presentacion = presentacion_ean_desde_sku(code, nombre)
+            d12 = f"{_EAN_PREFIJO}{num:03d}{presentacion}{anio:02d}{bimestre}"
+            check = _ean_calc_check(d12)
+            entry = {
+                "id": _uuid_ean.uuid4().hex[:12],
+                "sku": code,
+                "nombre_producto": nombre,
+                "numero_producto": num,
+                "presentacion": presentacion,
+                "anio": anio,
+                "bimestre": bimestre,
+                "codigo": f"{d12}{check}",
+                "creado_at": _dt.now().isoformat(timespec="seconds"),
+            }
+            items.append(entry)
+            numeros.append(num)
+            existentes.add(normalizar_sku_ean(code))
+            creados.append({"sku": code, "numero_producto": num, "presentacion": presentacion, "codigo": entry["codigo"]})
+
+        if creados:
+            items.sort(key=lambda x: x.get("numero_producto") or 0)
+            _save_codigos_ean(items)
+
+        return jsonify({
+            "ok": True,
+            "creados": len(creados),
+            "omitidos": omitidos,
+            "errores": errores,
+            "siguiente_numero": siguiente_numero_producto(numeros),
+            "detalle": creados[:50],
+        })
+
+    @app.route("/api/etiquetas/codigos-ean/sincronizar-siigo", methods=["POST"])
+    @app.route("/app/api/etiquetas/codigos-ean/sincronizar-siigo", methods=["POST"])
+    def api_etiquetas_codigos_ean_sincronizar_siigo():
+        """Sube los EAN de la planilla al campo código de barras (additional_fields.barcode) en Siigo."""
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
+        body = request.get_json(silent=True) or {}
+        solo_vacios = body.get("solo_vacios", True)
+        if isinstance(solo_vacios, str):
+            solo_vacios = solo_vacios.strip().lower() not in ("0", "false", "no")
+        try:
+            from app.services.siigo import sincronizar_barcodes_ean_a_siigo
+            resultado = sincronizar_barcodes_ean_a_siigo(solo_vacios=bool(solo_vacios))
+        except Exception as e:
+            return jsonify({"error": f"Error sincronizando barcodes a Siigo: {e}"}), 502
+        if not resultado.get("ok"):
+            return jsonify(resultado), 500
+        return jsonify(resultado)
+
     # ── Etiquetas: inventario papel y tinta ───────────────────────────────────
 
     _ETIQUETAS_INVENTARIO_PATH = os.path.join(

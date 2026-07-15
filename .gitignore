@@ -105,6 +105,7 @@ facturas_descargadas/
 # Datos runtime que cambian a diario (los respalda el tar nocturno de
 # backup_drive.py, no git — evitan diffs gigantes y conflictos de merge)
 app/data/tickets.db
+app/data/oauth_states_panel.json
 app/data/wa_chats.db
 app/data/metricas_diarias.json
 app/data/web_chat_activity.json

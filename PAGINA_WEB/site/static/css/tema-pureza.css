@@ -5,8 +5,6 @@
    variables --pz-* inyectadas desde data/tema_web.json.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&display=swap');
-
 body.tema-pureza {
   /* Fallbacks; base.html inyecta los valores reales desde la config */
   --pz-acento:        #0c6069;
@@ -34,15 +32,15 @@ body.tema-pureza {
   color: var(--pz-tinta);
 }
 
-/* ── Tipografía de display serif ─────────────────────────── */
+/* ── Tipografía display (Montserrat, misma familia que el sitio) ─ */
 body.tema-pureza h1,
 body.tema-pureza h2,
 body.tema-pureza .section-title,
 body.tema-pureza .cat-cta-title,
 body.tema-pureza .shop-header h1,
 body.tema-pureza .page-hero h1 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 400;
+  font-family: var(--font-primary);
+  font-weight: 800;
   letter-spacing: -0.5px;
 }
 body.tema-pureza h1 em,
@@ -250,7 +248,8 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   text-align: center;
 }
 .pz-metric-val {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-primary);
+  font-weight: 800;
   font-size: 2rem;
   color: var(--pz-acento);
   line-height: 1.1;
@@ -320,7 +319,8 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   position: absolute;
   top: 18px;
   right: 18px;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-primary);
+  font-weight: 800;
   font-size: 1.2rem;
   color: rgba(28,43,42,0.18);
 }
@@ -349,7 +349,8 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   margin-bottom: 18px;
 }
 .pz-pillar h3 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-primary);
+  font-weight: 700;
   font-size: 1.25rem;
   color: var(--pz-tinta);
   margin-bottom: 10px;

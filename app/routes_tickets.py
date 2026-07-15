@@ -77,21 +77,52 @@ _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 _GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
-# Estado OAuth en memoria: {state: {"t": epoch, "android": bool}}
+# Estado OAuth: memoria + archivo (sobrevive reinicio breve de Flask durante el login).
 _oauth_states: dict[str, dict] = {}
 _OAUTH_STATE_TTL = 300  # 5 minutos
+_OAUTH_STATE_FILE = os.path.join(os.path.dirname(__file__), "data", "oauth_states_panel.json")
+
+
+def _oauth_states_load_disk() -> None:
+    try:
+        if not os.path.isfile(_OAUTH_STATE_FILE):
+            return
+        with open(_OAUTH_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            now = time.time()
+            for k, v in data.items():
+                if not isinstance(v, dict):
+                    continue
+                if now - float(v.get("t", 0)) <= _OAUTH_STATE_TTL:
+                    _oauth_states[k] = v
+    except Exception:
+        pass
+
+
+def _oauth_states_save_disk() -> None:
+    try:
+        os.makedirs(os.path.dirname(_OAUTH_STATE_FILE), exist_ok=True)
+        with open(_OAUTH_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(_oauth_states, f)
+    except Exception:
+        pass
 
 
 def _oauth_state_put(state: str, *, android: bool = False) -> None:
+    _oauth_states_load_disk()
     now = time.time()
     expired = [k for k, v in _oauth_states.items() if now - float(v.get("t", 0)) > _OAUTH_STATE_TTL]
     for k in expired:
         del _oauth_states[k]
     _oauth_states[state] = {"t": now, "android": android}
+    _oauth_states_save_disk()
 
 
 def _oauth_state_pop(state: str) -> dict | None:
+    _oauth_states_load_disk()
     entry = _oauth_states.pop(state, None)
+    _oauth_states_save_disk()
     if entry is None:
         return None
     if isinstance(entry, (int, float)):
@@ -305,55 +336,122 @@ def register_tickets_routes(app):
         code = request.args.get("code", "")
         error = request.args.get("error", "")
 
-        if error:
-            return redirect(f"/app?auth_error={error}")
+        stored = _oauth_state_pop(state) if state else None
+        is_android = bool(stored and stored.get("android"))
 
-        stored = _oauth_state_pop(state)
+        def _fail(msg: str):
+            import urllib.parse
+            q = urllib.parse.quote(msg, safe="")
+            if is_android:
+                return redirect(f"/app/auth/android-return?error={q}")
+            return redirect(f"/app?auth_error={q}")
+
+        if error:
+            return _fail(error)
+
         if stored is None or (time.time() - float(stored.get("t", 0))) > _OAUTH_STATE_TTL:
-            return redirect("/app?auth_error=state_invalido")
+            return _fail("state_invalido")
 
         if not code:
-            return redirect("/app?auth_error=sin_codigo")
+            return _fail("sin_codigo")
 
         profile = _exchange_google_code(code)
         if not profile:
-            return redirect("/app?auth_error=oauth_fallido")
+            return _fail("oauth_fallido")
 
         result, err = login_usuario_google(profile["email"], profile["sub"])
         if err:
-            import urllib.parse
-            return redirect(f"/app?auth_error={urllib.parse.quote(err)}")
+            return _fail(err)
 
         token = result["token"]
-        if stored.get("android"):
+        if is_android:
             import urllib.parse
             q = urllib.parse.quote(token, safe="")
-            # HTTPS primero: Custom Tab en MIUI a veces no abre mckennaapp:// directo;
-            # la página puente redirige al deep link y el WebView también intercepta la URL.
             return redirect(f"/app/auth/android-return?token={q}")
         return redirect(f"/app?_token={token}")
 
     @app.route("/app/auth/android-return", methods=["GET"])
     def tickets_android_auth_return():
-        """Puente post-Google OAuth para APK: intenta mckennaapp:// y ofrece enlace manual."""
+        """Puente post-Google OAuth para APK.
+
+        Custom Tabs en MIUI/HyperOS a menudo ignoran mckennaapp:// puro.
+        Usamos intent:// con package + fallback HTTPS al panel con ?_token=.
+        """
         import html
         import json
         import urllib.parse
 
+        err = (request.args.get("error") or "").strip()
+        if err:
+            deeplink = f"mckennaapp://auth?error={urllib.parse.quote(err, safe='')}"
+            panel = f"https://bot.mckennagroup.co/app?auth_error={urllib.parse.quote(err, safe='')}"
+            intent_url = (
+                f"intent://auth?error={urllib.parse.quote(err, safe='')}#Intent;"
+                "scheme=mckennaapp;"
+                "package=co.mckennagroup.panel;"
+                f"S.browser_fallback_url={urllib.parse.quote(panel, safe='')};"
+                "end"
+            )
+            msg = html.escape(err)
+            href_i = html.escape(intent_url, quote=True)
+            return (
+                "<!DOCTYPE html><html><head><meta charset=utf-8>"
+                '<meta name=viewport content="width=device-width,initial-scale=1">'
+                f"<script>location.href={json.dumps(intent_url)};</script></head>"
+                "<body style=\"font-family:system-ui,sans-serif;text-align:center;"
+                "padding:2rem;background:#0f1117;color:#e8eaed\">"
+                f"<p style=\"color:#f87171\">No se pudo iniciar sesión</p>"
+                f"<p style=\"color:#9aa0a6;font-size:0.9rem\">{msg}</p>"
+                f'<p style="margin-top:1.5rem"><a href="{href_i}" style="color:#7dd3c0">'
+                "Volver a la app</a></p></body></html>"
+            )
+
         token = (request.args.get("token") or "").strip()
         if not token:
             return redirect("/app?auth_error=sin_token")
-        deeplink = f"mckennaapp://auth?token={urllib.parse.quote(token, safe='')}"
-        href = html.escape(deeplink, quote=True)
-        js_url = json.dumps(deeplink)
+
+        tok_q = urllib.parse.quote(token, safe="")
+        deeplink = f"mckennaapp://auth?token={tok_q}"
+        panel_https = f"https://bot.mckennagroup.co/app?_token={tok_q}"
+        # Chrome/Custom Tab resuelve mejor intent:// con package que el esquema custom solo.
+        intent_url = (
+            f"intent://auth?token={tok_q}#Intent;"
+            "scheme=mckennaapp;"
+            "package=co.mckennagroup.panel;"
+            f"S.browser_fallback_url={urllib.parse.quote(panel_https, safe='')};"
+            "end"
+        )
+
+        href_intent = html.escape(intent_url, quote=True)
+        href_deep = html.escape(deeplink, quote=True)
+        href_https = html.escape(panel_https, quote=True)
+        js_intent = json.dumps(intent_url)
+        js_deep = json.dumps(deeplink)
+
         return (
             "<!DOCTYPE html><html><head><meta charset=utf-8>"
             '<meta name=viewport content="width=device-width,initial-scale=1">'
-            f'<meta http-equiv="refresh" content="0;url={href}">'
-            f"<script>location.replace({js_url});</script>"
-            "</head><body style=\"font-family:sans-serif;text-align:center;padding:2rem\">"
-            "<p>Volviendo al panel McKenna…</p>"
-            f'<p><a href="{href}">Toca aquí si no regresa solo</a></p>'
+            f"<script>"
+            f"var intentUrl={js_intent}, deepUrl={js_deep};"
+            "function goApp(u){try{location.href=u;}catch(e){}}"
+            "goApp(intentUrl);"
+            "setTimeout(function(){goApp(deepUrl);},400);"
+            "setTimeout(function(){goApp(intentUrl);},900);"
+            "</script>"
+            "</head><body style=\"font-family:system-ui,sans-serif;text-align:center;"
+            "padding:2.5rem 1.25rem;background:#0f1117;color:#e8eaed;min-height:100vh;"
+            "box-sizing:border-box\">"
+            "<p style=\"font-size:1.1rem;margin:0 0 1rem\">Sesión lista. Abriendo McKenna…</p>"
+            f'<p style="margin:1.5rem 0"><a href="{href_intent}" style="display:inline-block;'
+            "padding:14px 22px;background:#0c6069;color:#fff;text-decoration:none;"
+            'border-radius:10px;font-weight:700;font-size:1rem">Abrir panel McKenna</a></p>'
+            f'<p style="margin:0.75rem 0"><a href="{href_deep}" style="color:#7dd3c0">'
+            "Reintentar enlace de la app</a></p>"
+            f'<p style="margin:0.75rem 0"><a href="{href_https}" style="color:#9aa0a6;font-size:0.9rem">'
+            "Abrir en el navegador (mismo token)</a></p>"
+            "<p style=\"margin-top:2rem;color:#9aa0a6;font-size:0.85rem\">"
+            "Si no vuelve solo, toca <b>Abrir panel McKenna</b> y elige la app McKenna."
+            "</p>"
             "</body></html>"
         )
 

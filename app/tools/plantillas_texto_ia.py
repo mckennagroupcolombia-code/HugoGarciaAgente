@@ -411,6 +411,12 @@ def _recolectar_fichas(
     # Prioridad 1: documentos FT/COA/SDS del Studio, buscados por el título
     # de la plantilla (más confiable que el fragmento parcial que se edita).
     titulo_plantilla = ((contexto_capas or {}).get("titulo") or "").strip() or fragmento
+    # Con título de capa, las palabras de búsqueda son SOLO del título.
+    # Si se mezclan con el párrafo de la descripción (“crema hidratante…”),
+    # el catálogo JSON/Sheets asocia otro producto y “pierde” el título.
+    palabras_titulo = _palabras_clave(titulo_plantilla, min_len=3)
+    palabras_busqueda = palabras_titulo or palabras
+
     for item in _buscar_en_fichas_word(titulo_plantilla, limite=limite):
         if item["clave"] in vistos:
             continue
@@ -425,13 +431,13 @@ def _recolectar_fichas(
     # un bloque de texto plano de una columna — si ganaba el cupo antes,
     # la ficha rica y estructurada del JSON quedaba descartada y el texto
     # generado terminaba genérico, sin datos reales del producto.
-    for item in _buscar_en_json(palabras, limite=limite):
+    for item in _buscar_en_json(palabras_busqueda, limite=limite):
         if item["clave"] in vistos:
             continue
         vistos.add(item["clave"])
         resultados.append(item)
 
-    sheet = _buscar_en_sheets(fragmento)
+    sheet = _buscar_en_sheets(titulo_plantilla)
     if sheet and sheet["clave"] not in vistos:
         vistos.add(sheet["clave"])
         resultados.append(sheet)

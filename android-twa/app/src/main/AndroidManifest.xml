@@ -167,14 +167,15 @@
             android:launchMode="singleTask"
             android:theme="@android:style/Theme.NoTitleBar" />
 
-        <!-- Deep links mckennaapp:// fuera del TWA (evita cierre al abrir la app) -->
+        <!-- Deep links mckennaapp:// — NUNCA https /app aquí (NoDisplay cerraba la app al login). -->
         <activity
             android:name=".DeepLinkActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.NoDisplay"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:noHistory="true"
             android:excludeFromRecents="true"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>

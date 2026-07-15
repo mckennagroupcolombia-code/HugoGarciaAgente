@@ -41,7 +41,7 @@ public class McKennaWebViewActivity extends Activity {
 
     private static final String TAG = "McKennaWebView";
     public static final String EXTRA_URL = "panel_url";
-    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.3.1";
+    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.3.3";
     private static final int REQ_AUDIO = 1001;
     private static final int REQ_FILE_CHOOSER = 1002;
 
@@ -179,12 +179,47 @@ public class McKennaWebViewActivity extends Activity {
         });
         webView.setWebViewClient(new PanelWebViewClient());
 
-        String url = getIntent().getStringExtra(EXTRA_URL);
-        if (url == null || url.isEmpty()) {
-            url = getString(R.string.launchUrl);
+        String bootstrapUrl = getIntent().getStringExtra(EXTRA_URL);
+        if (bootstrapUrl == null || bootstrapUrl.isEmpty()) {
+            if (getIntent().getData() != null) {
+                bootstrapUrl = getIntent().getData().toString();
+            } else {
+                bootstrapUrl = getString(R.string.launchUrl);
+            }
         }
-        Log.i(TAG, "Cargando " + url);
-        webView.loadUrl(url);
+        Uri bootstrapUri = Uri.parse(bootstrapUrl);
+        String resolved = resolveAuthBootstrapUrl(bootstrapUri);
+        if (resolved != null) {
+            Log.i(TAG, "Sesión OAuth desde Intent → " + resolved);
+            bootstrapUrl = resolved;
+        }
+        Log.i(TAG, "Cargando " + bootstrapUrl);
+        webView.loadUrl(bootstrapUrl);
+    }
+
+    /**
+     * Si el Intent trae android-return / ?_token= / mckennaapp://auth, devolver URL del panel
+     * con sesión. null = cargar la URL tal cual.
+     */
+    private String resolveAuthBootstrapUrl(Uri uri) {
+        if (uri == null) return null;
+        if ("mckennaapp".equals(uri.getScheme()) && "auth".equals(uri.getHost())) {
+            String token = uri.getQueryParameter("token");
+            if (token != null && !token.isEmpty()) {
+                return McKennaBridge.panelBaseUrl(this) + "/app?_token=" + Uri.encode(token);
+            }
+            return null;
+        }
+        if (!isPanelHost(uri)) return null;
+        String path = uri.getPath() != null ? uri.getPath() : "";
+        String token = null;
+        if ("/app/auth/android-return".equals(path)) {
+            token = uri.getQueryParameter("token");
+        } else if ("/app".equals(path) || "/app/".equals(path)) {
+            token = uri.getQueryParameter("_token");
+        }
+        if (token == null || token.isEmpty()) return null;
+        return McKennaBridge.panelBaseUrl(this) + "/app?_token=" + Uri.encode(token);
     }
 
     private File createCameraImageFile() {
@@ -239,10 +274,25 @@ public class McKennaWebViewActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (intent == null) return;
+
+        Uri data = intent.getData();
+        if (data != null && McKennaBridge.handleHttpsAuthReturn(this, data)) {
+            return;
+        }
+        if (data != null && "mckennaapp".equals(data.getScheme())) {
+            McKennaBridge.handleUri(this, data);
+            return;
+        }
+
         String url = intent.getStringExtra(EXTRA_URL);
-        if (url != null && !url.isEmpty() && webView != null) {
-            Log.i(TAG, "Recargando tras deep link: " + url);
-            webView.loadUrl(url);
+        if (url != null && !url.isEmpty()) {
+            Uri u = Uri.parse(url);
+            if (McKennaBridge.handleHttpsAuthReturn(this, u)) return;
+            if (webView != null) {
+                Log.i(TAG, "Recargando tras deep link: " + url);
+                webView.loadUrl(url);
+            }
         }
     }
 
@@ -321,15 +371,14 @@ public class McKennaWebViewActivity extends Activity {
     }
 
     private boolean handlePanelAuthReturn(Uri uri) {
-        if (!isPanelHost(uri)) return false;
-        String path = uri.getPath() != null ? uri.getPath() : "";
-        if (!"/app/auth/android-return".equals(path)) return false;
-        String token = uri.getQueryParameter("token");
-        if (token == null || token.isEmpty()) return false;
-        String panelUrl = McKennaBridge.panelBaseUrl(this) + "/app?_token=" + Uri.encode(token);
-        Log.i(TAG, "OAuth HTTPS return → " + panelUrl);
-        loadUrl(panelUrl);
-        return true;
+        if (uri == null) return false;
+        String resolved = resolveAuthBootstrapUrl(uri);
+        if (resolved != null) {
+            Log.i(TAG, "OAuth HTTPS return → " + resolved);
+            loadUrl(resolved);
+            return true;
+        }
+        return false;
     }
 
     private class PanelWebViewClient extends WebViewClient {

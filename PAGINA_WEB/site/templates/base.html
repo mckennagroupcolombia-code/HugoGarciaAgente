@@ -39,9 +39,10 @@ fbq('track','PageView');
   src="https://www.facebook.com/tr?id={{ META_PIXEL_ID }}&ev=PageView&noscript=1"/></noscript>
 {% endif %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260530">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260714">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260714">
 {% if TEMA_ACTIVO == 'pureza' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260713">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260714">
 <style>
   body.tema-pureza {
     --pz-acento:        {{ TW.colores.acento | default('#0c6069') }};

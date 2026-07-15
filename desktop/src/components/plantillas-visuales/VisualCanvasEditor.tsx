@@ -47,9 +47,7 @@ import {
   type ElementoVisual,
   type FormatoCanvas,
   type PlantillaVisualDoc,
-  type RolTextoCapa,
   contextoCapasParaDescripcion,
-  esCapaDescripcionMateriaPrima,
   inferirRolTextoCapa,
   labelRolTextoCapa,
 } from "../../lib/plantillasVisuales";
@@ -63,14 +61,11 @@ import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
 import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
-import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
-import EditorDescripcionMp, { ContenidoTextoSimple } from "./EditorDescripcionMp";
-import TextosRapidos from "./TextosRapidos";
+import BarraContenidoTexto from "./BarraContenidoTexto";
 import TextoCapaLienzo from "./TextoCapaLienzo";
-import { geometriaArco } from "./TextoArcoSvg";
+import { geometriaArco, alturaCajaTexto } from "./TextoArcoSvg";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
-import { esTextoDescripcionMpEstructurado } from "../../lib/descripcionMpTexto";
 
 interface Props {
   doc: PlantillaVisualDoc;
@@ -129,8 +124,9 @@ type DragMode =
   | null;
 
 /** Nodos estilo Illustrator: cuadrado mínimo, hit area un poco mayor. */
-const NODO_VIS_PX = 4;
-const NODO_HIT_PX = 10;
+const NODO_VIS_PX = 6;
+/** Área clicable de asas (rotado/redimensionar). Antes 10px era impracticable con zoom. */
+const NODO_HIT_PX = 22;
 const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
 const MARCO_HOVER_CSS = "1px dashed rgba(1, 109, 130, 0.32)";
 
@@ -180,7 +176,7 @@ export function estiloElementoEnStage(
 
 /** Área clicable de un texto: cubre el glifo completo (sin tope artificial de 8 líneas). */
 function tamanoHitTexto(el: ElementoTexto): { w: number; h: number } {
-  const lh = el.lineHeight ?? 1.2;
+  const lh = el.lineHeight ?? 1.25;
   const raw = el.content ?? "";
   const lineasExplicitas = Math.max(1, raw.split("\n").length);
   const chars = Math.max(1, raw.replace(/\n/g, "").length);
@@ -196,6 +192,128 @@ function tamanoHitTexto(el: ElementoTexto): { w: number; h: number } {
   );
   const w = Math.max(el.width, 16);
   return { w, h };
+}
+
+/**
+ * Normaliza ángulo a 0 | 90 | 180 | 270 para colocar el arco en un borde.
+ */
+function snapRotacionCardinal(rotationDeg: number): 0 | 90 | 180 | 270 {
+  const r = ((Math.round(rotationDeg) % 360) + 360) % 360;
+  if (r <= 45 || r >= 315) return 0;
+  if (r < 135) return 90;
+  if (r < 225) return 180;
+  return 270;
+}
+
+/** AABB del rectángulo w×h rotado 0/90/180/270° alrededor de su centro. */
+function aabbArcoRotado(boxW: number, boxH: number, rotationDeg: number) {
+  const snap = snapRotacionCardinal(rotationDeg);
+  const swap = snap === 90 || snap === 270;
+  return {
+    snap,
+    aabbW: swap ? boxH : boxW,
+    aabbH: swap ? boxW : boxH,
+  };
+}
+
+/**
+ * Reduce el ancho del arco hasta que, con la rotación dada, el AABB quepa
+ * entero en el artboard (con margen). Así 90°/270° no disparan el texto al gris.
+ */
+function dimensionarArcoEnArtboard(
+  canvasW: number,
+  canvasH: number,
+  boxWDeseado: number,
+  fontSize: number,
+  arco: number,
+  rotationDeg: number,
+): { boxW: number; boxH: number } {
+  const m = Math.max(8, Math.round(Math.min(canvasW, canvasH) * 0.04));
+  const square = Math.abs(arco) >= 150;
+  const maxSide = Math.max(48, Math.min(canvasW, canvasH) - 2 * m);
+
+  if (square) {
+    const d = Math.min(maxSide, Math.max(48, boxWDeseado));
+    return { boxW: d, boxH: d };
+  }
+
+  // Con rotación 90/270, el ANCHO del arco pasa a ser la ALTURA del AABB.
+  const snap = snapRotacionCardinal(rotationDeg);
+  const maxWPorRot =
+    snap === 90 || snap === 270 ? canvasH - 2 * m : canvasW - 2 * m;
+  const maxHPorRot =
+    snap === 90 || snap === 270 ? canvasW - 2 * m : canvasH - 2 * m;
+
+  let boxW = Math.min(Math.max(48, boxWDeseado), maxWPorRot, maxSide);
+  let boxH = Math.ceil(geometriaArco(boxW, fontSize, arco).altoTotal);
+
+  // Encoger hasta que alto geométrico también quepa en el AABB permitido.
+  let guard = 0;
+  while (boxH > maxHPorRot && boxW > 48 && guard < 80) {
+    boxW = Math.max(48, boxW - 6);
+    boxH = Math.ceil(geometriaArco(boxW, fontSize, arco).altoTotal);
+    guard += 1;
+  }
+  if (boxH > maxHPorRot) {
+    boxH = Math.max(Math.ceil(fontSize * 1.5), Math.floor(maxHPorRot));
+  }
+  return { boxW: Math.round(boxW), boxH: Math.round(boxH) };
+}
+
+/**
+ * Coloca el centro del elemento para que el AABB rotado quede DENTRO del
+ * artboard. `ancla` fuerza el borde (p. ej. curvatura “Abajo” con rotación 0).
+ */
+function posicionArcoEnArtboard(
+  canvasW: number,
+  canvasH: number,
+  boxW: number,
+  boxH: number,
+  rotationDeg: number,
+  ancla?: 0 | 90 | 180 | 270,
+): { x: number; y: number } {
+  const m = Math.max(8, Math.round(Math.min(canvasW, canvasH) * 0.04));
+  const snap = ancla ?? snapRotacionCardinal(rotationDeg);
+  const { aabbW, aabbH } = aabbArcoRotado(boxW, boxH, rotationDeg);
+
+  const fitW = Math.min(aabbW, Math.max(8, canvasW - 2 * m));
+  const fitH = Math.min(aabbH, Math.max(8, canvasH - 2 * m));
+
+  let cx = canvasW / 2;
+  let cy = canvasH / 2;
+  if (snap === 0) cy = m + fitH / 2;
+  else if (snap === 180) cy = canvasH - m - fitH / 2;
+  else if (snap === 90) cx = canvasW - m - fitW / 2;
+  else if (snap === 270) cx = m + fitW / 2;
+
+  cx = Math.min(canvasW - m - fitW / 2, Math.max(m + fitW / 2, cx));
+  cy = Math.min(canvasH - m - fitH / 2, Math.max(m + fitH / 2, cy));
+
+  return {
+    x: Math.round(cx - boxW / 2),
+    y: Math.round(cy - boxH / 2),
+  };
+}
+
+/** Recentra sin cambiar de borde: el AABB rotado debe quedar dentro. */
+function centrarCajaEnArtboard(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  canvasW: number,
+  canvasH: number,
+  rotationDeg = 0,
+): { x: number; y: number } {
+  const m = Math.max(8, Math.round(Math.min(canvasW, canvasH) * 0.04));
+  const { aabbW, aabbH } = aabbArcoRotado(w, h, rotationDeg);
+  const fitW = Math.min(aabbW, Math.max(8, canvasW - 2 * m));
+  const fitH = Math.min(aabbH, Math.max(8, canvasH - 2 * m));
+  let cx = x + w / 2;
+  let cy = y + h / 2;
+  cx = Math.min(canvasW - m - fitW / 2, Math.max(m + fitW / 2, cx));
+  cy = Math.min(canvasH - m - fitH / 2, Math.max(m + fitH / 2, cy));
+  return { x: Math.round(cx - w / 2), y: Math.round(cy - h / 2) };
 }
 
 /** Margen alrededor del artboard para poder seleccionar/mover objetos fuera del área. */
@@ -315,7 +433,7 @@ function SeleccionChrome({
             style={{
               position: "absolute",
               left: w / 2,
-              top: -14,
+              top: -18,
               width: NODO_HIT_PX,
               height: NODO_HIT_PX,
               transform: "translate(-50%, -50%)",
@@ -325,18 +443,19 @@ function SeleccionChrome({
               justifyContent: "center",
               cursor: "grab",
               pointerEvents: "auto",
-              zIndex: 30,
+              zIndex: 50,
               touchAction: "none",
             }}
             onPointerDown={(e) => startAsa(e, onRotate)}
           >
             <span
               style={{
-                width: NODO_VIS_PX,
-                height: NODO_VIS_PX,
+                width: Math.max(NODO_VIS_PX, 10),
+                height: Math.max(NODO_VIS_PX, 10),
                 borderRadius: 999,
-                border: "1px solid #016d82",
+                border: "2px solid #016d82",
                 background: "#fff",
+                boxShadow: "0 0 0 2px rgba(1,109,130,0.25)",
                 pointerEvents: "none",
               }}
             />
@@ -447,11 +566,11 @@ export default function VisualCanvasEditor({
   const escalaExport = presetExportActivo?.escala ?? 1;
   const [ghsAbierto, setGhsAbierto] = useState(false);
   const [ean13Abierto, setEan13Abierto] = useState(false);
-  // Ancho del panel derecho y alto de la sección "Capas" (Inspector ocupa el resto),
-  // ambos ajustables arrastrando los separadores — ver `iniciarResizePanel`.
-  const [panelAncho, setPanelAncho] = useState(300);
-  const [capasAltura, setCapasAltura] = useState(180);
-  const resizingPanelRef = useRef<{ kind: "ancho" | "altura"; startPos: number; startVal: number } | null>(null);
+  // Ancho del panel derecho (ajustable). Capas + textos van en un solo scroll
+  // para no dividir la mirada entre dos pantallas.
+  const [panelAncho, setPanelAncho] = useState(340);
+  const [capasAbiertas, setCapasAbiertas] = useState(false);
+  const resizingPanelRef = useRef<{ kind: "ancho"; startPos: number; startVal: number } | null>(null);
   const suppressDeselectRef = useRef(false);
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const contenidoSeleccionRef = useRef<{ start: number; end: number } | null>(null);
@@ -743,48 +862,6 @@ export default function VisualCanvasEditor({
     setDrag(full);
   };
 
-  /** Alto real del texto medido en el DOM → sincroniza el height guardado
-   *  para que el marco de la caja corresponda al contenido.
-   *
-   *  Los avisos se acumulan y se aplican en UN solo patch por frame: si varias
-   *  capas seleccionadas (grupo) parchearan por separado, cada una partiría de
-   *  un doc obsoleto y se revertirían mutuamente en bucle (React #185). */
-  const altosPendientesRef = useRef<Map<string, number>>(new Map());
-  const altosRafRef = useRef<number | null>(null);
-  const patchElementosRef = useRef(patchElementos);
-  patchElementosRef.current = patchElementos;
-
-  const sincronizarAltoTexto = useCallback((id: string, alto: number) => {
-    altosPendientesRef.current.set(id, alto);
-    if (altosRafRef.current != null) return;
-    altosRafRef.current = requestAnimationFrame(() => {
-      altosRafRef.current = null;
-      const pendientes = altosPendientesRef.current;
-      altosPendientesRef.current = new Map();
-      let huboCambio = false;
-      const siguiente = (els: ElementoVisual[]) =>
-        els.map((e) => {
-          const alto2 = pendientes.get(e.id);
-          if (alto2 === undefined || e.type !== "text" || Math.abs(e.height - alto2) <= 1) {
-            return e;
-          }
-          huboCambio = true;
-          return { ...e, height: alto2 };
-        });
-      const resultado = siguiente(elementosRef.current);
-      if (huboCambio) {
-        patchElementosRef.current(() => resultado);
-      }
-    });
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (altosRafRef.current != null) cancelAnimationFrame(altosRafRef.current);
-    },
-    [],
-  );
-
   const patchElemento = useCallback(
     (id: string, patch: Partial<ElementoVisual>) => {
       patchElementos((els) =>
@@ -849,70 +926,139 @@ export default function VisualCanvasEditor({
     setSeleccionIds([el.id]);
   };
 
-  /** Texto en un arco (solo una parte del círculo), típico título de etiqueta. */
+  /** Texto en arco simple (curvatura arriba/abajo), como antes. */
   const agregarTextoMarcoCircular = () => {
-    const ancho = Math.min(
-      260,
-      Math.max(160, Math.round(doc.formato.ancho_px * 0.7)),
-    );
+    const canvasW = doc.formato.ancho_px;
+    const canvasH = doc.formato.alto_px;
     const fs = 16;
-    const arco = 80; // ~arco superior (no círculo completo)
-    const { altoTotal } = geometriaArco(ancho, fs, arco);
-    const alto = Math.ceil(altoTotal);
-    const { x, y } = posicionNuevoElemento(
-      doc.elementos.length,
-      Math.round((doc.formato.ancho_px - ancho) / 2),
-      Math.round(doc.formato.alto_px * 0.08),
+    const arco = 80;
+    const deseado = Math.min(260, Math.max(120, Math.round(canvasW * 0.65)));
+    const { boxW, boxH } = dimensionarArcoEnArtboard(
+      canvasW,
+      canvasH,
+      deseado,
+      fs,
+      arco,
+      0,
     );
-    const base = elementoTextoDefecto(x, y);
+    const pos = posicionArcoEnArtboard(canvasW, canvasH, boxW, boxH, 0);
+    const base = elementoTextoDefecto(pos.x, pos.y);
     const el: ElementoTexto = {
       ...base,
       content: "NOMBRE DEL PRODUCTO",
-      width: ancho,
-      height: alto,
+      width: boxW,
+      height: boxH,
       fontSize: fs,
       fontWeight: "700",
       align: "center",
       color: "#c4781a",
       arco,
+      arcoGrados: undefined,
+      arcoPosicion: undefined,
       forma: undefined,
       marcoAncho: 0,
+      rotation: 0,
       zIndex: maxZ + 1,
     };
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
   };
 
-  const aplicarArcoPreset = (arco: number) => {
+  /**
+   * Aplica curvatura/orientación y deja el texto DENTRO del artboard.
+   * En 90°/270° el ancho del arco se convierte en alto visual: se reduce
+   * para no salirse al área gris.
+   */
+  const aplicarArcoPreset = (
+    arco: number,
+    extras?: {
+      rotation?: number;
+      reposicionar?: boolean;
+      ancla?: 0 | 90 | 180 | 270;
+    },
+  ) => {
     if (!seleccionado || seleccionado.type !== "text") return;
-    const w = Math.max(40, seleccionado.width);
     const fs = seleccionado.fontSize || 12;
+    const canvasW = doc.formato.ancho_px;
+    const canvasH = doc.formato.alto_px;
+    const rotation =
+      extras?.rotation !== undefined
+        ? extras.rotation
+        : Math.round(seleccionado.rotation || 0);
+
     if (arco === 0) {
+      const h = Math.ceil(fs * 1.6);
+      const w = Math.min(
+        Math.max(40, seleccionado.width),
+        Math.max(40, canvasW - 16),
+      );
+      const pos = centrarCajaEnArtboard(
+        seleccionado.x,
+        seleccionado.y,
+        w,
+        h,
+        canvasW,
+        canvasH,
+        rotation,
+      );
       patchElemento(seleccionado.id, {
         arco: 0,
+        arcoGrados: undefined,
+        arcoPosicion: undefined,
         marcoAncho: 0,
-        height: Math.ceil(fs * 1.6),
+        width: w,
+        height: h,
+        x: pos.x,
+        y: pos.y,
+        rotation,
       });
       return;
     }
-    const abs = Math.abs(arco);
-    const square = abs >= 150;
-    const side = Math.max(w, seleccionado.height);
-    const { altoTotal } = geometriaArco(square ? side : w, fs, arco);
+
+    const { boxW, boxH } = dimensionarArcoEnArtboard(
+      canvasW,
+      canvasH,
+      Math.max(40, seleccionado.width),
+      fs,
+      arco,
+      rotation,
+    );
+    const reposicionar =
+      extras?.reposicionar === true ||
+      extras?.rotation !== undefined ||
+      extras?.ancla !== undefined ||
+      Math.abs(arco) >= 150;
+    const ancla =
+      extras?.ancla ??
+      (reposicionar ? snapRotacionCardinal(rotation) : undefined);
+    const pos = reposicionar
+      ? posicionArcoEnArtboard(canvasW, canvasH, boxW, boxH, rotation, ancla)
+      : centrarCajaEnArtboard(
+          seleccionado.x,
+          seleccionado.y,
+          boxW,
+          boxH,
+          canvasW,
+          canvasH,
+          rotation,
+        );
+
     patchElemento(seleccionado.id, {
       arco,
+      arcoGrados: undefined,
+      arcoPosicion: undefined,
       forma: undefined,
-      width: square ? side : w,
-      height: square ? side : Math.ceil(altoTotal),
-      ...(square
-        ? {
-            marcoAncho:
-              seleccionado.marcoAncho && seleccionado.marcoAncho > 0
-                ? seleccionado.marcoAncho
-                : 1.5,
-            marcoColor: seleccionado.marcoColor || seleccionado.color,
-          }
-        : { marcoAncho: seleccionado.marcoAncho ?? 0 }),
+      width: boxW,
+      height: boxH,
+      x: pos.x,
+      y: pos.y,
+      rotation,
+      marcoAncho:
+        Math.abs(arco) >= 150
+          ? seleccionado.marcoAncho && seleccionado.marcoAncho > 0
+            ? seleccionado.marcoAncho
+            : 1.5
+          : seleccionado.marcoAncho ?? 0,
     });
   };
 
@@ -1169,8 +1315,15 @@ export default function VisualCanvasEditor({
       const pt = punteroEnLienzo(e);
       const o = origs.get(el.id);
       if (!pt || !o) return;
+      // Centro visual de la caja (para texto en arco usar alto geométrico).
+      let boxH = o.height;
+      if (o.type === "text" && (o.arco ?? 0) !== 0) {
+        boxH = alturaCajaTexto(o);
+      } else if (o.type === "text" && o.forma === "circulo") {
+        boxH = Math.max(o.height, o.width);
+      }
       const cx = o.x + o.width / 2;
-      const cy = o.y + o.height / 2;
+      const cy = o.y + boxH / 2;
       const full = {
         ...dragBase,
         rotateStartAngle: (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI,
@@ -1344,6 +1497,18 @@ export default function VisualCanvasEditor({
           x = o.x + (o.width - w);
           y = o.y + (o.height - h);
         }
+        // Párrafo en círculo: el diámetro es el lado; mantener caja cuadrada.
+        if (o.type === "text" && o.forma === "circulo") {
+          const side = Math.max(w, h, 40);
+          if (mode === "resize-sw" || mode === "resize-nw") {
+            x = o.x + o.width - side;
+          }
+          if (mode === "resize-ne" || mode === "resize-nw") {
+            y = o.y + o.height - side;
+          }
+          w = side;
+          h = side;
+        }
         patchElemento(id, { x, y, width: w, height: h });
       } else if (
         d.mode === "rotate" &&
@@ -1353,8 +1518,14 @@ export default function VisualCanvasEditor({
         if (!pt || d.rotateStartAngle === undefined || d.rotateOrig === undefined) {
           return;
         }
+        let boxH = o.height;
+        if (o.type === "text" && (o.arco ?? 0) !== 0) {
+          boxH = alturaCajaTexto(o);
+        } else if (o.type === "text" && o.forma === "circulo") {
+          boxH = Math.max(o.height, o.width);
+        }
         const cx = o.x + o.width / 2;
-        const cy = o.y + o.height / 2;
+        const cy = o.y + boxH / 2;
         const angle = (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI;
         let next = d.rotateOrig + (angle - d.rotateStartAngle);
         if (ev.shiftKey) {
@@ -1598,14 +1769,12 @@ export default function VisualCanvasEditor({
 
   function labelCapa(el: ElementoVisual): string {
     if (el.type === "text") {
-      const rol = inferirRolTextoCapa(el, doc.elementos);
-      const rolLabel = labelRolTextoCapa(rol);
-      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
-      if (palabras.length === 0) return rolLabel;
-      // Roles clave: mostrar el rol, no las primeras palabras del párrafo.
-      if (rol === "descripcion" || rol === "titulo" || rol === "subtitulo") {
-        return rolLabel;
-      }
+      const palabras = (el.content || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .split(" ")
+        .filter(Boolean);
+      if (palabras.length === 0) return labelRolTextoCapa(inferirRolTextoCapa(el, doc.elementos));
       return palabras.slice(0, 2).join(" ");
     }
     if (el.type === "image") return "Imagen";
@@ -1628,29 +1797,23 @@ export default function VisualCanvasEditor({
   }
 
   const iniciarResizePanel = useCallback(
-    (e: ReactPointerEvent, kind: "ancho" | "altura") => {
+    (e: ReactPointerEvent) => {
       e.preventDefault();
       resizingPanelRef.current = {
-        kind,
-        startPos: kind === "ancho" ? e.clientX : e.clientY,
-        startVal: kind === "ancho" ? panelAncho : capasAltura,
+        kind: "ancho",
+        startPos: e.clientX,
+        startVal: panelAncho,
       };
     },
-    [panelAncho, capasAltura],
+    [panelAncho],
   );
 
   useEffect(() => {
     function onMove(ev: PointerEvent) {
       const r = resizingPanelRef.current;
       if (!r) return;
-      if (r.kind === "ancho") {
-        // El panel está a la derecha: arrastrar el borde hacia la izquierda lo ensancha.
-        const dx = r.startPos - ev.clientX;
-        setPanelAncho(Math.min(460, Math.max(220, r.startVal + dx)));
-      } else {
-        const dy = ev.clientY - r.startPos;
-        setCapasAltura(Math.min(560, Math.max(120, r.startVal + dy)));
-      }
+      const dx = r.startPos - ev.clientX;
+      setPanelAncho(Math.min(480, Math.max(260, r.startVal + dx)));
     }
     function onUp() {
       resizingPanelRef.current = null;
@@ -1871,7 +2034,7 @@ export default function VisualCanvasEditor({
             <span className="text-lg font-bold">T</span>
           </ToolBtn>
           <ToolBtn
-            title="Texto en arco (solo una parte del círculo)"
+            title="Texto en arco (curvatura arriba/abajo)"
             onClick={agregarTextoMarcoCircular}
           >
             <span className="relative inline-flex h-6 w-6 items-center justify-center">
@@ -2081,7 +2244,6 @@ export default function VisualCanvasEditor({
                         }}
                         onCommitEdicion={commitEditInline}
                         onCancelEdicion={cancelEditInline}
-                        onAltoMedido={sincronizarAltoTexto}
                         chrome={
                           <SeleccionChrome
                             width={el.width}
@@ -2406,139 +2568,74 @@ export default function VisualCanvasEditor({
               />
             </div>
           )}
+
+        {doc.elementos.some((e) => e.type === "text") && (
+          <BarraContenidoTexto
+            elementos={doc.elementos}
+            seleccionado={seleccionado?.type === "text" ? seleccionado : null}
+            seleccionId={seleccionIds.length === 1 ? seleccionIds[0] : null}
+            nombrePlantilla={doc.nombre}
+            textareaRef={contenidoTextareaRef}
+            casAutoEstado={casAutoEstado}
+            onSeleccionar={(id) => setSeleccionIds([id])}
+            onCasAuto={async () => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              const ctx = contextoCapasParaDescripcion(
+                doc.elementos,
+                seleccionado.id,
+                doc.nombre,
+              );
+              if (!ctx.titulo) return;
+              setCasAutoEstado("cargando");
+              try {
+                const cas = await buscarCasPorTitulo(ctx.titulo);
+                if (cas) {
+                  patchElemento(seleccionado.id, { content: `CAS: ${cas}` });
+                  setCasAutoEstado("idle");
+                } else {
+                  setCasAutoEstado("error");
+                }
+              } catch {
+                setCasAutoEstado("error");
+              }
+            }}
+            onPatchRol={(rol) => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              patchElemento(seleccionado.id, { textRole: rol });
+            }}
+            onLiveChange={(valor) => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: false });
+            }}
+            onCommit={(valor) => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: true });
+            }}
+            onEstructuradoChange={(texto) => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              patchElemento(seleccionado.id, {
+                content: autoCorregirTextoContenido(texto),
+              });
+            }}
+            onMagico={(texto) => {
+              if (!seleccionado || seleccionado.type !== "text") return;
+              patchElemento(seleccionado.id, {
+                content: autoCorregirTextoContenido(texto),
+              });
+            }}
+          />
+        )}
         </div>
 
-        {/* Panel derecho: Capas e Inspector visibles a la vez (antes eran pestañas
-            excluyentes). Ancho del panel y alto de "Capas" se arrastran con los
-            separadores — ver `iniciarResizePanel`. */}
+        {/* Panel derecho: estilo / arco / Capas. Textos + contenido van en la barra inferior. */}
         <div className="relative flex shrink-0" style={{ width: panelAncho }}>
           <div
-            onPointerDown={(e) => iniciarResizePanel(e, "ancho")}
+            onPointerDown={iniciarResizePanel}
             title="Arrastra para cambiar el ancho del panel"
             className="absolute left-0 top-0 z-10 h-full w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-accent/40"
           />
-          <aside className={`flex w-full flex-col border-l ${studio.panel}`}>
-          <div
-            className="flex shrink-0 flex-col overflow-y-auto border-b border-border p-3"
-            style={{ height: capasAltura }}
-          >
-            <p className="mb-2 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted">
-              Capas
-            </p>
-            <>
-                {capasOrdenadas.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-muted">
-                    Usa las herramientas de la izquierda para añadir elementos.
-                  </p>
-                ) : (
-                  <ul className="space-y-0.5">
-                    {capasOrdenadas.map((el) => {
-                      const activa = seleccionIds.includes(el.id);
-                      const oculto = el.visible === false;
-                      const icon =
-                        el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "▣";
-                      const arrastrando = capaArrastradaId === el.id;
-                      const sobreEsta = capaSobreId === el.id && capaArrastradaId !== null && !arrastrando;
-                      return (
-                        <li
-                          key={el.id}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.effectAllowed = "move";
-                            setCapaArrastradaId(el.id);
-                          }}
-                          onDragEnter={(e) => {
-                            e.preventDefault();
-                            if (capaArrastradaId && capaArrastradaId !== el.id) setCapaSobreId(el.id);
-                          }}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (capaArrastradaId) reordenarCapa(capaArrastradaId, el.id);
-                            setCapaArrastradaId(null);
-                            setCapaSobreId(null);
-                          }}
-                          onDragEnd={() => {
-                            setCapaArrastradaId(null);
-                            setCapaSobreId(null);
-                          }}
-                          className={`flex items-center gap-0.5 rounded ${arrastrando ? "opacity-40" : ""} ${
-                            sobreEsta ? "border-t-2 border-accent" : ""
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              const next = resolverSeleccionAlClic(
-                                el,
-                                doc.elementos,
-                                seleccionIds,
-                                e.shiftKey,
-                              );
-                              setSeleccionIds(next);
-                            }}
-                            className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition active:cursor-grabbing ${
-                              activa
-                                ? "bg-accent/15 text-accent font-medium"
-                                : oculto
-                                  ? "text-muted/40 hover:bg-surface-hover"
-                                  : "text-ink-secondary hover:bg-surface-hover"
-                            }`}
-                          >
-                            <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
-                            <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
-                              {labelCapa(el)}
-                            </span>
-                            {el.type === "text" && (() => {
-                              const rol = inferirRolTextoCapa(el, doc.elementos);
-                              if (!rol || rol === "otro") return null;
-                              const short =
-                                rol === "descripcion" ? "MP" : rol === "titulo" ? "Tít" : "Sub";
-                              return (
-                                <span className="ml-auto shrink-0 rounded bg-accent/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-accent">
-                                  {short}
-                                </span>
-                              );
-                            })()}
-                          </button>
-                          <button
-                            type="button"
-                            title={oculto ? "Mostrar" : "Ocultar"}
-                            onClick={() => patchElemento(el.id, { visible: oculto ? true : false })}
-                            className="shrink-0 rounded p-1 text-[10px] text-muted hover:bg-surface-hover"
-                          >
-                            {oculto ? "○" : "●"}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                <label className="mt-4 block">
-                  <span className="mb-1 block text-[10px] uppercase tracking-wide text-muted">Fondo</span>
-                  <input
-                    type="color"
-                    value={doc.fondo.startsWith("#") ? doc.fondo : "#ffffff"}
-                    onChange={(e) => onChange({ ...doc, fondo: e.target.value })}
-                    className="h-8 w-full cursor-pointer rounded border border-border"
-                  />
-                </label>
-              </>
-          </div>
-          <div
-            onPointerDown={(e) => iniciarResizePanel(e, "altura")}
-            title="Arrastra para cambiar el alto de Capas"
-            className="h-1.5 shrink-0 cursor-row-resize hover:bg-accent/40"
-          />
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-              Inspector
-            </p>
-            <TextosRapidos
-              elementos={doc.elementos}
-              seleccionId={seleccionIds.length === 1 ? seleccionIds[0] : null}
-              onSeleccionar={(id) => setSeleccionIds([id])}
-            />
+          <aside className={`flex h-full w-full flex-col overflow-hidden border-l ${studio.panel}`}>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
               <>
                 {seleccionIds.length > 1 ? (
                   <div className="space-y-3 text-sm">
@@ -2556,8 +2653,8 @@ export default function VisualCanvasEditor({
                     </div>
                   </div>
                 ) : !seleccionado ? (
-                  <p className="py-8 text-center text-xs text-muted">
-                    Selecciona un elemento en el lienzo o en Capas.
+                  <p className="py-6 text-center text-xs text-muted">
+                    Elige un texto en la barra de abajo o en el lienzo.
                   </p>
                 ) : (
                   <div className="space-y-3 text-sm">
@@ -2586,201 +2683,57 @@ export default function VisualCanvasEditor({
               </div>
             )}
 
-            <label className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
-              <span className="text-xs text-muted">Bloquear posición</span>
-              <button
-                type="button"
-                onClick={() => alternarBloqueo(seleccionado.id)}
-                className={`rounded-md border px-2 py-0.5 text-xs ${
-                  seleccionado.locked
-                    ? "border-amber-300 bg-amber-50 text-amber-700"
-                    : "border-border hover:bg-surface-hover"
-                }`}
-              >
-                {seleccionado.locked ? "🔒 Bloqueado" : "🔓 Libre"}
-              </button>
-            </label>
-
-            <div className="grid grid-cols-2 gap-2">
-              {(["x", "y", "width", "height"] as const).map((k) => (
-                <label key={k}>
-                  <span className="text-xs text-muted">{k}</span>
-                  <input
-                    type="number"
-                    step="any"
-                    disabled={seleccionado.locked && (k === "x" || k === "y")}
-                    value={seleccionado[k] as number}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      if (!Number.isFinite(v)) return;
-                      patchElemento(seleccionado.id, { [k]: v });
-                    }}
-                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
-                  />
-                </label>
-              ))}
-            </div>
+            {/* En textos: posición debajo del contenido (colapsada). En formas: abierta. */}
+            {seleccionado.type !== "text" && (
+              <details open className="rounded-lg border border-border bg-surface px-2 py-1.5">
+                <summary className="cursor-pointer text-xs font-medium text-ink">
+                  Posición y tamaño
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <label className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted">Bloquear</span>
+                    <button
+                      type="button"
+                      onClick={() => alternarBloqueo(seleccionado.id)}
+                      className={`rounded-md border px-2 py-0.5 text-xs ${
+                        seleccionado.locked
+                          ? "border-amber-300 bg-amber-50 text-amber-700"
+                          : "border-border hover:bg-surface-hover"
+                      }`}
+                    >
+                      {seleccionado.locked ? "🔒 Bloqueado" : "🔓 Libre"}
+                    </button>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["x", "y", "width", "height"] as const).map((k) => (
+                      <label key={k}>
+                        <span className="text-xs text-muted">{k}</span>
+                        <input
+                          type="number"
+                          step={1}
+                          disabled={seleccionado.locked && (k === "x" || k === "y")}
+                          value={Math.round(Number(seleccionado[k]) || 0)}
+                          onChange={(e) => {
+                            const v = Math.round(Number(e.target.value));
+                            if (!Number.isFinite(v)) return;
+                            if (Math.round(Number(seleccionado[k]) || 0) === v) return;
+                            patchElemento(seleccionado.id, { [k]: v });
+                          }}
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            )}
 
             {seleccionado.type === "text" && (
               <>
-                {(() => {
-                  const rolTexto = inferirRolTextoCapa(seleccionado, doc.elementos);
-                  const esDescripcion = esCapaDescripcionMateriaPrima(
-                    seleccionado,
-                    doc.elementos,
-                  );
-                  return (
-                    <>
-                      <label>
-                        <span className="text-xs text-muted">Rol de capa</span>
-                        <select
-                          value={seleccionado.textRole ?? rolTexto ?? "otro"}
-                          onChange={(e) =>
-                            patchElemento(seleccionado.id, {
-                              textRole: e.target.value as RolTextoCapa,
-                            })
-                          }
-                          className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
-                        >
-                          <option value="descripcion">Capa 1 · Descripción materia prima</option>
-                          <option value="titulo">Título producto</option>
-                          <option value="subtitulo">Subtítulo / línea</option>
-                          <option value="otro">Otro texto</option>
-                        </select>
-                      </label>
-                      {esDescripcion && (
-                        <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-2 py-1.5 text-[10px] leading-snug text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-                          Edita intro y viñetas por separado. Evita claims de suplemento /
-                          medicamento / dosis de consumo.
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
-                <div>
-                  {(() => {
-                    const esDescripcionMP = esCapaDescripcionMateriaPrima(
-                      seleccionado,
-                      doc.elementos,
-                    );
-                    const usarEstructurado =
-                      esDescripcionMP ||
-                      esTextoDescripcionMpEstructurado(seleccionado.content || "");
-
-                    if (usarEstructurado) {
-                      return (
-                        <EditorDescripcionMp
-                          value={seleccionado.content || ""}
-                          onChange={(texto) =>
-                            patchElemento(seleccionado.id, {
-                              content: autoCorregirTextoContenido(texto),
-                            })
-                          }
-                          textareaRef={contenidoTextareaRef}
-                          onPlainChange={(valor) =>
-                            actualizarContenidoTexto(seleccionado.id, valor, {
-                              autocorregir: false,
-                            })
-                          }
-                          onPlainBlur={(valor) =>
-                            actualizarContenidoTexto(seleccionado.id, valor, {
-                              autocorregir: true,
-                            })
-                          }
-                        />
-                      );
-                    }
-
-                    return (
-                      <ContenidoTextoSimple
-                        key={seleccionado.id}
-                        value={seleccionado.content || ""}
-                        textareaRef={contenidoTextareaRef}
-                        onLiveChange={(valor) =>
-                          actualizarContenidoTexto(seleccionado.id, valor, {
-                            autocorregir: false,
-                          })
-                        }
-                        onCommit={(valor) =>
-                          actualizarContenidoTexto(seleccionado.id, valor, {
-                            autocorregir: true,
-                          })
-                        }
-                      />
-                    );
-                  })()}
-                  {(() => {
-                    const esDescripcionMP = esCapaDescripcionMateriaPrima(
-                      seleccionado,
-                      doc.elementos,
-                    );
-                    const contextoCapas = contextoCapasParaDescripcion(
-                      doc.elementos,
-                      seleccionado.id,
-                    );
-                    // Capa "CAS: ..." → el número CAS es un dato puntual, no
-                    // prosa: se asocia por título con la ficha FT/COA/SDS del
-                    // Studio (lookup determinístico), no con sugerencias de IA.
-                    const esCapaCas = /^\s*#?\s*cas\b/i.test(seleccionado.content || "");
-                    if (esCapaCas) {
-                      return (
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={!contextoCapas.titulo || casAutoEstado === "cargando"}
-                            onClick={async () => {
-                              if (!contextoCapas.titulo) return;
-                              setCasAutoEstado("cargando");
-                              try {
-                                const cas = await buscarCasPorTitulo(contextoCapas.titulo);
-                                if (cas) {
-                                  patchElemento(seleccionado.id, { content: `CAS: ${cas}` });
-                                  setCasAutoEstado("idle");
-                                } else {
-                                  setCasAutoEstado("error");
-                                }
-                              } catch {
-                                setCasAutoEstado("error");
-                              }
-                            }}
-                            className="rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
-                          >
-                            {casAutoEstado === "cargando"
-                              ? "Buscando CAS…"
-                              : "🔎 Asociar CAS con el título"}
-                          </button>
-                          {casAutoEstado === "error" && (
-                            <span className="text-[10px] text-red-500">
-                              No se encontró CAS para «{contextoCapas.titulo}»
-                            </span>
-                          )}
-                        </div>
-                      );
-                    }
-                    // Cualquier otra capa de texto identifica el producto por
-                    // el título de la etiqueta, no por lo que haya escrito en
-                    // su propio contenido — así no hay que repetir el nombre,
-                    // y la búsqueda de ficha técnica no depende de que la capa
-                    // se haya clasificado (heurística o manual) como "descripción".
-                    const fragmentoTextoMagico = contextoCapas.titulo
-                      ? [contextoCapas.titulo, seleccionado.content]
-                          .filter(Boolean)
-                          .join(" ")
-                      : seleccionado.content;
-                    return (
-                      <SugerenciasTextoMagico
-                        fragmento={fragmentoTextoMagico}
-                        modoDescripcionMateriaPrima={esDescripcionMP}
-                        contextoCapas={contextoCapas}
-                        onElegir={(texto) =>
-                          patchElemento(seleccionado.id, {
-                            content: autoCorregirTextoContenido(texto),
-                          })
-                        }
-                      />
-                    );
-                  })()}
-                </div>
+                <p className="rounded-lg border border-border bg-surface px-2.5 py-2 text-[11px] leading-snug text-muted">
+                  Elige y edita el texto en la <span className="font-semibold text-ink">barra clara de abajo</span>.
+                  Aquí: tipografía, arco y círculo.
+                </p>
                 <label>
                   <span className="text-xs text-muted">Tipografía</span>
                   <select
@@ -2878,14 +2831,14 @@ export default function VisualCanvasEditor({
                 </label>
                 <label>
                   <span className="text-xs text-muted">
-                    Interlineado ({(seleccionado.lineHeight ?? 1.2).toFixed(1)})
+                    Interlineado ({(seleccionado.lineHeight ?? 1.25).toFixed(2)})
                   </span>
                   <input
                     type="range"
-                    min={0.8}
+                    min={1}
                     max={2.5}
-                    step={0.1}
-                    value={seleccionado.lineHeight ?? 1.2}
+                    step={0.05}
+                    value={seleccionado.lineHeight ?? 1.25}
                     onChange={(e) =>
                       patchElemento(seleccionado.id, { lineHeight: Number(e.target.value) })
                     }
@@ -2893,33 +2846,33 @@ export default function VisualCanvasEditor({
                   />
                 </label>
                 <div className="space-y-1.5 rounded-md border border-border/80 bg-surface-hover/30 p-2">
-                  <span className="block text-xs font-semibold text-ink">
-                    Texto en arco
-                  </span>
+                  <span className="block text-xs font-semibold text-ink">Texto en arco</span>
                   <span className="block text-[10px] leading-snug text-muted">
-                    Solo una parte del círculo (título arriba o aviso abajo). Ajusta
-                    la curvatura; 100 = media luna, 200 = círculo completo.
+                    Curvatura con el deslizador. Gíralo con el punto arriba del marco, o con
+                    los botones de orientación / rotación.
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {(
                       [
-                        { label: "Arco suave", v: 55 },
-                        { label: "Arriba", v: 85 },
-                        { label: "Media luna", v: 100 },
-                        { label: "Abajo", v: -85 },
-                        { label: "360°", v: 200 },
-                        { label: "Recto", v: 0 },
+                        { label: "Arriba", v: 80, rot: 0, ancla: 0 as const },
+                        { label: "Media luna", v: 100, rot: 0, ancla: 0 as const },
+                        { label: "Abajo", v: -80, rot: 0, ancla: 180 as const },
+                        { label: "360°", v: 200, rot: 0, ancla: 0 as const },
+                        { label: "Recto", v: 0, rot: 0, ancla: 0 as const },
                       ] as const
                     ).map((p) => {
-                      const activo =
-                        p.v === 0
-                          ? (seleccionado.arco ?? 0) === 0
-                          : (seleccionado.arco ?? 0) === p.v;
+                      const activo = (seleccionado.arco ?? 0) === p.v;
                       return (
                         <button
                           key={p.label}
                           type="button"
-                          onClick={() => aplicarArcoPreset(p.v)}
+                          onClick={() =>
+                            aplicarArcoPreset(p.v, {
+                              rotation: p.rot,
+                              reposicionar: true,
+                              ancla: p.ancla,
+                            })
+                          }
                           className={`rounded border px-2 py-0.5 text-[10px] font-medium ${
                             activo
                               ? "border-accent bg-accent/15 text-accent"
@@ -2932,17 +2885,15 @@ export default function VisualCanvasEditor({
                     })}
                   </div>
                   <label className="block">
-                    <span className="flex items-center justify-between text-[10px] text-muted">
-                      <span>
-                        Curvatura ({seleccionado.arco ?? 0})
-                        {Math.abs(seleccionado.arco ?? 0) >= 200
-                          ? " · círculo completo"
-                          : Math.abs(seleccionado.arco ?? 0) >= 100
-                            ? " · media luna"
-                            : (seleccionado.arco ?? 0) !== 0
-                              ? " · arco parcial"
-                              : ""}
-                      </span>
+                    <span className="text-[10px] text-muted">
+                      Curvatura ({seleccionado.arco ?? 0})
+                      {Math.abs(seleccionado.arco ?? 0) >= 200
+                        ? " · círculo"
+                        : Math.abs(seleccionado.arco ?? 0) >= 100
+                          ? " · media luna"
+                          : (seleccionado.arco ?? 0) !== 0
+                            ? " · arco"
+                            : ""}
                     </span>
                     <input
                       type="range"
@@ -2950,37 +2901,179 @@ export default function VisualCanvasEditor({
                       max={200}
                       step={5}
                       value={seleccionado.arco ?? 0}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (v === 0) {
-                          patchElemento(seleccionado.id, {
-                            arco: 0,
-                            height: Math.ceil(seleccionado.fontSize * 1.6),
-                          });
-                          return;
-                        }
-                        const abs = Math.abs(v);
-                        const square = abs >= 150;
-                        const side = Math.max(seleccionado.width, seleccionado.height);
-                        const w = square ? side : seleccionado.width;
-                        const { altoTotal } = geometriaArco(w, seleccionado.fontSize, v);
-                        patchElemento(seleccionado.id, {
-                          arco: v,
-                          forma: undefined,
-                          width: w,
-                          height: square ? side : Math.ceil(altoTotal),
-                        });
-                      }}
+                      onChange={(e) => aplicarArcoPreset(Number(e.target.value))}
                       className="w-full accent-accent"
                     />
-                    <span className="block text-[10px] leading-snug text-muted">
-                      + arco arriba · − arco abajo. El ancho de la caja es la cuerda
-                      del arco (diámetro si es círculo completo).
-                    </span>
                   </label>
-                  {(seleccionado.arco ?? 0) !== 0 && (
+                  <div>
+                    <span className="mb-1 block text-[10px] text-muted">Orientación (gira el arco)</span>
+                    <div className="flex flex-wrap gap-1">
+                      {(
+                        [
+                          { label: "↑ Arriba", deg: 0 },
+                          { label: "→ Derecha", deg: 90 },
+                          { label: "↓ Abajo", deg: 180 },
+                          { label: "← Izquierda", deg: 270 },
+                        ] as const
+                      ).map((p) => {
+                        const rot = ((Math.round(seleccionado.rotation || 0) % 360) + 360) % 360;
+                        const activo = rot === p.deg;
+                        return (
+                          <button
+                            key={p.label}
+                            type="button"
+                            disabled={!!seleccionado.locked}
+                            onClick={() => {
+                              const arco =
+                                (seleccionado.arco ?? 0) !== 0
+                                  ? (seleccionado.arco as number)
+                                  : 80;
+                              aplicarArcoPreset(Math.abs(arco) || 80, {
+                                rotation: p.deg,
+                                reposicionar: true,
+                                ancla: p.deg as 0 | 90 | 180 | 270,
+                              });
+                            }}
+                            className={`rounded border px-2 py-0.5 text-[10px] font-medium disabled:opacity-40 ${
+                              activo
+                                ? "border-accent bg-accent/15 text-accent"
+                                : "border-border text-muted hover:bg-surface-hover"
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <label className="mt-1.5 block">
+                      <span className="text-[10px] text-muted">
+                        Rotación ({Math.round(seleccionado.rotation || 0)}°)
+                      </span>
+                      <input
+                        type="range"
+                        min={-180}
+                        max={180}
+                        step={1}
+                        disabled={!!seleccionado.locked}
+                        value={(() => {
+                          let r = Math.round(seleccionado.rotation || 0) % 360;
+                          if (r > 180) r -= 360;
+                          if (r < -180) r += 360;
+                          return r;
+                        })()}
+                        onChange={(e) => {
+                          const rot = Number(e.target.value);
+                          aplicarArcoPreset(
+                            (seleccionado.arco ?? 0) !== 0
+                              ? (seleccionado.arco as number)
+                              : 80,
+                            { rotation: rot, reposicionar: true },
+                          );
+                        }}
+                        className="w-full accent-accent"
+                      />
+                    </label>
+                  </div>
+                </div>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={seleccionado.forma === "circulo"}
+                    onChange={(e) =>
+                      patchElemento(
+                        seleccionado.id,
+                        e.target.checked
+                          ? {
+                              forma: "circulo",
+                              arco: 0,
+                              align: "justify",
+                              // Banda central: como el cuerpo de la etiqueta
+                              // (no llena todo el círculo).
+                              circuloPorcion: "banda",
+                              marcoAncho:
+                                seleccionado.marcoAncho && seleccionado.marcoAncho > 0
+                                  ? seleccionado.marcoAncho
+                                  : 1.5,
+                              marcoColor: seleccionado.marcoColor || seleccionado.color,
+                              height: Math.max(seleccionado.width, seleccionado.height),
+                              width: Math.max(seleccionado.width, 120),
+                            }
+                          : { forma: undefined, circuloPorcion: undefined },
+                      )
+                    }
+                    className="mt-0.5 accent-accent"
+                  />
+                  <span className="text-xs text-muted">
+                    <span className="font-semibold text-ink">Párrafo en círculo</span>
+                    <span className="block text-[10px] leading-snug">
+                      El diámetro del círculo lo marcas tú (control Diámetro o asas). El
+                      tamaño de fuente solo cambia la letra, no el círculo.
+                    </span>
+                  </span>
+                </label>
+                {seleccionado.forma === "circulo" && (
+                  <div className="ml-5 space-y-1.5">
+                    <label className="block">
+                      <span className="text-xs text-muted">
+                        Diámetro del círculo ({Math.round(seleccionado.width)} px)
+                      </span>
+                      <input
+                        type="range"
+                        min={80}
+                        max={Math.max(800, Math.round(doc.formato.ancho_px))}
+                        step={2}
+                        value={Math.round(seleccionado.width)}
+                        onChange={(e) => {
+                          const d = Math.max(40, Math.round(Number(e.target.value)));
+                          // Solo tamaño del círculo: no toca fontSize.
+                          patchElemento(seleccionado.id, { width: d, height: d });
+                        }}
+                        className="w-full accent-accent"
+                      />
+                      <span className="block text-[10px] leading-snug text-muted">
+                        Agranda o achica el círculo con este control o con las asas del
+                        lienzo. El tamaño de fuente es independiente.
+                      </span>
+                    </label>
+                    <div className="flex flex-wrap gap-1">
+                      {(
+                        [
+                          { id: "banda", label: "Banda central" },
+                          { id: "superior", label: "Mitad arriba" },
+                          { id: "inferior", label: "Mitad abajo" },
+                          { id: "completo", label: "Círculo entero" },
+                        ] as const
+                      ).map((p) => {
+                        const activo = (seleccionado.circuloPorcion ?? "completo") === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() =>
+                              patchElemento(seleccionado.id, { circuloPorcion: p.id })
+                            }
+                            className={`rounded border px-2 py-0.5 text-[10px] font-medium ${
+                              activo
+                                ? "border-accent bg-accent/15 text-accent"
+                                : "border-border text-muted hover:bg-surface-hover"
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] leading-snug text-muted">
+                      {(seleccionado.circuloPorcion ?? "completo") === "banda"
+                        ? "Solo la franja del medio: deja arriba/abajo libres (título y código)."
+                        : (seleccionado.circuloPorcion ?? "completo") === "superior"
+                          ? "Solo la media luna de arriba."
+                          : (seleccionado.circuloPorcion ?? "completo") === "inferior"
+                            ? "Solo la media luna de abajo."
+                            : "Usa todo el disco del diámetro elegido."}
+                    </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted">Anillo</span>
+                      <span className="text-xs text-muted">Marco</span>
                       <input
                         type="number"
                         min={0}
@@ -2992,8 +3085,8 @@ export default function VisualCanvasEditor({
                             marcoAncho: Math.max(0, Number(e.target.value) || 0),
                           })
                         }
-                        className="w-14 rounded border border-border bg-surface-input px-1.5 py-0.5 text-xs text-ink"
-                        title="Grosor del anillo (0 = sin anillo; suele usarse solo en 360°)"
+                        className="w-16 rounded border border-border bg-surface-input px-2 py-1 text-xs text-ink"
+                        title="Grosor del marco circular (0 = sin marco)"
                       />
                       <input
                         type="color"
@@ -3002,60 +3095,10 @@ export default function VisualCanvasEditor({
                           patchElemento(seleccionado.id, { marcoColor: e.target.value })
                         }
                         className="h-7 w-9 cursor-pointer rounded border border-border bg-surface-input p-0.5"
-                        title="Color del anillo"
+                        title="Color del marco circular"
                       />
+                      <span className="text-[10px] text-muted">grosor · color</span>
                     </div>
-                  )}
-                </div>
-                <label className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={seleccionado.forma === "circulo"}
-                    onChange={(e) =>
-                      patchElemento(
-                        seleccionado.id,
-                        e.target.checked
-                          ? { forma: "circulo", arco: 0, align: "justify" }
-                          : { forma: undefined },
-                      )
-                    }
-                    className="mt-0.5 accent-accent"
-                  />
-                  <span className="text-xs text-muted">
-                    <span className="font-semibold text-ink">Párrafo en círculo</span>
-                    <span className="block text-[10px] leading-snug">
-                      Distinto al marco: el texto central se rellena en forma de
-                      círculo (líneas cortas arriba/abajo). No sigue el borde.
-                    </span>
-                  </span>
-                </label>
-                {seleccionado.forma === "circulo" && (
-                  <div className="ml-6 flex items-center gap-2">
-                    <span className="text-xs text-muted">Marco</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={30}
-                      step={0.5}
-                      value={seleccionado.marcoAncho ?? 0}
-                      onChange={(e) =>
-                        patchElemento(seleccionado.id, {
-                          marcoAncho: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      className="w-16 rounded border border-border bg-surface-input px-2 py-1 text-xs text-ink"
-                      title="Grosor del marco circular (0 = sin marco)"
-                    />
-                    <input
-                      type="color"
-                      value={seleccionado.marcoColor || seleccionado.color}
-                      onChange={(e) =>
-                        patchElemento(seleccionado.id, { marcoColor: e.target.value })
-                      }
-                      className="h-7 w-9 cursor-pointer rounded border border-border bg-surface-input p-0.5"
-                      title="Color del marco circular"
-                    />
-                    <span className="text-[10px] text-muted">grosor · color</span>
                   </div>
                 )}
                 <label>
@@ -3071,6 +3114,47 @@ export default function VisualCanvasEditor({
                     className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
                   />
                 </label>
+                <details className="rounded-lg border border-border bg-surface px-2 py-1.5">
+                  <summary className="cursor-pointer text-xs font-medium text-ink">
+                    Posición y tamaño
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted">Bloquear</span>
+                      <button
+                        type="button"
+                        onClick={() => alternarBloqueo(seleccionado.id)}
+                        className={`rounded-md border px-2 py-0.5 text-xs ${
+                          seleccionado.locked
+                            ? "border-amber-300 bg-amber-50 text-amber-700"
+                            : "border-border hover:bg-surface-hover"
+                        }`}
+                      >
+                        {seleccionado.locked ? "🔒 Bloqueado" : "🔓 Libre"}
+                      </button>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["x", "y", "width", "height"] as const).map((k) => (
+                        <label key={k}>
+                          <span className="text-xs text-muted">{k}</span>
+                          <input
+                            type="number"
+                            step={1}
+                            disabled={seleccionado.locked && (k === "x" || k === "y")}
+                            value={Math.round(Number(seleccionado[k]) || 0)}
+                            onChange={(e) => {
+                              const v = Math.round(Number(e.target.value));
+                              if (!Number.isFinite(v)) return;
+                              if (Math.round(Number(seleccionado[k]) || 0) === v) return;
+                              patchElemento(seleccionado.id, { [k]: v });
+                            }}
+                            className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </details>
               </>
             )}
 
@@ -3241,8 +3325,124 @@ export default function VisualCanvasEditor({
                   </div>
                 )}
               </>
-          </div>
-        </aside>
+
+              <div className="border-t border-border pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCapasAbiertas((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-lg border border-border bg-surface px-2.5 py-2 text-left hover:bg-surface-hover"
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                    Capas ({capasOrdenadas.length})
+                  </span>
+                  <span className="text-[10px] text-muted">{capasAbiertas ? "▾" : "▸"}</span>
+                </button>
+                {capasAbiertas && (
+                  <div className="mt-2 space-y-2">
+              <>
+                  {capasOrdenadas.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted">
+                      Usa las herramientas de la izquierda para añadir elementos.
+                    </p>
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {capasOrdenadas.map((el) => {
+                        const activa = seleccionIds.includes(el.id);
+                        const oculto = el.visible === false;
+                        const icon =
+                          el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "▣";
+                        const arrastrando = capaArrastradaId === el.id;
+                        const sobreEsta = capaSobreId === el.id && capaArrastradaId !== null && !arrastrando;
+                        return (
+                          <li
+                            key={el.id}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
+                              setCapaArrastradaId(el.id);
+                            }}
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              if (capaArrastradaId && capaArrastradaId !== el.id) setCapaSobreId(el.id);
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (capaArrastradaId) reordenarCapa(capaArrastradaId, el.id);
+                              setCapaArrastradaId(null);
+                              setCapaSobreId(null);
+                            }}
+                            onDragEnd={() => {
+                              setCapaArrastradaId(null);
+                              setCapaSobreId(null);
+                            }}
+                            className={`flex items-center gap-0.5 rounded ${arrastrando ? "opacity-40" : ""} ${
+                              sobreEsta ? "border-t-2 border-accent" : ""
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                const next = resolverSeleccionAlClic(
+                                  el,
+                                  doc.elementos,
+                                  seleccionIds,
+                                  e.shiftKey,
+                                );
+                                setSeleccionIds(next);
+                              }}
+                              className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition active:cursor-grabbing ${
+                                activa
+                                  ? "bg-accent/15 text-accent font-medium"
+                                  : oculto
+                                    ? "text-muted/40 hover:bg-surface-hover"
+                                    : "text-ink-secondary hover:bg-surface-hover"
+                              }`}
+                            >
+                              <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
+                              <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
+                                {labelCapa(el)}
+                              </span>
+                              {el.type === "text" && (() => {
+                                const rol = inferirRolTextoCapa(el, doc.elementos);
+                                if (!rol || rol === "otro") return null;
+                                const short =
+                                  rol === "descripcion" ? "MP" : rol === "titulo" ? "Tít" : "Sub";
+                                return (
+                                  <span className="ml-auto shrink-0 rounded bg-accent/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-accent">
+                                    {short}
+                                  </span>
+                                );
+                              })()}
+                            </button>
+                            <button
+                              type="button"
+                              title={oculto ? "Mostrar" : "Ocultar"}
+                              onClick={() => patchElemento(el.id, { visible: oculto ? true : false })}
+                              className="shrink-0 rounded p-1 text-[10px] text-muted hover:bg-surface-hover"
+                            >
+                              {oculto ? "○" : "●"}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <label className="mt-4 block">
+                    <span className="mb-1 block text-[10px] uppercase tracking-wide text-muted">Fondo</span>
+                    <input
+                      type="color"
+                      value={doc.fondo.startsWith("#") ? doc.fondo : "#ffffff"}
+                      onChange={(e) => onChange({ ...doc, fondo: e.target.value })}
+                      className="h-8 w-full cursor-pointer rounded border border-border"
+                    />
+                  </label>
+                  </>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

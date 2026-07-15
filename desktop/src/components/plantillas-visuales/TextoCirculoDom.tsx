@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { pesoFontWeightCss, type ElementoTexto } from "../../lib/plantillasVisuales";
-import { calcularTextoCirculo } from "../../lib/textoCirculo";
+import {
+  calcularTextoCirculo,
+  LINE_HEIGHT_DEFECTO,
+  type CirculoPorcion,
+} from "../../lib/textoCirculo";
 
 let _ctx: CanvasRenderingContext2D | null = null;
 function medidorCanvas(font: string): (s: string) => number {
@@ -12,20 +16,16 @@ function medidorCanvas(font: string): (s: string) => number {
 }
 
 /**
- * Texto envuelto/justificado dentro de un círculo (el.forma === "circulo").
- * Cada línea es un div posicionado sobre la cuerda del círculo a su altura;
- * las justificadas reparten palabras con flex space-between — la misma
- * aritmética que el raster Python, así el export coincide con el editor.
- * Color, fuente y peso se heredan del contenedor del elemento.
+ * Párrafo envuelto dentro de un círculo (o un tramo: superior / banda / inferior).
+ * Cada línea usa la misma caja de alto `lhPx` para un interlineado uniforme.
  */
 export default function TextoCirculoDom({ el, escala = 1 }: { el: ElementoTexto; escala?: number }) {
   const w = el.width * escala;
   const fs = el.fontSize * escala;
-  const lh = el.lineHeight ?? 1.2;
-  const lhPx = fs * lh;
+  const lh = el.lineHeight ?? LINE_HEIGHT_DEFECTO;
   const font = `${pesoFontWeightCss(el.fontWeight)} ${fs}px ${el.fontFamily}`;
-  // Con marco, el texto se retira un poco de la cuerda para no tocarlo.
   const holgura = (el.marcoAncho ?? 0) > 0 ? fs * 0.35 : 0;
+  const porcion: CirculoPorcion = el.circuloPorcion ?? "completo";
   const layout = useMemo(
     () =>
       calcularTextoCirculo(
@@ -36,21 +36,37 @@ export default function TextoCirculoDom({ el, escala = 1 }: { el: ElementoTexto;
         el.align ?? "left",
         medidorCanvas(font),
         holgura,
+        porcion,
       ),
-    [el.content, w, fs, lh, el.align, font, holgura],
+    [el.content, w, fs, lh, el.align, font, holgura, porcion],
   );
   if (!layout) return null;
+  const { lhPx } = layout;
   const alignLinea = el.align === "justify" ? "center" : el.align ?? "left";
-  // Marco circular opcional, concéntrico al círculo del texto y un pelo más
-  // afuera para que los glifos del ecuador no lo toquen.
   const marcoAncho = (el.marcoAncho ?? 0) * escala;
   const radioMarco = marcoAncho > 0 ? layout.radio + marcoAncho / 2 + fs * 0.1 : 0;
+
+  const cajaLinea = (l: (typeof layout.lineas)[number]): React.CSSProperties => ({
+    position: "absolute",
+    left: l.xIni,
+    top: l.yCenter - lhPx / 2,
+    width: l.chord,
+    height: lhPx,
+    lineHeight: `${lhPx}px`,
+    overflow: "hidden",
+    boxSizing: "border-box",
+    fontSize: `${fs}px`,
+    fontFamily: el.fontFamily,
+    fontWeight: pesoFontWeightCss(el.fontWeight),
+    color: el.color,
+  });
+
   return (
     <div
       style={{
         position: "relative",
         width: w,
-        height: Math.max(layout.altoTotal, layout.radio + radioMarco),
+        height: Math.max(layout.altoTotal, layout.radio + radioMarco, 2 * layout.radio),
         pointerEvents: "none",
       }}
       aria-hidden
@@ -74,11 +90,7 @@ export default function TextoCirculoDom({ el, escala = 1 }: { el: ElementoTexto;
           <div
             key={i}
             style={{
-              position: "absolute",
-              left: l.xIni,
-              top: l.yCenter - lhPx / 2,
-              width: l.chord,
-              height: lhPx,
+              ...cajaLinea(l),
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -93,13 +105,17 @@ export default function TextoCirculoDom({ el, escala = 1 }: { el: ElementoTexto;
           <div
             key={i}
             style={{
-              position: "absolute",
-              left: l.xIni,
-              top: l.yCenter - lhPx / 2,
-              width: l.chord,
-              lineHeight: `${lhPx}px`,
-              textAlign: alignLinea as "left" | "center" | "right",
+              ...cajaLinea(l),
+              display: "flex",
+              alignItems: "center",
+              justifyContent:
+                alignLinea === "right"
+                  ? "flex-end"
+                  : alignLinea === "center"
+                    ? "center"
+                    : "flex-start",
               whiteSpace: "nowrap",
+              textAlign: alignLinea as "left" | "center" | "right",
             }}
           >
             {l.texto}
