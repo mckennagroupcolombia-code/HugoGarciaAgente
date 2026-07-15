@@ -109,9 +109,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Punto único de entrada de inventario: registra entradas y salidas de unidades aquí y se propagan a MeLi y a la página web, sin editar nada manualmente en la app de MeLi.",
     tips: [
       "'+ Entrada' y '− Salida' suman o restan unidades y empujan el resultado a MeLi y a la web.",
+      "Un producto 'pausado en MeLi' igual acepta entradas — se actualiza la web de inmediato; MeLi puede seguir pausado hasta reactivarlo allá ('Abrir en MeLi' para ir directo).",
       "Siigo solo aparece como referencia de lectura — su API no permite escribirle stock; se sigue ajustando aparte.",
-      "'Reenviar sin cambios' vuelve a mandar el stock actual sin modificar la cantidad (útil si algún canal quedó desincronizado).",
-      "'Reenviar todo a los canales' recorre todos los productos y actualiza MeLi + web en segundo plano.",
+      "Todos los días se reenvía el stock a la web automáticamente, así que un producto nuevo nunca queda sin control por mucho tiempo.",
     ],
     tier: "core",
     category: "productos",

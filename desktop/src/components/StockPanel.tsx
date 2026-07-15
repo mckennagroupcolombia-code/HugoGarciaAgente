@@ -12,6 +12,7 @@ interface StockItem {
   estado_meli?: string;
   es_full?: boolean;
   sync_bloqueado?: boolean;
+  permalink?: string;
 }
 
 interface StockResumen {
@@ -117,12 +118,25 @@ function StockRow({
           </p>
         </div>
         {item.sync_bloqueado && (
-          <span
-            className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
-            title="MeLi no permite cambiar el stock de una publicación que no está activa"
-          >
-            {ESTADO_MELI_LABELS[item.estado_meli ?? ""] ?? item.estado_meli ?? "No activa"} en MeLi
-          </span>
+          <>
+            <span
+              className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
+              title="MeLi puede rechazar el cambio de stock mientras la publicación no esté activa — igual puedes intentarlo, y el push a la web funciona sin depender de esto"
+            >
+              {ESTADO_MELI_LABELS[item.estado_meli ?? ""] ?? item.estado_meli ?? "No activa"} en MeLi
+            </span>
+            {item.permalink && (
+              <a
+                href={item.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Reactivar la publicación en MeLi (se abre en una pestaña nueva)"
+                className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-accent transition hover:border-accent/50"
+              >
+                Abrir en MeLi ↗
+              </a>
+            )}
+          </>
         )}
         {!item.sync_bloqueado && item.es_full && (
           <span
@@ -148,19 +162,19 @@ function StockRow({
           value={cantidad}
           onChange={(e) => setCantidad(e.target.value)}
           placeholder="Cantidad"
-          disabled={!item.sku || isBusy || item.sync_bloqueado}
+          disabled={!item.sku || isBusy}
           className="w-24 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs text-ink outline-none placeholder:text-muted/50 focus:border-accent disabled:opacity-40"
         />
         <button
           onClick={() => aplicar(1)}
-          disabled={!item.sku || isBusy || item.sync_bloqueado || !cantidadNum}
+          disabled={!item.sku || isBusy || !cantidadNum}
           className="rounded-lg bg-emerald-600/15 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 transition hover:bg-emerald-600/25 disabled:opacity-40"
         >
           + Entrada
         </button>
         <button
           onClick={() => aplicar(-1)}
-          disabled={!item.sku || isBusy || item.sync_bloqueado || !cantidadNum}
+          disabled={!item.sku || isBusy || !cantidadNum}
           className="rounded-lg bg-danger/15 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/25 disabled:opacity-40"
         >
           − Salida
@@ -169,10 +183,10 @@ function StockRow({
         <button
           onClick={onSincronizar}
           disabled={!item.sku || isBusy}
-          title="Reenvía el stock actual de MeLi a los canales sin cambiar la cantidad"
+          title="Vuelve a mandar el stock actual de MeLi a los canales, sin sumar ni restar unidades — útil si la web o MeLi quedaron desactualizados"
           className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
         >
-          {isBusy ? "..." : "Reenviar sin cambios"}
+          {isBusy ? "..." : "Actualizar stock"}
         </button>
       </div>
 
@@ -273,9 +287,12 @@ export default function StockPanel() {
 
       <p className="text-xs text-muted -mt-3">
         Este panel es el punto único de entrada de inventario: registra aquí las entradas y salidas
-        de unidades y se propagan a MeLi y a la página web. Siigo se muestra solo de referencia — su
-        API no permite escribirle stock, así que ahí se sigue ajustando aparte (compras/ventas ya lo
-        mueven solas al facturar).
+        de unidades y se propagan a MeLi y a la página web (además, todos los días se reenvía solo
+        a la web para que nunca quede un producto nuevo sin control de stock). Siigo se muestra solo
+        de referencia — su API no permite escribirle stock, así que ahí se sigue ajustando aparte.
+        Si un producto aparece "pausado en MeLi" igual puedes registrar la entrada — se actualiza la
+        web de una vez; MeLi normalmente exige reactivar la publicación allá para aceptar el stock
+        nuevo, así que usa "Abrir en MeLi" si hace falta reactivarla.
       </p>
 
       {sincronizarTodoMut.isSuccess && (
