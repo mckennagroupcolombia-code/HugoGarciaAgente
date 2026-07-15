@@ -491,6 +491,40 @@ def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
     return "\n".join(resultados)
 
 
+def _stock_meli_actual(meli_id: str, token: str) -> int:
+    """Lee el available_quantity vigente de un ítem puntual (maneja variaciones)."""
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(
+        f"https://api.mercadolibre.com/items/{meli_id}", headers=headers, timeout=10
+    )
+    res.raise_for_status()
+    item = res.json()
+    if item.get("variations"):
+        return sum(v.get("available_quantity", 0) for v in item["variations"])
+    return int(item.get("available_quantity", 0) or 0)
+
+
+def ajustar_stock_multicanal(sku: str, meli_id: str, delta: int) -> dict:
+    """
+    Punto de entrada único para sumar/restar unidades desde el panel Stock: lee el
+    stock vigente en MeLi, aplica `delta` (positivo = entrada, negativo = salida,
+    nunca queda negativo) y propaga el nuevo valor a MeLi + web con
+    `sincronizar_stock_multicanal`. El panel es la fuente de verdad desde acá — ya
+    no se espera edición manual en la app de MeLi.
+    """
+    token = refrescar_token_meli()
+    if not token:
+        raise RuntimeError("Token de Mercado Libre no disponible.")
+
+    stock_actual = _stock_meli_actual(meli_id, token) if meli_id else 0
+    stock_nuevo = max(0, stock_actual + int(delta))
+
+    resultado = sincronizar_stock_multicanal(sku, stock_nuevo, meli_id=meli_id)
+    resultado["stock_anterior"] = stock_actual
+    resultado["delta"] = int(delta)
+    return resultado
+
+
 def sincronizar_stock_multicanal(
     sku: str, nuevo_stock: int, meli_id: str = "", verificar_siigo: bool = True
 ) -> dict:

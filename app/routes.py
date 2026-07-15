@@ -2983,6 +2983,7 @@ def register_routes(app):
         sincronizar_por_dia_especifico as _sync_por_dia,
         obtener_estado_stock_meli as _obtener_estado_stock_meli,
         sincronizar_stock_multicanal as _sincronizar_stock_multicanal,
+        ajustar_stock_multicanal as _ajustar_stock_multicanal,
     )
     from app.services.google_services import leer_datos_hoja as _leer_hoja
     from app.services.meli import aprender_de_interacciones_meli as _aprender_meli
@@ -3270,6 +3271,33 @@ def register_routes(app):
             ok_meli = resultado.get("meli", {}).get("ok")
             ok_web = resultado.get("web", {}).get("ok")
             log_line(f"✔ stock sincronizado SKU {sku} → {stock} | MeLi: {ok_meli} | Web: {ok_web}")
+            return jsonify({"status": "ok", **resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/stock/ajustar", methods=["POST"])
+    def api_stock_ajustar():
+        """Suma/resta unidades: lee el stock vigente en MeLi, aplica el delta y
+        propaga el nuevo valor a MeLi + web. Punto único de entrada de inventario."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        sku = str(body.get("sku") or "").strip()
+        meli_id = str(body.get("meli_id") or "").strip()
+        delta = body.get("delta")
+        if not sku or not meli_id or delta is None:
+            return jsonify({"error": "Campos 'sku', 'meli_id' y 'delta' requeridos"}), 400
+        try:
+            from app.panel_activity import log_line
+
+            resultado = _ajustar_stock_multicanal(sku, meli_id, int(delta))
+            ok_meli = resultado.get("meli", {}).get("ok")
+            ok_web = resultado.get("web", {}).get("ok")
+            log_line(
+                f"✔ ajuste stock SKU {sku} {'+' if delta >= 0 else ''}{delta} "
+                f"({resultado.get('stock_anterior')}→{resultado.get('stock_objetivo')}) "
+                f"| MeLi: {ok_meli} | Web: {ok_web}"
+            )
             return jsonify({"status": "ok", **resultado})
         except Exception as e:
             return jsonify({"error": str(e)}), 500

@@ -30,6 +30,8 @@ interface CanalResultado {
 interface SincronizarResultado {
   sku: string;
   stock_objetivo: number;
+  stock_anterior?: number;
+  delta?: number;
   meli: CanalResultado;
   web: CanalResultado;
   siigo: CanalResultado;
@@ -49,9 +51,139 @@ const ESTADO_MELI_LABELS: Record<string, string> = {
   under_review: "En revisión",
 };
 
+function CanalResultBox({ resultado }: { resultado: SincronizarResultado }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-3 border-t border-border pt-3">
+      {typeof resultado.stock_anterior === "number" && (
+        <div className="sm:col-span-3 text-[11px] text-muted -mb-1">
+          {resultado.stock_anterior} → <span className="font-bold text-ink">{resultado.stock_objetivo}</span> uds
+          {typeof resultado.delta === "number" && (
+            <span> ({resultado.delta >= 0 ? "+" : ""}{resultado.delta})</span>
+          )}
+        </div>
+      )}
+      <div className="rounded-lg bg-surface px-3 py-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+          {resultado.meli.ok ? "✅" : resultado.meli.no_aplica ? "ℹ️" : "❌"} MeLi
+        </p>
+        <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">{resultado.meli.mensaje}</p>
+      </div>
+      <div className="rounded-lg bg-surface px-3 py-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+          {resultado.web.ok ? (resultado.web.numerico ? "✅" : "⚠️") : "❌"} Página web
+        </p>
+        <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">{resultado.web.mensaje}</p>
+      </div>
+      <div className="rounded-lg bg-surface px-3 py-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+          ℹ️ Siigo{resultado.siigo.stock != null ? `: ${resultado.siigo.stock} uds` : ""}
+        </p>
+        <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">{resultado.siigo.mensaje}</p>
+      </div>
+    </div>
+  );
+}
+
+function StockRow({
+  item,
+  isBusy,
+  resultado,
+  onAjustar,
+  onSincronizar,
+}: {
+  item: StockItem;
+  isBusy: boolean;
+  resultado?: SincronizarResultado;
+  onAjustar: (delta: number) => void;
+  onSincronizar: () => void;
+}) {
+  const [cantidad, setCantidad] = useState("");
+  const estado = estadoDe(item.stock);
+  const cantidadNum = Math.max(0, parseInt(cantidad, 10) || 0);
+
+  const aplicar = (signo: 1 | -1) => {
+    if (!cantidadNum) return;
+    onAjustar(signo * cantidadNum);
+    setCantidad("");
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel p-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-ink truncate">{item.nombre}</p>
+          <p className="text-xs text-muted">
+            SKU: {item.sku || "—"} · MeLi: {item.meli_id}
+          </p>
+        </div>
+        {item.sync_bloqueado && (
+          <span
+            className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
+            title="MeLi no permite cambiar el stock de una publicación que no está activa"
+          >
+            {ESTADO_MELI_LABELS[item.estado_meli ?? ""] ?? item.estado_meli ?? "No activa"} en MeLi
+          </span>
+        )}
+        {!item.sync_bloqueado && item.es_full && (
+          <span
+            className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
+            title="Mercado Envíos Full: MeLi administra este stock según el inventario físico enviado a su bodega. Solo se puede sincronizar hacia la web, no escribir en MeLi."
+          >
+            Full (MeLi)
+          </span>
+        )}
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${estado.className}`}>
+          {estado.label}
+        </span>
+        <span className="shrink-0 w-14 text-right text-sm font-bold text-ink tabular-nums">
+          {item.stock} uds
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={cantidad}
+          onChange={(e) => setCantidad(e.target.value)}
+          placeholder="Cantidad"
+          disabled={!item.sku || isBusy || item.sync_bloqueado}
+          className="w-24 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs text-ink outline-none placeholder:text-muted/50 focus:border-accent disabled:opacity-40"
+        />
+        <button
+          onClick={() => aplicar(1)}
+          disabled={!item.sku || isBusy || item.sync_bloqueado || !cantidadNum}
+          className="rounded-lg bg-emerald-600/15 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 transition hover:bg-emerald-600/25 disabled:opacity-40"
+        >
+          + Entrada
+        </button>
+        <button
+          onClick={() => aplicar(-1)}
+          disabled={!item.sku || isBusy || item.sync_bloqueado || !cantidadNum}
+          className="rounded-lg bg-danger/15 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/25 disabled:opacity-40"
+        >
+          − Salida
+        </button>
+        <span className="text-muted/50 px-1">|</span>
+        <button
+          onClick={onSincronizar}
+          disabled={!item.sku || isBusy}
+          title="Reenvía el stock actual de MeLi a los canales sin cambiar la cantidad"
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
+        >
+          {isBusy ? "..." : "Reenviar sin cambios"}
+        </button>
+      </div>
+
+      {resultado && <CanalResultBox resultado={resultado} />}
+    </div>
+  );
+}
+
 export default function StockPanel() {
   const [search, setSearch] = useState("");
-  const [syncingSku, setSyncingSku] = useState<string | null>(null);
+  const [busySku, setBusySku] = useState<string | null>(null);
   const [rowResult, setRowResult] = useState<Record<string, SincronizarResultado>>({});
   const queryClient = useQueryClient();
 
@@ -79,26 +211,33 @@ export default function StockPanel() {
     };
   }, [data]);
 
+  const errorResultado = (sku: string, message: string): SincronizarResultado => ({
+    sku,
+    stock_objetivo: 0,
+    meli: { ok: false, mensaje: `Error: ${message}` },
+    web: { ok: false, mensaje: "—" },
+    siigo: { stock: null, mensaje: "—" },
+  });
+
+  const ajustarMut = useMutation({
+    mutationFn: ({ sku, meli_id, delta }: { sku: string; meli_id: string; delta: number }) =>
+      api.post<SincronizarResultado>("/api/stock/ajustar", { sku, meli_id, delta }),
+    onMutate: ({ sku }) => setBusySku(sku),
+    onSuccess: (res, { sku }) => {
+      setRowResult((prev) => ({ ...prev, [sku]: res }));
+      queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+    },
+    onError: (err, { sku }) => setRowResult((prev) => ({ ...prev, [sku]: errorResultado(sku, err.message) })),
+    onSettled: () => setBusySku(null),
+  });
+
   const sincronizarUnoMut = useMutation({
     mutationFn: ({ sku, stock, meli_id }: { sku: string; stock: number; meli_id: string }) =>
       api.post<SincronizarResultado>("/api/stock/sincronizar", { sku, stock, meli_id }),
-    onMutate: ({ sku }) => setSyncingSku(sku),
-    onSuccess: (res, { sku }) => {
-      setRowResult((prev) => ({ ...prev, [sku]: res }));
-    },
-    onError: (err, { sku }) => {
-      setRowResult((prev) => ({
-        ...prev,
-        [sku]: {
-          sku,
-          stock_objetivo: 0,
-          meli: { ok: false, mensaje: `Error: ${err.message}` },
-          web: { ok: false, mensaje: "—" },
-          siigo: { stock: null, mensaje: "—" },
-        },
-      }));
-    },
-    onSettled: () => setSyncingSku(null),
+    onMutate: ({ sku }) => setBusySku(sku),
+    onSuccess: (res, { sku }) => setRowResult((prev) => ({ ...prev, [sku]: res })),
+    onError: (err, { sku }) => setRowResult((prev) => ({ ...prev, [sku]: errorResultado(sku, err.message) })),
+    onSettled: () => setBusySku(null),
   });
 
   const sincronizarTodoMut = useMutation({
@@ -127,15 +266,16 @@ export default function StockPanel() {
             disabled={sincronizarTodoMut.isPending || !items.length}
             className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
           >
-            {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Sincronizar todo a los canales"}
+            {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Reenviar todo a los canales"}
           </button>
         </div>
       </div>
 
       <p className="text-xs text-muted -mt-3">
-        El stock real se edita a mano en MercadoLibre. Esta pantalla muestra ese valor en vivo y,
-        al sincronizar, empuja el número a la página web y muestra de referencia el stock en Siigo
-        (Siigo solo se usa para facturación, nunca se le escribe stock).
+        Este panel es el punto único de entrada de inventario: registra aquí las entradas y salidas
+        de unidades y se propagan a MeLi y a la página web. Siigo se muestra solo de referencia — su
+        API no permite escribirle stock, así que ahí se sigue ajustando aparte (compras/ventas ya lo
+        mueven solas al facturar).
       </p>
 
       {sincronizarTodoMut.isSuccess && (
@@ -195,95 +335,30 @@ export default function StockPanel() {
       )}
 
       <div className="space-y-2">
-        {items.map((it) => {
-          const estado = estadoDe(it.stock);
-          const isSyncing = syncingSku === it.sku;
-          const resultado = rowResult[it.sku];
-          return (
-            <div key={it.meli_id} className="rounded-xl border border-border bg-surface-panel p-4 space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-ink truncate">{it.nombre}</p>
-                  <p className="text-xs text-muted">
-                    SKU: {it.sku || "—"} · MeLi: {it.meli_id}
-                  </p>
-                </div>
-                {it.sync_bloqueado && (
-                  <span
-                    className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
-                    title="MeLi no permite cambiar el stock de una publicación que no está activa"
-                  >
-                    {ESTADO_MELI_LABELS[it.estado_meli ?? ""] ?? it.estado_meli ?? "No activa"} en MeLi
-                  </span>
-                )}
-                {!it.sync_bloqueado && it.es_full && (
-                  <span
-                    className="shrink-0 rounded-full bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted"
-                    title="Mercado Envíos Full: MeLi administra este stock según el inventario físico enviado a su bodega. Solo se puede sincronizar hacia la web, no escribir en MeLi."
-                  >
-                    Full (MeLi)
-                  </span>
-                )}
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${estado.className}`}>
-                  {estado.label}
-                </span>
-                <span className="shrink-0 w-14 text-right text-sm font-bold text-ink tabular-nums">
-                  {it.stock} uds
-                </span>
-                <button
-                  onClick={() => {
-                    setRowResult((prev) => {
-                      const next = { ...prev };
-                      delete next[it.sku];
-                      return next;
-                    });
-                    sincronizarUnoMut.mutate({ sku: it.sku, stock: it.stock, meli_id: it.meli_id });
-                  }}
-                  disabled={!it.sku || isSyncing || it.sync_bloqueado}
-                  title={
-                    !it.sku
-                      ? "Este producto no tiene SKU asignado"
-                      : it.sync_bloqueado
-                        ? "Reactiva la publicación en MeLi antes de sincronizar su stock"
-                        : undefined
-                  }
-                  className="shrink-0 rounded-lg bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 disabled:opacity-40"
-                >
-                  {isSyncing ? "..." : "Sincronizar a los canales"}
-                </button>
-              </div>
-
-              {resultado && (
-                <div className="grid gap-2 sm:grid-cols-3 border-t border-border pt-3">
-                  <div className="rounded-lg bg-surface px-3 py-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                      {resultado.meli.ok ? "✅" : resultado.meli.no_aplica ? "ℹ️" : "❌"} MeLi
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">
-                      {resultado.meli.mensaje}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-surface px-3 py-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                      {resultado.web.ok ? (resultado.web.numerico ? "✅" : "⚠️") : "❌"} Página web
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">
-                      {resultado.web.mensaje}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-surface px-3 py-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                      ℹ️ Siigo{resultado.siigo.stock != null ? `: ${resultado.siigo.stock} uds` : ""}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-ink-muted leading-snug">
-                      {resultado.siigo.mensaje}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {items.map((it) => (
+          <StockRow
+            key={it.meli_id}
+            item={it}
+            isBusy={busySku === it.sku}
+            resultado={rowResult[it.sku]}
+            onAjustar={(delta) => {
+              setRowResult((prev) => {
+                const next = { ...prev };
+                delete next[it.sku];
+                return next;
+              });
+              ajustarMut.mutate({ sku: it.sku, meli_id: it.meli_id, delta });
+            }}
+            onSincronizar={() => {
+              setRowResult((prev) => {
+                const next = { ...prev };
+                delete next[it.sku];
+                return next;
+              });
+              sincronizarUnoMut.mutate({ sku: it.sku, stock: it.stock, meli_id: it.meli_id });
+            }}
+          />
+        ))}
       </div>
 
       {/* Reporte por WhatsApp */}
