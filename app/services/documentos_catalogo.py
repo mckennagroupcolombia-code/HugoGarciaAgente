@@ -201,7 +201,7 @@ def _coincide_archivo(nombre_producto: str, ref: str, archivo: str) -> bool:
 
 
 def _indice_biblioteca(*, forzar: bool = False) -> list[dict]:
-    """Documentos de ficha técnica (formato FT+COA+SDS) ya generados localmente en fichas_word/completo/."""
+    """Documentos FT (simples en pdf/ y completos FT+COA+SDS en completo/)."""
     now = time.time()
     if (
         not forzar

@@ -66,11 +66,27 @@ public class LauncherActivity
         try {
             Uri url = getLaunchingUrl();
             if (url == null) {
+                Intent incoming = getIntent();
+                if (incoming != null && incoming.getData() != null) {
+                    url = incoming.getData();
+                }
+            }
+            if (url == null) {
                 url = Uri.parse(getString(R.string.launchUrl));
+            }
+            // Retorno OAuth HTTPS: abrir panel CON el token y cerrar launcher.
+            if (McKennaBridge.handleHttpsAuthReturn(this, url)) {
+                Log.i(TAG, "OAuth HTTPS via Launcher → panel");
+                // openPanel ya arrancó WebView en la misma tarea; cerramos el launcher suave.
+                finish();
+                return;
             }
             Log.i(TAG, "Abriendo panel en WebView: " + url);
             Intent intent = new Intent(this, McKennaWebViewActivity.class);
             intent.putExtra(McKennaWebViewActivity.EXTRA_URL, url.toString());
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
             finish();
         } catch (Exception e) {

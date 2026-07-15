@@ -517,10 +517,13 @@ def _fuente_raster(weight: str, size: int):
 
 
 def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> None:
-    """Texto sobre un arco (misma geometría que TextoArcoSvg.tsx):
+    """Texto sobre un arco (misma geometría que TextoArcoSvg.tsx).
+
     arco ∈ [-200, 200]; hasta ±100 la sagitta crece a semicírculo
-    (diámetro = ancho de la caja); de ±100 a ±200 el radio queda fijo en
-    ancho/2 y el barrido crece de 180° a 360° (±200 = círculo completo)."""
+    (diámetro ≈ ancho de la caja); de ±100 a ±200 el radio queda fijo en
+    ancho/2 y el barrido crece de 180° a 360° (±200 = círculo completo).
+    Respeta `rotation` del elemento (grados, CSS-like, origen centro de caja).
+    """
     import math
 
     from PIL import Image, ImageDraw
@@ -528,8 +531,8 @@ def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> 
     texto = " ".join((contenido or "").split())
     if not texto:
         return
-    x = float(el.get("x") or 0) * ss
-    y = float(el.get("y") or 0) * ss
+    x0 = float(el.get("x") or 0) * ss
+    y0_el = float(el.get("y") or 0) * ss
     w = float(el.get("width") or 0) * ss
     fs = float(el.get("fontSize") or 16) * ss
     arco = max(-200.0, min(200.0, float(el.get("arco") or 0)))
@@ -545,18 +548,24 @@ def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> 
         R = sag / 2.0 + (w * w) / (8.0 * sag)
         theta = 2.0 * math.asin(min(1.0, (w / 2.0) / R))
     y0 = (sag + fs) if up else fs
+    y_base = (fs + R * (1.0 - math.cos(theta / 2.0))) if up else (y0 + sag)
+    alto_total = y_base + fs * (1.0 if theta > math.pi else 0.45)
     L = R * theta
+
+    rot_el = float(el.get("rotation") or 0) % 360.0
+    # Dibuja en capa local (0,0)-(w,alto) y luego rota si hace falta.
+    capa = Image.new("RGBA", (max(1, int(math.ceil(w))), max(1, int(math.ceil(alto_total)))), (0, 0, 0, 0))
 
     anchos = [medidor.textlength(ch, font=fnt) for ch in texto]
     W = sum(anchos)
-    cx = x + w / 2.0
-    cy = (y + y0 + (R - sag)) if up else (y + y0 + sag - R)
+    cx = w / 2.0
+    cy = (y0 + (R - sag)) if up else (y0 + sag - R)
 
-    s = max(0.0, L / 2.0 - W / 2.0)  # centrado como textAnchor=middle
+    s = max(0.0, L / 2.0 - W / 2.0)
     for ch, cw in zip(texto, anchos):
         centro_s = s + cw / 2.0
         s += cw
-        a = (centro_s / L) * theta - theta / 2.0  # ángulo respecto al ápice
+        a = (centro_s / L) * theta - theta / 2.0
         if up:
             px = cx + R * math.sin(a)
             py = cy - R * math.cos(a)
@@ -567,7 +576,6 @@ def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> 
             py = cy + R * math.cos(a)
             radial = (math.sin(a), math.cos(a))
             rot = math.degrees(a)
-        # centro del glifo ligeramente hacia afuera de la línea base
         gx = px + radial[0] * fs * 0.35
         gy = py + radial[1] * fs * 0.35
 
@@ -577,31 +585,33 @@ def _texto_arco_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> 
             (lado / 2, lado / 2), ch, font=fnt, fill=el.get("color") or "#000", anchor="mm"
         )
         tile = tile.rotate(rot, resample=Image.Resampling.BICUBIC, expand=False)
-        img.paste(tile, (int(gx - lado / 2), int(gy - lado / 2)), tile)
+        capa.paste(tile, (int(gx - lado / 2), int(gy - lado / 2)), tile)
 
-    # Anillo decorativo (misma idea que TextoArcoSvg con marcoAncho).
     marco = float(el.get("marcoAncho") or 0) * ss
-    if marco > 0 and R > 0:
-        draw = ImageDraw.Draw(img)
+    if marco > 0 and R > 0 and mag >= 150:
+        draw = ImageDraw.Draw(capa)
         r_anillo = max(0.0, R - fs * 0.15)
-        bbox = [
-            cx - r_anillo,
-            cy - r_anillo,
-            cx + r_anillo,
-            cy + r_anillo,
-        ]
         draw.ellipse(
-            bbox,
+            [cx - r_anillo, cy - r_anillo, cx + r_anillo, cy + r_anillo],
             outline=el.get("marcoColor") or el.get("color") or "#000",
             width=max(1, int(round(marco))),
         )
 
+    if abs(rot_el) > 0.01:
+        capa = capa.rotate(-rot_el, resample=Image.Resampling.BICUBIC, expand=True)
+        # Tras expand, el centro del AABB sigue siendo el centro de la caja original.
+        cx_box = x0 + w / 2.0
+        cy_box = y0_el + alto_total / 2.0
+        paste_x = int(round(cx_box - capa.width / 2.0))
+        paste_y = int(round(cy_box - capa.height / 2.0))
+    else:
+        paste_x = int(round(x0))
+        paste_y = int(round(y0_el))
+    img.paste(capa, (paste_x, paste_y), capa)
+
 
 def _texto_circulo_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) -> None:
-    """Texto justificado con la figura de un círculo: se busca el círculo más
-    pequeño donde quepa el párrafo (líneas envueltas a la cuerda de cada
-    altura). MISMA lógica que calcularTextoCirculo en
-    desktop/src/lib/textoCirculo.ts — mantener ambos en sincronía."""
+    """Texto justificado en círculo / tramo (misma lógica que textoCirculo.ts)."""
     import math
 
     from PIL import ImageDraw
@@ -610,89 +620,103 @@ def _texto_circulo_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) 
     y = float(el.get("y") or 0) * ss
     w = float(el.get("width") or 0) * ss
     fs = float(el.get("fontSize") or 16) * ss
-    lh = float(el.get("lineHeight") or 1.2)
+    lh = float(el.get("lineHeight") or 1.25)
     align = (el.get("align") or "left").lower()
+    porcion = (el.get("circuloPorcion") or "completo").strip().lower()
+    if porcion not in ("completo", "superior", "inferior", "banda"):
+        porcion = "completo"
     if w <= 0 or fs <= 0:
         return
-    parrafos = [
-        [p for p in par.split(" ") if p] for par in (contenido or "").split("\n")
-    ]
-    parrafos = [p for p in parrafos if p]
-    if not parrafos:
+    raw_lines = (contenido or "").replace("\r\n", "\n").split("\n")
+    if not any(p.split() for p in raw_lines):
         return
 
-    lh_px = fs * lh
-    pad = fs * 0.38  # MEDIO_GLIFO en textoCirculo.ts
-    margen = lh_px * 0.35  # MARGEN_POLO
+    lh_px = max(1.0, float(round(fs * lh)))
+    pad = fs * 0.38
+    margen = lh_px * 0.35
     esp = medidor.textlength(" ", font=fnt)
-    # Con marco, el texto se retira un poco de la cuerda para no tocarlo
-    # (holguraLateral en TextoCirculoDom.tsx).
     holgura = fs * 0.35 if float(el.get("marcoAncho") or 0) > 0 else 0.0
+    banda_frac = 0.58
 
-    def radio_para(n: int) -> float:
-        return ((n - 1) / 2.0) * lh_px + pad + margen
+    def chord_at(y_c: float, R: float, cy: float) -> float:
+        dy = abs(y_c - cy) + pad
+        half = math.sqrt(max(0.0, R * R - dy * dy))
+        return min(w, max(2.0 * half - 2.0 * holgura, fs))
 
-    max_n = 1
-    while 2.0 * radio_para(max_n + 1) <= w:
-        max_n += 1
+    R = w / 2.0
+    cy = R
+    if porcion == "superior":
+        y_min = margen + pad
+        y_max = cy
+    elif porcion == "inferior":
+        y_min = cy
+        y_max = 2.0 * R - margen - pad
+    elif porcion == "banda":
+        half = R * banda_frac
+        y_min = cy - half
+        y_max = cy + half
+    else:
+        y_min = margen + pad
+        y_max = 2.0 * R - margen - pad
 
-    def intentar(n: int, R: float, desbordar: bool):
-        cy = R
-        lineas = []
-        i = 0
-        for palabras in parrafos:
-            idx = 0
+    slots = []
+    yy = y_min + lh_px / 2.0
+    while yy <= y_max - lh_px / 2.0 + 0.01:
+        slots.append(yy)
+        yy += lh_px
+    if not slots:
+        return
+
+    def y_de_slot(slot_i: int) -> float:
+        if slot_i < len(slots):
+            return slots[slot_i]
+        return y_max + (slot_i - len(slots) + 1) * lh_px
+
+    lineas = []
+    slot = 0
+    hueco_pendiente = False
+    for raw in raw_lines:
+        palabras = [p for p in raw.split(" ") if p]
+        if not palabras:
+            if lineas:
+                hueco_pendiente = True
+            continue
+        if hueco_pendiente:
+            slot += 1
+            hueco_pendiente = False
+        idx = 0
+        while idx < len(palabras):
+            y_c = y_de_slot(slot)
+            chord = chord_at(y_c, R, cy) if slot < len(slots) else w
+            grupo = [palabras[idx]]
+            anchos = [medidor.textlength(palabras[idx], font=fnt)]
+            total = anchos[0]
+            idx += 1
             while idx < len(palabras):
-                if i >= n and not desbordar:
-                    return None
-                y_c = cy + (i - (n - 1) / 2.0) * lh_px
-                if i >= n:  # desborde bajo el círculo, a ancho completo
-                    chord = w
-                else:
-                    dy = abs(y_c - cy) + pad
-                    half = math.sqrt(max(0.0, R * R - dy * dy))
-                    chord = min(w, max(2.0 * half - 2.0 * holgura, fs))
-                grupo = [palabras[idx]]
-                anchos = [medidor.textlength(palabras[idx], font=fnt)]
-                total = anchos[0]
+                a2 = medidor.textlength(palabras[idx], font=fnt)
+                if total + esp + a2 > chord:
+                    break
+                grupo.append(palabras[idx])
+                anchos.append(a2)
+                total += esp + a2
                 idx += 1
-                while idx < len(palabras):
-                    a2 = medidor.textlength(palabras[idx], font=fnt)
-                    if total + esp + a2 > chord:
-                        break
-                    grupo.append(palabras[idx])
-                    anchos.append(a2)
-                    total += esp + a2
-                    idx += 1
-                ultima = idx >= len(palabras)
-                lineas.append([grupo, anchos, y_c, chord, ultima])
-                i += 1
-        # Si se usaron menos líneas que n, recentrar el bloque en el círculo
-        if len(lineas) < n:
-            off = (n - len(lineas)) * lh_px / 2.0
-            for ln in lineas:
-                ln[2] += off
-        return lineas
+            ultima = idx >= len(palabras)
+            lineas.append([grupo, anchos, y_c, chord, ultima, slot])
+            slot += 1
 
-    lineas = None
-    R = radio_para(1)
-    for n in range(1, max_n + 1):
-        R = radio_para(n)
-        lineas = intentar(n, R, False)
-        if lineas is not None:
-            break
-    if lineas is None:
-        # Texto más grande que el círculo máximo: círculo a todo el ancho y el
-        # resto continúa debajo en líneas de ancho completo.
-        R = w / 2.0
-        lineas = intentar(max(1, int((2.0 * R) // lh_px)), R, True)
     if not lineas:
         return
 
+    ultimo_slot = lineas[-1][5]
+    if ultimo_slot < len(slots):
+        base = lineas[0][5]
+        y0 = slots[0]
+        for ln in lineas:
+            ln[2] = y0 + (ln[5] - base) * lh_px
+            ln[3] = chord_at(ln[2], R, cy)
+
     draw = ImageDraw.Draw(img)
     color = el.get("color") or "#000000"
-    # Marco circular opcional, concéntrico al círculo del texto (misma
-    # geometría que TextoCirculoDom.tsx: radio + grosor/2 + 0.1·fontSize).
     marco = float(el.get("marcoAncho") or 0) * ss
     if marco > 0:
         rf = R + marco / 2.0 + fs * 0.1
@@ -702,7 +726,7 @@ def _texto_circulo_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) 
             outline=el.get("marcoColor") or color,
             width=max(1, int(round(marco))),
         )
-    for grupo, anchos, y_c, chord, ultima in lineas:
+    for grupo, anchos, y_c, chord, ultima, _slot in lineas:
         x_ini = x + (w - chord) / 2.0
         just = align == "justify" and not ultima and len(grupo) > 1
         if just:
@@ -718,7 +742,7 @@ def _texto_circulo_raster(img, el: dict, contenido: str, fnt, medidor, ss: int) 
                 cx = x_ini + chord - ancho_ln
             elif align == "left":
                 cx = x_ini
-            else:  # center y última línea de justify
+            else:
                 cx = x_ini + (chord - ancho_ln) / 2.0
             draw.text((cx, y + y_c), texto, fill=color, font=fnt, anchor="lm")
 

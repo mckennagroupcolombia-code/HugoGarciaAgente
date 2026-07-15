@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { toCanvas } from "html-to-image";
+import { toCanvas, getFontEmbedCSS } from "html-to-image";
 import {
   esFuenteMontserrat,
   pesoFontWeightCss,
@@ -11,9 +11,13 @@ import {
 } from "./plantillasVisuales";
 import { esSrcImagenApi, resolverUrlImagenCanvas } from "./plantillasVisualesImagen";
 import PlantillaVisualEstaticoDom from "../components/plantillas-visuales/PlantillaVisualEstaticoDom";
+import TextoArcoSvg, {
+  alturaCajaTexto,
+  sanitizarAltosTextoPlantilla,
+} from "../components/plantillas-visuales/TextoArcoSvg";
 
-/** Misma proporción que `line-height: normal` en el lienzo del editor. */
-const LINE_HEIGHT_RATIO = 1.2;
+/** Misma proporción que el interlineado por defecto del lienzo (1.25). */
+const LINE_HEIGHT_RATIO = 1.25;
 
 export interface OpcionesExportPlantilla {
   /** Escala uniforme (1 = tamaño del lienzo, 2 = doble resolución, etc.). */
@@ -235,22 +239,116 @@ function dibujarLineaEnCanvas(
 
 type RunRender = { tipo: "dom" | "canvas"; elementos: ElementoVisual[] };
 
+function esRenderCanvas(el: ElementoVisual): boolean {
+  if (el.type === "line" || el.type === "image") return true;
+  // Arcos: SVG nativo (textPath) rasterizado — no html-to-image ni glifos a mano.
+  if (el.type === "text" && (el.arco ?? 0) !== 0 && el.forma !== "circulo") return true;
+  return false;
+}
+
 /** Agrupa los elementos visibles (ordenados por zIndex) en tramos contiguos
- * "dom" (texto/rect, vía html-to-image) y "canvas" (línea/imagen, dibujados
- * a mano) — así el compositado final respeta el zIndex real entre ambos
- * tipos, en vez de pintar siempre las líneas/imágenes por encima de todo. */
+ * "dom" (texto/rect, vía html-to-image) y "canvas" (línea/imagen/arco). */
 function agruparPorTipoRender(doc: PlantillaVisualDoc): RunRender[] {
   const ordenados = doc.elementos
     .filter((el) => el.visible !== false)
     .sort((a, b) => a.zIndex - b.zIndex);
   const runs: RunRender[] = [];
   for (const el of ordenados) {
-    const tipo: RunRender["tipo"] = el.type === "line" || el.type === "image" ? "canvas" : "dom";
+    const tipo: RunRender["tipo"] = esRenderCanvas(el) ? "canvas" : "dom";
     const ultimo = runs[runs.length - 1];
     if (ultimo && ultimo.tipo === tipo) ultimo.elementos.push(el);
     else runs.push({ tipo, elementos: [el] });
   }
   return runs;
+}
+
+function cargarImagenDesdeSvgBlob(svg: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo rasterizar el texto en arco"));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Rasteriza el mismo TextoArcoSvg del lienzo (textPath nativo del navegador),
+ * embebiendo tipografías, y aplica la rotación del elemento al componer.
+ * Evita el aproximado letra-a-letra de Canvas 2D (distorsionaba el PNG).
+ */
+async function dibujarTextoArcoEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: ElementoTexto,
+  escala: number,
+  fontEmbedCSS: string,
+): Promise<void> {
+  const boxH = alturaCajaTexto(el);
+  if ((el.arco ?? 0) === 0 || boxH <= 0 || el.width <= 0) return;
+
+  const host = document.createElement("div");
+  host.style.cssText = `position:fixed;left:-99999px;top:0;width:${el.width}px;height:${boxH}px;overflow:visible;background:transparent;`;
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  try {
+    flushSync(() => {
+      root.render(<TextoArcoSvg el={{ ...el, height: boxH }} escala={1} />);
+    });
+    if (document.fonts) await document.fonts.ready;
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+    const svgEl = host.querySelector("svg");
+    if (!svgEl) return;
+    svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    svgEl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+    let xml = new XMLSerializer().serializeToString(svgEl);
+    const css = (fontEmbedCSS || "").replace(/]]>/g, "]] >");
+    if (css) {
+      xml = xml.replace(
+        /<svg([^>]*)>/i,
+        `<svg$1><defs><style type="text/css"><![CDATA[${css}]]></style></defs>`,
+      );
+    }
+    const w0 = el.width;
+    const h0 = boxH;
+    const w = w0 * escala;
+    const h = h0 * escala;
+    xml = xml.replace(/<svg([^>]*)>/i, (_m, attrs: string) => {
+      const limpio = String(attrs)
+        .replace(/\swidth="[^"]*"/gi, "")
+        .replace(/\sheight="[^"]*"/gi, "")
+        .replace(/\sviewBox="[^"]*"/gi, "");
+      return `<svg${limpio} width="${w}" height="${h}" viewBox="0 0 ${w0} ${h0}">`;
+    });
+
+    const img = await cargarImagenDesdeSvgBlob(xml);
+    const x = el.x * escala;
+    const y = el.y * escala;
+    const rot = el.rotation || 0;
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    if (rot) {
+      ctx.translate(x + w / 2, y + h / 2);
+      ctx.rotate((rot * Math.PI) / 180);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    } else {
+      ctx.drawImage(img, x, y, w, h);
+    }
+    ctx.restore();
+  } finally {
+    root.unmount();
+    host.remove();
+  }
 }
 
 /**
@@ -261,11 +359,12 @@ function agruparPorTipoRender(doc: PlantillaVisualDoc): RunRender[] {
  * que el resultado coincide con lo que se ve en VisualCanvasEditor.
  */
 export async function renderPlantillaToCanvasDom(
-  doc: PlantillaVisualDoc,
+  docIn: PlantillaVisualDoc,
   opts?: OpcionesExportPlantilla,
 ): Promise<HTMLCanvasElement> {
   if (typeof document === "undefined") throw new Error("Exportación no disponible en este entorno");
 
+  const doc = sanitizarAltosTextoPlantilla(docIn);
   const escala = clampEscalaExport(opts?.escala);
   // DOM idéntico al editor (escala 1); la resolución de impresión va en pixelRatio.
   await asegurarFuentesLienzoEscalado(doc, 1);
@@ -295,6 +394,19 @@ export async function renderPlantillaToCanvasDom(
 
   const runs = agruparPorTipoRender(doc);
 
+  const probeFuentes = document.createElement("div");
+  probeFuentes.style.cssText =
+    'position:fixed;left:-99999px;top:0;font-family:"Montserrat",system-ui,sans-serif;font-weight:700;font-size:16px;';
+  probeFuentes.textContent = "Ag";
+  document.body.appendChild(probeFuentes);
+  let fontEmbedCSS = "";
+  try {
+    fontEmbedCSS = await getFontEmbedCSS(probeFuentes);
+  } catch {
+    fontEmbedCSS = "";
+  }
+  probeFuentes.remove();
+
   const contenedor = document.createElement("div");
   contenedor.style.position = "fixed";
   contenedor.style.left = "-99999px";
@@ -306,12 +418,13 @@ export async function renderPlantillaToCanvasDom(
   try {
     for (const run of runs) {
       if (run.tipo === "canvas") {
-        // Líneas/imágenes de este tramo, en su orden real de zIndex.
         for (const el of run.elementos) {
           if (el.type === "line") {
             dibujarLineaEnCanvas(ctx, el, escala);
           } else if (el.type === "image") {
             await dibujarImagenEnCanvas(ctx, el, imagenesResueltas, escala);
+          } else if (el.type === "text") {
+            await dibujarTextoArcoEnCanvas(ctx, el, escala, fontEmbedCSS);
           }
         }
         continue;

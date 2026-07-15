@@ -1909,6 +1909,354 @@ def actualizar_precio_combo_siigo(code: str, nuevo_precio: float) -> dict:
     return {"ok": False, "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}"}
 
 
+def _siigo_headers_json(token: str) -> dict:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+
+def _obtener_producto_siigo_por_code(code: str, headers: dict) -> tuple[dict | None, str]:
+    """GET producto por code. Retorna (producto, code_efectivo) o (None, error)."""
+    try:
+        res = requests.get(
+            "https://api.siigo.com/v1/products",
+            params={"code": code},
+            headers=headers,
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return None, f"Error de red obteniendo producto: {e}"
+
+    if res.status_code != 200:
+        return None, f"Siigo GET error {res.status_code}: {res.text[:200]}"
+
+    products = res.json().get("results", [])
+    if not products:
+        for variant in {code.upper(), code.lower()} - {code}:
+            try:
+                rv = requests.get(
+                    "https://api.siigo.com/v1/products",
+                    params={"code": variant},
+                    headers=headers,
+                    timeout=15,
+                )
+                if rv.status_code == 200:
+                    products = rv.json().get("results", [])
+                    if products:
+                        code = variant
+                        break
+            except requests.RequestException:
+                pass
+    if not products:
+        return None, f"Producto '{code}' no encontrado en Siigo"
+    return products[0], code
+
+
+def _preparar_producto_siigo_para_put(
+    product: dict,
+    headers: dict,
+    *,
+    cache_componentes: dict | None = None,
+) -> tuple[dict | None, str]:
+    """Normaliza account_group/unit/taxes/components para PUT Siigo.
+
+    Si un componente está inactivo, intenta sustituir su code por un producto
+    activo con el mismo nombre (necesario: Siigo rechaza codes inactivos en PUT).
+    """
+    product = copy.deepcopy(product)
+    product_id = product.get("id")
+    if not product_id:
+        return None, "Producto sin ID en Siigo"
+
+    ag = product.get("account_group")
+    if isinstance(ag, dict) and ag.get("id"):
+        product["account_group"] = ag["id"]
+    elif not isinstance(ag, int):
+        return None, "Producto sin account_group válido en Siigo"
+
+    unit = product.get("unit")
+    if isinstance(unit, dict) and unit.get("code"):
+        product["unit"] = unit["code"]
+
+    taxes = product.get("taxes")
+    if isinstance(taxes, list):
+        product["taxes"] = [
+            {"id": t["id"]} for t in taxes if isinstance(t, dict) and t.get("id")
+        ]
+
+    cache = cache_componentes if cache_componentes is not None else {}
+    for comp in product.get("components") or []:
+        qty = comp.get("quantity", 1)
+        if comp.get("code"):
+            continue
+        comp_id = comp.get("id")
+        if not comp_id:
+            continue
+
+        def _aplicar_code(code: str) -> None:
+            if not code:
+                return
+            comp.clear()
+            comp["code"] = code
+            comp["quantity"] = qty
+
+        if comp_id in cache and cache[comp_id]:
+            _aplicar_code(cache[comp_id])
+            continue
+        # Si el cache tenía "", reintentar fetch (puede haber sido un fallo temporal).
+        try:
+            rc = requests.get(
+                f"https://api.siigo.com/v1/products/{comp_id}",
+                headers=headers,
+                timeout=12,
+            )
+            if rc.status_code != 200:
+                cache[comp_id] = ""
+                continue
+            detail = rc.json()
+            fetched_code = (detail.get("code") or "").strip()
+            active = detail.get("active", True)
+            if fetched_code and active:
+                cache[comp_id] = fetched_code
+                _aplicar_code(fetched_code)
+                continue
+            # Inactivo: intentar equivalente activo por nombre (sin cambiar si SIIGO lo bloquea luego)
+            nombre = (detail.get("name") or comp.get("name") or "").strip()
+            alt = _buscar_code_activo_por_nombre(nombre, headers) if nombre else None
+            if alt:
+                cache[comp_id] = alt
+                _aplicar_code(alt)
+            elif fetched_code:
+                cache[comp_id] = fetched_code
+                _aplicar_code(fetched_code)
+            else:
+                cache[comp_id] = ""
+        except requests.RequestException:
+            cache[comp_id] = ""
+
+    for k in ("metadata", "available_quantity"):
+        product.pop(k, None)
+
+    return product, product_id
+
+
+_nombre_activo_cache: dict[str, str] = {}
+
+
+def _buscar_code_activo_por_nombre(nombre: str, headers: dict) -> str | None:
+    """Busca un producto activo cuyo nombre coincida (cacheado por nombre)."""
+    key = re.sub(r"\s+", " ", (nombre or "").strip().upper())
+    if not key:
+        return None
+    if key in _nombre_activo_cache:
+        return _nombre_activo_cache[key] or None
+
+    # Coincidencias conocidas (inactive → active) observados en combos 30mL
+    aliases = {
+        "GOTERO PIPETA 77MM NEGRO": "GOTPIPNEG77mm",
+        "GOTERO PIPETA 77MM NEGRA": "GOTPIPNEG77mm",
+    }
+    if key in aliases:
+        _nombre_activo_cache[key] = aliases[key]
+        return aliases[key]
+
+    try:
+        res = requests.get(
+            "https://api.siigo.com/v1/products",
+            params={"name": nombre.strip(), "active": "true", "page_size": 25},
+            headers=headers,
+            timeout=15,
+        )
+    except requests.RequestException:
+        _nombre_activo_cache[key] = ""
+        return None
+    if res.status_code != 200:
+        _nombre_activo_cache[key] = ""
+        return None
+    for p in res.json().get("results") or []:
+        if not p.get("active", True):
+            continue
+        n = re.sub(r"\s+", " ", (p.get("name") or "").strip().upper())
+        if n == key:
+            code = (p.get("code") or "").strip()
+            _nombre_activo_cache[key] = code
+            return code or None
+    _nombre_activo_cache[key] = ""
+    return None
+
+
+def actualizar_barcode_producto_siigo(
+    code: str,
+    barcode: str,
+    *,
+    forzar: bool = False,
+    cache_componentes: dict | None = None,
+    producto: dict | None = None,
+) -> dict:
+    """
+    Escribe el código de barras (EAN) en additional_fields.barcode del producto Siigo.
+    GET → PUT. Si ya tiene el mismo barcode y forzar=False, no hace PUT.
+    """
+    barcode = re.sub(r"\D", "", str(barcode or ""))
+    if not barcode:
+        return {"ok": False, "msg": "Barcode vacío"}
+    if len(barcode) not in (8, 12, 13, 14):
+        return {"ok": False, "msg": f"Barcode con longitud inválida ({len(barcode)})"}
+
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "msg": "No se pudo autenticar en Siigo"}
+
+    headers = _siigo_headers_json(token)
+    if producto is None:
+        product, err_or_code = _obtener_producto_siigo_por_code(code, headers)
+        if product is None:
+            return {"ok": False, "msg": err_or_code}
+        code = err_or_code
+    else:
+        product = producto
+
+    af = product.get("additional_fields")
+    if not isinstance(af, dict):
+        af = {}
+    actual = re.sub(r"\D", "", str(af.get("barcode") or ""))
+    if actual == barcode and not forzar:
+        return {
+            "ok": True,
+            "skipped": True,
+            "msg": f"Ya tenía barcode {barcode}",
+            "code": code,
+            "barcode": barcode,
+        }
+
+    prepared, product_id = _preparar_producto_siigo_para_put(
+        product, headers, cache_componentes=cache_componentes
+    )
+    if prepared is None:
+        return {"ok": False, "msg": product_id}
+
+    af = dict(prepared.get("additional_fields") or {})
+    af["barcode"] = barcode
+    prepared["additional_fields"] = af
+
+    try:
+        res_put = requests.put(
+            f"https://api.siigo.com/v1/products/{product_id}",
+            json=prepared,
+            headers=headers,
+            timeout=25,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red actualizando barcode: {e}"}
+
+    if res_put.status_code in (200, 201):
+        global _combos_cache, _combos_cache_ts
+        _combos_cache = []
+        _combos_cache_ts = 0.0
+        return {
+            "ok": True,
+            "skipped": False,
+            "msg": f"Barcode actualizado en Siigo ({code})",
+            "code": code,
+            "barcode": barcode,
+            "id": product_id,
+        }
+    return {
+        "ok": False,
+        "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}",
+        "code": code,
+    }
+
+
+def sincronizar_barcodes_ean_a_siigo(
+    *,
+    solo_vacios: bool = True,
+    delay_s: float = 0.35,
+    limite: int | None = None,
+) -> dict:
+    """
+    Empuja los EAN de app/data/etiquetas_codigos_ean.json a additional_fields.barcode en Siigo.
+    Empareja por SKU exacto (normalizado).
+    """
+    from app.tools.etiquetas_codigos_ean import normalizar_sku_ean
+
+    ruta = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data",
+        "etiquetas_codigos_ean.json",
+    )
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        return {"ok": False, "error": f"No se pudo leer planilla EAN: {e}"}
+
+    items = data.get("codigos") if isinstance(data, dict) else []
+    if not isinstance(items, list):
+        return {"ok": False, "error": "Planilla EAN inválida"}
+
+    by_sku = {}
+    for it in items:
+        sku = normalizar_sku_ean(str(it.get("sku") or ""))
+        codigo = re.sub(r"\D", "", str(it.get("codigo") or ""))
+        if sku and len(codigo) == 13:
+            by_sku[sku] = {"sku": it.get("sku"), "codigo": codigo}
+
+    combos = listar_productos_combo_siigo()
+    actualizados = 0
+    omitidos = 0
+    errores: list[str] = []
+    detalle: list[dict] = []
+    procesados = 0
+    cache_componentes: dict = {}
+
+    for p in combos:
+        code = (p.get("code") or "").strip()
+        if not code:
+            continue
+        entry = by_sku.get(normalizar_sku_ean(code))
+        if not entry:
+            continue
+        if limite is not None and procesados >= limite:
+            break
+        procesados += 1
+
+        af = p.get("additional_fields") if isinstance(p.get("additional_fields"), dict) else {}
+        actual = re.sub(r"\D", "", str(af.get("barcode") or ""))
+        if solo_vacios and actual:
+            omitidos += 1
+            continue
+
+        res = actualizar_barcode_producto_siigo(
+            code,
+            entry["codigo"],
+            forzar=not solo_vacios,
+            cache_componentes=cache_componentes,
+            producto=p,
+        )
+        if res.get("ok") and res.get("skipped"):
+            omitidos += 1
+        elif res.get("ok"):
+            actualizados += 1
+            detalle.append({"sku": code, "barcode": entry["codigo"]})
+        else:
+            errores.append(f"{code}: {res.get('msg')}")
+        if delay_s > 0:
+            time.sleep(delay_s)
+
+    return {
+        "ok": True,
+        "actualizados": actualizados,
+        "omitidos": omitidos,
+        "errores": errores,
+        "procesados": procesados,
+        "en_planilla": len(by_sku),
+        "detalle": detalle[:40],
+    }
+
+
 def actualizar_costo_componente_siigo(
     nombre: str,
     precio_sin_iva: float,

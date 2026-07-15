@@ -54,15 +54,21 @@ export interface ElementoTexto extends ElementoBase {
   lineHeight?: number;
   /** Capa semántica en plantillas de etiqueta (p. ej. descripción materia prima = capa 1). */
   textRole?: RolTextoCapa;
-  /** Curvatura del texto en arco: -200 a 200; ±100 = semicírculo, ±200 = círculo
-   *  completo. Positivo domo (por arriba), negativo valle (por abajo); 0/undefined = recto. */
+  /** Activa texto en arco (≠0). Positivo = arco arriba, negativo = abajo.
+   *  ±100 ≈ semicírculo, ±200 ≈ círculo completo. El ancho de la caja es la cuerda. */
   arco?: number;
-  /** "circulo" → el bloque se envuelve/justifica dentro de un círculo inscrito
-   *  en la caja (diámetro = ancho). Tiene prioridad sobre `arco`.
-   *  No confundir con `arco` (±200 = letras siguiendo el borde del círculo). */
+  /** @deprecated Ya no se usa en el editor; se ignora al dibujar. */
+  arcoGrados?: number;
+  /** @deprecated Ya no se usa en el editor; se ignora al dibujar. */
+  arcoPosicion?: number;
+  /** "circulo" → el párrafo se envuelve dentro de un círculo (diámetro = ancho).
+   *  Tiene prioridad sobre `arco`. Ver `circuloPorcion` para usar solo un tramo. */
   forma?: "circulo";
-  /** Grosor del anillo decorativo (con `forma: "circulo"` o con `arco` casi
-   *  completo). 0/undefined = sin anillo. */
+  /** Con forma "circulo": qué parte del círculo llena el párrafo.
+   *  "banda" = franja central (típico etiqueta); "superior"/"inferior" = media luna. */
+  circuloPorcion?: "completo" | "superior" | "inferior" | "banda";
+  /** Grosor del anillo decorativo (con `forma: "circulo"` o con `arco`).
+   *  0/undefined = sin anillo. */
   marcoAncho?: number;
   /** Color del anillo; por defecto el color del texto. */
   marcoColor?: string;
@@ -759,6 +765,20 @@ export function alinearElementos(
   });
 }
 
+/** Puntuación heurística: párrafos de ficha (círculo / justificado / largos). */
+function scoreCandidatoDescripcion(t: ElementoTexto): number {
+  const len = (t.content || "").trim().length;
+  let s = 0;
+  if (t.forma === "circulo") s += 1200;
+  if (t.align === "justify") s += 600;
+  if (len > 80) s += Math.min(len, 2500);
+  // Arcos / rótulos cortos casi nunca son la descripción MP.
+  if ((t.arco ?? 0) !== 0) s -= 800;
+  if (len > 0 && len <= 40) s -= 200;
+  s -= t.fontSize * 8;
+  return s;
+}
+
 export function inferirRolTextoCapa(
   el: ElementoTexto,
   elementos: ElementoVisual[],
@@ -768,23 +788,27 @@ export function inferirRolTextoCapa(
   if (textos.length === 0) return null;
   if (textos.length === 1) return "descripcion";
 
-  const sortedByZ = [...textos].sort((a, b) => a.zIndex - b.zIndex);
-  // El tamaño de fuente es la señal universal de jerarquía en una etiqueta
-  // (el título es el texto más grande); el grosor solo desempata. Ordenar
-  // por grosor primero hacía que una capa pequeña pero en negrita (CAS,
-  // lote, código de barras) le ganara el puesto de "título" a la capa que
-  // de verdad lo es, y entonces la descripción nunca encontraba el título.
-  const sortedByFont = [...textos].sort((a, b) => {
+  // Descripción = párrafo de ficha (forma círculo, justify o texto largo).
+  // Antes se usaba el zIndex más bajo: el título en arco suele ir “detrás”
+  // y robaba el rol, dejando la MP como "otro" → texto mágico sin modo MP.
+  const sortedDesc = [...textos].sort(
+    (a, b) => scoreCandidatoDescripcion(b) - scoreCandidatoDescripcion(a),
+  );
+  const candidatoDesc = sortedDesc[0];
+  const hayDescripcion = scoreCandidatoDescripcion(candidatoDesc) >= 500;
+  if (hayDescripcion && el.id === candidatoDesc.id) return "descripcion";
+
+  // Título / subtítulo entre el resto (excluye la descripción si la hay).
+  // Fuente grande = título (el grosor solo desempata).
+  const paraTitulos = hayDescripcion
+    ? textos.filter((t) => t.id !== candidatoDesc.id)
+    : textos;
+  const sortedByFont = [...paraTitulos].sort((a, b) => {
     const wb = parseInt(b.fontWeight, 10) || 400;
     const wa = parseInt(a.fontWeight, 10) || 400;
     return b.fontSize - a.fontSize || wb - wa;
   });
 
-  const candidatoDesc = sortedByZ[0];
-  const pareceDescripcion =
-    el.id === candidatoDesc.id &&
-    (el.align === "justify" || (el.content?.trim().length ?? 0) > 80);
-  if (pareceDescripcion) return "descripcion";
   if (el.id === sortedByFont[0]?.id) return "titulo";
   if (el.id === sortedByFont[1]?.id) return "subtitulo";
   return "otro";
@@ -801,15 +825,24 @@ export function esCapaDescripcionMateriaPrima(
 export function contextoCapasParaDescripcion(
   elementos: ElementoVisual[],
   excluirId: string,
+  /** Nombre de la plantilla (p. ej. "MANTECA KARITE 125g") si no hay capa título. */
+  fallbackTitulo?: string,
 ): { titulo?: string; subtitulo?: string } {
   const out: { titulo?: string; subtitulo?: string } = {};
   for (const e of elementos) {
     if (e.type !== "text" || e.id === excluirId) continue;
     const rol = inferirRolTextoCapa(e, elementos);
-    const txt = (e.content || "").trim();
+    const txt = (e.content || "").replace(/\s+/g, " ").trim();
     if (!txt) continue;
-    if (rol === "titulo") out.titulo = txt;
-    if (rol === "subtitulo") out.subtitulo = txt;
+    if (rol === "titulo" && !out.titulo) out.titulo = txt;
+    if (rol === "subtitulo" && !out.subtitulo) out.subtitulo = txt;
+  }
+  if (!out.titulo && fallbackTitulo) {
+    // Quita el gramo/volumen del nombre de plantilla si viene al final.
+    const limpio = fallbackTitulo
+      .replace(/\s+\d+([.,]\d+)?\s*(g|kg|ml|mL|L|l|oz)\s*$/i, "")
+      .trim();
+    if (limpio) out.titulo = limpio;
   }
   return out;
 }

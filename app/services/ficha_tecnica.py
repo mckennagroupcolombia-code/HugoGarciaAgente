@@ -1404,25 +1404,45 @@ def ruta_descarga_segura(nombre: str) -> Path | None:
     return None
 
 
-_PREFIJOS_BIBLIOTECA = re.compile(r"^FT COA SDS[\s\-].+\.(pdf|docx)$", re.I)
+_PREFIJO_COMPLETO = re.compile(r"^FT COA SDS[\s\-].+\.(pdf|docx)$", re.I)
+_PREFIJO_FT_SIMPLE = re.compile(r"^FT (?!COA\s+SDS).+\.(pdf|docx)$", re.I)
+# Compat: nombre histórico usado por rutas que filtraban solo completos
+_PREFIJOS_BIBLIOTECA = _PREFIJO_COMPLETO
+
+
+def _es_nombre_biblioteca(nombre: str) -> bool:
+    """True si el nombre es FT simple o documento completo FT+COA+SDS."""
+    return bool(_PREFIJO_COMPLETO.match(nombre) or _PREFIJO_FT_SIMPLE.match(nombre))
 
 
 def listar_archivos_generados() -> list[dict]:
-    """Lista los documentos generados con el formato de ficha técnica (FT+COA+SDS) en fichas_word/completo/.
+    """Lista PDFs/DOCX de la biblioteca: completos (completo/) y FT simples (pdf/).
 
-    Los formatos individuales (FT, COA, SDS o TDS sueltos) quedaron obsoletos y ya no se muestran.
+    No incluye los Word fuente históricos de fichas_word/ (solo PDFs generados).
     """
     resultado: list[dict] = []
     vistos: set[str] = set()
-    for directorio in (COMPLETO_PDF_DIR,):
+
+    # (directorio, patrón, categoría, extensiones permitidas)
+    fuentes: list[tuple[Path, re.Pattern[str], str, set[str]]] = [
+        (COMPLETO_PDF_DIR, _PREFIJO_COMPLETO, "completo", {".pdf", ".docx"}),
+        (FICHAS_PDF_DIR, _PREFIJO_FT_SIMPLE, "ft", {".pdf"}),
+        # Legado: algunos FT PDF quedaron en la raíz (nunca listar .docx fuente)
+        (FICHAS_DIR, _PREFIJO_FT_SIMPLE, "ft", {".pdf"}),
+    ]
+
+    for directorio, patron, categoria, exts in fuentes:
         if not directorio.exists():
             continue
         for p in sorted(directorio.iterdir()):
-            if p.name.startswith("~") or p.name in vistos:
+            if not p.is_file() or p.name.startswith("~") or p.name in vistos:
                 continue
-            if p.suffix.lower() not in (".pdf", ".docx"):
+            if p.suffix.lower() not in exts:
                 continue
-            if not _PREFIJOS_BIBLIOTECA.match(p.name):
+            if not patron.match(p.name):
+                continue
+            # No listar de nuevo un FT de la raíz si ya está en pdf/
+            if directorio == FICHAS_DIR and (FICHAS_PDF_DIR / p.name).is_file():
                 continue
             vistos.add(p.name)
             stat = p.stat()
@@ -1431,6 +1451,7 @@ def listar_archivos_generados() -> list[dict]:
                 "tipo": p.suffix.lstrip(".").lower(),
                 "tamano": stat.st_size,
                 "fecha": int(stat.st_mtime),
+                "categoria": categoria,
             })
     return sorted(resultado, key=lambda x: x["nombre"].lower())
 
@@ -1651,11 +1672,17 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
 
 
 def ruta_archivo_biblioteca_segura(nombre: str) -> Path | None:
-    """Ruta segura para un documento de ficha técnica (FT+COA+SDS) *.pdf o *.docx de la biblioteca."""
+    """Ruta segura para FT simple o documento completo (FT+COA+SDS) en la biblioteca."""
     nombre = os.path.basename(nombre or "")
-    if not nombre or nombre.startswith("~") or not _PREFIJOS_BIBLIOTECA.match(nombre):
+    if not nombre or nombre.startswith("~") or not _es_nombre_biblioteca(nombre):
         return None
-    for directorio in (COMPLETO_PDF_DIR,):
+    if _PREFIJO_COMPLETO.match(nombre):
+        directorios = (COMPLETO_PDF_DIR,)
+    else:
+        directorios = (FICHAS_PDF_DIR, FICHAS_DIR)
+    for directorio in directorios:
+        if not directorio.exists():
+            continue
         path = (directorio / nombre).resolve()
         try:
             path.relative_to(directorio.resolve())

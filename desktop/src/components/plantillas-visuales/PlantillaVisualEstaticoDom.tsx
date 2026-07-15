@@ -4,7 +4,8 @@ import {
   type PlantillaVisualDoc,
 } from "../../lib/plantillasVisuales";
 import { estiloElemento } from "./VisualCanvasEditor";
-import TextoArcoSvg from "./TextoArcoSvg";
+import { alturaCajaTexto } from "./TextoArcoSvg";
+import { LINE_HEIGHT_DEFECTO } from "../../lib/textoCirculo";
 import TextoCirculoDom from "./TextoCirculoDom";
 
 /**
@@ -45,14 +46,19 @@ function estiloElementoEscalado(el: ElementoVisual, escala: number): React.CSSPr
 
 function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }) {
   if (el.type === "text") {
+    // Los arcos se rasterizan en canvas (html-to-image rompe textPath+rotate).
+    if ((el.arco ?? 0) !== 0 && el.forma !== "circulo") return null;
+
+    const base = estiloElementoEscalado(el, escala);
     const estilo: React.CSSProperties = {
-      ...estiloElementoEscalado(el, escala),
+      ...base,
+      height: alturaCajaTexto(el) * escala,
       color: el.color,
       fontSize: `${el.fontSize * escala}px`,
       fontFamily: el.fontFamily,
       fontWeight: pesoFontWeightCss(el.fontWeight),
       textAlign: el.align,
-      lineHeight: el.lineHeight ?? 1.2,
+      lineHeight: `${(el.lineHeight ?? LINE_HEIGHT_DEFECTO) * el.fontSize * escala}px`,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       overflow: "visible",
@@ -64,13 +70,6 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
       return (
         <div style={estilo}>
           <TextoCirculoDom el={el} escala={escala} />
-        </div>
-      );
-    }
-    if ((el.arco ?? 0) !== 0) {
-      return (
-        <div style={estilo}>
-          <TextoArcoSvg el={el} escala={escala} />
         </div>
       );
     }
