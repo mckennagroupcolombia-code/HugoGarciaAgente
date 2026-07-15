@@ -85,7 +85,8 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;align-items:center;">
+        {% if p.get('buyable', True) %}
         <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;">
           <input type="hidden" name="slug" value="{{ p.slug }}">
           <input type="hidden" name="qty" value="1">
@@ -94,13 +95,22 @@
             Agregar al carrito
           </button>
         </form>
-        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
-          <i class="ph ph-whatsapp-logo"></i>
-          WhatsApp
-        </a>
         <a href="{{ url_for('checkout') }}" class="btn btn-dark btn-lg">
           <i class="ph ph-lock"></i>
           Comprar ahora
+        </a>
+        {% if p.stock is not none and p.stock <= 3 %}
+        <span class="stock-bajo-nota" style="margin:0;">Quedan {{ p.stock }} unidad{% if p.stock != 1 %}es{% endif %}</span>
+        {% endif %}
+        {% else %}
+        <span class="btn btn-lg badge-agotado">
+          <i class="ph ph-x-circle"></i>
+          Agotado temporalmente
+        </span>
+        {% endif %}
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+          <i class="ph ph-whatsapp-logo"></i>
+          WhatsApp
         </a>
       </div>
 

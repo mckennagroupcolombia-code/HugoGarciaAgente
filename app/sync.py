@@ -491,6 +491,86 @@ def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
     return "\n".join(resultados)
 
 
+def sincronizar_stock_multicanal(
+    sku: str, nuevo_stock: int, meli_id: str = "", verificar_siigo: bool = True
+) -> dict:
+    """
+    Igual que `sincronizar_stock_todas_las_plataformas` pero devuelve el resultado
+    desglosado por canal (para mostrar en el panel si cada uno quedó al día).
+    - MeLi: si se conoce `meli_id` (item MCOxxxxxxxx) se escribe directo por item_id —
+      más confiable que buscar por SKU, porque el atributo SELLER_SKU de la publicación
+      suele diferir en mayúsculas/formato del SKU registrado en Sheets (ej. "ALGNA100GR"
+      en Sheets vs "ALGNA100g" en MeLi), lo que hace fallar esa búsqueda silenciosamente.
+      Sin `meli_id` se cae al buscar por SKU (comportamiento anterior).
+    - Web: push real si WEB_API_URL/WEB_API_KEY están configurados; si no, solo se
+      regenera el catálogo desde Siigo (la web no tiene control de stock numérico propio).
+    - Siigo: solo lectura de referencia — Siigo es solo para facturación (ver CLAUDE.md),
+      nunca se le escribe el stock.
+    """
+    nuevo_stock = int(nuevo_stock)
+    resultado: dict = {"sku": sku, "stock_objetivo": nuevo_stock}
+
+    try:
+        if meli_id:
+            from app.services.meli import actualizar_stock_meli_por_item_id
+
+            msg_meli = actualizar_stock_meli_por_item_id(meli_id, nuevo_stock)
+        else:
+            from app.services.meli import actualizar_stock_meli
+
+            msg_meli = actualizar_stock_meli(sku, nuevo_stock)
+        resultado["meli"] = {
+            "ok": "✅" in msg_meli,
+            "mensaje": msg_meli,
+            "no_aplica": "Mercado Envíos Full" in msg_meli,
+        }
+    except Exception as e:
+        resultado["meli"] = {"ok": False, "mensaje": f"❌ Error: {e}"}
+
+    web_configurado = bool((os.getenv("WEB_API_URL") or "").strip()) and bool(
+        (os.getenv("WEB_API_KEY") or "").strip()
+    )
+    try:
+        from app.tools.sincronizar_productos_pagina_web import (
+            sincronizar_productos_pagina_web,
+        )
+
+        msg_web = sincronizar_productos_pagina_web([{"sku": sku, "stock": nuevo_stock}])
+        if web_configurado:
+            resultado["web"] = {"ok": "✅" in msg_web, "mensaje": msg_web, "numerico": True}
+        else:
+            resultado["web"] = {
+                "ok": "✅" in msg_web,
+                "mensaje": (
+                    "Sin API de stock configurada (WEB_API_URL/WEB_API_KEY) — se regeneró "
+                    f"el catálogo desde Siigo, sin número de stock propio. {msg_web}"
+                ),
+                "numerico": False,
+            }
+    except Exception as e:
+        resultado["web"] = {"ok": False, "mensaje": f"❌ Error: {e}", "numerico": web_configurado}
+
+    if not verificar_siigo:
+        resultado["siigo"] = {"stock": None, "mensaje": "No verificado (sincronización masiva)."}
+        return resultado
+
+    try:
+        from app.services.siigo import buscar_producto_siigo_por_sku
+
+        datos_siigo = buscar_producto_siigo_por_sku(sku)
+        if datos_siigo:
+            resultado["siigo"] = {
+                "stock": datos_siigo.get("stock_siigo"),
+                "mensaje": "Solo lectura — Siigo se usa para facturación, no recibe stock automáticamente.",
+            }
+        else:
+            resultado["siigo"] = {"stock": None, "mensaje": "SKU no encontrado en Siigo."}
+    except Exception as e:
+        resultado["siigo"] = {"stock": None, "mensaje": f"❌ Error consultando Siigo: {e}"}
+
+    return resultado
+
+
 def sincronizar_facturas_recientes(dias: int = 1):
     """Busca facturas en Siigo de los últimos 'dias' y las sube a Mercado Libre."""
     print(
@@ -723,65 +803,98 @@ def sincronizar_inteligente():
         return f"❌ Error crítico en Sync Inteligente: {e}"
 
 
+def obtener_estado_stock_meli() -> list[dict]:
+    """
+    Lee Google Sheets (col A=meli_id, B=sku, D=nombre) y consulta el stock EN VIVO
+    en Mercado Libre para cada producto. Solo lectura — no escribe en Sheets ni notifica.
+    Retorna lista de {meli_id, sku, nombre, stock, fila}. `fila` sirve para escribir de
+    vuelta en la Hoja 1 (columna F) si algún llamador lo necesita.
+    """
+    token = refrescar_token_meli()
+    if not token:
+        raise RuntimeError("Token de Mercado Libre no disponible.")
+
+    gc = gspread.service_account(filename=GOOGLE_CREDS_PATH)
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    sheet = sh.worksheet("Hoja 1")
+    data = sheet.get_all_values()
+
+    ml_ids, fila_map, nombre_map, sku_map = [], {}, {}, {}
+    for i, row in enumerate(data[1:], start=2):
+        if not row:
+            continue
+        id_meli = str(row[0]).strip().upper()
+        if id_meli.startswith("MCO"):
+            ml_ids.append(id_meli)
+            fila_map[id_meli] = i
+            nombre_map[id_meli] = (
+                str(row[3]).strip() if len(row) > 3 else "Producto sin nombre"
+            )
+            sku_map[id_meli] = str(row[1]).strip() if len(row) > 1 else ""
+
+    if not ml_ids:
+        return []
+
+    headers = {"Authorization": f"Bearer {token}"}
+    items = []
+    for i in range(0, len(ml_ids), 20):
+        lote = ml_ids[i : i + 20]
+        res = requests.get(
+            f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+            headers=headers,
+        ).json()
+        for r in res:
+            if r.get("code") != 200:
+                continue
+            item = r["body"]
+            ml_id = item.get("id")
+            stock = (
+                sum(
+                    v.get("available_quantity", 0)
+                    for v in item.get("variations", [])
+                )
+                if item.get("variations")
+                else item.get("available_quantity", 0)
+            )
+            es_full = (item.get("shipping") or {}).get("logistic_type") == "fulfillment"
+            items.append({
+                "meli_id": ml_id,
+                "sku": sku_map.get(ml_id, ""),
+                "nombre": nombre_map.get(ml_id, item.get("title")),
+                "stock": stock,
+                "fila": fila_map.get(ml_id),
+                "estado_meli": item.get("status", ""),
+                "es_full": es_full,
+                "sync_bloqueado": item.get("status") != "active",
+            })
+    return items
+
+
 def ejecutar_sincronizacion_y_reporte_stock():
     """Cruza el stock de Google Sheets con Mercado Libre y envía un reporte de niveles bajos."""
     print("\n💹 [STOCK SYNC] Iniciando escaneo de productos para reporte de stock...")
-    token = refrescar_token_meli()
-    if not token:
-        return "❌ Error: Token de Mercado Libre no disponible."
-
     try:
+        items = obtener_estado_stock_meli()
+        if not items:
+            return "⚠️ No se encontraron códigos MCO en la Columna A de Google Sheets."
+        print(
+            f"✅ {len(items)} productos leídos de Sheets. Consultando stock en Mercado Libre..."
+        )
+
         gc = gspread.service_account(filename=GOOGLE_CREDS_PATH)
         sh = gc.open_by_key(SPREADSHEET_ID)
         sheet = sh.worksheet("Hoja 1")
-        data = sheet.get_all_values()
 
-        ml_ids, fila_map, nombre_map = [], {}, {}
-        for i, row in enumerate(data[1:], start=2):
-            if not row:
-                continue
-            id_meli = str(row[0]).strip().upper()
-            if id_meli.startswith("MCO"):
-                ml_ids.append(id_meli)
-                fila_map[id_meli] = i
-                nombre_map[id_meli] = (
-                    str(row[3]).strip() if len(row) > 3 else "Producto sin nombre"
-                )
-
-        if not ml_ids:
-            return "⚠️ No se encontraron códigos MCO en la Columna A de Google Sheets."
-        print(
-            f"✅ {len(ml_ids)} productos leídos de Sheets. Consultando stock en Mercado Libre..."
-        )
-
-        headers = {"Authorization": f"Bearer {token}"}
         updates, agotados, criticos = [], [], []
-        for i in range(0, len(ml_ids), 20):
-            lote = ml_ids[i : i + 20]
-            res = requests.get(
-                f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
-                headers=headers,
-            ).json()
-            for r in res:
-                if r.get("code") != 200:
-                    continue
-                item = r["body"]
-                ml_id = item.get("id")
-                stock = (
-                    sum(
-                        v.get("available_quantity", 0)
-                        for v in item.get("variations", [])
-                    )
-                    if item.get("variations")
-                    else item.get("available_quantity", 0)
-                )
-
-                nombre = nombre_map.get(ml_id, item.get("title"))
-                if stock == 0:
-                    agotados.append(f"🚫 {nombre}")
-                elif stock == 1:
-                    criticos.append(f"⚠️ {nombre}")
-                updates.append({"range": f"F{fila_map[ml_id]}", "values": [[stock]]})
+        for it in items:
+            stock = it["stock"]
+            nombre = it["nombre"]
+            if stock == 0:
+                agotados.append(f"🚫 {nombre}")
+            elif stock == 1:
+                criticos.append(f"⚠️ {nombre}")
+            if it["fila"]:
+                updates.append({"range": f"F{it['fila']}", "values": [[stock]]})
 
         if updates:
             sheet.batch_update(updates)
@@ -801,7 +914,7 @@ def ejecutar_sincronizacion_y_reporte_stock():
 
         grupo_inventario = jid_grupo_inventario_wa()
         ok_wa = enviar_whatsapp_reporte(
-            reporte + f"\n\n🤖 _Total procesados: {len(ml_ids)}_",
+            reporte + f"\n\n🤖 _Total procesados: {len(items)}_",
             numero_destino=grupo_inventario,
         )
         if not ok_wa:
@@ -813,7 +926,7 @@ def ejecutar_sincronizacion_y_reporte_stock():
                 "⚠️ Reporte de stock generado pero NO se envió por WhatsApp. "
                 "Comprueba que bot-mckenna esté en marcha (puerto 3000) y que URL_API_WHATSAPP en .env "
                 f"apunte al /enviar correcto. Destino: {grupo_inventario}. "
-                f"Procesados en Sheets: {len(ml_ids)} productos. Agotados: {len(agotados)}, críticos: {len(criticos)}."
+                f"Procesados en Sheets: {len(items)} productos. Agotados: {len(agotados)}, críticos: {len(criticos)}."
             )
         return f"✅ Reporte de stock enviado por WhatsApp. Agotados: {len(agotados)}, Críticos: {len(criticos)}."
 

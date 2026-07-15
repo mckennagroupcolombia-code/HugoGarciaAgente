@@ -576,6 +576,21 @@ button { cursor: pointer; }
 .btn-sm { padding: 10px 22px; font-size: 10px; }
 .btn-lg { padding: 18px 48px; font-size: 11px; }
 
+.badge-agotado {
+  background: transparent;
+  color: #b3261e;
+  border-color: #b3261e;
+  cursor: default;
+}
+.stock-bajo-nota {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b3261e;
+  letter-spacing: 0.3px;
+}
+
 /* ══════════════════════════════════════════════════════════
    FEATURES STRIP
 ══════════════════════════════════════════════════════════ */

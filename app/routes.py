@@ -2981,6 +2981,8 @@ def register_routes(app):
         ejecutar_sincronizacion_y_reporte_stock as _sync_stock_reporte,
         sincronizar_manual_por_id as _sync_manual_id,
         sincronizar_por_dia_especifico as _sync_por_dia,
+        obtener_estado_stock_meli as _obtener_estado_stock_meli,
+        sincronizar_stock_multicanal as _sincronizar_stock_multicanal,
     )
     from app.services.google_services import leer_datos_hoja as _leer_hoja
     from app.services.meli import aprender_de_interacciones_meli as _aprender_meli
@@ -3238,6 +3240,77 @@ def register_routes(app):
         return jsonify({
             "status": "iniciado",
             "mensaje": "Generando reporte de SKUs pendientes. Se enviará a Sincronizacion_Inventario.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/stock/resumen")
+    def api_stock_resumen():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            items = _obtener_estado_stock_meli()
+            return jsonify({"items": items, "total": len(items)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/stock/sincronizar", methods=["POST"])
+    def api_stock_sincronizar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        sku = str(body.get("sku") or "").strip()
+        meli_id = str(body.get("meli_id") or "").strip()
+        stock = body.get("stock")
+        if not sku or stock is None:
+            return jsonify({"error": "Campos 'sku' y 'stock' requeridos"}), 400
+        try:
+            from app.panel_activity import log_line
+
+            resultado = _sincronizar_stock_multicanal(sku, int(stock), meli_id=meli_id)
+            ok_meli = resultado.get("meli", {}).get("ok")
+            ok_web = resultado.get("web", {}).get("ok")
+            log_line(f"✔ stock sincronizado SKU {sku} → {stock} | MeLi: {ok_meli} | Web: {ok_web}")
+            return jsonify({"status": "ok", **resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/stock/sincronizar-todo", methods=["POST"])
+    def api_stock_sincronizar_todo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        def _sincronizar_todo_el_stock():
+            items = _obtener_estado_stock_meli()
+            print(f"🔄 [STOCK CANALES] Sincronizando {len(items)} SKUs a todos los canales...")
+            omitidos = 0
+            for it in items:
+                sku = it.get("sku")
+                if not sku:
+                    print(f"⚠️ Omitido (sin SKU): {it.get('nombre')}")
+                    omitidos += 1
+                    continue
+                if it.get("sync_bloqueado"):
+                    print(
+                        f"⚠️ Omitido (MeLi {it.get('estado_meli')}, no acepta cambios de stock): "
+                        f"{sku} — {it.get('nombre')}"
+                    )
+                    omitidos += 1
+                    continue
+                resultado = _sincronizar_stock_multicanal(
+                    sku, it["stock"], meli_id=it.get("meli_id", ""), verificar_siigo=False
+                )
+                ok_meli = resultado.get("meli", {}).get("ok")
+                ok_web = resultado.get("web", {}).get("ok")
+                print(f"   └──> {sku} ({it['stock']} uds): MeLi={ok_meli} Web={ok_web}")
+            return (
+                f"✅ Sincronización de stock completada: {len(items) - omitidos} SKUs procesados, "
+                f"{omitidos} omitidos (sin SKU o sin publicación activa en MeLi)."
+            )
+
+        _api_lanzar_en_hilo(_sincronizar_todo_el_stock, job="sincronizar_stock_todos_los_canales")
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sincronizando stock de todos los SKUs a los demás canales.",
             "timestamp": _dt.now().isoformat(),
         })
 
@@ -11680,11 +11753,14 @@ def register_routes(app):
             all_results.append(res_file)
 
         if web_updated:
-            try:
-                aplicar_overrides_a_cache()
-                refrescar_web()
-            except Exception:
-                pass
+            def _refrescar_catalogo_web():
+                try:
+                    aplicar_overrides_a_cache()
+                    refrescar_web()
+                except Exception:
+                    pass
+
+            spawn_thread(_refrescar_catalogo_web, daemon=True)
 
         ok = any(
             (r.get("web", {}) or {}).get("ok") or (r.get("meli", {}) or {}).get("ok")

@@ -168,6 +168,7 @@ def migrate_orders_table() -> None:
         ("siigo_invoice_error", "TEXT"),
         ("siigo_invoice_attempted_at", "TEXT"),
         ("siigo_invoice_email_sent_at", "TEXT"),
+        ("stock_descontado_at", "TEXT"),
     ]
     for col, decl in additions:
         if col not in existing:
@@ -1307,6 +1308,28 @@ def process_order_paid_side_effects(reference: str) -> None:
         return
     order = _row_dict(row)
     now = datetime.now().isoformat()
+
+    if not order.get("stock_descontado_at"):
+        try:
+            from app.tools.stock_web import descontar_stock_web
+
+            data, parse_error = _parse_order_items_json(order)
+            if not parse_error:
+                for it in data.get("items") or []:
+                    sku = str(it.get("ref") or "").strip()
+                    qty = _qty_float(it.get("qty", 0))
+                    if sku and qty > 0:
+                        descontar_stock_web(sku, int(qty))
+            con = sqlite3.connect(ORDERS_DB)
+            con.execute(
+                "UPDATE orders SET stock_descontado_at = ? WHERE upper(reference) = ? "
+                "AND stock_descontado_at IS NULL",
+                (now, ref),
+            )
+            con.commit()
+            con.close()
+        except Exception as e:
+            log.warning("Descuento de stock web %s: %s", ref, e)
 
     if not order.get("confirmation_email_sent_at") and order.get("buyer_email"):
         if send_order_confirmation_email(order):
