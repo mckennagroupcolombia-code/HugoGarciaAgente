@@ -452,17 +452,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "9471bcdf1626",
-      "sku": "C-ACDLAC85P30mL",
-      "nombre_producto": "ACIDO LACTICO 85% 30mL",
-      "numero_producto": 43,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700430302639",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "db65e319dddf",
       "sku": "C-ACEARGAN50mL",
       "nombre_producto": "ACEITE ARGAN 50 mL",

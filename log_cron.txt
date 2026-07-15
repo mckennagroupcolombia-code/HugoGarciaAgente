@@ -3084,3 +3084,40 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel c3caf15] Auto-commit: actualizacion diaria 2026-07-14 23:00
+ 85 files changed, 7472 insertions(+), 1845 deletions(-)
+ create mode 100644 PAGINA_WEB/site/static/css/fonts-montserrat.css
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Black.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Bold.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-BoldItalic.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-ExtraBold.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-ExtraBoldItalic.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Italic.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Light.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-LightItalic.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Medium.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-MediumItalic.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-Regular.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-SemiBold.ttf
+ create mode 100644 PAGINA_WEB/site/static/fonts/montserrat/Montserrat-SemiBoldItalic.ttf
+ create mode 100644 android-twa/McKenna_Group_1.3.3_unsigned.apk
+ create mode 100644 app/data/etiquetas_codigos_ean.json.bak_pre_masivo
+ create mode 100644 app/services/ficha_tecnica_word.py
+ create mode 100644 app/tools/etiquetas_codigos_ean.py
+ create mode 100644 desktop/src/components/plantillas-visuales/BarraContenidoTexto.tsx
+ create mode 100644 scripts/registrar_ean_combos_siigo.py
+ create mode 100644 scripts/sincronizar_ean_barcodes_siigo.py
+ create mode 100644 scripts/word_a_ficha_pdf.py
+ create mode 100644 uploads/tickets/3423910d858b4dbfaeb464690b126bd4.pdf
+ create mode 100644 uploads/tickets/342ed1d0a0ed4cf7a69230a053af9811.png
+ create mode 100644 uploads/tickets/517f139e9fda4fffb828c1430711d660.pdf
+ create mode 100644 uploads/tickets/7669c483defb4dd2baa5bffc2f76f4f1.png
+ create mode 100644 uploads/tickets/e6cc2f8251154d02b3b4498f1f5fabb7.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-14 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
