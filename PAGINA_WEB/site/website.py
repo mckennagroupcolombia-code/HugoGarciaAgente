@@ -5,7 +5,7 @@ Fuente de datos: Google Sheets + MeLi API (fotos vía CDN)
 Puerto: 8082
 """
 
-import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets
+import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets, hmac
 from typing import Any
 from pathlib import Path
 from collections import defaultdict, Counter
@@ -20,9 +20,10 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / '.env')
 
 import site_auth
-from app.api_auth import normalize_api_token
+from app.api_auth import normalize_api_token, bearer_token_from_request
 from app.web_chat_activity import record_interaction
 from app.tools.tema_web import cargar_tema_web
+from app.tools.stock_web import obtener_stock_web, set_stock_web
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -1646,6 +1647,7 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
     ahorro = px["ahorro_num"]
     slug = _slug_from_key(code.lower())
     cat = _combo_category_from_siigo(code, nombre)
+    stock_web = obtener_stock_web(code)
     return {
         "name": nombre,
         "ref": code,
@@ -1668,7 +1670,8 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "desc": (raw.get("description") or "")[:450],
         "ficha": buscar_ficha(nombre),
         "solo_vitrina": False,
-        "buyable": True,
+        "stock": stock_web,
+        "buyable": True if stock_web is None else stock_web > 0,
         "is_combo": True,
     }
 
@@ -2487,6 +2490,51 @@ def api_refresh():
     })
 
 
+def _procesar_pedido_pagado_y_refrescar_catalogo(ref: str) -> None:
+    """Efectos de pago aprobado + invalida el cache del catálogo (el stock local pudo bajar)."""
+    process_order_paid_side_effects(ref)
+    _catalog_cache["ts"] = 0
+    try:
+        CACHE_FILE.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _web_api_key_valida() -> bool:
+    esperado = normalize_api_token(os.getenv("WEB_API_KEY"))
+    if not esperado:
+        return False
+    return hmac.compare_digest(bearer_token_from_request(), esperado)
+
+
+@app.route("/products/<sku>", methods=["PUT"])
+def api_actualizar_stock_producto(sku: str):
+    """
+    Recibe el stock real (fuente: MeLi, editado a mano) desde el panel Stock del bot.
+    Contrato consumido por `app/tools/sincronizar_productos_pagina_web.py`.
+    """
+    if not _web_api_key_valida():
+        return jsonify({"error": "No autorizado"}), 401
+    body = request.get_json(silent=True) or {}
+    stock = body.get("stock")
+    if stock is None:
+        return jsonify({"error": "Campo 'stock' requerido"}), 400
+    try:
+        set_stock_web(sku, int(stock))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Campo 'stock' debe ser numérico"}), 400
+    # Invalida cache en memoria Y en disco (ambos se consultan en `get_catalog`) para
+    # que la próxima visita reconstruya el catálogo con el stock nuevo sin esperar el
+    # TTL de 6h. No reconstruye aquí mismo — sería carísimo repetido 278 veces en una
+    # sincronización masiva; queda perezoso hasta la próxima solicitud real.
+    _catalog_cache["ts"] = 0
+    try:
+        CACHE_FILE.unlink()
+    except FileNotFoundError:
+        pass
+    return jsonify({"ok": True, "sku": sku, "stock": max(0, int(stock))})
+
+
 # ══════════════════════════════════════════════════════════
 #  CARRITO
 # ══════════════════════════════════════════════════════════
@@ -2505,8 +2553,9 @@ def carrito_agregar():
     if not p:
         abort(404)
     if not p.get("buyable"):
-        log.warning("Carrito: SKU no comprable (solo vitrina): %s", slug)
-        return redirect(url_for("catalogo"))
+        log.warning("Carrito: SKU no comprable (agotado o solo vitrina): %s", slug)
+        flash(f"{p.get('name', 'Ese producto')} está agotado temporalmente.", "error")
+        return redirect(request.form.get("next", url_for("catalogo")))
 
     price = float(p.get("precio_num") or 0)
     if price <= 0:
@@ -2518,6 +2567,15 @@ def carrito_agregar():
 
     cart_key = p.get("slug", slug).strip().lower()
     cart = session.get("cart", {})
+    stock = p.get("stock")
+    ya_en_carrito = cart.get(cart_key, {}).get("qty", 0)
+    if stock is not None and ya_en_carrito + qty > stock:
+        qty = max(0, stock - ya_en_carrito)
+        if qty <= 0:
+            flash(f"Ya tienes en el carrito todo el stock disponible de {p.get('name', '')} ({stock} uds).", "error")
+            return redirect(request.form.get("next", url_for("carrito")))
+        flash(f"Solo quedan {stock} unidades de {p.get('name', '')}; se ajustó la cantidad.", "error")
+
     if cart_key in cart:
         cart[cart_key]["qty"] += qty
     else:
@@ -2546,6 +2604,11 @@ def carrito_actualizar():
         if qty <= 0:
             del cart[slug]
         else:
+            p = find_product(slug)
+            stock = p.get("stock") if p else None
+            if stock is not None and qty > stock:
+                qty = stock
+                flash(f"Solo quedan {stock} unidades de {cart[slug].get('name', '')}; se ajustó la cantidad.", "error")
             cart[slug]["qty"] = qty
     session["cart"] = cart
     session.modified = True
@@ -2596,6 +2659,21 @@ def checkout_pagar():
     cart = session.get("cart", {})
     if not cart:
         return redirect(url_for("catalogo"))
+
+    # Última verificación de stock antes de crear la orden/preferencia de pago —
+    # el carrito puede llevar rato armado y el stock haber cambiado mientras tanto.
+    for item in cart.values():
+        p_actual = find_product(item.get("slug") or item.get("ref", ""))
+        stock_actual = p_actual.get("stock") if p_actual else None
+        if p_actual and not p_actual.get("buyable"):
+            flash(f"{item.get('name', 'Un producto')} se agotó mientras armabas el pedido. Ajusta el carrito.", "error")
+            return redirect(url_for("carrito"))
+        if stock_actual is not None and item.get("qty", 0) > stock_actual:
+            flash(
+                f"Solo quedan {stock_actual} unidades de {item.get('name', '')}. Ajusta la cantidad antes de continuar.",
+                "error",
+            )
+            return redirect(url_for("carrito"))
 
     ref           = session.get("pending_ref") or ("MCKG-" + uuid.uuid4().hex[:10].upper())
     subtotal      = cart_total(cart)
@@ -2728,7 +2806,7 @@ def pago_respuesta():
                 pass
             # Confirmación cliente, grupo WA y factura Siigo (app.tools.web_pedidos): ver process_order_paid_side_effects
             threading.Thread(
-                target=process_order_paid_side_effects,
+                target=_procesar_pedido_pagado_y_refrescar_catalogo,
                 args=(ref,),
                 daemon=True,
             ).start()
@@ -2776,7 +2854,7 @@ def pago_confirmacion():
             if new_status == "approved" and ref:
                 # Misma cola async que /pago/respuesta (idempotencia en web_pedidos)
                 threading.Thread(
-                    target=process_order_paid_side_effects,
+                    target=_procesar_pedido_pagado_y_refrescar_catalogo,
                     args=(ref.strip().upper(),),
                     daemon=True,
                 ).start()

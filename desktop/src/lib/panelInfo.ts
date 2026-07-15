@@ -106,11 +106,12 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   stock: {
     emoji: "📦",
     label: "Stock",
-    description: "Consulta el inventario de productos, genera reportes de stock y verifica la sincronización entre MercadoLibre y la tienda web.",
+    description: "Ve el stock en vivo de MercadoLibre (donde se edita a mano) y sincronízalo a los demás canales sin salir de esta sección.",
     tips: [
-      "Busca un producto por nombre para ver su stock actual en todas las plataformas.",
-      "'Generar reporte' envía un resumen completo al grupo de WhatsApp de inventario.",
-      "Si el stock de MeLi y la web no coinciden, usa 'Verificar SKUs' para corregirlo.",
+      "El stock se edita manualmente en MercadoLibre; esta pantalla solo lo muestra y lo propaga.",
+      "'Sincronizar a los canales' en una fila empuja ese stock a la web y muestra MeLi/Web/Siigo lado a lado.",
+      "Siigo solo aparece como referencia de lectura — nunca se le escribe stock, se usa solo para facturación.",
+      "'Sincronizar todo' recorre todos los productos y actualiza MeLi + web en segundo plano.",
     ],
     tier: "core",
     category: "productos",

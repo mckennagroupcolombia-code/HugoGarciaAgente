@@ -274,25 +274,121 @@ def actualizar_stock_meli(sku: str, nuevo_stock: int) -> str:
             return f"⚠️ SKU '{sku}' no encontrado en publicaciones activas de MeLi."
 
         # 3. Actualizar available_quantity en cada publicación encontrada
-        resultados = []
-        for item_id in item_ids:
-            res_put = requests.put(
-                f"https://api.mercadolibre.com/items/{item_id}",
-                json={"available_quantity": int(nuevo_stock)},
-                headers=headers,
-                timeout=10
-            )
-            if res_put.status_code in [200, 201]:
-                resultados.append(f"✅ {item_id} → {nuevo_stock} uds")
-            else:
-                resultados.append(f"❌ {item_id}: {res_put.status_code} - {res_put.text[:80]}")
-
+        resultados = [_actualizar_stock_meli_item(item_id, nuevo_stock, headers) for item_id in item_ids]
         return " | ".join(resultados)
 
     except requests.RequestException as e:
         return f"⚠️ Error de red actualizando stock en MeLi (SKU: {sku}): {e}"
     except Exception as e:
         return f"❌ Error inesperado actualizando stock en MeLi (SKU: {sku}): {e}"
+
+
+def actualizar_stock_meli_por_item_id(item_id: str, nuevo_stock: int) -> str:
+    """
+    Actualiza el stock directamente por item_id de MeLi (MCOxxxxxxxx), sin depender
+    de que el SKU coincida con el atributo SELLER_SKU de la publicación (ese atributo
+    suele diferir en mayúsculas/formato del SKU registrado en Sheets, lo que hace
+    fallar la búsqueda por seller_sku en `actualizar_stock_meli`).
+    """
+    print(f"📡 [MELI-STOCK] Actualizando stock de item '{item_id}' a {nuevo_stock} unidades...")
+    token = refrescar_token_meli()
+    if not token:
+        return "❌ Error: No se pudo obtener el token de Mercado Libre."
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    return _actualizar_stock_meli_item(item_id, nuevo_stock, headers)
+
+
+def _actualizar_stock_meli_item(item_id: str, nuevo_stock: int, headers: dict) -> str:
+    """
+    PUT de available_quantity sobre un ítem puntual. Si la cuenta usa inventario
+    multi-bodega (MeLi rechaza ese campo con "multi warehouse seller"), reintenta
+    con el endpoint de stock por ubicación (`/user-products/{id}/stock/type/seller_warehouse`).
+    """
+    try:
+        res_put = requests.put(
+            f"https://api.mercadolibre.com/items/{item_id}",
+            json={"available_quantity": int(nuevo_stock)},
+            headers=headers,
+            timeout=10,
+        )
+        if res_put.status_code in (200, 201):
+            return f"✅ {item_id} → {nuevo_stock} uds"
+        cuerpo = res_put.text
+        if "multi warehouse" in cuerpo:
+            return _actualizar_stock_meli_multibodega(item_id, nuevo_stock, headers)
+        if "not_modifiable" in cuerpo:
+            return (
+                f"⚠️ {item_id}: está en Mercado Envíos Full — MeLi administra el stock según el "
+                "inventario físico enviado a su bodega. No se puede (ni hace falta) fijarlo desde acá."
+            )
+        if "field_not_updatable" in cuerpo:
+            return (
+                f"❌ {item_id}: la publicación no está activa en MeLi (pausada/cerrada/en revisión) "
+                "y no permite cambiar el stock. Reactívala en MeLi primero."
+            )
+        return f"❌ {item_id}: {res_put.status_code} - {cuerpo[:150]}"
+    except requests.RequestException as e:
+        return f"⚠️ Error de red actualizando stock en MeLi (item: {item_id}): {e}"
+    except Exception as e:
+        return f"❌ Error inesperado actualizando stock en MeLi (item: {item_id}): {e}"
+
+
+def _actualizar_stock_meli_multibodega(item_id: str, nuevo_stock: int, headers: dict) -> str:
+    """
+    Cuentas MeLi con inventario "multi-bodega" no aceptan `available_quantity` en el
+    ítem — el stock real vive en `/user-products/{user_product_id}/stock`, ubicación
+    `seller_warehouse`. Requiere leer primero `x-version` (control de concurrencia)
+    y el `store_id` de la bodega antes de escribir.
+    """
+    try:
+        res_item = requests.get(
+            f"https://api.mercadolibre.com/items/{item_id}", headers=headers, timeout=10
+        )
+        if res_item.status_code != 200:
+            return f"❌ {item_id}: no se pudo leer el producto para stock multi-bodega ({res_item.status_code})"
+        user_product_id = res_item.json().get("user_product_id")
+        if not user_product_id:
+            return f"❌ {item_id}: cuenta multi-bodega pero el ítem no tiene user_product_id asociado."
+
+        res_stock = requests.get(
+            f"https://api.mercadolibre.com/user-products/{user_product_id}/stock",
+            headers=headers,
+            timeout=10,
+        )
+        if res_stock.status_code != 200:
+            return f"❌ {item_id}: no se pudo leer stock multi-bodega ({res_stock.status_code})"
+        x_version = res_stock.headers.get("x-version", "")
+        bodega = next(
+            (l for l in res_stock.json().get("locations", []) if l.get("type") == "seller_warehouse"),
+            None,
+        )
+        if not bodega:
+            return f"❌ {item_id}: no tiene bodega propia (seller_warehouse) configurada en MeLi."
+
+        put_headers = {**headers, "Content-Type": "application/json", "x-version": x_version}
+        body = {
+            "locations": [
+                {
+                    "type": "seller_warehouse",
+                    "store_id": bodega.get("store_id"),
+                    "quantity": int(nuevo_stock),
+                }
+            ]
+        }
+        res_put = requests.put(
+            f"https://api.mercadolibre.com/user-products/{user_product_id}/stock/type/seller_warehouse",
+            headers=put_headers,
+            json=body,
+            timeout=10,
+        )
+        if res_put.status_code in (200, 201):
+            return f"✅ {item_id} (multi-bodega) → {nuevo_stock} uds"
+        return f"❌ {item_id} (multi-bodega): {res_put.status_code} - {res_put.text[:150]}"
+    except requests.RequestException as e:
+        return f"⚠️ Error de red actualizando stock multi-bodega en MeLi (item: {item_id}): {e}"
+    except Exception as e:
+        return f"❌ Error inesperado actualizando stock multi-bodega en MeLi (item: {item_id}): {e}"
 
 
 def _item_ids_meli_por_sku(sku: str, seller_id, headers: dict) -> list[str]:
