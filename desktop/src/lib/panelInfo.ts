@@ -106,12 +106,12 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   stock: {
     emoji: "📦",
     label: "Stock",
-    description: "Ve el stock en vivo de MercadoLibre (donde se edita a mano) y sincronízalo a los demás canales sin salir de esta sección.",
+    description: "Punto único de entrada de inventario: registra entradas y salidas de unidades aquí y se propagan a MeLi y a la página web, sin editar nada manualmente en la app de MeLi.",
     tips: [
-      "El stock se edita manualmente en MercadoLibre; esta pantalla solo lo muestra y lo propaga.",
-      "'Sincronizar a los canales' en una fila empuja ese stock a la web y muestra MeLi/Web/Siigo lado a lado.",
-      "Siigo solo aparece como referencia de lectura — nunca se le escribe stock, se usa solo para facturación.",
-      "'Sincronizar todo' recorre todos los productos y actualiza MeLi + web en segundo plano.",
+      "'+ Entrada' y '− Salida' suman o restan unidades y empujan el resultado a MeLi y a la web.",
+      "Siigo solo aparece como referencia de lectura — su API no permite escribirle stock; se sigue ajustando aparte.",
+      "'Reenviar sin cambios' vuelve a mandar el stock actual sin modificar la cantidad (útil si algún canal quedó desincronizado).",
+      "'Reenviar todo a los canales' recorre todos los productos y actualiza MeLi + web en segundo plano.",
     ],
     tier: "core",
     category: "productos",
