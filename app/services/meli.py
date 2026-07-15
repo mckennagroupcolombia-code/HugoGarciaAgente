@@ -372,6 +372,7 @@ def _actualizar_stock_meli_multibodega(item_id: str, nuevo_stock: int, headers: 
                 {
                     "type": "seller_warehouse",
                     "store_id": bodega.get("store_id"),
+                    "network_node_id": bodega.get("network_node_id"),
                     "quantity": int(nuevo_stock),
                 }
             ]

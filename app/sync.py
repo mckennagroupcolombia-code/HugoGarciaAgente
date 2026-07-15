@@ -900,6 +900,7 @@ def obtener_estado_stock_meli() -> list[dict]:
                 "estado_meli": item.get("status", ""),
                 "es_full": es_full,
                 "sync_bloqueado": item.get("status") != "active",
+                "permalink": item.get("permalink", ""),
             })
     return items
 
@@ -933,6 +934,20 @@ def ejecutar_sincronizacion_y_reporte_stock():
         if updates:
             sheet.batch_update(updates)
         print("✅ Stock actualizado en Google Sheets.")
+
+        try:
+            from app.tools.sincronizar_productos_pagina_web import (
+                sincronizar_productos_pagina_web,
+            )
+
+            productos_web = [
+                {"sku": it["sku"], "stock": it["stock"]} for it in items if it.get("sku")
+            ]
+            if productos_web:
+                resultado_web = sincronizar_productos_pagina_web(productos_web)
+                print(f"   └──> Web (diario): {resultado_web[:200]}")
+        except Exception as e:
+            print(f"⚠️ [STOCK SYNC] No se pudo propagar stock a la web en el cron diario: {e}")
 
         reporte = "📊 *ALERTA DE STOCK MCKENNA*\n" + "─" * 25
         if agotados:

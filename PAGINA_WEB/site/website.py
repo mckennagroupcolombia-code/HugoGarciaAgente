@@ -449,6 +449,11 @@ def _meli_item_photo(item: dict) -> str:
 
 
 def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
+    """
+    Trae publicaciones activas Y pausadas (ej. pausadas por agotado) para tomar sus
+    fotos — un producto sin stock temporal sigue teniendo fotos válidas en MeLi y
+    debe seguir mostrándose con imagen en la web, aunque aparezca "Agotado".
+    """
     if not token:
         return []
     headers = {"Authorization": f"Bearer {token}"}
@@ -462,30 +467,35 @@ def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
         log.warning("MeLi fotos combos: no se pudo consultar seller: %s", e)
         return []
 
-    item_ids = []
-    offset = 0
-    while True:
-        try:
-            res = requests.get(
-                f"https://api.mercadolibre.com/users/{seller_id}/items/search",
-                params={"status": "active", "limit": 100, "offset": offset},
-                headers=headers,
-                timeout=15,
-            )
-            if res.status_code != 200:
-                log.warning("MeLi fotos combos: items/search respondió %s", res.status_code)
+    item_ids: list[str] = []
+    seen_ids: set[str] = set()
+    for status in ("active", "paused"):
+        offset = 0
+        while True:
+            try:
+                res = requests.get(
+                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                    params={"status": status, "limit": 100, "offset": offset},
+                    headers=headers,
+                    timeout=15,
+                )
+                if res.status_code != 200:
+                    log.warning("MeLi fotos combos: items/search (%s) respondió %s", status, res.status_code)
+                    break
+                data = res.json()
+                batch = data.get("results") or []
+                if not batch:
+                    break
+                for iid in batch:
+                    if iid not in seen_ids:
+                        seen_ids.add(iid)
+                        item_ids.append(iid)
+                offset += len(batch)
+                if offset >= (data.get("paging") or {}).get("total", 0):
+                    break
+            except Exception as e:
+                log.warning("MeLi fotos combos: error listando publicaciones (%s): %s", status, e)
                 break
-            data = res.json()
-            batch = data.get("results") or []
-            if not batch:
-                break
-            item_ids.extend(batch)
-            offset += len(batch)
-            if offset >= (data.get("paging") or {}).get("total", 0):
-                break
-        except Exception as e:
-            log.warning("MeLi fotos combos: error listando publicaciones: %s", e)
-            break
 
     items = []
     for i in range(0, len(item_ids), 20):

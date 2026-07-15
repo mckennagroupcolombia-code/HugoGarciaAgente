@@ -3317,19 +3317,16 @@ def register_routes(app):
                     print(f"⚠️ Omitido (sin SKU): {it.get('nombre')}")
                     omitidos += 1
                     continue
-                if it.get("sync_bloqueado"):
-                    print(
-                        f"⚠️ Omitido (MeLi {it.get('estado_meli')}, no acepta cambios de stock): "
-                        f"{sku} — {it.get('nombre')}"
-                    )
-                    omitidos += 1
-                    continue
+                # Aunque MeLi bloquee la escritura (pausado/cerrado/Full), el push a la
+                # web sí debe hacerse igual con el stock real conocido — de lo contrario
+                # un producto agotado y pausado se queda comprable en la web para siempre.
                 resultado = _sincronizar_stock_multicanal(
                     sku, it["stock"], meli_id=it.get("meli_id", ""), verificar_siigo=False
                 )
                 ok_meli = resultado.get("meli", {}).get("ok")
                 ok_web = resultado.get("web", {}).get("ok")
-                print(f"   └──> {sku} ({it['stock']} uds): MeLi={ok_meli} Web={ok_web}")
+                nota = " (MeLi bloqueado, solo se actualizó la web)" if it.get("sync_bloqueado") else ""
+                print(f"   └──> {sku} ({it['stock']} uds): MeLi={ok_meli} Web={ok_web}{nota}")
             return (
                 f"✅ Sincronización de stock completada: {len(items) - omitidos} SKUs procesados, "
                 f"{omitidos} omitidos (sin SKU o sin publicación activa en MeLi)."
