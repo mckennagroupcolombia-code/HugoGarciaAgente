@@ -1,6 +1,356 @@
 {
   "archivos": [
     {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_204648.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_204648.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_204648.pdf",
+      "subido_at": "2026-07-15T20:46:49",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260715_100301.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100301.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100301.pdf",
+      "subido_at": "2026-07-15T10:03:01",
+      "bytes": 516993
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260715_100208.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100208.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100208.pdf",
+      "subido_at": "2026-07-15T10:02:08",
+      "bytes": 516993
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260715_100135.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100135.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100135.pdf",
+      "subido_at": "2026-07-15T10:01:35",
+      "bytes": 516993
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260715_100113.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100113.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260715_100113.pdf",
+      "subido_at": "2026-07-15T10:01:13",
+      "bytes": 516993
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x.pdf",
+      "subido_at": "2026-07-15T10:00:47",
+      "bytes": 516993
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095903.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095903.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095903.pdf",
+      "subido_at": "2026-07-15T09:59:04",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095843.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095843.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095843.pdf",
+      "subido_at": "2026-07-15T09:58:43",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095757.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095757.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095757.pdf",
+      "subido_at": "2026-07-15T09:57:57",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
+      "subido_at": "2026-07-15T09:57:35",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
+      "subido_at": "2026-07-15T09:57:20",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
+      "subido_at": "2026-07-15T09:56:33",
+      "bytes": 485542
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
+      "subido_at": "2026-07-15T09:54:25",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
+      "subido_at": "2026-07-15T09:54:02",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
+      "subido_at": "2026-07-15T09:53:39",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
+      "subido_at": "2026-07-15T09:53:13",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
+      "subido_at": "2026-07-15T09:52:48",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
+      "subido_at": "2026-07-15T09:52:22",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
+      "subido_at": "2026-07-15T09:51:30",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
+      "subido_at": "2026-07-15T09:50:45",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
+      "subido_at": "2026-07-15T09:50:23",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
+      "subido_at": "2026-07-15T09:50:06",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
+      "subido_at": "2026-07-15T09:49:48",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
+      "subido_at": "2026-07-15T09:49:02",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
+      "subido_at": "2026-07-15T09:48:38",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
+      "subido_at": "2026-07-15T09:45:00",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
+      "subido_at": "2026-07-15T09:42:52",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
+      "subido_at": "2026-07-15T09:42:01",
+      "bytes": 612563
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
+      "subido_at": "2026-07-15T09:41:22",
+      "bytes": 612563
+    },
+    {
+      "nombre": "DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
+      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
+      "subido_at": "2026-07-15T09:30:13",
+      "bytes": 697470
+    },
+    {
+      "nombre": "DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
+      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
+      "subido_at": "2026-07-15T09:29:48",
+      "bytes": 697470
+    },
+    {
+      "nombre": "DIPROPILENGLICOL_500mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x.pdf",
+      "subido_at": "2026-07-15T09:29:28",
+      "bytes": 697470
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
+      "subido_at": "2026-07-15T09:25:52",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
+      "subido_at": "2026-07-15T09:24:52",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
+      "subido_at": "2026-07-15T09:24:14",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
+      "subido_at": "2026-07-15T09:23:31",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
+      "subido_at": "2026-07-15T09:23:00",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
+      "subido_at": "2026-07-15T09:22:23",
+      "bytes": 705721
+    },
+    {
+      "nombre": "CITRATO_MAGNESIO_500g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x.pdf",
+      "subido_at": "2026-07-15T09:21:59",
+      "bytes": 705721
+    },
+    {
+      "nombre": "INULINA_Kg_6.25x_20260715_092102.pdf",
+      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_092102.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_092102.pdf",
+      "subido_at": "2026-07-15T09:21:03",
+      "bytes": 653437
+    },
+    {
+      "nombre": "INULINA_Kg_6.25x_20260715_091949.pdf",
+      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091949.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091949.pdf",
+      "subido_at": "2026-07-15T09:19:49",
+      "bytes": 653437
+    },
+    {
+      "nombre": "INULINA_Kg_6.25x_20260715_091914.pdf",
+      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091914.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091914.pdf",
+      "subido_at": "2026-07-15T09:19:15",
+      "bytes": 653437
+    },
+    {
+      "nombre": "INULINA_Kg_6.25x_20260715_091836.pdf",
+      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091836.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091836.pdf",
+      "subido_at": "2026-07-15T09:18:36",
+      "bytes": 653437
+    },
+    {
+      "nombre": "INULINA_Kg_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x.pdf",
+      "subido_at": "2026-07-15T09:18:06",
+      "bytes": 653437
+    },
+    {
+      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
+      "subido_at": "2026-07-15T09:16:56",
+      "bytes": 652750
+    },
+    {
+      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
+      "subido_at": "2026-07-15T09:16:12",
+      "bytes": 652750
+    },
+    {
+      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
+      "subido_at": "2026-07-15T09:15:39",
+      "bytes": 652750
+    },
+    {
+      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
+      "subido_at": "2026-07-15T09:15:02",
+      "bytes": 652750
+    },
+    {
+      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
+      "subido_at": "2026-07-15T09:14:06",
+      "bytes": 652750
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x.pdf",
+      "subido_at": "2026-07-15T09:11:06",
+      "bytes": 301752
+    },
+    {
       "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
       "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
