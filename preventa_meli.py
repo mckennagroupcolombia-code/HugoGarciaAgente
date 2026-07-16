@@ -33,13 +33,15 @@ def obtener_nombre_producto_meli(item_id, token):
         print(f"Error obteniendo nombre del producto: {e}")
     return "Producto desconocido"
 
-def analizar_y_crear_respuesta(texto_pregunta, item_id, token, question_id=None):
+def analizar_y_crear_respuesta(texto_pregunta, item_id, token, question_id=None, comprador_id=None):
     """
     Gestiona la pregunta de preventa: responde o delega al grupo.
     Retorna (respuesta_texto, fue_respondida).
     """
     nombre_producto = obtener_nombre_producto_meli(item_id, token)
-    return manejar_pregunta_preventa(question_id, nombre_producto, texto_pregunta)
+    return manejar_pregunta_preventa(
+        question_id, nombre_producto, texto_pregunta, comprador_id=comprador_id
+    )
 
 def _pregunta_sigue_sin_responder(question_id, token) -> bool:
     """Check if question is still UNANSWERED before attempting to answer."""
@@ -107,12 +109,13 @@ def procesar_nueva_pregunta(question_id):
         
     texto_pregunta = datos_pregunta.get("text", "")
     item_id = datos_pregunta.get("item_id", "") # Este es el famoso MCO
-    
+    comprador_id = (datos_pregunta.get("from") or {}).get("id")
+
     print(f"El cliente preguntó: '{texto_pregunta}' en el producto {item_id}")
-    
+
     nombre_producto = obtener_nombre_producto_meli(item_id, token)
     respuesta_generada, fue_respondida = analizar_y_crear_respuesta(
-        texto_pregunta, item_id, token, question_id=question_id
+        texto_pregunta, item_id, token, question_id=question_id, comprador_id=comprador_id
     )
 
     if not fue_respondida:

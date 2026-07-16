@@ -1,6 +1,8 @@
 import os
 import json
+import re
 import threading
+import unicodedata
 from datetime import datetime
 from google import genai
 
@@ -9,6 +11,143 @@ from app.utils import jid_grupo_preventa_wa
 PENDIENTES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'preguntas_pendientes_preventa.json')
 CASOS_PATH = os.path.join(os.path.dirname(__file__), '..', 'training', 'casos_preventa.json')
 _CASOS_LOCK = threading.Lock()
+
+# ---------------------------------------------------------------------------
+# Guard INVIMA: responder "no tiene registro porque es materia prima" deja
+# términos regulatorios (INVIMA, registro sanitario) en el Q&A público de la
+# publicación, y el moderador de MeLi los cruza como señal de producto
+# terminado sin registro → baja. La pregunta se elimina sin responder (1ª y 2ª
+# vez); si el comprador insiste una 3ª (≥ PREVENTA_INVIMA_BLOQUEO_UMBRAL,
+# default 3), se le bloquea en preguntas vía questions_blacklist — el costo
+# comercial es aceptado: ese perfil de comprador suele terminar en devolución
+# o mala reseña.
+# Desactivable con PREVENTA_INVIMA_GUARD=0.
+# ---------------------------------------------------------------------------
+
+_RX_INVIMA = re.compile(
+    r"\binvima\b|registro\s+sanitario|notificacion\s+sanitaria|permiso\s+sanitario",
+)
+INFRACTORES_INVIMA_PATH = os.path.join(
+    os.path.dirname(__file__), '..', 'data', 'preventa_invima_infractores.json'
+)
+_INFRACTORES_LOCK = threading.Lock()
+
+
+def _norm_txt(s: str) -> str:
+    s = unicodedata.normalize("NFD", s or "")
+    return "".join(c for c in s if unicodedata.category(c) != "Mn").lower()
+
+
+def es_pregunta_invima(texto: str) -> bool:
+    return bool(_RX_INVIMA.search(_norm_txt(texto)))
+
+
+def _registrar_infraccion_invima(comprador_id, question_id: str, producto: str) -> int:
+    """Suma una infracción al comprador y retorna su total acumulado."""
+    with _INFRACTORES_LOCK:
+        try:
+            with open(INFRACTORES_INVIMA_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        entrada = data.get(str(comprador_id)) or {"total": 0, "preguntas": [], "bloqueado": False}
+        entrada["total"] += 1
+        entrada["preguntas"].append({
+            "question_id": str(question_id),
+            "producto": producto,
+            "fecha": datetime.now().isoformat(timespec="seconds"),
+        })
+        data[str(comprador_id)] = entrada
+        try:
+            with open(INFRACTORES_INVIMA_PATH, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=1, ensure_ascii=False)
+        except Exception as e:
+            print(f"❌ Preventa: error guardando infractores INVIMA: {e}")
+        return entrada["total"]
+
+
+def _marcar_infractor_bloqueado(comprador_id) -> None:
+    with _INFRACTORES_LOCK:
+        try:
+            with open(INFRACTORES_INVIMA_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if str(comprador_id) in data:
+                data[str(comprador_id)]["bloqueado"] = True
+                with open(INFRACTORES_INVIMA_PATH, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=1, ensure_ascii=False)
+        except Exception:
+            pass
+
+
+def eliminar_pregunta_meli(question_id: str) -> bool:
+    """Elimina una pregunta recibida en MeLi (DELETE /questions/{id})."""
+    import requests
+    from app.utils import refrescar_token_meli
+
+    token = refrescar_token_meli()
+    if not token:
+        return False
+    try:
+        r = requests.delete(
+            f"https://api.mercadolibre.com/questions/{question_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=20,
+        )
+        return r.status_code in (200, 204)
+    except Exception as e:
+        print(f"❌ Preventa: error eliminando pregunta {question_id}: {e}")
+        return False
+
+
+def _comprador_de_pregunta(question_id: str):
+    """user_id del comprador que hizo la pregunta (GET /questions/{id})."""
+    import requests
+    from app.utils import refrescar_token_meli
+
+    token = refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        r = requests.get(
+            f"https://api.mercadolibre.com/questions/{question_id}?api_version=4",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=20,
+        )
+        if r.status_code == 200:
+            return (r.json().get("from") or {}).get("id")
+    except Exception as e:
+        print(f"❌ Preventa: error leyendo comprador de pregunta {question_id}: {e}")
+    return None
+
+
+def bloquear_comprador_meli(comprador_id) -> bool:
+    """Bloquea al comprador para que no pueda volver a preguntar
+    (POST /users/{seller_id}/questions_blacklist)."""
+    import requests
+    from app.utils import refrescar_token_meli
+
+    token = refrescar_token_meli()
+    if not token:
+        return False
+    try:
+        h = {"Authorization": f"Bearer {token}"}
+        me = requests.get("https://api.mercadolibre.com/users/me", headers=h, timeout=20).json()
+        seller_id = me.get("id")
+        if not seller_id:
+            return False
+        r = requests.post(
+            f"https://api.mercadolibre.com/users/{seller_id}/questions_blacklist",
+            headers=h,
+            json={"user_id": comprador_id},
+            timeout=20,
+        )
+        if r.status_code in (200, 201, 204):
+            return True
+        print(f"❌ Preventa: blacklist rechazó a {comprador_id}: {r.status_code} {r.text[:200]}")
+        return False
+    except Exception as e:
+        print(f"❌ Preventa: error bloqueando comprador {comprador_id}: {e}")
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +289,7 @@ def _ejemplos_fewshot(titulo_producto: str) -> str:
 # Función principal
 # ---------------------------------------------------------------------------
 
-def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_cliente: str):
+def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_cliente: str, comprador_id=None):
     """
     Flujo completo de preventa:
     - Con ficha técnica → responde automáticamente con IA.
@@ -159,6 +298,69 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
       - (str, True)  si se generó respuesta para enviar al cliente
       - (None, False) si quedó delegada al grupo
     """
+    if os.getenv("PREVENTA_INVIMA_GUARD", "1") != "0" and es_pregunta_invima(pregunta_cliente):
+        if comprador_id is None:
+            comprador_id = _comprador_de_pregunta(question_id)
+        eliminada = eliminar_pregunta_meli(question_id)
+
+        bloqueado = False
+        infracciones = 0
+        try:
+            umbral = int(os.getenv("PREVENTA_INVIMA_BLOQUEO_UMBRAL", "3"))
+        except ValueError:
+            umbral = 3
+        if comprador_id is not None:
+            infracciones = _registrar_infraccion_invima(comprador_id, question_id, titulo_producto)
+            if infracciones >= umbral:
+                bloqueado = bloquear_comprador_meli(comprador_id)
+                if bloqueado:
+                    _marcar_infractor_bloqueado(comprador_id)
+
+        try:
+            from app.observability import log_json
+
+            log_json(
+                "preventa_pregunta_invima_omitida",
+                question_id=str(question_id),
+                producto=titulo_producto,
+                comprador_id=comprador_id,
+                infracciones=infracciones,
+                eliminada=eliminada,
+                bloqueado=bloqueado,
+            )
+        except Exception:
+            pass
+        try:
+            from app.utils import enviar_whatsapp_reporte
+
+            estado = "eliminada de MeLi" if eliminada else "⚠️ NO se pudo eliminar (revisar en MeLi)"
+            if bloqueado:
+                linea_bloqueo = f"🚫 Comprador {comprador_id} BLOQUEADO en preguntas (insistió {infracciones} veces)."
+            elif comprador_id is not None and infracciones == umbral - 1:
+                linea_bloqueo = f"⚠️ Comprador {comprador_id}: infracción {infracciones}/{umbral} — a la SIGUIENTE se bloquea."
+            elif comprador_id is not None and infracciones:
+                linea_bloqueo = f"👤 Comprador {comprador_id}: infracción {infracciones}/{umbral}."
+            else:
+                linea_bloqueo = "👤 No se pudo identificar al comprador."
+            enviar_whatsapp_reporte(
+                f"🛡️ PREGUNTA INVIMA OMITIDA\n"
+                f"📦 Producto: {titulo_producto}\n"
+                f"🗣 Cliente preguntó: {pregunta_cliente}\n"
+                f"🗑 Estado: {estado}\n"
+                f"{linea_bloqueo}\n\n"
+                f"No se responde para no dejar términos regulatorios en el Q&A público "
+                f"(riesgo de moderación). Si igual quieren responder, háganlo desde MeLi "
+                f"sin mencionar INVIMA ni registro sanitario.",
+                numero_destino=jid_grupo_preventa_wa(),
+            )
+        except Exception as e:
+            print(f"❌ Preventa: error avisando pregunta INVIMA omitida: {e}")
+        print(
+            f"🛡️ Preventa: pregunta INVIMA omitida para '{titulo_producto}' "
+            f"(eliminada={eliminada}, comprador={comprador_id}, bloqueado={bloqueado})"
+        )
+        return None, True
+
     from app.services.google_services import buscar_ficha_tecnica_producto
 
     ficha = buscar_ficha_tecnica_producto(titulo_producto)
@@ -322,6 +524,7 @@ REGLAS:
 3. SOLO usa información de la ficha técnica. No inventes datos.
 4. MÁXIMO 2000 caracteres (límite de Mercado Libre).
 5. NO menciones que tienes una "ficha técnica" — habla naturalmente.
+6. NUNCA menciones INVIMA, registro sanitario, resoluciones ni normativa legal, aunque el cliente pregunte por eso — limítate a describir el producto como materia prima para formulación.
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
 
