@@ -196,7 +196,7 @@ export interface SubirImagenResult {
 export function useSubirImagen(sku: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       files,
       targets,
       meliItemId,
@@ -205,11 +205,19 @@ export function useSubirImagen(sku: string) {
       targets: ("web" | "meli")[];
       meliItemId?: string;
     }) => {
-      const form = new FormData();
-      for (const f of files) form.append("files[]", f);
-      form.append("targets", targets.join(","));
-      if (meliItemId) form.append("meli_item_id", meliItemId);
-      return api.upload<SubirImagenResult>(`/api/publicaciones/${sku}/imagen`, form);
+      // Una petición por archivo: subir todo junto superaba el timeout
+      // del túnel Cloudflare (~100s) y el gateway respondía 504.
+      const archivos: SubirImagenResult["archivos"] = [];
+      for (const f of files) {
+        const form = new FormData();
+        form.append("files[]", f);
+        form.append("targets", targets.join(","));
+        if (meliItemId) form.append("meli_item_id", meliItemId);
+        const res = await api.upload<SubirImagenResult>(`/api/publicaciones/${sku}/imagen`, form);
+        archivos.push(...(res.archivos || []));
+      }
+      const ok = archivos.some((a) => a.web?.ok || a.meli?.ok);
+      return { ok, sku, archivos } satisfies SubirImagenResult;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["publicaciones"] });

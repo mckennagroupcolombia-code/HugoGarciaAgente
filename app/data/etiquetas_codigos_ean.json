@@ -82,6 +82,17 @@
       "actualizado_at": "2026-07-09T02:48:04"
     },
     {
+      "id": "b2441d20b3e5",
+      "sku": "C-CERABENAT500g",
+      "nombre_producto": "CERA DE ABEJAS NATRURAL 500g",
+      "numero_producto": 8,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700085002632",
+      "creado_at": "2026-07-15T12:17:52"
+    },
+    {
       "id": "d093bd665464",
       "sku": "C-NUEBRA500g",
       "nombre_producto": "NUEZ DEL BRASIL 500g",

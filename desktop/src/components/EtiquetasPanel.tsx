@@ -5379,6 +5379,23 @@ function TabImprimir({
                     />
                   </div>
                 </RibbonGroup>
+                <RibbonGroup label="Tipografía">
+                  <div className="flex min-w-[140px] flex-col gap-0.5">
+                    <label className={RIB_LBL}>Tamaño · Montserrat Light</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={TAMANO_TEXTO_PT_MIN}
+                        max={TAMANO_TEXTO_PT_MAX}
+                        step={1}
+                        value={clampTamanoTextoPt(loteFont)}
+                        onChange={(e) => setLoteFont(clampTamanoTextoPt(Number(e.target.value)))}
+                        className="w-24 accent-accent"
+                      />
+                      <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{clampTamanoTextoPt(loteFont)}pt</span>
+                    </div>
+                  </div>
+                </RibbonGroup>
                 <RibbonGroup label="Plantilla">
                   <p className={`max-w-[220px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>
                     {pngImpresion
