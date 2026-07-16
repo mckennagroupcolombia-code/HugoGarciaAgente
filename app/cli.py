@@ -312,14 +312,9 @@ def _asegurar_proveedor_siigo(token, nit: str, nombre: str) -> bool:
             "address": "Colombia",
             "city": {"country_code": "Co", "state_code": "11", "city_code": "11001"},
         },
-        "contacts": [
-            {
-                "first_name": nombre[:60],
-                "last_name": "",
-                "email": "",
-                "phone": {"indicative": "000", "number": "0000000"},
-            }
-        ],
+        # Sin "contacts": no tenemos email real de este proveedor, y SIIGO rechaza
+        # email vacío ("invalid_email"). Omitir la clave en vez de mandarla vacía
+        # (mismo patrón que _construir_customer_payload_factura_siigo en services/siigo.py).
     }
     try:
         rc = requests.post(

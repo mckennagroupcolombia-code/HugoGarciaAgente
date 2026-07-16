@@ -27,7 +27,7 @@ RUTA_FACTURAS_DESCARGADAS = os.path.join(
     "/home/mckg/mi-agente", "app", "data", "facturas_gmail_descargadas.json"
 )
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.labels"]
+SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.labels", "https://www.googleapis.com/auth/gmail.settings.basic"]
 
 GMAIL_REAUTH_CMD = "source venv/bin/activate && python3 scripts/reautorizar_gmail.py"
 

@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-07-16">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FEV73487</NumeroFacturaProveedor>
+    <FechaFactura>2026-04-15</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>830062441</NIT>
+      <Nombre>ENVASAR S A S</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="3">
+    <Item numero="1">
+      <CodigoSiigo>ENVBLAPPmL</CodigoSiigo>
+      <DescripcionOriginalProveedor>ENV. 350ml BLANCO PP C/T SEG. CINTILLA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">100.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="MLT" simbolo="mL">35000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 mL | 100.0 × 1 = 35000.0 mL</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>92800.00</Subtotal>
+        <IVA>17632.00</IVA>
+        <Total>110432.00</Total>
+        <PrecioUnitarioMin>3.1600</PrecioUnitarioMin>
+        <PrecioNetoMin>2.651429</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 mL (total 110432.00 COP / 35000.0 mL)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>CUCCOLSURmL</CodigoSiigo>
+      <DescripcionOriginalProveedor>CUCHARIN 29CC COLORES SURTIDOS</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">500.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="MLT" simbolo="mL">14500.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 mL | 500.0 × 1 = 14500.0 mL</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>91500.00</Subtotal>
+        <IVA>17385.00</IVA>
+        <Total>108885.00</Total>
+        <PrecioUnitarioMin>7.5100</PrecioUnitarioMin>
+        <PrecioNetoMin>6.310345</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 mL (total 108885.00 COP / 14500.0 mL)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>COPDOSPPmL</CodigoSiigo>
+      <DescripcionOriginalProveedor>COPA DOSIFICADORA 30ML PP NATURAL</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">250.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="MLT" simbolo="mL">7500.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 mL | 250.0 × 1 = 7500.0 mL</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>73000.00</Subtotal>
+        <IVA>13870.00</IVA>
+        <Total>86870.00</Total>
+        <PrecioUnitarioMin>11.5800</PrecioUnitarioMin>
+        <PrecioNetoMin>9.733333</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 mL (total 86870.00 COP / 7500.0 mL)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>257300.00</Subtotal>
+    <TotalIVA>48887.00</TotalIVA>
+    <TotalGeneral>306187.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FEV73487 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>
