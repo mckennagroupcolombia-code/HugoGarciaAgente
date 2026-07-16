@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-07-16">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FEV75142</NumeroFacturaProveedor>
+    <FechaFactura>2026-05-25</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>830062441</NIT>
+      <Nombre>ENVASAR S A S</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="5">
+    <Item numero="1">
+      <CodigoSiigo>ENVBOT500Un</CodigoSiigo>
+      <DescripcionOriginalProveedor>ENV. BOTERO 500CC ORIG. B.38MM SIN TAPA S/TP</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">300.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">300.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 300.0 × 1 = 300.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>477300.00</Subtotal>
+        <IVA>90687.00</IVA>
+        <Total>567987.00</Total>
+        <PrecioUnitarioMin>1893.2900</PrecioUnitarioMin>
+        <PrecioNetoMin>1591.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 567987.00 COP / 300.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>TAP38MBLAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 38mm BLANCA  C/BANDA DE SEG. SIN LINER</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">300.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">300.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 300.0 × 1 = 300.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>31500.00</Subtotal>
+        <IVA>5985.00</IVA>
+        <Total>37485.00</Total>
+        <PrecioUnitarioMin>124.9500</PrecioUnitarioMin>
+        <PrecioNetoMin>105.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 37485.00 COP / 300.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>TAP38MPLAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON 38mm PLANO NAT.</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">300.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">300.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 300.0 × 1 = 300.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>21600.00</Subtotal>
+        <IVA>4104.00</IVA>
+        <Total>25704.00</Total>
+        <PrecioUnitarioMin>85.6800</PrecioUnitarioMin>
+        <PrecioNetoMin>72.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 25704.00 COP / 300.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>TAPNOSEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA NO. 28 SEGURIDAD AQUALUC TRANS S/LINER</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">200.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">200.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 200.0 × 1 = 200.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>13400.00</Subtotal>
+        <IVA>2546.00</IVA>
+        <Total>15946.00</Total>
+        <PrecioUnitarioMin>79.7300</PrecioUnitarioMin>
+        <PrecioNetoMin>67.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 15946.00 COP / 200.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>TAPUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON # 30</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">200.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">200.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 200.0 × 1 = 200.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>9400.00</Subtotal>
+        <IVA>1786.00</IVA>
+        <Total>11186.00</Total>
+        <PrecioUnitarioMin>55.9300</PrecioUnitarioMin>
+        <PrecioNetoMin>47.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 11186.00 COP / 200.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>553200.00</Subtotal>
+    <TotalIVA>105108.00</TotalIVA>
+    <TotalGeneral>658308.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FEV75142 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

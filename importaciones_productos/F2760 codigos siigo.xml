@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-07-16">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>F2760</NumeroFacturaProveedor>
+    <FechaFactura>2026-06-18</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>901650107</NIT>
+      <Nombre>INDUPLASTEM SAS</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="5">
+    <Item numero="1">
+      <CodigoSiigo>PLABURX50Un</CodigoSiigo>
+      <DescripcionOriginalProveedor>PLASTICO BURBUJA X50X50</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="EA">6.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">6.0</CantidadConvertida>
+        <ReglaConversion>1 EA = 1 Un | 6.0 × 1 = 6.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>126000.00</Subtotal>
+        <IVA>23940.00</IVA>
+        <Total>149940.00</Total>
+        <PrecioUnitarioMin>24990.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>21000.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 149940.00 COP / 6.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>CINADHMTSUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>CINTA ADHESIVA DE 200 MTS</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">8.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">8.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 8.0 × 1 = 8.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>81216.00</Subtotal>
+        <IVA>15431.04</IVA>
+        <Total>96647.04</Total>
+        <PrecioUnitarioMin>12080.8800</PrecioUnitarioMin>
+        <PrecioNetoMin>10152.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 96647.04 COP / 8.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>VININDTRAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>VINIPEL INDUSTRIAL TRANSPARENTE MEDIDAS 12CM POR 500 MTS COMERCIALES</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">4.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">4.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 4.0 × 1 = 4.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>27000.00</Subtotal>
+        <IVA>5130.00</IVA>
+        <Total>32130.00</Total>
+        <PrecioUnitarioMin>8032.5000</PrecioUnitarioMin>
+        <PrecioNetoMin>6750.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 32130.00 COP / 4.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>VININDNEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>VINIPEL INDUSTRIAL NEGRO MEDIDAS 12 CM POR 500 MTS COMERCIALES</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">2.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 2.0 × 1 = 2.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>15120.00</Subtotal>
+        <IVA>2872.80</IVA>
+        <Total>17992.80</Total>
+        <PrecioUnitarioMin>8996.4000</PrecioUnitarioMin>
+        <PrecioNetoMin>7560.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 17992.80 COP / 2.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>VININDTRAMEDUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>VINIPEL INDUSTRIAL TRANSPARENTE MEDIDAS 30CM POR 300 MTS COMERCIALES</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>8400.00</Subtotal>
+        <IVA>1596.00</IVA>
+        <Total>9996.00</Total>
+        <PrecioUnitarioMin>9996.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>8400.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 9996.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>257736.00</Subtotal>
+    <TotalIVA>48969.84</TotalIVA>
+    <TotalGeneral>306705.84</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: F2760 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

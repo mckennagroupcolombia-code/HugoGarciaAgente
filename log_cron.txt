@@ -3137,3 +3137,31 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel aefe721] Auto-commit: actualizacion diaria 2026-07-15 23:00
+ 39 files changed, 131787 insertions(+), 280 deletions(-)
+ create mode 100644 FOTOS  IMPORTADOS MELI/RETINOL 30mL  2.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/RETINOL 30mL 1.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/RETINOL 30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-RET5P30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-RET5P30mL_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-RET5P30mL_3.png
+ create mode 100644 app/data/plantillas_visuales.pre_compliance_20260715_1916.json
+ create mode 100644 app/data/plantillas_visuales.pre_compliance_20260715_1921.json
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_GLICOLICO_50P_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/COLAGENO_HIDROLIZADO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/FLORES_SECAS_LAVANDA_100g.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/HIALURONICO_ALTO_PESO_MOLECULAR_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/MANTECA_KARITE_125g.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/reporte.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/training/casos_preventa.pre_invima_20260715.json
+ create mode 100644 scripts/sanear_plantillas_compliance.py
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-15 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
