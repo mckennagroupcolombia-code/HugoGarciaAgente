@@ -1,12 +1,26 @@
 {
- "fecha": "2026-07-15T19:21:39",
- "saneadas": 213,
+ "fecha": "2026-07-16T03:53:30",
+ "saneadas": 280,
  "avisos": [
-  "'HIALURONICO ALTO  PESO MOLECULAR 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
-  "'ACIDO GLICOLICO 50P 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
-  "'COLAGENO HIDROLIZADO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
-  "'MANTECA KARITE 125g': sin espacio para pie legal/LOT — añadir a mano en el Studio",
-  "'FLORES SECAS LAVANDA 100g': sin espacio para pie legal/LOT — añadir a mano en el Studio"
+  "'VITAMINA C 30 mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'SHAROMIX 705 50mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'RETINOL 5P 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'GUSANO DE SEDA 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ELASTINA 30 mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ELASTINA 30 m': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'DMSO 30ML': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'DMSO 30 mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'D PANTENOL 50 mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'D PANTENOL 120mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'COLAGENO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO SALICILICO 50g': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO LACTICO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO KOJICO D PALMITATO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO KOJICO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO HIALURONICO 30mL': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO HIALURONICO 30mL BAJO PESO MOLECULAR': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACIDO HIALURONICO 30mL ALTO PESO MOLECULAR': sin espacio para pie legal/LOT — añadir a mano en el Studio",
+  "'ACEITE DE NEEM 120mL': sin espacio para pie legal/LOT — añadir a mano en el Studio"
  ],
  "desbordes": {}
 }

@@ -1,6 +1,27 @@
 {
   "historial": [
     {
+      "id": "20260716022005163-9829",
+      "sufijo": "9829",
+      "numero_factura": "FV3249829",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "total": 0,
+      "fecha_factura": "2026-03-31",
+      "items_count": 0,
+      "accion": "omitida",
+      "estado": "ok",
+      "origen": "panel",
+      "nuevos": 0,
+      "en_siigo": 0,
+      "items_resumen": [],
+      "ruta_excel": null,
+      "ruta_xml": null,
+      "siigo_id": null,
+      "mensaje": "Factura FV3249829 omitida (nota crédito $0, no es factura de compra)",
+      "timestamp": "2026-07-16T02:20:05.163693"
+    },
+    {
       "id": "20260711150923114-8654",
       "sufijo": "8654",
       "numero_factura": "FEE98654",

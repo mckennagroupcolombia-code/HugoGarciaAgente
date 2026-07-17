@@ -1801,7 +1801,12 @@ def listar_productos_combo_siigo() -> list:
     if out:
         _combos_cache = out
         _combos_cache_ts = time.time()
-    return out
+        return out
+    # API caída o respuesta vacía al refrescar: devolver el catálogo anterior
+    # (aunque esté vencido) en vez de una lista vacía — con [] el chat web le
+    # decía al cliente "no encontré esa referencia" para productos que sí
+    # existen, de forma intermitente según el minuto del TTL.
+    return _combos_cache
 
 
 def actualizar_precio_combo_siigo(code: str, nuevo_precio: float) -> dict:
@@ -2394,6 +2399,20 @@ _STOPWORDS_BUSQUEDA_COMBO = frozenset(
         "producto",
         "necesito",
         "quiero",
+        "quisiera",
+        "gustaria",
+        "podria",
+        "podrian",
+        "cotizar",
+        "cotizacion",
+        "cotizarme",
+        "precio",
+        "precios",
+        "cuesta",
+        "cuanto",
+        "cuanta",
+        "cuantos",
+        "vale",
         "dame",
         "mercadolibre",
         "meli",
@@ -2474,7 +2493,28 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
     if not combos_raw:
         return [], "No hay combos SIIGO activos en este momento."
 
-    scored: list[tuple[int, dict]] = []
+    excl = _skus_excluidos_chat_web()
+
+    # ── Fast-path: referencia exacta ──────────────────────────────────────
+    # Si algún token del mensaje (o el mensaje completo) es un código SIIGO
+    # —"C-PROCONSUE80PKg", el slug de la página web, o la ref pegada dentro
+    # de una frase— devolver ese producto directo, sin depender del scoring.
+    tokens_ref = {
+        re.sub(r"[^a-z0-9]", "", t) for t in consulta.lower().split()
+    }
+    tokens_ref.add(re.sub(r"[^a-z0-9]", "", consulta.lower()))
+    tokens_ref.discard("")
+    for raw in combos_raw:
+        code = (raw.get("code") or "").strip()
+        if not code:
+            continue
+        code_alnum = re.sub(r"[^a-z0-9]", "", code.lower())
+        if code_alnum and code_alnum in tokens_ref:
+            if excl and code.upper() in excl:
+                continue
+            return [_combo_item_desde_raw(raw)], "ok"
+
+    scored: list[tuple[int, dict, str]] = []
     for raw in combos_raw:
         code = (raw.get("code") or "").strip()
         name = (raw.get("name") or "").strip()
@@ -2490,7 +2530,7 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
         if consulta_norm in blob or blob in consulta_norm:
             score += 5
         if score > 0:
-            scored.append((score, raw))
+            scored.append((score, raw, blob))
 
     if not scored:
         return [], (
@@ -2498,34 +2538,74 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
             "Solo vendemos presentaciones tipo combo registradas en SIIGO."
         )
 
+    filtro_relajado = False
     if distintivos:
-        filtrados = [
-            (s, r)
-            for s, r in scored
-            if all(
-                d in _normalizar_texto_busqueda_combo(
-                    f"{r.get('name', '')} {r.get('code', '')}"
-                )
-                for d in distintivos
-            )
+        estrictos = [
+            (s, r, b) for s, r, b in scored if all(d in b for d in distintivos)
         ]
-        if filtrados:
-            scored = filtrados
+        if estrictos:
+            scored = estrictos
+        elif len(distintivos) >= 2:
+            # Frases largas ("...flores secas de lavanda... envío a Bucaramanga")
+            # o varios productos en un mensaje ("glicerina vegetal y arcilla
+            # caolín"): exigir TODOS los distintivos mataba matches válidos.
+            # Aceptar productos que cubran ≥2 distintivos, o 1 solo si ese token
+            # es casi único en el catálogo (nombre distintivo tipo "lavanda");
+            # tokens genéricos ("acido", "aceite") solos NO bastan — así
+            # "ácido tánico" sigue sin ofrecer otros ácidos.
+            df = {
+                d: sum(1 for _, _, b in scored if d in b) for d in distintivos
+            }
+            secuencia = consulta_norm.split()
+
+            def _pegado_a_variante_inexistente(token: str) -> bool:
+                # "ácido tánico": el cliente nombró una variante concreta que no
+                # existe en el catálogo (df=0 del vecino). Con un solo token
+                # coincidente NO ofrecer los demás ácidos/aceites de la familia.
+                for i, t in enumerate(secuencia):
+                    if t != token:
+                        continue
+                    for j in (i - 1, i + 1):
+                        if 0 <= j < len(secuencia):
+                            vecino = secuencia[j]
+                            if vecino in df and df[vecino] == 0:
+                                return True
+                return False
+
+            candidatos: list[tuple[int, int, dict, str]] = []
+            for s, r, b in scored:
+                matched = [d for d in distintivos if d in b]
+                if len(matched) >= 2 or (
+                    len(matched) == 1
+                    and df[matched[0]] <= 3
+                    and not _pegado_a_variante_inexistente(matched[0])
+                ):
+                    candidatos.append((len(matched), s, r, b))
+            if not candidatos:
+                return [], (
+                    f"No encontré combo SIIGO activo para '{consulta}'. "
+                    "Solo vendemos presentaciones tipo combo registradas en SIIGO."
+                )
+            candidatos.sort(
+                key=lambda x: (-x[0], -x[1], x[2].get("name", ""))
+            )
+            scored = [(s, r, b) for _, s, r, b in candidatos]
+            filtro_relajado = True
         else:
             return [], (
                 f"No encontré combo SIIGO activo para '{consulta}'. "
                 "Solo vendemos presentaciones tipo combo registradas en SIIGO."
             )
 
-    scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
-    if distintivos and scored[0][0] < len(distintivos) * 3:
-        return [], (
-            f"No encontré combo SIIGO activo para '{consulta}'. "
-            "Solo vendemos presentaciones tipo combo registradas en SIIGO."
-        )
-    excl = _skus_excluidos_chat_web()
+    if not filtro_relajado:
+        scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
+        if distintivos and scored[0][0] < len(distintivos) * 3:
+            return [], (
+                f"No encontré combo SIIGO activo para '{consulta}'. "
+                "Solo vendemos presentaciones tipo combo registradas en SIIGO."
+            )
     items = []
-    for _, raw in scored:
+    for _, raw, _ in scored:
         code = (raw.get("code") or "").strip().upper()
         if excl and code in excl:
             continue

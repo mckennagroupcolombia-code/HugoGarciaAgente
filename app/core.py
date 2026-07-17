@@ -225,8 +225,9 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
 8. La referencia (Ref.) es el SKU oficial para pedido.
 9. SI NO PUEDE RESPONDER con fundamento (dato de lote, normativa específica, trámite comercial): indique el **botón WhatsApp**
    de la página (+57 319 518 3596, wa.me/573195183596) para hablar con un **asesor humano** que sí mantiene el hilo.
-   Aclare que **este chat web no guarda el historial** si cierra la pestaña o borra datos del navegador.
-10. No prometa "le escribo después en este chat" ni que recordará su sesión si cierra el navegador.
+   Si viene al caso, aclare que este chat conserva el historial en este mismo navegador, pero se pierde
+   si cambia de dispositivo o borra los datos del navegador.
+10. No prometa "le escribo después en este chat": el asesor no puede iniciar conversación por este canal.
 """
 
 
@@ -930,6 +931,9 @@ def _es_canal_web_chat(canal: str, usuario_id: str) -> bool:
     return uid.startswith("web-")
 
 
+# Solo saludos reales. Los acuses de recibo ("gracias", "ok", "listo"...) van en
+# _AGRADECIMIENTOS_WEB: si se clasifican como saludo, un "Gracias" en mitad de la
+# conversación reinicia el hilo con la presentación de Hugo.
 _SALUDOS_WEB = frozenset(
     {
         "hola",
@@ -941,15 +945,6 @@ _SALUDOS_WEB = frozenset(
         "hey",
         "hi",
         "hello",
-        "ok",
-        "gracias",
-        "muchas gracias",
-        "vale",
-        "listo",
-        "perfecto",
-        "entiendo",
-        "entendido",
-        "de acuerdo",
     }
 )
 
@@ -1045,7 +1040,12 @@ def _es_reconocimiento_corto_web(texto: str) -> bool:
         return True
     if _es_saludo_puro_web(texto):
         return True
-    return bool(re.match(r"^(ok|entiendo|entendido|gracias|vale|listo|si|sí)\b", low))
+    return bool(
+        re.match(
+            r"^(ok|entiendo|entendido|gracias|muchas\s+gracias|vale|listo|perfecto|de\s+acuerdo|si|sí)\b",
+            low,
+        )
+    )
 
 
 _PATRONES_IRRITACION_WEB: tuple[str, ...] = (
@@ -1381,25 +1381,13 @@ def _formatear_bloque_producto_web(nombre_busqueda: str, items: list[dict]) -> s
 
 
 def _respuesta_multiproducto_web(pregunta: str) -> str | None:
+    # Solo listas explícitas de productos. NO partir frases por comas: una frase
+    # como "C-X es la referencia, pero envíeme cotización, es decir, secas" se
+    # convertía en "productos" absurdos ("*es decir*: no aparece en catálogo web").
     if _mensaje_lista_multiproducto_web(pregunta):
         nombres = _extraer_items_lista_productos_web(pregunta)
     else:
         nombres = _extraer_nombres_producto_web(pregunta)
-        if len(nombres) < 2 and "," in (pregunta or ""):
-            low = (pregunta or "").lower()
-            if "?" not in low and not re.match(r"^\s*hola\b", low):
-                partes = [
-                    _termino_busqueda_limpio_web(p)
-                    for p in (pregunta or "").split(",")
-                ]
-                partes = [
-                    p
-                    for p in partes
-                    if len(p) >= 3
-                    and not re.search(r"\b(tienes|tiene|tienen|hay|precio|cuesta)\b", p)
-                ]
-                if len(partes) >= 2:
-                    nombres = partes[:4]
     if len(nombres) < 2:
         return None
     lineas = ["Claro veci. Le confirmo lo que tenemos en catálogo web:"]
@@ -1427,7 +1415,9 @@ def _respuesta_enlace_meli_web(pregunta: str) -> str | None:
     items = _filtrar_items_por_consulta_web(items, termino)
     nota = _nota_producto_alternativo_web(termino, items)
     if not items:
-        return _respuesta_no_encontrado_catalogo_web(termino)
+        # Sin match: deja que el LLM responda con el historial en vez del
+        # callejón sin salida "no encontré esa presentación".
+        return None
     it = items[0]
     meli = _meli_url_desde_ref_web(str(it.get("ref") or ""))
     precio = (
@@ -1473,7 +1463,7 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
         return False
     if low in _SALUDOS_WEB:
         return False
-    if re.match(r"^(ok|gracias|si|sí|no|vale|listo|perfecto|entendido|de\s+acuerdo|claro|muchas\s+gracias)\b", low):
+    if re.match(r"^(ok|gracias|si|sí|no|vale|listo|perfecto|entiendo|entendido|de\s+acuerdo|claro|muchas\s+gracias)\b", low):
         return False
     if re.search(r"\b(cuanto|cuánto)\s+(cuesta|vale|es|sale|cobra|est[aá])\b", low):
         return True
@@ -1823,11 +1813,13 @@ def _normalizar_busqueda_combo_web(texto: str) -> str:
 
 def _formatear_respuesta_directa_combos_web(
     items: list[dict], consulta: str, pregunta_cliente: str = ""
-) -> str:
+) -> str | None:
     items = _filtrar_items_por_consulta_web(items, consulta or pregunta_cliente or "")
     items = _filtrar_items_por_seleccion_cliente(items, pregunta_cliente or consulta)
     if not items:
-        return _respuesta_no_encontrado_catalogo_web(consulta or pregunta_cliente or "")
+        # Los filtros vaciaron los resultados: mejor que responda el LLM con
+        # historial a devolver el enlatado "no encontré esa presentación".
+        return None
     nota = _nota_producto_alternativo_web(
         pregunta_cliente or consulta or "", items
     )
@@ -1933,8 +1925,11 @@ def _respuesta_directa_web_si_combos(
         return _formatear_respuesta_directa_combos_web(
             items, termino, pregunta_cliente=pregunta
         )
-    if estado and "No encontré combo" in estado:
-        return _respuesta_no_encontrado_catalogo_web(termino)
+    # Búsqueda sin resultados: NO responder el enlatado "no encontré esa
+    # presentación" — el clasificador de catálogo tiene falsos positivos
+    # ("Buen día señor Hugo", "Son por mayor?") y este callejón sin salida
+    # era el 16% de las respuestas del chat web. El preflight le informa al
+    # LLM que la búsqueda no arrojó nada y él responde siguiendo el hilo.
     return None
 
 
@@ -1993,8 +1988,7 @@ def _enriquecer_pregunta_tecnica_web(
             "- Responda uso, propiedades o formulación. NO repita lista de precios.",
             "- Si falta dato exacto de lote en ficha/memoria, use **valores teóricos o rangos "
             "habituales** de literatura científica para ese ingrediente; indique que son orientativos.",
-            "- Si no puede responder con fundamento, derive al **botón WhatsApp** para asesor humano "
-            "y aclare que **este chat no guarda el historial** al cerrar el navegador.",
+            "- Si no puede responder con fundamento, derive al **botón WhatsApp** para asesor humano.",
         ]
     )
     return "\n".join(bloques)
@@ -2041,9 +2035,69 @@ def _preflight_contexto_combos_web(pregunta: str, messages: list | None = None) 
     except Exception as e:
         _log_error("preflight_combos_web", e)
         return None
-    if not datos:
+    sin_resultados = not datos or any(
+        marca in datos
+        for marca in ("No encontré combo", "No pude interpretar", "Consulta vacía")
+    )
+    if sin_resultados:
+        # Nota interna para el LLM: la búsqueda no arrojó nada. Evita que
+        # invente precios, pero le deja responder siguiendo el hilo (el
+        # clasificador de catálogo tiene falsos positivos con saludos y
+        # frases cortas que no son productos).
+        if len((termino or "").strip()) >= 3:
+            return (
+                f"[Nota interna: la búsqueda automática de '{termino.strip()}' en el "
+                "catálogo web no arrojó resultados. Si el cliente pregunta por un "
+                "producto, NO invente precios ni disponibilidad: dígale que no lo ve "
+                "en el catálogo web, sugiera revisar https://mckennagroup.co/tienda "
+                "o confirmar con un asesor por WhatsApp. Si el mensaje NO es una "
+                "consulta de producto, ignore esta nota y responda al hilo de la "
+                "conversación.]"
+            )
         return None
     return datos
+
+
+def _producto_pagina_web(page_url: str) -> dict | None:
+    """
+    Resuelve el producto de la página desde la que escribe el cliente
+    (URLs /producto/<slug>, donde slug = ref SIIGO en minúsculas).
+    Devuelve el item estructurado {name, ref, precio_web} o None.
+    """
+    m = re.search(r"/producto/([a-z0-9\-]+)", (page_url or "").lower())
+    if not m:
+        return None
+    slug = m.group(1)
+    try:
+        items, _ = buscar_combos_siigo_estructurado(slug)
+    except Exception as e:
+        _log_error("producto_pagina_web", e)
+        return None
+    if not items:
+        return None
+
+    def _slug_de_ref(ref: str) -> str:
+        return re.sub(r"[^a-z0-9\-]", "-", (ref or "").lower())
+
+    exactos = [it for it in items if _slug_de_ref(str(it.get("ref") or "")) == slug]
+    return (exactos or items)[0]
+
+
+def _contexto_producto_pagina_web(page_url: str) -> str:
+    """Bloque de contexto para el LLM con el producto de la página actual."""
+    it = _producto_pagina_web(page_url)
+    if not it:
+        return ""
+    precio = (
+        f"${it['precio_web']:,.0f} COP"
+        if it.get("precio_web", 0) > 0
+        else "precio a confirmar"
+    )
+    return (
+        f"[El cliente escribe desde la página del producto: *{it['name']}* — "
+        f"{precio} — Ref. {it['ref']}. Si dice 'este producto' o pregunta "
+        "precio/cantidad/uso sin nombrar producto, se refiere a este.]"
+    )
 
 
 def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) -> str | None:
@@ -2332,9 +2386,23 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return contacto_out, final_messages
 
+        # El cliente suele pedir "ficha técnica" sin repetir el producto: dale al
+        # handler el producto recién ofertado en el chat y el de la página desde
+        # la que escribe, para que no vuelva a pedir la referencia.
+        hist_docs = hist_user_web
+        prod_reciente_docs = _extraer_producto_reciente_historial_web(messages)
+        prod_pagina_docs = _producto_pagina_web(page_url or "")
+        for extra_doc in (
+            prod_reciente_docs,
+            (prod_pagina_docs or {}).get("name", ""),
+        ):
+            if extra_doc and extra_doc.lower() not in hist_docs.lower():
+                # En línea propia: el extractor de productos separa por saltos
+                # de línea y descarta fragmentos largos pegados.
+                hist_docs = f"{hist_docs}\n{extra_doc}".strip()
         docs = manejar_documentos_web(
             user_message=pregunta_visible,
-            historial_usuario=hist_user_web,
+            historial_usuario=hist_docs,
         )
         if docs:
             docs_out = _sanitizar_respuesta_web_chat(docs)
@@ -2442,6 +2510,13 @@ def obtener_respuesta_ia(
     contexto_combos = (
         _preflight_contexto_combos_web(pregunta_visible, messages) if es_web else None
     )
+    # Producto de la página desde la que escribe el cliente (/producto/<slug>):
+    # resuelve "este producto", "cuánto vale", "quiero 2" sin nombrar el producto.
+    ctx_pagina = _contexto_producto_pagina_web(page_url or "") if es_web else ""
+    if ctx_pagina:
+        contexto_combos = (
+            f"{ctx_pagina}\n\n{contexto_combos}" if contexto_combos else ctx_pagina
+        )
     if _mensaje_parece_consulta_tecnica_web(pregunta_visible):
         pregunta_para_ia = _enriquecer_pregunta_tecnica_web(
             pregunta_visible,
@@ -2449,6 +2524,8 @@ def obtener_respuesta_ia(
             ficha=ficha_esc if es_web else None,
             memoria_vec=memoria_esc if es_web else "",
         )
+        if ctx_pagina:
+            pregunta_para_ia = f"{ctx_pagina}\n{pregunta_para_ia}"
     elif contexto_combos and pregunta_visible:
         pregunta_para_ia = (
             f"[Catálogo web verificado — uso interno, no mencionar SIIGO/combo al cliente]\n"
