@@ -3181,3 +3181,364 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+Auto empaquetado del repositorio en segundo plano para un rendimiento óptimo.
+Mira "git help gc" para limpieza manual.
+[cursor/wa-metricas-panel 636732b] Auto-commit: actualizacion diaria 2026-07-16 23:00
+ 370 files changed, 238619 insertions(+), 2139 deletions(-)
+ create mode 100644 FOTOS  IMPORTADOS MELI/Mani tostado Natural.png
+ create mode 100644 app/data/plantillas_visuales.pre_compliance_20260716_0353.json
+ create mode 100644 app/data/plantillas_visuales.pre_reconciliar_20260716_0358.json
+ create mode 100644 app/data/plantillas_visuales.pre_regen_ai_20260716_0337.json
+ create mode 100644 app/data/verificacion_plantillas_ai/101.0x40.0/ACEITE DE NEEM 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102.0x76.0/GELATINA SIN SABOR DOTCHI 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102.0x76.0/GLICERINA gL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102.0x76.0/JABON POTASICO Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102.0x76.0/NONILFENOL Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACEITE ARGAN 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO HIALURONICO 30mL ALTO PESO MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO HIALURONICO 30mL BAJO PESO MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO HIALURONICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO KOJICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO KOJICO D PALMITATO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO LACTICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ACIDO SALICILICO 50g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/AGUA DE ROSAS 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ALOE VERA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/COLAGENO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/COLORANTE AZUL BRILLANTE 50g Falta codigo.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/COLORANTE ROJO ERITROSINA 50g Falta codigo.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/D PANTENOL 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/D PANTENOL 50 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/DMSO 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/DMSO 30ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ELASTINA 30 m.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/ELASTINA 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/GUSANO DE SEDA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/MOLIBDATO DE AMONIO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/RETINOL 5P 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/SHAROMIX 705 50mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/Semilla de Uva 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/102x38/VITAMINA C 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/42x50/FRAGANCIA HIDRO FRAMBUESA.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/ACIDO ALFA ARBUTINA 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/ACIDO AZELAICO 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/ACIDO MANDELICO 5g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/ACIDO TRANEXAMICO 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/AGUA DESTILADA 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/AGUA DESTILADA Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/AGUA DESTILADA gL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/AZUL DE METILENO 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/VERDE MALAQUITA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/VIOLETA DE GENCIANA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/50x42/VITAMINA B12 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/ACEITE DE LINAZA 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/ACEITE DE NEEM 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/ACEITE DE NEEM 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/ACEITE DE RICINO 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/BETAINA DE COCO 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/EXTRACTO GLICOLICO LAVANDA 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/EXTRACTO GLICOLICO LAVANDA 60mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/GLICERINA 250 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/L ARGININA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/L CARNITINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/L GLUTAMINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/L TEANINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/PAPAINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/POLISORBATO 80 500 ML X CREAR CODIGO DE BARRAS.png
+ create mode 100644 app/data/verificacion_plantillas_ai/58.0x54.0/SHAROMIX 250 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL ALBAHACA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL ARBOL DE TE 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL BERGAMOTA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL CANELA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL CLAVOS 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL EUCALIPTO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL GERANIO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL HIERBABUENA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL JAZMIN 5ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL JENGIBRE 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL LAVANDA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL LIMON 5ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL MANDARINA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL MANZANILLA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL MARACUYA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL MENTA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL NARANJA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL PINO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL ROMERO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL ROSA MOSQUETA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL ROSAS 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL TOMILLO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/ESENCIAL YLANG YLANG 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/66.0x22.0/LANOLINA 40g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACEITE DE NEEM 60mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO ASCORBICO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO BENZOICO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO MALICO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO SALICILICO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO SORBICO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/AGAR AGAR 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/ALGINATO DE SODIO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/CAFEINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/CIRUELAS DESHIDRATADAS 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/FLOR DE JAMAICA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/FRAGANCIA LIPO NECTAR SANDIA 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L ALGINATO DE SODIO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L CITRULINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L FENILALANINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L LISINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L ORNITINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L PROLINA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/L TRIPTOFANO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/MANI 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/MELATONINA 100 g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/MENTOL CRISTAL 100G.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/NIACINAMIDA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/SORBATO DE POTASIO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/SUCRALOSA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/SUCRALOSA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/69x51/VITAMINA E 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACEITE DE GIRASOL 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACEITE DE RICINO 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACEITE DE RICINO LT.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACEITE MINERAL 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACETATO DE SODIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO ACETICO GLACIAL Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO ASCORBICO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO ASCORBICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO BORICO 1000g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO BORICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO BORICO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO CITRICO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO CITRICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO CITRICO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO ESTEARICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO FUMARICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO SALICILICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO SORBICO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ACIDO SORBICO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/AGUA DESTILADA 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALANTOINA 250g.png
+ create mode 100644 "app/data/verificacion_plantillas_ai/76x66/ALANTO\303\215NA 100g.png"
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALBUMINA DE HUEVO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALCOHOL CETILICO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALCOHOL CETILICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALCOHOL CETO ESTEARILICO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALCOHOL CETO ESTEARILICO 500 g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALULOSA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALULOSA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALULOSA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALUMBRE DE POTASIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ALUMBRE DE POTASIO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA AMARILLA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA AMARILLA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA BLANC 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA BLANCA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA ROJA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ARCILLA VERDE 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/AZUFRE MICRONIZADO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BCAA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BCAA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BENZOATO DE SODIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BETAINA DE COCO 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BETAINA DE COCO Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BICARBONATO DE SODIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BORAX 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BTMS 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/BTMS 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CAFEINA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CAFEINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CARBON ACTIVADO PELLETS 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CARBON ACTIVADO PELLETS 800g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CARBONATO DE CALCIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CARBONATO DE MAGNESIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CELULOSA MICROCRISTALINA 101 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CELULOSA MICROCRISTALINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CELULOSA PH 102 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CERA CARNAUBA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CERA CARNAUBA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CERA DE ABEJAS REFINADA AMARILLA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CERA DE ABEJAS REFINADA AMARILLA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO DE CALCIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO MAGNESIO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO MAGNESIO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO POTASIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO POTASIO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CITRATO ZINC 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CLORURO CALCIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CLORURO DE MAGNESIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CLORURO DE MAGNESIO Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/COCOAMIDA 500mL.png
+ create mode 100644 "app/data/verificacion_plantillas_ai/76x66/COL\303\201GENO HIDROLIZADO 250g.png"
+ create mode 100644 "app/data/verificacion_plantillas_ai/76x66/COL\303\201GENO HIDROLIZADO 500g.png"
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CREATINA MONOHIDRATO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CREATINA MONOHIDRATO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/CREMOR TARTARO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/DEXTROSA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/DIOXIDO DE TITANIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/DL METIONINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ERITRITOL 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ESTEARATO DE MAGNESIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/EXTRACTO DE MALTA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/FLORES SECAS CALENDULA 50g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/FLORES SECAS LAVANDA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/FRUCTOSA 500 g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/FRUCTOSA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLICERINA 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLICERINA Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLICINATO DE MAGNESIO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLUTAMATO MONOSODICO 1000g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLUTAMATO MONOSODICO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GLUTARALDEHIDO 2P 500ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GOMA ARABIGA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GOMA GUAR 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/GOMA XANTHAN 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/HARINA DE ALGARROBA 500g.png
+ create mode 100644 "app/data/verificacion_plantillas_ai/76x66/HARINA DE TRIGO PANIFICACI\303\223N 00 Kg.png"
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/INULINA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/INULINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/JABON ESPUMA JACUZZI 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/JABON POTASICO 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/LACTATO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/LECITINA DE SOYA 500 g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/LECITINA DE SOYA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/MALTODEXTRINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/MANTECA DE CACAO NATURAL 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/MANTECA DE CACAO REFINADA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/METABISULFITO DE SODIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ORELLANA AZUL SECA 50g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/ORELLANA ROSADA SECA 50g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/OXIDO DE ZINC 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/PROTEINA AISLADA DE SOYA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/PROTEINA AISLADA DE SOYA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/PROTEINA SUERO LECHE 80_ 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/PROTEINA SUERO LECHE 80_ Kg CREAR CODIGO.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/RESINA EPOXI 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SABOR CARNE AHUMADA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SCI 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SCI 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SHAROMIX 500mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SORBATO DE POTASIO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SORBATO DE POTASIO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SORBITOL Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SUERO DE LECHE 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SUERO DE LECHE Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SULFATO DE COBRE 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/SULFATO DE HIERRO 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/Silica gel 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/Silica gel ARENA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/Silica gel ARENA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/TAURINA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/TENSOSIL COCO 500mL FALTA CODIGO BARRAS.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/TRIETANOLAMINA Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/UREA 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/UREA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/VASELINA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/76x66/VITAMINA D3 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACEITE ARGAN 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACEITE DE NEEM 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO ALFA ARBUTINA 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO AZELAICO 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO HIALURONICO 30mL ALTO PESO MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO HIALURONICO 30mL BAJO PESO MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO HIALURONICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO KOJICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO KOJICO D PALMITATO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO LACTICO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO MANDELICO 5g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO SALICILICO 50g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ACIDO TRANEXAMICO 10g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/AGUA DE ROSAS 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/AGUA DESTILADA 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/AGUA DESTILADA Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/AGUA DESTILADA gL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ALOE VERA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/AZUL DE METILENO 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/CELULOSA MICROCRISTALINA 101 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/CELULOSA MICROCRISTALINA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/CERA DE ABEJAS REFINADA AMARILLA 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/CERA DE ABEJAS REFINADA AMARILLA Kg.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/CIRUELAS DESHIDRATADAS 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/COLAGENO 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/COLORANTE AZUL BRILLANTE 50g Falta codigo.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/COLORANTE ROJO ERITROSINA 50g Falta codigo.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/D PANTENOL 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/D PANTENOL 50 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/DMSO 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/DMSO 30ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/DPANTENOL  30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ELASTINA 30 m.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ELASTINA 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL ALBAHACA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL ARBOL DE TE 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL BERGAMOTA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL CANELA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL CLAVOS 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL EUCALIPTO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL GERANIO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL HIERBABUENA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL JAZMIN 5ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL JENGIBRE 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL LAVANDA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL LIMON 5ML.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL MANDARINA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL MANZANILLA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL MARACUYA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL MENTA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL NARANJA 5 mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL PINO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL ROMERO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL ROSA MOSQUETA 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL ROSAS 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL TOMILLO 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/ESENCIAL YLANG YLANG 5mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/FLOR DE JAMAICA 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/FRAGANCIA LIPO NECTAR SANDIA 250mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/GELATINA SIN SABOR DOTCHI 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/GUSANO DE SEDA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/JABON POTASICO Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/LACTATO 250g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/LANOLINA 40g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/MANI 500g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/MOLIBDATO DE AMONIO 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/NONILFENOL Lt.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/RETINOL 5P 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/SHAROMIX 705  30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/SHAROMIX 705 50mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/Semilla de Uva 120mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/VERDE MALAQUITA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/VIOLETA DE GENCIANA 30mL.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/VITAMINA B12 100g.png
+ create mode 100644 app/data/verificacion_plantillas_ai/final/VITAMINA C 30 mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACEITE_DE_NEEM_120mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_HIALURONICO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_HIALURONICO_30mL_ALTO_PESO_MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_HIALURONICO_30mL_BAJO_PESO_MOLECULAR.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_KOJICO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_KOJICO_D_PALMITATO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_LACTICO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ACIDO_SALICILICO_50g.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/COLAGENO_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/DMSO_30ML.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/DMSO_30_mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/D_PANTENOL_120mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/D_PANTENOL_50_mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ELASTINA_30_m.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/ELASTINA_30_mL.png
+ delete mode 100644 app/data/verificacion_plantillas_compliance/FLORES_SECAS_LAVANDA_100g.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/GUSANO_DE_SEDA_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/RETINOL_5P_30mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/SHAROMIX_705_50mL.png
+ create mode 100644 app/data/verificacion_plantillas_compliance/VITAMINA_C_30_mL.png
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 scripts/reconciliar_solapes_generadas_ai.py
+ create mode 100644 uploads/tickets/60cb47ca69904fa4a466174725dc4bcc.png
+ create mode 100644 uploads/tickets/d077cf04d9d543b280d49a15c415de76.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-16 23:00:04] ERROR en el push. Revisar credenciales o conflictos.
