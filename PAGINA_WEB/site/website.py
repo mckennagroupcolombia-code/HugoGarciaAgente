@@ -1904,8 +1904,7 @@ def _chat_fallback_contextual(message: str) -> str | None:
             "Veci, las **materias primas** suelen documentarse con **ficha técnica** y **COA**, "
             "con un marco distinto al registro INVIMA de producto terminado. "
             "Déjenos referencia y correo por WhatsApp https://wa.me/"
-            f"{WA_NUMBER} y el equipo le envía lo disponible. "
-            "Allí mantienen el hilo; este chat no guarda el historial al cerrar el navegador."
+            f"{WA_NUMBER} y el equipo le envía lo disponible."
         )
     return None
 

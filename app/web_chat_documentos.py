@@ -239,6 +239,13 @@ def _resolver_productos_documento(user_message: str, historial_usuario: str) -> 
                 productos.insert(0, p)
                 break
 
+    # "ficha tecnica" a secas tras hablar de un producto: usar el más reciente
+    # del historial en vez de volver a pedir la referencia.
+    if not productos and hist:
+        previos = extraer_nombres_productos_documento(hist)
+        if previos:
+            productos.append(previos[-1])
+
     vistos: set[str] = set()
     out: list[str] = []
     for p in productos:

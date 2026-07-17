@@ -45,14 +45,84 @@ from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 _AI_DIR = _REPO / "Etiquetas Modelo SVG"
 _RECURSOS_PNG = Path.home() / "Documentos" / "Etiquetas McKenna" / "Recursos PNG"
 
-# Masters "ideales" por formato del Studio (id de plantillas_visuales.json)
-MASTERS = {
-    "250 g": {"id": "6163b923-b0a", "mm": (76, 66)},
-    "100 g": {"id": "ef750bb7-997", "mm": (69, 51)},
-    "30 mL": {"id": "e4681c0b-8f8", "mm": (102, 38)},
-    "5 g": {"id": "50357517-81f", "mm": (50, 42)},
+# ── Masters aprobados (los 26 del apartado Imprimir + PLANTILLA base) ──────
+# Por formato físico (mm) y color de acento. "roles" completa los textRole
+# que los masters retocados a mano perdieron ("__vaciar__" = texto específico
+# del producto master que no debe heredarse).
+PALETA = {
+    "azul": "#0396f1",
+    "amarillo": "#ffa040",
+    "cafe": "#865e3c",
+    "morado": "#813d9c",
+    "gris": "#77767b",
+    "teal": "#0e7490",
 }
+# Anclas RGB extra por color: tonos históricos usados en los .ai viejos.
+ANCLAS_COLOR = {
+    "azul": ["#0396f1", "#0072bc", "#1b75bb", "#27aae1"],
+    "amarillo": ["#ffa040", "#ffa944", "#f7941d", "#fbb040"],
+    "cafe": ["#865e3c", "#6b4a2f", "#a97c50", "#754c29"],
+    "morado": ["#813d9c", "#5e2590", "#8d198f", "#662d91"],
+    "gris": ["#77767b", "#939598", "#58595b"],
+    "teal": ["#0e7490", "#0891b2", "#00a79d"],
+    "verde": ["#39b54a", "#006838", "#8dc63f"],
+    "rojo": ["#ed1c24", "#be1e2d"],
+}
+LOGOS = {
+    "azul": "logo azul  _ isotipo.png",
+    "amarillo": "LOGO AMARILLO.png",
+    "cafe": "LOGO CAFE.png",
+    "morado": "LOGO MORADO.png",
+    "gris": "LOGO GRIS.png",
+}
+MASTERS = {
+    (76, 66): {
+        "azul": {"id": "6163b923-b0a"},
+        "amarillo": {"id": "211deae3-270", "acento": "#ffa040"},
+        "morado": {"id": "b53d18f9a3d2", "acento": "#813d9c",
+                   "roles": {"4bc1b2e8-ae8": "advertencias"}},
+    },
+    (69, 51): {
+        "azul": {"id": "ef750bb7-997"},
+        "cafe": {"id": "e9400a48-66e", "acento": "#865e3c"},
+        "morado": {"id": "d563f4d84e4e", "acento": "#813d9c"},
+    },
+    (102, 38): {
+        "azul": {"id": "e4681c0b-8f8"},
+        "morado": {"id": "7f003bd1-550", "acento": "#813d9c",
+                   "roles": {"f25cf8a6-b05": "subtitulo", "4056b8a3-e05": "advertencias"}},
+        "amarillo": {"id": "c7c01eb2-55a", "acento": "#ffa944",
+                     "roles": {"13ef18f6-9e7": "subtitulo", "1538b186-b1d": "advertencias"}},
+    },
+    # (55, 55) y (70, 70) son etiquetas CIRCULARES con texto en arco
+    # (VASELINA / KARITE): no se clonan automáticamente — hacerlas en el Studio.
+    (42, 50): {
+        "teal": {"id": "27e43f44-d0f", "acento": "#0e7490",
+                 "roles": {"feed383b-ba5": "titulo", "9b1d53a9-568": "subtitulo",
+                           "61d8a017-cfb": "descripcion", "729449c5-ad8": "advertencias"}},
+    },
+    (50, 42): {
+        "gris": {"id": "50357517-81f", "acento": "#77767b"},
+    },
+}
+# Color base preferido al recolorear cuando el formato no tiene el color pedido
+COLOR_BASE_PREFERIDO = ["azul", "amarillo", "morado", "cafe", "gris", "teal"]
+
+# Ids de las plantillas modelo del apartado Imprimir: NUNCA se sobreescriben.
+APROBADOS_IDS = {
+    "50f4cb70-4e3", "7f003bd1-550", "ed3003bc-7c9", "5f3566c7-f28", "2986d72c-8d3",
+    "5aa2d79e-dfe", "80162852-b37", "8e92c4ce-c18", "6a0ee6e3-4d9", "cb205719-736",
+    "f6c0d834a29f", "c7c01eb2-55a", "c85eac37-d3d", "d3b2c9f2-7a4", "3e5ddd4d-7f0",
+    "27e43f44-d0f", "2bbaf0f2-d27", "d563f4d84e4e", "fc896337-e5a", "ac795e52-e2c",
+    "c6cbce4910c5", "b53d18f9a3d2", "1331e435-a3b", "51dc23cd-ed5", "50357517-81f",
+    "6163b923-b0a", "211deae3-270", "ef750bb7-997", "e9400a48-66e", "e4681c0b-8f8",
+}
+
+# Página máxima aceptada como etiqueta individual (descarta A4 / pliegos)
+LADO_MAX_MM = 130
 TOLERANCIA_MM = 2
+# Diferencia máxima de proporción al escalar un master a un formato sin modelo
+MAX_DIF_ASPECTO = 0.30
 CARPETA_DESTINO = "Generadas AI"
 
 FONTS_DIR = Path("/usr/share/fonts/truetype/montserrat")
@@ -100,19 +170,66 @@ def tam_pagina_mm(path: Path) -> tuple[float, float] | None:
     return float(m.group(1)) / 72 * 25.4, float(m.group(2)) / 72 * 25.4
 
 
-def formato_para(path: Path) -> tuple[str | None, bool]:
-    """(nombre de formato master, rotada). None si el tamaño no tiene master."""
+def _tipos_impresion() -> list[dict]:
+    try:
+        data = json.loads((_REPO / "app" / "data" / "etiquetas_tipos.json").read_text())
+        return data.get("tipos") or []
+    except Exception:
+        return []
+
+
+def nombre_tipo_para(w_mm: float, h_mm: float) -> str:
+    """Nombre del formato de impresión configurado más cercano (±3 mm)."""
+    for t in _tipos_impresion():
+        tw, th = float(t.get("ancho_mm") or 0), float(t.get("alto_mm") or 0)
+        if (abs(w_mm - tw) <= 3 and abs(h_mm - th) <= 3) or \
+           (abs(w_mm - th) <= 3 and abs(h_mm - tw) <= 3):
+            return str(t.get("nombre"))
+    return f"{w_mm:.0f}x{h_mm:.0f} mm"
+
+
+def resolver_formato(path: Path) -> tuple[tuple[int, int] | None, bool, tuple[float, float] | None]:
+    """(clave de MASTERS, rotada, tamaño_destino_mm).
+
+    tamaño_destino_mm es None cuando el .ai coincide con el master (±2 mm);
+    si no, es el tamaño real del .ai al que hay que ESCALAR el master de
+    proporción más parecida (misma orientación; los .ai rotados se generan
+    en la orientación del master y se rotan al imprimir).
+    """
     t = tam_pagina_mm(path)
     if not t:
-        return None, False
+        return None, False, None
     w, h = t
-    for nombre, info in MASTERS.items():
-        mw, mh = info["mm"]
+    if max(w, h) > LADO_MAX_MM:
+        return None, False, None
+    if abs(w - h) <= 3 and 50 <= min(w, h) <= 75:
+        return None, False, None  # circular (texto en arco): diseño manual
+    # Las etiquetas "50 g" (.ai a 102x32) se trabajan en lienzo 102x38, igual
+    # que las 50 g aprobadas del Studio (ALGINATO/CLORURO/LACTATO DE CALCIO).
+    if abs(w - 102) <= 2 and abs(h - 32) <= 2:
+        return (102, 38), False, None
+    if abs(h - 102) <= 2 and abs(w - 32) <= 2:
+        return (102, 38), True, None
+    for mw, mh in MASTERS:
         if abs(w - mw) <= TOLERANCIA_MM and abs(h - mh) <= TOLERANCIA_MM:
-            return nombre, False
+            return (mw, mh), False, None
+    for mw, mh in MASTERS:
         if abs(w - mh) <= TOLERANCIA_MM and abs(h - mw) <= TOLERANCIA_MM:
-            return nombre, True
-    return None, False
+            return (mw, mh), True, None
+    mejor = None  # (dif penalizada, clave, rotada, destino)
+    for mw, mh in MASTERS:
+        for aw, ah, rot in ((w, h, False), (h, w, True)):
+            if mw != mh and aw != ah and (mw >= mh) != (aw >= ah):
+                continue  # orientación distinta
+            dif = abs((aw / ah) - (mw / mh)) / (mw / mh)
+            if dif > MAX_DIF_ASPECTO:
+                continue
+            pen = dif + (0.03 if rot else 0.0)  # preferir no rotar
+            if mejor is None or pen < mejor[0]:
+                mejor = (pen, (mw, mh), rot, (aw, ah))
+    if mejor:
+        return mejor[1], mejor[2], mejor[3]
+    return None, False, None
 
 
 _RE_WORD = re.compile(
@@ -186,6 +303,20 @@ _RE_ADVERTENCIA = re.compile(
 )
 
 
+_RE_RUIDO_INLINE = re.compile(
+    r"(mckenna group s\.?\s*a\.?\s*s\.?|bogot[áa]\s*[–\-—]?\s*colombia"
+    r"|nit\.?\s*901316016(-\d)?|desarrollado por:?|descarga ficha t[ée]cnica en:?"
+    r"|www\.mckennagroup\.co|mckennagroup\.\s*co|rsn\s*\d[\d\s]*\w*)",
+    re.IGNORECASE,
+)
+
+
+def _quitar_ruido_inline(t: str) -> str:
+    """Texto de la esquina corporativa que se cuela dentro de párrafos cuando
+    las columnas del .ai están demasiado juntas (etiquetas pequeñas)."""
+    return _RE_RUIDO_INLINE.sub(" ", t)
+
+
 def _limpiar_parrafo(t: str) -> str:
     t = re.sub(r"(\w)-\s+(\w)", r"\1\2", t)  # cortes con guión al final de renglón
     # Palabras con tracking de Illustrator extraídas letra a letra: "p e r f e c t a s"
@@ -242,7 +373,7 @@ def extraer_campos(path: Path) -> dict:
     frontera = (min(anclas) - 3) if anclas else pw * 0.62
 
     desc_lineas: list[str] = []
-    adv_lineas: list[str] = []
+    adv_segs: list[tuple[float, float, str]] = []
     titulo_listo = False
     subtitulo_corto = ""   # línea corta bajo el título (p. ej. "Aceite vegetal puro")
     espera_formula = False  # "Fórmula molecular:" sin valor; el valor viene en el siguiente renglón
@@ -303,7 +434,8 @@ def extraer_campos(path: Path) -> dict:
             # el tope de longitud evita capturar renglones de la descripción
             # que empiezan con las mismas palabras.
             if not campos["subtitulo"] and ln["y0"] < ph * 0.45 and len(t) <= 65 \
-               and re.search(r"^(.{0,14})?(materia prima|insumo (alimentario|cosm|de uso))", tl) \
+               and re.search(r"^(.{0,14})?(materia prima|insumo (alimentario|cosm|de uso)"
+                             r"|aceite (100%\s*)?esencial puro|aceite vegetal puro)", tl) \
                and not t.rstrip().endswith((",", ";")):
                 campos["subtitulo"] = t
                 continue
@@ -319,8 +451,11 @@ def extraer_campos(path: Path) -> dict:
             if tl.startswith("incluye"):
                 campos["cuchara"] = t
                 continue
-            if _RE_PESO.match(t) and ln["y0"] > ph * 0.65:
-                campos["peso"] = t
+            if _RE_PESO.match(t):
+                # el peso "oficial" es el de abajo; uno suelto arriba (5 mL)
+                # también cuenta y nunca debe caer en la descripción
+                if not campos["peso"] or ln["y0"] > ph * 0.65:
+                    campos["peso"] = t
                 continue
             # Línea corta justo bajo el título: candidata a subtítulo
             if (
@@ -336,17 +471,13 @@ def extraer_campos(path: Path) -> dict:
                 if abs(x0 - ult_adv[0]) < 30 and 0 <= ln["y0"] - ult_adv[1] < 10 and t.startswith("•") is False \
                    and len(t.split()) <= 10 and x0 > pw * 0.15:
                     es_adv = True
-            if es_adv:
-                adv_lineas.append(t)
-                ult_adv = (x0, ln["y1"])
-                continue
-            if x0 >= frontera:
-                adv_lineas.append(t)
+            if es_adv or x0 >= frontera:
+                adv_segs.append((x0, ln["y0"], t))
                 ult_adv = (x0, ln["y1"])
                 continue
             desc_lineas.append(t)
 
-    desc = _limpiar_parrafo(" ".join(desc_lineas))
+    desc = _limpiar_parrafo(_quitar_ruido_inline(" ".join(desc_lineas)))
     # Campos que quedaron incrustados en el párrafo cuando el hueco entre
     # columnas es menor que el umbral de segmentación: capturar y retirar.
     m = re.search(r"#?\s*CAS:?\s*([0-9][0-9\-]{4,})", desc)
@@ -371,6 +502,13 @@ def extraer_campos(path: Path) -> dict:
     desc = re.sub(r"\s+(Propiedades:)\s*", r"\n\1", desc)
     campos["descripcion"] = desc.strip()
 
+    if not campos["titulo"]:
+        campos["titulo"] = titulo_desde_archivo(path.stem)
+        campos["avisos"].append("título vectorizado en el .ai: tomado del nombre de archivo")
+    # Línea corta que repite (parte de) el título: no es subtítulo ni origen
+    if subtitulo_corto and subtitulo_corto.casefold() in campos["titulo"].casefold():
+        subtitulo_corto = ""
+
     # Resolución del subtítulo: la línea tipo "Materia prima / Insumo…" manda;
     # la línea corta bajo el título (si además hubo banda) va a la descripción.
     if not campos["subtitulo"] and subtitulo_corto:
@@ -391,8 +529,21 @@ def extraer_campos(path: Path) -> dict:
         st = re.sub(r"\s*#?\s*CAS:?\s*[0-9][0-9\-]{4,}\s*$", "", st, flags=re.IGNORECASE)
         campos["subtitulo"] = st.strip()
 
-    adv = _limpiar_parrafo(" ".join(adv_lineas))
-    adv = re.sub(r"\bNO\s+GHS\b|\bGHS\b", " ", adv)
+    # Advertencias: reordenar por columnas (los .ai viejos ponen los bullets
+    # en 2 columnas al pie; leerlas por renglón entrelaza los textos)
+    adv_orden: list[str] = []
+    if adv_segs:
+        cols: list[dict] = []
+        for seg in sorted(adv_segs, key=lambda s: s[0]):
+            if cols and seg[0] - cols[-1]["x1"] <= pw * 0.08:
+                cols[-1]["items"].append(seg)
+                cols[-1]["x1"] = max(cols[-1]["x1"], seg[0])
+            else:
+                cols.append({"x1": seg[0], "items": [seg]})
+        for col in cols:
+            adv_orden += [t for _, _, t in sorted(col["items"], key=lambda s: (s[1], s[0]))]
+    adv = _limpiar_parrafo(_quitar_ruido_inline(" ".join(adv_orden)))
+    adv = re.sub(r"\bNO\s+GHS\b|\bGHS\b|\bH\d{3}\b", " ", adv)
     adv = re.sub(r"\s+", " ", adv)
     bullets = [b.strip(" .") for b in adv.split("•") if b.strip(" .")]
     if len(bullets) >= 2:
@@ -427,6 +578,144 @@ def decodificar_ean(path: Path, tmp_dir: Path) -> str | None:
         finally:
             png.unlink(missing_ok=True)
     return None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  1b · Color de acento del .ai, recoloreo y escalado del master
+# ══════════════════════════════════════════════════════════════════════════
+
+def _hex2rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+_ANCLAS_RGB = [(color, _hex2rgb(h)) for color, hxs in ANCLAS_COLOR.items() for h in hxs]
+
+
+def detectar_color_ai(path: Path, tmp_dir: Path) -> tuple[str, str | None]:
+    """Color de acento dominante del .ai → (color de PALETA, aviso|None).
+
+    El texto del cuerpo siempre puntúa como "gris"; el acento real es el
+    bucket NO gris dominante. Solo si no hay ninguno, la etiqueta es gris.
+    """
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    stem = tmp_dir / ("cl_" + re.sub(r"[^\w]+", "_", path.stem)[:60])
+    try:
+        subprocess.run(
+            ["pdftoppm", "-r", "40", "-png", "-f", "1", "-l", "1", str(path), str(stem)],
+            capture_output=True, timeout=60, check=True,
+        )
+    except Exception:
+        return "azul", "no se pudo renderizar para detectar color: usa azul"
+    pngs = sorted(tmp_dir.glob(stem.name + "*.png"))
+    if not pngs:
+        return "azul", "sin render para detectar color: usa azul"
+    try:
+        img = Image.open(pngs[0]).convert("RGB")
+        img.thumbnail((220, 220))
+        conteo = {c: 0 for c in ANCLAS_COLOR}
+        muestreados = 0
+        for r, g, b in img.getdata():
+            mx, mn = max(r, g, b), min(r, g, b)
+            if mx > 235 and mn > 225:
+                continue  # blanco
+            if mx - mn < 18 and not (60 < mx < 200):
+                continue  # negro / casi negro (los grises medios sí cuentan)
+            muestreados += 1
+            mejor, mejor_d = None, 10**9
+            for color, (ar, ag, ab) in _ANCLAS_RGB:
+                d = (r - ar) ** 2 + (g - ag) ** 2 + (b - ab) ** 2
+                if d < mejor_d:
+                    mejor_d, mejor = d, color
+            if mejor_d < 75 ** 2:
+                conteo[mejor] += 1
+    finally:
+        for p in pngs:
+            p.unlink(missing_ok=True)
+    con_color = {c: n for c, n in conteo.items() if c != "gris" and n > 0}
+    if con_color:
+        color = max(con_color, key=con_color.get)
+        # exigir presencia mínima para no reaccionar a antialias suelto
+        if con_color[color] >= max(30, muestreados * 0.01):
+            return color, None
+    if conteo.get("gris", 0) >= max(30, muestreados * 0.01):
+        return "gris", None
+    return "azul", "color de acento no identificado: usa azul"
+
+
+_NEUTROS_RECOLOR = {
+    "#0f172a", "#5e5c64", "#241f31", "#ffffff", "#f6f5f4", "#000000",
+    "#171717", "#181918", "#231f20", "", "transparent", "none",
+}
+
+
+def recolorear_master(p: dict, acento_base: str, color_destino: str) -> None:
+    """Sustituye el color de acento del master y su logo por los del destino."""
+    destino = PALETA[color_destino]
+    base = acento_base.lower()
+    for el in p.get("elementos", []):
+        t = el.get("type")
+        if t == "text" and str(el.get("color") or "").lower() == base:
+            el["color"] = destino
+        elif t == "line" and str(el.get("stroke") or "").lower() == base:
+            el["stroke"] = destino
+        elif t == "rect":
+            for k in ("stroke", "fill"):
+                if str(el.get(k) or "").lower() == base:
+                    el[k] = destino
+        elif t == "image":
+            src = el.get("src") or ""
+            m = re.match(r"^(/(?:app/)?api/etiquetas/recursos-png/archivo/)(.+)$", src)
+            if m and "logo" in m.group(2).lower() and color_destino in LOGOS:
+                from urllib.parse import quote
+                el["src"] = m.group(1) + quote(LOGOS[color_destino])
+
+
+def resolver_master(masters_cache: dict, fmt_key: tuple[int, int], color: str) -> tuple[dict, str, list[str]]:
+    """(deepcopy del master listo, color final usado, avisos). Recolorea si
+    el formato no tiene master aprobado en el color detectado."""
+    avisos: list[str] = []
+    variantes = masters_cache[fmt_key]
+    if color in variantes:
+        return copy.deepcopy(variantes[color]), color, avisos
+    base_color = next((c for c in COLOR_BASE_PREFERIDO if c in variantes), None)
+    if base_color is None:
+        base_color = next(iter(variantes))
+    spec = MASTERS[fmt_key][base_color]
+    p = copy.deepcopy(variantes[base_color])
+    acento_base = spec.get("acento") or PALETA[base_color]
+    recolorear_master(p, acento_base, color)
+    avisos.append(f"master {base_color} recoloreado a {color}")
+    return p, base_color, avisos
+
+
+def escalar_plantilla(p: dict, destino_mm: tuple[float, float]) -> None:
+    """Escala todo el master (posiciones, cajas, fuentes, trazos) al tamaño
+    real del .ai conservando las proporciones internas del diseño."""
+    fmt = p.get("formato") or {}
+    w0, h0 = float(fmt.get("ancho_mm") or 1), float(fmt.get("alto_mm") or 1)
+    w1, h1 = destino_mm
+    sx, sy = w1 / w0, h1 / h0
+    sf = min(sx, sy)
+    for el in p.get("elementos", []):
+        for k, s in (("x", sx), ("y", sy), ("width", sx), ("height", sy), ("x2", sx), ("y2", sy)):
+            if el.get(k) is not None:
+                el[k] = round(float(el[k]) * s, 2)
+        if el.get("fontSize") is not None:
+            el["fontSize"] = round(float(el["fontSize"]) * sf, 2)
+        if el.get("strokeWidth") is not None:
+            el["strokeWidth"] = round(float(el["strokeWidth"]) * sf, 2)
+    nombre_tipo = nombre_tipo_para(w1, h1)
+    p["formato"] = {
+        "id": f"etiquetas-{nombre_tipo}",
+        "nombre": nombre_tipo,
+        "tipo_etiqueta": nombre_tipo,
+        "ancho_mm": round(w1, 1),
+        "alto_mm": round(h1, 1),
+        "ancho_px": int(round(w1 / 25.4 * 96)),
+        "alto_px": int(round(h1 / 25.4 * 96)),
+        "dpi": 96,
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -570,7 +859,7 @@ def _clasificar_elemento(el: dict) -> str:
         return "cas"
     if t.startswith("concentracion") or t.startswith("concentración"):
         return "concentracion"
-    if "puede causar" in t or "revise que" in t:
+    if "puede causar" in t or "revise que" in t or "verifique que" in t or t.startswith("• no utilice"):
         return "advertencias"
     if "desarrollado por" in t:
         return "desarrollado"
@@ -582,9 +871,25 @@ def _clasificar_elemento(el: dict) -> str:
 _RE_PESO_NOMBRE = re.compile(r"(\d[\d.,]*)\s*(g|kg|mL|ml|Lt|lt|L)\b", re.IGNORECASE)
 
 
-def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str) -> tuple[dict, list[str], set[str]]:
+def ajustar_titulo(el: dict, texto: str) -> float:
+    """Título en 1 línea; si a 9px sigue sin caber y la caja da para 2 líneas,
+    envuelve en 2 líneas (masters circulares). Devuelve el fontSize final."""
+    px = ajustar_una_linea(el, texto, min_px=9.0)
+    if _ancho_texto(texto, str(el.get("fontWeight") or "500"), px) <= float(el["width"]) / _COLCHON_AJUSTE:
+        return px
+    px0 = float(el.get("fontSize") or 6)
+    lh = float(el.get("lineHeight") or 1.2)
+    if float(el["height"]) >= 2 * px0 * lh * 0.9:
+        px2, _, _ = ajustar_multilinea(el, texto, min_px=7.0, alto_util=2 * px0 * lh)
+        return px2
+    return ajustar_una_linea(el, texto, min_px=6.0)
+
+
+def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str,
+                        roles_extra: dict[str, str] | None = None) -> tuple[dict, list[str], set[str]]:
     avisos: list[str] = list(campos.get("avisos") or [])
     modificados: set[str] = set()
+    roles_extra = roles_extra or {}
     p = copy.deepcopy(master)
     p["id"] = uuid.uuid4().hex[:12]
     p["nombre"] = nombre
@@ -599,7 +904,35 @@ def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str
 
     # Altura útil de advertencias: sin invadir bloques que estén debajo
     # en la misma columna (p. ej. "Desarrollado por").
-    roles = {(el.get("id") or ""): _clasificar_elemento(el) for el in p.get("elementos", [])}
+    def _rol(el: dict) -> str:
+        eid = el.get("id") or ""
+        return roles_extra.get(eid) or _clasificar_elemento(el)
+
+    W_px = float((p.get("formato") or master.get("formato") or {}).get("ancho_px") or 0)
+
+    def _encajar_en_lienzo(el: dict) -> None:
+        """La caja del master puede ser más ancha que el lienzo: el texto de
+        una línea no debe salirse por el borde derecho."""
+        if not W_px:
+            return
+        x = float(el.get("x") or 0)
+        w = float(el.get("width") or 0)
+        if (el.get("align") or "left") == "center":
+            centro = x + w / 2
+            if centro <= 4 or centro >= W_px - 4:
+                return
+            disponible = (2 * min(centro, W_px - centro) - 4) / _COLCHON_AJUSTE
+        elif x < 0:
+            return
+        else:
+            disponible = (W_px - x - 2) / _COLCHON_AJUSTE
+        peso_f = str(el.get("fontWeight") or "500")
+        px = float(el.get("fontSize") or 6)
+        while px > 4.0 and _ancho_texto(str(el.get("content") or ""), peso_f, px) > disponible:
+            px = round(px - 0.25, 2)
+        el["fontSize"] = px
+
+    roles = {(el.get("id") or ""): _rol(el) for el in p.get("elementos", [])}
     alto_adv: float | None = None
     adv_el = next((e for e in p["elementos"] if roles[e.get("id") or ""] == "advertencias"), None)
     if adv_el:
@@ -613,7 +946,7 @@ def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str
             solape = min(ax1, ox1) - max(ax0, ox0)
             if solape > 0.3 * (ax1 - ax0) and float(adv_el["y"]) < float(otro["y"]) < tope:
                 tope = float(otro["y"])
-        alto_adv = tope - float(adv_el["y"]) - 2
+        alto_adv = tope - float(adv_el["y"]) - 4
 
     descripcion = campos["descripcion"]
     prefijo = []
@@ -625,17 +958,32 @@ def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str
         descripcion = "\n".join(prefijo) + "\n" + descripcion
 
     for el in p.get("elementos", []):
-        rol = _clasificar_elemento(el)
+        rol = _rol(el)
         eid = el.get("id") or ""
-        if rol == "titulo":
+        if rol == "__vaciar__":
+            el["content"] = ""
+            modificados.add(eid)
+        elif rol == "titulo":
             el["content"] = campos["titulo"] or nombre
-            el["fontSize"] = ajustar_una_linea(el, el["content"], min_px=6.0)
+            el["fontSize"] = ajustar_titulo(el, el["content"])
+            _encajar_en_lienzo(el)
             modificados.add(eid)
         elif rol == "subtitulo":
             if campos["subtitulo"]:
                 el["content"] = campos["subtitulo"]
                 el["fontSize"] = ajustar_una_linea(el, el["content"], min_px=4.0)
+                _encajar_en_lienzo(el)
                 modificados.add(eid)
+            else:
+                # sin subtítulo en el .ai: usar el descriptor del perfil del
+                # producto (mismo criterio que sanear_plantillas_compliance)
+                try:
+                    from sanear_plantillas_compliance import SUBTITULOS, perfil_de
+                    el["content"] = SUBTITULOS[perfil_de(nombre)]
+                    el["fontSize"] = ajustar_una_linea(el, el["content"], min_px=4.0)
+                    modificados.add(eid)
+                except Exception:
+                    pass
         elif rol == "descripcion":
             px, texto, truncado = ajustar_multilinea(el, descripcion)
             el["fontSize"] = px
@@ -687,6 +1035,107 @@ def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str
             if not campos.get("tiene_no_ghs"):
                 avisos.append("revisar pictogramas GHS (el .ai no dice 'NO GHS')")
     return p, avisos, modificados
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  4b · Verificación estricta de solapamientos entre elementos de contenido
+# ══════════════════════════════════════════════════════════════════════════
+
+def _caja_render_elemento(el: dict) -> tuple[float, float, float, float] | None:
+    """Caja realmente ocupada por un elemento de contenido (texto envuelto
+    con métricas reales; imágenes por su caja). None si no pinta nada."""
+    if el.get("visible") is False:
+        return None
+    if float(el.get("rotation") or 0):
+        return None  # caja no alineada a ejes: fuera del chequeo
+    t = el.get("type")
+    x, y = float(el.get("x") or 0), float(el.get("y") or 0)
+    w, h = float(el.get("width") or 0), float(el.get("height") or 0)
+    if t == "image":
+        return (x, y, x + w, y + h)
+    if t == "text":
+        contenido = str(el.get("content") or "")
+        if not contenido.strip():
+            return None
+        px = float(el.get("fontSize") or 6)
+        weight = str(el.get("fontWeight") or "400")
+        lh = float(el.get("lineHeight") or 1.2)
+        lineas = envolver(contenido, weight, px, w)
+        anchos = [_ancho_texto(ln, weight, px) for ln in lineas if ln]
+        if not anchos:
+            return None
+        aw = max(anchos)
+        align = el.get("align") or "left"
+        if align == "center":
+            x0 = x + (w - aw) / 2
+        elif align == "right":
+            x0 = x + w - aw
+        else:
+            x0 = x
+        return (x0, y, x0 + aw, y + len(lineas) * px * lh)
+    return None
+
+
+def pares_solapados(p: dict) -> set[frozenset]:
+    """Pares de ids de elementos cuyo contenido renderizado se solapa."""
+    cajas: list[tuple[str, tuple[float, float, float, float]]] = []
+    for el in p.get("elementos", []):
+        c = _caja_render_elemento(el)
+        if c:
+            cajas.append((el.get("id") or "", c))
+    pares: set[frozenset] = set()
+    for i in range(len(cajas)):
+        for j in range(i + 1, len(cajas)):
+            id1, (ax0, ay0, ax1, ay1) = cajas[i]
+            id2, (bx0, by0, bx1, by1) = cajas[j]
+            iw = min(ax1, bx1) - max(ax0, bx0)
+            ih = min(ay1, by1) - max(ay0, by0)
+            if iw <= 0 or ih <= 0:
+                continue
+            inter = iw * ih
+            a_min = min((ax1 - ax0) * (ay1 - ay0), (bx1 - bx0) * (by1 - by0))
+            # texto contra texto: umbral estricto (cualquier roce se nota)
+            if inter > 0.02 * a_min and inter > 4:
+                pares.add(frozenset((id1, id2)))
+    return pares
+
+
+def corregir_solapes(p: dict, base_pares: set[frozenset], modificados: set[str]) -> list[str]:
+    """Encoge la fuente de los textos modificados que crean solapes NUEVOS
+    respecto al master aprobado. Devuelve los solapes que no pudo resolver."""
+    idx = {el.get("id") or "": el for el in p.get("elementos", [])}
+
+    def _nuevos() -> set[frozenset]:
+        return {
+            par for par in (pares_solapados(p) - base_pares)
+            if any(e in modificados for e in par)
+        }
+
+    for _ in range(16):
+        pendientes = _nuevos()
+        if not pendientes:
+            return []
+        progreso = False
+        for par in pendientes:
+            for eid in sorted(par):
+                el = idx.get(eid)
+                if el is not None and el.get("type") == "text" and eid in modificados \
+                   and float(el.get("fontSize") or 0) > 3.2:
+                    el["fontSize"] = round(float(el["fontSize"]) - 0.25, 2)
+                    progreso = True
+                    break
+        if not progreso:
+            break
+
+    problemas = []
+    for par in _nuevos():
+        etiquetas = []
+        for eid in sorted(par):
+            el = idx.get(eid) or {}
+            desc = (str(el.get("content") or "")[:22] or el.get("type") or "?")
+            etiquetas.append(f"{eid[:8]}·{desc}")
+        problemas.append("solape nuevo: " + " ⇄ ".join(etiquetas))
+    return problemas
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -825,6 +1274,24 @@ def _norm_nombre(n: str) -> str:
     return re.sub(r"\s+", " ", n).strip().casefold()
 
 
+_RE_SUFIJO_ARCHIVO = re.compile(
+    r"\b(\d[\d.,]*\s*(?:g|gr|kg|mg|ml|l|lt)\b\.?|kg|lt|gl|a4"
+    r"|x?\s*crear\s+codigo(\s+de\s+barras)?|falta\s+codigo.*)\s*$",
+    re.IGNORECASE,
+)
+
+
+def titulo_desde_archivo(stem: str) -> str:
+    """Título de respaldo cuando el .ai trae el título vectorizado (curvas)."""
+    t = re.sub(r"\s+", " ", stem).strip()
+    while True:
+        t2 = _RE_SUFIJO_ARCHIVO.sub("", t).strip(" -_·")
+        if t2 == t or not t2:
+            break
+        t = t2
+    return (t or stem).upper()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--guardar", action="store_true", help="Persistir en plantillas_visuales.json")
@@ -843,21 +1310,24 @@ def main() -> int:
         obtener_plantilla,
     )
 
-    masters = {}
-    for fmtname, info in MASTERS.items():
-        m = obtener_plantilla(info["id"])
-        if not m:
-            print(f"FALTA master {fmtname} ({info['id']})", file=sys.stderr)
-            return 1
-        masters[fmtname] = m
+    masters_cache: dict[tuple[int, int], dict[str, dict]] = {}
+    for fmt_key, variantes in MASTERS.items():
+        masters_cache[fmt_key] = {}
+        for color, spec in variantes.items():
+            m = obtener_plantilla(spec["id"])
+            if not m:
+                print(f"FALTA master {fmt_key} {color} ({spec['id']})", file=sys.stderr)
+                return 1
+            masters_cache[fmt_key][color] = m
 
     todas_previas = listar_plantillas()
     existentes = {_norm_nombre(p["nombre"]) for p in todas_previas}
     # Con --reemplazar, las de la carpeta destino se regeneran conservando su id
+    # — EXCEPTO las plantillas modelo aprobadas del apartado Imprimir.
     reemplazables: dict[str, str] = {}
     if args.reemplazar:
         for prev in todas_previas:
-            if (prev.get("carpeta") or "") == CARPETA_DESTINO:
+            if (prev.get("carpeta") or "") == CARPETA_DESTINO and prev["id"] not in APROBADOS_IDS:
                 clave = _norm_nombre(prev["nombre"])
                 reemplazables[clave] = prev["id"]
                 existentes.discard(clave)
@@ -879,33 +1349,77 @@ def main() -> int:
     for f in fuentes:
         nombre = re.sub(r"\s+", " ", f.stem).strip()
         if _norm_nombre(nombre) in existentes:
-            reporte["omitidas"].append({"archivo": f.name, "motivo": "ya existe plantilla con ese nombre"})
+            motivo = "ya existe plantilla con ese nombre"
+            if args.reemplazar:
+                motivo = "plantilla modelo aprobada (Imprimir) o fuera de Generadas AI: no se toca"
+            reporte["omitidas"].append({"archivo": f.name, "motivo": motivo})
             continue
-        fmtname, rotada = formato_para(f)
-        if not fmtname:
+        fmt_key, rotada, destino = resolver_formato(f)
+        if not fmt_key:
             t = tam_pagina_mm(f)
-            reporte["omitidas"].append({
-                "archivo": f.name,
-                "motivo": f"tamaño {t[0]:.0f}x{t[1]:.0f} mm sin plantilla ideal" if t else "sin tamaño legible",
-            })
+            if t and abs(t[0] - t[1]) <= 3 and 50 <= min(t) <= 75:
+                motivo = (f"etiqueta circular {t[0]:.0f}x{t[1]:.0f} mm (texto en arco): "
+                          "diseñarla a mano en el Studio")
+            elif t:
+                motivo = f"tamaño {t[0]:.0f}x{t[1]:.0f} mm sin master ni escala afín"
+            else:
+                motivo = "sin tamaño legible"
+            reporte["omitidas"].append({"archivo": f.name, "motivo": motivo})
             continue
 
         try:
             campos = extraer_campos(f)
-            if not campos["titulo"] or len(campos["descripcion"]) < 60:
+            if len(campos["descripcion"]) < 60:
                 reporte["omitidas"].append({
                     "archivo": f.name,
-                    "motivo": f"extracción pobre (titulo={bool(campos['titulo'])}, desc={len(campos['descripcion'])} chars)",
+                    "motivo": f"extracción pobre (desc={len(campos['descripcion'])} chars)",
                 })
                 continue
+
+            # Familia fragancias (master 42x50): título = esencia, subtítulo =
+            # tipo, como en los modelos LAVANDA / PIÑA aprobados.
+            m_frag = re.match(r"fragancia\s+(hidro\w*|lipo\w*)\s+(.+?)(\s+\d.*)?$", nombre, re.I)
+            if fmt_key == (42, 50) and m_frag:
+                tipo_frag = "HIDROSOLUBLE" if m_frag.group(1).lower().startswith("hidro") else "LIPOSOLUBLE"
+                if campos["subtitulo"] and len(campos["subtitulo"]) > 40:
+                    campos["descripcion"] = campos["subtitulo"] + " " + campos["descripcion"]
+                campos["subtitulo"] = f"FRAGANCIA {tipo_frag}"
+                campos["titulo"] = m_frag.group(2).upper()
+
+            color, aviso_color = detectar_color_ai(f, tmp_dir)
+            if color not in PALETA:
+                # verde/rojo: sin identidad en el Studio — teal si el formato
+                # ya lo trae (fragancias); si no, azul corporativo
+                sustituto = "teal" if color == "verde" and "teal" in masters_cache[fmt_key] else "azul"
+                if aviso_color is None:
+                    aviso_color = f"acento {color} sin master en paleta: usa {sustituto}"
+                color = sustituto
+            master_prep, color_usado, avisos_master = resolver_master(masters_cache, fmt_key, color)
+            if aviso_color:
+                avisos_master.append(aviso_color)
+            if destino:
+                escalar_plantilla(master_prep, destino)
+                avisos_master.append(
+                    f"master {fmt_key[0]}x{fmt_key[1]} escalado a {destino[0]:.0f}x{destino[1]:.0f} mm"
+                )
+            base_pares = pares_solapados(master_prep)
+            roles_extra = MASTERS[fmt_key][color_usado].get("roles") or {}
+
             ean = decodificar_ean(f, tmp_dir)
-            plantilla, avisos, modificados = construir_plantilla(masters[fmtname], campos, ean, nombre)
+            plantilla, avisos, modificados = construir_plantilla(
+                master_prep, campos, ean, nombre, roles_extra
+            )
+            avisos = avisos_master + avisos
             if _norm_nombre(nombre) in reemplazables:
                 plantilla["id"] = reemplazables[_norm_nombre(nombre)]
             if rotada:
                 avisos.append("el .ai estaba rotado respecto al formato")
 
-            png = out_dir / fmtname.replace(" ", "") / (re.sub(r"[^\w\- ]", "_", nombre) + ".png")
+            avisos += corregir_solapes(plantilla, base_pares, modificados)
+
+            fmt_dir = f"{plantilla.get('formato', {}).get('ancho_mm', fmt_key[0])}x" \
+                      f"{plantilla.get('formato', {}).get('alto_mm', fmt_key[1])}"
+            png = out_dir / fmt_dir / (re.sub(r"[^\w\- ]", "_", nombre) + ".png")
             problemas = render_verificacion(plantilla, png, revisar_ids=modificados)
             if problemas:
                 avisos += problemas
@@ -916,13 +1430,14 @@ def main() -> int:
 
             n_ok += 1
             item = {
-                "archivo": f.name, "nombre": nombre, "formato": fmtname,
+                "archivo": f.name, "nombre": nombre,
+                "formato": fmt_dir, "color": color,
                 "ean": ean or "", "png": str(png), "avisos": avisos,
             }
             reporte["generadas"].append(item)
             if avisos:
                 reporte["con_avisos"].append(item)
-            print(f"[OK] {nombre}  ({fmtname})  EAN={ean or '—'}  {'⚠ ' + '; '.join(avisos) if avisos else ''}")
+            print(f"[OK] {nombre}  ({fmt_dir} · {color})  EAN={ean or '—'}  {'⚠ ' + '; '.join(avisos) if avisos else ''}")
         except Exception as e:
             reporte["omitidas"].append({"archivo": f.name, "motivo": f"error: {e}"})
             print(f"[ERR] {f.name}: {e}", file=sys.stderr)

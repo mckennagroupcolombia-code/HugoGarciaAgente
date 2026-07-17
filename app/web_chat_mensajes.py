@@ -80,9 +80,7 @@ def nota_asesor_whatsapp_chat_web(
     return (
         f"\n\nSi necesita {motivo}, use el **botón de WhatsApp** en la página o escríbanos "
         f"al **{display}**: https://wa.me/{digits}\n"
-        "Un **asesor humano** le brinda la información y allí **sí queda el hilo** de la "
-        "conversación. **Este chat web no guarda el historial** si cierra la pestaña, "
-        "cambia de dispositivo o borra datos del navegador."
+        "Un **asesor humano** le brinda la información y le hace seguimiento por ese medio."
     )
 
 

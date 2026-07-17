@@ -1,58 +1,16 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us",
-    "145311729193100@lid",
-    "573157796553@c.us",
-    "573202786317@c.us",
-    "17321636692115@lid",
-    "573115681723@c.us",
-    "271016832028707@lid"
+    "573009990001@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1783779441.6764286,
-    "145311729193100@lid": 1783779932.3193996,
-    "573157796553@c.us": 1783779932.3193996,
-    "573202786317@c.us": 1784121332.7416842,
-    "17321636692115@lid": 1784121332.7416842,
-    "573115681723@c.us": 1784136007.5025644,
-    "271016832028707@lid": 1784136007.5025644
+    "573009990001@c.us": 1784221404.1422167
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
-      "timestamp": 1783779441.6764286,
+      "timestamp": 1784221404.1422167,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "145311729193100@lid": {
-      "timestamp": 1783779932.3193996,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "573157796553@c.us": {
-      "timestamp": 1783779932.3193996,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "573202786317@c.us": {
-      "timestamp": 1784121332.7416842,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "17321636692115@lid": {
-      "timestamp": 1784121332.7416842,
-      "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "573115681723@c.us": {
-      "timestamp": 1784136007.5025644,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Y medio de pago"
-    },
-    "271016832028707@lid": {
-      "timestamp": 1784136007.5025644,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Y medio de pago"
+      "ultimo_mensaje": "hola"
     }
   },
   "bot_global_activo": false,
