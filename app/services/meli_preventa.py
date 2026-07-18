@@ -289,11 +289,19 @@ def _ejemplos_fewshot(titulo_producto: str) -> str:
 # Función principal
 # ---------------------------------------------------------------------------
 
-def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_cliente: str, comprador_id=None):
+def manejar_pregunta_preventa(
+    question_id: str,
+    titulo_producto: str,
+    pregunta_cliente: str,
+    comprador_id=None,
+    item_id: str = "",
+):
     """
     Flujo completo de preventa:
     - Con ficha técnica → responde automáticamente con IA.
     - Sin ficha técnica → delega al grupo, NO responde al cliente.
+    item_id: publicación de la pregunta (para excluirla al ofrecer otras
+    presentaciones del mismo producto).
     Retorna (respuesta_texto, fue_respondida):
       - (str, True)  si se generó respuesta para enviar al cliente
       - (None, False) si quedó delegada al grupo
@@ -410,8 +418,24 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
 
         return None, False
 
-    # Con ficha → generar respuesta con IA
-    respuesta = generar_respuesta_con_ficha(titulo_producto, pregunta_cliente, ficha)
+    # Con ficha → generar respuesta con IA, con contexto de otras
+    # presentaciones del mismo producto y del hilo reciente de la publicación.
+    try:
+        otras = otras_presentaciones_meli(titulo_producto, item_id_actual=item_id)
+    except Exception as e:
+        print(f"⚠️ Preventa: fallo otras_presentaciones ({e}) — sigo sin ese contexto")
+        otras = ""
+    try:
+        hilo = contexto_hilo_reciente(titulo_producto, question_id)
+    except Exception:
+        hilo = ""
+    respuesta = generar_respuesta_con_ficha(
+        titulo_producto,
+        pregunta_cliente,
+        ficha,
+        otras_presentaciones=otras,
+        contexto_hilo=hilo,
+    )
 
     if respuesta is None:
         # IA falló (ej: Gemini 503) → delegar al grupo, NO responder al cliente
@@ -491,11 +515,204 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
 
 _GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
 
+# ---------------------------------------------------------------------------
+# Otras presentaciones del mismo producto (publicaciones hermanas en MeLi)
+# ---------------------------------------------------------------------------
 
-def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecnica: str):
+_SELLER_ID_CACHE: dict = {}
+
+_RX_PRESENTACION_TITULO = re.compile(
+    r"\b\d+[.,]?\d*\s*(?:gr?s?|gramos?|kg|kilos?|ml|mls|cc|litros?|l|oz|onzas?|"
+    r"unid(?:ad(?:es)?)?|und|u)\b\.?",
+    re.IGNORECASE,
+)
+
+
+def _titulo_base_producto(titulo: str) -> str:
+    """'Manteca Karite 500 Gr + Envío' → 'Manteca Karite' (sin tamaño ni promos)."""
+    t = titulo or ""
+    t = re.sub(r"[+]\s*env[ií]o\b", " ", t, flags=re.IGNORECASE)
+    t = _RX_PRESENTACION_TITULO.sub(" ", t)
+    t = re.sub(r"\bx\s*\d+\b", " ", t, flags=re.IGNORECASE)
+    t = re.sub(r"\b\d+\b(?!\s*%)", " ", t)
+    t = re.sub(r"\bx\b", " ", t, flags=re.IGNORECASE)  # "X" huérfana de "X 2 Unidades"
+    t = re.sub(r"[^\w%áéíóúüñÁÉÍÓÚÜÑ\s-]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+_CACHE_WEB_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json"
+)
+_catalogo_meli_cache: dict = {}
+
+
+def _catalogo_local_meli() -> list[dict]:
+    """
+    Entradas {name, ref, meli_id} del cache del sitio web (todas las
+    presentaciones del catálogo con su publicación MeLi). TTL 10 min.
+    """
+    import time
+
+    ahora = time.time()
+    if _catalogo_meli_cache.get("ts", 0) > ahora - 600:
+        return _catalogo_meli_cache.get("items", [])
+    items: list[dict] = []
+    vistos: set[str] = set()
+
+    def _ingest(obj):
+        if isinstance(obj, dict):
+            meli_id = (obj.get("meli_id") or "").strip()
+            name = (obj.get("name") or "").strip()
+            if meli_id.startswith("MCO") and name and meli_id not in vistos:
+                vistos.add(meli_id)
+                items.append(
+                    {
+                        "name": name,
+                        "ref": (obj.get("ref") or obj.get("rep_sku") or "").strip(),
+                        "meli_id": meli_id,
+                    }
+                )
+            for v in obj.values():
+                _ingest(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                _ingest(v)
+
+    try:
+        with open(os.path.normpath(_CACHE_WEB_PATH), encoding="utf-8") as f:
+            _ingest(json.load(f))
+    except Exception as e:
+        print(f"⚠️ Preventa: no pude leer catálogo local MeLi: {e}")
+        return _catalogo_meli_cache.get("items", [])
+    _catalogo_meli_cache["items"] = items
+    _catalogo_meli_cache["ts"] = ahora
+    return items
+
+
+def otras_presentaciones_meli(titulo_producto: str, item_id_actual: str = "") -> str:
+    """
+    Publicaciones activas nuestras del mismo producto en otros tamaños.
+    Candidatas del catálogo local (cache.json del sitio: name+meli_id) y
+    precio/enlace/estado en vivo vía multiget /items (una sola llamada; la
+    búsqueda pública /sites/MCO/search devuelve 403 para tokens normales).
+    Devuelve bloque de texto para el prompt ('' si no hay o falla algo).
+    """
+    import requests
+    from app.utils import refrescar_token_meli
+
+    base = _titulo_base_producto(titulo_producto)
+    nucleo = [w for w in _norm_txt(base).split() if len(w) >= 3][:2]
+    if not nucleo:
+        return ""
+
+    candidatas = []
+    for it in _catalogo_local_meli():
+        if item_id_actual and it["meli_id"] == str(item_id_actual).strip():
+            continue
+        norm_name = _norm_txt(it["name"])
+        if all(t in norm_name for t in nucleo):
+            candidatas.append(it)
+        if len(candidatas) >= 12:
+            break
+    if not candidatas:
+        return ""
+
+    try:
+        token = refrescar_token_meli()
+        if not token:
+            return ""
+        ids = ",".join(c["meli_id"] for c in candidatas)
+        res = requests.get(
+            "https://api.mercadolibre.com/items",
+            params={"ids": ids, "attributes": "id,title,price,permalink,status"},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        if res.status_code != 200:
+            print(f"⚠️ Preventa: multiget items {res.status_code} — sin otras presentaciones")
+            return ""
+        cuerpos = [
+            (r.get("body") or {})
+            for r in res.json()
+            if isinstance(r, dict) and r.get("code") == 200
+        ]
+    except Exception as e:
+        print(f"⚠️ Preventa: error consultando otras presentaciones: {e}")
+        return ""
+
+    norm_titulo_actual = _norm_txt(titulo_producto)
+    lineas = []
+    for b in cuerpos:
+        if (b.get("status") or "") != "active":
+            continue
+        titulo_r = (b.get("title") or "").strip()
+        if not titulo_r or _norm_txt(titulo_r) == norm_titulo_actual:
+            continue
+        if item_id_actual and str(b.get("id")) == str(item_id_actual).strip():
+            continue
+        precio = b.get("price")
+        link = (b.get("permalink") or "").strip()
+        precio_txt = f"${precio:,.0f} COP" if precio else "ver publicación"
+        lineas.append(f"- {titulo_r} — {precio_txt}" + (f" — {link}" if link else ""))
+        if len(lineas) >= 5:
+            break
+    if not lineas:
+        return ""
+    return (
+        "OTRAS PRESENTACIONES NUESTRAS DEL MISMO PRODUCTO "
+        "(publicaciones activas en Mercado Libre):\n" + "\n".join(lineas)
+    )
+
+
+def contexto_hilo_reciente(titulo_producto: str, question_id: str) -> str:
+    """
+    Preguntas recientes (≤3 días) sobre la misma publicación, con lo respondido
+    o el borrador: el comprador suele preguntar en hilo ("¿hay pote más
+    pequeño?" → "¿cómo la compro?") y sin esto cada respuesta sale sin memoria.
+    """
+    try:
+        pendientes = _leer_pendientes()
+    except Exception:
+        return ""
+    ahora = datetime.now()
+    lineas = []
+    for p in pendientes:
+        if str(p.get("question_id")) == str(question_id):
+            continue
+        if (p.get("titulo_producto") or "").strip() != (titulo_producto or "").strip():
+            continue
+        try:
+            ts = datetime.fromisoformat(p.get("timestamp", ""))
+        except Exception:
+            continue
+        if (ahora - ts).days > 3:
+            continue
+        resp = (p.get("respuesta_final") or p.get("borrador_ia") or "").strip()
+        lineas.append(
+            f"P: {p.get('pregunta','')}\n"
+            + (f"R: {resp[:400]}" if resp else "R: (aún sin responder)")
+        )
+    if not lineas:
+        return ""
+    return (
+        "PREGUNTAS RECIENTES EN ESTA MISMA PUBLICACIÓN (posible mismo comprador "
+        "— tenlas en cuenta como contexto del hilo):\n" + "\n\n".join(lineas[-3:])
+    )
+
+
+def generar_respuesta_con_ficha(
+    titulo_producto: str,
+    pregunta: str,
+    ficha_tecnica: str,
+    *,
+    otras_presentaciones: str = "",
+    contexto_hilo: str = "",
+):
     """
     Genera respuesta usando Gemini con la ficha técnica real.
     Tries multiple models: primary (2.5-pro), then flash fallbacks on 503/overload.
+    otras_presentaciones / contexto_hilo: bloques opcionales (ver
+    otras_presentaciones_meli / contexto_hilo_reciente).
     Retorna el texto de respuesta, o None si todos fallan.
     """
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
@@ -506,14 +723,34 @@ def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecni
     gemini_client = genai.Client(api_key=api_key)
     ejemplos = _ejemplos_fewshot(titulo_producto)
 
+    bloques_extra = "\n\n".join(
+        b for b in (otras_presentaciones.strip(), contexto_hilo.strip()) if b
+    )
+    if bloques_extra:
+        bloques_extra = f"\n{bloques_extra}\n"
+
+    regla_presentaciones = (
+        "7. Si el cliente pregunta por otros tamaños/presentaciones, precios, o cómo "
+        "comprar, ofrécele también las OTRAS PRESENTACIONES listadas arriba con su "
+        "enlace (son publicaciones nuestras del mismo producto). Usa SOLO esa lista "
+        "para precios y enlaces de otras presentaciones — no inventes tamaños que "
+        "no estén ahí."
+        if otras_presentaciones.strip()
+        else "7. Si el cliente pregunta por otros tamaños o presentaciones y no tienes "
+        "una lista de otras publicaciones, invítalo a revisar nuestras demás "
+        "publicaciones en Mercado Libre, sin inventar tamaños ni precios."
+    )
+
     prompt = f"""Eres Hugo Garcia, asistente virtual de McKenna Group en Mercado Libre.
 
 PRODUCTO: {titulo_producto}
-NUNCA menciones un producto diferente al indicado arriba.
+NUNCA menciones un producto diferente al indicado arriba, EXCEPTO las otras
+presentaciones nuestras del mismo producto si vienen listadas abajo: esas SÍ
+puedes ofrecerlas con su enlace.
 
 FICHA TÉCNICA:
 {ficha_tecnica}
-{ejemplos}
+{bloques_extra}{ejemplos}
 
 PREGUNTA DEL CLIENTE:
 "{pregunta}"
@@ -521,10 +758,11 @@ PREGUNTA DEL CLIENTE:
 REGLAS:
 1. Tono: Rolo, cálido pero formal (ej: "Hola veci", "con gusto le colaboro").
 2. Responde EXACTAMENTE lo que pregunta el cliente. Máximo 3 párrafos cortos.
-3. SOLO usa información de la ficha técnica. No inventes datos.
+3. SOLO usa información de la ficha técnica y de los bloques de contexto de arriba. No inventes datos.
 4. MÁXIMO 2000 caracteres (límite de Mercado Libre).
 5. NO menciones que tienes una "ficha técnica" — habla naturalmente.
 6. NUNCA menciones INVIMA, registro sanitario, resoluciones ni normativa legal, aunque el cliente pregunte por eso — limítate a describir el producto como materia prima para formulación.
+{regla_presentaciones}
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
 
@@ -545,6 +783,9 @@ Genera únicamente la respuesta para el cliente, sin comillas ni texto introduct
         try:
             resp = gemini_client.models.generate_content(model=model_name, contents=prompt)
             texto = (resp.text or "").strip()
+            # Las respuestas de MeLi son texto plano: el markdown (**negrita**)
+            # se vería con asteriscos literales.
+            texto = texto.replace("**", "").replace("__", "")
             if not texto:
                 print(f"Preventa: {model_name} devolvió respuesta vacía, probando siguiente…")
                 continue

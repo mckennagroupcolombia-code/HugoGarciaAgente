@@ -40,7 +40,11 @@ def analizar_y_crear_respuesta(texto_pregunta, item_id, token, question_id=None,
     """
     nombre_producto = obtener_nombre_producto_meli(item_id, token)
     return manejar_pregunta_preventa(
-        question_id, nombre_producto, texto_pregunta, comprador_id=comprador_id
+        question_id,
+        nombre_producto,
+        texto_pregunta,
+        comprador_id=comprador_id,
+        item_id=item_id,
     )
 
 def _pregunta_sigue_sin_responder(question_id, token) -> bool:

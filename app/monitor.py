@@ -706,14 +706,25 @@ def _monitor_preguntas_sin_responder():
                                     buscar_ficha_tecnica_producto,
                                 )
                                 from app.services.meli_preventa import (
+                                    contexto_hilo_reciente,
                                     generar_respuesta_con_ficha,
                                     guardar_caso_preventa,
+                                    otras_presentaciones_meli,
                                 )
 
                                 ficha = buscar_ficha_tecnica_producto(titulo)
                                 if ficha:
+                                    try:
+                                        _otras = otras_presentaciones_meli(titulo)
+                                        _hilo = contexto_hilo_reciente(titulo, qid)
+                                    except Exception:
+                                        _otras, _hilo = "", ""
                                     respuesta_ia = generar_respuesta_con_ficha(
-                                        titulo, pregunta_txt, ficha
+                                        titulo,
+                                        pregunta_txt,
+                                        ficha,
+                                        otras_presentaciones=_otras,
+                                        contexto_hilo=_hilo,
                                     )
                                     if respuesta_ia:
                                         token_r = refrescar_token_meli()

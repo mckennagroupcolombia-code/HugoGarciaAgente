@@ -169,11 +169,13 @@ sub { font-size: 0.72em; vertical-align: sub; }
     {% endif %}
   </div>
 
-  {% if ft.cas or ft.fecha_revision or ft.lote %}
+  {% if ft.cas or ft.fecha_revision or ft.lote or ft.pais_origen or ft.fabricante %}
   <div class="meta-strip">
     {% if ft.cas %}<span><b>CAS:</b> {{ ft.cas }}</span>{% endif %}
     {% if ft.fecha_revision %}<span><b>Revisión:</b> {{ ft.fecha_revision }}</span>{% endif %}
     {% if ft.lote %}<span><b>Lote:</b> {{ ft.lote }}</span>{% endif %}
+    {% if ft.pais_origen %}<span><b>País de origen:</b> {{ ft.pais_origen }}</span>{% endif %}
+    {% if ft.fabricante %}<span><b>Fabricante:</b> {{ ft.fabricante }}</span>{% endif %}
   </div>
   {% endif %}
 
@@ -294,7 +296,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
 
   {# Información de lote #}
-  {% if coa.lote_numero or coa.lote_fab or coa.lote_venc %}
+  {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.fabricante %}
   <div class="sec">
     <div class="sec-title">Información de lote</div>
     <table>
@@ -304,6 +306,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if coa.vida_util %}<tr><td class="td-key">Vida útil</td><td>{{ coa.vida_util }}</td></tr>{% endif %}
       {% if coa.tamano_lote %}<tr><td class="td-key">Tamaño del lote</td><td>{{ coa.tamano_lote }}</td></tr>{% endif %}
       {% if coa.pais_origen %}<tr><td class="td-key">País de origen</td><td>{{ coa.pais_origen }}</td></tr>{% endif %}
+      {% if coa.fabricante %}<tr><td class="td-key">Fabricante original</td><td>{{ coa.fabricante }}</td></tr>{% endif %}
       {% if coa.fecha_analisis %}<tr><td class="td-key">Fecha de análisis</td><td>{{ coa.fecha_analisis }}</td></tr>{% endif %}
       {% if coa.fecha_emision %}<tr><td class="td-key">Fecha de emisión</td><td>{{ coa.fecha_emision }}</td></tr>{% endif %}
     </table>

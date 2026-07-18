@@ -146,6 +146,7 @@ interface DocumentoGeneradorTabProps {
   showProductoGuardado?: boolean;
   permiteCompletar?: boolean;
   productoRef?: string;
+  onGenerado?: (resultado: GenerarDocResult) => void;
 }
 
 export default function DocumentoGeneradorTab({
@@ -166,6 +167,7 @@ export default function DocumentoGeneradorTab({
   showProductoGuardado = true,
   permiteCompletar = true,
   productoRef = "",
+  onGenerado,
 }: DocumentoGeneradorTabProps) {
   const qc = useQueryClient();
   const cabezoteFileRef = useRef<HTMLInputElement>(null);
@@ -394,6 +396,7 @@ export default function DocumentoGeneradorTab({
     },
     onSuccess: (r) => {
       setUltimo(r);
+      onGenerado?.(r);
       void qc.invalidateQueries({ queryKey: ["fichas-biblioteca"] });
     },
   });

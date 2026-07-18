@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import ImageLightbox from "./ImageLightbox";
 import DocumentoGeneradorTab, {
   type DocLayoutOpciones,
+  type GenerarDocResult,
   Field,
   filasDesdeTexto,
   filasTresDesdeTexto,
@@ -389,6 +390,7 @@ function CoaTabContent({
   const [vidaUtil, setVidaUtil] = useState("");
   const [tamanoLote, setTamanoLote] = useState("");
   const [pais, setPais] = useState("");
+  const [fabricante, setFabricante] = useState("");
   const [fechaAnalisis, setFechaAnalisis] = useState("");
   const [fechaEmision, setFechaEmision] = useState("");
   const [parametros, setParametros] = useState("");
@@ -397,6 +399,7 @@ function CoaTabContent({
   const [precauciones, setPrecauciones] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [codigoVerif, setCodigoVerif] = useState("");
+  const [ultimoGenerado, setUltimoGenerado] = useState<GenerarDocResult | null>(null);
 
   useEffect(() => {
     if (!producto) return;
@@ -426,6 +429,7 @@ function CoaTabContent({
     setVidaUtil(String(lote.vida_util || ""));
     setTamanoLote(String(lote.tamano_lote || ""));
     setPais(String(lote.pais_origen || ""));
+    setFabricante(String(lote.fabricante || ""));
     setFechaAnalisis(String(lote.fecha_analisis || ""));
     setFechaEmision(String(lote.fecha_emision || ""));
     setParametros(textoDesdeFilasTres(datos.parametros));
@@ -462,6 +466,7 @@ function CoaTabContent({
         vida_util: vidaUtil,
         tamano_lote: tamanoLote,
         pais_origen: pais,
+        fabricante,
         fecha_analisis: fechaAnalisis,
         fecha_emision: fechaEmision,
       },
@@ -476,12 +481,13 @@ function CoaTabContent({
     }),
     [
       titulo, nombreComercial, referencia, inci, cas, formula, einces, concentracion, grado,
-      presentacion, incluye, loteNum, fab, venc, vidaUtil, tamanoLote, pais, fechaAnalisis,
+      presentacion, incluye, loteNum, fab, venc, vidaUtil, tamanoLote, pais, fabricante, fechaAnalisis,
       fechaEmision, parametros, empaque, almacenamiento, precauciones, observaciones, codigoVerif,
     ],
   );
 
   return (
+    <Fragment>
     <DocumentoGeneradorTab
       apiPrefix="/api/coa"
       queryKey="coa"
@@ -492,6 +498,7 @@ function CoaTabContent({
       loadDatos={loadDatos}
       buildDatos={buildDatos}
       productoRef={producto?.ref ?? ""}
+      onGenerado={setUltimoGenerado}
     >
       <div className="space-y-4">
         <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
@@ -527,6 +534,7 @@ function CoaTabContent({
           <Field label="Vida útil" value={vidaUtil} onChange={setVidaUtil} />
           <Field label="Tamaño del lote" value={tamanoLote} onChange={setTamanoLote} />
           <Field label="País de origen" value={pais} onChange={setPais} />
+          <Field label="Fabricante original" value={fabricante} onChange={setFabricante} placeholder="Nombre del fabricante o proveedor" />
           <Field label="Fecha análisis" value={fechaAnalisis} onChange={setFechaAnalisis} />
           <Field label="Fecha emisión COA" value={fechaEmision} onChange={setFechaEmision} />
         </div>
@@ -542,9 +550,97 @@ function CoaTabContent({
         <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
         <Field label="Precauciones" value={precauciones} onChange={setPrecauciones} rows={2} />
         <Field label="Observaciones" value={observaciones} onChange={setObservaciones} rows={2} />
-        <Field label="Código verificación (MKG-COA-…)" value={codigoVerif} onChange={setCodigoVerif} />
+        <Field
+          label="Código de verificación (dejar vacío = se genera al registrar el lote)"
+          value={codigoVerif}
+          onChange={setCodigoVerif}
+        />
       </div>
     </DocumentoGeneradorTab>
+    <RegistrarLoteBoton
+      referencia={referencia}
+      loteNumero={loteNum}
+      fabricante={fabricante}
+      paisOrigen={pais}
+      fechaFabricacion={fab}
+      fechaVencimiento={venc}
+      codigoVerificacion={codigoVerif}
+      nombreProducto={nombreComercial || titulo}
+      coaLink={ultimoGenerado?.drive_uploads?.find((u) => u.tipo === "pdf")?.webViewLink ?? ""}
+      onCodigoAsignado={setCodigoVerif}
+    />
+    </Fragment>
+  );
+}
+
+function RegistrarLoteBoton({
+  referencia,
+  loteNumero,
+  fabricante,
+  paisOrigen,
+  fechaFabricacion,
+  fechaVencimiento,
+  codigoVerificacion,
+  nombreProducto,
+  coaLink,
+  onCodigoAsignado,
+}: {
+  referencia: string;
+  loteNumero: string;
+  fabricante: string;
+  paisOrigen: string;
+  fechaFabricacion: string;
+  fechaVencimiento: string;
+  codigoVerificacion: string;
+  nombreProducto: string;
+  coaLink: string;
+  onCodigoAsignado: (codigo: string) => void;
+}) {
+  const registrarMut = useMutation({
+    mutationFn: () =>
+      api.post<{ ok: boolean; lote: { estado: string; codigo_verificacion: string } }>(
+        `/api/lotes/${encodeURIComponent(referencia)}`,
+        {
+          lote_numero: loteNumero,
+          fabricante,
+          pais_origen: paisOrigen,
+          fecha_fabricacion: fechaFabricacion,
+          fecha_vencimiento: fechaVencimiento,
+          codigo_verificacion: codigoVerificacion,
+          nombre_producto: nombreProducto,
+          coa_link: coaLink,
+        },
+      ),
+    onSuccess: (r) => onCodigoAsignado(r.lote.codigo_verificacion),
+  });
+
+  if (!referencia || !loteNumero) return null;
+
+  return (
+    <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-2">
+      <p className="text-xs text-muted">
+        Guarda este lote en el historial de trazabilidad de <code>{referencia}</code>. Se genera un
+        único código para que el cliente lo consulte en <code>mckennagroup.co/verificar</code> —
+        imprímelo en la etiqueta del producto (Studio Etiquetas) para que sea fácil de leer.
+      </p>
+      <button
+        type="button"
+        onClick={() => registrarMut.mutate()}
+        disabled={registrarMut.isPending}
+        className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-40"
+      >
+        {registrarMut.isPending ? "Registrando…" : "Registrar este lote en el historial"}
+      </button>
+      {registrarMut.isSuccess && (
+        <p className="text-xs text-emerald-600">
+          Lote registrado (estado «{registrarMut.data.lote.estado}»). Código para la etiqueta:{" "}
+          <strong className="font-mono text-sm">{registrarMut.data.lote.codigo_verificacion}</strong>
+        </p>
+      )}
+      {registrarMut.isError && (
+        <p className="text-xs text-danger">{(registrarMut.error as Error).message}</p>
+      )}
+    </div>
   );
 }
 

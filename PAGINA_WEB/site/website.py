@@ -2422,6 +2422,32 @@ def politica_datos():
     return render_template("tratamiento_datos.html")
 
 
+@app.route("/verificar")
+def verificar_lote():
+    """Consulta pública de trazabilidad: fabricante, país de origen y
+    documentos (FT/COA) del lote de materia prima, a partir de un único
+    código impreso en la etiqueta del producto."""
+    codigo = (request.args.get("codigo") or "").strip()
+
+    resultado = None
+    buscado = bool(codigo)
+    if buscado:
+        try:
+            from app.services.lotes_materia_prima import buscar_lote_publico
+
+            resultado = buscar_lote_publico(codigo)
+        except Exception as e:
+            print(f"⚠️ [VERIFICAR] Error consultando lote: {e}")
+
+    return render_template(
+        "verificar.html",
+        codigo=codigo,
+        buscado=buscado,
+        resultado=resultado,
+        WA_NUMBER=WA_NUMBER,
+    )
+
+
 @app.route("/recetario")
 def recetario():
     recetas_file = Path(__file__).parent / "data/recetas.json"
