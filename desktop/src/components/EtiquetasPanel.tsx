@@ -3523,6 +3523,33 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     setCampoExpandido(c.id);
   }
 
+  const [errorCodigoVerificacion, setErrorCodigoVerificacion] = useState<string | null>(null);
+  const [cargandoCodigoVerificacion, setCargandoCodigoVerificacion] = useState(false);
+
+  async function agregarCampoCodigoVerificacion() {
+    setErrorCodigoVerificacion(null);
+    setCargandoCodigoVerificacion(true);
+    try {
+      const r = await api.get<{ ref: string; lotes: Array<{ codigo_verificacion?: string }> }>(
+        `/api/lotes/${encodeURIComponent(combo.code)}`,
+      );
+      const codigo = r.lotes?.[0]?.codigo_verificacion;
+      if (!codigo) {
+        setErrorCodigoVerificacion(
+          "No hay ningún lote registrado para este SKU. Regístralo primero en Fichas Técnicas (COA).",
+        );
+        return;
+      }
+      const c: CampoTexto = { ...nuevoCampo(), etiqueta: "Código verificación", texto: codigo };
+      set("campos_texto", [...(form.campos_texto ?? []), c]);
+      setCampoExpandido(c.id);
+    } catch {
+      setErrorCodigoVerificacion("No se pudo consultar el lote vigente de este SKU.");
+    } finally {
+      setCargandoCodigoVerificacion(false);
+    }
+  }
+
   function eliminarCampo(id: string) {
     set("campos_texto", (form.campos_texto ?? []).filter((c) => c.id !== id));
     if (campoExpandido === id) setCampoExpandido(null);
@@ -3827,16 +3854,30 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
           {/* Panel secundario: overlay / editar PDF */}
           {tabEditor === "texto" && (
             <div className="max-h-[38vh] flex-shrink-0 overflow-y-auto border-b border-border bg-surface px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-xs font-bold text-ink">Campos de texto sobre la etiqueta</p>
-                <button
-                  type="button"
-                  onClick={agregarCampo}
-                  className={`rounded border-2 border-accent px-2.5 py-1 ${RIB_FONT_BTN} font-bold text-accent hover:bg-accent hover:text-white`}
-                >
-                  + Añadir campo
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void agregarCampoCodigoVerificacion()}
+                    disabled={cargandoCodigoVerificacion}
+                    className={`rounded border-2 border-accent px-2.5 py-1 ${RIB_FONT_BTN} font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40`}
+                    title="Trae el código de verificación del lote vigente (Fichas Técnicas / COA)"
+                  >
+                    {cargandoCodigoVerificacion ? "Consultando…" : "+ Código verificación"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={agregarCampo}
+                    className={`rounded border-2 border-accent px-2.5 py-1 ${RIB_FONT_BTN} font-bold text-accent hover:bg-accent hover:text-white`}
+                  >
+                    + Añadir campo
+                  </button>
+                </div>
               </div>
+              {errorCodigoVerificacion && (
+                <p className="mb-2 text-[11px] text-danger">{errorCodigoVerificacion}</p>
+              )}
               {campos.length === 0 ? (
                 <p className="py-6 text-center text-xs text-muted">Sin campos. Pulsa «+ Añadir campo».</p>
               ) : (
@@ -5001,6 +5042,22 @@ function TabImprimir({
     },
   });
 
+  const skuParaCodigoPdf = skuActivoImpresion || precargar?.siigo_code || "";
+  const actualizarCodigoPdfMut = useMutation({
+    mutationFn: () =>
+      api.post<{ ok: boolean; cambios: number; codigo: string; mensaje?: string | null }>(
+        `/api/etiquetas/studio/${encodeURIComponent(skuParaCodigoPdf)}/actualizar-codigo-pdf`,
+        { ruta_pdf: pdfStudioRuta },
+      ),
+    onSuccess: (r) => {
+      const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const msg = r.cambios > 0
+        ? `Código actualizado a ${r.codigo} (${r.cambios} cambio(s))`
+        : r.mensaje || "El PDF ya tenía el código vigente";
+      setLog((prev) => [...prev, `[${ts}] ✅ ${msg}`]);
+    },
+  });
+
   async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
     setSkuActivoImpresion(fila.sku);
     setFilaActiva(fila);
@@ -5456,18 +5513,36 @@ function TabImprimir({
                   <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pdfStudioNombre}>
                     📄 {pdfStudioNombre || "PDF de Studio"}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPdfStudioRuta("");
-                      setPdfStudioNombre("");
-                      setVistaImpresion("catalogo");
-                    }}
-                    className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent"
-                  >
-                    Quitar y elegir del catálogo
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {skuParaCodigoPdf && (
+                      <button
+                        type="button"
+                        onClick={() => actualizarCodigoPdfMut.mutate()}
+                        disabled={actualizarCodigoPdfMut.isPending}
+                        title="Trae el código de verificación del lote vigente y lo parchea en este PDF sin regenerar el diseño"
+                        className="rounded-lg border border-accent/50 px-2.5 py-1 text-[10px] font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
+                      >
+                        {actualizarCodigoPdfMut.isPending ? "Actualizando…" : "Actualizar código del lote"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPdfStudioRuta("");
+                        setPdfStudioNombre("");
+                        setVistaImpresion("catalogo");
+                      }}
+                      className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent"
+                    >
+                      Quitar y elegir del catálogo
+                    </button>
+                  </div>
                 </div>
+                {actualizarCodigoPdfMut.isError && (
+                  <p className="w-full px-1 text-[11px] text-danger">
+                    {(actualizarCodigoPdfMut.error as Error).message}
+                  </p>
+                )}
                 {pdfStudioPreview?.error ? (
                   <p className="px-6 text-center text-xs text-danger">{pdfStudioPreview.error}</p>
                 ) : (

@@ -30,6 +30,9 @@ export interface EtiquetaStudioDatos {
   vencimiento: string;
   mostrar_lote_vencimiento: boolean;
   placeholders_lote_vencimiento: boolean;
+  /** Código corto de trazabilidad del lote vigente (app/services/lotes_materia_prima.py),
+   * consultable en mckennagroup.co/verificar. Se autorrelaciona por SKU — no editar a mano. */
+  codigo_verificacion?: string;
   codigo_barras: string;
   incluye_cuchara: boolean;
   texto_cuchara: string;
@@ -86,6 +89,7 @@ export const ETIQUETA_STUDIO_DEFAULT: EtiquetaStudioDatos = {
   vencimiento: "",
   mostrar_lote_vencimiento: true,
   placeholders_lote_vencimiento: true,
+  codigo_verificacion: "",
   codigo_barras: "",
   incluye_cuchara: false,
   texto_cuchara: "Cuchara incluida para dosificación en formulación",

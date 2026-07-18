@@ -12,7 +12,8 @@ export type CampoDiagramacionId =
   | "peso"
   | "cuchara"
   | "legal"
-  | "lote";
+  | "lote"
+  | "codigo_verificacion";
 
 export type AlineacionTexto = "left" | "center" | "right" | "justify";
 
@@ -105,6 +106,7 @@ export const CAMPOS_DIAGRAMACION: {
   { id: "titulo", label: "A1 · Título", zona: "Encabezado" },
   { id: "subtitulo", label: "A2 · Subtítulo", zona: "Encabezado" },
   { id: "lote", label: "Lote / Venc.", zona: "Encabezado" },
+  { id: "codigo_verificacion", label: "Código verificación", zona: "Encabezado" },
   { id: "b1", label: "B1 · Descripción", zona: "Columna izq." },
   { id: "cas", label: "C1 · CAS", zona: "Columna der." },
   { id: "concentracion", label: "C2 · Concentración", zona: "Columna der." },
@@ -257,6 +259,12 @@ export const TEXTO_POR_CAMPO: Partial<Record<CampoDiagramacionId, CampoTextoEdit
       }
       return { lote, vencimiento: venc };
     },
+  },
+  codigo_verificacion: {
+    readonly: true,
+    hint: "Se autogenera y actualiza desde el lote vigente del SKU (Fichas Técnicas / botón «Actualizar código»). Solo se puede mover/estilizar aquí.",
+    getTexto: (d) => d.codigo_verificacion ?? "",
+    patchTexto: (t) => ({ codigo_verificacion: t.trim() }),
   },
   legal: {
     multiline: true,

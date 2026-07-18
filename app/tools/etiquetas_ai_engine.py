@@ -2133,6 +2133,17 @@ def _marcar_campos_diagramacion_ai(svg: str, muestras: dict[str, Any], datos: di
                 count=1,
             )
 
+    if (
+        'data-mckenna-campo="codigo_verificacion"' not in out
+        and 'id="mckenna-codigo-verificacion"' in out
+    ):
+        out = re.sub(
+            r'(<g id="mckenna-codigo-verificacion">[\s\S]*?<text)(\s)',
+            r'\1 data-mckenna-campo="codigo_verificacion"\2',
+            out,
+            count=1,
+        )
+
     return out
 
 
@@ -2617,6 +2628,26 @@ def _inyectar_bloque_legal_ai(svg: str, datos: dict, spec: dict) -> str:
     return svg[:idx] + frag + svg[idx:]
 
 
+def _inyectar_codigo_verificacion_ai(svg: str, datos: dict, spec: dict) -> str:
+    """Código corto de trazabilidad del lote vigente — sintético, igual que el
+    bloque legal: nunca viene del .ai original, solo se inyecta si no está ya
+    presente y hay un código para mostrar."""
+    if (
+        'data-mckenna-campo="codigo_verificacion"' in svg
+        or 'id="mckenna-codigo-verificacion"' in svg
+    ):
+        return svg
+    from app.tools.etiquetas_svg_engine import _fragmento_codigo_verificacion
+
+    frag = _fragmento_codigo_verificacion(spec, datos)
+    if not frag:
+        return svg
+    idx = svg.rfind("</svg>")
+    if idx == -1:
+        return svg
+    return svg[:idx] + frag + svg[idx:]
+
+
 _CORRECCIONES_TYPO_AI = (
     ("seste en perfectas", "esté en perfectas"),
     ("envase seste", "envase esté"),
@@ -2883,6 +2914,7 @@ def renderizar_desde_ai(datos: dict, ai_path: Path | None = None, modo: str | No
         legal_inyectado = svg != antes_legal
 
     svg = _aplicar_lote_exp_inplace(svg, datos)
+    svg = _inyectar_codigo_verificacion_ai(svg, datos, spec)
 
     barcode_reemplazado = False
     valor_cb = _codigo_barras_valor(datos)
