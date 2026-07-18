@@ -4,11 +4,11 @@
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1784346780.517459
+    "573009990001@c.us": 1784351219.132512
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
-      "timestamp": 1784346780.517459,
+      "timestamp": 1784351219.132512,
       "razon": "mensaje repetido por posible bot",
       "ultimo_mensaje": "hola"
     }

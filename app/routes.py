@@ -12468,6 +12468,139 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/etiquetas/studio/<path:sku>/actualizar-codigo-pdf", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/<path:sku>/actualizar-codigo-pdf", methods=["POST"])
+    def api_etiquetas_studio_actualizar_codigo_pdf(sku: str):
+        """Parchea SOLO el texto del código de verificación en un PDF ya exportado
+        (biblioteca ~/Documentos/Etiquetas McKenna/), sin regenerar el diseño completo
+        desde el .ai/SVG — permite reimprimir en otra sede cuando cambia el lote.
+        Reutiliza el mismo mecanismo (redact + reinsert con PyMuPDF) que
+        /api/etiquetas/guardar-pdf-editado, buscando el texto por contenido
+        (page.search_for) en vez de requerir coordenadas manuales."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        version = (body.get("version") or "original").strip().lower()
+        ruta_pdf = (body.get("ruta_pdf") or "").strip()
+        if not ruta_pdf:
+            return jsonify({"error": "Falta ruta_pdf"}), 400
+        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+        if err_pdf:
+            code = 404 if "no encontrado" in err_pdf.lower() else 400
+            return jsonify({"error": err_pdf}), code
+
+        try:
+            from app.services.lotes_materia_prima import lote_vigente
+            from app.tools.etiquetas_studio import guardar_studio_sku, obtener_studio_sku_version
+
+            vigente = lote_vigente(sku)
+            if not vigente or not vigente.get("codigo_verificacion"):
+                return jsonify({
+                    "error": (
+                        "No hay ningún lote registrado para este SKU. "
+                        "Regístralo primero en Fichas Técnicas (COA) → "
+                        "«Registrar este lote en el historial»."
+                    )
+                }), 400
+            nuevo_codigo = vigente["codigo_verificacion"]
+
+            actual = obtener_studio_sku_version(sku, version) or {}
+            codigo_viejo = (actual.get("codigo_verificacion") or "").strip()
+
+            if codigo_viejo and codigo_viejo == nuevo_codigo:
+                return jsonify({
+                    "ok": True,
+                    "mensaje": "El PDF ya tiene el código vigente, no se modificó.",
+                    "cambios": 0,
+                    "codigo": nuevo_codigo,
+                })
+
+            cambios_aplicados = 0
+            if codigo_viejo:
+                import fitz as _fitz
+
+                doc = _fitz.open(ruta_pdf)
+                for page in doc:
+                    rects = page.search_for(codigo_viejo)
+                    if not rects:
+                        continue
+                    data = page.get_text("dict", flags=_fitz.TEXT_PRESERVE_WHITESPACE)
+                    spans_match = []
+                    for blk in data.get("blocks", []):
+                        if blk.get("type") != 0:
+                            continue
+                        for ln in blk.get("lines", []):
+                            for sp in ln.get("spans", []):
+                                if sp.get("text", "").strip() == codigo_viejo:
+                                    spans_match.append(sp)
+                    if not spans_match:
+                        continue
+
+                    for sp in spans_match:
+                        rect = _fitz.Rect(sp.get("bbox", [0, 0, 0, 0])) + (-1, -1, 1, 1)
+                        page.add_redact_annot(rect, fill=(1, 1, 1))
+                    page.apply_redactions(images=_fitz.PDF_REDACT_IMAGE_NONE)
+
+                    for sp in spans_match:
+                        font_name = sp.get("font", "")
+                        font_file = _buscar_font_file(font_name)
+                        font_size = float(sp.get("size", 10))
+                        color_rgb = _color_hex_to_rgb(_color_int_to_hex(sp.get("color", 0)))
+                        origin = sp.get("origin", (0.0, 0.0))
+                        insert_kwargs: dict = {
+                            "point": _fitz.Point(origin[0], origin[1]),
+                            "text": nuevo_codigo,
+                            "fontsize": font_size,
+                            "color": color_rgb,
+                        }
+                        if font_file and os.path.isfile(font_file):
+                            insert_kwargs["fontname"] = font_name
+                            insert_kwargs["fontfile"] = font_file
+                        else:
+                            flags = sp.get("flags", 0)
+                            bold = bool(flags & 16)
+                            italic = bool(flags & 2)
+                            if bold and italic:
+                                insert_kwargs["fontname"] = "helv-oi"
+                            elif bold:
+                                insert_kwargs["fontname"] = "helv-b"
+                            elif italic:
+                                insert_kwargs["fontname"] = "helv-o"
+                            else:
+                                insert_kwargs["fontname"] = "helv"
+                        page.insert_text(**insert_kwargs)
+                        cambios_aplicados += 1
+
+                import tempfile as _tmp3
+                tmp_fd, tmp_path = _tmp3.mkstemp(suffix=".pdf", prefix="mckg_codigo_")
+                os.close(tmp_fd)
+                doc.save(tmp_path, garbage=4, deflate=True, incremental=False)
+                doc.close()
+                import shutil as _sh4
+                _sh4.move(tmp_path, ruta_pdf)
+
+            # Deja consistente el JSON de Studio para la próxima exportación completa,
+            # sin tocar diagramación/textos.
+            payload = {**actual, "codigo_verificacion": nuevo_codigo}
+            guardar_studio_sku(sku, payload, version=version)
+
+            return jsonify({
+                "ok": True,
+                "cambios": cambios_aplicados,
+                "codigo_anterior": codigo_viejo or None,
+                "codigo": nuevo_codigo,
+                "mensaje": (
+                    "No se encontró el código anterior en el PDF; solo se actualizó el "
+                    "registro (revisa manualmente el PDF)."
+                    if codigo_viejo and cambios_aplicados == 0
+                    else None
+                ),
+            })
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     # ── Etiquetas: plantillas de dibujo ─────────────────────────────────────
 
     _ETIQUETAS_PLANTILLAS_PATH = os.path.join(
@@ -14995,6 +15128,15 @@ REGLAS:
         if request.method == "GET":
             version = (request.args.get("version") or "").strip().lower()
             datos = obtener_studio_sku_version(sku, version) if version else obtener_studio_sku(sku)
+            if isinstance(datos, dict) and not (datos.get("codigo_verificacion") or "").strip():
+                try:
+                    from app.services.lotes_materia_prima import lote_vigente
+
+                    vigente = lote_vigente(sku)
+                    if vigente and vigente.get("codigo_verificacion"):
+                        datos = {**datos, "codigo_verificacion": vigente["codigo_verificacion"]}
+                except Exception:
+                    pass
             return jsonify({"datos": datos, "versiones": listar_versiones_studio_sku(sku)})
 
         body = request.get_json(silent=True) or {}
@@ -15014,6 +15156,40 @@ REGLAS:
         try:
             entry = guardar_studio_sku(sku, payload, version=version)
             return jsonify({"ok": True, "datos": entry, "version": version, "versiones": listar_versiones_studio_sku(sku)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/studio/<path:sku>/actualizar-codigo", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/<path:sku>/actualizar-codigo", methods=["POST"])
+    def api_etiquetas_studio_actualizar_codigo(sku: str):
+        """Refresca `codigo_verificacion` desde el lote vigente del SKU (lotes_materia_prima)
+        sin tocar ningún otro campo de diagramación/texto — no regenera el diseño."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        version = (body.get("version") or "original").strip().lower()
+        try:
+            from app.services.lotes_materia_prima import lote_vigente
+            from app.tools.etiquetas_studio import guardar_studio_sku, obtener_studio_sku_version
+
+            vigente = lote_vigente(sku)
+            if not vigente or not vigente.get("codigo_verificacion"):
+                return jsonify({
+                    "error": (
+                        "No hay ningún lote registrado para este SKU. "
+                        "Regístralo primero en Fichas Técnicas (COA) → "
+                        "«Registrar este lote en el historial»."
+                    )
+                }), 400
+            # guardar_studio_sku reemplaza el payload completo de la versión — hay que
+            # partir de los datos existentes y solo pisar codigo_verificacion, para no
+            # borrar diagramación/textos ya diseñados.
+            actual = obtener_studio_sku_version(sku, version) or {}
+            payload = {**actual, "codigo_verificacion": vigente["codigo_verificacion"]}
+            entry = guardar_studio_sku(sku, payload, version=version)
+            return jsonify({"ok": True, "datos": entry, "lote": vigente})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:

@@ -9,6 +9,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { api } from "../../api/client";
 import { EtiquetaTextoToolbar, patchCampoToolbar } from "./EtiquetaTextoToolbar";
 import { solicitarTextoMagico } from "../../lib/textoMagicoApi";
 import type { EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
@@ -294,6 +296,45 @@ function AsaRedimension({
         style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
       />
     </button>
+  );
+}
+
+/** Refresca `codigo_verificacion` desde el lote vigente del SKU (lotes_materia_prima)
+ * sin regenerar el resto del diseño — ver POST /api/etiquetas/studio/<sku>/actualizar-codigo. */
+function ActualizarCodigoBoton({
+  sku,
+  onPatchDatos,
+}: {
+  sku: string;
+  onPatchDatos: (patch: Partial<EtiquetaStudioDatos>) => void;
+}) {
+  const mut = useMutation({
+    mutationFn: () =>
+      api.post<{ ok: boolean; datos: { codigo_verificacion?: string } }>(
+        `/api/etiquetas/studio/${encodeURIComponent(sku)}/actualizar-codigo`,
+        {},
+      ),
+    onSuccess: (r) => {
+      if (r.datos.codigo_verificacion) {
+        onPatchDatos({ codigo_verificacion: r.datos.codigo_verificacion });
+      }
+    },
+  });
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={() => mut.mutate()}
+        disabled={mut.isPending || !sku}
+        className="rounded border border-accent/40 px-2 py-1 text-[10px] font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
+      >
+        {mut.isPending ? "Actualizando…" : "Actualizar código de lote"}
+      </button>
+      {mut.isError && (
+        <p className="mt-1 text-[10px] text-danger">{(mut.error as Error).message}</p>
+      )}
+    </div>
   );
 }
 
@@ -1388,7 +1429,13 @@ export function EtiquetaDiagramacionWorkspace({
         {editorTexto.hint && (
           <span className="mt-0.5 block text-[9px] leading-snug text-muted">{editorTexto.hint}</span>
         )}
-        {editorTexto.multiline ? (
+        {editorTexto.readonly ? (
+          <div className="mt-1 flex items-center gap-2">
+            <code className="flex-1 rounded border border-border bg-surface px-2 py-1.5 text-xs">
+              {editorTexto.getTexto(datos) || "— sin código —"}
+            </code>
+          </div>
+        ) : editorTexto.multiline ? (
           <textarea
             value={editorTexto.getTexto(datos)}
             onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
@@ -1402,6 +1449,9 @@ export function EtiquetaDiagramacionWorkspace({
             onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
             className="mt-1 w-full rounded border border-border bg-white px-2 py-1.5 text-xs"
           />
+        )}
+        {seleccionado.id === "codigo_verificacion" && datos.sku && (
+          <ActualizarCodigoBoton sku={datos.sku} onPatchDatos={onPatchDatos} />
         )}
       </label>
     ) : null;

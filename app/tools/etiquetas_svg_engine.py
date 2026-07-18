@@ -963,6 +963,39 @@ def _fragmento_lote_vencimiento(spec: dict, datos: dict) -> str | None:
     )
 
 
+_CODIGO_VERIFICACION_PLACEHOLDER = "CÓD. VERIF."
+
+
+def _fragmento_codigo_verificacion(spec: dict, datos: dict) -> str | None:
+    """Código corto de trazabilidad del lote vigente (lotes_materia_prima.py),
+    consultable en mckennagroup.co/verificar. Sintético: nunca viene del .ai
+    original — igual que _fragmento_lote_vencimiento.
+
+    A diferencia de otros bloques, NINGUNA de las 26 plantillas .ai tiene aún
+    una posición configurada para este campo nuevo (spec.get("codigo_verificacion")
+    siempre vacío hoy). Por eso, a diferencia de _fragmento_legal/_fragmento_lote_
+    vencimiento, no exigimos que `spec` traiga el bloque: usamos una posición por
+    defecto razonable para que el elemento SIEMPRE se dibuje (con un placeholder
+    si aún no hay lote registrado) y así aparezca seleccionable/arrastrable en el
+    editor de diagramación — Cynthia lo reposiciona una vez por plantilla, igual
+    que se hizo originalmente con "Lote / Venc.»."""
+    cfg = spec.get("codigo_verificacion") or {}
+    codigo = (datos.get("codigo_verificacion") or "").strip()
+    if not codigo:
+        if datos.get("placeholders_lote_vencimiento", True) is False:
+            return None
+        codigo = _CODIGO_VERIFICACION_PLACEHOLDER
+    x = float(cfg.get("x", 6.5))
+    y = float(cfg.get("y", 162))
+    fs = float(cfg.get("font_size", 3.4))
+    return (
+        f'<g id="mckenna-codigo-verificacion">'
+        f'<text transform="matrix(1 0 0 -1 {x:.2f} {y:.2f})" fill="#1d1d1b" '
+        f'font-family="Montserrat" font-size="{fs:.2f}px" font-weight="500">'
+        f'<tspan x="0" y="0">{_escape_xml_text(codigo)}</tspan></text></g>'
+    )
+
+
 def _escape_xml_text(text: str) -> str:
     return (
         text.replace("&", "&amp;")
@@ -1202,6 +1235,7 @@ def renderizar_svg(datos: dict) -> tuple[str, dict]:
         _fragmento_titulo(spec, datos, layout=layout_titulo),
         _fragmento_subtitulo(spec, datos, layout_titulo=layout_titulo),
         _fragmento_lote_vencimiento(spec, datos),
+        _fragmento_codigo_verificacion(spec, datos),
         _fragmento_barras(spec, datos),
         _fragmento_legal(spec, datos),
     ):
