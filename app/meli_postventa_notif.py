@@ -409,26 +409,47 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
                 )
 
-                # Respuesta automática FT/COA (Drive) antes de molestar al grupo.
+                # Respuesta automática (o borrador con aprobación) FT/COA (Drive)
+                # antes de molestar al grupo con la cola manual.
                 try:
                     from app.postventa_documentos import (
                         intentar_respuesta_automatica_documentos,
                     )
 
-                    if intentar_respuesta_automatica_documentos(
-                        pack_id, texto, comprador_id=from_id
-                    ):
+                    # Contexto: mensajes recientes del mismo comprador en el hilo,
+                    # por si el producto se mencionó antes del mensaje actual
+                    # (p. ej. "¿tienen carbonato de magnesio?" ... "me pasa la ficha técnica").
+                    texto_hilo_previo = " ".join(
+                        meli_postventa_texto_para_notif(m)
+                        for m in mensajes
+                        if isinstance(m, dict)
+                        and meli_postventa_remitente_user_id(m) == from_id
+                        and meli_postventa_id_mensaje(m) != msg_id
+                    )[-1500:]
+
+                    resultado_docs = intentar_respuesta_automatica_documentos(
+                        pack_id,
+                        texto,
+                        comprador_id=from_id,
+                        texto_contexto_hilo=texto_hilo_previo,
+                    )
+
+                    if resultado_docs in ("auto_enviado", "borrador_pendiente"):
                         procesados.add(msg_id)
                         state["pendientes"].pop(str(pack_id), None)
                         state["pendientes"].pop(sufijo, None)
-                        notif_auto = (
-                            f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
-                            f"🔢 Código: *{sufijo}*\n"
-                            f"👤 {nombre_comprador}\n"
-                            f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
-                            f"_Enlaces enviados al comprador en MeLi. Revisa el hilo si falta algún producto._"
-                        )
-                        enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
+                        if resultado_docs == "auto_enviado":
+                            notif_auto = (
+                                f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
+                                f"🔢 Código: *{sufijo}*\n"
+                                f"👤 {nombre_comprador}\n"
+                                f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
+                                f"_Enlaces enviados al comprador en MeLi. Revisa el hilo si falta algún producto._"
+                            )
+                            enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
+                        # Si es "borrador_pendiente", la notificación de aprobación
+                        # ("hugo dale ok <código>") ya se envió al grupo dentro de
+                        # intentar_respuesta_automatica_documentos().
                         try:
                             incrementar_metrica("mensajes_posventa")
                         except Exception:

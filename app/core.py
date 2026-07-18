@@ -227,7 +227,10 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
    de la página (+57 319 518 3596, wa.me/573195183596) para hablar con un **asesor humano** que sí mantiene el hilo.
    Si viene al caso, aclare que este chat conserva el historial en este mismo navegador, pero se pierde
    si cambia de dispositivo o borra los datos del navegador.
-10. No prometa "le escribo después en este chat": el asesor no puede iniciar conversación por este canal.
+10. PROHIBIDO prometer "le escribo/le aviso después" y PROHIBIDO pedir nombre, correo o teléfono
+    "para avisarle" (de reingresos, novedades o lo que sea): este canal NO puede iniciar conversación.
+    Si el cliente quiere que le avisen de un reingreso o novedad, indíquele el **botón de WhatsApp**:
+    por ahí el equipo sí toma el contacto y le avisa.
 """
 
 
@@ -1032,6 +1035,71 @@ def _respuesta_correccion_web() -> str:
         "Disculpe veci, me equivoqué 🙏 ¿Me indica qué producto o consulta necesita? "
         "Así le respondo puntual."
     )
+
+
+_RX_REINGRESO_WEB = re.compile(
+    r"(?:cuando|cuándo)\s+(?:les\s+|le\s+|nos\s+)?"
+    r"(?:llega|llegan|vuelve|vuelven|entra|entran|reingresa|tienen|tendr[aá]n|hay|habr[aá])"
+    r"|\breingres\w*"
+    r"|volver[aá]n?\s+a\s+(?:tener|traer|llegar|entrar)"
+    r"|vuelven?\s+a\s+(?:tener|traer)"
+    r"|de\s+nuevo\s+disponible|disponible\s+de\s+nuevo|nuevamente\s+disponible"
+)
+
+_RX_INTERES_COMPRA_WEB = re.compile(
+    r"\binteresad|quiero|quisiera|necesito|busco|comprar|compra|pedido|encargar|apartar"
+)
+
+
+def _mensaje_pregunta_reingreso_web(texto: str) -> bool:
+    """Cliente pregunta cuándo vuelve a haber stock de algo agotado."""
+    low = _normalizar_texto_web(texto)
+    if len(low) < 8:
+        return False
+    if _RX_REINGRESO_WEB.search(low):
+        return True
+    # "está agotada" + interés de compra, sin la pregunta "cuándo" explícita
+    return bool(re.search(r"agotad|sin\s+stock|sin\s+existencia", low)) and bool(
+        _RX_INTERES_COMPRA_WEB.search(low)
+    )
+
+
+_reingreso_alertados: dict[str, float] = {}
+_REINGRESO_ALERTA_TTL = 24 * 3600
+
+
+def _alertar_reingreso_inventario(
+    session_id: str, producto: str, pregunta: str, page_url: str = ""
+) -> None:
+    """Avisa al grupo de inventario que un cliente espera reingreso (1 vez/día por sesión+producto)."""
+    import time as _time
+
+    key = f"{session_id}|{_normalizar_texto_web(producto)[:60]}"
+    ahora = _time.time()
+    for k, ts in list(_reingreso_alertados.items()):
+        if ahora - ts > _REINGRESO_ALERTA_TTL:
+            _reingreso_alertados.pop(k, None)
+    if ahora - _reingreso_alertados.get(key, 0) < _REINGRESO_ALERTA_TTL:
+        return
+    _reingreso_alertados[key] = ahora
+
+    def _enviar():
+        try:
+            from app.utils import enviar_whatsapp_reporte, jid_grupo_inventario_wa
+
+            enviar_whatsapp_reporte(
+                "📦 INTERÉS EN PRODUCTO AGOTADO (chat web)\n"
+                f"🛒 Producto: {producto or 'no identificado'}\n"
+                f"🗣 Cliente: \"{(pregunta or '')[:220]}\"\n"
+                f"🌐 Página: {(page_url or '—')[:120]}\n\n"
+                "El cliente pregunta cuándo reingresa. Se le indicó escribir por "
+                "WhatsApp para avisarle; si llega pronto, pueden priorizar la reposición.",
+                numero_destino=jid_grupo_inventario_wa(),
+            )
+        except Exception as e:
+            _log_error("alerta_reingreso_inventario", e)
+
+    spawn_thread(_enviar, daemon=True)
 
 
 def _es_reconocimiento_corto_web(texto: str) -> bool:
@@ -1905,6 +1973,10 @@ def _respuesta_directa_web_si_combos(
         return None
     if _mensaje_parece_consulta_tecnica_web(pregunta):
         return None
+    if _mensaje_pregunta_reingreso_web(pregunta):
+        # "¿Cuándo llega...?" no debe responderse con la lista de precios:
+        # va al LLM con el playbook de reingreso (honestidad + CTA WhatsApp).
+        return None
     enlace = _respuesta_enlace_meli_web(pregunta)
     if enlace:
         return enlace
@@ -2517,6 +2589,34 @@ def obtener_respuesta_ia(
         contexto_combos = (
             f"{ctx_pagina}\n\n{contexto_combos}" if contexto_combos else ctx_pagina
         )
+
+    # Pregunta por reingreso de producto agotado: avisar a inventario y darle
+    # al LLM el playbook (honestidad, sin promesas de contacto, CTA WhatsApp).
+    ctx_reingreso = ""
+    if es_web and _mensaje_pregunta_reingreso_web(pregunta_visible):
+        prod_reingreso = (
+            (_producto_pagina_web(page_url or "") or {}).get("name", "")
+            or _extraer_producto_reciente_historial_web(messages)
+            or _termino_busqueda_limpio_web(pregunta_visible)
+        )
+        _alertar_reingreso_inventario(
+            usuario_id, prod_reingreso, pregunta_visible, page_url or ""
+        )
+        _wa_disp = _wa_publico_display()
+        ctx_reingreso = (
+            "[REINGRESO — el cliente pregunta cuándo vuelve a haber stock de un "
+            "producto agotado. Instrucciones para esta respuesta:\n"
+            "- Sea honesto: si no tiene fecha confirmada de reingreso, dígalo sin "
+            "inventar fechas, importaciones ni plazos.\n"
+            "- PROHIBIDO prometer \"yo le escribo/le aviso\" y PROHIBIDO pedirle "
+            "nombre, correo o teléfono: este chat no puede iniciar conversación.\n"
+            f"- Indíquele que escribiendo por el botón de WhatsApp ({_wa_disp}) el "
+            "equipo sí le toma el dato y le avisa apenas reingrese.\n"
+            "- Si el contexto de catálogo muestra OTRAS presentaciones del mismo "
+            "producto con stock, ofrézcalas como alternativa inmediata.\n"
+            "- El equipo de inventario ya fue notificado de este interés; no se lo "
+            "mencione al cliente.]"
+        )
     if _mensaje_parece_consulta_tecnica_web(pregunta_visible):
         pregunta_para_ia = _enriquecer_pregunta_tecnica_web(
             pregunta_visible,
@@ -2534,6 +2634,8 @@ def obtener_respuesta_ia(
         )
     else:
         pregunta_para_ia = pregunta_visible
+    if ctx_reingreso:
+        pregunta_para_ia = f"{ctx_reingreso}\n\n{pregunta_para_ia}"
     texto_usuario = f"Usuario_{usuario_id}: {pregunta_para_ia}".strip()
     # Lo que se persiste en el historial (y se relee en turnos futuros por
     # heurísticas de texto) debe ser el mensaje VISIBLE del cliente, nunca el

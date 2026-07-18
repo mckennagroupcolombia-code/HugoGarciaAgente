@@ -4360,6 +4360,50 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/lotes/<ref>", methods=["GET"])
+    def api_lotes_listar(ref: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.lotes_materia_prima import listar_lotes
+
+            return jsonify({"ref": ref.strip().upper(), "lotes": listar_lotes(ref)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/lotes/<ref>", methods=["POST"])
+    def api_lotes_registrar(ref: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        lote_numero = (body.get("lote_numero") or "").strip()
+        if not lote_numero:
+            return jsonify({"error": "Se requiere 'lote_numero'"}), 400
+        try:
+            from app.panel_activity import log_line
+            from app.services.lotes_materia_prima import registrar_lote
+
+            entry = registrar_lote(
+                ref,
+                lote_numero=lote_numero,
+                fabricante=body.get("fabricante") or "",
+                pais_origen=body.get("pais_origen") or "",
+                fecha_fabricacion=body.get("fecha_fabricacion") or "",
+                fecha_vencimiento=body.get("fecha_vencimiento") or "",
+                fecha_recepcion=body.get("fecha_recepcion") or "",
+                estado=body.get("estado") or None,
+                ft_link=body.get("ft_link") or "",
+                coa_link=body.get("coa_link") or "",
+                codigo_verificacion=body.get("codigo_verificacion") or "",
+                nombre_producto=body.get("nombre_producto") or None,
+            )
+            log_line(f"HTTP lotes/registrar {ref}: lote {lote_numero!r} → estado={entry['estado']}")
+            return jsonify({"ok": True, "lote": entry})
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
     @app.route("/app/api/fichas/sugerir-campo", methods=["POST"])
     @app.route("/api/fichas/sugerir-campo", methods=["POST"])
     def api_fichas_sugerir_campo():

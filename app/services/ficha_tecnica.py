@@ -560,6 +560,12 @@ def normalizar_datos_ficha(datos: dict) -> dict:
     fecha = (d.get("fecha_revision") or "").strip() or _valor_en_filas(
         filas_id_legacy, "fecha de revision", "fecha revision"
     )
+    pais_origen = (d.get("pais_origen") or "").strip() or _valor_en_filas(
+        filas_id_legacy, "pais de origen", "pais origen", "origen"
+    )
+    fabricante = (d.get("fabricante") or "").strip() or _valor_en_filas(
+        filas_id_legacy, "fabricante", "fabricante proveedor"
+    )
 
     identidad_out: list[list[str]] = []
     if nombre:
@@ -573,6 +579,10 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         identidad_out.append(["CAS #", cas_val])
     if fecha:
         identidad_out.append(["FECHA DE REVISIÓN", _formatear_fecha_revision(fecha)])
+    if pais_origen:
+        identidad_out.append(["PAÍS DE ORIGEN", pais_origen])
+    if fabricante:
+        identidad_out.append(["FABRICANTE", fabricante])
 
     comp_rows = _filas_tabla(d.get("composicion"))
     comp_labels = {_normalizar(r[0]) for r in comp_rows if r}
@@ -591,6 +601,11 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "cas #",
         "fecha de revision",
         "fecha revision",
+        "pais de origen",
+        "pais origen",
+        "origen",
+        "fabricante",
+        "fabricante proveedor",
     }
     skip_labels |= comp_labels
     for row in filas_id_legacy:
@@ -651,6 +666,8 @@ def normalizar_datos_ficha(datos: dict) -> dict:
     d["sinonimos"] = sinonimos
     d["cas"] = cas
     d["fecha_revision"] = fecha
+    d["pais_origen"] = pais_origen
+    d["fabricante"] = fabricante
     d["identidad"] = identidad_out
     d["propiedades"] = propiedades
     d["aplicaciones"] = apps
@@ -970,6 +987,8 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
     referencia = (d.get("referencia") or "").strip()
     sinonimos = (d.get("sinonimos") or "").strip()
     cas = (d.get("cas") or "").strip()
+    pais_origen = (d.get("pais_origen") or "").strip()
+    fabricante = (d.get("fabricante") or "").strip()
     fecha = _formatear_fecha_revision(d.get("fecha_revision") or "")
     from app.services.documento_cientifico import _asegurar_punto_final
     descripcion = _asegurar_punto_final((d.get("descripcion") or "").strip())
@@ -1037,6 +1056,8 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
         "referencia": referencia,
         "sinonimos": sinonimos,
         "cas": cas,
+        "pais_origen": pais_origen,
+        "fabricante": fabricante,
         "fecha_revision": fecha,
         "descripcion": descripcion,
         "propiedades": propiedades_fijas,
@@ -1124,6 +1145,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "vida_util": (lote.get("vida_util") or "").strip(),
         "tamano_lote": (lote.get("tamano_lote") or "").strip(),
         "pais_origen": (lote.get("pais_origen") or "").strip(),
+        "fabricante": (lote.get("fabricante") or "").strip(),
         "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
         "fecha_emision": (lote.get("fecha_emision") or "").strip(),
         "parametros": filas,
@@ -1138,7 +1160,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
 _COA_CAMPOS_EXCLUSIVOS = (
     "einces", "concentracion", "grado", "presentacion", "incluye",
     "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
-    "pais_origen", "fecha_analisis", "fecha_emision",
+    "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
     "codigo_verificacion",
 )

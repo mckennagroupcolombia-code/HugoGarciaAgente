@@ -262,11 +262,13 @@ ul.apps li, ul.beneficios li {
   {% endif %}
 </div>
 
-<!-- Meta: CAS / fecha -->
-{% if cas or fecha_revision %}
+<!-- Meta: CAS / fecha / origen / fabricante -->
+{% if cas or fecha_revision or pais_origen or fabricante %}
 <div class="meta-strip">
   {% if cas %}<span><b>CAS:</b> {{ cas }}</span>{% endif %}
   {% if fecha_revision %}<span><b>Revisión:</b> {{ fecha_revision }}</span>{% endif %}
+  {% if pais_origen %}<span><b>País de origen:</b> {{ pais_origen }}</span>{% endif %}
+  {% if fabricante %}<span><b>Fabricante:</b> {{ fabricante }}</span>{% endif %}
 </div>
 {% endif %}
 

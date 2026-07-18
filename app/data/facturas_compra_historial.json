@@ -1,6 +1,138 @@
 {
   "historial": [
     {
+      "id": "20260717113014762-9814",
+      "sufijo": "9814",
+      "numero_factura": "FEE99814",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 4881160.0,
+      "fecha_factura": "2026-07-11",
+      "items_count": 11,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "panel",
+      "nuevos": 7,
+      "en_siigo": 4,
+      "items_resumen": [
+        {
+          "nombre": "ALULOSA/ALLULOSE",
+          "codigo": "ALUALLg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 16.0,
+          "precio_unitario": 19.04,
+          "precio_proveedor": 16000.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA D-PANTENOL",
+          "codigo": "VITPANg",
+          "cantidad_min": 2000.0,
+          "unidad_min": "g",
+          "precio_neto": 82.0,
+          "precio_unitario": 82.0,
+          "precio_proveedor": 82000.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MENTOL CRYSTAL NATURAL 99% CAS: 2216-51-5 (PB)",
+          "codigo": "MENCRYNATg",
+          "cantidad_min": 1000.0,
+          "unidad_min": "g",
+          "precio_neto": 108.0,
+          "precio_unitario": 128.52,
+          "precio_proveedor": 108000.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "CITRATO DE POTASIO/POTASSIUM CITRATE",
+          "codigo": "CITPOTPOTg",
+          "cantidad_min": 50000.0,
+          "unidad_min": "g",
+          "precio_neto": 9.6,
+          "precio_unitario": 11.42,
+          "precio_proveedor": 9600.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "CITMAGFCCg",
+          "cantidad_min": 100000.0,
+          "unidad_min": "g",
+          "precio_neto": 9.2,
+          "precio_unitario": 10.95,
+          "precio_proveedor": 9200.0,
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - ARGININA BASE",
+          "codigo": "AMIARGBASg",
+          "cantidad_min": 1000.0,
+          "unidad_min": "g",
+          "precio_neto": 75.0,
+          "precio_unitario": 89.25,
+          "precio_proveedor": 75000.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MALTODEXTRINA M100 GPC",
+          "codigo": "MALM10GPCg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 5.5,
+          "precio_unitario": 6.54,
+          "precio_proveedor": 5500.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "COLAGENO EN POLVO HIDROLIZADO",
+          "codigo": "COLPOLHIDg",
+          "cantidad_min": 20000.0,
+          "unidad_min": "g",
+          "precio_neto": 38.0,
+          "precio_unitario": 45.22,
+          "precio_proveedor": 38000.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACIDO SALICILICO USP/SALICYLIC ACID USP",
+          "codigo": "ACISALUSPg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 19.5,
+          "precio_unitario": 23.2,
+          "precio_proveedor": 19500.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "AMINOACIDO L - TRIPTOFANO",
+          "codigo": "AMITRIg",
+          "cantidad_min": 2000.0,
+          "unidad_min": "g",
+          "precio_neto": 98.0,
+          "precio_unitario": 116.62,
+          "precio_proveedor": 98000.0,
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "CELULOSA MICROCRISTALINA  A  102",
+          "codigo": "CELMICg",
+          "cantidad_min": 25000.0,
+          "unidad_min": "g",
+          "precio_neto": 16.0,
+          "precio_unitario": 19.04,
+          "precio_proveedor": 16000.0,
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FEE99814 registro productos.xlsx",
+      "ruta_xml": "FEE99814 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "✅ Factura procesada desde el panel\n\n🔢 FEE99814\n🏢 FACTORES Y MERCADEO S.A.\n📦 7 producto(s) nuevo(s)  ·  4 en SIIGO (suman inventario)\n📎 Archivos generados en el servidor:\n   • FEE99814 registro productos.xlsx\n   • FEE99814 codigos siigo.xml",
+      "timestamp": "2026-07-17T11:30:14.762177"
+    },
+    {
       "id": "20260716022005163-9829",
       "sufijo": "9829",
       "numero_factura": "FV3249829",

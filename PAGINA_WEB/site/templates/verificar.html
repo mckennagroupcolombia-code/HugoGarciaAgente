@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Verificar lote — McKenna Group{% endblock %}
+{% block description %}Consulte el fabricante, país de origen y documentos (ficha técnica y certificado de análisis) del lote de materia prima que recibió.{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --vf-green:  #2E8B7A;
+  --vf-deep:   #143D36;
+  --vf-pale:   #E8F5F3;
+  --vf-ultra:  #F2FAF9;
+  --vf-border: rgba(46,139,122,.15);
+}
+.vf-wrap    { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+.vf-badge   {
+  display: inline-block; background: var(--vf-pale); color: var(--vf-green);
+  font-size: .72rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 18px;
+}
+.vf-title   { font-size: clamp(1.6rem, 4vw, 2.1rem); font-weight: 800; color: var(--vf-deep); line-height: 1.2; margin-bottom: 8px; }
+.vf-sub     { font-size: .95rem; color: #667; margin-bottom: 32px; line-height: 1.6; }
+.vf-form    {
+  display: flex; gap: 10px; flex-wrap: wrap; background: var(--vf-ultra);
+  border: 1px solid var(--vf-border); border-radius: 12px; padding: 18px;
+  margin-bottom: 32px;
+}
+.vf-form input {
+  flex: 1; min-width: 200px; padding: 11px 14px; border-radius: 8px;
+  border: 1px solid var(--vf-border); font-size: .93rem;
+}
+.vf-form button {
+  background: var(--vf-green); color: #fff; font-weight: 700; font-size: .9rem;
+  border: none; border-radius: 8px; padding: 11px 22px; cursor: pointer;
+}
+.vf-form button:hover { opacity: .9; }
+.vf-hint { font-size: .78rem; color: #99a; margin-top: -22px; margin-bottom: 28px; }
+
+.vf-card {
+  border: 1px solid var(--vf-border); border-radius: 14px; padding: 24px;
+  background: #fff;
+}
+.vf-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.vf-prod    { font-size: 1.15rem; font-weight: 800; color: var(--vf-deep); }
+.vf-estado  {
+  font-size: .72rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 20px;
+}
+.vf-estado.nuevo        { background: #E8F5F3; color: #1a6f5f; }
+.vf-estado.actualizado  { background: #FFF3E0; color: #b0680a; }
+.vf-estado.sin_cambios  { background: #EEF2FF; color: #3b4ea8; }
+
+.vf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 22px; margin-bottom: 20px; }
+.vf-field label { display: block; font-size: .72rem; color: #99a; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.vf-field span  { font-size: .95rem; color: var(--vf-deep); font-weight: 600; }
+
+.vf-docs { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.vf-doc-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-radius: 8px; border: 1px solid var(--vf-border); color: var(--vf-deep);
+  font-size: .88rem; font-weight: 700; text-decoration: none;
+  background: var(--vf-pale);
+}
+.vf-doc-btn:hover { opacity: .85; }
+
+.vf-empty {
+  border: 1px dashed var(--vf-border); border-radius: 12px; padding: 26px;
+  text-align: center; color: #778; font-size: .92rem; line-height: 1.6;
+}
+.vf-empty a { color: var(--vf-green); font-weight: 700; }
+</style>
+
+<div class="vf-wrap">
+  <span class="vf-badge">Trazabilidad McKenna Group</span>
+  <h1 class="vf-title">Verifique su lote</h1>
+  <p class="vf-sub">
+    Ingrese el código impreso en la etiqueta de su producto.
+  </p>
+
+  <form class="vf-form" method="get" action="{{ url_for('verificar_lote') }}">
+    <input type="text" name="codigo" placeholder="Código de la etiqueta (ej. K7X2QA)" value="{{ codigo }}" autofocus>
+    <button type="submit">Verificar</button>
+  </form>
+
+  {% if buscado %}
+    {% if resultado %}
+      {% set l = resultado.lote %}
+      <div class="vf-card">
+        <div class="vf-card-head">
+          <div class="vf-prod">{{ resultado.nombre or resultado.ref }}</div>
+          <span class="vf-estado {{ l.estado }}">
+            {% if l.estado == 'nuevo' %}Lote nuevo
+            {% elif l.estado == 'actualizado' %}Lote actualizado
+            {% else %}Sin cambios{% endif %}
+          </span>
+        </div>
+        <div class="vf-grid">
+          <div class="vf-field"><label>Referencia</label><span>{{ resultado.ref }}</span></div>
+          <div class="vf-field"><label>N.º de lote</label><span>{{ l.lote_numero }}</span></div>
+          {% if l.fabricante %}<div class="vf-field"><label>Fabricante</label><span>{{ l.fabricante }}</span></div>{% endif %}
+          {% if l.pais_origen %}<div class="vf-field"><label>País de origen</label><span>{{ l.pais_origen }}</span></div>{% endif %}
+          {% if l.fecha_fabricacion %}<div class="vf-field"><label>Fecha de fabricación</label><span>{{ l.fecha_fabricacion }}</span></div>{% endif %}
+          {% if l.fecha_vencimiento %}<div class="vf-field"><label>Fecha de vencimiento</label><span>{{ l.fecha_vencimiento }}</span></div>{% endif %}
+          {% if l.fecha_recepcion %}<div class="vf-field"><label>Recibido por McKenna</label><span>{{ l.fecha_recepcion }}</span></div>{% endif %}
+        </div>
+        <div class="vf-docs">
+          {% if l.ft_webViewLink %}
+          <a class="vf-doc-btn" href="{{ l.ft_webViewLink }}" target="_blank" rel="noopener">📄 Ficha técnica</a>
+          {% endif %}
+          {% if l.coa_webViewLink %}
+          <a class="vf-doc-btn" href="{{ l.coa_webViewLink }}" target="_blank" rel="noopener">📋 Certificado de análisis (COA)</a>
+          {% endif %}
+          {% if not l.ft_webViewLink and not l.coa_webViewLink %}
+          <a class="vf-doc-btn" href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, quiero los documentos del lote ' ~ l.lote_numero ~ ' de ' ~ (resultado.nombre or resultado.ref))|urlencode }}" target="_blank" rel="noopener">💬 Solicitar documentos por WhatsApp</a>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="vf-empty">
+        No encontramos ese código registrado.<br>
+        Escríbanos por
+        <a href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, quiero verificar el código de etiqueta ' ~ codigo)|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+        con una foto de la etiqueta y con gusto lo confirmamos.
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
