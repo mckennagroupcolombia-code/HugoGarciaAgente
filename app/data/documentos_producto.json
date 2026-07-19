@@ -2688,69 +2688,6 @@
       ],
       "updated_at": "2026-07-19T06:35:42+00:00"
     },
-    "C-VITE30ML": {
-      "ref": "C-VITE30ML",
-      "nombre": "VITAMINA B3",
-      "lotes": [
-        {
-          "lote_numero": "FNZ666",
-          "estado": "nuevo",
-          "fabricante": "",
-          "pais_origen": "",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
-          "fecha_recepcion": "2026-07-19",
-          "codigo_verificacion": "BWU9KN",
-          "ft_webViewLink": "",
-          "coa_webViewLink": "",
-          "vigente": true,
-          "registrado_en": "2026-07-19T06:35:42+00:00"
-        }
-      ],
-      "updated_at": "2026-07-19T06:35:42+00:00"
-    },
-    "C-VITC30P30ML": {
-      "ref": "C-VITC30P30ML",
-      "nombre": "VITAMINA B3",
-      "lotes": [
-        {
-          "lote_numero": "FNZ666",
-          "estado": "nuevo",
-          "fabricante": "",
-          "pais_origen": "",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
-          "fecha_recepcion": "2026-07-19",
-          "codigo_verificacion": "BWU9KN",
-          "ft_webViewLink": "",
-          "coa_webViewLink": "",
-          "vigente": true,
-          "registrado_en": "2026-07-19T06:35:42+00:00"
-        }
-      ],
-      "updated_at": "2026-07-19T06:35:42+00:00"
-    },
-    "C-VITE30M": {
-      "ref": "C-VITE30M",
-      "nombre": "VITAMINA B3",
-      "lotes": [
-        {
-          "lote_numero": "FNZ666",
-          "estado": "nuevo",
-          "fabricante": "",
-          "pais_origen": "",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
-          "fecha_recepcion": "2026-07-19",
-          "codigo_verificacion": "BWU9KN",
-          "ft_webViewLink": "",
-          "coa_webViewLink": "",
-          "vigente": true,
-          "registrado_en": "2026-07-19T06:35:42+00:00"
-        }
-      ],
-      "updated_at": "2026-07-19T06:35:42+00:00"
-    },
     "C-ACEARG50ML": {
       "ref": "C-ACEARG50ML",
       "nombre": "Aceite Argan",
@@ -3044,6 +2981,468 @@
         }
       ],
       "updated_at": "2026-07-19T06:49:48+00:00"
+    },
+    "C-VITCACIASC100G": {
+      "ref": "C-VITCACIASC100G",
+      "nombre": "ÁCIDO ASCÓRBICO",
+      "lotes": [
+        {
+          "lote_numero": "YTW223",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K8LC7S",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-VITCACIASC500G": {
+      "ref": "C-VITCACIASC500G",
+      "nombre": "ÁCIDO ASCÓRBICO",
+      "lotes": [
+        {
+          "lote_numero": "YTW223",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K8LC7S",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-VITCACIASC250G": {
+      "ref": "C-VITCACIASC250G",
+      "nombre": "ÁCIDO ASCÓRBICO",
+      "lotes": [
+        {
+          "lote_numero": "YTW223",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K8LC7S",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-EXTALOVER30ML": {
+      "ref": "C-EXTALOVER30ML",
+      "nombre": "ALOE VERA",
+      "lotes": [
+        {
+          "lote_numero": "QMX792",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "585HD9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-EXTALOVER30M": {
+      "ref": "C-EXTALOVER30M",
+      "nombre": "ALOE VERA",
+      "lotes": [
+        {
+          "lote_numero": "QMX792",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "585HD9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-AMIBCA250G": {
+      "ref": "C-AMIBCA250G",
+      "nombre": "BCAA",
+      "lotes": [
+        {
+          "lote_numero": "CUF872",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "N5KQ26",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-TEGBETLT": {
+      "ref": "C-TEGBETLT",
+      "nombre": "BETAÍNA DE COCO",
+      "lotes": [
+        {
+          "lote_numero": "UMJ969",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "MDT7VH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-TEGBET500ML": {
+      "ref": "C-TEGBET500ML",
+      "nombre": "BETAÍNA DE COCO",
+      "lotes": [
+        {
+          "lote_numero": "UMJ969",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "MDT7VH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-CLOMAGHEXKG": {
+      "ref": "C-CLOMAGHEXKG",
+      "nombre": "CLORURO DE MAGNESIO",
+      "lotes": [
+        {
+          "lote_numero": "NBP689",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "FJWPFK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-CREMON100G": {
+      "ref": "C-CREMON100G",
+      "nombre": "CREATINA",
+      "lotes": [
+        {
+          "lote_numero": "FSX996",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KE5YRK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-CREMON500G": {
+      "ref": "C-CREMON500G",
+      "nombre": "CREATINA",
+      "lotes": [
+        {
+          "lote_numero": "FSX996",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KE5YRK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-CREMON250G": {
+      "ref": "C-CREMON250G",
+      "nombre": "CREATINA",
+      "lotes": [
+        {
+          "lote_numero": "FSX996",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KE5YRK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-ELAHID30ML": {
+      "ref": "C-ELAHID30ML",
+      "nombre": "ELASTINA",
+      "lotes": [
+        {
+          "lote_numero": "LDK743",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "DX9WXZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-ELAHID30M": {
+      "ref": "C-ELAHID30M",
+      "nombre": "ELASTINA",
+      "lotes": [
+        {
+          "lote_numero": "LDK743",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "DX9WXZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "C-EXTTEMATVER100G": {
+      "ref": "C-EXTTEMATVER100G",
+      "nombre": "EXTRACTO DE TÉ MATCHA",
+      "lotes": [
+        {
+          "lote_numero": "PEC854",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "U2YGKC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:01+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:01+00:00"
+    },
+    "L-AMIPRO100G": {
+      "ref": "L-AMIPRO100G",
+      "nombre": "L-PROLINA",
+      "lotes": [
+        {
+          "lote_numero": "MHS687",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "ABS7QN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-AMILARG100G": {
+      "ref": "C-AMILARG100G",
+      "nombre": "L-ARGININA",
+      "lotes": [
+        {
+          "lote_numero": "ETQ228",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "2JQ2V5",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-AMILTRI100G": {
+      "ref": "C-AMILTRI100G",
+      "nombre": "L-TRIPTÓFANO",
+      "lotes": [
+        {
+          "lote_numero": "LRH335",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C8F4ZP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-MENCRI100G": {
+      "ref": "C-MENCRI100G",
+      "nombre": "MENTOL",
+      "lotes": [
+        {
+          "lote_numero": "ZHX533",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "E5VPPF",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-MENCRI100": {
+      "ref": "C-MENCRI100",
+      "nombre": "MENTOL",
+      "lotes": [
+        {
+          "lote_numero": "ZHX533",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "E5VPPF",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-POLTWE20P500ML": {
+      "ref": "C-POLTWE20P500ML",
+      "nombre": "POLISORBATO 20",
+      "lotes": [
+        {
+          "lote_numero": "HCW778",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "3VB2NB",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
+    },
+    "C-VITE30ML": {
+      "ref": "C-VITE30ML",
+      "nombre": "VITAMINA E",
+      "lotes": [
+        {
+          "lote_numero": "AHE975",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "WDS2K4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T07:16:02+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T07:16:02+00:00"
     }
   }
 }
