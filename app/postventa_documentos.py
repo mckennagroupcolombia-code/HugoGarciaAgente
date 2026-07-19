@@ -179,6 +179,11 @@ def intentar_respuesta_automatica_documentos(
     """
     if not _AUTO_DOCS or not mensaje_solicita_documentos(texto_comprador):
         return "sin_match"
+    # El texto sintético de adjuntos ("[Solo adjunto(s) en MeLi: RUT.pdf] …")
+    # contiene la palabra "pdf" y disparaba el envío de FT/COA cuando el
+    # comprador solo mandó un archivo (RUT, comprobante) sin pedir nada.
+    if (texto_comprador or "").lstrip().startswith("[Solo adjunto"):
+        return "sin_match"
 
     from app.utils import refrescar_token_meli
 

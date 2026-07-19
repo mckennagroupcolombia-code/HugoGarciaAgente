@@ -2128,6 +2128,15 @@ def register_routes(app):
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("resp "):
+                # En el grupo POSTVENTA, "resp <código>: ..." responde el mensaje
+                # postventa (misma sintaxis que el equipo ya usa en preventa).
+                if es_grupo_posventa_cmd:
+                    spawn_thread(
+                        _procesar_comando_posventa_wa,
+                        args=("posventa " + _msg_norm.split(" ", 1)[1],),
+                    )
+                    return jsonify({"status": "ok", "respuesta": None})
+
                 # Intentar primero como comando preventa (formato corto: resp 497: ...)
                 question_id, respuesta_humana = detectar_comando_preventa(message_text)
                 if question_id and respuesta_humana:
@@ -2496,7 +2505,8 @@ def register_routes(app):
             )
 
         # --- Flujo de Aprobación para Mensajes de Posventa ---
-        if message_text.lower().startswith("hugo dale ok"):
+        # Acepta también el typo frecuente "hugo sale ok <código>".
+        if re.match(r"^hugo\s+(dale|sale)\s+ok\b", message_text.strip(), re.IGNORECASE):
             token_ok = message_text.split()[-1].strip()
             target_order_id = None
             message_to_send = None
@@ -2521,12 +2531,28 @@ def register_routes(app):
                     target_order_id, message_to_send = matches[0]
                     borradores_aprobacion.pop(target_order_id, None)
 
+            # Sugerencia IA persistida en la cola postventa (generada por el
+            # proceso del webhook :8080 — el dict borradores_aprobacion vive
+            # solo en esta memoria, así que el cruce va por archivo).
+            comprador_id_sug = None
+            clave_pendiente_sug = None
+            if not (target_order_id and message_to_send):
+                entrada_sug, clave_pendiente_sug = _resolver_entrada_postventa(token_ok)
+                if entrada_sug and (entrada_sug.get("sugerencia_ia") or "").strip():
+                    target_order_id = str(entrada_sug.get("pack_id") or "")
+                    message_to_send = entrada_sug["sugerencia_ia"].strip()
+                    comprador_id_sug = entrada_sug.get("from_id")
+
             if target_order_id and message_to_send:
                 resultado_envio = responder_mensaje_posventa(
-                    target_order_id, message_to_send
+                    target_order_id, message_to_send, comprador_id_sug
                 )
                 print(f"Resultado del envío a posventa: {resultado_envio}")
                 sufijo = sufijo_pack_postventa(target_order_id)
+                if resultado_envio:
+                    _quitar_pendiente_postventa(
+                        str(target_order_id), clave_pendiente_sug
+                    )
                 return jsonify(
                     {
                         "status": "sent",
@@ -11112,6 +11138,8 @@ def register_routes(app):
         lote_font: int = 7,
         lote_x_pct: float | None = None,
         lote_y_pct: float | None = None,
+        venc_x_pct: float | None = None,
+        venc_y_pct: float | None = None,
         lineas: list | None = None,
         imagenes: list | None = None,
         rectangulos: list | None = None,
@@ -11278,24 +11306,35 @@ def register_routes(app):
                         c, linea, font_name, fs, x_pt, y_l, align, box_w_pt=box_w_pt,
                     )
 
-            # Lote / vencimiento — Montserrat Light, posición % (igual que overlay del panel)
+            # Lote y vencimiento — Montserrat Light, posiciones % INDEPENDIENTES
+            # (a veces el vencimiento se sella a mano aparte del lote impreso).
             if lote or vencimiento:
                 fn = _fuente_lote_etiqueta()
-                c.setFont(fn, lote_font)
                 c.setFillColor(black)
-                lh2 = lote_font * 1.35
-                lineas2 = []
-                if lote:
-                    lineas2.append(lote)
-                if vencimiento:
-                    lineas2.append(vencimiento)
-                x_pct_val = max(0.0, min(100.0, 5.0 if lote_x_pct is None else float(lote_x_pct)))
-                y_pct_val = max(0.0, min(100.0, 88.0 if lote_y_pct is None else float(lote_y_pct)))
+                x_lote_pct = max(0.0, min(100.0, 5.0 if lote_x_pct is None else float(lote_x_pct)))
+                y_lote_pct = max(0.0, min(100.0, 88.0 if lote_y_pct is None else float(lote_y_pct)))
+                # Sin posición propia de vencimiento: cae debajo del lote (compat. datos viejos).
+                # 1.6× (no 1.35×) para que el alto real del texto (ascendentes/descendentes)
+                # no se traslape con la línea del lote — la razón original del bug reportado
+                # de "lote y vencimiento se superponen al imprimir".
+                x_venc_pct = (
+                    x_lote_pct if venc_x_pct is None else max(0.0, min(100.0, float(venc_x_pct)))
+                )
+                y_venc_pct = (
+                    max(0.0, min(100.0, y_lote_pct + lote_font * 1.6 * 100.0 / h_pt))
+                    if venc_y_pct is None
+                    else max(0.0, min(100.0, float(venc_y_pct)))
+                )
                 # Misma convención que campos_texto y el overlay CSS (top % + tamaño pt)
-                xp = w_pt * x_pct_val / 100.0
-                y_base_pt = h_pt * (1.0 - y_pct_val / 100.0) - lote_font
-                for i2, txt2 in enumerate(lineas2):
-                    c.drawString(xp, y_base_pt - i2 * lh2, txt2)
+                c.setFont(fn, lote_font)
+                if lote:
+                    xp = w_pt * x_lote_pct / 100.0
+                    yp = h_pt * (1.0 - y_lote_pct / 100.0) - lote_font
+                    c.drawString(xp, yp, lote)
+                if vencimiento:
+                    xp = w_pt * x_venc_pct / 100.0
+                    yp = h_pt * (1.0 - y_venc_pct / 100.0) - lote_font
+                    c.drawString(xp, yp, vencimiento)
 
             c.save()
             buf.seek(0)
@@ -11453,6 +11492,18 @@ def register_routes(app):
             lote_y_pct = max(0.0, min(100.0, float(data.get("lote_y_pct", 88))))
         except (TypeError, ValueError):
             lote_y_pct = 88.0
+        venc_x_pct = None
+        if data.get("venc_x_pct") is not None:
+            try:
+                venc_x_pct = max(0.0, min(100.0, float(data.get("venc_x_pct"))))
+            except (TypeError, ValueError):
+                venc_x_pct = None
+        venc_y_pct = None
+        if data.get("venc_y_pct") is not None:
+            try:
+                venc_y_pct = max(0.0, min(100.0, float(data.get("venc_y_pct"))))
+            except (TypeError, ValueError):
+                venc_y_pct = None
         campos_texto = data.get("campos_texto") or []
         lineas = data.get("lineas") or []
         imagenes = data.get("imagenes") or []
@@ -11575,7 +11626,9 @@ def register_routes(app):
                 lote_font_val = max(3, min(40, lote_font))
                 tmp_pdf = _pdf_con_campos_texto(
                     ruta_pdf, campos_texto, lote, vencimiento, "custom", lote_font_val,
-                    lote_x_pct=lote_x_pct, lote_y_pct=lote_y_pct, lineas=lineas, imagenes=imagenes,
+                    lote_x_pct=lote_x_pct, lote_y_pct=lote_y_pct,
+                    venc_x_pct=venc_x_pct, venc_y_pct=venc_y_pct,
+                    lineas=lineas, imagenes=imagenes,
                     rectangulos=rectangulos,
                 )
                 pdf_a_imprimir = tmp_pdf
@@ -11589,7 +11642,12 @@ def register_routes(app):
                 if campos_texto:
                     info.append(f"{len(campos_texto)} campo(s) de texto")
                 if overlay_lote:
-                    info.append(f"lote/vence ({lote_x_pct:.1f}%, {lote_y_pct:.1f}%)")
+                    venc_info = (
+                        f"({venc_x_pct:.1f}%, {venc_y_pct:.1f}%)"
+                        if venc_x_pct is not None and venc_y_pct is not None
+                        else "(debajo del lote)"
+                    )
+                    info.append(f"lote ({lote_x_pct:.1f}%, {lote_y_pct:.1f}%) · vence {venc_info}")
                 if info:
                     log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
@@ -14667,7 +14725,8 @@ REGLAS:
             "siigo_code", "siigo_name", "nombre_etiqueta", "presentacion",
             "pdf_ruta", "pdf_nombre", "lote_defecto", "vencimiento_defecto",
             "tipo_etiqueta", "forma", "calidad", "rotacion",
-            "lote_pos", "lote_font", "lote_x_pct", "lote_y_pct", "campos_texto",
+            "lote_pos", "lote_font", "lote_x_pct", "lote_y_pct",
+            "venc_x_pct", "venc_y_pct", "campos_texto",
         }
         entry = dict(datos.get(sku, {}))
         for k, v in body.items():

@@ -47,7 +47,9 @@ function esComandoMeliOperativo(textoLower) {
         textoLower.startsWith('posventa ') ||
         textoLower.startsWith('resp preventa ') ||
         /^resp\s+\d{2,}:/.test(textoLower) ||
-        /^ok\s+\d{3,}$/.test(textoLower)
+        /^ok\s+\d{3,}$/.test(textoLower) ||
+        // Aprobación de borradores postventa (tolera el typo "sale")
+        /^hugo\s+(dale|sale)\s+ok\b/.test(textoLower)
     );
 }
 
@@ -274,7 +276,12 @@ process.on('SIGINT',  () => _shutdown('SIGINT'));
 function envLimpio(nombre, fallback) {
     const val = process.env[nombre];
     if (!val) return fallback;
-    return val.split('#')[0].trim();
+    // systemd no soporta comentarios inline: "VAR=   # nota" llega con el "#"
+    // como valor. Tras limpiar, un valor vacío debe caer al fallback — si no,
+    // el grupo queda como "" y el bridge lo trata como GRUPO DESCONOCIDO
+    // (comandos como "hugo dale ok" nunca llegan a Flask).
+    const limpio = val.split('#')[0].trim();
+    return limpio || fallback;
 }
 
 const GRUPO_CONTABILIDAD = envLimpio('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us');
