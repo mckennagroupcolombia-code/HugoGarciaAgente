@@ -63,6 +63,17 @@
 }
 .vf-doc-btn:hover { opacity: .85; }
 
+.vf-relacionado {
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--vf-border);
+  display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.vf-rel-titulo { font-size: .78rem; font-weight: 700; color: var(--vf-deep); margin-bottom: 6px; }
+.vf-rel-link {
+  display: block; font-size: .85rem; color: var(--vf-green); text-decoration: none;
+  padding: 4px 0; border-bottom: 1px dashed transparent;
+}
+.vf-rel-link:hover { border-bottom-color: var(--vf-green); }
+
 .vf-empty {
   border: 1px dashed var(--vf-border); border-radius: 12px; padding: 26px;
   text-align: center; color: #778; font-size: .92rem; line-height: 1.6;
@@ -74,11 +85,11 @@
   <span class="vf-badge">Trazabilidad McKenna Group</span>
   <h1 class="vf-title">Verifique su lote</h1>
   <p class="vf-sub">
-    Ingrese el código impreso en la etiqueta de su producto.
+    Ingrese el número de lote o el código de verificación impreso en la etiqueta de su producto.
   </p>
 
   <form class="vf-form" method="get" action="{{ url_for('verificar_lote') }}">
-    <input type="text" name="codigo" placeholder="Código de la etiqueta (ej. K7X2QA)" value="{{ codigo }}" autofocus>
+    <input type="text" name="codigo" placeholder="Lote o código (ej. GXO765)" value="{{ codigo }}" autofocus>
     <button type="submit">Verificar</button>
   </form>
 
@@ -114,6 +125,35 @@
           <a class="vf-doc-btn" href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, quiero los documentos del lote ' ~ l.lote_numero ~ ' de ' ~ (resultado.nombre or resultado.ref))|urlencode }}" target="_blank" rel="noopener">💬 Solicitar documentos por WhatsApp</a>
           {% endif %}
         </div>
+
+        {% if contenido and (contenido.guias or contenido.manuales or contenido.recetas) %}
+        <div class="vf-relacionado">
+          {% if contenido.guias %}
+          <div class="vf-rel-grupo">
+            <p class="vf-rel-titulo">📘 Guías de uso</p>
+            {% for g in contenido.guias %}
+            <a class="vf-rel-link" href="{{ g.url }}">{{ g.titulo }}</a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if contenido.manuales %}
+          <div class="vf-rel-grupo">
+            <p class="vf-rel-titulo">📖 Manuales</p>
+            {% for m in contenido.manuales %}
+            <a class="vf-rel-link" href="{{ m.url }}">{{ m.titulo }}</a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if contenido.recetas %}
+          <div class="vf-rel-grupo">
+            <p class="vf-rel-titulo">🧪 Recetas relacionadas</p>
+            {% for r in contenido.recetas %}
+            <a class="vf-rel-link" href="{{ r.url }}">{{ r.titulo }}</a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     {% else %}
       <div class="vf-empty">

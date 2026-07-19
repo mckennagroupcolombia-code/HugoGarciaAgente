@@ -2072,6 +2072,72 @@ def _load_guias_dinamicas() -> list:
         pass
     return []
 
+def buscar_contenido_relacionado(nombre_producto: str) -> dict:
+    """Guías de uso, manuales (blog) y recetas que mencionan este producto como
+    ingrediente — usado en /verificar para mostrarle al cliente todo el contenido
+    técnico disponible, no solo FT/COA. Match conservador (palabras clave del
+    contenido deben estar TODAS en el nombre del producto) para evitar sugerir
+    contenido de otro ingrediente."""
+    from app.services.drive_documentos import _palabras_clave
+
+    claves_producto = set(_palabras_clave(nombre_producto))
+    salida: dict[str, list[dict]] = {"guias": [], "manuales": [], "recetas": []}
+    if not claves_producto:
+        return salida
+
+    data_dir = Path(__file__).parent / "data"
+
+    try:
+        guias = json.loads((data_dir / "guias.json").read_text(encoding="utf-8"))
+        for g in guias:
+            if not g.get("publicada", True):
+                continue
+            candidato = g.get("title_short") or g.get("producto_nombre") or ""
+            claves_g = set(_palabras_clave(candidato))
+            if claves_g and claves_g.issubset(claves_producto):
+                salida["guias"].append({
+                    "titulo": g.get("title_short") or candidato,
+                    "url": f"/guias/{g.get('slug')}",
+                })
+    except Exception:
+        pass
+
+    try:
+        posts = json.loads((data_dir / "posts.json").read_text(encoding="utf-8"))
+        for p in posts:
+            if not p.get("publicado", True):
+                continue
+            candidato = p.get("titulo") or ""
+            claves_p = set(_palabras_clave(candidato)) - {"manual", "uso", "guia", "de"}
+            if claves_p and claves_p.issubset(claves_producto):
+                salida["manuales"].append({
+                    "titulo": candidato,
+                    "url": f"/blog/{p.get('slug')}",
+                })
+    except Exception:
+        pass
+
+    try:
+        recetas = json.loads((data_dir / "recetas.json").read_text(encoding="utf-8"))
+        for r in recetas:
+            ings = r.get("ings") or []
+            usa_producto = any(
+                set(_palabras_clave(ing.get("n") or "")) & claves_producto
+                and set(_palabras_clave(ing.get("n") or "")).issubset(claves_producto)
+                for ing in ings
+                if isinstance(ing, dict)
+            )
+            if usa_producto:
+                salida["recetas"].append({
+                    "titulo": r.get("title") or "",
+                    "url": "/recetario",
+                })
+    except Exception:
+        pass
+
+    return salida
+
+
 GUIDES = [
     {
         "title":        "Guía de Ácidos Profesionales",
@@ -2430,6 +2496,7 @@ def verificar_lote():
     codigo = (request.args.get("codigo") or "").strip()
 
     resultado = None
+    contenido = None
     buscado = bool(codigo)
     if buscado:
         try:
@@ -2438,12 +2505,18 @@ def verificar_lote():
             resultado = buscar_lote_publico(codigo)
         except Exception as e:
             print(f"⚠️ [VERIFICAR] Error consultando lote: {e}")
+        if resultado:
+            try:
+                contenido = buscar_contenido_relacionado(resultado.get("nombre") or "")
+            except Exception as e:
+                print(f"⚠️ [VERIFICAR] Error buscando contenido relacionado: {e}")
 
     return render_template(
         "verificar.html",
         codigo=codigo,
         buscado=buscado,
         resultado=resultado,
+        contenido=contenido,
         WA_NUMBER=WA_NUMBER,
     )
 

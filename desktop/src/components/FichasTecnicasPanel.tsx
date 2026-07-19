@@ -64,6 +64,15 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
   const [editandoNombre, setEditandoNombre] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
+  const generarLotesMut = useMutation({
+    mutationFn: () =>
+      api.post<{
+        ok: boolean;
+        creados: Array<{ ref: string; nombre: string; lote_numero: string; codigo_verificacion: string }>;
+        omitidos: Array<{ ref?: string; archivo: string; motivo: string }>;
+      }>("/api/lotes/generar-faltantes", {}, { timeoutMs: 60000 }),
+  });
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["fichas-biblioteca"],
     queryFn: () => api.get<{ archivos: ArchivoGenerado[] }>("/api/fichas/biblioteca"),
@@ -168,7 +177,40 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
           ↻ Actualizar
         </button>
         <span className="text-xs text-muted">{archivos.length} documento{archivos.length !== 1 ? "s" : ""}</span>
+        <button
+          type="button"
+          onClick={() => generarLotesMut.mutate()}
+          disabled={generarLotesMut.isPending}
+          title="Registra un lote autogenerado (4 letras + consecutivo) para cada ficha técnica guardada que aún no tenga uno"
+          className="ml-auto rounded-lg border border-accent/50 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
+        >
+          {generarLotesMut.isPending ? "Generando…" : "🔢 Generar lotes faltantes"}
+        </button>
       </div>
+
+      {generarLotesMut.isSuccess && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700">
+          <p className="font-semibold">
+            {generarLotesMut.data.creados.length} lote(s) nuevo(s) registrado(s)
+            {generarLotesMut.data.omitidos.length > 0 && ` · ${generarLotesMut.data.omitidos.length} omitido(s)`}
+          </p>
+          {generarLotesMut.data.creados.length > 0 && (
+            <ul className="mt-1 space-y-0.5">
+              {generarLotesMut.data.creados.map((c) => (
+                <li key={c.ref}>
+                  <strong>{c.ref}</strong> — {c.nombre}: lote <code>{c.lote_numero}</code>, código{" "}
+                  <code>{c.codigo_verificacion}</code>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {generarLotesMut.isError && (
+        <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+          {(generarLotesMut.error as Error).message}
+        </p>
+      )}
 
       {isLoading && <p className="text-sm text-muted">Cargando biblioteca…</p>}
       {error && <p className="text-sm text-danger">Error al cargar: {(error as Error).message}</p>}
@@ -321,6 +363,7 @@ function FichaTecnicaTabContent({
 }) {
   const buildRef = useRef<() => Record<string, unknown>>(() => ({}));
   const loadRef = useRef<(datos: Record<string, unknown>) => void>(() => {});
+  const [ultimoGenerado, setUltimoGenerado] = useState<GenerarDocResult | null>(null);
 
   const loadDatos = useCallback((datos: Record<string, unknown>) => {
     loadRef.current(datos);
@@ -333,7 +376,29 @@ function FichaTecnicaTabContent({
     if (preload) loadDatos(preload);
   }, [preload, loadDatos]);
 
+  const registrarLoteMut = useMutation({
+    mutationFn: () => {
+      const datos = buildRef.current();
+      const referencia = String(datos.referencia || producto?.ref || "").trim();
+      // Si el campo «Lote» quedó vacío, el backend genera uno legible solo
+      // (4 letras del producto + consecutivo, ej. CITR-001).
+      const loteNumero = String(datos.lote || "").trim();
+      if (!referencia) throw new Error("Falta la referencia/SKU del producto");
+      return api.post<{ ok: boolean; lote: { estado: string; codigo_verificacion: string; lote_numero: string } }>(
+        `/api/lotes/${encodeURIComponent(referencia)}`,
+        {
+          lote_numero: loteNumero,
+          fabricante: String(datos.fabricante || ""),
+          pais_origen: String(datos.pais_origen || ""),
+          nombre_producto: String(datos.nombre_producto || datos.titulo || ""),
+          ft_link: ultimoGenerado?.drive_uploads?.find((u) => u.tipo === "pdf")?.webViewLink ?? "",
+        },
+      );
+    },
+  });
+
   return (
+    <Fragment>
     <DocumentoGeneradorTab
       apiPrefix="/api/fichas"
       queryKey="fichas"
@@ -351,6 +416,7 @@ function FichaTecnicaTabContent({
       showProductoGuardado={false}
       permiteCompletar={false}
       productoRef={producto?.ref ?? ""}
+      onGenerado={setUltimoGenerado}
     >
       <FichaTecnicaForm
         productoRef={producto?.ref}
@@ -363,6 +429,32 @@ function FichaTecnicaTabContent({
         }}
       />
     </DocumentoGeneradorTab>
+    <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-2">
+      <p className="text-xs text-muted">
+        Guarda el lote de esta ficha técnica en el historial de trazabilidad y genera un código único
+        consultable por el cliente en <code>mckennagroup.co/verificar</code>. Si dejas vacío el campo
+        «Lote» de arriba, se genera solo (4 letras del producto + consecutivo, ej. CITR-001).
+      </p>
+      <button
+        type="button"
+        onClick={() => registrarLoteMut.mutate()}
+        disabled={registrarLoteMut.isPending}
+        className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-40"
+      >
+        {registrarLoteMut.isPending ? "Registrando…" : "Registrar este lote en el historial"}
+      </button>
+      {registrarLoteMut.isSuccess && (
+        <p className="text-xs text-emerald-600">
+          Lote <strong>{registrarLoteMut.data.lote.lote_numero}</strong> registrado (estado «
+          {registrarLoteMut.data.lote.estado}»). Código para la etiqueta:{" "}
+          <strong className="font-mono text-sm">{registrarLoteMut.data.lote.codigo_verificacion}</strong>
+        </p>
+      )}
+      {registrarLoteMut.isError && (
+        <p className="text-xs text-danger">{(registrarLoteMut.error as Error).message}</p>
+      )}
+    </div>
+    </Fragment>
   );
 }
 
@@ -568,6 +660,7 @@ function CoaTabContent({
       nombreProducto={nombreComercial || titulo}
       coaLink={ultimoGenerado?.drive_uploads?.find((u) => u.tipo === "pdf")?.webViewLink ?? ""}
       onCodigoAsignado={setCodigoVerif}
+      onLoteAsignado={setLoteNum}
     />
     </Fragment>
   );
@@ -584,6 +677,7 @@ function RegistrarLoteBoton({
   nombreProducto,
   coaLink,
   onCodigoAsignado,
+  onLoteAsignado,
 }: {
   referencia: string;
   loteNumero: string;
@@ -595,10 +689,11 @@ function RegistrarLoteBoton({
   nombreProducto: string;
   coaLink: string;
   onCodigoAsignado: (codigo: string) => void;
+  onLoteAsignado?: (lote: string) => void;
 }) {
   const registrarMut = useMutation({
     mutationFn: () =>
-      api.post<{ ok: boolean; lote: { estado: string; codigo_verificacion: string } }>(
+      api.post<{ ok: boolean; lote: { estado: string; codigo_verificacion: string; lote_numero: string } }>(
         `/api/lotes/${encodeURIComponent(referencia)}`,
         {
           lote_numero: loteNumero,
@@ -611,17 +706,21 @@ function RegistrarLoteBoton({
           coa_link: coaLink,
         },
       ),
-    onSuccess: (r) => onCodigoAsignado(r.lote.codigo_verificacion),
+    onSuccess: (r) => {
+      onCodigoAsignado(r.lote.codigo_verificacion);
+      if (!loteNumero) onLoteAsignado?.(r.lote.lote_numero);
+    },
   });
 
-  if (!referencia || !loteNumero) return null;
+  if (!referencia) return null;
 
   return (
     <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-2">
       <p className="text-xs text-muted">
-        Guarda este lote en el historial de trazabilidad de <code>{referencia}</code>. Se genera un
-        único código para que el cliente lo consulte en <code>mckennagroup.co/verificar</code> —
-        imprímelo en la etiqueta del producto (Studio Etiquetas) para que sea fácil de leer.
+        Guarda este lote en el historial de trazabilidad de <code>{referencia}</code>. Si dejas vacío el
+        campo «No. de lote» de arriba, se genera solo (4 letras del producto + consecutivo, ej.
+        CITR-001). Se genera además un código único para que el cliente lo consulte en{" "}
+        <code>mckennagroup.co/verificar</code> — imprímelo en la etiqueta (Studio Etiquetas).
       </p>
       <button
         type="button"
@@ -633,7 +732,8 @@ function RegistrarLoteBoton({
       </button>
       {registrarMut.isSuccess && (
         <p className="text-xs text-emerald-600">
-          Lote registrado (estado «{registrarMut.data.lote.estado}»). Código para la etiqueta:{" "}
+          Lote <strong>{registrarMut.data.lote.lote_numero}</strong> registrado (estado «
+          {registrarMut.data.lote.estado}»). Código para la etiqueta:{" "}
           <strong className="font-mono text-sm">{registrarMut.data.lote.codigo_verificacion}</strong>
         </p>
       )}
