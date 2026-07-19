@@ -248,14 +248,38 @@ def _catalogo_productos_para_match() -> list[dict[str, str]]:
     return _catalogo_siigo_para_match() + _catalogo_codigos_ean_para_match()
 
 
-_RE_TOKEN_TAMANO = re.compile(r"^\d+[a-z]{0,4}$")
 _UNIDADES_TAMANO = {"kg", "g", "gr", "ml", "mg", "lb", "lt", "l", "oz"}
+_RE_TOKEN_TAMANO = re.compile(
+    r"^\d+(" + "|".join(sorted(_UNIDADES_TAMANO, key=len, reverse=True)) + r")$"
+)
 
 
 def _es_token_tamano(token: str) -> bool:
-    """Reconoce tokens de tamaño/presentación (500g, 250, 1kg, kg, ml…) para
-    distinguir "mismo ingrediente en otra presentación" de "otro producto"."""
+    """Reconoce tokens de tamaño/presentación (500g, 250ml, 1kg, kg, ml…)
+    para distinguir "mismo ingrediente en otra presentación" de "otro
+    producto". Exige una unidad reconocida al final (no cualquier dígito +
+    letras) — un token como "80p" (ej. Tween 80P vs Tween 20, potencias
+    distintas, NO tamaños) no debe colarse como si fuera tamaño."""
     return bool(_RE_TOKEN_TAMANO.match(token)) or token in _UNIDADES_TAMANO
+
+
+_STOPWORDS_MATCH_LOTE = frozenset({"de", "del", "para", "la", "el", "los", "las", "y", "en", "con"})
+
+
+def _tokens_producto_para_match(nombre: str) -> list[str]:
+    """Tokeniza un nombre de producto para resolver su referencia por
+    nombre. A propósito NO reutiliza `drive_documentos._palabras_clave`
+    (pensada para búsqueda de PDFs en Drive): esa función descarta cualquier
+    token de 2 caracteres o menos, lo que fusiona productos realmente
+    distintos que solo se diferencian por un sufijo corto — "VITAMINA B3"
+    vs "VITAMINA C" vs "VITAMINA E" quedan todas como {"vitamina"}, y
+    "POLISORBATO 20" pierde el "20" que lo distingue de "POLISORBATO 80P".
+    Aquí solo se filtran conectores genéricos, conservando tokens cortos
+    que sí distinguen identidad de producto."""
+    from app.services.drive_documentos import normalizar_nombre_producto
+
+    palabras = normalizar_nombre_producto(nombre).split()
+    return [p for p in palabras if p and p not in _STOPWORDS_MATCH_LOTE]
 
 
 def _resolver_referencias_por_nombre(nombre_producto: str, catalogo: list[dict[str, str]]) -> list[str]:
@@ -270,24 +294,40 @@ def _resolver_referencias_por_nombre(nombre_producto: str, catalogo: list[dict[s
     excluyen productos combinados que agregan otro ingrediente distinto
     (ej. "Citrato Potasio 250g Magnesio 250g"): si las palabras "extra" del
     candidato frente al nombre buscado no son todas de tamaño/presentación,
-    se descarta ese candidato por ambigüedad real de producto.
+    se descarta ese candidato por ambigüedad real de producto — salvo que
+    TODOS los candidatos con esa palabra "extra" compartan exactamente el
+    mismo descriptor (ej. "extracto", "vegetal", "refinada"): ahí no hay
+    ambigüedad real, es el mismo producto con un descriptor que la ficha no
+    incluye. Si hay descriptores distintos entre candidatos (ej. "alto peso"
+    vs "bajo peso", "tween 20" vs "tween 80"), sí son productos distintos y
+    se descarta todo.
     """
-    from app.services.drive_documentos import _palabras_clave
-
-    claves = set(_palabras_clave(nombre_producto))
+    claves = set(_tokens_producto_para_match(nombre_producto))
     if not claves:
         return []
-    refs: list[str] = []
+    limpios: list[str] = []
+    con_modificador: list[tuple[str, frozenset]] = []
     for it in catalogo:
-        claves_it = set(_palabras_clave(it.get("name") or ""))
+        claves_it = set(_tokens_producto_para_match(it.get("name") or ""))
         if not claves_it or not claves.issubset(claves_it):
             continue
+        ref = (it.get("ref") or "").strip()
+        if not ref:
+            continue
         extra = claves_it - claves
-        if all(_es_token_tamano(t) for t in extra):
-            ref = (it.get("ref") or "").strip()
-            if ref:
-                refs.append(ref)
-    return refs
+        no_tamano = frozenset(t for t in extra if not _es_token_tamano(t))
+        if not no_tamano:
+            limpios.append(ref)
+        else:
+            con_modificador.append((ref, no_tamano))
+
+    if limpios:
+        return limpios
+
+    grupos = {g for _, g in con_modificador}
+    if len(grupos) == 1:
+        return [ref for ref, _ in con_modificador]
+    return []
 
 
 def generar_lotes_faltantes() -> dict[str, list[dict[str, Any]]]:
