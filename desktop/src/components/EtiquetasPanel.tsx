@@ -63,6 +63,7 @@ import { ImpresionEtiquetasHeader } from "./etiquetas/ImpresionEtiquetasHeader";
 import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
+import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 import { puedeVerTabEtiquetas, esCynthiaEtiquetas, esTabEtiquetasSoloCynthia, tabsEtiquetasVisibles } from "../lib/studioVisualAccess";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -2067,6 +2068,61 @@ function pctDesdePuntero(rect: DOMRect, clientX: number, clientY: number): { x: 
   const x = ((clientX - rect.left) / rect.width) * 100;
   const y = ((clientY - rect.top) / rect.height) * 100;
   return { x: clampLotePct(x), y: clampLotePct(y) };
+}
+
+const _PALABRAS_IGNORAR_MATCH_PNG = new Set([
+  "de", "del", "la", "el", "los", "las", "en", "con", "para", "gr", "kg", "ml", "lb",
+]);
+
+function _tokensSignificativos(texto: string): string[] {
+  const norm = (texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
+  return norm
+    .split(/\s+/)
+    .filter((p) => p.length > 2 && !_PALABRAS_IGNORAR_MATCH_PNG.has(p) && !/^\d+$/.test(p));
+}
+
+/**
+ * Asocia el nombre de un archivo PNG/PDF de la biblioteca (sin SKU propio) con
+ * un producto ya registrado en Códigos EAN, para poder traer su lote vigente.
+ * Conservador a propósito (riesgo de trazabilidad si se imprime el lote de
+ * OTRO producto): exige que TODAS las palabras clave del nombre del producto
+ * aparezcan en el nombre del archivo, y descarta si hay más de un match único
+ * con la mayor cantidad de palabras (ambigüedad → no autocompletar).
+ */
+function mejorCoincidenciaEanPorNombreArchivo(
+  nombreArchivo: string,
+  codigos: CodigoEan[] | undefined,
+): CodigoEan | null {
+  if (!codigos?.length) return null;
+  const base = (nombreArchivo.split("/").pop() || nombreArchivo).replace(/\.[a-z0-9]+$/i, "");
+  const tokensArchivo = new Set(_tokensSignificativos(base));
+  if (!tokensArchivo.size) return null;
+
+  let mejor: CodigoEan | null = null;
+  let mejorScore = 0;
+  let empatados = 0;
+  for (const c of codigos) {
+    const tokensProd = _tokensSignificativos(c.nombre_producto);
+    if (tokensProd.length < 2) continue;
+    if (!tokensProd.every((t) => tokensArchivo.has(t))) continue;
+    // Bonus si la presentación (500g, 1kg, 30mL…) también aparece en el archivo —
+    // desempata entre distintas presentaciones del mismo nombre de producto.
+    const tokensPres = _tokensSignificativos(c.presentacion || "");
+    const presCoincide = tokensPres.length > 0 && tokensPres.every((t) => tokensArchivo.has(t));
+    const score = tokensProd.length + (presCoincide ? tokensPres.length : 0);
+    if (score > mejorScore) {
+      mejor = c;
+      mejorScore = score;
+      empatados = 1;
+    } else if (score === mejorScore) {
+      empatados += 1;
+    }
+  }
+  return empatados === 1 ? mejor : null;
 }
 
 /** Bloque de texto independiente (lote O vencimiento) arrastrable sobre la vista
@@ -4933,6 +4989,8 @@ function TabImprimir({
   const [loteYPct, setLoteYPct] = useState(LOTE_POS_PCT["bottom-left"].y);
   const [vencXPct, setVencXPct] = useState(LOTE_POS_PCT["bottom-left"].x);
   const [vencYPct, setVencYPct] = useState(clampLotePct(LOTE_POS_PCT["bottom-left"].y + 6));
+  const [matchEanPng, setMatchEanPng] = useState<CodigoEan | null | "sin-match">(null);
+  const { data: codigosEan } = useCodigosEan();
   const [camposTexto, setCamposTexto] = useState<CampoTexto[]>([]);
   const [lineasPlantilla, setLineasPlantilla] = useState<LineaPlantilla[]>([]);
   const [imagenesPlantilla, setImagenesPlantilla] = useState<ImagenPlantilla[]>([]);
@@ -5138,6 +5196,7 @@ function TabImprimir({
   async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
     setSkuActivoImpresion(fila.sku);
     setFilaActiva(fila);
+    setMatchEanPng(null);
     let datos: Partial<DatosEtiqueta> = {};
     let guardado: Partial<EtiquetaStudioDatos> | null = null;
     try {
@@ -5154,10 +5213,30 @@ function TabImprimir({
       guardado = null;
     }
 
+    // Lote vigente registrado (Fichas Técnicas / COA) — prioridad sobre el
+    // default legacy de etiquetas_datos.json, que antes era el único que se
+    // leía aquí y por eso el lote registrado no se reflejaba al imprimir.
+    let loteVigenteNum = "";
+    let vencVigente = "";
+    try {
+      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+        `/api/lotes/${encodeURIComponent(fila.sku)}`,
+      );
+      loteVigenteNum = rLote.lotes?.[0]?.lote_numero ?? "";
+      vencVigente = rLote.lotes?.[0]?.fecha_vencimiento ?? "";
+    } catch {
+      /* sin lote registrado o error de red: se usa el default legacy */
+    }
+    setMatchEanPng(
+      loteVigenteNum
+        ? ({ sku: fila.sku, nombre_producto: fila.nombre ?? fila.sku } as CodigoEan)
+        : "sin-match",
+    );
+
     const base = studioDatosDesdeCatalogo(fila, guardado);
-    if (datos.lote_defecto) base.lote = datos.lote_defecto;
-    if (datos.vencimiento_defecto) base.vencimiento = datos.vencimiento_defecto;
-    setStudioDatos(base);
+    const loteFinal = loteVigenteNum || datos.lote_defecto || base.lote;
+    const vencFinal = vencVigente || datos.vencimiento_defecto || base.vencimiento;
+    setStudioDatos({ ...base, lote: loteFinal, vencimiento: vencFinal });
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
     if (tipo) {
@@ -5176,13 +5255,13 @@ function TabImprimir({
     const pctVenc = vencPctInicial(pct.x, pct.y, datos.venc_x_pct, datos.venc_y_pct);
     setVencXPct(pctVenc.x);
     setVencYPct(pctVenc.y);
-    setLote(conPrefijoLote(datos.lote_defecto || base.lote));
-    setVencimiento(conPrefijoExp(datos.vencimiento_defecto || base.vencimiento));
+    setLote(conPrefijoLote(loteFinal));
+    setVencimiento(conPrefijoExp(vencFinal));
     setVistaImpresion("documento");
     setTabRibbon("inicio");
   }
 
-  function abrirPngParaImprimir(item: RecursoPngCatalogo) {
+  async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
     setPngImpresion(item);
     setPdfStudioRuta("");
     setPdfStudioNombre("");
@@ -5195,6 +5274,28 @@ function TabImprimir({
     setRectangulosPlantilla([]);
     setLote(LOTE_PREFIJO);
     setVencimiento(EXP_PREFIJO);
+    setMatchEanPng(null);
+
+    // Los PNG sueltos de la biblioteca no traen SKU propio — se asocian por
+    // nombre de archivo contra Códigos EAN (única palabra clave completa y sin
+    // ambigüedad) para poder traer el lote vigente automáticamente.
+    const match = mejorCoincidenciaEanPorNombreArchivo(item.nombre, codigosEan);
+    if (match) {
+      setSkuActivoImpresion(match.sku);
+      setMatchEanPng(match);
+      try {
+        const r = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+          `/api/lotes/${encodeURIComponent(match.sku)}`,
+        );
+        const vigente = r.lotes?.[0];
+        if (vigente?.lote_numero) setLote(conPrefijoLote(vigente.lote_numero));
+        if (vigente?.fecha_vencimiento) setVencimiento(conPrefijoExp(vigente.fecha_vencimiento));
+      } catch {
+        /* sin lote registrado o error de red: se deja para llenar a mano */
+      }
+    } else {
+      setMatchEanPng("sin-match");
+    }
 
     const tipo = (item.tipo_etiqueta || "").trim();
     if (tipo) {
@@ -5575,6 +5676,17 @@ function TabImprimir({
                     Volver a archivos
                   </button>
                 </div>
+                {matchEanPng === "sin-match" ? (
+                  <p className="w-full px-1 text-[11px] text-amber-600">
+                    ⚠️ No se encontró un producto en Códigos EAN que coincida con este archivo — el lote no se
+                    autocompletó, escríbelo a mano en la pestaña «Lote».
+                  </p>
+                ) : matchEanPng ? (
+                  <p className="w-full px-1 text-[11px] text-emerald-600">
+                    ✅ Asociado a <strong>{matchEanPng.sku}</strong> — {matchEanPng.nombre_producto}
+                    {loteParaEtiqueta(lote) ? " · lote vigente autocompletado" : " · sin lote registrado aún"}
+                  </p>
+                ) : null}
                 <VistaPreviaPngConLote
                   nombre={pngImpresion.nombre}
                   loteText={loteParaEtiqueta(lote)}
@@ -5662,12 +5774,24 @@ function TabImprimir({
                 )}
               </div>
             ) : productoListo ? (
-              <EtiquetaMckennaPreview
-                datos={studioDatosImpresion}
-                marcoFormato
-                raw
-                className="w-full max-w-[420px]"
-              />
+              <div className="flex h-full w-full flex-col items-center gap-2">
+                {matchEanPng === "sin-match" ? (
+                  <p className="w-full px-1 text-[11px] text-amber-600">
+                    ⚠️ Sin lote registrado para este SKU — el lote no se autocompletó. Regístralo en Fichas
+                    Técnicas (COA) → «Registrar este lote en el historial».
+                  </p>
+                ) : matchEanPng ? (
+                  <p className="w-full px-1 text-[11px] text-emerald-600">
+                    ✅ Lote vigente autocompletado para <strong>{skuActivoImpresion}</strong>
+                  </p>
+                ) : null}
+                <EtiquetaMckennaPreview
+                  datos={studioDatosImpresion}
+                  marcoFormato
+                  raw
+                  className="w-full max-w-[420px]"
+                />
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3 px-6 text-center">
                 <span className="text-4xl opacity-40">🏷️</span>

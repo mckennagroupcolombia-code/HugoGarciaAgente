@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import secrets
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from app.services.documentos_catalogo import _guardar_mapa, _leer_mapa
@@ -23,6 +24,13 @@ ESTADOS_VALIDOS = ("nuevo", "actualizado", "sin_cambios")
 # la etiqueta del producto y que el cliente lo transcriba sin ambigüedad.
 _ALFABETO_CODIGO = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 _LARGO_CODIGO = 6
+
+# Número de lote: 3 letras + 3 dígitos al azar (ej. GXO765) — nada de
+# prefijos derivados del nombre del producto, para que sea corto y fácil de
+# transcribir por el cliente en /verificar (acepta lote o código, cualquiera
+# de los dos sirve).
+_ALFABETO_LOTE_LETRAS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+_ALFABETO_LOTE_DIGITOS = "23456789"
 
 
 def _ahora_iso() -> str:
@@ -73,6 +81,28 @@ def _generar_codigo_verificacion(productos: dict) -> str:
     raise RuntimeError("No se pudo generar un código de verificación único")
 
 
+def _lote_numero_en_uso(lote_numero: str, productos: dict) -> bool:
+    ln = (lote_numero or "").strip().upper()
+    for prod in productos.values():
+        for lote in prod.get("lotes") or []:
+            if (lote.get("lote_numero") or "").strip().upper() == ln:
+                return True
+    return False
+
+
+def _generar_lote_numero(productos: dict) -> str:
+    """Número de lote corto y aleatorio (3 letras + 3 dígitos, ej. GXO765),
+    único en todo el sistema — el cliente puede usarlo indistintamente del
+    código de verificación en /verificar."""
+    for _ in range(50):
+        letras = "".join(secrets.choice(_ALFABETO_LOTE_LETRAS) for _ in range(3))
+        digitos = "".join(secrets.choice(_ALFABETO_LOTE_DIGITOS) for _ in range(3))
+        candidato = f"{letras}{digitos}"
+        if not _lote_numero_en_uso(candidato, productos):
+            return candidato
+    raise RuntimeError("No se pudo generar un número de lote único")
+
+
 def _inferir_estado(anterior: dict[str, Any] | None, lote_numero: str, fabricante: str) -> str:
     if not anterior:
         return "nuevo"
@@ -86,7 +116,7 @@ def _inferir_estado(anterior: dict[str, Any] | None, lote_numero: str, fabricant
 def registrar_lote(
     ref: str,
     *,
-    lote_numero: str,
+    lote_numero: str = "",
     fabricante: str = "",
     pais_origen: str = "",
     fecha_fabricacion: str = "",
@@ -105,14 +135,12 @@ def registrar_lote(
     → "actualizado"; fabricante distinto (o sin historial previo) → "nuevo").
     Marca el lote anterior como no vigente.
 
-    Si no se indica `codigo_verificacion`, se genera uno corto y único: es el
-    único dato que el cliente necesita — pensado para imprimirse en la
-    etiqueta del producto (Studio Etiquetas) y consultarse en /verificar.
+    Si no se indica `lote_numero`, se genera uno corto y aleatorio (3 letras
+    + 3 dígitos, ej. GXO765), único en todo el sistema. Si no se indica
+    `codigo_verificacion`, se genera otro corto aparte (mismo formato de
+    alfabeto). En /verificar el cliente puede usar cualquiera de los dos.
     """
     ref_key = _ref_key(ref)
-    lote_numero = (lote_numero or "").strip()
-    if not lote_numero:
-        raise ValueError("Se requiere lote_numero")
 
     data = _leer_mapa()
     productos = data.setdefault("productos", {})
@@ -121,6 +149,11 @@ def registrar_lote(
         prod["nombre"] = nombre_producto
 
     lotes = prod.setdefault("lotes", [])
+
+    lote_numero = (lote_numero or "").strip()
+    if not lote_numero:
+        lote_numero = _generar_lote_numero(productos)
+
     anterior = lotes[-1] if lotes else None
     if estado not in ESTADOS_VALIDOS:
         estado = _inferir_estado(anterior, lote_numero, fabricante)
@@ -152,12 +185,14 @@ def registrar_lote(
     return entry
 
 
-def buscar_lote_publico(codigo_verificacion: str) -> dict[str, Any] | None:
+def buscar_lote_publico(codigo: str) -> dict[str, Any] | None:
     """
-    Búsqueda para la página pública de verificación: un único código, el mismo
-    que se imprime en la etiqueta del producto. Retorna {ref, nombre, lote} o None.
+    Búsqueda para la página pública de verificación: acepta indistintamente el
+    código de verificación o el número de lote (ambos impresos en la
+    etiqueta) — el cliente puede escribir cualquiera de los dos. Retorna
+    {ref, nombre, lote} o None.
     """
-    codigo_n = _normalizar_codigo(codigo_verificacion)
+    codigo_n = _normalizar_codigo(codigo)
     if not codigo_n:
         return None
     productos = _leer_mapa().get("productos", {})
@@ -165,4 +200,175 @@ def buscar_lote_publico(codigo_verificacion: str) -> dict[str, Any] | None:
         for lote in prod.get("lotes") or []:
             if _normalizar_codigo(lote.get("codigo_verificacion") or "") == codigo_n:
                 return {"ref": ref_key, "nombre": prod.get("nombre") or "", "lote": lote}
+            if _normalizar_codigo(lote.get("lote_numero") or "") == codigo_n:
+                return {"ref": ref_key, "nombre": prod.get("nombre") or "", "lote": lote}
     return None
+
+
+def _catalogo_siigo_para_match() -> list[dict[str, str]]:
+    try:
+        from app.services.siigo import _combo_item_desde_raw, listar_productos_combo_siigo
+
+        raw_list = listar_productos_combo_siigo()
+        return [_combo_item_desde_raw(r) for r in raw_list if r.get("active", True)]
+    except Exception:
+        return []
+
+
+_CODIGOS_EAN_PATH = Path(__file__).resolve().parents[1] / "data" / "etiquetas_codigos_ean.json"
+
+
+def _catalogo_codigos_ean_para_match() -> list[dict[str, str]]:
+    """SKU↔nombre ya registrados en Códigos EAN (Studio Etiquetas) — cubre
+    productos con etiqueta/código de barras asignado que no siempre están
+    activos en el catálogo Siigo."""
+    import json
+
+    try:
+        data = json.loads(_CODIGOS_EAN_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    items = data.get("codigos") if isinstance(data, dict) else None
+    if not isinstance(items, list):
+        return []
+    out: list[dict[str, str]] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        ref = (it.get("sku") or "").strip()
+        nombre = (it.get("nombre_producto") or "").strip()
+        if ref and nombre:
+            out.append({"ref": ref, "name": nombre})
+    return out
+
+
+def _catalogo_productos_para_match() -> list[dict[str, str]]:
+    """Combina Siigo + Códigos EAN — cualquiera de los dos alcanza para
+    resolver el SKU de una ficha técnica que no trae referencia guardada."""
+    return _catalogo_siigo_para_match() + _catalogo_codigos_ean_para_match()
+
+
+_RE_TOKEN_TAMANO = re.compile(r"^\d+[a-z]{0,4}$")
+_UNIDADES_TAMANO = {"kg", "g", "gr", "ml", "mg", "lb", "lt", "l", "oz"}
+
+
+def _es_token_tamano(token: str) -> bool:
+    """Reconoce tokens de tamaño/presentación (500g, 250, 1kg, kg, ml…) para
+    distinguir "mismo ingrediente en otra presentación" de "otro producto"."""
+    return bool(_RE_TOKEN_TAMANO.match(token)) or token in _UNIDADES_TAMANO
+
+
+def _resolver_referencias_por_nombre(nombre_producto: str, catalogo: list[dict[str, str]]) -> list[str]:
+    """
+    Si la ficha técnica no trae referencia/SKU guardada, busca por nombre en
+    el catálogo Siigo. Conservador: exige que TODAS las palabras clave del
+    nombre de la ficha estén en el nombre del producto Siigo.
+
+    Un mismo ingrediente suele tener varios SKUs por presentación (250g,
+    500g, 1kg…) — vienen del mismo lote físico reenvasado, así que se
+    devuelven TODOS esos matches (para compartir el mismo lote/código). Se
+    excluyen productos combinados que agregan otro ingrediente distinto
+    (ej. "Citrato Potasio 250g Magnesio 250g"): si las palabras "extra" del
+    candidato frente al nombre buscado no son todas de tamaño/presentación,
+    se descarta ese candidato por ambigüedad real de producto.
+    """
+    from app.services.drive_documentos import _palabras_clave
+
+    claves = set(_palabras_clave(nombre_producto))
+    if not claves:
+        return []
+    refs: list[str] = []
+    for it in catalogo:
+        claves_it = set(_palabras_clave(it.get("name") or ""))
+        if not claves_it or not claves.issubset(claves_it):
+            continue
+        extra = claves_it - claves
+        if all(_es_token_tamano(t) for t in extra):
+            ref = (it.get("ref") or "").strip()
+            if ref:
+                refs.append(ref)
+    return refs
+
+
+def generar_lotes_faltantes() -> dict[str, list[dict[str, Any]]]:
+    """
+    Recorre las fichas técnicas ya guardadas (YAML en fichas_word/datos/) y
+    registra un lote autogenerado — con fabricante/país de origen ya cargados
+    en la ficha, si existen — para cada producto (por referencia/SKU) que
+    todavía no tenga ningún lote en su historial. No duplica: si ya hay un
+    lote (de cualquier estado), se omite. Si la ficha no trae referencia
+    guardada (común en fichas antiguas), la busca por nombre en Siigo y en
+    Códigos EAN (Studio Etiquetas) antes de omitirla.
+    """
+    from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+
+    creados: list[dict[str, Any]] = []
+    omitidos: list[dict[str, Any]] = []
+    if not DATOS_DIR.is_dir():
+        return {"creados": creados, "omitidos": omitidos}
+
+    catalogo = _catalogo_productos_para_match()
+    vistos: set[str] = set()
+    archivos = sorted(DATOS_DIR.glob("*.yaml")) + sorted(DATOS_DIR.glob("*.yml"))
+    for p in archivos:
+        if p.name.startswith("plantilla") or p.stem.startswith("coa_") or p.stem.startswith("sds_"):
+            continue
+        try:
+            d = cargar_datos_desde_archivo(p)
+        except Exception:
+            omitidos.append({"archivo": p.name, "motivo": "no se pudo leer el archivo"})
+            continue
+
+        nombre = (d.get("nombre_producto") or d.get("titulo") or "").strip()
+        referencia = (d.get("referencia") or "").strip()
+        resuelta_por_nombre = False
+        referencias: list[str] = [referencia] if referencia else []
+        if not referencia and nombre and catalogo:
+            referencias = _resolver_referencias_por_nombre(nombre, catalogo)
+            resuelta_por_nombre = bool(referencias)
+        if not referencias or not nombre:
+            omitidos.append({
+                "archivo": p.name,
+                "motivo": (
+                    "sin referencia o nombre de producto (y no se encontró un match único "
+                    "en Siigo/Códigos EAN)"
+                ),
+            })
+            continue
+
+        # Varias presentaciones (250g/500g/1kg…) del mismo ingrediente
+        # comparten un único lote/código — se genera una sola vez y se
+        # replica en las demás referencias del mismo grupo.
+        fabricante = (d.get("fabricante") or "").strip()
+        pais_origen = (d.get("pais_origen") or "").strip()
+        lote_compartido: str | None = None
+        codigo_compartido: str | None = None
+        for referencia in referencias:
+            ref_key = referencia.strip().upper()
+            if ref_key in vistos:
+                continue
+            vistos.add(ref_key)
+
+            if lote_vigente(referencia):
+                omitidos.append({"archivo": p.name, "ref": referencia, "motivo": "ya tiene lote registrado"})
+                continue
+
+            entry = registrar_lote(
+                referencia,
+                lote_numero=lote_compartido or "",
+                fabricante=fabricante,
+                pais_origen=pais_origen,
+                nombre_producto=nombre,
+                codigo_verificacion=codigo_compartido or "",
+            )
+            lote_compartido = lote_compartido or entry["lote_numero"]
+            codigo_compartido = codigo_compartido or entry["codigo_verificacion"]
+            creados.append({
+                "ref": referencia,
+                "nombre": nombre,
+                "lote_numero": entry["lote_numero"],
+                "codigo_verificacion": entry["codigo_verificacion"],
+                "referencia_inferida": resuelta_por_nombre,
+            })
+
+    return {"creados": creados, "omitidos": omitidos}

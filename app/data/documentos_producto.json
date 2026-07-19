@@ -1,3 +1,3049 @@
 {
-  "productos": {}
+  "productos": {
+    "C-ACEARGAN50ML": {
+      "ref": "C-ACEARGAN50ML",
+      "nombre": "Aceite Argan",
+      "lotes": [
+        {
+          "lote_numero": "GTN957",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "59E7SC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEGIR500ML": {
+      "ref": "C-ACEGIR500ML",
+      "nombre": "ACEITE DE GIRASOL",
+      "lotes": [
+        {
+          "lote_numero": "RXJ395",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "TT43YL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEIJOJ30ML": {
+      "ref": "C-ACEIJOJ30ML",
+      "nombre": "ACEITE DE JOJOBA",
+      "lotes": [
+        {
+          "lote_numero": "JUL543",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "V4P635",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACENEE250ML": {
+      "ref": "C-ACENEE250ML",
+      "nombre": "ACEITE DE NEEM",
+      "lotes": [
+        {
+          "lote_numero": "LDN529",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "M2T2Q4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACENEE120ML": {
+      "ref": "C-ACENEE120ML",
+      "nombre": "ACEITE DE NEEM",
+      "lotes": [
+        {
+          "lote_numero": "LDN529",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "M2T2Q4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACENEE60ML": {
+      "ref": "C-ACENEE60ML",
+      "nombre": "ACEITE DE NEEM",
+      "lotes": [
+        {
+          "lote_numero": "LDN529",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "M2T2Q4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACENEE500ML": {
+      "ref": "C-ACENEE500ML",
+      "nombre": "ACEITE DE NEEM",
+      "lotes": [
+        {
+          "lote_numero": "LDN529",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "M2T2Q4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACERIC500ML": {
+      "ref": "C-ACERIC500ML",
+      "nombre": "ACEITE DE RICINO",
+      "lotes": [
+        {
+          "lote_numero": "XPX855",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "A8Y92T",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACERIC250ML": {
+      "ref": "C-ACERIC250ML",
+      "nombre": "ACEITE DE RICINO",
+      "lotes": [
+        {
+          "lote_numero": "XPX855",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "A8Y92T",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACERIC10ML": {
+      "ref": "C-ACERIC10ML",
+      "nombre": "ACEITE DE RICINO",
+      "lotes": [
+        {
+          "lote_numero": "XPX855",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "A8Y92T",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEALB5ML": {
+      "ref": "C-ACEESEALB5ML",
+      "nombre": "ACEITE ESENCIAL ALBAHACA",
+      "lotes": [
+        {
+          "lote_numero": "WLL794",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "4E3PVN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEEUC5ML": {
+      "ref": "C-ACEESEEUC5ML",
+      "nombre": "ACEITE ESENCIAL EUCALIPTO",
+      "lotes": [
+        {
+          "lote_numero": "SFG653",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C72KPB",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEHIEBUE5ML": {
+      "ref": "C-ACEESEHIEBUE5ML",
+      "nombre": "ACEITE ESENCIAL HIERBA BUENA",
+      "lotes": [
+        {
+          "lote_numero": "MNS593",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "Y9RK5K",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "ACEESEHIEBUE5M": {
+      "ref": "ACEESEHIEBUE5M",
+      "nombre": "ACEITE ESENCIAL HIERBA BUENA",
+      "lotes": [
+        {
+          "lote_numero": "MNS593",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "Y9RK5K",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEJAZ5ML": {
+      "ref": "C-ACEESEJAZ5ML",
+      "nombre": "ACEITE ESENCIAL JAZMIN",
+      "lotes": [
+        {
+          "lote_numero": "HGX675",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "J7TEKC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEJEN5ML": {
+      "ref": "C-ACEESEJEN5ML",
+      "nombre": "ACEITE ESENCIAL JENGIBRE",
+      "lotes": [
+        {
+          "lote_numero": "WUZ566",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "PJD9UC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESNMAN5ML": {
+      "ref": "C-ACEESNMAN5ML",
+      "nombre": "ACEITE ESENCIAL MANDARINA",
+      "lotes": [
+        {
+          "lote_numero": "NDL492",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "2GRWR3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESEMANZ5ML": {
+      "ref": "C-ACEESEMANZ5ML",
+      "nombre": "ACEITE ESENCIAL MANZANILLA",
+      "lotes": [
+        {
+          "lote_numero": "TXX572",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "62PT4C",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESNMEN5ML": {
+      "ref": "C-ACEESNMEN5ML",
+      "nombre": "ACEITE ESENCIAL MENTA",
+      "lotes": [
+        {
+          "lote_numero": "JRH494",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "U32C7B",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESENAR5ML": {
+      "ref": "C-ACEESENAR5ML",
+      "nombre": "ACEITE ESENCIAL NARANJA",
+      "lotes": [
+        {
+          "lote_numero": "KTU783",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "VPND57",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESNPIN5ML": {
+      "ref": "C-ACEESNPIN5ML",
+      "nombre": "ACEITE ESENCIAL PINO",
+      "lotes": [
+        {
+          "lote_numero": "EBJ658",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "9XYHME",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESETOM5ML": {
+      "ref": "C-ACEESETOM5ML",
+      "nombre": "ACEITE ESENCIAL TOMILLO",
+      "lotes": [
+        {
+          "lote_numero": "EYK633",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RJWT6L",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEESETOM": {
+      "ref": "C-ACEESETOM",
+      "nombre": "ACEITE ESENCIAL TOMILLO",
+      "lotes": [
+        {
+          "lote_numero": "EYK633",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RJWT6L",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACEIESENROM5ML": {
+      "ref": "C-ACEIESENROM5ML",
+      "nombre": "ACETE ESENCIAL ROMERO",
+      "lotes": [
+        {
+          "lote_numero": "QZW988",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "23YPXQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACIAZE10G": {
+      "ref": "C-ACIAZE10G",
+      "nombre": "ACIDO AZELAICO",
+      "lotes": [
+        {
+          "lote_numero": "VYW858",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "H3AFHV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
+    },
+    "C-ACICITR500G": {
+      "ref": "C-ACICITR500G",
+      "nombre": "ÁCIDO CÍTRICO",
+      "lotes": [
+        {
+          "lote_numero": "HLP434",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RPS3VT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACICIT250G": {
+      "ref": "C-ACICIT250G",
+      "nombre": "ÁCIDO CÍTRICO",
+      "lotes": [
+        {
+          "lote_numero": "HLP434",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RPS3VT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "FOR-ACIGLI50PML": {
+      "ref": "FOR-ACIGLI50PML",
+      "nombre": "ÁCIDO GLICÓLICO",
+      "lotes": [
+        {
+          "lote_numero": "JTS848",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "EAJ84T",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACIGLI50P30ML": {
+      "ref": "C-ACIGLI50P30ML",
+      "nombre": "ÁCIDO GLICÓLICO",
+      "lotes": [
+        {
+          "lote_numero": "JTS848",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "EAJ84T",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACIKOJ5P30ML": {
+      "ref": "C-ACIKOJ5P30ML",
+      "nombre": "ÁCIDO KÓJICO",
+      "lotes": [
+        {
+          "lote_numero": "RDG692",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "77NKYV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "FOR-ACIKOJML": {
+      "ref": "FOR-ACIKOJML",
+      "nombre": "ÁCIDO KÓJICO",
+      "lotes": [
+        {
+          "lote_numero": "RDG692",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "77NKYV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACIKOJ5P30M": {
+      "ref": "C-ACIKOJ5P30M",
+      "nombre": "ÁCIDO KÓJICO",
+      "lotes": [
+        {
+          "lote_numero": "RDG692",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "77NKYV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACDLAC85P30ML": {
+      "ref": "C-ACDLAC85P30ML",
+      "nombre": "ÁCIDO LÁCTICO",
+      "lotes": [
+        {
+          "lote_numero": "TVT566",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "VSM39D",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "FOR-ACILAC85PML": {
+      "ref": "FOR-ACILAC85PML",
+      "nombre": "ÁCIDO LÁCTICO",
+      "lotes": [
+        {
+          "lote_numero": "TVT566",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "VSM39D",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACDLAC85P30M": {
+      "ref": "C-ACDLAC85P30M",
+      "nombre": "ÁCIDO LÁCTICO",
+      "lotes": [
+        {
+          "lote_numero": "TVT566",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "VSM39D",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACIMAL100G": {
+      "ref": "C-ACIMAL100G",
+      "nombre": "ÁCIDO MÁLICO",
+      "lotes": [
+        {
+          "lote_numero": "MET677",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "D3XVNN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACDSAL20P30ML": {
+      "ref": "C-ACDSAL20P30ML",
+      "nombre": "ÁCIDO SALICÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "PKD473",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "XYVRWT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACISAL500G": {
+      "ref": "C-ACISAL500G",
+      "nombre": "ÁCIDO SALICÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "PKD473",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "XYVRWT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACISAL100G": {
+      "ref": "C-ACISAL100G",
+      "nombre": "ÁCIDO SALICÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "PKD473",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "XYVRWT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACDSAL20P30M": {
+      "ref": "C-ACDSAL20P30M",
+      "nombre": "ÁCIDO SALICÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "PKD473",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "XYVRWT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALA100G": {
+      "ref": "C-ALA100G",
+      "nombre": "ALANTOÍNA",
+      "lotes": [
+        {
+          "lote_numero": "GRB644",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "93S6DD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALCCETKG": {
+      "ref": "C-ALCCETKG",
+      "nombre": "ALCOHOL CETÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "UWM885",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C5BHZ5",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALCCET250G": {
+      "ref": "C-ALCCET250G",
+      "nombre": "ALCOHOL CETÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "UWM885",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C5BHZ5",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALCCET500G": {
+      "ref": "C-ALCCET500G",
+      "nombre": "ALCOHOL CETÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "UWM885",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C5BHZ5",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALU250G": {
+      "ref": "C-ALU250G",
+      "nombre": "ALULOSA",
+      "lotes": [
+        {
+          "lote_numero": "GZK973",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "33ZAX6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALU500G": {
+      "ref": "C-ALU500G",
+      "nombre": "ALULOSA",
+      "lotes": [
+        {
+          "lote_numero": "GZK973",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "33ZAX6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ALUKG": {
+      "ref": "C-ALUKG",
+      "nombre": "ALULOSA",
+      "lotes": [
+        {
+          "lote_numero": "GZK973",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "33ZAX6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-AZUMMET30ML": {
+      "ref": "C-AZUMMET30ML",
+      "nombre": "AZUL DE METILENO",
+      "lotes": [
+        {
+          "lote_numero": "YTV247",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "LB3KE3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "FOR-AZUMETML": {
+      "ref": "FOR-AZUMETML",
+      "nombre": "AZUL DE METILENO",
+      "lotes": [
+        {
+          "lote_numero": "YTV247",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "LB3KE3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BENSOD500G": {
+      "ref": "C-BENSOD500G",
+      "nombre": "BENZOATO DE SODIO",
+      "lotes": [
+        {
+          "lote_numero": "YMS939",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "2A9BW8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BENSOD500": {
+      "ref": "C-BENSOD500",
+      "nombre": "BENZOATO DE SODIO",
+      "lotes": [
+        {
+          "lote_numero": "YMS939",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "2A9BW8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BICSOD500G": {
+      "ref": "C-BICSOD500G",
+      "nombre": "BICARBONATO DE SODIO",
+      "lotes": [
+        {
+          "lote_numero": "DKX342",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "7FEW2U",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BTMS250G": {
+      "ref": "C-BTMS250G",
+      "nombre": "BTMS 50",
+      "lotes": [
+        {
+          "lote_numero": "SJJ576",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "NZCZTU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BTMS500G": {
+      "ref": "C-BTMS500G",
+      "nombre": "BTMS 50",
+      "lotes": [
+        {
+          "lote_numero": "SJJ576",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "NZCZTU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-BTMS50125G": {
+      "ref": "C-BTMS50125G",
+      "nombre": "BTMS 50",
+      "lotes": [
+        {
+          "lote_numero": "SJJ576",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "NZCZTU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CAF100G": {
+      "ref": "C-CAF100G",
+      "nombre": "CAFEÍNA",
+      "lotes": [
+        {
+          "lote_numero": "YZL523",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "V8GSCU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CAF100": {
+      "ref": "C-CAF100",
+      "nombre": "CAFEÍNA",
+      "lotes": [
+        {
+          "lote_numero": "YZL523",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "V8GSCU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CAF500G": {
+      "ref": "C-CAF500G",
+      "nombre": "CAFEÍNA",
+      "lotes": [
+        {
+          "lote_numero": "YZL523",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "V8GSCU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CAFE100G": {
+      "ref": "C-CAFE100G",
+      "nombre": "CAFEÍNA",
+      "lotes": [
+        {
+          "lote_numero": "YZL523",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "V8GSCU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CARCAL500G": {
+      "ref": "C-CARCAL500G",
+      "nombre": "CARBONATO DE CALCIO",
+      "lotes": [
+        {
+          "lote_numero": "WZB453",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "MT7YLN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CERABEREFBLAKG": {
+      "ref": "C-CERABEREFBLAKG",
+      "nombre": "CERA ABEJAS REFINADA",
+      "lotes": [
+        {
+          "lote_numero": "FBR959",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "43Y39B",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CERCAR500G": {
+      "ref": "C-CERCAR500G",
+      "nombre": "CERA CARNAUBA",
+      "lotes": [
+        {
+          "lote_numero": "QFW638",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KUYHJ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CERCARKG": {
+      "ref": "C-CERCARKG",
+      "nombre": "CERA CARNAUBA",
+      "lotes": [
+        {
+          "lote_numero": "QFW638",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KUYHJ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CERCAR250G": {
+      "ref": "C-CERCAR250G",
+      "nombre": "CERA CARNAUBA",
+      "lotes": [
+        {
+          "lote_numero": "QFW638",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KUYHJ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITCAL500G": {
+      "ref": "C-CITCAL500G",
+      "nombre": "CITRATO DE CALCIO",
+      "lotes": [
+        {
+          "lote_numero": "MWW624",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KLZDRT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITMAG250G": {
+      "ref": "C-CITMAG250G",
+      "nombre": "CITRATO DE MAGNESIO",
+      "lotes": [
+        {
+          "lote_numero": "XQC887",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "QAP7U9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITMAGKG": {
+      "ref": "C-CITMAGKG",
+      "nombre": "CITRATO DE MAGNESIO",
+      "lotes": [
+        {
+          "lote_numero": "XQC887",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "QAP7U9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITMAG500G": {
+      "ref": "C-CITMAG500G",
+      "nombre": "CITRATO DE MAGNESIO",
+      "lotes": [
+        {
+          "lote_numero": "XQC887",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "QAP7U9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITPOTK": {
+      "ref": "C-CITPOTK",
+      "nombre": "CITRATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "TAC659",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "HW3V62",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITPOT500G": {
+      "ref": "C-CITPOT500G",
+      "nombre": "CITRATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "TAC659",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "HW3V62",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITPOT250G": {
+      "ref": "C-CITPOT250G",
+      "nombre": "CITRATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "TAC659",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "HW3V62",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CITZIN500G": {
+      "ref": "C-CITZIN500G",
+      "nombre": "CITRATO DE ZINC",
+      "lotes": [
+        {
+          "lote_numero": "UGF439",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "J8KQDK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-CLOCAL500G": {
+      "ref": "C-CLOCAL500G",
+      "nombre": "CLORURO DE CALCIO",
+      "lotes": [
+        {
+          "lote_numero": "YBM255",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "4F6XPJ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-COLHID30ML": {
+      "ref": "C-COLHID30ML",
+      "nombre": "COLÁGENO HIDROLIZADO",
+      "lotes": [
+        {
+          "lote_numero": "XBG567",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "WVWBGS",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-COLHID30M": {
+      "ref": "C-COLHID30M",
+      "nombre": "COLÁGENO HIDROLIZADO",
+      "lotes": [
+        {
+          "lote_numero": "XBG567",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "WVWBGS",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "INUG": {
+      "ref": "INUG",
+      "nombre": "INULINA",
+      "lotes": [
+        {
+          "lote_numero": "TQD738",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "YNCU8N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-DPAN50ML": {
+      "ref": "C-DPAN50ML",
+      "nombre": "D PANTENOL",
+      "lotes": [
+        {
+          "lote_numero": "NLK842",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C4DNJT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-DPAN85P120ML": {
+      "ref": "C-DPAN85P120ML",
+      "nombre": "D PANTENOL",
+      "lotes": [
+        {
+          "lote_numero": "NLK842",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "C4DNJT",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-DEXKG": {
+      "ref": "C-DEXKG",
+      "nombre": "DEXTROSA",
+      "lotes": [
+        {
+          "lote_numero": "RJT487",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RWEPEQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-DIOTIT500G": {
+      "ref": "C-DIOTIT500G",
+      "nombre": "DIOXIDO DE TITANIO",
+      "lotes": [
+        {
+          "lote_numero": "ZUC274",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "A37E36",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-DIOTIT500": {
+      "ref": "C-DIOTIT500",
+      "nombre": "DIOXIDO DE TITANIO",
+      "lotes": [
+        {
+          "lote_numero": "ZUC274",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "A37E36",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-EMBPAT30ML": {
+      "ref": "C-EMBPAT30ML",
+      "nombre": "EMBRION DE PATO",
+      "lotes": [
+        {
+          "lote_numero": "RVN348",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "3NH5U4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-EMBPAT30M": {
+      "ref": "C-EMBPAT30M",
+      "nombre": "EMBRION DE PATO",
+      "lotes": [
+        {
+          "lote_numero": "RVN348",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "3NH5U4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-EXTRAMAL500G": {
+      "ref": "C-EXTRAMAL500G",
+      "nombre": "EXTRACTO DE MALTA",
+      "lotes": [
+        {
+          "lote_numero": "NHL469",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "LYKWK9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-FRU500G": {
+      "ref": "C-FRU500G",
+      "nombre": "FRUCTOSA",
+      "lotes": [
+        {
+          "lote_numero": "MMB367",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "J3NM96",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-ACITRA10G": {
+      "ref": "C-ACITRA10G",
+      "nombre": "ACIDO TRANEXAMICO",
+      "lotes": [
+        {
+          "lote_numero": "VQV385",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "RGPRZ4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "ACDTRAG": {
+      "ref": "ACDTRAG",
+      "nombre": "ACIDO TRANEXAMICO 10g",
+      "lotes": [
+        {
+          "lote_numero": "QHD738",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "DKD4Q8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-FLOSECLAV100G": {
+      "ref": "C-FLOSECLAV100G",
+      "nombre": "FLORES DE LAVANDA SECAS",
+      "lotes": [
+        {
+          "lote_numero": "NTG528",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "JLYR4Z",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-INU250G": {
+      "ref": "C-INU250G",
+      "nombre": "INULINA",
+      "lotes": [
+        {
+          "lote_numero": "ZEM289",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "ZQXGY9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-INU500G": {
+      "ref": "C-INU500G",
+      "nombre": "INULINA",
+      "lotes": [
+        {
+          "lote_numero": "ZEM289",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "ZQXGY9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-INUKG": {
+      "ref": "C-INUKG",
+      "nombre": "INULINA",
+      "lotes": [
+        {
+          "lote_numero": "ZEM289",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "ZQXGY9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LACCAL100G": {
+      "ref": "C-LACCAL100G",
+      "nombre": "LACTATO DE CALCIO",
+      "lotes": [
+        {
+          "lote_numero": "NAT455",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "6J6KZC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LACCAL250G": {
+      "ref": "C-LACCAL250G",
+      "nombre": "LACTATO DE CALCIO",
+      "lotes": [
+        {
+          "lote_numero": "NAT455",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "6J6KZC",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-MANCACREF500G": {
+      "ref": "C-MANCACREF500G",
+      "nombre": "MANTECA DE CACAO REFINADA",
+      "lotes": [
+        {
+          "lote_numero": "NKS773",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KVFKQ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-MANCACREFKG": {
+      "ref": "C-MANCACREFKG",
+      "nombre": "MANTECA DE CACAO REFINADA",
+      "lotes": [
+        {
+          "lote_numero": "NKS773",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KVFKQ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-PAP100G": {
+      "ref": "C-PAP100G",
+      "nombre": "PAPAÍNA",
+      "lotes": [
+        {
+          "lote_numero": "EFL678",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Bélgica",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "CY74JB",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLIVEGLT": {
+      "ref": "C-GLIVEGLT",
+      "nombre": "GLICERINA VEGETAL",
+      "lotes": [
+        {
+          "lote_numero": "EJA228",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "9FJMKP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLICVEG500ML": {
+      "ref": "C-GLICVEG500ML",
+      "nombre": "GLICERINA VEGETAL",
+      "lotes": [
+        {
+          "lote_numero": "EJA228",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "9FJMKP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLIVEG250ML": {
+      "ref": "C-GLIVEG250ML",
+      "nombre": "GLICERINA VEGETAL",
+      "lotes": [
+        {
+          "lote_numero": "EJA228",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "9FJMKP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLUMONKG": {
+      "ref": "C-GLUMONKG",
+      "nombre": "GLUTAMATO MONOSÓDICO",
+      "lotes": [
+        {
+          "lote_numero": "NZH384",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "TAC9BD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLUMON500G": {
+      "ref": "C-GLUMON500G",
+      "nombre": "GLUTAMATO MONOSÓDICO",
+      "lotes": [
+        {
+          "lote_numero": "NZH384",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "TAC9BD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GOMGUA500G": {
+      "ref": "C-GOMGUA500G",
+      "nombre": "GOMA GUAR",
+      "lotes": [
+        {
+          "lote_numero": "TUG334",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "8XAQ6D",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GUSSED30ML": {
+      "ref": "C-GUSSED30ML",
+      "nombre": "GUSANO DE SEDA",
+      "lotes": [
+        {
+          "lote_numero": "VUV339",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BBWFKW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GUSSED30M": {
+      "ref": "C-GUSSED30M",
+      "nombre": "GUSANO DE SEDA",
+      "lotes": [
+        {
+          "lote_numero": "VUV339",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BBWFKW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLU100G": {
+      "ref": "C-GLU100G",
+      "nombre": "L-GLUTAMINA",
+      "lotes": [
+        {
+          "lote_numero": "UNC269",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "Q5S9J4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-GLU100": {
+      "ref": "C-GLU100",
+      "nombre": "L-GLUTAMINA",
+      "lotes": [
+        {
+          "lote_numero": "UNC269",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "Q5S9J4",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LANOLINA40G": {
+      "ref": "C-LANOLINA40G",
+      "nombre": "LANOLINA",
+      "lotes": [
+        {
+          "lote_numero": "YTN459",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K9G69X",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LAN250G": {
+      "ref": "C-LAN250G",
+      "nombre": "LANOLINA",
+      "lotes": [
+        {
+          "lote_numero": "YTN459",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K9G69X",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LANOLINA40": {
+      "ref": "C-LANOLINA40",
+      "nombre": "LANOLINA",
+      "lotes": [
+        {
+          "lote_numero": "YTN459",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "K9G69X",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-LECSOY500G": {
+      "ref": "C-LECSOY500G",
+      "nombre": "LECITINA DE SOYA",
+      "lotes": [
+        {
+          "lote_numero": "CWE598",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "3PAK6F",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-MAL500G": {
+      "ref": "C-MAL500G",
+      "nombre": "MALTODEXTRINA",
+      "lotes": [
+        {
+          "lote_numero": "PLF744",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "CKVLPM",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-OXIZIN250G": {
+      "ref": "C-OXIZIN250G",
+      "nombre": "OXIDO DE ZINC",
+      "lotes": [
+        {
+          "lote_numero": "DPN773",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "XXDFLJ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-PARKG": {
+      "ref": "C-PARKG",
+      "nombre": "PARAFINA",
+      "lotes": [
+        {
+          "lote_numero": "GMK267",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "DGLUPZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-PROAISSOY500G": {
+      "ref": "C-PROAISSOY500G",
+      "nombre": "PROTEÍNA AISLADA DE SOYA",
+      "lotes": [
+        {
+          "lote_numero": "VLU634",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KYCFQD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-PROCONSUE80PKG": {
+      "ref": "C-PROCONSUE80PKG",
+      "nombre": "PROTEÍNA CONCENTRADA DE SUERO DE LECHE",
+      "lotes": [
+        {
+          "lote_numero": "XKK342",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "NNT24M",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SABCARAHU100G": {
+      "ref": "C-SABCARAHU100G",
+      "nombre": "SABOR CARNE AHUMADA",
+      "lotes": [
+        {
+          "lote_numero": "CKK776",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KPF29G",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SEBCOR150G": {
+      "ref": "C-SEBCOR150G",
+      "nombre": "SEBO DE CORDERO",
+      "lotes": [
+        {
+          "lote_numero": "VQN383",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "9SX8VH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SHA705250ML": {
+      "ref": "C-SHA705250ML",
+      "nombre": "SHAROMIX  705",
+      "lotes": [
+        {
+          "lote_numero": "ZKS225",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "W445L8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SHA705500ML": {
+      "ref": "C-SHA705500ML",
+      "nombre": "SHAROMIX  705",
+      "lotes": [
+        {
+          "lote_numero": "ZKS225",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "W445L8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SHA70550ML": {
+      "ref": "C-SHA70550ML",
+      "nombre": "SHAROMIX  705",
+      "lotes": [
+        {
+          "lote_numero": "ZKS225",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "W445L8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SORPOT250G": {
+      "ref": "C-SORPOT250G",
+      "nombre": "SORBATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "CDB394",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KM74KK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SORPOTKG": {
+      "ref": "C-SORPOTKG",
+      "nombre": "SORBATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "CDB394",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KM74KK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SORPOT500G": {
+      "ref": "C-SORPOT500G",
+      "nombre": "SORBATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "CDB394",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KM74KK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SORPOT250": {
+      "ref": "C-SORPOT250",
+      "nombre": "SORBATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "CDB394",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KM74KK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-SORPOT100G": {
+      "ref": "C-SORPOT100G",
+      "nombre": "SORBATO DE POTASIO",
+      "lotes": [
+        {
+          "lote_numero": "CDB394",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "KM74KK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:41+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:41+00:00"
+    },
+    "C-TAU250G": {
+      "ref": "C-TAU250G",
+      "nombre": "TAURINA",
+      "lotes": [
+        {
+          "lote_numero": "PFM978",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "FGMFEL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-URE250G": {
+      "ref": "C-URE250G",
+      "nombre": "UREA",
+      "lotes": [
+        {
+          "lote_numero": "XHK466",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "5MKBCJ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-URE500G": {
+      "ref": "C-URE500G",
+      "nombre": "UREA",
+      "lotes": [
+        {
+          "lote_numero": "XHK466",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "5MKBCJ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-VITE30ML": {
+      "ref": "C-VITE30ML",
+      "nombre": "VITAMINA B3",
+      "lotes": [
+        {
+          "lote_numero": "FNZ666",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BWU9KN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-VITC30P30ML": {
+      "ref": "C-VITC30P30ML",
+      "nombre": "VITAMINA B3",
+      "lotes": [
+        {
+          "lote_numero": "FNZ666",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BWU9KN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-VITE30M": {
+      "ref": "C-VITE30M",
+      "nombre": "VITAMINA B3",
+      "lotes": [
+        {
+          "lote_numero": "FNZ666",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BWU9KN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:42+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:42+00:00"
+    },
+    "C-ACEARG50ML": {
+      "ref": "C-ACEARG50ML",
+      "nombre": "Aceite Argan",
+      "lotes": [
+        {
+          "lote_numero": "CQN492",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "SRN5G2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:46+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:46+00:00"
+    },
+    "C-ACEJOJ30ML": {
+      "ref": "C-ACEJOJ30ML",
+      "nombre": "ACEITE DE JOJOBA",
+      "lotes": [
+        {
+          "lote_numero": "SGK272",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "W9YESN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:46+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:46+00:00"
+    },
+    "C-ACERIC205ML": {
+      "ref": "C-ACERIC205ML",
+      "nombre": "ACEITE DE RICINO",
+      "lotes": [
+        {
+          "lote_numero": "YJD538",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "WXZJLQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:46+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:46+00:00"
+    },
+    "C-ACIGLI30ML": {
+      "ref": "C-ACIGLI30ML",
+      "nombre": "ÁCIDO GLICÓLICO",
+      "lotes": [
+        {
+          "lote_numero": "VXP436",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "TJ4GZ6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-ACIASAL30ML": {
+      "ref": "C-ACIASAL30ML",
+      "nombre": "ÁCIDO SALICÍLICO",
+      "lotes": [
+        {
+          "lote_numero": "CZQ337",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "HSWWUU",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-BTMS125G": {
+      "ref": "C-BTMS125G",
+      "nombre": "BTMS 50",
+      "lotes": [
+        {
+          "lote_numero": "BRW994",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "HCHZ6N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-ARADES250G": {
+      "ref": "C-ARADES250G",
+      "nombre": "ARANDANOS DESHIDRATADOS",
+      "lotes": [
+        {
+          "lote_numero": "XNT849",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "GKL5Z9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-ARADES500G": {
+      "ref": "C-ARADES500G",
+      "nombre": "ARANDANOS DESHIDRATADOS",
+      "lotes": [
+        {
+          "lote_numero": "XNT849",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "GKL5Z9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-COCDESHIL250G": {
+      "ref": "C-COCDESHIL250G",
+      "nombre": "COCO DESHIDRATADO EN HILOS",
+      "lotes": [
+        {
+          "lote_numero": "ZLN346",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "BBSRRK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-MANNATTOS500G": {
+      "ref": "C-MANNATTOS500G",
+      "nombre": "MANI NATURAL TOSTADO",
+      "lotes": [
+        {
+          "lote_numero": "UNE476",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "44YH2V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-MANNATTOS250G": {
+      "ref": "C-MANNATTOS250G",
+      "nombre": "MANI NATURAL TOSTADO",
+      "lotes": [
+        {
+          "lote_numero": "UNE476",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "44YH2V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-PROSUELECKG": {
+      "ref": "C-PROSUELECKG",
+      "nombre": "PROTEINA DE SUERO DE  LECHE",
+      "lotes": [
+        {
+          "lote_numero": "JDP855",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "PQY2FL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:47+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:47+00:00"
+    },
+    "C-MANKAR125G": {
+      "ref": "C-MANKAR125G",
+      "nombre": "MANTECA KARITÉ",
+      "lotes": [
+        {
+          "lote_numero": "XUX837",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "TX9N5N",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:48+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:48+00:00"
+    },
+    "C-VAS400G": {
+      "ref": "C-VAS400G",
+      "nombre": "VASELINA",
+      "lotes": [
+        {
+          "lote_numero": "KJS868",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "FJRAJV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:49:48+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:49:48+00:00"
+    }
+  }
 }
