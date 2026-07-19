@@ -141,6 +141,84 @@ def _sufijo_pack(pack_id: str) -> str:
     return sufijo_pack_postventa(pack_id)
 
 
+def _sugerencia_ia_postventa(
+    productos_detalle: list, pregunta: str, mensajes: list, seller_id
+) -> str:
+    """
+    Borrador de respuesta con la información de la empresa que ya existe
+    (ficha técnica en Sheets, otras presentaciones publicadas en MeLi, hilo de
+    la conversación). El operador decide: "hugo dale ok <código>" la envía tal
+    cual, o "resp <código>: ..." la reemplaza. '' si no hay base suficiente
+    para sugerir sin inventar.
+    """
+    pregunta = (pregunta or "").strip()
+    if not pregunta or pregunta.lstrip().startswith("[Solo adjunto"):
+        return ""
+    titulo = ""
+    for p in productos_detalle or []:
+        if isinstance(p, dict) and (p.get("nombre") or "").strip():
+            titulo = p["nombre"].strip()
+            break
+    if not titulo:
+        return ""
+    try:
+        from app.services.google_services import buscar_ficha_tecnica_producto
+        from app.services.meli_preventa import (
+            generar_respuesta_con_ficha,
+            otras_presentaciones_meli,
+        )
+
+        ficha = ""
+        try:
+            ficha = buscar_ficha_tecnica_producto(titulo) or ""
+        except Exception:
+            ficha = ""
+        otras = ""
+        try:
+            otras = otras_presentaciones_meli(titulo)
+        except Exception:
+            otras = ""
+        if not ficha and not otras:
+            return ""
+
+        turnos = []
+        seller_s = str(seller_id)
+        for m in sorted(
+            [x for x in mensajes if isinstance(x, dict)],
+            key=fecha_key_mensaje_postventa,
+        )[-6:]:
+            txt = meli_postventa_texto_para_notif(m)
+            if not txt:
+                continue
+            quien = (
+                "Vendedor"
+                if meli_postventa_remitente_user_id(m) == seller_s
+                else "Comprador"
+            )
+            turnos.append(f"{quien}: {txt[:280]}")
+        contexto_hilo = (
+            "CONVERSACIÓN RECIENTE DE ESTA COMPRA (postventa — responda "
+            "siguiendo el hilo):\n" + "\n".join(turnos)
+            if turnos
+            else ""
+        )
+
+        sugerencia = generar_respuesta_con_ficha(
+            titulo,
+            pregunta,
+            ficha
+            or "(Sin ficha técnica registrada: responda SOLO con el contexto del "
+            "hilo y las otras presentaciones listadas; si el dato no está, "
+            "diga que un asesor lo confirma.)",
+            otras_presentaciones=otras,
+            contexto_hilo=contexto_hilo,
+        )
+        return (sugerencia or "").strip()
+    except Exception as e:
+        print(f"⚠️ [POSVENTA] Sugerencia IA no disponible: {e}")
+        return ""
+
+
 def fecha_key_mensaje_postventa(m: dict) -> str:
     """Clave de fecha ordenable de un mensaje postventa (para sort cronológico)."""
     msg_date = m.get("message_date")
@@ -409,6 +487,38 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
                 )
 
+                # Si el vendedor ya contestó DESPUÉS de este mensaje (respuesta
+                # directa en MeLi, o hilo viejo que resucita porque el state se
+                # recortó), no revivir la alerta ni auto-responder: mensajes de
+                # hace meses ya atendidos volvían al grupo como "nuevos".
+                try:
+                    ordenados = sorted(
+                        [m for m in mensajes if isinstance(m, dict)],
+                        key=fecha_key_mensaje_postventa,
+                    )
+                    idx = next(
+                        (
+                            i
+                            for i, m in enumerate(ordenados)
+                            if meli_postventa_id_mensaje(m) == msg_id
+                        ),
+                        -1,
+                    )
+                    if idx >= 0:
+                        seller_s = str(seller_id)
+                        ya_respondido = any(
+                            meli_postventa_remitente_user_id(m2) == seller_s
+                            for m2 in ordenados[idx + 1 :]
+                        )
+                        if ya_respondido:
+                            procesados.add(msg_id)
+                            print(
+                                f"✅ [POSVENTA] Mensaje {msg_id} ya tenía respuesta posterior del vendedor; no se alerta."
+                            )
+                            continue
+                except Exception as e_rec:
+                    print(f"⚠️ [POSVENTA] No pude reconciliar hilo {pack_id}: {e_rec}")
+
                 # Respuesta automática (o borrador con aprobación) FT/COA (Drive)
                 # antes de molestar al grupo con la cola manual.
                 try:
@@ -436,15 +546,33 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
 
                     if resultado_docs in ("auto_enviado", "borrador_pendiente"):
                         procesados.add(msg_id)
-                        state["pendientes"].pop(str(pack_id), None)
-                        state["pendientes"].pop(sufijo, None)
+                        # Mantener el pack direccionable: si se saca de la cola,
+                        # el código corto deja de resolver (el fallback por
+                        # sufijo solo cubre órdenes recientes) y el grupo no
+                        # puede complementar la auto-respuesta con
+                        # "posventa <código>: ...".
+                        entrada_auto = {
+                            "pack_id": pack_id,
+                            "codigo": sufijo,
+                            "comprador": nombre_comprador,
+                            "from_id": from_id,
+                            "texto": texto,
+                            "msg_id": msg_id,
+                            "auto_respondida": resultado_docs,
+                            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                        }
+                        state["pendientes"][str(pack_id)] = entrada_auto
+                        if sufijo and sufijo != str(pack_id):
+                            state["pendientes"][sufijo] = entrada_auto
                         if resultado_docs == "auto_enviado":
                             notif_auto = (
                                 f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
                                 f"🔢 Código: *{sufijo}*\n"
                                 f"👤 {nombre_comprador}\n"
                                 f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
-                                f"_Enlaces enviados al comprador en MeLi. Revisa el hilo si falta algún producto._"
+                                f"_Enlaces enviados al comprador en MeLi._\n\n"
+                                f"✍️ Para complementar o corregir la respuesta:\n"
+                                f"*posventa {sufijo}: tu mensaje*  (o *resp {sufijo}: ...*)"
                             )
                             enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
                         # Si es "borrador_pendiente", la notificación de aprobación
@@ -459,40 +587,15 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 except Exception as e_auto:
                     print(f"⚠️ [POSVENTA] Auto-docs falló pack {pack_id}: {e_auto}")
 
-                # Polling/reconciliación: si el vendedor ya contestó después de este mensaje,
-                # solo registrar como procesado; no revivir una alerta vieja.
-                if reconciliar_existentes:
-                    try:
-                        ordenados = sorted(
-                            [m for m in mensajes if isinstance(m, dict)],
-                            key=fecha_key_mensaje_postventa,
-                        )
-                        idx = next(
-                            (
-                                i
-                                for i, m in enumerate(ordenados)
-                                if meli_postventa_id_mensaje(m) == msg_id
-                            ),
-                            -1,
-                        )
-                        if idx >= 0:
-                            seller_s = str(seller_id)
-                            ya_respondido = any(
-                                meli_postventa_remitente_user_id(m2) == seller_s
-                                for m2 in ordenados[idx + 1 :]
-                            )
-                            if ya_respondido:
-                                procesados.add(msg_id)
-                                print(
-                                    f"✅ [POSVENTA] Mensaje {msg_id} ya tenía respuesta posterior del vendedor; no se alerta."
-                                )
-                                continue
-                    except Exception as e_rec:
-                        print(f"⚠️ [POSVENTA] No pude reconciliar hilo {pack_id}: {e_rec}")
-
                 if detalle_venta is None:
                     detalle_venta = _detalle_venta_orden(pack_id, headers)
                 productos_str, total_str, fecha_str, envio_str, productos_detalle = detalle_venta
+
+                # Autocompletado: borrador con datos de la empresa (ficha,
+                # presentaciones, hilo). El operador aprueba o escribe el suyo.
+                sugerencia_ia = _sugerencia_ia_postventa(
+                    productos_detalle, texto, mensajes, seller_id
+                )
 
                 clave_pendiente = str(pack_id)
                 state["pendientes"][clave_pendiente] = {
@@ -507,6 +610,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     "total": total_str,
                     "fecha_compra": fecha_str,
                     "envio": envio_str,
+                    "sugerencia_ia": sugerencia_ia,
                     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 }
                 # Compatibilidad: comando posventa 0583: sigue resolviendo por sufijo.
@@ -526,11 +630,19 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     notif += f"📅 *Fecha compra:* {fecha_str}\n"
                 if envio_str:
                     notif += f"🚚 *Envío:* {envio_str}\n"
-                notif += (
-                    f"🗣 *Mensaje:* {texto}\n\n"
-                    f"Para responder escribe en el grupo:\n"
-                    f"*posventa {sufijo}: tu respuesta aquí*"
-                )
+                notif += f"🗣 *Mensaje:* {texto}\n\n"
+                if sugerencia_ia:
+                    recorte = sugerencia_ia[:600] + ("…" if len(sugerencia_ia) > 600 else "")
+                    notif += (
+                        f"🤖 *Sugerencia de respuesta:*\n_{recorte}_\n\n"
+                        f"✅ Enviarla tal cual: *hugo dale ok {sufijo}*\n"
+                        f"✍️ O tu propia respuesta: *resp {sufijo}: tu mensaje*"
+                    )
+                else:
+                    notif += (
+                        f"Para responder escribe en el grupo:\n"
+                        f"*posventa {sufijo}: tu respuesta aquí*  (o *resp {sufijo}: ...*)"
+                    )
                 ok_wa = enviar_whatsapp_reporte(notif, numero_destino=GRUPO)
                 if not ok_wa:
                     print(

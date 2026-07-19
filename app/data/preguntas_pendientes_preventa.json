@@ -1427,9 +1427,27 @@
       "question_id": "13624232452",
       "titulo_producto": "Vitamina E 30 Ml Certificada",
       "pregunta": "Cuántas gotas para tomar",
-      "timestamp": "2026-07-18T01:52:43.126483",
-      "respondida": false,
-      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su pregunta.\n\nEste producto está diseñado para el cuidado de la piel, por lo que su uso es tópico, es decir, se aplica directamente sobre ella.\n\nLa recomendación es aplicar la solución una o dos veces al día, después de limpiar y secar la piel. Es importante evitar el contacto con los ojos.\n\nQuedamos atentos a cualquier otra duda que tenga. ¡Que tenga un excelente día"
+      "timestamp": "2026-07-18T02:37:14.878990",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su pregunta.\n\nEste producto está diseñado para el cuidado de la piel, por lo que su uso es tópico, es decir, se aplica directamente sobre ella.\n\nLa recomendación es aplicar la solución una o dos veces al día, después de limpiar y secar la piel. Es importante evitar el contacto con los ojos.\n\nQuedamos atentos a cualquier otra duda que tenga. ¡Que tenga un excelente día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-18"
+    },
+    {
+      "question_id": "13624311520",
+      "titulo_producto": "Manteca Karite 500 Gr + Envío",
+      "pregunta": "Buenos días, gracias por su respuesta, pero necesito la blanca de 125 g. Gracias",
+      "timestamp": "2026-07-18T09:37:43.040611",
+      "respondida": true,
+      "borrador_ia": "Buenos días, veci. Con gusto le colaboro.\n\nLe comento, en el tamaño de 125 gramos la presentación que manejamos es la Manteca de Karité Orgánica Amarilla Sin Refinar.\n\nLe comparto los enlaces de nuestras otras presentaciones por si alguna es de su interés. Todas son una excelente materia prima para la elaboración de productos de cuidado personal gracias a sus propiedades hidratantes, nutritivas y regenerativas.\n\n- 125 Gr: Manteca De Karité Orgánica Amarilla Sin Refinar — $31,900\nhttps://articulo.mercadolibre.com.co/MCO-572516333-manteca-de-karite-organica-amarilla-sin-refinar-125-gr-_JM\n\n- 250 Gr: Manteca De Karité Orgánica Amarilla Sin Refinar — $61,900\nhttps://articulo.mercadolibre.com.co/MCO-572516617-manteca-de-karite-organica-amarilla-sin-refinar-250-gr-_JM\n\n- 1 Kg: Manteca Karite + Envío — $189,000\nhttps://articulo.mercadolibre.com.co/MCO-566618455-manteca-karite-1-kg-envio-_JM\n\nQuedamos muy atentos para despachar su pedido. ¡Feliz día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-18"
+    },
+    {
+      "question_id": "13623767089",
+      "titulo_producto": "Aceite Esencial Puro Manzanilla 5ml Mckenna Group Aromaterapia",
+      "pregunta": "Que especie de manzanilla es?",
+      "timestamp": "2026-07-18T17:06:07.462969",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro.\n\nNuestro Aceite Esencial de Manzanilla se obtiene de la planta de la especie *Chamaemelum nobile*.\n\n¡Quedamos atentos a cualquier otra inquietud"
     }
   ]
 }

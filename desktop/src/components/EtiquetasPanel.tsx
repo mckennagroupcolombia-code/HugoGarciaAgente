@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useAuthStore } from "../stores/auth";
@@ -689,6 +689,9 @@ interface DatosEtiqueta {
   lote_font?: number;
   lote_x_pct?: number;
   lote_y_pct?: number;
+  /** Posición independiente del vencimiento — a veces se sella a mano aparte del lote. */
+  venc_x_pct?: number;
+  venc_y_pct?: number;
   campos_texto?: CampoTexto[];
   lineas?: LineaPlantilla[];
   imagenes?: ImagenPlantilla[];
@@ -717,6 +720,8 @@ interface ImpresionEtiquetaPayload {
   lote_font: number;
   lote_x_pct: number;
   lote_y_pct: number;
+  venc_x_pct?: number;
+  venc_y_pct?: number;
 }
 
 function payloadDesdeFormularioEtiqueta(
@@ -747,6 +752,8 @@ function payloadDesdeFormularioEtiqueta(
     lote_font: form.lote_font ?? 7,
     lote_x_pct: form.lote_x_pct ?? 5,
     lote_y_pct: form.lote_y_pct ?? 88,
+    venc_x_pct: form.venc_x_pct ?? form.lote_x_pct,
+    venc_y_pct: form.venc_y_pct,
   };
 }
 
@@ -1896,6 +1903,13 @@ function lotePctInicial(pos: string | undefined, x?: number, y?: number): { x: n
   return LOTE_POS_PCT[pos ?? "bottom-left"] ?? LOTE_POS_PCT["bottom-left"];
 }
 
+/** Posición inicial del vencimiento: independiente si ya se guardó una, si no,
+ * cae justo debajo del lote (comportamiento previo) como punto de partida. */
+function vencPctInicial(loteX: number, loteY: number, x?: number, y?: number): { x: number; y: number } {
+  if (typeof x === "number" && typeof y === "number") return { x, y };
+  return { x: loteX, y: clampLotePct(loteY + 6) };
+}
+
 function clampLotePct(n: number): number {
   return Math.max(0, Math.min(98, Math.round(n * 10) / 10));
 }
@@ -2055,6 +2069,89 @@ function pctDesdePuntero(rect: DOMRect, clientX: number, clientY: number): { x: 
   return { x: clampLotePct(x), y: clampLotePct(y) };
 }
 
+/** Bloque de texto independiente (lote O vencimiento) arrastrable sobre la vista
+ * previa. Muestra placeholder punteado cuando aún no hay texto real, para que
+ * se pueda posicionar antes de escribir el valor definitivo. */
+function CampoArrastrablePreview({
+  texto,
+  placeholder,
+  xPct,
+  yPct,
+  fontPx,
+  stageRef,
+  onPositionChange,
+}: {
+  texto?: string;
+  placeholder: string;
+  xPct: number;
+  yPct: number;
+  fontPx: number;
+  stageRef: RefObject<HTMLDivElement | null>;
+  onPositionChange?: (x: number, y: number) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const esPlaceholder = !texto;
+  const arrastrable = Boolean(onPositionChange);
+
+  const mover = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!stageRef.current) return;
+    const { x, y } = pctDesdePuntero(stageRef.current.getBoundingClientRect(), e.clientX, e.clientY);
+    onPositionChange?.(x, y);
+  };
+
+  return (
+    <div
+      role="presentation"
+      title={arrastrable ? "Arrastra para posicionar" : undefined}
+      className={`absolute select-none whitespace-nowrap leading-[1.35] touch-none ${
+        arrastrable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
+      }`}
+      style={{
+        left: `${xPct}%`,
+        top: `${yPct}%`,
+        zIndex: 10,
+        fontFamily: '"Montserrat", sans-serif',
+        fontWeight: 300,
+        fontSize: `${fontPx}px`,
+        color: esPlaceholder ? "rgba(1,109,130,0.9)" : "#000",
+        background: esPlaceholder ? "rgba(255,255,255,0.85)" : "transparent",
+        border: esPlaceholder
+          ? "1px dashed rgba(1,109,130,0.85)"
+          : dragging
+            ? "1px dashed var(--accent, #016d82)"
+            : "1px solid transparent",
+        borderRadius: 2,
+        padding: esPlaceholder ? "1px 4px" : 0,
+      }}
+      onPointerDown={(e) => {
+        if (!arrastrable) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+        mover(e);
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        mover(e);
+      }}
+      onPointerUp={(e) => {
+        if (!dragging) return;
+        setDragging(false);
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }}
+      onPointerCancel={() => setDragging(false)}
+    >
+      {texto || placeholder}
+    </div>
+  );
+}
+
 function VistaPreviaConLote({
   imagen,
   srcUrl,
@@ -2064,9 +2161,12 @@ function VistaPreviaConLote({
   loteText,
   vencText,
   loteFont,
-  xPct,
-  yPct,
-  onPositionChange,
+  loteXPct,
+  loteYPct,
+  onLotePositionChange,
+  vencXPct,
+  vencYPct,
+  onVencPositionChange,
   imgClassName = "block max-w-full max-h-full w-auto h-auto rounded-lg shadow transition-opacity duration-200",
   containerClassName = "flex items-center justify-center w-full h-full min-h-[8rem]",
 }: {
@@ -2078,16 +2178,18 @@ function VistaPreviaConLote({
   loteText?: string;
   vencText?: string;
   loteFont: number;
-  xPct: number;
-  yPct: number;
-  onPositionChange?: (x: number, y: number) => void;
+  loteXPct: number;
+  loteYPct: number;
+  onLotePositionChange?: (x: number, y: number) => void;
+  vencXPct: number;
+  vencYPct: number;
+  onVencPositionChange?: (x: number, y: number) => void;
   imgClassName?: string;
   containerClassName?: string;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgMetrics, setImgMetrics] = useState({ displayH: 0, naturalH: 0, displayW: 0, naturalW: 0 });
-  const [dragging, setDragging] = useState(false);
   const esPngAltaRes = Boolean(srcUrl);
 
   const syncImgMetrics = useCallback(() => {
@@ -2124,8 +2226,6 @@ function VistaPreviaConLote({
   }, [syncImgMetrics, imagen, srcUrl]);
 
   const imgSrc = srcUrl ?? (imagen ? `data:${mime};base64,${imagen}` : undefined);
-  const lineas = [loteText, vencText].filter(Boolean);
-  const puedeArrastrar = Boolean(onPositionChange && lineas.length > 0 && imgSrc);
   const fontPx =
     imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
       ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
@@ -2134,41 +2234,6 @@ function VistaPreviaConLote({
     esPngAltaRes && imgMetrics.displayW > 0 && imgMetrics.naturalW > 500
       ? imgMetrics.displayW
       : undefined;
-
-  const moverDesdeEvento = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!onPositionChange || !stageRef.current) return;
-      const capa = stageRef.current.querySelector("[data-lote-capa]") as HTMLDivElement | null;
-      if (!capa) return;
-      const { x, y } = pctDesdePuntero(capa.getBoundingClientRect(), e.clientX, e.clientY);
-      onPositionChange(x, y);
-    },
-    [onPositionChange],
-  );
-
-  const onCapaPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!puedeArrastrar) return;
-    e.preventDefault();
-    setDragging(true);
-    moverDesdeEvento(e);
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const onCapaPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    e.preventDefault();
-    moverDesdeEvento(e);
-  };
-
-  const onCapaPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragging(false);
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
 
   return (
     <div className={containerClassName}>
@@ -2190,41 +2255,24 @@ function VistaPreviaConLote({
             onLoad={syncImgMetrics}
             draggable={false}
           />
-          {puedeArrastrar && (
-            <div
-              data-lote-capa
-              role="presentation"
-              title="Arrastra dentro de la etiqueta para ubicar lote y vencimiento"
-              className={`absolute inset-0 z-10 overflow-hidden rounded-lg touch-none select-none ${
-                dragging ? "cursor-grabbing" : "cursor-grab"
-              }`}
-              onPointerDown={onCapaPointerDown}
-              onPointerMove={onCapaPointerMove}
-              onPointerUp={onCapaPointerUp}
-              onPointerCancel={onCapaPointerUp}
-            >
-              <div
-                className="absolute m-0 p-0 text-black pointer-events-none"
-                style={{
-                  left: `${xPct}%`,
-                  top: `${yPct}%`,
-                  maxWidth: `${Math.max(10, 98 - xPct)}%`,
-                  fontFamily: '"Montserrat", sans-serif',
-                  fontWeight: 300,
-                  fontSize: `${fontPx}px`,
-                  lineHeight: 1.35,
-                  background: "transparent",
-                  outline: dragging ? "1px dashed var(--accent, #016d82)" : "none",
-                }}
-              >
-                {lineas.map((l, i) => (
-                  <div key={i} className="whitespace-nowrap leading-[1.35]">
-                    {l}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <CampoArrastrablePreview
+            texto={loteText}
+            placeholder={LOTE_PREFIJO}
+            xPct={loteXPct}
+            yPct={loteYPct}
+            fontPx={fontPx}
+            stageRef={stageRef}
+            onPositionChange={onLotePositionChange}
+          />
+          <CampoArrastrablePreview
+            texto={vencText}
+            placeholder={EXP_PREFIJO}
+            xPct={vencXPct}
+            yPct={vencYPct}
+            fontPx={fontPx}
+            stageRef={stageRef}
+            onPositionChange={onVencPositionChange}
+          />
         </div>
       ) : loading ? (
         <div className="flex flex-col items-center gap-3 text-muted">
@@ -2243,9 +2291,12 @@ function VistaPreviaPngConLote({
   loteText,
   vencText,
   loteFont,
-  xPct,
-  yPct,
-  onPositionChange,
+  loteXPct,
+  loteYPct,
+  onLotePositionChange,
+  vencXPct,
+  vencYPct,
+  onVencPositionChange,
   imgClassName = PREVIEW_IMG_ETIQUETA_PNG,
   containerClassName = PREVIEW_CONTAINER_ETIQUETA_PNG,
 }: {
@@ -2253,9 +2304,12 @@ function VistaPreviaPngConLote({
   loteText?: string;
   vencText?: string;
   loteFont: number;
-  xPct: number;
-  yPct: number;
-  onPositionChange?: (x: number, y: number) => void;
+  loteXPct: number;
+  loteYPct: number;
+  onLotePositionChange?: (x: number, y: number) => void;
+  vencXPct: number;
+  vencYPct: number;
+  onVencPositionChange?: (x: number, y: number) => void;
   imgClassName?: string;
   containerClassName?: string;
 }) {
@@ -2290,9 +2344,12 @@ function VistaPreviaPngConLote({
       loteText={loteText}
       vencText={vencText}
       loteFont={loteFont}
-      xPct={xPct}
-      yPct={yPct}
-      onPositionChange={onPositionChange}
+      loteXPct={loteXPct}
+      loteYPct={loteYPct}
+      onLotePositionChange={onLotePositionChange}
+      vencXPct={vencXPct}
+      vencYPct={vencYPct}
+      onVencPositionChange={onVencPositionChange}
       imgClassName={imgClassName}
       containerClassName={containerClassName}
     />
@@ -3447,6 +3504,12 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     datosIniciales.lote_x_pct,
     datosIniciales.lote_y_pct,
   );
+  const vencPctInit = vencPctInicial(
+    lotePctInit.x,
+    lotePctInit.y,
+    datosIniciales.venc_x_pct,
+    datosIniciales.venc_y_pct,
+  );
   const tipoInit = datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0];
   const [mmInitW, mmInitH] = mmParaTipoEtiqueta(tipoInit, TIPOS_ETIQUETA_DEFAULT);
   const [form, setForm] = useState<DatosEtiqueta>({
@@ -3468,6 +3531,8 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     lote_font: datosIniciales.lote_font ?? 7,
     lote_x_pct: lotePctInit.x,
     lote_y_pct: lotePctInit.y,
+    venc_x_pct: vencPctInit.x,
+    venc_y_pct: vencPctInit.y,
     campos_texto: datosIniciales.campos_texto ?? [],
   });
 
@@ -3946,7 +4011,9 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                 <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-surface-panel/80 px-4 py-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Documento</span>
                   <span className="font-mono text-[10px] text-muted">
-                    X {(form.lote_x_pct ?? 5).toFixed(1)}% · Y {(form.lote_y_pct ?? 88).toFixed(1)}%
+                    Lote X {(form.lote_x_pct ?? 5).toFixed(1)}% · Y {(form.lote_y_pct ?? 88).toFixed(1)}%
+                    {" · "}Venc. X {(form.venc_x_pct ?? form.lote_x_pct ?? 5).toFixed(1)}% · Y{" "}
+                    {(form.venc_y_pct ?? 94).toFixed(1)}%
                     {previewLoading && " · actualizando…"}
                   </span>
                 </div>
@@ -3958,12 +4025,17 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                     loteText={loteParaEtiqueta(form.lote_defecto)}
                     vencText={expParaEtiqueta(form.vencimiento_defecto)}
                     loteFont={form.lote_font ?? 7}
-                    xPct={form.lote_x_pct ?? 5}
-                    yPct={form.lote_y_pct ?? 88}
+                    loteXPct={form.lote_x_pct ?? 5}
+                    loteYPct={form.lote_y_pct ?? 88}
+                    vencXPct={form.venc_x_pct ?? form.lote_x_pct ?? 5}
+                    vencYPct={form.venc_y_pct ?? 94}
                     imgClassName={PREVIEW_IMG_LARGE}
                     containerClassName={PREVIEW_CONTAINER_LARGE}
-                    onPositionChange={(x, y) => {
+                    onLotePositionChange={(x, y) => {
                       setForm((f) => ({ ...f, lote_x_pct: x, lote_y_pct: y, lote_pos: "custom" }));
+                    }}
+                    onVencPositionChange={(x, y) => {
+                      setForm((f) => ({ ...f, venc_x_pct: x, venc_y_pct: y }));
                     }}
                   />
                 </div>
@@ -4859,6 +4931,8 @@ function TabImprimir({
   const [loteFont, setLoteFont] = useState(7);
   const [loteXPct, setLoteXPct] = useState(LOTE_POS_PCT["bottom-left"].x);
   const [loteYPct, setLoteYPct] = useState(LOTE_POS_PCT["bottom-left"].y);
+  const [vencXPct, setVencXPct] = useState(LOTE_POS_PCT["bottom-left"].x);
+  const [vencYPct, setVencYPct] = useState(clampLotePct(LOTE_POS_PCT["bottom-left"].y + 6));
   const [camposTexto, setCamposTexto] = useState<CampoTexto[]>([]);
   const [lineasPlantilla, setLineasPlantilla] = useState<LineaPlantilla[]>([]);
   const [imagenesPlantilla, setImagenesPlantilla] = useState<ImagenPlantilla[]>([]);
@@ -4984,6 +5058,9 @@ function TabImprimir({
     const pct = lotePctInicial(precargar.lote_pos, precargar.lote_x_pct, precargar.lote_y_pct);
     setLoteXPct(pct.x);
     setLoteYPct(pct.y);
+    const pctVenc = vencPctInicial(pct.x, pct.y, precargar.venc_x_pct, precargar.venc_y_pct);
+    setVencXPct(pctVenc.x);
+    setVencYPct(pctVenc.y);
     setLote(conPrefijoLote(precargar.lote_defecto));
     setVencimiento(conPrefijoExp(precargar.vencimiento_defecto));
     // Siempre reasignar (no solo cuando vienen datos): si no, quedan overlays
@@ -5096,6 +5173,9 @@ function TabImprimir({
     const pct = lotePctInicial(datos.lote_pos, datos.lote_x_pct, datos.lote_y_pct);
     setLoteXPct(pct.x);
     setLoteYPct(pct.y);
+    const pctVenc = vencPctInicial(pct.x, pct.y, datos.venc_x_pct, datos.venc_y_pct);
+    setVencXPct(pctVenc.x);
+    setVencYPct(pctVenc.y);
     setLote(conPrefijoLote(datos.lote_defecto || base.lote));
     setVencimiento(conPrefijoExp(datos.vencimiento_defecto || base.vencimiento));
     setVistaImpresion("documento");
@@ -5211,6 +5291,8 @@ function TabImprimir({
             lote_font: loteFont,
             lote_x_pct: loteXPct,
             lote_y_pct: loteYPct,
+            venc_x_pct: vencXPct,
+            venc_y_pct: vencYPct,
           });
         } catch (err) {
           const det = errorDesdeExcepcion(err instanceof Error ? err.message : "Error al preparar PNG");
@@ -5240,6 +5322,8 @@ function TabImprimir({
       lote_font: loteFont,
       lote_x_pct: loteXPct,
       lote_y_pct: loteYPct,
+      venc_x_pct: vencXPct,
+      venc_y_pct: vencYPct,
     });
   }
 
@@ -5456,7 +5540,7 @@ function TabImprimir({
                 <RibbonGroup label="Plantilla">
                   <p className={`max-w-[220px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>
                     {pngImpresion
-                      ? "Lote y vencimiento se superponen al imprimir sobre el PNG."
+                      ? "Arrastra el lote y el vencimiento por separado en la vista previa para ubicar cada uno donde quieras."
                       : "Lote y vencimiento se aplican en la posición original del archivo .ai"}
                   </p>
                 </RibbonGroup>
@@ -5496,14 +5580,20 @@ function TabImprimir({
                   loteText={loteParaEtiqueta(lote)}
                   vencText={expParaEtiqueta(vencimiento)}
                   loteFont={loteFont}
-                  xPct={loteXPct}
-                  yPct={loteYPct}
+                  loteXPct={loteXPct}
+                  loteYPct={loteYPct}
+                  vencXPct={vencXPct}
+                  vencYPct={vencYPct}
                   imgClassName={PREVIEW_IMG_ETIQUETA_PNG}
                   containerClassName={PREVIEW_CONTAINER_ETIQUETA_PNG}
-                  onPositionChange={(x, y) => {
+                  onLotePositionChange={(x, y) => {
                     setLoteXPct(x);
                     setLoteYPct(y);
                     setLotePos("custom");
+                  }}
+                  onVencPositionChange={(x, y) => {
+                    setVencXPct(x);
+                    setVencYPct(y);
                   }}
                 />
               </div>
@@ -5553,14 +5643,20 @@ function TabImprimir({
                     loteText={loteParaEtiqueta(lote)}
                     vencText={expParaEtiqueta(vencimiento)}
                     loteFont={loteFont}
-                    xPct={loteXPct}
-                    yPct={loteYPct}
+                    loteXPct={loteXPct}
+                    loteYPct={loteYPct}
+                    vencXPct={vencXPct}
+                    vencYPct={vencYPct}
                     imgClassName={PREVIEW_IMG_LARGE}
                     containerClassName={PREVIEW_CONTAINER_LARGE}
-                    onPositionChange={(x, y) => {
+                    onLotePositionChange={(x, y) => {
                       setLoteXPct(x);
                       setLoteYPct(y);
                       setLotePos("custom");
+                    }}
+                    onVencPositionChange={(x, y) => {
+                      setVencXPct(x);
+                      setVencYPct(y);
                     }}
                   />
                 )}
