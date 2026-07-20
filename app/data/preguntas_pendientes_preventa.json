@@ -1448,6 +1448,22 @@
       "timestamp": "2026-07-18T17:06:07.462969",
       "respondida": true,
       "borrador_ia": "¡Hola, veci! Con gusto le colaboro.\n\nNuestro Aceite Esencial de Manzanilla se obtiene de la planta de la especie *Chamaemelum nobile*.\n\n¡Quedamos atentos a cualquier otra inquietud"
+    },
+    {
+      "question_id": "13624748564",
+      "titulo_producto": "Ácido Hialurónico Solución 85% Todas",
+      "pregunta": "Buen día, puedo usarlo directamente en mi rostro sin diluirlo con otros productos?",
+      "timestamp": "2026-07-19T08:45:57.020000",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro con su pregunta.\n\nPara la aplicación directa de nuestro Ácido Hialurónico en el rostro, la recomendación principal es siempre realizar primero una prueba de parche en un área pequeña. Esto es muy importante para verificar cómo reacciona su piel al producto antes de usarlo de forma más extendida.\n\nPuede aplicar una pequeña cantidad de la solución en la parte interior de su antebrazo y esperar 24 horas para observar si aparece algún signo de irritación o sensibilidad. Esta es la mejor forma de asegurar que el producto es adecuado para usted.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-19"
+    },
+    {
+      "question_id": "13624881286",
+      "titulo_producto": "Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado",
+      "pregunta": "Aguanta calor? Lo puedo poner a bañó maría?",
+      "timestamp": "2026-07-19T17:46:42.099263",
+      "respondida": true
     }
   ]
 }
