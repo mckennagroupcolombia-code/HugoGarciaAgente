@@ -11,7 +11,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-16T18:09:40",
-      "ultima_revision": "2026-07-18T08:30:03",
+      "ultima_revision": "2026-07-19T08:30:03",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -368,6 +368,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:03",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": [
@@ -385,7 +395,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-1000-gramos-1000-gr-1000-gr-en-polvo-puro-1-kilo-1kg-1kg/up/MCOU3415632539",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T20:57:16",
-      "ultima_revision": "2026-07-18T08:30:04",
+      "ultima_revision": "2026-07-19T08:30:05",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -686,6 +696,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:05",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -701,7 +721,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T21:09:27",
-      "ultima_revision": "2026-07-18T08:30:06",
+      "ultima_revision": "2026-07-19T08:30:06",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -1056,6 +1076,18 @@
           "señales": [
             "suplemento dietario"
           ]
+        },
+        {
+          "fecha": "2026-07-19T08:30:06",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083548736-citrato-de-magnesio-puro-250-g-sin-sabor-_JM",
+          "señales": [
+            "suplemento dietario"
+          ]
         }
       ],
       "alertas_enviadas": []
@@ -1071,7 +1103,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-07-11T15:56:28",
-      "ultima_revision": "2026-07-18T08:30:07",
+      "ultima_revision": "2026-07-19T08:30:08",
       "estado_actual": "paused",
       "sub_status": [
         "paused_by_seller"
@@ -1172,6 +1204,18 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4160718746-semilla-de-calabaza-250g-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:08",
+          "status": "paused",
+          "sub_status": [
+            "paused_by_seller"
+          ],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160718746-semilla-de-calabaza-250g-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -1191,7 +1235,7 @@
       "presentacion": "500g",
       "perfil": "materia_prima_alimentaria",
       "creado_en": "2026-07-11T21:19:13",
-      "ultima_revision": "2026-07-18T08:30:09",
+      "ultima_revision": "2026-07-19T08:30:09",
       "estado_actual": "paused",
       "sub_status": [
         "paused_by_seller"
@@ -1294,6 +1338,18 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4160901374-semilla-de-calabaza-500g-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:09",
+          "status": "paused",
+          "sub_status": [
+            "paused_by_seller"
+          ],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160901374-semilla-de-calabaza-500g-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -1313,7 +1369,7 @@
       "presentacion": "250g",
       "perfil": "materia_prima_alimentaria",
       "creado_en": "2026-07-11T22:55:16",
-      "ultima_revision": "2026-07-18T08:30:10",
+      "ultima_revision": "2026-07-19T08:30:10",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -1408,6 +1464,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4160912078-arandanos-deshidratados-x250gr-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:10",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4160912078-arandanos-deshidratados-x250gr-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -1427,7 +1493,7 @@
       "presentacion": "250g",
       "perfil": "insumo_cosmetico",
       "creado_en": "2026-07-12T13:51:43",
-      "ultima_revision": "2026-07-18T08:30:11",
+      "ultima_revision": "2026-07-19T08:30:12",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -1526,6 +1592,18 @@
           "señales": [
             "exfoliante"
           ]
+        },
+        {
+          "fecha": "2026-07-19T08:30:12",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-2035213641-pistachos-tostados-250g-_JM",
+          "señales": [
+            "exfoliante"
+          ]
         }
       ],
       "alertas_enviadas": []
@@ -1545,7 +1623,7 @@
       "presentacion": "500g",
       "perfil": "materia_prima_alimentaria",
       "creado_en": "2026-07-12T14:21:30",
-      "ultima_revision": "2026-07-18T08:30:13",
+      "ultima_revision": "2026-07-19T08:30:13",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -1630,10 +1708,20 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4162681806-pistachos-tostados-500g-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-19T08:30:13",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4162681806-pistachos-tostados-500g-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
     }
   ],
-  "ultima_revision_global": "2026-07-18T08:30:13"
+  "ultima_revision_global": "2026-07-19T08:30:13"
 }
