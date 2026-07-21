@@ -1,16 +1,43 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us"
+    "573009990001@c.us",
+    "210444857946255@lid",
+    "573132269371@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1784445425.758369
+    "573009990001@c.us": 1784445425.758369,
+    "210444857946255@lid": 1784577339.6062915,
+    "573132269371@c.us": 1784577339.6062915
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1784445425.758369,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "hola"
+      "ultimo_mensaje": "Como me digas"
+    },
+    "210444857946255@lid": {
+      "timestamp": 1784577339.6062915,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Como me digas"
+    },
+    "573132269371@c.us": {
+      "timestamp": 1784577339.6062915,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Como me digas"
     }
+  },
+  "bot_global_activo": false,
+  "horario_bot": {
+    "habilitado": false,
+    "hora_inicio": "08:00",
+    "hora_fin": "18:00",
+    "dias": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   }
 }
