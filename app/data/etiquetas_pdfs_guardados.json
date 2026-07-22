@@ -1,6 +1,90 @@
 {
   "archivos": [
     {
+      "nombre": "NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
+      "subido_at": "2026-07-21T12:17:10",
+      "bytes": 263860
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
+      "subido_at": "2026-07-21T12:16:55",
+      "bytes": 263860
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
+      "subido_at": "2026-07-21T12:16:08",
+      "bytes": 256268
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x.pdf",
+      "subido_at": "2026-07-21T12:15:53",
+      "bytes": 256268
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
+      "subido_at": "2026-07-21T12:15:13",
+      "bytes": 298707
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
+      "subido_at": "2026-07-21T12:14:59",
+      "bytes": 298707
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
+      "subido_at": "2026-07-21T12:14:35",
+      "bytes": 298707
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
+      "subido_at": "2026-07-21T12:13:40",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121323.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121323.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121323.pdf",
+      "subido_at": "2026-07-21T12:13:23",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121257.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121257.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121257.pdf",
+      "subido_at": "2026-07-21T12:12:57",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121231.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121231.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121231.pdf",
+      "subido_at": "2026-07-21T12:12:31",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_120811.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_120811.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_120811.pdf",
+      "subido_at": "2026-07-21T12:08:11",
+      "bytes": 257697
+    },
+    {
       "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260716_211341.pdf",
       "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260716_211341.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260716_211341.pdf",
