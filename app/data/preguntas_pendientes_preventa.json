@@ -1464,6 +1464,48 @@
       "pregunta": "Aguanta calor? Lo puedo poner a bañó maría?",
       "timestamp": "2026-07-19T17:46:42.099263",
       "respondida": true
+    },
+    {
+      "question_id": "13625041367",
+      "titulo_producto": "Acido Kojico  Todo Tipo De Piel Día/noche",
+      "pregunta": "Buen día, este acido kojico es con dipalmitato?",
+      "timestamp": "2026-07-21T04:27:02.111784",
+      "respondida": true,
+      "borrador_ia": "Buen día, veci. Con gusto le colaboro con su pregunta.\n\nLe confirmo que nuestro producto es Ácido Kójico, un compuesto orgánico natural que se deriva de ciertos tipos de hongos, como Aspergillus y Penicillium.\n\nQuedamos atentos a cualquier otra inquietud que tenga. ¡Un saludo"
+    },
+    {
+      "question_id": "13625182599",
+      "titulo_producto": "Carbón Activado Pellets Filtro Olores 800g",
+      "pregunta": "Hola!! Quiero quitar el olor de humedad de un carro, como debo usarlo? Gracias",
+      "timestamp": "2026-07-21T10:17:45.405947",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡buenos días! Con gusto le colaboro. Claro que sí, este carbón activado es ideal para esa tarea, ya que su principal función es atrapar y eliminar compuestos orgánicos del aire, como los que causan el olor a humedad.\n\nPara usarlo en su carro, le recomiendo colocar una cantidad de los pellets en pequeños recipientes abiertos o en bolsas de tela que permitan el paso del aire. Puede ubicar estas bolsitas o recipientes en lugares estratégicos como debajo de los asientos, en los bolsillos de las puertas o en el baúl. Esto permitirá que el carbón adsorba eficazmente la humedad y los olores.\n\nEl carbón activado irá purificando el ambiente de forma continua. Simplemente déjelo actuar dentro del vehículo. Quedamos atentos si tiene cualquier otra pregunta. ¡Que tenga un excelente día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-21"
+    },
+    {
+      "question_id": "13625259985",
+      "titulo_producto": "Ácido Salicílico 100gr Todo Tipo De Piel",
+      "pregunta": "Cómo se usa? Ya me llegó",
+      "timestamp": "2026-07-21T13:48:16.072439",
+      "respondida": true
+    },
+    {
+      "question_id": "13625582973",
+      "titulo_producto": "L Glutamina 100 Gr N/a",
+      "pregunta": "Ayuda a crecer el musculo? tmabien ayuda a la piel? se puede agregar en batidos para aumento de masa muscular?",
+      "timestamp": "2026-07-21T18:18:24.981966",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buenos días. Con gusto le colaboro con sus inquietudes.\n\nNuestra L-Glutamina es el aminoácido más abundante en los músculos. Su función descrita es la de ayudar a evitar la disminución del músculo que puede ser causada por el estrés oxidativo.\n\nPor su alta calidad y pureza, una de sus aplicaciones principales es para suplementos nutricionales y la industria alimenticia, por lo que sí puede agregarla en batidos. La información del producto no detalla una aplicación específica para la piel.\n\nQuedamos atentos si tiene alguna otra pregunta. ¡Que tenga un excelente día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-21"
+    },
+    {
+      "question_id": "13625696467",
+      "titulo_producto": "Sharomix 705 Conservante 250 Ml",
+      "pregunta": "Hola buenas noches que fecha de fabricación tiene",
+      "timestamp": "2026-07-21T21:18:46.496394",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buenas noches. Con gusto le colaboro.\n\nNo le podría dar la fecha exacta de fabricación, ya que nuestro inventario rota constantemente en las bodegas de Mercado Libre para garantizar que siempre reciba un producto fresco.\n\nLo que sí le puedo confirmar es que el Sharomix 705 no tiene una fecha de caducidad como tal. Para asegurar que el producto conserve todas sus propiedades, se recomienda usarlo preferentemente durante los primeros 24 meses a partir de su fecha de fabricación. Puede tener la tranquilidad de que recibirá un producto con un amplio margen de tiempo para su uso.",
+      "nota": "Auto-marcada respondida (pre-answer check) 2026-07-21"
     }
   ]
 }
