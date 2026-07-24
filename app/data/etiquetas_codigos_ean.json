@@ -241,13 +241,14 @@
     {
       "id": "fdd9649d3c67",
       "sku": "C-BTMS125g",
-      "nombre_producto": "BTMS 125g",
+      "nombre_producto": "BTMS 50 125g",
       "numero_producto": 22,
       "presentacion": "125",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700221252631",
-      "creado_at": "2026-07-13T13:11:49"
+      "creado_at": "2026-07-13T13:11:49",
+      "actualizado_at": "2026-07-23T08:45:58"
     },
     {
       "id": "5c998649c583",
@@ -395,7 +396,7 @@
     },
     {
       "id": "afa11e53f234",
-      "sku": "C-ACERIC205mL",
+      "sku": "C-ACERIC250mL",
       "nombre_producto": "ACEITE DE RICINO 250mL",
       "numero_producto": 36,
       "presentacion": "250",
@@ -403,7 +404,7 @@
       "bimestre": 3,
       "codigo": "7700362502633",
       "creado_at": "2026-07-14T15:15:07",
-      "actualizado_at": "2026-07-14T15:17:19"
+      "actualizado_at": "2026-07-23T08:46:45"
     },
     {
       "id": "be017b835dd6",
@@ -441,6 +442,17 @@
       "actualizado_at": "2026-07-14T21:35:51"
     },
     {
+      "id": "0c6272e28bb7",
+      "sku": "C-ALGSOD50g",
+      "nombre_producto": "ALGINATO DE SODIO 50g",
+      "numero_producto": 40,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700400502632",
+      "creado_at": "2026-07-23T09:01:56"
+    },
+    {
       "id": "f848e0c7cc58",
       "sku": "C-ACDKOJDPAL30mL",
       "nombre_producto": "ACIDO KOJICO D PALMITATO 30mL",
@@ -453,14 +465,49 @@
     },
     {
       "id": "49a1026914f5",
-      "sku": "C-ACDLAC85P30m",
+      "sku": "C-ACDLAC85P30mL",
       "nombre_producto": "ACIDO LACTICO 85% 30mL",
       "numero_producto": 42,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700420302632",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:47:39"
+    },
+    {
+      "id": "030b42e5bfde",
+      "sku": "C-ALGSOLACCAL50g",
+      "nombre_producto": "ALGINATO DE SODIO + LACTATO DE CALCIO 50g C/U",
+      "numero_producto": 43,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700430502633",
+      "creado_at": "2026-07-23T10:16:41",
+      "actualizado_at": "2026-07-23T11:14:41"
+    },
+    {
+      "id": "b4f25e94c5bc",
+      "sku": "C-CLOCAL50g",
+      "nombre_producto": "CLORURO DE CALCIO 50g",
+      "numero_producto": 44,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700440502630",
+      "creado_at": "2026-07-23T11:34:37"
+    },
+    {
+      "id": "e683046a3fa9",
+      "sku": "C-LACCAL50g",
+      "nombre_producto": "LACTATO DE CALCIO 50g",
+      "numero_producto": 45,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700450502637",
+      "creado_at": "2026-07-23T11:35:28"
     },
     {
       "id": "db65e319dddf",
@@ -596,15 +643,15 @@
       "actualizado_at": "2026-07-14T21:33:24"
     },
     {
-      "id": "bbd61d07ecad",
-      "sku": "C-ACEESETOM5mL",
-      "nombre_producto": "Aceite Esencial Tomillo 5mL",
+      "id": "e3251f5ec9cb",
+      "sku": "C-CLOCAL500g",
+      "nombre_producto": "CLORURO DE CALCIO 500g",
       "numero_producto": 58,
-      "presentacion": "005",
+      "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
-      "codigo": "7700580052637",
-      "creado_at": "2026-07-14T15:35:25"
+      "codigo": "7700585002637",
+      "creado_at": "2026-07-23T11:43:11"
     },
     {
       "id": "5f4f95298ee9",
@@ -649,6 +696,17 @@
       "bimestre": 3,
       "codigo": "7700625002634",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "292d08d52f34",
+      "sku": "C-CLOCAL100g",
+      "nombre_producto": "CLORURO DE CALCIO",
+      "numero_producto": 63,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700631002635",
+      "creado_at": "2026-07-23T15:35:04"
     },
     {
       "id": "3c1286d784e9",
@@ -772,26 +830,15 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "3a67ed16ae04",
-      "sku": "C-ACIGLI50P30mL",
-      "nombre_producto": "ACIDO GLICOLICO 50% 30mL",
+      "id": "ef66543abeed",
+      "sku": "C-ALGSOD100g",
+      "nombre_producto": "ALGINATO DE SODIO 100g",
       "numero_producto": 75,
-      "presentacion": "030",
+      "presentacion": "100",
       "anio": 26,
       "bimestre": 3,
-      "codigo": "7700750302630",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "9d045144b520",
-      "sku": "C-ACIHIAALTPES85P30m",
-      "nombre_producto": "ACIDO HIALURONICO ALTO PESO 30mL",
-      "numero_producto": 76,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700760302637",
-      "creado_at": "2026-07-14T15:35:25"
+      "codigo": "7700751002638",
+      "creado_at": "2026-07-23T18:15:34"
     },
     {
       "id": "a5c309b53d79",
@@ -1039,24 +1086,14 @@
     {
       "id": "31a3f209b39b",
       "sku": "C-BTMS500g",
-      "nombre_producto": "BTMS 500g",
+      "nombre_producto": "BTMS 50 500g",
       "numero_producto": 101,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701015002630",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "b692c47d5515",
-      "sku": "C-BTMS50125g",
-      "nombre_producto": "BTMS 50 125g",
-      "numero_producto": 102,
-      "presentacion": "125",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701021252630",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:46:08"
     },
     {
       "id": "7369519d1dea",
@@ -1070,17 +1107,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "500cdb9ecc63",
-      "sku": "C-CAF100g",
-      "nombre_producto": "Cafeina 100g",
-      "numero_producto": 104,
-      "presentacion": "100",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701041002635",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "d3c3c7fce082",
       "sku": "C-CAF500g",
       "nombre_producto": "CAFEINA 500g",
@@ -1089,17 +1115,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701055002638",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "c53d598378e3",
-      "sku": "C-CAFE100g",
-      "nombre_producto": "CAFEINA 100g",
-      "numero_producto": 106,
-      "presentacion": "100",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701061002639",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -1137,47 +1152,27 @@
     },
     {
       "id": "15b7b0eb96b6",
-      "sku": "C-CERABEREFAMA500",
+      "sku": "C-CERABEREFAMA500g",
       "nombre_producto": "CERA ABEJAS REFINADA AMARILLA 500g",
       "numero_producto": 110,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701105002632",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "dbcae70c3369",
-      "sku": "C-CERABEREFAMA500g",
-      "nombre_producto": "Cera Abejas Refinada Amarilla 500g",
-      "numero_producto": 111,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701115002639",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:49:26"
     },
     {
       "id": "3b2e13efb2d3",
       "sku": "C-CERABEREFAMAKg",
-      "nombre_producto": "Cera Abejas Refinada Amarilla Kg",
+      "nombre_producto": "CERA DE ABEJAS REFINADA AMARILLA Kg",
       "numero_producto": 113,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701130012637",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "997226071979",
-      "sku": "C-CERABEREFBLA",
-      "nombre_producto": "CERA ABEJAS REFINADA BLANCA Kg",
-      "numero_producto": 114,
-      "presentacion": "001",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701140012634",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:56:58"
     },
     {
       "id": "e5924af045f1",
@@ -1204,13 +1199,14 @@
     {
       "id": "c73039755e70",
       "sku": "C-CERABEREFBLAKg",
-      "nombre_producto": "Cera ABejas Refinada Kg",
+      "nombre_producto": "CERA DE ABEJAS REFINADA BLANCA Kg",
       "numero_producto": 117,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701170012635",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:50:08"
     },
     {
       "id": "9f01534800f5",
@@ -1323,17 +1319,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "2f189e54ddb3",
-      "sku": "C-CITPOTK",
-      "nombre_producto": "CITRATO POTASIO Kg",
-      "numero_producto": 128,
-      "presentacion": "001",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701280012631",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "bbf5338e9e8e",
       "sku": "C-CITPOTKg",
       "nombre_producto": "CITRATO POTASO Kg",
@@ -1375,17 +1360,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701320012638",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "0215c7ef27d2",
-      "sku": "C-COCPROBET500m",
-      "nombre_producto": "COCOAMIDA PROPIL BETAINA 500mL",
-      "numero_producto": 133,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701335002631",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -1478,36 +1452,15 @@
     },
     {
       "id": "93b6645a0353",
-      "sku": "C-DIOTIT500",
+      "sku": "C-DIOTIT500g",
       "nombre_producto": "DIOXIDO TITANIO 500g",
       "numero_producto": 143,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701435002630",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "6ff516baeabf",
-      "sku": "C-DIOTIT500g",
-      "nombre_producto": "Dioxido Titanio 500g",
-      "numero_producto": 144,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701445002637",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "969082e924ad",
-      "sku": "C-DPAN50m",
-      "nombre_producto": "DPANTENOL 50mL",
-      "numero_producto": 145,
-      "presentacion": "050",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701450502634",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-07-23T08:57:39"
     },
     {
       "id": "5d1d26cc109f",
@@ -1610,17 +1563,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "494de3fa2f5e",
-      "sku": "C-GELSINSAB500",
-      "nombre_producto": "GELATINA SIN SABOR 500g",
-      "numero_producto": 158,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701585002634",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "5cf56fa05481",
       "sku": "C-GELSINSAB500g",
       "nombre_producto": "GELATINA SIN SABOR 500g",
@@ -1662,17 +1604,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701620012635",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "28aed031cc3a",
-      "sku": "C-GLU100",
-      "nombre_producto": "L GLUTAMINA 100g",
-      "numero_producto": 163,
-      "presentacion": "100",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701631002632",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -1761,17 +1692,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701710002638",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "0dda169514cc",
-      "sku": "C-GUSSED30m",
-      "nombre_producto": "GUSANO SEDA 30mL",
-      "numero_producto": 172,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701720302636",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -1871,17 +1791,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701812502630",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "66d1f3759c5a",
-      "sku": "C-LANOLINA40",
-      "nombre_producto": "LANOLINA 40g",
-      "numero_producto": 182,
-      "presentacion": "040",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701820402632",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -2006,17 +1915,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "bb84b4878d4d",
-      "sku": "C-MENCRI100",
-      "nombre_producto": "MENTOL CRISTAL 100g",
-      "numero_producto": 194,
-      "presentacion": "100",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701941002636",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "d80a7169cd52",
       "sku": "C-MENCRI100g",
       "nombre_producto": "MENTOL CRISTAL 100g",
@@ -2102,28 +2000,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702025002634",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "3ce83aa8b9b4",
-      "sku": "C-PROCONSUE80PKg",
-      "nombre_producto": "PROTEINA CONCENTRADA SUERO LECHE 80P Kg",
-      "numero_producto": 203,
-      "presentacion": "001",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7702030012635",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "95c4b61df056",
-      "sku": "C-RET5P30m",
-      "nombre_producto": "RETINOL 5% 30mL",
-      "numero_producto": 204,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7702040302634",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -2224,17 +2100,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702131002634",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "349c0ef302bc",
-      "sku": "C-SORPOT250",
-      "nombre_producto": "SORBATO POTASIO 250g",
-      "numero_producto": 214,
-      "presentacion": "250",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7702142502635",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
@@ -2411,17 +2276,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702305002637",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "7bd0280f1248",
-      "sku": "C-VITE30m",
-      "nombre_producto": "VITAMINA E 30 mL",
-      "numero_producto": 231,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7702310302630",
       "creado_at": "2026-07-14T15:35:25"
     },
     {
