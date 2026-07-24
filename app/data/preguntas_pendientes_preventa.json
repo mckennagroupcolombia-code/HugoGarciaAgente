@@ -1506,6 +1506,22 @@
       "respondida": true,
       "borrador_ia": "Hola veci, buenas noches. Con gusto le colaboro.\n\nNo le podría dar la fecha exacta de fabricación, ya que nuestro inventario rota constantemente en las bodegas de Mercado Libre para garantizar que siempre reciba un producto fresco.\n\nLo que sí le puedo confirmar es que el Sharomix 705 no tiene una fecha de caducidad como tal. Para asegurar que el producto conserve todas sus propiedades, se recomienda usarlo preferentemente durante los primeros 24 meses a partir de su fecha de fabricación. Puede tener la tranquilidad de que recibirá un producto con un amplio margen de tiempo para su uso.",
       "nota": "Auto-marcada respondida (pre-answer check) 2026-07-21"
+    },
+    {
+      "question_id": "13627550478",
+      "titulo_producto": "Creatina Monohidrato 250gr N/a",
+      "pregunta": "Estacreatina se puede tomar?",
+      "timestamp": "2026-07-23T10:49:57.810243",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Claro que sí, con gusto le colaboro. Esta creatina está diseñada para el consumo, especialmente por parte de atletas y personas que buscan mejorar su estado físico general. Su principal función es aumentar la fuerza y la capacidad para realizar ejercicios de alta intensidad.\n\nSe sugiere una dosis de mantenimiento de 3 a 5 gramos al día. Opcionalmente, se puede hacer una fase de carga durante los primeros 5-7 días, tomando de 15 a 20 gramos diarios divididos en tres o cuatro tomas para saturar los músculos más rápidamente.\n\nEs muy importante que se asegure de beber suficiente agua durante el día para garantizar una buena absorción y mantenerse bien hidratado. Recuerde que los suplementos alimenticios no deben utilizarse como sustitutos en una dieta equilibrada.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-23"
+    },
+    {
+      "question_id": "13627207659",
+      "titulo_producto": "D-pantenol Vitamina B5 75%",
+      "pregunta": "Hola buenas noches quisiera saber si manejas esta información la hoja de seguridad (SDS), si es de uso cosmético, si tie",
+      "timestamp": "2026-07-23T22:18:19.771939",
+      "respondida": false
     }
   ]
 }

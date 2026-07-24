@@ -1,36 +1,5 @@
 {
-  "pendientes": {
-    "2000013813932183": {
-      "pack_id": "2000013813932183",
-      "codigo": "183",
-      "comprador": "Comprador 3161374194",
-      "from_id": "3161374194",
-      "texto": "No me deja compartir correo. Ni datos personales. Me los podrían adjuntar por acá?",
-      "msg_id": "019f8a3ec7f7730cba5af2e549f19fe7",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-07-22T09:33:25"
-    },
-    "183": {
-      "pack_id": "2000013813932183",
-      "codigo": "183",
-      "comprador": "Comprador 3161374194",
-      "from_id": "3161374194",
-      "texto": "No me deja compartir correo. Ni datos personales. Me los podrían adjuntar por acá?",
-      "msg_id": "019f8a3ec7f7730cba5af2e549f19fe7",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-07-22T09:33:25"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019e65da518e72eea858643eebd38d37",
     "019e4f9756bb715e8e0bba71de607356",

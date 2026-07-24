@@ -6,7 +6,9 @@
     "573123412937@c.us",
     "64952807198966@lid",
     "573197109970@c.us",
-    "38916765806687@lid"
+    "38916765806687@lid",
+    "573028200001@c.us",
+    "156315888394321@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -16,43 +18,55 @@
     "573123412937@c.us": 1784642352.7105834,
     "64952807198966@lid": 1784642352.7105834,
     "573197109970@c.us": 1784654928.9773078,
-    "38916765806687@lid": 1784654928.9773078
+    "38916765806687@lid": 1784654928.9773078,
+    "573028200001@c.us": 1784822647.2977552,
+    "156315888394321@lid": 1784822647.2977552
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1784445425.758369,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "210444857946255@lid": {
       "timestamp": 1784577339.6062915,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "573132269371@c.us": {
       "timestamp": 1784577339.6062915,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "573123412937@c.us": {
       "timestamp": 1784642352.7105834,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "64952807198966@lid": {
       "timestamp": 1784642352.7105834,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "573197109970@c.us": {
       "timestamp": 1784654928.9773078,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     },
     "38916765806687@lid": {
       "timestamp": 1784654928.9773078,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Si se\u00f1ora"
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
+    },
+    "573028200001@c.us": {
+      "timestamp": 1784822647.2977552,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
+    },
+    "156315888394321@lid": {
+      "timestamp": 1784822647.2977552,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
     }
   },
   "bot_global_activo": false,

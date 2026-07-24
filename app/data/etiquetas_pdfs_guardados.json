@@ -1,6 +1,97 @@
 {
   "archivos": [
     {
+      "nombre": "BTMS_125g_6.25x_20260723_114206.pdf",
+      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
+      "subido_at": "2026-07-23T11:42:06",
+      "bytes": 395244
+    },
+    {
+      "nombre": "BTMS_125g_6.25x_20260723_114137.pdf",
+      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114137.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114137.pdf",
+      "subido_at": "2026-07-23T11:41:37",
+      "bytes": 395244
+    },
+    {
+      "nombre": "BTMS_125g_6.25x_20260723_114122.pdf",
+      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114122.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114122.pdf",
+      "subido_at": "2026-07-23T11:41:22",
+      "bytes": 395244
+    },
+    {
+      "nombre": "BTMS_125g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x.pdf",
+      "subido_at": "2026-07-23T11:40:53",
+      "bytes": 395244
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
+      "subido_at": "2026-07-23T11:37:49",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
+      "subido_at": "2026-07-23T11:37:05",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
+      "subido_at": "2026-07-23T11:36:40",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
+      "subido_at": "2026-07-23T11:36:08",
+      "bytes": 257697
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
+      "subido_at": "2026-07-23T11:35:11",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
+      "subido_at": "2026-07-23T11:34:42",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
+      "subido_at": "2026-07-23T11:34:16",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
+      "subido_at": "2026-07-23T11:33:46",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
+      "subido_at": "2026-07-23T11:32:40",
+      "bytes": 253349
+    },
+    {
       "nombre": "NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
       "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
@@ -1308,55 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
       "subido_at": "2026-06-13T22:59:29",
       "bytes": 112520
-    },
-    {
-      "nombre": "ACEITE DE RICINO 250mL.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE DE RICINO 250mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE DE RICINO 250mL.pdf",
-      "subido_at": "2026-06-13T21:39:24",
-      "bytes": 463016
-    },
-    {
-      "nombre": "OXIDO DE ZINC 250g.pdf",
-      "ruta": "Etiquetas McKenna/OXIDO DE ZINC 250g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/OXIDO DE ZINC 250g.pdf",
-      "subido_at": "2026-06-13T20:57:54",
-      "bytes": 473886
-    },
-    {
-      "nombre": "CERA DE  ABEJAS NATURAL 500g.pdf",
-      "ruta": "Etiquetas McKenna/CERA DE  ABEJAS NATURAL 500g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CERA DE  ABEJAS NATURAL 500g.pdf",
-      "subido_at": "2026-06-13T20:11:39",
-      "bytes": 68295
-    },
-    {
-      "nombre": "AGUA DESTILADA 250mL.pdf",
-      "ruta": "Etiquetas McKenna/AGUA DESTILADA 250mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA DESTILADA 250mL.pdf",
-      "subido_at": "2026-06-13T19:54:54",
-      "bytes": 467703
-    },
-    {
-      "nombre": "ACEITE ARGAN 50mL.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE ARGAN 50mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE ARGAN 50mL.pdf",
-      "subido_at": "2026-06-13T18:45:11",
-      "bytes": 472853
-    },
-    {
-      "nombre": "ELASTINA 30 mL.pdf",
-      "ruta": "Etiquetas McKenna/ELASTINA 30 mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ELASTINA 30 mL.pdf",
-      "subido_at": "2026-06-13T18:39:01",
-      "bytes": 470760
-    },
-    {
-      "nombre": "VITAMINA C 30 mL.pdf",
-      "ruta": "Etiquetas McKenna/VITAMINA C 30 mL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/VITAMINA C 30 mL.pdf",
-      "subido_at": "2026-06-09T17:55:34",
-      "bytes": 469349
     }
   ]
 }

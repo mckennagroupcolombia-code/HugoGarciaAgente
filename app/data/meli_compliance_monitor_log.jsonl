@@ -63,3 +63,6 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4208635856", "sku": "C-COCDESHIL250g", "origen": "", "ts": "2026-07-22T22:21:08"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4208343872", "sku": "C-COCDESHIL250g", "origen": "desde_cero", "ts": "2026-07-22T22:26:41"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4208343872", "sku": "C-COCDESHIL250g", "origen": "", "ts": "2026-07-22T22:26:42"}
+{"tipo": "revision_diaria", "revisadas": 10, "alertas": 0, "activas": 10, "problemas": 0, "ts": "2026-07-23T08:30:16"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4212219554", "sku": "C-ALGSOLACCA50g", "origen": "desde_cero", "ts": "2026-07-23T10:46:29"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4212219554", "sku": "C-ALGSOLACCA50g", "origen": "", "ts": "2026-07-23T10:46:30"}
