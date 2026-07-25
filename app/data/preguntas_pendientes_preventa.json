@@ -1520,8 +1520,31 @@
       "question_id": "13627207659",
       "titulo_producto": "D-pantenol Vitamina B5 75%",
       "pregunta": "Hola buenas noches quisiera saber si manejas esta información la hoja de seguridad (SDS), si es de uso cosmético, si tie",
-      "timestamp": "2026-07-23T22:18:19.771939",
-      "respondida": false
+      "timestamp": "2026-07-24T09:53:49.263798",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-07-24"
+    },
+    {
+      "question_id": "13627566251",
+      "titulo_producto": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+      "pregunta": "Sirve para desmanchar axilas y cuello?",
+      "timestamp": "2026-07-24T13:53:17.935245",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Buenos días, con gusto le colaboro.\n\nAsí es, uno de los beneficios de nuestro Ácido Láctico es que ayuda a reducir la apariencia de manchas oscuras y a mejorar la textura y el tono de la piel, dejándola más suave y uniforme.\n\nEs muy importante tener en cuenta que nuestro producto es altamente concentrado al 85%, por lo que siempre debe diluirlo antes de usar. La recomendación es iniciar con una concentración baja, entre el 1% y 5%, y realizar siempre una prueba de parche en un área pequeña para evaluar la sensibilidad de su piel antes de aplicarlo en zonas más extensas.\n\nRecuerde también usar protector solar en las zonas tratadas, ya que el ácido puede aumentar la sensibilidad de la piel al sol. Quedo atento a cualquier otra inquietud que tenga. ¡Feliz día"
+    },
+    {
+      "question_id": "13627634817",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Cuánto zinc contiene un gramo",
+      "timestamp": "2026-07-24T17:24:06.470216",
+      "respondida": true
+    },
+    {
+      "question_id": "13627635731",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Que pasa si tomo 500 mg",
+      "timestamp": "2026-07-24T15:45:43.872535",
+      "respondida": true
     }
   ]
 }
