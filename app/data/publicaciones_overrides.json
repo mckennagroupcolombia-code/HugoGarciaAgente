@@ -257,5 +257,19 @@
     ],
     "updated_at": "2026-07-15T10:52:40.578713",
     "meli_item_id": "MCO971453450"
+  },
+  "C-CREMON100g": {
+    "imagenes_web": [
+      "C-CREMON100g.png"
+    ],
+    "updated_at": "2026-07-24T12:07:48.550891",
+    "meli_item_id": "MCO862333529"
+  },
+  "C-CREMON250g": {
+    "imagenes_web": [
+      "C-CREMON250g.png"
+    ],
+    "updated_at": "2026-07-24T12:07:34.001314",
+    "meli_item_id": "MCO862397411"
   }
 }

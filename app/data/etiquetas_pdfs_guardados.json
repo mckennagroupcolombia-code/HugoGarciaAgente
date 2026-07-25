@@ -1,6 +1,62 @@
 {
   "archivos": [
     {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
+      "subido_at": "2026-07-24T11:44:15",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
+      "subido_at": "2026-07-24T11:43:57",
+      "bytes": 257697
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
+      "subido_at": "2026-07-24T11:43:01",
+      "bytes": 292008
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
+      "subido_at": "2026-07-24T11:42:31",
+      "bytes": 292008
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
+      "subido_at": "2026-07-24T11:42:04",
+      "bytes": 292008
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
+      "subido_at": "2026-07-24T11:41:16",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
+      "subido_at": "2026-07-24T11:40:50",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
+      "subido_at": "2026-07-24T11:40:14",
+      "bytes": 281604
+    },
+    {
       "nombre": "BTMS_125g_6.25x_20260723_114206.pdf",
       "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
@@ -1343,62 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_213918.pdf",
       "subido_at": "2026-07-04T21:39:18",
       "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_210926.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_210926.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_210926.pdf",
-      "subido_at": "2026-07-04T21:09:26",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g.pdf",
-      "subido_at": "2026-07-04T21:03:41",
-      "bytes": 3502
-    },
-    {
-      "nombre": "PLANTILLA_100g_AZUL_20260703_025224.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_025224.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_025224.pdf",
-      "subido_at": "2026-07-03T02:52:24",
-      "bytes": 3352
-    },
-    {
-      "nombre": "PLANTILLA_100g_AZUL_20260703_023002.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_023002.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_023002.pdf",
-      "subido_at": "2026-07-03T02:30:02",
-      "bytes": 3352
-    },
-    {
-      "nombre": "PLANTILLA_100g_AZUL.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_100g_AZUL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_100g_AZUL.pdf",
-      "subido_at": "2026-07-03T02:20:00",
-      "bytes": 3352
-    },
-    {
-      "nombre": "PLANTILLA_1000g_AZUL.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
-      "subido_at": "2026-06-20T01:43:30",
-      "bytes": 3336
-    },
-    {
-      "nombre": "PLANTILLA_500g_AZUL.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_500g_AZUL.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_500g_AZUL.pdf",
-      "subido_at": "2026-06-20T01:41:01",
-      "bytes": 3331
-    },
-    {
-      "nombre": "ACIDO SALICILICO 50g.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
-      "subido_at": "2026-06-13T22:59:29",
-      "bytes": 112520
     }
   ]
 }
