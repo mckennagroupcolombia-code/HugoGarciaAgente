@@ -1,5 +1,36 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "2000014180141893": {
+      "pack_id": "2000014180141893",
+      "codigo": "893",
+      "comprador": "Comprador 2398675266",
+      "from_id": "2398675266",
+      "texto": "Hola buenas, te quería decir que en la compra que hice va el ácido azelaico y mándelico del cual solo enviaron el mandelico, donde me\nPuedo comunicar para que me\nEnvíen la compra correcta y completa",
+      "msg_id": "019f9bdfd3fd7781b0bd3f8146179259",
+      "productos": "",
+      "productos_detalle": [],
+      "total": "",
+      "fecha_compra": "",
+      "envio": "",
+      "sugerencia_ia": "",
+      "timestamp": "2026-07-25T19:42:49"
+    },
+    "893": {
+      "pack_id": "2000014180141893",
+      "codigo": "893",
+      "comprador": "Comprador 2398675266",
+      "from_id": "2398675266",
+      "texto": "Hola buenas, te quería decir que en la compra que hice va el ácido azelaico y mándelico del cual solo enviaron el mandelico, donde me\nPuedo comunicar para que me\nEnvíen la compra correcta y completa",
+      "msg_id": "019f9bdfd3fd7781b0bd3f8146179259",
+      "productos": "",
+      "productos_detalle": [],
+      "total": "",
+      "fecha_compra": "",
+      "envio": "",
+      "sugerencia_ia": "",
+      "timestamp": "2026-07-25T19:42:49"
+    }
+  },
   "procesados": [
     "019f7304a1a877738ee4b6a2bf6e7c93",
     "019ed2e7f8df7885a568b7e4a2a8a1a3",
@@ -307,6 +338,7 @@
     "019ee0d7b28b7db1b683ebde303a3e14",
     "019e528c8d4c78b09e7c1ccf515f96f4",
     "019e2180e8ec7148b5e0f292177b2caa",
+    "019f9bdfd3fd7781b0bd3f8146179259",
     "0197f00aa8657d4bb929344ae4541417",
     "019efbae26da700d8cd838d13ee87304",
     "019dda1c484177d0914e655b3ecd628b",

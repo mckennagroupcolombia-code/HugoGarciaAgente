@@ -1545,6 +1545,15 @@
       "pregunta": "Que pasa si tomo 500 mg",
       "timestamp": "2026-07-24T15:45:43.872535",
       "respondida": true
+    },
+    {
+      "question_id": "13628910472",
+      "titulo_producto": "Oxido De Zinc 250gr",
+      "pregunta": "¿Este óxido de zinc tiene tamaño de partícula no nano, superior a 100 nm, y viene sin recubrimiento?",
+      "timestamp": "2026-07-25T15:24:41.866652",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto te colaboro.\n\nRespecto a las especificaciones que mencionas, te comento que nuestro Óxido de Zinc es un compuesto químico inorgánico que se presenta en forma de un polvo blanco y cumple con el estándar de calidad USP (United States Pharmacopeia), lo que garantiza un alto nivel de pureza.\n\nEste es un material muy versátil, utilizado comúnmente como bloqueador solar físico en productos de cuidado personal y como aditivo en diversas formulaciones gracias a sus propiedades y calidad.\n\nEspero que esta información te sea de gran utilidad.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-25"
     }
   ]
 }
