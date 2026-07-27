@@ -700,13 +700,14 @@
     {
       "id": "292d08d52f34",
       "sku": "C-CLOCAL100g",
-      "nombre_producto": "CLORURO DE CALCIO",
+      "nombre_producto": "CLORURO DE CALCIO 100g",
       "numero_producto": 63,
       "presentacion": "100",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700631002635",
-      "creado_at": "2026-07-23T15:35:04"
+      "creado_at": "2026-07-23T15:35:04",
+      "actualizado_at": "2026-07-26T09:56:00"
     },
     {
       "id": "3c1286d784e9",
@@ -1338,17 +1339,6 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701305002630",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
-      "id": "ab6b2a5a5600",
-      "sku": "C-CLOCAL500g",
-      "nombre_producto": "CLORURO CALCIO 500g",
-      "numero_producto": 131,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701315002637",
       "creado_at": "2026-07-14T15:35:25"
     },
     {

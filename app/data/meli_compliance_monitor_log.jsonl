@@ -68,3 +68,6 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4212219554", "sku": "C-ALGSOLACCA50g", "origen": "", "ts": "2026-07-23T10:46:30"}
 {"tipo": "revision_diaria", "revisadas": 11, "alertas": 1, "activas": 10, "problemas": 1, "ts": "2026-07-24T08:30:17"}
 {"tipo": "revision_diaria", "revisadas": 11, "alertas": 0, "activas": 10, "problemas": 1, "ts": "2026-07-25T08:30:17"}
+{"tipo": "revision_diaria", "revisadas": 11, "alertas": 0, "activas": 10, "problemas": 1, "ts": "2026-07-26T08:30:17"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4225371918", "sku": "C-CLOCAL500g", "origen": "desde_cero", "ts": "2026-07-26T11:40:41"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4225371918", "sku": "C-CLOCAL500g", "origen": "", "ts": "2026-07-26T11:40:42"}
