@@ -76,12 +76,14 @@ def leer_datos_hoja(producto_buscar: str):
             idx_precio = -1
             idx_stock = -1
 
+        palabras_clave_norm = [_normalizar(p) for p in palabras_clave]
+
         for row in rows:
             if len(row) > idx_nombre:
-                nombre_en_hoja = row[idx_nombre].lower()
+                nombre_en_hoja = _normalizar(row[idx_nombre])
                 # Comprobar si al menos una palabra clave larga está en el nombre (flexibilidad)
                 # O si todas las palabras clave están presentes
-                match = all(p in nombre_en_hoja for p in palabras_clave if len(p) > 2)
+                match = all(p in nombre_en_hoja for p in palabras_clave_norm if len(p) > 2)
                 
                 if match:
                     precio_texto = f" | Precio: ${row[idx_precio]}" if idx_precio != -1 and len(row) > idx_precio else ""
