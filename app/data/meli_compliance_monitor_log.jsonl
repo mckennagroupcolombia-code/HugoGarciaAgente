@@ -71,3 +71,6 @@
 {"tipo": "revision_diaria", "revisadas": 11, "alertas": 0, "activas": 10, "problemas": 1, "ts": "2026-07-26T08:30:17"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4225371918", "sku": "C-CLOCAL500g", "origen": "desde_cero", "ts": "2026-07-26T11:40:41"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4225371918", "sku": "C-CLOCAL500g", "origen": "", "ts": "2026-07-26T11:40:42"}
+{"tipo": "revision_diaria", "revisadas": 12, "alertas": 1, "activas": 9, "problemas": 2, "ts": "2026-07-27T08:30:18"}
+{"tipo": "registro_seguimiento", "item_id": "MCO2068301233", "sku": "C-AGUDESSOBRpH", "origen": "desde_cero", "ts": "2026-07-27T14:41:39"}
+{"tipo": "publicacion_nueva", "item_id": "MCO2068301233", "sku": "C-AGUDESSOBRpH", "origen": "", "ts": "2026-07-27T14:41:41"}
