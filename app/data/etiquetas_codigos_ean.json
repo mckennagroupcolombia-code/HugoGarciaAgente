@@ -842,6 +842,28 @@
       "creado_at": "2026-07-23T18:15:34"
     },
     {
+      "id": "ae1f2899b8c1",
+      "sku": "C-AGUDESSOBRpH",
+      "nombre_producto": "AGUA DESTILADA 250mL + SOBRES DE pH",
+      "numero_producto": 76,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700762502639",
+      "creado_at": "2026-07-27T14:00:35"
+    },
+    {
+      "id": "46968380b999",
+      "sku": "C-VASBLA900g",
+      "nombre_producto": "VASELINA BLANCA 900g",
+      "numero_producto": 77,
+      "presentacion": "900",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700779002634",
+      "creado_at": "2026-07-27T20:39:48"
+    },
+    {
       "id": "a5c309b53d79",
       "sku": "C-ACIKOJ5P30mL",
       "nombre_producto": "ACIDO KOJICO 5% 30mL",
