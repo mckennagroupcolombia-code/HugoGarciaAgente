@@ -1,36 +1,5 @@
 {
-  "pendientes": {
-    "2000014224218305": {
-      "pack_id": "2000014224218305",
-      "codigo": "305",
-      "comprador": "Comprador 432154240",
-      "from_id": "432154240",
-      "texto": "Qué pena pero no te entendí nada se supone que son ácidos y me estás hablando de un ácido hialurónico, yo lo necesito para uso en cabina soy cosmetóloga",
-      "msg_id": "019fb0bda0a37ca19ef446798a175e9e",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-07-29T20:57:30"
-    },
-    "305": {
-      "pack_id": "2000014224218305",
-      "codigo": "305",
-      "comprador": "Comprador 432154240",
-      "from_id": "432154240",
-      "texto": "Qué pena pero no te entendí nada se supone que son ácidos y me estás hablando de un ácido hialurónico, yo lo necesito para uso en cabina soy cosmetóloga",
-      "msg_id": "019fb0bda0a37ca19ef446798a175e9e",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-07-29T20:57:30"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019f7304a1a877738ee4b6a2bf6e7c93",
     "019ed2e7f8df7885a568b7e4a2a8a1a3",
