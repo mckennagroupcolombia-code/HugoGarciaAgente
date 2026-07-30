@@ -1,6 +1,62 @@
 {
   "archivos": [
     {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
+      "subido_at": "2026-07-29T11:14:30",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
+      "subido_at": "2026-07-29T11:13:58",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
+      "subido_at": "2026-07-29T11:13:37",
+      "bytes": 281604
+    },
+    {
+      "nombre": "COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
+      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
+      "subido_at": "2026-07-29T11:12:27",
+      "bytes": 279895
+    },
+    {
+      "nombre": "COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
+      "subido_at": "2026-07-29T11:11:56",
+      "bytes": 279895
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260729_111047.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111047.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111047.pdf",
+      "subido_at": "2026-07-29T11:10:48",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260729_111019.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111019.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111019.pdf",
+      "subido_at": "2026-07-29T11:10:19",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x.pdf",
+      "subido_at": "2026-07-29T11:09:54",
+      "bytes": 333771
+    },
+    {
       "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
       "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
@@ -1343,62 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/LACTATO_DE_CALCIO_50g.pdf",
       "subido_at": "2026-07-05T01:49:00",
       "bytes": 3412
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_224046.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_224046.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_224046.pdf",
-      "subido_at": "2026-07-04T22:40:46",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_223219.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_223219.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_223219.pdf",
-      "subido_at": "2026-07-04T22:32:19",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_220428.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_220428.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_220428.pdf",
-      "subido_at": "2026-07-04T22:04:28",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_214951.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214951.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214951.pdf",
-      "subido_at": "2026-07-04T21:49:51",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_214415.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214415.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214415.pdf",
-      "subido_at": "2026-07-04T21:44:15",
-      "bytes": 3502
-    },
-    {
-      "nombre": "PLANTILLA_ALGINATO_DE_SODIO_50g.pdf",
-      "ruta": "Etiquetas McKenna/PLANTILLA_ALGINATO_DE_SODIO_50g.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_ALGINATO_DE_SODIO_50g.pdf",
-      "subido_at": "2026-07-04T21:44:07",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_214401.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214401.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_214401.pdf",
-      "subido_at": "2026-07-04T21:44:01",
-      "bytes": 3502
-    },
-    {
-      "nombre": "ALGINATO_DE_SODIO_50g_20260704_213918.pdf",
-      "ruta": "Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_213918.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALGINATO_DE_SODIO_50g_20260704_213918.pdf",
-      "subido_at": "2026-07-04T21:39:18",
-      "bytes": 3502
     }
   ]
 }
