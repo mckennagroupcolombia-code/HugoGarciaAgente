@@ -1629,6 +1629,30 @@
       "timestamp": "2026-07-29T13:53:26.822053",
       "respondida": true,
       "nota": "Auto-marcada respondida por supervisor 2026-07-29"
+    },
+    {
+      "question_id": "13631053829",
+      "titulo_producto": "Vaselina Pura  X 400 Gr",
+      "pregunta": "Sirve para los perritos para hidratar las partes que salen cayos por estar en el piso",
+      "timestamp": "2026-07-30T08:23:59.712577",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto te colaboro con tu pregunta.\n\nClaro que sí, nuestra vaselina pura es ideal para ese uso. Una de sus aplicaciones es justamente para suavizar las almohadillas de las patas en los animales y proteger su piel. Funciona muy bien para hidratar y suavizar áreas secas o agrietadas, como los callos que se forman por el contacto con el piso.\n\nEl producto crea una barrera protectora que ayuda a retener la humedad en la piel de tu perrito, manteniéndola hidratada y favoreciendo su recuperación.\n\nTe recomendamos que antes de aplicarla en un área grande, realices una pequeña prueba en su piel para asegurarte de que no haya ninguna reacción. Es un producto para uso externo. ¡Anímate a comprar",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-30"
+    },
+    {
+      "question_id": "13632129498",
+      "titulo_producto": "Ácido Hialurónico Solución 85% Todas",
+      "pregunta": "Se puede aplicar en labios cómo relleno",
+      "timestamp": "2026-07-30T13:11:47.355279",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro con su pregunta.\n\nNuestro Ácido Hialurónico está diseñado para aplicación tópica, es decir, sobre la piel. El beneficio de \"relleno\" al que nos referimos es su capacidad para reducir la apariencia de arrugas y líneas finas al hidratar profundamente la piel. Esto ayuda a suavizarla, mejorar su apariencia y restaurar el volumen perdido desde la superficie.\n\nEs importante destacar que su uso recomendado es externo. Al aplicarlo tópicamente, proporciona una hidratación profunda que ayuda a mantener la piel suave y tersa.\n\nComo con cualquier aplicación, siempre recomendamos realizar primero una prueba de parche en una pequeña área de la piel, como el antebrazo, para verificar la compatibilidad y asegurar que no haya ninguna reacción adversa antes de usarlo en zonas más extensas."
+    },
+    {
+      "question_id": "13631566385",
+      "titulo_producto": "Arándanos Deshidratados 250g",
+      "pregunta": "Hola buenas noches Los arrandanos tienen azúcar añadido?",
+      "timestamp": "2026-07-30T21:42:16.353805",
+      "respondida": false
     }
   ]
 }

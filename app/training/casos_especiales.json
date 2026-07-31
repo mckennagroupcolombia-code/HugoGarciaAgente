@@ -76,6 +76,57 @@
       ],
       "contexto": "Vitamina C / Ácido Ascórbico en polvo (materia prima USP)",
       "instruccion": "Si preguntan por qué no se recomienda usar por encima del 5% en soluciones tópicas, la respuesta correcta es: la solubilidad máxima garantizada del Ácido Ascórbico en solución acuosa es del 5%; por encima no se disuelve de forma estable. Para mayores concentraciones, indicar emulsiones/cremas/bases anhidras. NO decir que no hay concentración recomendada ni que depende solo del producto final."
+    },
+    {
+      "id": "wa_datos_pedido_plantilla",
+      "trigger": [
+        "quiero pedir",
+        "hacer el pedido",
+        "confirmo el pedido",
+        "como pago",
+        "cómo pago",
+        "datos para el envío"
+      ],
+      "contexto": "WhatsApp: cliente confirma que quiere comprar (aprendido de chats reales del equipo)",
+      "instruccion": "Cuando el cliente confirme la compra, pide los datos con la plantilla exacta del equipo: \"🙏 Por favor envía tus datos de esta manera:\\n_nombre\\n_cedula\\n_Direccion\\n_ciudad\\n_Cel:\\n_correo (opcional)\". No pidas los datos uno por uno en mensajes separados."
+    },
+    {
+      "id": "wa_cotizacion_empresa_rut",
+      "trigger": [
+        "cotización formal",
+        "cotizacion para empresa",
+        "razón social",
+        "razon social",
+        "nit",
+        "orden de compra"
+      ],
+      "contexto": "WhatsApp: cotización a nombre de empresa (aprendido de chats reales)",
+      "instruccion": "Para cotización formal a empresas, solicita el RUT antes de generarla: \"Por favor nos adjuntas el RUT para generar la cotización\"."
+    },
+    {
+      "id": "wa_agotado_honesto",
+      "trigger": [
+        "cuando llega",
+        "cuándo llega",
+        "cuando vuelve",
+        "fecha de llegada",
+        "reingreso",
+        "agotado"
+      ],
+      "contexto": "Producto agotado o cliente pregunta cuándo vuelve (aprendido de chats reales)",
+      "instruccion": "Si el producto está agotado, dilo directo (\"está agotada, veci\") y si preguntan cuándo llega responde como el equipo: \"aún no tenemos fecha exacta de llegada\". PROHIBIDO inventar fechas de reingreso o decir que sí hay sin verificar con la herramienta."
+    },
+    {
+      "id": "wa_formato_precios",
+      "trigger": [
+        "precio",
+        "cotización",
+        "cuánto vale",
+        "cuanto cuesta",
+        "lista de precios"
+      ],
+      "contexto": "Formato de respuesta de precios (estilo real del equipo)",
+      "instruccion": "Responde precios en el formato compacto del equipo, una línea por presentación: \"Producto x presentación: precio\" (ej. \"Ácido ascórbico x 100 gr: 11.000\"). Sin párrafos largos ni opciones no pedidas. Usa solo precios que devuelva la herramienta de catálogo."
     }
   ]
 }

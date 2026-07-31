@@ -121,6 +121,33 @@ def guardar(
         if not narch and mpath:
             narch = os.path.basename(mpath)
         with _lock, _conn() as c:
+            # Dedupe de salidas registradas dos veces: una vez por el lado Python
+            # (sin wa_id, al enviar) y otra por el eco del puente Node (con wa_id).
+            if direccion == "salida" and (texto or "").strip():
+                gemelo = c.execute(
+                    """SELECT id, wa_id FROM mensajes
+                       WHERE jid=? AND direccion='salida' AND texto=?
+                         AND eliminado=0 AND ABS(ts-?) <= 120
+                       ORDER BY id DESC LIMIT 1""",
+                    (canon, (texto or "")[:2000], ts_val),
+                ).fetchone()
+                if gemelo is not None:
+                    if (
+                        wa_key
+                        and not gemelo["wa_id"]
+                        and c.execute(
+                            "SELECT 1 FROM mensajes WHERE wa_id=?", (wa_key,)
+                        ).fetchone() is None
+                    ):
+                        # El eco del puente llega para un envío ya registrado sin wa_id
+                        c.execute(
+                            "UPDATE mensajes SET wa_id=? WHERE id=?",
+                            (wa_key, gemelo["id"]),
+                        )
+                        return
+                    if not wa_key:
+                        # Registro Python de un envío que el puente ya guardó
+                        return
             if wa_key:
                 row = c.execute(
                     "SELECT id, enviado_por FROM mensajes WHERE wa_id=?", (wa_key,)
@@ -534,6 +561,36 @@ def reparar_enviado_por_bot_en_db(force: bool = False) -> dict:
                     stats["actualizados"] += 1
         if stats["actualizados"]:
             print(f"[wa_chats] bot reclasificados: {stats['actualizados']}")
+    except Exception as e:
+        stats["error"] = str(e)
+    return stats
+
+
+def reparar_duplicados_salida_en_db() -> dict:
+    """
+    Marca eliminado=1 en salidas registradas dos veces (una sin wa_id por el lado
+    Python y otra con wa_id por el eco del puente) con mismo jid+texto en <=120s.
+    Conserva la fila con wa_id.
+    """
+    stats: dict = {"eliminados": 0}
+    try:
+        with _lock, _conn() as c:
+            rows = c.execute(
+                """SELECT a.id AS id_sin
+                   FROM mensajes a
+                   JOIN mensajes b
+                     ON b.jid=a.jid AND b.direccion='salida' AND b.texto=a.texto
+                    AND b.wa_id IS NOT NULL AND ABS(b.ts-a.ts) <= 120 AND b.id != a.id
+                   WHERE a.direccion='salida' AND a.wa_id IS NULL
+                     AND a.eliminado=0 AND b.eliminado=0
+                     AND a.texto IS NOT NULL AND a.texto != ''"""
+            ).fetchall()
+            ids = sorted({r["id_sin"] for r in rows})
+            for mid in ids:
+                c.execute("UPDATE mensajes SET eliminado=1 WHERE id=?", (mid,))
+            stats["eliminados"] = len(ids)
+        if stats["eliminados"]:
+            print(f"[wa_chats] duplicados de salida marcados: {stats['eliminados']}")
     except Exception as e:
         stats["error"] = str(e)
     return stats

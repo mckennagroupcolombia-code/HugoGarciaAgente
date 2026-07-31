@@ -751,6 +751,28 @@ def _bot_en_horario_servicio(modos=None) -> bool:
     return hora_actual >= h_ini or hora_actual < h_fin
 
 
+def _fuera_horario_laboral_equipo(modos=None) -> bool:
+    """
+    True si AHORA estamos fuera del horario laboral del equipo humano (Colombia).
+    Usa la ventana configurada en horario_bot (defaults L-V 08:00–18:00) aunque
+    el modo horario esté deshabilitado: define el horario del equipo, no del bot.
+    """
+    from datetime import timedelta, timezone
+
+    if modos is None:
+        modos = cargar_modos_atencion()
+    horario = modos.get("horario_bot", {})
+    now_col = _dt.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=5)
+    if now_col.isoweekday() not in horario.get("dias", [1, 2, 3, 4, 5]):
+        return True
+    hora_actual = now_col.strftime("%H:%M")
+    h_ini = horario.get("hora_inicio", "08:00")
+    h_fin = horario.get("hora_fin", "18:00")
+    if h_ini <= h_fin:
+        return not (h_ini <= hora_actual < h_fin)
+    return not (hora_actual >= h_ini or hora_actual < h_fin)
+
+
 def _bot_debe_responder_global(modos=None) -> bool:
     """False si el bot está pausado o si estamos dentro del horario laboral del equipo."""
     if modos is None:
@@ -2609,8 +2631,13 @@ def register_routes(app):
             )
 
         # --- Procesamiento del Mensaje por la IA ---
+        contexto_extra = ""
+        if _fuera_horario_laboral_equipo():
+            from app.core import INSTRUCCIONES_FUERA_HORARIO
+
+            contexto_extra = INSTRUCCIONES_FUERA_HORARIO
         respuesta_ia, _ = obtener_respuesta_ia(
-            message_text, sender_id, canal="whatsapp"
+            message_text, sender_id, canal="whatsapp", contexto_sistema=contexto_extra
         )
 
         # Re-verificar modo humano: puede haberse activado desde el panel

@@ -2620,6 +2620,27 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
     return items, "ok"
 
 
+def _stock_tienda_web() -> dict:
+    """
+    Stock actual de la tienda web por referencia (PAGINA_WEB/site/data/stock_web.json).
+    {REF_MAYUSCULA: int}. Vacío si el archivo no existe o falla la lectura.
+    """
+    try:
+        ruta = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "PAGINA_WEB", "site", "data", "stock_web.json",
+        )
+        with open(ruta, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {
+            str(ref).strip().upper(): int(info.get("stock", 0) or 0)
+            for ref, info in data.items()
+            if isinstance(info, dict)
+        }
+    except Exception:
+        return {}
+
+
 def buscar_productos_combo_siigo(consulta: str) -> str:
     """
     Busca presentaciones activas tipo Combo en SIIGO (catálogo comprable en la web).
@@ -2630,6 +2651,8 @@ def buscar_productos_combo_siigo(consulta: str) -> str:
     if not items:
         return estado
 
+    stock_web = _stock_tienda_web()
+    hubo_agotado = False
     lines = [
         f"Combos SIIGO activos relacionados con '{consulta}' "
         "(únicas presentaciones que puede ofrecer en chat web):",
@@ -2643,12 +2666,25 @@ def buscar_productos_combo_siigo(consulta: str) -> str:
         else:
             precio_txt = "precio: consultar"
         disp = "activo" if it["activo"] else "inactivo"
+        stock = stock_web.get(str(it["ref"]).strip().upper())
+        if stock is None:
+            web_txt = ""
+        elif stock <= 0:
+            web_txt = " | AGOTADO en tienda web"
+            hubo_agotado = True
+        else:
+            web_txt = " | disponible en tienda web"
         lines.append(
-            f"- {it['name']} | Ref/SKU: {it['ref']} | {precio_txt} | {disp}"
+            f"- {it['name']} | Ref/SKU: {it['ref']} | {precio_txt} | {disp}{web_txt}"
         )
 
     lines.append(
         "IMPORTANTE: cite solo estas líneas al cliente. "
         "No ofrezca presentaciones del catálogo histórico Sheets."
     )
+    if hubo_agotado:
+        lines.append(
+            "Las presentaciones marcadas AGOTADO en tienda web no están comprables ahora: "
+            "no diga que sí hay ni que la página tiene un error; ofrezca alternativas con stock."
+        )
     return "\n".join(lines)
