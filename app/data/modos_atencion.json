@@ -1,100 +1,16 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us",
-    "210444857946255@lid",
-    "573132269371@c.us",
-    "573123412937@c.us",
-    "64952807198966@lid",
-    "573197109970@c.us",
-    "38916765806687@lid",
-    "573028200001@c.us",
-    "156315888394321@lid",
-    "37271759769852@lid",
-    "573188840971@c.us",
-    "279606833754153@lid",
-    "573104493923@c.us"
+    "573009990001@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1784445425.758369,
-    "210444857946255@lid": 1784577339.6062915,
-    "573132269371@c.us": 1784577339.6062915,
-    "573123412937@c.us": 1784642352.7105834,
-    "64952807198966@lid": 1784642352.7105834,
-    "573197109970@c.us": 1784654928.9773078,
-    "38916765806687@lid": 1784654928.9773078,
-    "573028200001@c.us": 1784822647.2977552,
-    "156315888394321@lid": 1784822647.2977552,
-    "37271759769852@lid": 1784919320.8381732,
-    "573188840971@c.us": 1784919320.8381732,
-    "279606833754153@lid": 1785328453.655104,
-    "573104493923@c.us": 1785328453.655104
+    "573009990001@c.us": 1785445955.6947217
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
-      "timestamp": 1784445425.758369,
+      "timestamp": 1785445955.6947217,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "210444857946255@lid": {
-      "timestamp": 1784577339.6062915,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573132269371@c.us": {
-      "timestamp": 1784577339.6062915,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573123412937@c.us": {
-      "timestamp": 1784642352.7105834,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "64952807198966@lid": {
-      "timestamp": 1784642352.7105834,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573197109970@c.us": {
-      "timestamp": 1784654928.9773078,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "38916765806687@lid": {
-      "timestamp": 1784654928.9773078,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573028200001@c.us": {
-      "timestamp": 1784822647.2977552,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "156315888394321@lid": {
-      "timestamp": 1784822647.2977552,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "37271759769852@lid": {
-      "timestamp": 1784919320.8381732,
-      "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573188840971@c.us": {
-      "timestamp": 1784919320.8381732,
-      "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "279606833754153@lid": {
-      "timestamp": 1785328453.655104,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
-    },
-    "573104493923@c.us": {
-      "timestamp": 1785328453.655104,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Cel. 3104493023"
+      "ultimo_mensaje": "hola"
     }
   },
   "bot_global_activo": false,

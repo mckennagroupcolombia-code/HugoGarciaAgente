@@ -231,6 +231,37 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
     "para avisarle" (de reingresos, novedades o lo que sea): este canal NO puede iniciar conversación.
     Si el cliente quiere que le avisen de un reingreso o novedad, indíquele el **botón de WhatsApp**:
     por ahí el equipo sí toma el contacto y le avisa.
+11. PAGOS — REGLA CRÍTICA: en este canal NUNCA des números de cuenta bancaria, Nequi, Daviplata,
+    llaves de transferencia ni NIT. PROHIBIDO inventarlos o "recordarlos" (ya pasó y se dieron cuentas
+    falsas a clientes). Para pagar, el cliente tiene dos vías y solo esas dos:
+    (a) comprar directo en la tienda: agrega el producto al carrito en mckennagroup.co y paga en el
+        checkout (PSE, tarjetas), o
+    (b) escribir al WhatsApp del equipo (+57 319 518 3596), donde un asesor le comparte los datos de
+        transferencia y le recibe el comprobante. NO manejamos Nequi ni pago contra entrega.
+12. STOCK DE LA TIENDA WEB: si el catálogo interno marca una presentación como "AGOTADO en tienda web",
+    la página tiene la razón: NO digas que sí hay disponible ni que "es un error de la página".
+    Trátalo como agotado: ofrezca presentaciones hermanas con stock y, si preguntan cuándo vuelve,
+    aplique el manejo de reingreso (sin prometer fechas).
+"""
+
+
+INSTRUCCIONES_FUERA_HORARIO = """
+=== MODO FUERA DE HORARIO (el equipo humano NO está disponible en este momento) ===
+1. En tu PRIMER mensaje de esta conversación explica la situación con transparencia, en una frase:
+   eres el asistente virtual (IA) de McKenna Group, el equipo está fuera de horario, y tú le tomas
+   el pedido y se lo dejas adelantado para que un asesor lo confirme apenas se restablezca el
+   servicio en horario laboral (lunes a viernes en el día). Ejemplo:
+   "Hola veci, soy Hugo, el asistente virtual de McKenna Group. El equipo está fuera de horario,
+   pero yo le adelanto el pedido y se lo dejo listo para que un asesor se lo confirme a primera hora."
+   No repitas esta explicación en cada mensaje; solo al inicio o si el cliente pregunta por un humano.
+2. TU OBJETIVO ES DEJAR EL PEDIDO LO MÁS ADELANTADO POSIBLE:
+   a. Productos y presentaciones verificados con 'buscar_producto_completo' (nunca de memoria).
+   b. Cantidades y total estimado, incluyendo envío con 'consultar_tarifa_envio'.
+   c. Datos del cliente con la plantilla del equipo (_nombre, _cedula, _Direccion, _ciudad, _Cel, _correo opcional).
+3. Cierra dejando claro qué queda en manos del asesor: confirmación final, datos de pago que no
+   estén en el bloque autorizado, y el despacho, que se coordina en horario laboral.
+4. NO prometas despacho ni facturación inmediata fuera de horario, y NO digas que un asesor
+   responderá "en un momento": di que será en horario laboral.
 """
 
 
@@ -289,7 +320,7 @@ Tono: Directo, sin rodeos, ejecutivo rolo.
 
 REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
 1. NO SUFIERAS ni ofrezcas opciones extra que el cliente no ha pedido (ej: no digas "¿Desea que le envíe el catálogo?", "¿Desea que le diga el precio del envío?", etc.). Limítate a responder puntualmente lo que el cliente pregunta.
-2. SALUDO INICIAL: Si es la primera interacción y el cliente solo saluda (ej. "Buenas tardes"), responde EXACTAMENTE así: "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci!". Si el cliente pregunta algo de inmediato, omite los títulos largos y responde directamente a la pregunta.
+2. SALUDO INICIAL Y TRANSPARENCIA: Eres un asistente virtual (IA) y el cliente tiene derecho a saberlo. Si es la primera interacción y el cliente solo saluda (ej. "Buenas tardes"), responde EXACTAMENTE así: "Hola veci, soy Hugo, el asistente virtual de McKenna Group S.A.S. Cuénteme en qué le puedo servir". Si el cliente pregunta algo de inmediato, responde directamente a la pregunta y menciona en ese primer mensaje, en una frase corta, que eres el asistente virtual. Si el cliente pregunta si eres un robot/IA, confírmalo con naturalidad y sigue ayudando.
 3. CONSULTA DE INVENTARIO: Si el cliente pregunta por un producto en WhatsApp, usa SIEMPRE 'buscar_producto_completo' (lee el catálogo en Sheets). NO uses 'leer_datos_hoja' para ese fin salvo que 'buscar_producto_completo' no baste. La herramienta ya resume disponibilidad sin cifra exacta: NO DIGAS cantidad numérica de stock al cliente; solo disponible o no. Si pide una cantidad específica y el contexto indica que hay existencias suficientes, confírmala.
 4. JERGA COLOMBIANA PARA CANTIDADES: Cuando el cliente diga algo como "deme 500 y 500" o "deme 250", si estabas hablando de productos en gramos, asume que se refiere a 1 UNIDAD de la presentación de 500g o 250g, NO a 500 unidades del producto. No te enredes con esto.
 5. COTIZACIONES: Si el cliente desea realizar una cotización, pregúntale paso a paso:
@@ -317,6 +348,16 @@ REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
    - Tarifas vigentes hasta 1 kg: Bogotá $8.800 · Resto del país $18.000.
    - Peso mayor a 1 kg sube el costo (+$2.000 por cada kg adicional). Informa siempre que el precio depende del peso del pedido.
    - Ejemplo correcto: "El envío a Medellín hasta 1 kg vale $18.000; si el pedido pesa más, el valor sube."
+10. DATOS DE PAGO — REGLA CRÍTICA (incumplirla causó que apagaran el bot):
+   - PROHIBIDO ABSOLUTAMENTE inventar, recordar o completar números de cuenta bancaria, Nequi, Daviplata, llaves, QR o NIT. Ningún dato de pago sale de tu memoria del entrenamiento.
+   - Los ÚNICOS datos de pago que puedes compartir son los del bloque "DATOS DE PAGO AUTORIZADOS" de este prompt. Si el bloque no trae el método que pide el cliente, responde: "Veci, ahí mismo un asesor le comparte los datos para el pago" y NO des ningún número.
+   - NO manejamos Nequi ni pago contra entrega. Si preguntan, dilo claro y ofrece el método autorizado.
+11. PROHIBIDO PROMETER Y NO CUMPLIR:
+   - NUNCA digas "déjame verificar y le confirmo", "apenas tenga el dato le escribo" ni variantes. Este canal no te permite escribir después por iniciativa propia.
+   - O consultas el dato AHORA con la herramienta correspondiente y respondes, o dices: "Veci, ese dato se lo confirma un asesor en un momento". Nada intermedio.
+12. NO AFIRMAR DISPONIBILIDAD SIN VERIFICAR:
+   - PROHIBIDO responder "sí manejamos X" o "claro que lo tenemos" sin haber ejecutado 'buscar_producto_completo' en ese mismo turno y con resultado positivo.
+   - Si la herramienta no encuentra el producto, dilo honestamente; no supongas que existe.
 
 REGLAS DE CONTROL DE HERRAMIENTAS:
 1. NO EJECUTTES 'sincronizar_inteligente' ni 'sincronizar_facturas_recientes' si el usuario solo hace preguntas de estado (ej: "¿Cómo va la conexión?").
@@ -673,6 +714,32 @@ def _serializar_content(content) -> list:
 # ==========================================
 
 
+def cargar_datos_pago():
+    """
+    Bloque DATOS DE PAGO para el prompt de WhatsApp desde app/data/datos_pago.json.
+    Única fuente autorizada de números de pago: si no está aquí, el bot no lo da.
+    """
+    try:
+        ruta = os.path.join(os.path.dirname(__file__), "data", "datos_pago.json")
+        with open(ruta, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        lineas = ["\n\n=== DATOS DE PAGO AUTORIZADOS (única fuente válida) ==="]
+        for m in data.get("metodos", []):
+            if m.get("dato"):
+                lineas.append(f"- {m.get('nombre')}: {m.get('dato')}")
+        for nd in data.get("no_disponibles", []):
+            lineas.append(f"- NO disponible: {nd}")
+        if data.get("instruccion_si_falta"):
+            lineas.append(data["instruccion_si_falta"])
+        return "\n".join(lineas)
+    except Exception as e:
+        print(f"Error cargando datos de pago: {e}")
+        return (
+            "\n\n=== DATOS DE PAGO ===\nNo hay datos de pago cargados: "
+            "NUNCA des números de cuenta, llaves ni Nequi; di que un asesor los comparte."
+        )
+
+
 def cargar_casos_especiales():
     try:
         with open("app/training/casos_especiales.json", "r", encoding="utf-8") as f:
@@ -753,7 +820,7 @@ def configurar_ia(app):
         _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}
         _tools_schema = [_fn_to_tool_schema(fn) for fn in todas_las_herramientas]
 
-        _system_prompt = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
+        _system_prompt = INSTRUCCIONES_MCKENNA + cargar_datos_pago() + cargar_casos_especiales()
 
         proveedor = []
         if cliente_gemini:
@@ -1290,9 +1357,18 @@ def _termino_busqueda_limpio_web(texto: str) -> str:
         t,
         flags=re.I,
     )
+    # Cortesías y muletillas frecuentes en WhatsApp
+    t = re.sub(
+        r"\b(por\s+favor|porfa(vor)?|me\s+puedes?\s+regalar|me\s+regalas?|"
+        r"me\s+ayudas?\s+con|ser[ií]a\s+tan\s+amable|disc[uú]lpe?[am]?e?)\b",
+        " ",
+        t,
+        flags=re.I,
+    )
     # Quitar preguntas de precio y verbos de intención de compra/búsqueda
     t = re.sub(
-        r"\b(cu[aá]nto\s+vale|cu[aá]nto\s+cuesta|cu[aá]l\s+es\s+el\s+precio\s+de|precio\s+de|valor\s+de)\b",
+        r"\b(cu[aá]nto\s+vale|cu[aá]nto\s+cuesta|cu[aá]l\s+es\s+el\s+precio\s+de|"
+        r"q(ue)?\s+precio\s+tienen?|precio\s+tienen?|precio\s+de|valor\s+de)\b",
         " ",
         t,
         flags=re.I,
@@ -1309,8 +1385,12 @@ def _termino_busqueda_limpio_web(texto: str) -> str:
         t,
         flags=re.I,
     )
-    # Quitar partículas sueltas al inicio
-    t = re.sub(r"^\s*(un|una|el|la|los|las|de|para|con|en|al)\s+", "", t, flags=re.I)
+    # Signos de pregunta/exclamación y cantidades sueltas ("1 urea")
+    t = re.sub(r"[¿?¡!]", " ", t)
+    t = re.sub(r"\b\d+\b", " ", t)
+    # Quitar partículas sueltas al inicio y colgantes al final
+    t = re.sub(r"^\s*((un|una|el|la|los|las|de|del|para|con|en|al)\s+)+", "", t, flags=re.I)
+    t = re.sub(r"(\s+(de|del|la|el|los|las|para|con|en|al|y))+\s*$", "", t, flags=re.I)
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -2172,6 +2252,31 @@ def _contexto_producto_pagina_web(page_url: str) -> str:
     )
 
 
+def _candidatos_busqueda_whatsapp(termino: str) -> list[str]:
+    """
+    Variantes de búsqueda para el catálogo: término completo, partes de un
+    pedido multi-producto ("creatina y colágeno"), y versión simplificada.
+    """
+    base = (termino or "").strip()
+    cands: list[str] = []
+    if base:
+        cands.append(base)
+    partes = [p.strip() for p in re.split(r"\s+y\s+|,|;|\n|\+", base) if len(p.strip()) >= 3]
+    if len(partes) > 1:
+        cands.extend(partes[:4])
+    simple = re.sub(r"\s+", " ", re.sub(r"\b\d+\b", " ", base)).strip()
+    if len(simple) >= 3:
+        cands.append(simple)
+    vistos: set[str] = set()
+    out = []
+    for c in cands:
+        k = c.lower()
+        if k not in vistos:
+            vistos.add(k)
+            out.append(c)
+    return out[:5]
+
+
 def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) -> str | None:
     """Catálogo Sheets + ficha en columna I (sin tool-use API)."""
     if _es_reconocimiento_corto_web(pregunta):
@@ -2181,14 +2286,21 @@ def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) ->
     termino = _termino_busqueda_producto_web(pregunta, messages or [])
     if len((termino or "").strip()) < 3:
         return None
-    try:
-        datos = buscar_producto_completo(termino)
-    except Exception as e:
-        _log_error("preflight_catalogo_whatsapp", e)
+    resultados: list[str] = []
+    for cand in _candidatos_busqueda_whatsapp(termino):
+        try:
+            datos = buscar_producto_completo(cand)
+        except Exception as e:
+            _log_error("preflight_catalogo_whatsapp", e)
+            continue
+        if datos and "no encontrado" not in (datos or "").lower():
+            resultados.append(datos)
+            # El término completo resolvió: no hace falta probar variantes
+            if cand == termino or len(resultados) >= 3:
+                break
+    if not resultados:
         return None
-    if not datos or "no encontrado" in (datos or "").lower():
-        return None
-    return datos
+    return "\n\n".join(resultados)
 
 
 def _preflight_ficha_tecnica(pregunta: str, messages: list | None = None) -> str | None:
@@ -2266,6 +2378,7 @@ def obtener_respuesta_ia(
     adjuntos_payload: list = None,
     canal: str = "",
     page_url: str = "",
+    contexto_sistema: str = "",
 ):
     """
     Usa Gemini 2.5 Pro como primera opción. Si falla o requiere binarios/tools,
@@ -2273,6 +2386,7 @@ def obtener_respuesta_ia(
 
     adjuntos_payload: lista de dicts {media_type, data_base64} (imagen/PDF) vía /chat.
     canal: 'web_chat' fuerza reglas y catálogo solo combos SIIGO (sin Gemini sin tools).
+    contexto_sistema: bloque adicional al system prompt (ej. modo fuera de horario).
     """
     from app.services.canales_config import obtener_modelo_canal
 
@@ -2285,6 +2399,8 @@ def obtener_respuesta_ia(
         system_prompt_efectivo = _system_prompt + INSTRUCCIONES_WEB_CHAT
     else:
         system_prompt_efectivo = _system_prompt
+    if contexto_sistema:
+        system_prompt_efectivo = system_prompt_efectivo + "\n" + contexto_sistema
     if not cliente_gemini and not cliente_ia:
         return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
@@ -2428,10 +2544,12 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return enlace_out, final_messages
 
+        prod_pagina_op = _producto_pagina_web(page_url or "") if page_url else None
         operativa = manejar_consulta_operativa_web(
             pregunta=pregunta_visible,
             session_id=usuario_id,
             page_url=page_url or "",
+            producto=str((prod_pagina_op or {}).get("ref") or ""),
         )
         if operativa:
             op_out = _sanitizar_respuesta_web_chat(operativa)
@@ -2771,6 +2889,7 @@ def obtener_respuesta_ia(
             contexto_ficha=ctx_ficha,
             extraer_texto_visible=_extraer_texto_visible_mensaje,
             sanitizar_web=_sanitizar_respuesta_web_chat if es_web else None,
+            extra_sistema=contexto_sistema or "",
         )
         if texto_cli:
             final_messages = messages + [{"role": "assistant", "content": texto_cli}]

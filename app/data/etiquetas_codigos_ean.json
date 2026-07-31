@@ -876,6 +876,17 @@
       "actualizado_at": "2026-07-14T21:33:12"
     },
     {
+      "id": "86c2c54b599e",
+      "sku": "C-LTEA100g",
+      "nombre_producto": "L TEANINA 100g",
+      "numero_producto": 79,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7700791002636",
+      "creado_at": "2026-07-30T10:55:49"
+    },
+    {
       "id": "4ca0313f45cf",
       "sku": "C-ACIMAL100g",
       "nombre_producto": "ACIDO MALICO 100g",
@@ -1117,6 +1128,17 @@
       "codigo": "7701015002630",
       "creado_at": "2026-07-14T15:35:25",
       "actualizado_at": "2026-07-23T08:46:08"
+    },
+    {
+      "id": "06d88e39f99c",
+      "sku": "C-CELMIC101500g",
+      "nombre_producto": "CELULOSA MICROCRISTALINA  101 500g",
+      "numero_producto": 102,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701025002637",
+      "creado_at": "2026-07-30T12:00:34"
     },
     {
       "id": "7369519d1dea",

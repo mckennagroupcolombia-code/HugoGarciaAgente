@@ -121,6 +121,14 @@ _PATRONES_OPERATIVA = (
     r"\bfecha\s+de\s+vencimiento\b",
 )
 
+# LOTE: MAR2026 / "el lote es MAR2026" / LOTE#A-123 (exige al menos un dígito)
+_PAT_LOTE_VALOR = re.compile(
+    r"\blote\b\s*(?:es|:|#|n[o°º]\.?|numero|n[uú]mero)?[:\s]*([A-Za-z0-9][\w/-]{2,})",
+    re.I,
+)
+# Referencias tipo C-EXTRAMAL500g / SB-CRD150G (prefijo corto + guion + cuerpo)
+_PAT_REF_SKU = re.compile(r"\b([A-Za-z]{1,4}-[A-Za-z0-9]{4,})\b")
+
 
 def mensaje_pide_info_operativa(texto: str) -> bool:
     low = re.sub(r"\s+", " ", (texto or "").strip().lower())
@@ -129,16 +137,55 @@ def mensaje_pide_info_operativa(texto: str) -> bool:
     return any(re.search(p, low) for p in _PATRONES_OPERATIVA)
 
 
+def _extraer_lote(texto: str) -> str:
+    m = _PAT_LOTE_VALOR.search(texto or "")
+    if not m:
+        return ""
+    valor = m.group(1).strip()
+    # Evita capturar palabras sueltas ("lote impreso"): exige algún dígito
+    return valor if re.search(r"\d", valor) else ""
+
+
+def _extraer_ref(texto: str) -> str:
+    m = _PAT_REF_SKU.search(texto or "")
+    return m.group(1).strip() if m else ""
+
+
 def manejar_consulta_operativa_web(
     *,
     pregunta: str,
     session_id: str = "",
     page_url: str = "",
+    producto: str = "",
 ) -> str | None:
-    """Vencimiento, lote, trazabilidad — no responder con catálogo de precios."""
+    """
+    Vencimiento, lote, trazabilidad (COA de un lote comprado).
+    Si el cliente ya dio lote y producto/referencia (o escribe desde la página del
+    producto), NO repite la petición enlatada: crea consulta WCQ y alerta al equipo.
+    """
     if not mensaje_pide_info_operativa(pregunta):
         return None
     from app.web_chat_mensajes import nota_asesor_whatsapp_chat_web
+
+    lote = _extraer_lote(pregunta)
+    ref = _extraer_ref(pregunta) or (producto or "").strip()
+
+    if lote and ref:
+        registro = crear_consulta_pendiente(
+            session_id=session_id,
+            pregunta=f"COA/trazabilidad — producto/ref: {ref} — lote: {lote}\n{pregunta}"[:2000],
+            producto=ref,
+            page_url=page_url,
+        )
+        alertar_grupo_consulta(registro)
+        return mensaje_cliente_consulta_creada(registro)
+
+    if ref and not lote:
+        return (
+            f"Listo veci, ya tengo la referencia **{ref}**. Solo me falta el **número de lote** "
+            "impreso en la etiqueta del empaque (dice LOTE, junto a la fecha de vencimiento). "
+            "Apenas me lo escriba, registro la consulta con el equipo técnico."
+        )
 
     return (
         "Veci, para consultar **vencimiento, lote o trazabilidad** de un producto que ya compró, "

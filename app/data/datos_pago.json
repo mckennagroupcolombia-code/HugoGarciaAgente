@@ -1,0 +1,16 @@
+{
+  "_comentario": "Datos de pago OFICIALES que el bot puede compartir por WhatsApp. Editar aquí, nunca en el prompt. Si un campo está vacío o en null, el bot NO lo ofrece y deriva al asesor. Fuente: respuestas reales del equipo en chats (jun-jul 2026).",
+  "metodos": [
+    {
+      "nombre": "Llave (Bre-B / Transfiya)",
+      "dato": "0066302076",
+      "nota": "Es la llave que el equipo comparte a los clientes para transferencias."
+    }
+  ],
+  "no_disponibles": [
+    "Nequi (NO se maneja — nunca ofrecer ni dar números de Nequi)",
+    "Pago contra entrega (NO se maneja)"
+  ],
+  "cuenta_bancaria": null,
+  "instruccion_si_falta": "Si el cliente pide un método que no está en 'metodos' (cuenta bancaria completa, QR, link de pago, etc.), responder que un asesor le comparte los datos en un momento. PROHIBIDO inventar o completar números."
+}
