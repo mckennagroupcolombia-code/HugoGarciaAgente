@@ -4061,3 +4061,22 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=13 activas=10 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel 2e64dfb] Auto-commit: actualizacion diaria 2026-07-31 23:00
+ 40 files changed, 2647 insertions(+), 563 deletions(-)
+ create mode 100644 app/data/rrhh_compensaciones.json
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/routes_rrhh.py
+ create mode 100644 app/services/tarifas_envio.py
+ create mode 100644 desktop/src/components/RRHHPanel.tsx
+ create mode 100644 scripts/analizar_simulacion_wa.py
+ create mode 100644 uploads/tickets/8acc874424834375a393f77c7ca6539f.png
+ create mode 100644 uploads/tickets/bd460c64560645ae949e5f0739527949.jpeg
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-07-31 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
