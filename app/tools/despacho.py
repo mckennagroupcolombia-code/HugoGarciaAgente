@@ -6,13 +6,11 @@ REC-05: Integración con Sistema de Despacho / Transporte
 """
 
 import os
-import json
 import sqlite3
 import requests
 from datetime import datetime
 
-DB_PATH   = os.path.join("/home/mckg/mi-agente", "app", "data", "despachos.db")
-TARIFAS_P = os.path.join("/home/mckg/mi-agente", "app", "data", "tarifas_interrapidisimo.json")
+DB_PATH = os.path.join("/home/mckg/mi-agente", "app", "data", "despachos.db")
 
 
 def _init_db():
@@ -41,17 +39,15 @@ def _init_db():
 _init_db()
 
 
-def _leer_tarifa(ciudad: str) -> dict:
+def _leer_tarifa(ciudad: str, peso_kg: float = 1.0) -> dict:
+    """Tarifa Interrapidísimo 2026 por zona y peso (tabla completa, no +2000/kg)."""
     try:
-        with open(TARIFAS_P, encoding="utf-8") as f:
-            data = json.load(f)
-        ciudad_norm = ciudad.lower().strip()
-        for k, v in data.get("ciudades", {}).items():
-            if ciudad_norm in k.lower() or k.lower() in ciudad_norm:
-                return v
-        return data.get("ciudades", {}).get("default", {"precio_base": 18000, "dias": 5})
+        from app.services.tarifas_envio import cotizar_envio
+
+        cot = cotizar_envio(ciudad, peso_kg=peso_kg)
+        return {"precio_base": cot["costo"], "dias": cot["dias"], "zona": cot["zona"]}
     except Exception:
-        return {"precio_base": 18000, "dias": 5}
+        return {"precio_base": 18500, "dias": 5}
 
 
 def crear_guia_despacho(order_id: str, cliente: str, numero_wa: str,
@@ -66,13 +62,9 @@ def crear_guia_despacho(order_id: str, cliente: str, numero_wa: str,
     """
     from app.utils import enviar_whatsapp_reporte
 
-    tarifa_info = _leer_tarifa(ciudad)
-    tarifa      = tarifa_info.get("precio_base", 18000)
+    tarifa_info = _leer_tarifa(ciudad, peso_kg)
+    tarifa      = tarifa_info.get("precio_base", 18500)
     dias        = tarifa_info.get("dias", 5)
-
-    # Peso extra
-    if peso_kg > 1.0:
-        tarifa += int(peso_kg - 1.0) * 2000
 
     # Número de guía simulado (en producción vendría de la API)
     guia = f"IRR{datetime.now().strftime('%Y%m%d%H%M%S')}{order_id[-4:]}"

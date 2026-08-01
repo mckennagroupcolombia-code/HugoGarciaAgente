@@ -1,0 +1,208 @@
+{
+  "_nota": "Gestión de compensaciones y equidad interna. Editado desde /app → RRHH · Compensaciones. Los hallazgos provienen del diagnóstico de julio 2026 (datos de tickets.db, wa_chats.db, orders.db y comprobantes/).",
+  "matriz_factores": {
+    "complejidad_tecnica": 0.3,
+    "responsabilidad_impacto": 0.3,
+    "autonomia": 0.2,
+    "resolucion_problemas": 0.2,
+    "escala": "1 a 5",
+    "linea_por_punto_cop": 760000
+  },
+  "nomina": [
+    {
+      "persona": "Gloria Stella Velandia",
+      "esquema": "nomina_fija",
+      "devengado": 2500000,
+      "deducciones": 218863,
+      "deducciones_detalle": "Salud (según nómina actual; cifra no cuadra con 8% — auditar)",
+      "neto": 2281137,
+      "puntaje": 3.2,
+      "notas": "Trabajo mayormente operativo/físico; dejó de usar el panel el 22-jun-2026."
+    },
+    {
+      "persona": "Victor Garcia",
+      "esquema": "nomina_fija",
+      "devengado": 2200000,
+      "deducciones": 218863,
+      "deducciones_detalle": "Salud (idéntica a Stella con salario distinto — auditar)",
+      "neto": 1981137,
+      "puntaje": 3.0,
+      "notas": "Patrón de check-ins cortos en panel (306 sesiones); cierra 100% de tickets asignados."
+    },
+    {
+      "persona": "Jenniffer Garcia",
+      "esquema": "nomina_fija",
+      "devengado": 4240000,
+      "deducciones": 499000,
+      "deducciones_detalle": "Salud y pensión (11,8% del devengado — no cuadra con 8%+1% FSP; auditar)",
+      "neto": 3741000,
+      "puntaje": 4.5,
+      "notas": "Mayor carga digital del equipo: 39h panel, 153 tickets, sesión de impresión/facturación."
+    },
+    {
+      "persona": "Cynthia Ruiz",
+      "esquema": "sin_salario_fijo",
+      "devengado": 0,
+      "deducciones": 0,
+      "deducciones_detalle": "Compensada por pagos de tarjetas de crédito (informal)",
+      "neto": 0,
+      "puntaje": null,
+      "notas": "2ª mayor carga digital: 21,5h panel, 25-26 días/mes, módulo Etiquetas exclusivo, 47 solicitudes resueltas. Propuesta: contrato laboral, puntaje provisional 3,4-3,6 → banda $2,5-2,7M."
+    },
+    {
+      "persona": "Armando Garcia",
+      "esquema": "sin_salario_fijo",
+      "devengado": 0,
+      "deducciones": 0,
+      "deducciones_detalle": "Compensado por pagos de tarjetas/gestión (informal)",
+      "neto": 0,
+      "puntaje": null,
+      "notas": "Rol de dirección/supervisión (42 días activos, 36 solicitudes). Propuesta: honorarios de gerencia aprobados por junta + PILA independiente."
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": 1,
+      "titulo": "Deducciones idénticas para salarios distintos (Stella y Victor)",
+      "categoria": "nomina_ugpp",
+      "severidad": "alta",
+      "estado": "pendiente",
+      "detalle": "Ambos tienen deducción exacta de $218.863 con devengados de $2,5M y $2,2M. El 8% (salud+pensión) sería $200.000 y $176.000 respectivamente; la cifra no corresponde a ninguno y figura como 'solo Salud'. Si el IBC en PILA no coincide con el devengado real, es exactamente lo que la UGPP detecta en cruces.",
+      "accion": "Auditoría nómina vs PILA: cuadrar IBC = devengado y corregir planillas.",
+      "responsable": "Contabilidad",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 2,
+      "titulo": "Deducción de Jenniffer no cuadra (11,8% vs 9% esperado)",
+      "categoria": "nomina_ugpp",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "Deducción $499.000 sobre $4,24M = 11,8%. Lo estándar: 8% ($339.200) + 1% fondo solidaridad ($42.400) = $381.600. Sobran ~$117k sin explicación visible (¿retefuente? ¿libranza?).",
+      "accion": "Identificar el concepto de la diferencia y documentarlo en el desprendible.",
+      "responsable": "Contabilidad",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 3,
+      "titulo": "Cynthia sin salario fijo con la 2ª mayor carga digital del equipo",
+      "categoria": "equidad_interna",
+      "severidad": "critica",
+      "estado": "pendiente",
+      "detalle": "21,5h de panel, 25-26 días activos/mes durante 2 meses continuos, módulo de Etiquetas restringido por código a su usuario, 47 solicitudes resueltas — y salario fijo $0, compensada por tarjetas. La habitualidad y subordinación evidenciadas configuran riesgo de 'contrato realidad' (liquidación retroactiva de prestaciones + cotizaciones + intereses).",
+      "accion": "Formalizar contrato laboral. Puntaje provisional matriz 3,4-3,6 → banda $2,5-2,7M devengado. Antes: cuantificar promedio mensual pagado por tarjetas (6-12 meses).",
+      "responsable": "Gerencia",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 4,
+      "titulo": "Armando compensado por tarjetas — sin estructura de honorarios",
+      "categoria": "equidad_interna",
+      "severidad": "critica",
+      "estado": "pendiente",
+      "detalle": "Pagos de gastos personales con tarjetas de la empresa: no deducibles en renta (art. 107 ET), riesgo de recaracterización como dividendo presunto, remuneración omitida de PILA ante UGPP, y distorsión contable (cuentas por cobrar a socios / gastos ficticios).",
+      "accion": "Honorarios fijos de gerencia aprobados por acta de junta + cuenta de cobro mensual + PILA independiente (IBC 40%) + retefuente. Variable adicional vía dividendos.",
+      "responsable": "Gerencia",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 5,
+      "titulo": "Jenniffer ~25% sobre la línea de equidad interna ($/punto)",
+      "categoria": "equidad_interna",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "A $760k/punto (línea de pares), 4,5 puntos ≈ $3,42M vs $4,24M reales ($942k/punto). Los datos operativos respaldan la prima (mayor carga digital, canal WA ×14), lo que indica que la matriz de 4 factores no captura 'amplitud/carga real'.",
+      "accion": "Agregar 5º factor 'Carga/Amplitud de rol' (10-15%) a la matriz o recalibrar puntaje. Mientras tanto: congelar incrementos hasta que la línea la alcance. Nunca rebaja nominal.",
+      "responsable": "Gerencia",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 6,
+      "titulo": "Stella abandonó el panel desde el 22-jun — carga real sin medir",
+      "categoria": "carga_laboral",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "Solo 1,3h de panel en 17 días y cero actividad desde el 22-jun, pero 88 tickets casi todos resueltos y 156 mensajes en WhatsApp: trabaja por fuera del panel. Puede ser problema de adopción de herramienta o rol 100% físico.",
+      "accion": "Conversación directa. Si su rol es físico, definir indicadores propios (despachos, empaques) para que la evaluación no dependa del panel.",
+      "responsable": "Gerencia",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 7,
+      "titulo": "Saturación del canal WhatsApp: demanda +45%, cierres −5%",
+      "categoria": "capacidad_ventas",
+      "severidad": "alta",
+      "estado": "pendiente",
+      "detalle": "Jun→Jul: contactos únicos 179→259 (+45%) pero comprobantes 131→124 (−5%). Conversión por comprobante cayó de ~73% a ~48%. Con el bot pausado, el equipo responde ~1.600 mensajes manuales/mes (×14 vs marzo). Hay ventas quedándose en la mesa.",
+      "accion": "Reactivar el bot para triaje y primera respuesta (con datos_pago.json como fuente única) dejando el cierre a humanos, antes de contratar más personal.",
+      "responsable": "Sistemas",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 8,
+      "titulo": "$1,53M en pagos web rechazados en julio",
+      "categoria": "flujo_caja",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "11 pedidos web con pago 'declined' en julio por $1.529.125, frente a 24 aprobados por $2,36M. Puede ser configuración de la pasarela PayU o falta de reintentos.",
+      "accion": "Revisar configuración PayU / reintentos y contactar a los compradores con pago rechazado. Caja inmediata sin costo laboral.",
+      "responsable": "Sistemas",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 9,
+      "titulo": "Corte de pagos por tarjeta y transición documentada",
+      "categoria": "plan_accion",
+      "severidad": "alta",
+      "estado": "pendiente",
+      "detalle": "Definir fecha de corte (propuesta: 31-ago). Lo corrido del año se reclasifica contablemente: anticipo de honorarios/salario con PILA retroactiva, o préstamo a socios con pagaré e intereses presuntos — decisión con el contador, pero decidida.",
+      "accion": "Cuantificar promedio mensual por tarjetas (Cynthia y Armando, últimos 6-12 meses); fijar monto desde el mes siguiente; escalonar en 2-3 meses con acta si el flujo no da de una vez.",
+      "responsable": "Gerencia + Contabilidad",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 10,
+      "titulo": "Completar matriz de puntos para los 5 cargos y fijar línea salarial",
+      "categoria": "plan_accion",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "Hoy solo hay 3 puntajes (Stella 3,2 / Victor 3,0 / Jenniffer 4,5). Faltan Cynthia y Armando. Ancla propuesta: $750-800k/punto. Regla: bajo la línea sube en revisiones; sobre la línea se congela; nunca rebajas nominales.",
+      "accion": "Calificar los 5 cargos con los 4 factores + nuevo factor de carga; comunicar individualmente con hoja de puntaje, banda y ruta.",
+      "responsable": "Gerencia",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    },
+    {
+      "id": 11,
+      "titulo": "Techo de nómina como % de ventas (sostenibilidad)",
+      "categoria": "flujo_caja",
+      "severidad": "media",
+      "estado": "pendiente",
+      "detalle": "Costo empresa actual de los 3 fijos ≈ $11,5-12M/mes (devengado + pensión patronal 12% + ARL + prestaciones ~21,8%; salud patronal y parafiscales exonerados art. 114-1 ET por ser <10 SMMLV). Formalizar a Cynthia agrega ~$3,4-3,7M/mes de costo empresa.",
+      "accion": "Proyectar nómina total vs margen bruto mensual y fijar techo (referencia 18-25% de ventas) que gobierne futuras subidas.",
+      "responsable": "Gerencia + Contabilidad",
+      "notas": [],
+      "creado": "2026-07-31",
+      "actualizado": "2026-07-31"
+    }
+  ]
+}

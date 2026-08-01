@@ -105,9 +105,23 @@ SIIGO_PHOTO_REQUIRED_SKUS = {
 # Tarifas Interrapidísimo (fuente: app/data/tarifas_interrapidisimo.json)
 _tarifas_path = ROOT / "app/data/tarifas_interrapidisimo.json"
 try:
-    TARIFAS_IR = json.loads(_tarifas_path.read_text())["ciudades"]
+    _TARIFAS_DATA = json.loads(_tarifas_path.read_text())
+    TARIFAS_IR = _TARIFAS_DATA["ciudades"]
 except Exception:
-    TARIFAS_IR = {"default": {"precio_base": 18000, "dias": 4}}
+    _TARIFAS_DATA = {}
+    TARIFAS_IR = {"default": {"precio_base": 18500, "dias": 3}}
+
+from app.services.tarifas_envio import (
+    zona_envio as zona_envio_interrapidisimo,
+    tarifa_zona_peso as tarifa_envio_interrapidisimo,
+    peso_unitario_kg as _peso_unitario_kg,
+    peso_carrito_kg,
+    cotizar_envio as _cotizar_envio_ir,
+)
+
+
+def cotizar_envio_web(ciudad: str, depto: str, cart: dict) -> dict:
+    return _cotizar_envio_ir(ciudad, depto, peso_kg=peso_carrito_kg(cart))
 
 # Datos geográficos Colombia
 COLOMBIA_DATA = {
@@ -2809,11 +2823,24 @@ def checkout_pagar():
     bill_city     = request.form.get("bill_city", buyer_city).strip() or buyer_city
     bill_addr     = request.form.get("bill_address", buyer_addr).strip() or buyer_addr
     bill_email    = request.form.get("bill_email", buyer_email).strip() or buyer_email
-    # Envío
+    # Envío — el valor del formulario es solo referencia visual; el costo real
+    # se recalcula en servidor con la tabla Interrapidísimo 2026 y el peso del carrito
+    # (evita cobrar de menos por tarifas viejas cacheadas o formularios manipulados).
     try:
-        shipping_cost = float(request.form.get("shipping_cost", 0))
+        shipping_form = float(request.form.get("shipping_cost", 0))
     except ValueError:
-        shipping_cost = 0.0
+        shipping_form = 0.0
+    if buyer_city or buyer_dept:
+        cot = cotizar_envio_web(buyer_city, buyer_dept, cart)
+        shipping_cost = float(cot["costo"])
+        if abs(shipping_cost - shipping_form) >= 1:
+            log.warning(
+                "checkout %s: envío recalculado en servidor $%s (form traía $%s) — %s/%s, %s kg, zona %s",
+                ref, int(shipping_cost), int(shipping_form), buyer_city, buyer_dept,
+                cot["peso_kg"], cot["zona"],
+            )
+    else:
+        shipping_cost = shipping_form
     total = subtotal + shipping_cost
 
     # Guardar orden en DB como "pending"
@@ -3429,8 +3456,21 @@ def api_chat():
 
 @app.route("/checkout/tarifas")
 def checkout_tarifas():
-    """Retorna las tarifas de envío para el estimador del checkout."""
+    """Retorna las tarifas de envío para el estimador del checkout (legacy: 1 kg por ciudad)."""
     return jsonify(TARIFAS_IR)
+
+
+@app.route("/checkout/cotizar-envio")
+def checkout_cotizar_envio():
+    """Cotiza el envío Interrapidísimo 2026 para el carrito en sesión (zona + peso real)."""
+    ciudad = request.args.get("ciudad", "").strip()
+    depto = request.args.get("depto", "").strip()
+    if not ciudad and not depto:
+        return jsonify({"ok": False, "error": "Falta ciudad o departamento"}), 400
+    cart = session.get("cart", {})
+    cot = cotizar_envio_web(ciudad, depto, cart)
+    cot["ok"] = True
+    return jsonify(cot)
 
 
 @app.route("/checkout/colombia")

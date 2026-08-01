@@ -69,6 +69,12 @@ def create_app():
         print(f"⚠️ Centro de Mando (tickets): {e}")
 
     try:
+        from app.routes_rrhh import register_rrhh_routes
+        register_rrhh_routes(app)
+    except Exception as e:
+        print(f"⚠️ RRHH · Compensaciones: {e}")
+
+    try:
         import threading, time as _time
         from app.services.tickets_db import procesar_renovaciones
 

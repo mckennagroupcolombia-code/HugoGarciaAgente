@@ -220,6 +220,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "contabilidad",
   },
+  rrhh: {
+    emoji: "🧑‍💼",
+    label: "RRHH · Compensaciones",
+    description: "Gestión de hallazgos de equidad salarial, carga laboral medida (panel y WhatsApp), matriz de valoración por puntos y agente asesor especializado en compensaciones y riesgos UGPP.",
+    tips: [
+      "Los hallazgos tienen estado (pendiente, en curso, resuelto) — actualízalos a medida que avanza el plan.",
+      "Las horas de panel miden carga digital, no trabajo físico: úsalas como indicador, no como veredicto.",
+      "El agente RRHH conoce los hallazgos y las métricas en vivo — pregúntale por escenarios de nómina.",
+    ],
+    tier: "advanced",
+    category: "contabilidad",
+  },
 
   // ── Canales avanzados ─────────────────────────────────────────────────────────
   supervisor: {

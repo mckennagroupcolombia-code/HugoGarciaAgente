@@ -734,6 +734,7 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "facturas",      label: "Facturas de compra" },
   { id: "centros-costo", label: "Centro de costos (incl. con Facturas o Sync)" },
   { id: "sync",          label: "Sincronización" },
+  { id: "rrhh",          label: "RRHH · Compensaciones (datos salariales — solo confianza)" },
 ];
 
 // Sub-tabs within Centro de Mando (solo los que tienen pVer gating en TicketsPanel)

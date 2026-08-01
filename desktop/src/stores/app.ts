@@ -24,6 +24,7 @@ export type Panel =
   | "costos-productos"
   | "centros-costo"
   | "rentabilidad"
+  | "rrhh"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"

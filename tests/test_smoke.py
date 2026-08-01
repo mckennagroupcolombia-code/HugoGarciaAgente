@@ -956,7 +956,7 @@ def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, t
     _insert_web_order_for_siigo_test(db_path)
 
     def fake_buscar_producto(sku):
-        if sku == "WEB-ENVIO-8500":
+        if sku in ("WEB-ENVIO-8500", "WEB-ENVIO-VAR"):
             return None
         return {"sku": sku}
 
@@ -974,6 +974,31 @@ def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, t
     row = _siigo_invoice_row_for_test(db_path)
     assert row["siigo_invoice_status"] == "error"
     assert "WEB-ENVIO-8500" in row["siigo_invoice_error"]
+
+
+def test_lineas_factura_web_envio_cae_a_generico(monkeypatch):
+    """Montos de envío sin producto propio en Siigo (tarifas 2026) usan WEB-ENVIO-VAR."""
+    from app.services import siigo
+    from app.tools import web_pedidos as wp
+
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_GENERIC", raising=False)
+
+    def fake_buscar_producto(sku):
+        if sku.startswith("WEB-ENVIO-") and sku not in ("WEB-ENVIO-VAR",):
+            return None
+        return {"sku": sku}
+
+    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", fake_buscar_producto)
+
+    data = {
+        "items": [{"ref": "ACDCTRKg", "name": "Ácido Cítrico Kg", "qty": 1, "price": 20000}],
+        "shipping": 23400,
+    }
+    lines, err = wp._build_siigo_web_invoice_lines({}, data)
+    assert err is None
+    assert lines[-1]["codigo"] == "WEB-ENVIO-VAR"
+    assert lines[-1]["precio_unitario"] == 23400.0
 
 
 def test_marcar_solicitud_facturacion_reintenta(monkeypatch, tmp_path):

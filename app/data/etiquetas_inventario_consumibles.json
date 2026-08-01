@@ -137,15 +137,15 @@
       "alto_pulg": 1.614,
       "unidades_por_rollo": 690,
       "rollos": 9.0,
-      "etiquetas_sueltas": 168,
+      "etiquetas_sueltas": 107,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "5 g",
       "notas": "",
       "cantidad": 9.0,
       "unidad": "rollos",
-      "total_etiquetas": 6378,
-      "updated_at": "2026-07-16T21:13:48"
+      "total_etiquetas": 6317,
+      "updated_at": "2026-07-31T09:49:52"
     },
     {
       "id": "2299337d5a1e",

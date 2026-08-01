@@ -114,6 +114,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M3 20h18" />
     </>
   ),
+  rrhh: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+      <circle cx="17.5" cy="9.5" r="2.5" />
+      <path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />
