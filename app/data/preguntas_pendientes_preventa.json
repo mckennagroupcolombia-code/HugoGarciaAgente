@@ -1652,7 +1652,15 @@
       "titulo_producto": "Arándanos Deshidratados 250g",
       "pregunta": "Hola buenas noches Los arrandanos tienen azúcar añadido?",
       "timestamp": "2026-07-30T21:42:16.353805",
-      "respondida": false
+      "respondida": true
+    },
+    {
+      "question_id": "13631755525",
+      "titulo_producto": "Cera De Abejas Amarilla Refinada X 1 Kg ",
+      "pregunta": "Buen día, está cera es de grado alimenticio?",
+      "timestamp": "2026-07-31T10:13:11.724143",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-07-31"
     }
   ]
 }

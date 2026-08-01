@@ -21,6 +21,7 @@ const FacturasCompraPanel = lazy(() => import("./components/FacturasCompraPanel"
 const CostosProductosPanel = lazy(() => import("./components/CostosProductosPanel"));
 const CentroCostosPanel = lazy(() => import("./components/CentroCostosPanel"));
 const RentabilidadPanel = lazy(() => import("./components/RentabilidadPanel"));
+const RRHHPanel = lazy(() => import("./components/RRHHPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
@@ -106,6 +107,8 @@ function PanelRouterInner() {
       return <CentroCostosPanel />;
     case "rentabilidad":
       return <RentabilidadPanel />;
+    case "rrhh":
+      return <RRHHPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":

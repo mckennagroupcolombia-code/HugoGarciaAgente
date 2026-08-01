@@ -269,112 +269,14 @@
 (function(){
 
 // ══════════════════════════════════════════════════════════
-//  TARIFAS INTERRAPIDÍSIMO
+//  TARIFAS INTERRAPIDÍSIMO 2026 — cotizadas por el servidor
+//  (/checkout/cotizar-envio: zona + peso real del carrito)
 // ══════════════════════════════════════════════════════════
-const ALIAS_CIUDAD = {
-  "bogota d.c.": "bogota", "bogotá": "bogota", "bogotá d.c.": "bogota",
-  "santafe de bogota": "bogota",
-};
-// Ciudades principales con tarifa conocida (clave normalizada → tarifa)
-const TARIFAS_CIUDADES = {
-  bogota: 8800, soacha: 8800, funza: 11000, mosquera: 11000, chia: 11000,
-  zipaquira: 11000, facatativa: 11000, cajica: 11000, tocancipa: 11000,
-  fusagasuga: 11000, girardot: 11000,
-  medellin: 13000, bello: 13000, itagui: 13000, envigado: 13000,
-  sabaneta: 13000, caldas: 13000, copacabana: 13000, rionegro: 13000,
-  cali: 13000, palmira: 13000, yumbo: 13000, jamundi: 13000,
-  barranquilla: 15000, soledad: 15000, malambo: 15000,
-  cartagena: 15000, turbaco: 15000,
-  "santa marta": 15000,
-  bucaramanga: 14000, floridablanca: 14000, giron: 14000, piedecuesta: 14000,
-  cucuta: 15000, "los patios": 15000, "villa del rosario": 15000,
-  pereira: 13000, dosquebradas: 13000, "santa rosa de cabal": 14000,
-  armenia: 14000, calarca: 14000,
-  manizales: 14000, villamaria: 14000, chinchina: 14000,
-  ibague: 14000, espinal: 15000, melgar: 15000,
-  neiva: 15000, pitalito: 16000,
-  villavicencio: 14000, acacias: 15000,
-  monteria: 16000, cerete: 16000,
-  valledupar: 16000, aguachica: 16000,
-  sincelejo: 16000, corozal: 16000,
-  pasto: 16000, ipiales: 17000, tumaco: 18000,
-  popayan: 15000, santander_de_quilichao: 16000,
-  tunja: 14000, duitama: 14000, sogamoso: 15000, chiquinquira: 15000,
-  yopal: 16000, aguazul: 17000,
-  arauca: 18000, saravena: 18000,
-  florencia: 17000,
-  mocoa: 18000, "puerto asis": 18000,
-  riohacha: 16000, maicao: 17000, uribia: 18000,
-  quibdo: 17000,
-  leticia: 18000,
-  "san jose del guaviare": 18000,
-  mitu: 18000, inirida: 18000, "puerto carreno": 18000,
-};
-// Tarifa por departamento (fallback si ciudad no tiene tarifa específica)
-const TARIFAS_DEPTO = {
-  "Bogotá D.C.":      8800,
-  "Cundinamarca":     11000,
-  "Antioquia":        13000,
-  "Valle del Cauca":  13000,
-  "Atlántico":        15000,
-  "Bolívar":          15000,
-  "Santander":        14000,
-  "Norte de Santander":15000,
-  "Risaralda":        13000,
-  "Quindío":          14000,
-  "Caldas":           14000,
-  "Tolima":           14000,
-  "Huila":            15000,
-  "Meta":             14000,
-  "Boyacá":           14000,
-  "Nariño":           16000,
-  "Cauca":            15000,
-  "Córdoba":          16000,
-  "Cesar":            16000,
-  "Sucre":            16000,
-  "Magdalena":        15000,
-  "La Guajira":       16000,
-  "Casanare":         16000,
-  "Arauca":           18000,
-  "Caquetá":          17000,
-  "Putumayo":         18000,
-  "Chocó":            17000,
-  "Amazonas":         18000,
-  "Vaupés":           18000,
-  "Vichada":          18000,
-  "Guainía":          18000,
-  "Guaviare":         18000,
-  "San Andrés y Providencia": 18000,
-};
-const DIAS_DEPTO = {
-  "Bogotá D.C.":1,"Cundinamarca":1,"Antioquia":2,"Valle del Cauca":2,
-  "Atlántico":3,"Bolívar":3,"Santander":2,"Norte de Santander":3,
-  "Risaralda":2,"Quindío":2,"Caldas":2,"Tolima":2,"Huila":3,"Meta":2,
-  "Boyacá":2,"Nariño":3,"Cauca":3,"Córdoba":3,"Cesar":3,"Sucre":3,
-  "Magdalena":3,"La Guajira":3,"Casanare":3,"Arauca":4,"Caquetá":3,
-  "Putumayo":4,"Chocó":3,"Amazonas":4,"Vaupés":4,"Vichada":4,
-  "Guainía":4,"Guaviare":4,"San Andrés y Providencia":4,
-};
-
 const subtotal = {{ total }};
 const envioGratisDirecto = {{ 'true' if envio_gratis_directo else 'false' }};
 let shippingCost = 0;
 let selectedDepto = "";
-
-function normalize(s){
-  return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()
-    .replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ");
-}
-
-function getRate(ciudad, depto){
-  const nc = normalize(ciudad);
-  if(ALIAS_CIUDAD[nc]) return {base: TARIFAS_CIUDADES[ALIAS_CIUDAD[nc]] || TARIFAS_DEPTO[depto] || 18000, dias: DIAS_DEPTO[depto] || 4};
-  if(TARIFAS_CIUDADES[nc]) return {base: TARIFAS_CIUDADES[nc], dias: DIAS_DEPTO[depto] || 4};
-  for(const k in TARIFAS_CIUDADES){
-    if(nc.includes(k) || k.includes(nc)) return {base: TARIFAS_CIUDADES[k], dias: DIAS_DEPTO[depto] || 4};
-  }
-  return {base: TARIFAS_DEPTO[depto] || 18000, dias: DIAS_DEPTO[depto] || 4};
-}
+let shippingReqId = 0;
 
 function fmtCOP(n){ return '$' + Math.round(n).toLocaleString('es-CO').replace(/\./g,'.').replace(/,/g,'.'); }
 
@@ -452,18 +354,29 @@ function updateShipping(ciudad, depto){
     btnTotal.textContent   = fmtCOP(subtotal);
     return;
   }
-  const rate = getRate(ciudad || '', depto);
-  shippingCost = rate.base;
-  inputShip.value = shippingCost;
-  const total = subtotal + shippingCost;
-  if (rowGratis) rowGratis.style.display = 'none';
-  rowEnvio.style.display = '';
-  labelEnvio.textContent = fmtCOP(shippingCost);
-  labelTotal.textContent = fmtCOP(total) + ' COP';
-  btnTotal.textContent   = fmtCOP(total);
-  const diaTxt = rate.dias === 1 ? '1 día hábil' : rate.dias + ' días hábiles';
-  const dest = ciudad ? `<strong>${ciudad}</strong>` : `<strong>${depto}</strong>`;
-  info.innerHTML = `Envío a ${dest}: <strong style="color:var(--green-dark)">${fmtCOP(shippingCost)}</strong> — entrega estimada en <strong>${diaTxt}</strong> vía Interrapidísimo. Precio base hasta 1 kg; +$2.000/kg extra.`;
+  info.textContent = 'Calculando envío…';
+  const reqId = ++shippingReqId;
+  fetch(`/checkout/cotizar-envio?ciudad=${encodeURIComponent(ciudad || '')}&depto=${encodeURIComponent(depto || '')}`)
+    .then(r => r.json())
+    .then(cot => {
+      if (reqId !== shippingReqId || !cot.ok) throw new Error(cot.error || 'cotización inválida');
+      shippingCost = cot.costo;
+      inputShip.value = shippingCost;
+      const total = subtotal + shippingCost;
+      if (rowGratis) rowGratis.style.display = 'none';
+      rowEnvio.style.display = '';
+      labelEnvio.textContent = fmtCOP(shippingCost);
+      labelTotal.textContent = fmtCOP(total) + ' COP';
+      btnTotal.textContent   = fmtCOP(total);
+      const diaTxt = cot.dias === 1 ? '1 día hábil' : cot.dias + ' días hábiles';
+      const dest = ciudad ? `<strong>${ciudad}</strong>` : `<strong>${depto}</strong>`;
+      const pesoTxt = cot.peso_kg === 1 ? 'hasta 1 kg' : `${cot.peso_kg} kg`;
+      info.innerHTML = `Envío a ${dest}: <strong style="color:var(--green-dark)">${fmtCOP(shippingCost)}</strong> — entrega estimada en <strong>${diaTxt}</strong> vía Interrapidísimo (pedido de ${pesoTxt}, tarifa 2026).`;
+    })
+    .catch(() => {
+      if (reqId !== shippingReqId) return;
+      info.textContent = 'No pudimos estimar el envío en línea; se calculará y confirmará al procesar el pedido.';
+    });
 }
 
 // ── Facturación ───────────────────────────────────────────

@@ -66,6 +66,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "costos-productos", tier: "advanced" },
       { panel: "centros-costo", tier: "advanced" },
       { panel: "rentabilidad", tier: "advanced" },
+      { panel: "rrhh", tier: "advanced" },
     ],
   },
   {

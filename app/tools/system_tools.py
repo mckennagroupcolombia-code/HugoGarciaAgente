@@ -234,25 +234,15 @@ def consultar_tarifa_mercadoenvios(ciudad_destino: str, peso_kg: float) -> dict:
     Si falla, usa el JSON local como fallback.
     """
     try:
-        # Podríamos buscar el zip_code según ciudad, pero como meli_preventa recibe zip_code,
-        # simplificamos si la API de Meli no está disponible o falla
-        
-        # Como no tenemos el código postal exacto, el fallback local es crucial
+        # Tabla Interrapidísimo 2026 por zona y peso (tramos completos, no +2000/kg)
+        from app.services.tarifas_envio import cotizar_envio
+
+        cot = cotizar_envio(ciudad_destino, peso_kg=peso_kg)
         tarifa_local = consultar_tarifa_envio(ciudad_destino)
-        precio_base = tarifa_local.get("tarifa", {}).get("precio_base", 18000)
-        dias = tarifa_local.get("tarifa", {}).get("dias", 4)
-        
-        # Cálculo de peso extra
-        if peso_kg > 1.0:
-            kilos_extra = int(peso_kg - 1.0)
-            if peso_kg % 1.0 > 0:
-                kilos_extra += 1
-            precio_final = precio_base + (kilos_extra * 2000)
-        else:
-            precio_final = precio_base
-            
-        tarifa_local["tarifa"]["precio_calculado"] = precio_final
+        tarifa_local["tarifa"]["precio_calculado"] = cot["costo"]
         tarifa_local["tarifa"]["peso_kg"] = peso_kg
+        tarifa_local["tarifa"]["dias"] = cot["dias"]
+        tarifa_local["tarifa"]["zona"] = cot["zona_nombre"]
         return tarifa_local
     except Exception as e:
         print(f"Error en consultar_tarifa_mercadoenvios: {e}")
