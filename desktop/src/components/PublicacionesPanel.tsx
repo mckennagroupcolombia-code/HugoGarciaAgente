@@ -14,9 +14,42 @@ import {
   useReordenarImagenesMeli,
   useEliminarImagenes,
   useGaleriaPublicaciones,
+  useNormalizarImagenesCatalogo,
   type PublicacionItem,
   type SyncStatus,
 } from "../hooks/usePublicaciones";
+
+// ── URLs de imagen del catálogo (panel) ────────────────────────────────────
+// /imagenes-productos-catalogo/* no se proxifica en Vite (:5173) ni en el
+// túnel bot (:8080 → 8081). La ruta /api/publicaciones/imagen-archivo/* sí.
+
+function srcImagenCatalogoPanel(filenameOrPath: string): string {
+  let filename = (filenameOrPath || "").trim();
+  if (!filename) return "";
+  if (filename.startsWith("http://") || filename.startsWith("https://")) {
+    try {
+      filename = decodeURIComponent(new URL(filename).pathname.split("/").pop() || "");
+    } catch {
+      filename = decodeURIComponent(filename.split("/").pop() || filename);
+    }
+  } else if (filename.includes("/")) {
+    filename = decodeURIComponent(filename.split("/").pop() || filename);
+  }
+  if (!filename) return "";
+  return `/api/publicaciones/imagen-archivo/${encodeURIComponent(filename).replace(/%2F/gi, "")}`;
+}
+
+function resolverFotoPreview(foto: string): string {
+  if (!foto) return "";
+  if (foto.startsWith("data:")) return foto;
+  if (
+    foto.includes("/imagenes-productos-catalogo/") ||
+    (!foto.startsWith("http://") && !foto.startsWith("https://") && !foto.startsWith("//"))
+  ) {
+    return srcImagenCatalogoPanel(foto);
+  }
+  return foto;
+}
 
 // ── Badge de estado de sincronización ──────────────────────────────────────
 
@@ -91,11 +124,7 @@ function ProductoCard({
   selected: boolean;
   onClick: () => void;
 }) {
-  const fotoUrl = item.foto_efectiva
-    ? item.foto_efectiva.startsWith("http")
-      ? item.foto_efectiva
-      : `https://mckennagroup.co${item.foto_efectiva}`
-    : null;
+  const fotoUrl = item.foto_efectiva ? resolverFotoPreview(item.foto_efectiva) : null;
 
   const webOk = item.sync_web.status === "ok";
   const meliOk = item.sync_meli.status === "linked";
@@ -344,7 +373,7 @@ function ImagenesTab({
     if (fotos?.web.imagenes) {
       setWebOrder(fotos.web.imagenes.map((img) => ({
         id: img.filename,
-        url: img.url,
+        url: srcImagenCatalogoPanel(img.filename || img.path || img.url),
         principal: img.principal,
         extra: { filename: img.filename, path: img.path },
       })));
@@ -445,7 +474,7 @@ function ImagenesTab({
           <div>
             <h4 className="text-sm font-bold text-ink">Web / SIIGO</h4>
             <p className="text-[11px] text-muted">
-              {fotos?.web.total ?? 0} imagen(es) · La primera es la principal del catálogo
+              {fotos?.web.total ?? 0} imagen(es) · La primera es la principal · estándar 1000×1000 fondo blanco
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -456,6 +485,7 @@ function ImagenesTab({
             >
               {isLoading ? "..." : "↺"}
             </button>
+            <NormalizarSkuButton sku={sku} />
             {webOrder && (
               <button
                 onClick={handleGuardarOrdenWeb}
@@ -580,7 +610,9 @@ function ImagenesTab({
             <>
               <span className="text-3xl opacity-25">🖼</span>
               <p className="text-sm font-semibold text-ink">Arrastra o haz clic para elegir</p>
-              <p className="text-xs text-muted">JPG, PNG, WEBP · Puedes seleccionar varios archivos a la vez</p>
+              <p className="text-xs text-muted">
+                JPG, PNG, WEBP · Se normalizan a 1000×1000 con fondo blanco
+              </p>
             </>
           )}
         </div>
@@ -723,11 +755,7 @@ export function EditorPanel({
   }
 
   const fotoEfectiva = fotoUrl || data.foto_url_cache;
-  const fotoPreviewUrl = fotoEfectiva
-    ? fotoEfectiva.startsWith("http")
-      ? fotoEfectiva
-      : `https://mckennagroup.co${fotoEfectiva}`
-    : null;
+  const fotoPreviewUrl = fotoEfectiva ? resolverFotoPreview(fotoEfectiva) : null;
 
   async function handleGuardar() {
     await guardarMut.mutateAsync({
@@ -1178,13 +1206,28 @@ export function EditorPanel({
 // ── Galería de imágenes por SKU ────────────────────────────────────────────
 
 function imgSrcGaleria(url: string, path: string, filename?: string): string {
-  // Preferir ruta local del agente (mismo host que el panel) para que se vean las fotos
-  if (filename) return `/imagenes-productos-catalogo/${encodeURIComponent(filename).replace(/%2F/gi, "")}`;
-  if (url && url.startsWith("/")) return url;
-  if (path && path.startsWith("/")) return path;
-  if (url) return url;
-  if (path.startsWith("http")) return path;
-  return path;
+  if (filename) return srcImagenCatalogoPanel(filename);
+  if (path) return srcImagenCatalogoPanel(path);
+  if (url) return srcImagenCatalogoPanel(url);
+  return "";
+}
+
+function NormalizarSkuButton({ sku }: { sku: string }) {
+  const mut = useNormalizarImagenesCatalogo();
+  return (
+    <button
+      type="button"
+      title="Llevar imágenes de este SKU a 1000×1000 fondo blanco"
+      disabled={mut.isPending}
+      onClick={() => {
+        if (!confirm(`¿Normalizar imágenes de ${sku} a 1000×1000 con fondo blanco?`)) return;
+        void mut.mutateAsync({ sku, solo_no_cumplen: true });
+      }}
+      className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-ink hover:border-accent/40 disabled:opacity-40"
+    >
+      {mut.isPending ? "Normalizando…" : "1000×1000"}
+    </button>
+  );
 }
 
 function GaleriaPublicacionesView({
@@ -1195,6 +1238,7 @@ function GaleriaPublicacionesView({
   const [buscar, setBuscar] = useState("");
   const [q, setQ] = useState("");
   const { data, isLoading, isFetching, isError, error, refetch } = useGaleriaPublicaciones(q);
+  const normalizarMut = useNormalizarImagenesCatalogo();
   const items = data?.items ?? [];
 
   // Vista plana: una tarjeta por imagen con el código SKU bien visible
@@ -1205,6 +1249,7 @@ function GaleriaPublicacionesView({
       img,
     })),
   );
+  const sinEstandar = tarjetas.filter((t) => t.img.cumple_estandar === false).length;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -1212,19 +1257,63 @@ function GaleriaPublicacionesView({
         <div>
           <p className="text-sm font-bold text-ink">Galería · imagen + código SKU</p>
           <p className="text-xs text-muted">
-            Cada tarjeta muestra la foto y el código del producto.
+            Estándar: 1000×1000 px con fondo blanco.
             {data ? ` · ${data.total_imagenes} fotos · ${data.total_skus} SKUs` : ""}
+            {sinEstandar > 0 ? ` · ${sinEstandar} sin estándar` : ""}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          disabled={isFetching}
-          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
-        >
-          {isFetching ? "Actualizando…" : "🔄 Actualizar"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {sinEstandar > 0 && (
+            <button
+              type="button"
+              disabled={normalizarMut.isPending}
+              onClick={() => {
+                const filenames = tarjetas
+                  .filter((t) => t.img.cumple_estandar === false)
+                  .map((t) => t.img.filename);
+                if (
+                  !confirm(
+                    `¿Normalizar ${filenames.length} imagen(es) a 1000×1000 con fondo blanco?\nEl producto se centra en lienzo blanco (sin recortar).`,
+                  )
+                ) {
+                  return;
+                }
+                void normalizarMut.mutateAsync({
+                  filenames,
+                  solo_no_cumplen: true,
+                  limit: filenames.length,
+                });
+              }}
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
+            >
+              {normalizarMut.isPending
+                ? "Normalizando…"
+                : `Normalizar ${sinEstandar} a 1000×1000`}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+          >
+            {isFetching ? "Actualizando…" : "🔄 Actualizar"}
+          </button>
+        </div>
       </div>
+      {normalizarMut.isSuccess && (
+        <p className="text-xs text-green-700 shrink-0">
+          ✓ Normalizadas: {normalizarMut.data.normalizadas} · omitidas: {normalizarMut.data.omitidas}
+          {normalizarMut.data.errores ? ` · errores: ${normalizarMut.data.errores}` : ""}
+        </p>
+      )}
+      {normalizarMut.isError && (
+        <p className="text-xs text-danger shrink-0">
+          {normalizarMut.error instanceof Error
+            ? normalizarMut.error.message
+            : "Error al normalizar"}
+        </p>
+      )}
 
       <form
         className="flex gap-2 shrink-0"
@@ -1289,6 +1378,17 @@ function GaleriaPublicacionesView({
                     Principal
                   </span>
                 )}
+                {img.width && img.height ? (
+                  <span
+                    className={`absolute right-1.5 bottom-1.5 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                      img.cumple_estandar
+                        ? "bg-green-600/90 text-white"
+                        : "bg-amber-500/95 text-white"
+                    }`}
+                  >
+                    {img.width}×{img.height}
+                  </span>
+                ) : null}
               </div>
               <div className="border-t border-border px-2 py-2 space-y-0.5">
                 <p className="font-mono text-xs font-bold text-ink break-all leading-tight">

@@ -766,6 +766,12 @@ def proxy_api(path):
     return _proxy_to_agente(f"api/{path}")
 
 
+@app.route("/imagenes-productos-catalogo/<path:filename>", methods=["GET", "HEAD"])
+def proxy_imagenes_catalogo(filename):
+    """Fotos del catálogo para el panel Publicaciones (mismo host que /app)."""
+    return _proxy_to_agente(f"imagenes-productos-catalogo/{filename}")
+
+
 @app.route("/.well-known/<path:path>", methods=["GET", "HEAD"])
 def proxy_well_known(path):
     return _proxy_to_agente(f".well-known/{path}")

@@ -4109,3 +4109,64 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=13 activas=11 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel 68ea899] Auto-commit: actualizacion diaria 2026-08-01 23:00
+ 88 files changed, 7019 insertions(+), 321 deletions(-)
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACDLAC85P30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACDSAL20P30m.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACEARGAN50mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACEIJOJ30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACENEE120mL_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACENEE120mL_3.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACETEATRE30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACIGLI50P30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACIHIAALTPES85P30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACIKOJ5P30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-AGUDES250mL_5.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ALMNAT500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-BENSOD500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-BTMS50125g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CERABEREFBLA500.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CITMAG500g_5.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CLOCAL500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-COCPROBET500m.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-COLHID30mL_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ELAHID30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-EMBPAT30m.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-EXTALOVER30mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-FLOSECLAV100g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-INUKg.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-INUKg_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-LACCAL250g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-LACCAL250g_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-MANCACREF500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-MANCACREF500g_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-MANKARBLA125g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-MANKARBLA125g_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-MANNATTOS500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-NUEBRA500.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-NUEBRA500_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-NUEBRA500_3.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-PROCONSUE80PKg.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-PROCONSUE80PKg_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-VITE30mL.png
+ create mode 100644 app/data/sync_precios_resumen.json
+ create mode 100644 app/data/sync_precios_siigo_ultimo.json
+ create mode 100644 app/data/sync_precios_ultimo.json
+ create mode 100644 app/services/compra_exterior_ocr.py
+ create mode 100644 app/tools/relacion_codigos_meli_siigo.py
+ create mode 100644 desktop/src/components/CalculadoraMagica.tsx
+ create mode 100644 desktop/src/components/ComprasExteriorPanel.tsx
+ create mode 100644 desktop/src/components/ContabilidadPanel.tsx
+ create mode 100644 desktop/src/components/nav/NavContabilidadHub.tsx
+ create mode 100644 scripts/reclasificar_costos_rentabilidad.py
+ create mode 100644 uploads/tickets/0cc064e016ac4985b7ad22e437a30565.pdf
+ create mode 100644 uploads/tickets/b9a0f985881445dd8a1522728f3db290.docx
+ create mode 100644 uploads/tickets/c4e97bf36f8146638c1b892d49b9bf89.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-01 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

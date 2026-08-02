@@ -1,6 +1,8 @@
 """OCR de pantallazos de compras en el exterior → costos unitarios COP (landed).
 
 Extrae líneas con Gemini Vision y prorratea flete opcional por valor de línea.
+Si la compra es por sets/packs (ej. 3 sets de 100 pcs = 300 unidades), el costo
+unitario se calcula sobre las unidades reales, no sobre el set.
 """
 from __future__ import annotations
 
@@ -16,7 +18,7 @@ log = logging.getLogger(__name__)
 PROMPT_COMPRA_EXTERIOR = """\
 Eres contador de McKenna Group S.A.S. Analiza este pantallazo o documento de una
 compra / cotización / invoice / pedido a proveedor en el exterior (Alibaba, China,
-USA, etc.).
+USA, Temu, etc.) o marketplace.
 
 Extrae las líneas de producto y responde SOLO JSON válido con este esquema:
 {
@@ -27,25 +29,43 @@ Extrae las líneas de producto y responde SOLO JSON válido con este esquema:
   "moneda_flete": null,
   "lineas": [
     {
-      "nombre": "nombre del producto o material",
-      "cantidad": 1.0,
-      "unidad": "kg",
-      "precio_unit": 0.0,
-      "subtotal": 0.0
+      "nombre": "nombre del producto",
+      "cantidad": 3,
+      "unidades_por_pack": 100,
+      "unidad": "pcs",
+      "precio_unit": 166.62,
+      "subtotal": 499.86
     }
   ]
 }
 
-Reglas:
-- moneda: código ISO visible (USD, CNY, EUR, COP…). Si no aparece, usa "USD".
-- cantidad y precio_unit son números (sin símbolos de moneda ni comas de miles).
-- Si solo hay total de línea, calcula precio_unit = subtotal / cantidad cuando puedas.
-- Si solo hay precio unitario, subtotal = cantidad * precio_unit.
+Reglas CRÍTICAS:
+- moneda: código ISO visible (USD, CNY, EUR, COP…). Si el formato usa punto de miles
+  y coma decimal (ej. $166.623,00) y parece Colombia/Latam, usa "COP". Si no aparece, "USD".
+- cantidad = cuántos SETS/PACKS/JUEGOS se compraron (el "x3" del pantallazo), NO las piezas sueltas.
+- unidades_por_pack = piezas/unidades DENTRO de cada set (ej. "100pcs", "100 pcs",
+  "pack of 50", "50 unidades", "juego de 10"). Si el producto es unitario (1 pieza), usa 1.
+- precio_unit = precio de UN set/pack (el que aparece junto a xN), número plano sin miles.
+- subtotal = total de la línea (cantidad × precio_unit del set). Si ves Subtotal/Total de línea, úsalo.
+- Ejemplo: "mascara tubes, 100pcs" a $166.62 x3 → cantidad=3, unidades_por_pack=100,
+  precio_unit=166.62, subtotal=499.86. Unidades reales = 300; el costo por pieza se
+  calculará después como subtotal/300.
+- Números: usa punto decimal y SIN separador de miles (166623.00 o 166.62, no 166.623,00).
 - flete_detectado: número si ves shipping/freight/flete; si no, null.
-- moneda_flete: moneda del flete si es distinta; si no, null.
-- Omite líneas que sean solo impuestos, descuentos o totales generales.
+- Omite impuestos, descuentos genéricos y totales globales del pedido.
 - Sin markdown. Solo JSON.
 """
+
+_RE_PACK = re.compile(
+    r"(?:"
+    r"(\d+)\s*(?:pcs|pc|pieces?|piezas?|uds?|unidades?|units?)\b"
+    r"|"
+    r"(?:pack|set|juego|caja|box|lot)\s*(?:de|of|of\s+)?\s*(\d+)"
+    r"|"
+    r"(\d+)\s*(?:-?\s*)?(?:pack|set|juego|pcs|piezas)"
+    r")",
+    re.IGNORECASE,
+)
 
 
 def _mime_from_bytes(data: bytes) -> str:
@@ -80,20 +100,55 @@ def _extraer_json(texto: str) -> dict[str, Any]:
 
 
 def _num(v: Any, default: float = 0.0) -> float:
+    """Parsea números; soporta formato latam 1.234,56 y US 1,234.56."""
     if v is None or v == "":
         return default
     if isinstance(v, (int, float)):
         return float(v)
-    s = str(v).strip().replace(",", "")
-    s = re.sub(r"[^\d.\-]", "", s)
+    s = str(v).strip()
+    s = re.sub(r"[^\d.,\-]", "", s)
+    if not s or s in "-.,":
+        return default
+    if "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):
+            # 1.234,56 → 1234.56
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            # 1,234.56 → 1234.56
+            s = s.replace(",", "")
+    elif "," in s:
+        # Solo coma: si hay exactamente 3 dígitos tras la coma → miles; si 1-2 → decimal
+        parts = s.split(",")
+        if len(parts[-1]) == 3 and len(parts) == 2 and "." not in s:
+            # ambigua: 166,623 podría ser miles → preferir miles si ≥3 dígitos enteros
+            s = s.replace(",", "")
+        else:
+            s = s.replace(",", ".")
     try:
-        return float(s) if s else default
+        return float(s)
     except ValueError:
         return default
 
 
+def inferir_unidades_por_pack(nombre: str, unidad: str = "", explicit: Any = None) -> float:
+    """Infere piezas por set desde campo explícito o texto (100pcs, pack of 50…)."""
+    if explicit is not None and str(explicit).strip() != "":
+        n = _num(explicit, 0.0)
+        if n > 0:
+            return n
+    blob = f"{nombre} {unidad}"
+    m = _RE_PACK.search(blob)
+    if m:
+        for g in m.groups():
+            if g:
+                n = _num(g, 0.0)
+                if n > 0:
+                    return n
+    return 1.0
+
+
 def normalizar_lineas(raw_lineas: list | None) -> list[dict[str, Any]]:
-    """Normaliza líneas OCR a dicts con cantidad/precio/subtotal coherentes."""
+    """Normaliza líneas OCR; calcula unidades_totales = cantidad × unidades_por_pack."""
     out: list[dict[str, Any]] = []
     for i, item in enumerate(raw_lineas or []):
         if not isinstance(item, dict):
@@ -101,7 +156,12 @@ def normalizar_lineas(raw_lineas: list | None) -> list[dict[str, Any]]:
         nombre = str(item.get("nombre") or item.get("name") or "").strip()
         if not nombre:
             continue
-        cantidad = _num(item.get("cantidad") or item.get("qty"), 0.0)
+        cantidad = _num(
+            item.get("cantidad")
+            if item.get("cantidad") is not None
+            else item.get("qty"),
+            0.0,
+        )
         precio_unit = _num(item.get("precio_unit") or item.get("precio"), 0.0)
         subtotal = _num(item.get("subtotal"), 0.0)
         if subtotal <= 0 and cantidad > 0 and precio_unit > 0:
@@ -113,11 +173,23 @@ def normalizar_lineas(raw_lineas: list | None) -> list[dict[str, Any]]:
         if cantidad <= 0:
             cantidad = 1.0
         unidad = str(item.get("unidad") or item.get("unit") or "un").strip() or "un"
+        upp = inferir_unidades_por_pack(
+            nombre,
+            unidad,
+            item.get("unidades_por_pack")
+            or item.get("pcs_por_set")
+            or item.get("piezas_por_set"),
+        )
+        if upp <= 0:
+            upp = 1.0
+        unidades_totales = round(cantidad * upp, 6)
         out.append(
             {
                 "id": f"L{i + 1}",
                 "nombre": nombre,
                 "cantidad": cantidad,
+                "unidades_por_pack": upp,
+                "unidades_totales": unidades_totales,
                 "unidad": unidad,
                 "precio_unit": precio_unit,
                 "subtotal": subtotal if subtotal > 0 else round(cantidad * precio_unit, 6),
@@ -135,10 +207,12 @@ def calcular_landed(
     moneda_flete: str | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Calcula costo unitario COP por línea.
+    Costo unitario COP por pieza/unidad mínima:
 
-    costo_unitario_cop = (precio_unit * TRM) + (flete_cop * peso_linea) / cantidad
-    peso_linea = subtotal_linea / suma_subtotales (prorrateo por valor).
+    unidades_totales = cantidad_sets × unidades_por_pack
+    costo_unitario_cop = (subtotal_cop + flete_asignado_cop) / unidades_totales
+
+    Flete prorrateado por valor de línea (subtotal).
     """
     mon = (moneda or "USD").strip().upper() or "USD"
     mon_f = (moneda_flete or mon).strip().upper() or mon
@@ -153,7 +227,6 @@ def calcular_landed(
         elif mon_f == mon:
             flete_cop = flete_val * (1.0 if mon == "COP" else rate)
         else:
-            # Moneda de flete distinta: asumir misma TRM que la compra
             flete_cop = flete_val * (1.0 if mon_f == "COP" else rate)
     else:
         flete_cop = 0.0
@@ -162,20 +235,30 @@ def calcular_landed(
     result: list[dict[str, Any]] = []
     for linea in lineas:
         cantidad = max(_num(linea.get("cantidad")), 0.0) or 1.0
+        upp = max(_num(linea.get("unidades_por_pack"), 1.0), 1.0)
+        unidades_totales = max(
+            _num(linea.get("unidades_totales"), 0.0),
+            cantidad * upp,
+            1.0,
+        )
         precio_unit = _num(linea.get("precio_unit"))
         subtotal = max(_num(linea.get("subtotal")), 0.0)
         if subtotal <= 0:
             subtotal = round(cantidad * precio_unit, 6)
         peso = (subtotal / suma) if suma > 0 else (1.0 / len(lineas) if lineas else 0.0)
-        base_cop = precio_unit * (1.0 if mon == "COP" else rate)
-        flete_unit = (flete_cop * peso) / cantidad if flete_cop > 0 else 0.0
-        costo = round(base_cop + flete_unit, 4)
+        subtotal_cop = subtotal * (1.0 if mon == "COP" else rate)
+        flete_asig = flete_cop * peso if flete_cop > 0 else 0.0
+        costo = round((subtotal_cop + flete_asig) / unidades_totales, 4)
         result.append(
             {
                 **linea,
+                "cantidad": cantidad,
+                "unidades_por_pack": upp,
+                "unidades_totales": unidades_totales,
                 "subtotal": subtotal,
                 "peso_flete": round(peso, 6),
-                "flete_asignado_cop": round(flete_cop * peso, 4),
+                "flete_asignado_cop": round(flete_asig, 4),
+                "subtotal_cop": round(subtotal_cop, 4),
                 "costo_unitario_cop": costo,
             }
         )
@@ -247,7 +330,16 @@ def extraer_compra_desde_imagen(
             moneda_flete=mon_flete_eff,
         )
         if lineas and (moneda == "COP" or trm_eff > 0)
-        else [{**l, "peso_flete": 0.0, "flete_asignado_cop": 0.0, "costo_unitario_cop": None} for l in lineas]
+        else [
+            {
+                **l,
+                "peso_flete": 0.0,
+                "flete_asignado_cop": 0.0,
+                "subtotal_cop": None,
+                "costo_unitario_cop": None,
+            }
+            for l in lineas
+        ]
     )
 
     return {

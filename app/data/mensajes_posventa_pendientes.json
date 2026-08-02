@@ -1,36 +1,5 @@
 {
-  "pendientes": {
-    "2000014224218305": {
-      "pack_id": "2000014224218305",
-      "codigo": "305",
-      "comprador": "Comprador 432154240",
-      "from_id": "432154240",
-      "texto": "Es decir ese en polvo se podría utilizar en cabina ?",
-      "msg_id": "019fc027849d79b18a92d22cc8739875",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-01T20:47:30"
-    },
-    "305": {
-      "pack_id": "2000014224218305",
-      "codigo": "305",
-      "comprador": "Comprador 432154240",
-      "from_id": "432154240",
-      "texto": "Es decir ese en polvo se podría utilizar en cabina ?",
-      "msg_id": "019fc027849d79b18a92d22cc8739875",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-01T20:47:30"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019f7304a1a877738ee4b6a2bf6e7c93",
     "019ed2e7f8df7885a568b7e4a2a8a1a3",

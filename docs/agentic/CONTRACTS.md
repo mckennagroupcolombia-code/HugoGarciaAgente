@@ -128,10 +128,13 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 | Endpoint | Metodo | Body | Notas |
 | --- | --- | --- | --- |
 | `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Siigo |
+| `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre) | Hasta 40 matches `{codigo,nombre}` del catálogo Siigo |
 | `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagen`, opcional `trm`, `flete`, `moneda_flete` | Gemini Vision → lineas + landed |
-| `/api/rentabilidad/confirmar-compra-exterior` | POST | `items[{nombre, costo_unitario, categoria?, iva_incluido?}]` | Batch upsert (IVA false por defecto) |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart o JSON: `items`, `moneda`, `trm`, `flete`, `imagen?` | Upsert costos + historial con soporte |
+| `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` |
+| `/api/rentabilidad/compras-exterior/<id>/soporte` | GET | - | Imagen/PDF del pantallazo |
 
-Landed cost: `costo_unitario_cop = precio_unit * TRM + (flete_cop * peso_linea) / cantidad`, `peso_linea = subtotal / suma_subtotales`.
+Landed cost: `costo_unitario_cop = (subtotal_cop + flete_asignado) / (sets × pcs_por_set)`.
 
 ## 5S Panel
 
