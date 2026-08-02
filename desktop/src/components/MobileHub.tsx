@@ -635,8 +635,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
           { panel: "postventa" as Panel, label: "Postventa" },
           { panel: "stock" as Panel, label: "Stock" },
           { panel: "etiquetas" as Panel, label: "Etiquetas" },
-          { panel: "facturas" as Panel, label: "Facturas" },
-          { panel: "sync" as Panel, label: "Sync" },
+          { panel: "facturas" as Panel, label: "Contabilidad" },
         ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (
           <button
             key={s.panel}

@@ -13,6 +13,7 @@ import {
   useReordenarImagenesWeb,
   useReordenarImagenesMeli,
   useEliminarImagenes,
+  useGaleriaPublicaciones,
   type PublicacionItem,
   type SyncStatus,
 } from "../hooks/usePublicaciones";
@@ -1174,9 +1175,138 @@ export function EditorPanel({
   );
 }
 
+// ── Galería de imágenes por SKU ────────────────────────────────────────────
+
+function imgSrcGaleria(url: string, path: string, filename?: string): string {
+  // Preferir ruta local del agente (mismo host que el panel) para que se vean las fotos
+  if (filename) return `/imagenes-productos-catalogo/${encodeURIComponent(filename).replace(/%2F/gi, "")}`;
+  if (url && url.startsWith("/")) return url;
+  if (path && path.startsWith("/")) return path;
+  if (url) return url;
+  if (path.startsWith("http")) return path;
+  return path;
+}
+
+function GaleriaPublicacionesView({
+  onAbrirSku,
+}: {
+  onAbrirSku: (sku: string) => void;
+}) {
+  const [buscar, setBuscar] = useState("");
+  const [q, setQ] = useState("");
+  const { data, isLoading, isFetching, isError, error, refetch } = useGaleriaPublicaciones(q);
+  const items = data?.items ?? [];
+
+  // Vista plana: una tarjeta por imagen con el código SKU bien visible
+  const tarjetas = items.flatMap((it) =>
+    it.imagenes.map((img) => ({
+      sku: it.sku,
+      nombre: it.nombre,
+      img,
+    })),
+  );
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div>
+          <p className="text-sm font-bold text-ink">Galería · imagen + código SKU</p>
+          <p className="text-xs text-muted">
+            Cada tarjeta muestra la foto y el código del producto.
+            {data ? ` · ${data.total_imagenes} fotos · ${data.total_skus} SKUs` : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+        >
+          {isFetching ? "Actualizando…" : "🔄 Actualizar"}
+        </button>
+      </div>
+
+      <form
+        className="flex gap-2 shrink-0"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setQ(buscar.trim());
+        }}
+      >
+        <input
+          type="text"
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          placeholder="Filtrar por SKU o nombre…"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover"
+        >
+          Buscar
+        </button>
+      </form>
+
+      {isLoading && <p className="text-sm text-muted">Cargando galería…</p>}
+      {isError && (
+        <p className="text-sm text-danger">
+          {error instanceof Error ? error.message : "No se pudo cargar la galería"}
+        </p>
+      )}
+      {!isLoading && !isError && tarjetas.length === 0 && (
+        <p className="text-sm text-muted">No hay imágenes enlazadas a SKUs.</p>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {tarjetas.map(({ sku, nombre, img }) => (
+            <button
+              key={`${sku}-${img.filename}`}
+              type="button"
+              onClick={() => onAbrirSku(sku)}
+              title={`${sku} · ${nombre}`}
+              className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel text-left transition hover:border-accent/50 hover:shadow-sm"
+            >
+              <div className="relative aspect-square bg-surface">
+                <img
+                  src={imgSrcGaleria(img.url, img.path, img.filename)}
+                  alt={`${sku} — ${img.filename}`}
+                  loading="lazy"
+                  className="h-full w-full object-contain p-1"
+                  onError={(e) => {
+                    const el = e.currentTarget as HTMLImageElement;
+                    el.style.display = "none";
+                    const fallback = el.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.classList.remove("hidden");
+                  }}
+                />
+                <div className="hidden absolute inset-0 flex items-center justify-center bg-surface text-[11px] text-muted p-2 text-center">
+                  Sin vista previa
+                </div>
+                {img.principal && (
+                  <span className="absolute left-1.5 top-1.5 rounded bg-accent/90 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    Principal
+                  </span>
+                )}
+              </div>
+              <div className="border-t border-border px-2 py-2 space-y-0.5">
+                <p className="font-mono text-xs font-bold text-ink break-all leading-tight">
+                  {sku}
+                </p>
+                <p className="text-[11px] text-muted line-clamp-2 leading-snug">{nombre}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Panel principal ────────────────────────────────────────────────────────
 
-type MainView = "catalogo" | "compliance" | "crear";
+type MainView = "catalogo" | "compliance" | "crear" | "galeria";
 
 export default function PublicacionesPanel() {
   const [mainView, setMainView] = useState<MainView>("catalogo");
@@ -1223,6 +1353,16 @@ export default function PublicacionesPanel() {
           🗂 Catálogo
         </button>
         <button
+          onClick={() => setMainView("galeria")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            mainView === "galeria"
+              ? "bg-violet-600 text-white shadow-sm"
+              : "text-muted hover:text-ink"
+          }`}
+        >
+          🖼 Galería
+        </button>
+        <button
           onClick={() => setMainView("compliance")}
           className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
             mainView === "compliance"
@@ -1243,6 +1383,18 @@ export default function PublicacionesPanel() {
           ✦ Crear desde cero
         </button>
       </div>
+
+      {/* Vista galería */}
+      {mainView === "galeria" && (
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-4">
+          <GaleriaPublicacionesView
+            onAbrirSku={(sku) => {
+              setSelectedSku(sku);
+              setMainView("catalogo");
+            }}
+          />
+        </div>
+      )}
 
       {/* Vista crear desde cero */}
       {mainView === "crear" && (

@@ -12,6 +12,7 @@ import { api } from "../api/client";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import TemasSidebarButton from "./TemasSidebarButton";
 import NavCollapsibleGroup from "./nav/NavCollapsibleGroup";
+import NavContabilidadHub from "./nav/NavContabilidadHub";
 import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import { puedeVerModuloLogistica } from "../lib/logisticaAccess";
 import { NAV_SECTIONS } from "../lib/navStructure";
@@ -302,9 +303,19 @@ export default function Sidebar() {
         ).map((section, idx) => (
           <div key={section.id}>
             {idx > 0 && <Divider />}
-            {!section.collapsible && <SectionLabel>{section.label}</SectionLabel>}
+            {!section.collapsible && !section.hub && <SectionLabel>{section.label}</SectionLabel>}
             <div className="space-y-0.5">
-              {section.collapsible ? (
+              {section.hub ? (
+                <NavContabilidadHub
+                  label={section.label}
+                  items={section.items}
+                  panel={panel}
+                  user={user}
+                  badges={badges}
+                  puedeVer={puedeVerSeccion}
+                  onNavigate={navegarPanel}
+                />
+              ) : section.collapsible ? (
                 <NavCollapsibleGroup
                   label={section.label}
                   items={section.items}
@@ -314,7 +325,7 @@ export default function Sidebar() {
                   badges={badges}
                   puedeVer={puedeVerSeccion}
                   onNavigate={navegarPanel}
-                  badgePanel={section.id === "contabilidad" ? "facturas" : undefined}
+                  badgePanel={undefined}
                 />
               ) : (
                 section.items.map((item) => (

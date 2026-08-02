@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useAppStore } from "../stores/app";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,7 +150,33 @@ interface FacturaHistorial {
   timestamp: string;
 }
 
-type VistaFacturas = "pendientes" | "historial";
+type VistaFacturas = "pendientes" | "historial" | "consultar";
+
+interface CoincidenciaProducto {
+  nombre: string;
+  codigo: string;
+  cantidad?: number | null;
+  unidad?: string;
+  precio_neto?: number | null;
+  precio_unitario?: number | null;
+  subtotal?: number | null;
+}
+
+interface FacturaConsultaResultado {
+  origen: "pendiente" | "historial" | string;
+  id: string;
+  sufijo: string;
+  numero_factura: string;
+  proveedor: string;
+  nit?: string;
+  fecha?: string;
+  total: number;
+  accion?: string | null;
+  estado?: string;
+  timestamp?: string;
+  coincidencias: CoincidenciaProducto[];
+  items_count?: number;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -738,6 +765,15 @@ export default function FacturasCompraPanel() {
   const [accionHistorial, setAccionHistorial] = useState("");
   const [historialAbierto, setHistorialAbierto] = useState<string | null>(null);
   const qc = useQueryClient();
+  const facturasBootSufijo = useAppStore((s) => s.facturasBootSufijo);
+  const setFacturasBootSufijo = useAppStore((s) => s.setFacturasBootSufijo);
+
+  useEffect(() => {
+    if (!facturasBootSufijo) return;
+    setVista("pendientes");
+    setDetalleAbierto(facturasBootSufijo);
+    setFacturasBootSufijo(null);
+  }, [facturasBootSufijo, setFacturasBootSufijo]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["facturas-pendientes"],
@@ -825,9 +861,22 @@ export default function FacturasCompraPanel() {
         >
           Historial
         </button>
+        <button
+          type="button"
+          onClick={() => setVista("consultar")}
+          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+            vista === "consultar"
+              ? "bg-accent text-white"
+              : "border border-border bg-surface-panel text-muted hover:text-ink"
+          }`}
+        >
+          Consultar factura
+        </button>
       </div>
 
-      {vista === "historial" ? (
+      {vista === "consultar" ? (
+        <ConsultarFacturaPorProducto onAbrirPendiente={setDetalleAbierto} />
+      ) : vista === "historial" ? (
         <HistorialFacturas
           items={historial}
           total={historialQuery.data?.total ?? 0}
@@ -978,7 +1027,7 @@ function HistorialFacturas({
             type="search"
             value={filtro}
             onChange={(e) => onFiltroChange(e.target.value)}
-            placeholder="Buscar factura o proveedor…"
+            placeholder="Buscar factura, proveedor o producto…"
             className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <select
@@ -1120,6 +1169,290 @@ function HistorialFacturas({
       {total > items.length && (
         <p className="text-center text-xs text-muted">
           Mostrando {items.length} de {total} registros
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function ConsultarFacturaPorProducto({
+  onAbrirPendiente,
+  compact = false,
+}: {
+  onAbrirPendiente?: (sufijo: string) => void;
+  /** Sin tarjeta de título (para usar dentro de un modal). */
+  compact?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [anio, setAnio] = useState<"todos" | "2025" | "2026">("todos");
+  const [indiceMsg, setIndiceMsg] = useState<string | null>(null);
+  const [indiceLoading, setIndiceLoading] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(q.trim()), 320);
+    return () => window.clearTimeout(t);
+  }, [q]);
+
+  const anioParam = anio === "todos" ? "" : `&anio=${anio}`;
+
+  const consulta = useQuery({
+    queryKey: ["facturas-consultar", debounced, anio],
+    queryFn: () =>
+      api.get<{
+        ok: boolean;
+        q: string;
+        anio?: number | null;
+        resultados: FacturaConsultaResultado[];
+        total: number;
+        mostrando: number;
+        mensaje?: string;
+        avisos?: string[];
+        indices?: Record<string, { listo?: boolean; facturas?: number; actualizado?: string | null }>;
+      }>(`/api/facturas/consultar?q=${encodeURIComponent(debounced)}&limit=50${anioParam}`, {
+        timeoutMs: 180_000,
+      }),
+    enabled: debounced.length >= 2,
+    staleTime: 20_000,
+  });
+
+  const cargarIndice2025 = async () => {
+    setIndiceLoading(true);
+    setIndiceMsg(null);
+    try {
+      const res = await api.post<{
+        ok?: boolean;
+        facturas?: number;
+        mensaje?: string;
+        error?: string;
+      }>("/api/facturas/consultar/indice", { anio: 2025, forzar: true }, { timeoutMs: 300_000 });
+      setIndiceMsg(res.mensaje || `Índice 2025: ${res.facturas ?? 0} factura(s).`);
+      if (debounced.length >= 2) {
+        await consulta.refetch();
+      }
+    } catch (e) {
+      setIndiceMsg((e as Error).message || "No se pudo cargar el índice 2025");
+    } finally {
+      setIndiceLoading(false);
+    }
+  };
+
+  const resultados = consulta.data?.resultados ?? [];
+  const avisos = consulta.data?.avisos ?? [];
+  const idx2025 = consulta.data?.indices?.["2025"];
+
+  return (
+    <div className="space-y-4">
+      <div className={compact ? "space-y-3" : "rounded-xl border-2 border-border bg-surface-panel p-4"}>
+        {!compact && (
+          <>
+            <h2 className="text-lg font-bold text-ink">Consultar factura</h2>
+            <p className="mt-1 text-sm text-muted">
+              Busca facturas de proveedores por nombre o código (pendientes, historial y archivo 2025).
+            </p>
+          </>
+        )}
+        {compact && (
+          <p className="text-sm text-muted">
+            Busca por nombre o código en facturas de proveedores (incluye archivo 2025).
+          </p>
+        )}
+        <div className={`flex flex-wrap gap-1 ${compact ? "" : "mt-3"}`}>
+          {([
+            { id: "todos" as const, label: "Todos" },
+            { id: "2025" as const, label: "2025" },
+            { id: "2026" as const, label: "2026" },
+          ]).map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setAnio(opt.id)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                anio === opt.id
+                  ? "bg-accent text-white"
+                  : "border border-border bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void cargarIndice2025()}
+            disabled={indiceLoading}
+            className="rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-800 hover:border-orange-500 disabled:opacity-50 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200"
+            title="Indexa facturas 2025 desde Gmail/local para poder consultarlas"
+          >
+            {indiceLoading ? "Indexando 2025…" : "Cargar archivo 2025"}
+          </button>
+        </div>
+        {(indiceMsg || idx2025?.listo) && (
+          <p className="text-[11px] text-muted">
+            {indiceMsg
+              || (idx2025?.listo
+                ? `Archivo 2025 listo: ${idx2025.facturas ?? 0} factura(s)${idx2025.actualizado ? ` · ${idx2025.actualizado.slice(0, 16)}` : ""}`
+                : null)}
+          </p>
+        )}
+        <div className={compact ? "flex flex-wrap gap-2" : "mt-3 flex flex-wrap gap-2"}>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Ej. creatina, mentol, ALULOSA…"
+            autoFocus
+            className="min-w-[240px] flex-1 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+          />
+        </div>
+        {debounced.length > 0 && debounced.length < 2 && (
+          <p className="mt-2 text-xs text-muted">Escribe al menos 2 caracteres.</p>
+        )}
+      </div>
+
+      {consulta.isFetching && (
+        <p className="text-sm text-muted text-center py-8">Buscando…</p>
+      )}
+
+      {consulta.error && (
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {consulta.error instanceof Error ? consulta.error.message : "Error al consultar"}
+        </div>
+      )}
+
+      {avisos.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          {avisos[0]}
+        </div>
+      )}
+
+      {!consulta.isFetching && debounced.length >= 2 && !consulta.error && resultados.length === 0 && (
+        <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
+          <p className="text-base font-semibold text-ink">Sin coincidencias</p>
+          <p className="mt-1 text-sm text-muted">
+            No hay facturas{anio !== "todos" ? ` de ${anio}` : ""} con producto que coincida con «{debounced}».
+            {anio !== "2026" && (
+              <>
+                {" "}
+                Si faltan las de 2025, pulsa <strong>Cargar archivo 2025</strong>.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+      {debounced.length < 2 && !consulta.isFetching && (
+        <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
+          <p className="text-sm text-muted">
+            Escribe el nombre del producto para ver en qué facturas de proveedores aparece.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {resultados.map((row) => {
+          const expandido = abierto === row.id;
+          const origen = String(row.origen || "");
+          const acc =
+            origen === "pendiente"
+              ? { label: "En cola", cls: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200" }
+              : origen.startsWith("gmail-") || origen.startsWith("archivo-")
+                ? {
+                    label: origen.includes("2025") ? "Archivo 2025" : "Archivo",
+                    cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+                  }
+                : ACCION_HISTORIAL[row.accion || ""] || {
+                    label: row.accion || "Historial",
+                    cls: "bg-surface-hover text-muted",
+                  };
+          return (
+            <div key={row.id} className="rounded-xl border border-border bg-surface-panel overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setAbierto((prev) => (prev === row.id ? null : row.id))}
+                className="w-full px-4 py-3 text-left hover:bg-surface-hover/60 transition"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-ink">{row.numero_factura}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${acc.cls}`}>
+                        {acc.label}
+                      </span>
+                      {row.sufijo && (
+                        <span className="font-mono text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                          #{row.sufijo}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-ink-secondary truncate">{row.proveedor}</p>
+                    <p className="text-[11px] text-muted mt-0.5">
+                      {row.coincidencias.length} producto(s) coincidente(s)
+                      {row.fecha ? ` · ${row.fecha}` : ""}
+                      {row.timestamp ? ` · ${fmtFecha(row.timestamp)}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-ink">{cop(Number(row.total) || 0)}</p>
+                    <p className="text-[10px] text-muted">{row.items_count ?? 0} ítems</p>
+                  </div>
+                </div>
+              </button>
+              {expandido && (
+                <div className="border-t border-border px-4 py-3 space-y-3 bg-surface/40">
+                  {row.origen === "pendiente" && row.sufijo && onAbrirPendiente && (
+                    <button
+                      type="button"
+                      onClick={() => onAbrirPendiente(row.sufijo)}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white"
+                    >
+                      Abrir factura pendiente
+                    </button>
+                  )}
+                  <div className="max-h-[min(50vh,420px)] overflow-auto rounded-lg border border-border">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 z-10 border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted [&_th]:sticky [&_th]:top-0 [&_th]:bg-surface-hover">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Producto</th>
+                          <th className="px-3 py-2 text-left">Código</th>
+                          <th className="px-3 py-2 text-right">Cant.</th>
+                          <th className="px-3 py-2 text-right">Precio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {row.coincidencias.map((c, i) => (
+                          <tr key={`${c.nombre}-${i}`} className="border-b border-border/50 last:border-0">
+                            <td className="px-3 py-2 text-ink font-medium">{c.nombre}</td>
+                            <td className="px-3 py-2 font-mono text-muted">{c.codigo || "—"}</td>
+                            <td className="px-3 py-2 text-right font-mono text-muted">
+                              {c.cantidad != null
+                                ? `${fmtDec(Number(c.cantidad))} ${c.unidad || ""}`.trim()
+                                : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-right font-mono text-ink">
+                              {c.precio_neto != null && Number(c.precio_neto) > 0
+                                ? copUnit(Number(c.precio_neto), c.unidad)
+                                : c.precio_unitario != null && Number(c.precio_unitario) > 0
+                                  ? copUnit(Number(c.precio_unitario), c.unidad)
+                                  : c.subtotal != null
+                                    ? cop(Number(c.subtotal))
+                                    : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {(consulta.data?.total ?? 0) > resultados.length && (
+        <p className="text-center text-xs text-muted">
+          Mostrando {resultados.length} de {consulta.data?.total} facturas
         </p>
       )}
     </div>

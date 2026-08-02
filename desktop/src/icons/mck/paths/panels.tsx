@@ -101,6 +101,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <circle cx="17" cy="17" r="2" />
     </>
   ),
+  "compras-exterior": (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v2.5M12 13.5V16" />
+      <path d="M8 12h8" />
+      <path d="M3 12h2M19 12h2" />
+    </>
+  ),
   "centros-costo": (
     <>
       <circle cx="12" cy="12" r="8" />

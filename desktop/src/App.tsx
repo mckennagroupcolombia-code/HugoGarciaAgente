@@ -13,15 +13,10 @@ const Chat = lazy(() => import("./components/Chat"));
 const VozIA = lazy(() => import("./components/VozIA"));
 const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
 const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
-const SyncPanel = lazy(() => import("./components/SyncPanel"));
 const StockPanel = lazy(() => import("./components/StockPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
-const FacturasCompraPanel = lazy(() => import("./components/FacturasCompraPanel"));
-const CostosProductosPanel = lazy(() => import("./components/CostosProductosPanel"));
-const CentroCostosPanel = lazy(() => import("./components/CentroCostosPanel"));
-const RentabilidadPanel = lazy(() => import("./components/RentabilidadPanel"));
-const RRHHPanel = lazy(() => import("./components/RRHHPanel"));
+const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
@@ -49,8 +44,8 @@ import {
 import { googleAuthStartUrl, isMcKennaAndroidApp, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
-import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
-import { LOGISTICA_PANELS, puedeVerModuloLogistica } from "./lib/logisticaAccess";
+import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
+import { puedeVerModuloLogistica } from "./lib/logisticaAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -92,23 +87,18 @@ function PanelRouterInner() {
     case "postventa":
       return <PostventaPanel />;
     case "sync":
-      return <SyncPanel />;
+    case "facturas":
+    case "costos-productos":
+    case "rentabilidad":
+    case "compras-exterior":
+    case "rrhh":
+      return <ContabilidadPanel />;
     case "stock":
       return <StockPanel />;
     case "fichas":
       return <FichasTecnicasPanel />;
     case "pedidos":
       return <PedidosWebPanel />;
-    case "facturas":
-      return <FacturasCompraPanel />;
-    case "costos-productos":
-      return <CostosProductosPanel />;
-    case "centros-costo":
-      return <CentroCostosPanel />;
-    case "rentabilidad":
-      return <RentabilidadPanel />;
-    case "rrhh":
-      return <RRHHPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -130,7 +120,7 @@ function PanelRouterInner() {
     case "perfil":
       return <PerfilPanel />;
     default:
-      return <Dashboard />;
+      return esPanelContabilidad(panel) ? <ContabilidadPanel /> : <Dashboard />;
   }
 }
 

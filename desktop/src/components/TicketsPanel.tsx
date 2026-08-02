@@ -6280,8 +6280,9 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   ];
                   const SECCIONES_CONTABILIDAD: { id: string; label: string }[] = [
                     { id: "facturas",      label: "Facturas de compra" },
-                    { id: "centros-costo", label: "Centro de costos (con Facturas/Sync)" },
                     { id: "sync",          label: "Sincronización" },
+                    { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
+                    { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;

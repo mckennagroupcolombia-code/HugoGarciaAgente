@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
+import { ConsultarFacturaPorProducto } from "./FacturasCompraPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -151,12 +152,24 @@ function haceNDias(n: number): string {
 }
 
 const CATEGORIA_LABELS: Record<string, string> = {
-  material: "Material",
+  material: "Materia prima",
   envase: "Envase",
   etiqueta: "Etiqueta",
-  empaque: "Empaque",
+  embalaje: "Embalaje",
+  empaque: "Embalaje",
   operativo: "Operativo",
 };
+
+/** Contenedor con scroll vertical; títulos de tabla quedan fijos al hacer scroll. */
+const TABLE_SCROLL =
+  "max-h-[min(70vh,640px)] overflow-auto rounded-xl border border-border bg-surface-panel";
+const TABLE_SCROLL_PAPER =
+  "max-h-[min(70vh,640px)] overflow-auto rounded-paper border-2 border-border";
+/** Sticky en <th> (más fiable que sticky en <thead> en algunos navegadores). */
+const THEAD_STICKY =
+  "border-b border-border bg-surface-hover shadow-[0_1px_0_0_var(--color-border,rgba(0,0,0,0.08))] [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-surface-hover";
+const THEAD_STICKY_NESTED =
+  "border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-surface-hover";
 
 const TIPO_SERVICIO_LABELS: Record<string, string> = {
   luz: "Luz",
@@ -449,7 +462,7 @@ function TabCombos() {
           {autofillPreview.componentes.length > 0 && (
             <div className="max-h-48 overflow-y-auto rounded border border-border text-xs">
               <table className="w-full">
-                <thead className="sticky top-0 bg-surface-hover text-[10px] font-bold uppercase text-muted">
+                <thead className={`${THEAD_STICKY} text-[10px] font-bold uppercase text-muted`}>
                   <tr>
                     <th className="px-2 py-1.5 text-left">Componente</th>
                     <th className="px-2 py-1.5 text-right">Combos</th>
@@ -528,16 +541,16 @@ function TabCombos() {
       )}
 
       {!loading && productosFiltrados.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
+        <div className={TABLE_SCROLL}>
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-surface-hover">
+            <thead className={THEAD_STICKY}>
               <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio</th>
-                <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-muted">Comp.</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
-                <th className="w-8 px-2 py-3"></th>
+                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
+                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
+                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio</th>
+                <th className="bg-surface-hover px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-muted">Comp.</th>
+                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
+                <th className="w-8 bg-surface-hover px-2 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -612,18 +625,18 @@ function TabCombos() {
                     {isExpanded && desglose && (
                       <tr className="border-b border-border/50">
                         <td colSpan={6} className="px-4 pb-4 pt-2">
-                          <div className="overflow-hidden rounded-lg border border-border">
+                          <div className="max-h-72 overflow-auto rounded-lg border border-border">
                             <table className="w-full text-xs">
-                              <thead className="border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted">
+                              <thead className={THEAD_STICKY_NESTED}>
                                 <tr>
-                                  <th className="px-3 py-2 text-left">Componente</th>
-                                  <th className="px-3 py-2 text-left">Código</th>
-                                  <th className="px-3 py-2 text-center">Categoría</th>
-                                  <th className="px-3 py-2 text-right">Cant.</th>
-                                  <th className="px-3 py-2 text-right">Costo unit.</th>
-                                  <th className="px-3 py-2 text-right">Total</th>
-                                  <th className="px-3 py-2 text-center">Fuente</th>
-                                  <th className="px-3 py-2 w-16"></th>
+                                  <th className="bg-surface-hover px-3 py-2 text-left">Componente</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-left">Código</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-center">Categoría</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Cant.</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Costo unit.</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Total</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-center">Fuente</th>
+                                  <th className="w-16 bg-surface-hover px-3 py-2"></th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -757,10 +770,10 @@ function TabCombos() {
                             </table>
                             <div className="flex flex-wrap gap-4 border-t border-border bg-surface-hover px-3 py-2 text-[11px]">
                               {[
-                                { label: "Materias primas", val: desglose.totales.costo_materiales },
+                                { label: "Materia prima", val: desglose.totales.costo_materiales },
                                 { label: "Envase", val: desglose.totales.costo_envase },
                                 { label: "Etiqueta", val: desglose.totales.costo_etiqueta },
-                                { label: "Otros", val: desglose.totales.otros_costos },
+                                { label: "Embalaje", val: desglose.totales.otros_costos },
                                 ...(desglose.totales.costo_nomina > 0
                                   ? [{ label: "Nómina", val: desglose.totales.costo_nomina }]
                                   : []),
@@ -1048,15 +1061,15 @@ function TabNomina() {
       )}
 
       {empleados.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
+        <div className={TABLE_SCROLL}>
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-surface-hover text-[11px] font-bold uppercase tracking-wide text-muted">
+            <thead className={`${THEAD_STICKY} text-[11px] font-bold uppercase tracking-wide text-muted`}>
               <tr>
-                <th className="px-4 py-2.5 text-left">Nombre</th>
-                <th className="px-4 py-2.5 text-left hidden sm:table-cell">Cargo · Contrato</th>
-                <th className="px-4 py-2.5 text-right">Sueldo</th>
-                <th className="px-4 py-2.5 text-center">Pago</th>
-                <th className="px-4 py-2.5"></th>
+                <th className="bg-surface-hover px-4 py-2.5 text-left">Nombre</th>
+                <th className="hidden bg-surface-hover px-4 py-2.5 text-left sm:table-cell">Cargo · Contrato</th>
+                <th className="bg-surface-hover px-4 py-2.5 text-right">Sueldo</th>
+                <th className="bg-surface-hover px-4 py-2.5 text-center">Pago</th>
+                <th className="bg-surface-hover px-4 py-2.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -1529,15 +1542,15 @@ function TabPeriodo() {
               {hayUtilidades && (
                 <p className="text-xs text-muted">* Utilidad estimada según costos guardados en la Calculadora.</p>
               )}
-              <div className="overflow-x-auto overflow-hidden rounded-xl border border-border bg-surface-panel">
+              <div className={`min-w-0 ${TABLE_SCROLL}`}>
                 <table className="w-full min-w-[500px] text-left text-sm">
-                  <thead className="border-b border-border bg-surface-hover text-[11px] font-bold uppercase tracking-wide text-muted">
+                  <thead className={`${THEAD_STICKY} text-[11px] font-bold uppercase tracking-wide text-muted`}>
                     <tr>
-                      <th className="px-4 py-2.5">#</th>
-                      <th className="px-4 py-2.5">Producto</th>
-                      <th className="px-4 py-2.5 text-right">Unid.</th>
-                      <th className="px-4 py-2.5 text-right">Facturado</th>
-                      {hayUtilidades && <th className="px-4 py-2.5 text-right">Utilidad*</th>}
+                      <th className="bg-surface-hover px-4 py-2.5">#</th>
+                      <th className="bg-surface-hover px-4 py-2.5">Producto</th>
+                      <th className="bg-surface-hover px-4 py-2.5 text-right">Unid.</th>
+                      <th className="bg-surface-hover px-4 py-2.5 text-right">Facturado</th>
+                      {hayUtilidades && <th className="bg-surface-hover px-4 py-2.5 text-right">Utilidad*</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1905,15 +1918,15 @@ function TabPrecios() {
       )}
 
       {!loading && productosFiltrados.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
+        <div className={TABLE_SCROLL}>
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-surface-hover">
+            <thead className={THEAD_STICKY}>
               <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
-                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio MercadoLibre</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted"></th>
+                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
+                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
+                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
+                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio MercadoLibre</th>
+                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted"></th>
               </tr>
             </thead>
             <tbody>
@@ -2178,12 +2191,1092 @@ function TabPrecios() {
   );
 }
 
+// ─── Tab: Cobros MeLi (cargo por venta / envío) ───────────────────────────────
+
+interface CobroMeliItem {
+  sku: string;
+  nombre: string;
+  meli_id: string;
+  precio_meli: number | null;
+  cargo_venta: number | null;
+  cargo_envio: number | null;
+  pct_venta: number | null;
+  neto_estimado: number | null;
+  free_shipping?: boolean | null;
+  envio_a_cargo_comprador?: boolean | null;
+  fuente?: string | null;
+  error?: string | null;
+}
+
+interface CobrosMeliResp {
+  items: CobroMeliItem[];
+  totales: { cargo_venta: number; cargo_envio: number; precio: number };
+  actualizado_en?: string | null;
+  total: number;
+  cache_hit?: boolean;
+  error?: string;
+}
+
+function TabCobrosMeli() {
+  const [buscar, setBuscar] = useState("");
+  const [q, setQ] = useState("");
+  const [data, setData] = useState<CobrosMeliResp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargar = useCallback(async (opts?: { buscar?: string; refresh?: boolean }) => {
+    const busqueda = opts?.buscar ?? q;
+    const refresh = Boolean(opts?.refresh);
+    setFetching(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (busqueda) params.set("buscar", busqueda);
+      if (refresh) params.set("refresh", "1");
+      const qs = params.toString();
+      const resp = await api.get<CobrosMeliResp>(
+        `/api/rentabilidad/cobros-meli${qs ? `?${qs}` : ""}`,
+        { timeoutMs: 120_000 },
+      );
+      setData(resp);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setFetching(false);
+    }
+  }, [q]);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+
+  const items = data?.items ?? [];
+  const totales = data?.totales;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">
+        Igual que en el panel de publicaciones de Mercado Libre:{" "}
+        <strong className="text-ink">cargo por venta</strong> (“Pagarás $X por venta”) y{" "}
+        <strong className="text-ink">Envíos en Mercado Libre</strong> (“pagarás $X”).
+        No incluye el crédito de Envíos Flex (“recibirás hasta”). La primera carga puede tardar; luego ~1 h de caché.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setQ(buscar.trim());
+              void cargar({ buscar: buscar.trim() });
+            }
+          }}
+          placeholder="Buscar SKU, nombre o MCO…"
+          className="min-w-[200px] flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setQ(buscar.trim());
+            void cargar({ buscar: buscar.trim() });
+          }}
+          className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
+        >
+          Buscar
+        </button>
+        <button
+          type="button"
+          disabled={fetching}
+          onClick={() => void cargar({ refresh: true })}
+          className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent disabled:opacity-40"
+        >
+          {fetching ? "Actualizando…" : "Actualizar desde MeLi"}
+        </button>
+      </div>
+
+      {data?.actualizado_en && (
+        <p className="text-[11px] text-muted">
+          Actualizado: {data.actualizado_en}
+          {data.cache_hit ? " (caché)" : ""} · {data.total ?? items.length} publicaciones
+        </p>
+      )}
+      {(error || data?.error) && (
+        <p className="text-sm text-danger">{error || data?.error}</p>
+      )}
+
+      {totales && items.length > 0 && (
+        <div className="flex flex-wrap gap-4 rounded-paper border-2 border-border bg-surface-hover px-4 py-3 text-sm">
+          <span className="text-muted">
+            Precio listado: <span className="font-semibold text-ink">{cop(totales.precio)}</span>
+          </span>
+          <span className="text-muted">
+            Cargo por venta: <span className="font-semibold text-ink">{cop(totales.cargo_venta)}</span>
+          </span>
+          <span className="text-muted">
+            Envíos MeLi (pagarás): <span className="font-semibold text-ink">{cop(totales.cargo_envio)}</span>
+          </span>
+        </div>
+      )}
+
+      {loading && !data ? (
+        <p className="animate-pulse text-sm text-muted">Consultando cobros en Mercado Libre…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted">No hay publicaciones con meli_id o sin resultados para la búsqueda.</p>
+      ) : (
+        <div className={TABLE_SCROLL_PAPER}>
+          <table className="w-full min-w-[720px] text-sm">
+            <thead className={`${THEAD_STICKY} text-left text-[11px] uppercase tracking-wide text-muted`}>
+              <tr>
+                <th className="bg-surface-hover px-3 py-2">Producto</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Precio MeLi</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Cargo por venta</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">% venta</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Envíos MeLi (pagarás)</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Neto est.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr key={row.meli_id} className="border-t border-border/70">
+                  <td className="px-3 py-2">
+                    <div className="font-semibold text-ink">{row.nombre}</div>
+                    <div className="text-[11px] text-muted">
+                      {row.sku} · {row.meli_id}
+                      {row.envio_a_cargo_comprador
+                        ? " · envío a cargo del comprador"
+                        : row.free_shipping
+                          ? " · envío gratis"
+                          : ""}
+                      {row.error ? ` · ${row.error}` : ""}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {row.precio_meli != null ? cop(row.precio_meli) : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {row.cargo_venta != null ? cop(row.cargo_venta) : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">
+                    {row.pct_venta != null ? `${(row.pct_venta * 100).toFixed(1)}%` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {row.cargo_envio != null ? cop(row.cargo_envio) : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-ink">
+                    {row.neto_estimado != null ? cop(row.neto_estimado) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tab: Ganancia (precio − costo real − cobros MeLi) ────────────────────────
+
+interface GananciaItem {
+  sku: string;
+  nombre: string;
+  meli_id: string;
+  precio_venta: number | null;
+  costo_real: number | null;
+  sin_costo?: number | null;
+  cargo_venta: number | null;
+  cargo_envio: number | null;
+  cobros_meli: number | null;
+  ganancia: number | null;
+  margen_pct: number | null;
+  free_shipping?: boolean | null;
+}
+
+interface GananciaResp {
+  items: GananciaItem[];
+  total: number;
+  con_ganancia?: number;
+  actualizado_en?: string | null;
+  cache_hit?: boolean;
+  totales: {
+    precio_venta: number;
+    costo_real: number;
+    cobros_meli: number;
+    ganancia: number;
+  };
+}
+
+function TabGanancia() {
+  const [buscar, setBuscar] = useState("");
+  const [q, setQ] = useState("");
+  const [data, setData] = useState<GananciaResp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [desgloses, setDesgloses] = useState<Record<string, ComboDesglose>>({});
+  const [loadingDesgloses, setLoadingDesgloses] = useState<Set<string>>(new Set());
+  const [desgloseError, setDesgloseError] = useState<Record<string, string>>({});
+  const [editandoCostos, setEditandoCostos] = useState<Record<string, string>>({});
+  const [guardandoCostos, setGuardandoCostos] = useState<Record<string, boolean>>({});
+  const [ivaIncluidoKeys, setIvaIncluidoKeys] = useState<Set<string>>(new Set());
+  const [siigoCostoResult, setSiigoCostoResult] = useState<Record<string, { ok: boolean; msg: string }>>({});
+
+  const cargar = useCallback(async (busqueda?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      const b = busqueda ?? q;
+      if (b) params.set("buscar", b);
+      const qs = params.toString();
+      const resp = await api.get<GananciaResp>(
+        `/api/rentabilidad/ganancia${qs ? `?${qs}` : ""}`,
+        { timeoutMs: 120_000 },
+      );
+      setData(resp);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [q]);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+
+  const toggleDesglose = async (sku: string) => {
+    const code = sku.trim().toUpperCase();
+    if (!code) return;
+    if (expandidos.has(code)) {
+      setExpandidos((prev) => {
+        const s = new Set(prev);
+        s.delete(code);
+        return s;
+      });
+      return;
+    }
+    setExpandidos((prev) => new Set(prev).add(code));
+    if (desgloses[code]) return;
+    setLoadingDesgloses((prev) => new Set(prev).add(code));
+    setDesgloseError((prev) => {
+      const n = { ...prev };
+      delete n[code];
+      return n;
+    });
+    try {
+      const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${encodeURIComponent(code)}`);
+      setDesgloses((prev) => ({ ...prev, [code]: d }));
+    } catch (e) {
+      setDesgloseError((prev) => ({ ...prev, [code]: (e as Error).message }));
+    } finally {
+      setLoadingDesgloses((prev) => {
+        const s = new Set(prev);
+        s.delete(code);
+        return s;
+      });
+    }
+  };
+
+  const guardarCostoComponente = async (
+    nombre: string,
+    categoria: string,
+    costoStr: string,
+    parentCode: string,
+    ivaIncluido: boolean,
+  ) => {
+    const costo = parseFloat(costoStr);
+    if (isNaN(costo) || costo <= 0) return;
+    const key = `${parentCode}::${nombre}`;
+    setGuardandoCostos((prev) => ({ ...prev, [key]: true }));
+    try {
+      const res = await api.post<{ siigo?: { ok: boolean; msg: string } }>(
+        "/api/rentabilidad/componentes",
+        { nombre, costo_unitario: costo, categoria, iva_incluido: ivaIncluido },
+      );
+      if (res.siigo) {
+        setSiigoCostoResult((prev) => ({ ...prev, [key]: res.siigo! }));
+        setTimeout(
+          () => setSiigoCostoResult((prev) => {
+            const n = { ...prev };
+            delete n[key];
+            return n;
+          }),
+          6000,
+        );
+      }
+      const d = await api.get<ComboDesglose>(
+        `/api/rentabilidad/combo-costos/${encodeURIComponent(parentCode)}`,
+      );
+      setDesgloses((prev) => ({ ...prev, [parentCode]: d }));
+      // Recalcula ganancia/costo real del listado con el nuevo costo
+      await cargar();
+    } catch (e) {
+      setDesgloseError((prev) => ({
+        ...prev,
+        [parentCode]: (e as Error).message || "No se pudo guardar el costo",
+      }));
+    } finally {
+      setGuardandoCostos((prev) => ({ ...prev, [key]: false }));
+      setEditandoCostos((prev) => {
+        const n = { ...prev };
+        delete n[key];
+        return n;
+      });
+      setIvaIncluidoKeys((prev) => {
+        const s = new Set(prev);
+        s.delete(key);
+        return s;
+      });
+    }
+  };
+
+  const items = data?.items ?? [];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">
+        <strong className="text-ink">Ganancia</strong> = precio de venta − costo real del producto − cobros MeLi
+        (cargo por venta + Envíos MeLi). Haz clic en <strong className="text-ink">Costo real</strong> para ver
+        y <strong className="text-ink">ajustar el precio</strong> de cada componente.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setQ(buscar.trim());
+              void cargar(buscar.trim());
+            }
+          }}
+          placeholder="Buscar SKU, nombre o MCO…"
+          className="min-w-[200px] flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setQ(buscar.trim());
+            void cargar(buscar.trim());
+          }}
+          className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
+        >
+          Buscar
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void cargar()}
+          className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent disabled:opacity-40"
+        >
+          {loading ? "Cargando…" : "Actualizar"}
+        </button>
+      </div>
+
+      {data?.actualizado_en && (
+        <p className="text-[11px] text-muted">
+          Cobros MeLi: {data.actualizado_en}
+          {data.cache_hit ? " (caché)" : ""} · {data.con_ganancia ?? 0}/{data.total} con ganancia completa
+        </p>
+      )}
+      {error && <p className="text-sm text-danger">{error}</p>}
+
+      {loading && !data ? (
+        <p className="animate-pulse text-sm text-muted">Calculando ganancia…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted">
+          Sin datos. Abre Cobros MeLi y pulsa «Actualizar desde MeLi», luego vuelve aquí.
+        </p>
+      ) : (
+        <div className={TABLE_SCROLL_PAPER}>
+          <table className="w-full min-w-[800px] text-sm">
+            <thead className={`${THEAD_STICKY} text-left text-[11px] uppercase tracking-wide text-muted`}>
+              <tr>
+                <th className="bg-surface-hover px-3 py-2">Producto</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Precio venta</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Costo real</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Cobros MeLi</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Ganancia</th>
+                <th className="bg-surface-hover px-3 py-2 text-right">Margen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => {
+                const code = (row.sku || "").trim().toUpperCase();
+                const isExpanded = expandidos.has(code);
+                const desglose = desgloses[code];
+                const isLoadingThis = loadingDesgloses.has(code);
+                const errDesg = desgloseError[code];
+                return (
+                  <Fragment key={row.meli_id || row.sku}>
+                    <tr className="border-t border-border/70">
+                      <td className="px-3 py-2">
+                        <div className="font-semibold text-ink">{row.nombre}</div>
+                        <div className="text-[11px] text-muted">
+                          {row.sku} · {row.meli_id}
+                          {row.sin_costo ? ` · ${row.sin_costo} comp. sin costo` : ""}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink">
+                        {row.precio_venta != null ? cop(row.precio_venta) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          disabled={!code}
+                          onClick={() => void toggleDesglose(code)}
+                          className={`inline-flex items-center gap-1 tabular-nums font-semibold transition ${
+                            code
+                              ? "text-accent hover:underline"
+                              : "cursor-default text-muted"
+                          }`}
+                          title="Ver desglose de costo real"
+                        >
+                          {row.costo_real != null ? cop(row.costo_real) : "—"}
+                          {code && (
+                            <span className={`text-xs transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                              ▾
+                            </span>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink">
+                        {row.cobros_meli != null ? (
+                          <span title={`Venta ${row.cargo_venta ?? "—"} + Envío ${row.cargo_envio ?? "—"}`}>
+                            {cop(row.cobros_meli)}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td
+                        className={`px-3 py-2 text-right tabular-nums font-bold ${
+                          row.ganancia == null
+                            ? "text-muted"
+                            : row.ganancia >= 0
+                              ? "text-emerald-600"
+                              : "text-danger"
+                        }`}
+                      >
+                        {row.ganancia != null ? cop(row.ganancia) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted">
+                        {row.margen_pct != null ? `${(row.margen_pct * 100).toFixed(1)}%` : "—"}
+                      </td>
+                    </tr>
+
+                    {isExpanded && isLoadingThis && (
+                      <tr className="border-b border-border/50 bg-surface-hover/40">
+                        <td colSpan={6} className="px-4 py-3 text-center text-xs text-muted">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                            Cargando desglose de costo real…
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {isExpanded && errDesg && !isLoadingThis && (
+                      <tr className="border-b border-border/50 bg-surface-hover/40">
+                        <td colSpan={6} className="px-4 py-3 text-sm text-danger">
+                          No se pudo cargar el desglose: {errDesg}
+                        </td>
+                      </tr>
+                    )}
+
+                    {isExpanded && desglose && !isLoadingThis && (
+                      <tr className="border-b border-border/50 bg-surface-hover/30">
+                        <td colSpan={6} className="px-4 pb-4 pt-2">
+                          <p className="mb-2 text-[11px] text-muted">
+                            Ajusta el costo unitario de cada componente. El cambio aplica a todos los combos
+                            que lo usen y recalcula la ganancia.
+                          </p>
+                          <div className="max-h-72 overflow-auto rounded-lg border border-border">
+                            <table className="w-full text-xs">
+                              <thead className={THEAD_STICKY_NESTED}>
+                                <tr>
+                                  <th className="bg-surface-hover px-3 py-2 text-left">Componente</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-left">Código</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-center">Categoría</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Cant.</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Costo unit.</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-right">Total</th>
+                                  <th className="bg-surface-hover px-3 py-2 text-center">Fuente</th>
+                                  <th className="w-28 bg-surface-hover px-3 py-2"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {desglose.componentes.map((c) => {
+                                  const key = `${code}::${c.nombre}`;
+                                  const editVal = editandoCostos[key];
+                                  const isEditing = editVal !== undefined;
+                                  return (
+                                    <tr
+                                      key={c.nombre}
+                                      className={`border-b border-border/40 last:border-0 ${
+                                        !c.costo_conocido ? "bg-orange-50/40 dark:bg-orange-900/10" : ""
+                                      }`}
+                                    >
+                                      <td className="truncate px-3 py-1.5 text-ink-secondary" title={c.nombre}>
+                                        {c.nombre}
+                                      </td>
+                                      <td className="px-3 py-1.5">
+                                        {c.code_siigo ? (
+                                          <span className="font-mono text-[10px] text-muted">{c.code_siigo}</span>
+                                        ) : (
+                                          <span className="text-[10px] text-border">—</span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-center text-muted">
+                                        {CATEGORIA_LABELS[c.categoria] ?? c.categoria}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-right font-mono text-muted">×{c.cantidad}</td>
+                                      <td className="px-3 py-1.5 text-right">
+                                        {isEditing ? (
+                                          <div className="flex flex-col items-end gap-1">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="50"
+                                              value={editVal}
+                                              onChange={(e) =>
+                                                setEditandoCostos((prev) => ({
+                                                  ...prev,
+                                                  [key]: e.target.value,
+                                                }))
+                                              }
+                                              className="w-24 rounded border border-accent bg-surface px-1 py-0.5 text-right text-ink outline-none"
+                                              autoFocus
+                                            />
+                                            <label className="flex cursor-pointer select-none items-center gap-1">
+                                              <input
+                                                type="checkbox"
+                                                checked={ivaIncluidoKeys.has(key)}
+                                                onChange={(e) =>
+                                                  setIvaIncluidoKeys((prev) => {
+                                                    const s = new Set(prev);
+                                                    if (e.target.checked) s.add(key);
+                                                    else s.delete(key);
+                                                    return s;
+                                                  })
+                                                }
+                                                className="h-3 w-3 accent-accent"
+                                              />
+                                              <span className="text-[10px] text-muted">IVA 19%</span>
+                                            </label>
+                                            {ivaIncluidoKeys.has(key) && parseFloat(editVal) > 0 && (
+                                              <span className="text-[10px] text-muted">
+                                                Neto: {cop(parseFloat(editVal) / 1.19)}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className={c.costo_conocido ? "font-mono text-ink" : "text-orange-500"}>
+                                            {c.costo_conocido ? cop(c.costo_unit) : "—"}
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-right font-mono text-ink">
+                                        {c.costo_conocido ? cop(c.costo_total) : "—"}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-center text-[10px] text-muted">
+                                        {c.fuente === "siigo" ? (
+                                          <span
+                                            title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Siigo"}
+                                            className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default"
+                                          >
+                                            Siigo
+                                          </span>
+                                        ) : c.fuente === "excel" ? (
+                                          <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 cursor-default">
+                                            Excel
+                                          </span>
+                                        ) : c.fuente === "manual" ? (
+                                          <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 cursor-default">
+                                            Manual
+                                          </span>
+                                        ) : c.costo_conocido ? (
+                                          "—"
+                                        ) : (
+                                          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 cursor-default">
+                                            Sin costo
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-right">
+                                        {isEditing ? (
+                                          <div className="flex gap-1 justify-end">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                void guardarCostoComponente(
+                                                  c.nombre,
+                                                  c.categoria,
+                                                  editVal,
+                                                  code,
+                                                  ivaIncluidoKeys.has(key),
+                                                )
+                                              }
+                                              disabled={guardandoCostos[key]}
+                                              className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                                            >
+                                              {guardandoCostos[key] ? "Guardando…" : "Guardar"}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditandoCostos((prev) => {
+                                                  const n = { ...prev };
+                                                  delete n[key];
+                                                  return n;
+                                                });
+                                                setIvaIncluidoKeys((prev) => {
+                                                  const s = new Set(prev);
+                                                  s.delete(key);
+                                                  return s;
+                                                });
+                                              }}
+                                              className="rounded border border-border px-2 py-0.5 text-[10px] text-muted"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex flex-col items-end gap-1">
+                                            {siigoCostoResult[key] && (
+                                              <span
+                                                title={siigoCostoResult[key].msg}
+                                                className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                                                  siigoCostoResult[key].ok
+                                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                }`}
+                                              >
+                                                Siigo {siigoCostoResult[key].ok ? "✓" : "✗"}
+                                              </span>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setEditandoCostos((prev) => ({
+                                                  ...prev,
+                                                  [key]: String(c.costo_unit || ""),
+                                                }))
+                                              }
+                                              className="text-[10px] text-accent hover:underline"
+                                            >
+                                              {c.costo_conocido ? "Ajustar" : "Ingresar"}
+                                            </button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            <div className="flex flex-wrap gap-4 border-t border-border bg-surface-hover px-3 py-2 text-[11px]">
+                              {[
+                                { label: "Materia prima", val: desglose.totales.costo_materiales },
+                                { label: "Envase", val: desglose.totales.costo_envase },
+                                { label: "Etiqueta", val: desglose.totales.costo_etiqueta },
+                                { label: "Embalaje", val: desglose.totales.otros_costos },
+                                ...(desglose.totales.costo_nomina > 0
+                                  ? [{ label: "Nómina", val: desglose.totales.costo_nomina }]
+                                  : []),
+                              ].map((item) => (
+                                <span key={item.label} className="text-muted">
+                                  {item.label}: <span className="font-semibold text-ink">{cop(item.val)}</span>
+                                </span>
+                              ))}
+                              <span className="ml-auto font-bold text-ink">
+                                Total:{" "}
+                                {cop(
+                                  desglose.totales.costo_materiales
+                                    + desglose.totales.costo_envase
+                                    + desglose.totales.costo_etiqueta
+                                    + desglose.totales.otros_costos
+                                    + desglose.totales.costo_nomina,
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Panel principal ──────────────────────────────────────────────────────────
 
-type Tab = "combos" | "nomina" | "servicios" | "periodo" | "precios";
+type Tab = "combos" | "nomina" | "servicios" | "periodo" | "precios" | "cobros-meli" | "ganancia";
+
+interface ComponenteSinCosto {
+  nombre: string;
+  code_siigo?: string | null;
+  categoria: string;
+  combos_afectados: number;
+  propuesta_costo: number | null;
+  propuesta_fuente: string | null;
+}
+
+interface EscaneoSinCosto {
+  total_combos: number;
+  componentes_sin_costo: number;
+  con_propuesta_autofill: number;
+  sin_propuesta: number;
+  componentes: ComponenteSinCosto[];
+}
+
+function PanelSinCosto() {
+  const [data, setData] = useState<EscaneoSinCosto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState("");
+  const [valores, setValores] = useState<Record<string, string>>({});
+  const [ivaKeys, setIvaKeys] = useState<Set<string>>(new Set());
+  const [guardando, setGuardando] = useState<Record<string, boolean>>({});
+  const [guardados, setGuardados] = useState<Set<string>>(new Set());
+  const [msgOk, setMsgOk] = useState<Record<string, string>>({});
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await api.get<EscaneoSinCosto>("/api/rentabilidad/componentes-faltantes", {
+        timeoutMs: 120_000,
+      });
+      setData(d);
+      const seed: Record<string, string> = {};
+      for (const c of d.componentes ?? []) {
+        if (c.propuesta_costo != null && c.propuesta_costo > 0) {
+          seed[c.nombre] = String(c.propuesta_costo);
+        }
+      }
+      setValores((prev) => ({ ...seed, ...prev }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+
+  const lista = useMemo(() => {
+    const items = (data?.componentes ?? []).filter((c) => !guardados.has(c.nombre));
+    const q = filtro.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(q) ||
+        (c.code_siigo || "").toLowerCase().includes(q),
+    );
+  }, [data, filtro, guardados]);
+
+  const guardarUno = async (c: ComponenteSinCosto) => {
+    const raw = (valores[c.nombre] || "").trim();
+    const costo = parseFloat(raw);
+    if (isNaN(costo) || costo <= 0) return;
+    setGuardando((prev) => ({ ...prev, [c.nombre]: true }));
+    try {
+      const res = await api.post<{ siigo?: { ok: boolean; msg: string } }>(
+        "/api/rentabilidad/componentes",
+        {
+          nombre: c.nombre,
+          costo_unitario: costo,
+          categoria: c.categoria || "material",
+          iva_incluido: ivaKeys.has(c.nombre),
+        },
+      );
+      setGuardados((prev) => new Set(prev).add(c.nombre));
+      setMsgOk((prev) => ({
+        ...prev,
+        [c.nombre]: res.siigo?.ok
+          ? "Guardado + Siigo"
+          : res.siigo
+            ? `Guardado (Siigo: ${res.siigo.msg})`
+            : "Guardado",
+      }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardando((prev) => ({ ...prev, [c.nombre]: false }));
+    }
+  };
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <p className="shrink-0 px-1 pb-2 text-[11px] text-muted">
+        Ingresa el costo unitario y guarda. Aplica a todos los combos que usen ese componente.
+      </p>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border pb-2">
+        <input
+          type="search"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          placeholder="Filtrar por nombre o código…"
+          className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+        />
+        <button
+          type="button"
+          onClick={() => void cargar()}
+          disabled={loading}
+          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent disabled:opacity-50"
+        >
+          {loading ? "Escaneando…" : "Actualizar lista"}
+        </button>
+        {data && (
+          <span className="text-[11px] text-muted">
+            {lista.length} pendientes
+            {guardados.size > 0 ? ` · ${guardados.size} guardados` : ""}
+            {data.con_propuesta_autofill > 0
+              ? ` · ${data.con_propuesta_autofill} con sugerencia Siigo`
+              : ""}
+          </span>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto pt-3">
+        {loading && !data && (
+          <p className="animate-pulse py-10 text-center text-sm text-muted">
+            Escaneando combos sin costo…
+          </p>
+        )}
+        {error && (
+          <div className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {error}
+          </div>
+        )}
+        {!loading && data && lista.length === 0 && (
+          <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
+            <p className="text-base font-semibold text-ink">
+              {guardados.size > 0 ? "Listo: ya no quedan pendientes en esta sesión" : "Sin pendientes"}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Todos los componentes de combo tienen costo asignado.
+            </p>
+          </div>
+        )}
+        {lista.length > 0 && (
+          <div className="overflow-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className={THEAD_STICKY}>
+                <tr className="text-[10px] uppercase tracking-wide text-muted">
+                  <th className="bg-surface-hover px-3 py-2 text-left">Componente</th>
+                  <th className="bg-surface-hover px-3 py-2 text-left">Código</th>
+                  <th className="bg-surface-hover px-3 py-2 text-center">Categoría</th>
+                  <th className="bg-surface-hover px-3 py-2 text-right">Combos</th>
+                  <th className="bg-surface-hover px-3 py-2 text-right">Costo unit.</th>
+                  <th className="w-36 bg-surface-hover px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((c) => {
+                  const val = valores[c.nombre] ?? "";
+                  const conIva = ivaKeys.has(c.nombre);
+                  const num = parseFloat(val);
+                  return (
+                    <tr key={c.nombre} className="border-t border-border/50">
+                      <td className="max-w-[240px] truncate px-3 py-2 text-ink" title={c.nombre}>
+                        {c.nombre}
+                        {msgOk[c.nombre] && (
+                          <span className="ml-2 text-[10px] font-bold text-emerald-600">
+                            {msgOk[c.nombre]}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-[10px] text-muted">
+                        {c.code_siigo || "—"}
+                      </td>
+                      <td className="px-3 py-2 text-center text-muted">
+                        {CATEGORIA_LABELS[c.categoria] ?? c.categoria}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-muted">
+                        {c.combos_afectados}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            value={val}
+                            onChange={(e) =>
+                              setValores((prev) => ({ ...prev, [c.nombre]: e.target.value }))
+                            }
+                            placeholder={
+                              c.propuesta_costo != null
+                                ? `Sug. ${c.propuesta_costo}`
+                                : "Ingresar…"
+                            }
+                            className="w-28 rounded border border-border bg-surface px-2 py-1 text-right text-ink outline-none focus:border-accent"
+                          />
+                          <label className="flex cursor-pointer select-none items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={conIva}
+                              onChange={(e) =>
+                                setIvaKeys((prev) => {
+                                  const s = new Set(prev);
+                                  if (e.target.checked) s.add(c.nombre);
+                                  else s.delete(c.nombre);
+                                  return s;
+                                })
+                              }
+                              className="h-3 w-3 accent-accent"
+                            />
+                            <span className="text-[10px] text-muted">IVA 19%</span>
+                          </label>
+                          {conIva && num > 0 && (
+                            <span className="text-[10px] text-muted">Neto: {cop(num / 1.19)}</span>
+                          )}
+                          {c.propuesta_costo != null && !val && (
+                            <button
+                              type="button"
+                              className="text-[10px] text-accent hover:underline"
+                              onClick={() =>
+                                setValores((prev) => ({
+                                  ...prev,
+                                  [c.nombre]: String(c.propuesta_costo),
+                                }))
+                              }
+                            >
+                              Usar sugerencia {cop(c.propuesta_costo)}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          disabled={guardando[c.nombre] || !(num > 0)}
+                          onClick={() => void guardarUno(c)}
+                          className="rounded bg-accent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40"
+                        >
+                          {guardando[c.nombre] ? "…" : "Guardar"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PanelConsultarFacturas({ onAbrirPendiente }: { onAbrirPendiente: (sufijo: string) => void }) {
+  return <ConsultarFacturaPorProducto compact onAbrirPendiente={onAbrirPendiente} />;
+}
+
+function ModalHerramientasRentabilidad({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  const setPanel = useAppStore((s) => s.setPanel);
+  const setFacturasBootSufijo = useAppStore((s) => s.setFacturasBootSufijo);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[700] flex items-center justify-center bg-ink/70 p-2 backdrop-blur-sm sm:p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rentabilidad-herramientas-title"
+        className="flex max-h-[96vh] w-full max-w-[96vw] flex-col overflow-hidden rounded-paper-lg border border-border bg-surface-panel shadow-paper-lg xl:max-w-7xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="min-w-0">
+            <h3 id="rentabilidad-herramientas-title" className="text-sm font-semibold text-ink">
+              Sin costo + Consultar facturas
+            </h3>
+            <p className="text-[11px] text-muted">
+              Trabaja costos a la izquierda y consulta facturas a la derecha, en paralelo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2.5 py-1 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 divide-y divide-border overflow-y-auto lg:grid-cols-2 lg:divide-x lg:divide-y-0 lg:overflow-hidden">
+          <section
+            className="flex min-h-[50vh] flex-col overflow-hidden lg:min-h-0"
+            aria-label="Componentes sin costo"
+          >
+            <div className="shrink-0 border-b border-border bg-orange-500/10 px-4 py-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">
+                Sin costo
+              </h4>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-4">
+              <PanelSinCosto />
+            </div>
+          </section>
+          <section
+            className="flex min-h-[50vh] flex-col overflow-hidden lg:min-h-0"
+            aria-label="Consultar facturas"
+          >
+            <div className="shrink-0 border-b border-border bg-surface-hover px-4 py-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-ink">
+                Consultar facturas
+              </h4>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-4">
+              <PanelConsultarFacturas
+                onAbrirPendiente={(sufijo) => {
+                  onClose();
+                  setFacturasBootSufijo(sufijo);
+                  setPanel("facturas");
+                }}
+              />
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function RentabilidadPanel() {
-  const [tab, setTab] = useState<Tab>("combos");
+  const [tab, setTab] = useState<Tab>("ganancia");
+  const [modalOpen, setModalOpen] = useState(false);
   const rentabilidadBootTab = useAppStore((s) => s.rentabilidadBootTab);
   const setRentabilidadBootTab = useAppStore((s) => s.setRentabilidadBootTab);
 
@@ -2195,7 +3288,9 @@ export default function RentabilidadPanel() {
   }, [rentabilidadBootTab, setRentabilidadBootTab]);
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "combos", label: "Combos Siigo" },
+    { id: "ganancia", label: "Ganancia" },
+    { id: "cobros-meli", label: "Cobros MeLi" },
+    { id: "combos", label: "Costo real producto" },
     { id: "precios", label: "Cambiar precios" },
     { id: "nomina", label: "Nómina" },
     { id: "servicios", label: "Servicios" },
@@ -2204,11 +3299,22 @@ export default function RentabilidadPanel() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
-        <p className="mt-1 text-sm text-muted">
-          Costos reales por producto, nómina, servicios públicos y análisis de márgenes.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
+          <p className="mt-1 text-sm text-muted">
+            Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="rounded-xl border border-border bg-surface-panel px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:border-accent hover:text-accent"
+          >
+            Sin costo / Facturas
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 rounded-paper border-2 border-border bg-surface-hover p-1">
@@ -2227,10 +3333,14 @@ export default function RentabilidadPanel() {
       </div>
 
       {tab === "combos" && <TabCombos />}
+      {tab === "cobros-meli" && <TabCobrosMeli />}
+      {tab === "ganancia" && <TabGanancia />}
       {tab === "precios" && <TabPrecios />}
       {tab === "nomina" && <TabNomina />}
       {tab === "servicios" && <TabServicios />}
       {tab === "periodo" && <TabPeriodo />}
+
+      {modalOpen && <ModalHerramientasRentabilidad onClose={() => setModalOpen(false)} />}
     </div>
   );
 }

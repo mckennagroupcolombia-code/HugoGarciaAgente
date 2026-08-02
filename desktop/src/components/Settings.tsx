@@ -732,8 +732,10 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
 
 const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "facturas",      label: "Facturas de compra" },
-  { id: "centros-costo", label: "Centro de costos (incl. con Facturas o Sync)" },
-  { id: "sync",          label: "Sincronización" },
+  { id: "sync",          label: "Sincronización MeLi↔Siigo" },
+  { id: "rentabilidad",  label: "Rentabilidad (incl. con Facturas o Sync)" },
+  { id: "compras-exterior", label: "Compras exterior / pantallazo (incl. con Facturas, Sync o Rentabilidad)" },
+  { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "rrhh",          label: "RRHH · Compensaciones (datos salariales — solo confianza)" },
 ];
 

@@ -1329,19 +1329,447 @@ def listar_historial_facturas(
     for row in historial:
         if accion_f and str(row.get('accion', '')).lower() != accion_f:
             continue
+        enriquecido = _enriquecer_registro_historial(row, tendencias)
         if q_norm:
-            blob = _normalizar(
-                f"{row.get('numero_factura', '')} {row.get('proveedor', '')} {row.get('nit', '')}"
-            )
+            partes = [
+                enriquecido.get('numero_factura', ''),
+                enriquecido.get('proveedor', ''),
+                enriquecido.get('nit', ''),
+            ]
+            for it in enriquecido.get('items_resumen') or []:
+                if isinstance(it, dict):
+                    partes.append(str(it.get('nombre', '')))
+                    partes.append(str(it.get('codigo', '')))
+            blob = _normalizar(' '.join(partes))
             if q_norm not in blob:
                 continue
-        filtradas.append(_enriquecer_registro_historial(row, tendencias))
+        filtradas.append(enriquecido)
     total = len(filtradas)
     limit = max(1, min(int(limit or 100), 500))
     return {
         'historial': filtradas[:limit],
         'total': total,
         'mostrando': min(total, limit),
+    }
+
+
+def _coincidencias_producto_items(items: list, q_norm: str) -> list:
+    """Filtra ítems cuyo nombre o código contienen q_norm (ya normalizado)."""
+    hits = []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        nombre = str(it.get('nombre') or it.get('description') or '')
+        codigo = str(it.get('codigo') or '')
+        blob = _normalizar(f'{nombre} {codigo}')
+        if q_norm and q_norm in blob:
+            hits.append({
+                'nombre': nombre[:160],
+                'codigo': codigo,
+                'cantidad': it.get('cantidad_min', it.get('quantity')),
+                'unidad': it.get('unidad_min') or it.get('unidad') or '',
+                'precio_neto': it.get('precio_neto'),
+                'precio_unitario': it.get('precio_unitario') or it.get('price'),
+                'subtotal': it.get('subtotal'),
+            })
+    return hits
+
+
+def _ruta_indice_consulta_anio(anio: int) -> str:
+    return os.path.join(
+        os.path.dirname(__file__), "..", "data", f"facturas_consulta_{int(anio)}.json"
+    )
+
+
+def _cargar_indice_consulta_anio(anio: int) -> dict:
+    path = _ruta_indice_consulta_anio(anio)
+    try:
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                data.setdefault("facturas", [])
+                return data
+    except Exception:
+        pass
+    return {"anio": int(anio), "facturas": [], "actualizado": None, "fuente": None}
+
+
+def _guardar_indice_consulta_anio(anio: int, data: dict) -> None:
+    path = _ruta_indice_consulta_anio(anio)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _xml_a_registro_consulta(datos: dict, *, origen: str, fuente: str = "") -> dict | None:
+    if not datos:
+        return None
+    numero = f"{datos.get('prefix', '')}{datos.get('number', '')}".strip()
+    if not numero:
+        return None
+    items_raw = datos.get("items") or []
+    items_resumen = []
+    for it in items_raw:
+        if not isinstance(it, dict):
+            continue
+        items_resumen.append({
+            "nombre": it.get("description") or it.get("nombre") or "",
+            "codigo": it.get("codigo") or "",
+            "cantidad": it.get("quantity"),
+            "unidad": it.get("unidad") or "",
+            "precio_unitario": it.get("price"),
+            "precio_neto": it.get("precio_neto"),
+            "subtotal": it.get("subtotal"),
+        })
+    total = datos.get("total_neto")
+    if total is None:
+        total = round(sum(float(it.get("subtotal") or 0) for it in items_raw), 2)
+    fecha = (datos.get("fecha") or "")[:10]
+    return {
+        "origen": origen,
+        "id": f"{origen}-{numero}",
+        "sufijo": _sufijo_factura(numero),
+        "numero_factura": numero,
+        "proveedor": datos.get("proveedor") or "",
+        "nit": datos.get("nit_proveedor") or datos.get("nit") or "",
+        "fecha": fecha,
+        "total": total or 0,
+        "accion": None,
+        "estado": "archivo",
+        "timestamp": f"{fecha}T12:00:00" if fecha else "",
+        "items_resumen": items_resumen,
+        "items_count": len(items_resumen),
+        "fuente": fuente,
+    }
+
+
+def construir_indice_consulta_anio(anio: int = 2025, forzar: bool = False) -> dict:
+    """
+    Indexa facturas de un año (p. ej. 2025) desde Gmail + ZIPs locales.
+    Guarda caché en app/data/facturas_consulta_{anio}.json para consultas rápidas.
+    """
+    anio = int(anio)
+    cache = _cargar_indice_consulta_anio(anio)
+    if (
+        not forzar
+        and cache.get("facturas")
+        and cache.get("actualizado")
+    ):
+        return {
+            "ok": True,
+            "anio": anio,
+            "facturas": len(cache["facturas"]),
+            "actualizado": cache.get("actualizado"),
+            "cache_hit": True,
+            "mensaje": f"Índice {anio} ya cargado ({len(cache['facturas'])} facturas).",
+        }
+
+    from app.tools.sincronizar_facturas_de_compra_siigo import (
+        GmailAuthError,
+        get_gmail_service,
+        leer_correos_facturas_periodo,
+        descargar_y_extraer_zip,
+        extraer_datos_xml_dian,
+        CARPETA_FACTURAS_LOCAL,
+    )
+
+    fecha_desde = f"{anio}/01/01"
+    fecha_hasta = f"{anio + 1}/01/01"
+    facturas: list[dict] = []
+    vistos: set[str] = set()
+    errores: list[str] = []
+
+    # 1) ZIPs / XML locales cuyo IssueDate cae en el año
+    try:
+        for fname in os.listdir(CARPETA_FACTURAS_LOCAL):
+            lower = fname.lower()
+            path = os.path.join(CARPETA_FACTURAS_LOCAL, fname)
+            xml_content = None
+            if lower.endswith(".xml"):
+                try:
+                    with open(path, encoding="utf-8", errors="ignore") as f:
+                        xml_content = f.read()
+                except Exception:
+                    continue
+            elif lower.endswith(".zip"):
+                try:
+                    import zipfile
+                    with zipfile.ZipFile(path, "r") as zf:
+                        for name in zf.namelist():
+                            if name.lower().endswith(".xml"):
+                                xml_content = zf.read(name).decode("utf-8", errors="ignore")
+                                break
+                except Exception:
+                    continue
+            if not xml_content:
+                continue
+            datos = extraer_datos_xml_dian(xml_content)
+            if not datos:
+                continue
+            fecha = (datos.get("fecha") or "")[:10]
+            if not fecha.startswith(str(anio)):
+                continue
+            reg = _xml_a_registro_consulta(datos, origen=f"archivo-{anio}", fuente=fname)
+            if not reg:
+                continue
+            clave = reg["numero_factura"].upper()
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            facturas.append(reg)
+    except Exception as e:
+        errores.append(f"local: {e}")
+
+    # 2) Gmail del año (incluye ya descargados)
+    gmail_ok = False
+    try:
+        correos = leer_correos_facturas_periodo(
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            solo_no_descargados=False,
+        )
+        service = get_gmail_service()
+        gmail_ok = True
+        for correo in correos:
+            for adj in correo.get("adjuntos_zip") or []:
+                try:
+                    xml_content = None
+                    zip_path = adj.get("zip_path")
+                    if zip_path and os.path.isfile(zip_path):
+                        import zipfile
+                        with zipfile.ZipFile(zip_path, "r") as zf:
+                            for name in zf.namelist():
+                                if name.lower().endswith(".xml"):
+                                    xml_content = zf.read(name).decode("utf-8", errors="ignore")
+                                    break
+                    if not xml_content:
+                        xml_content, _pdf, _name = descargar_y_extraer_zip(
+                            service, correo["id"], adj["id"], adj["filename"]
+                        )
+                    if not xml_content:
+                        continue
+                    datos = extraer_datos_xml_dian(xml_content)
+                    if not datos:
+                        continue
+                    fecha = (datos.get("fecha") or "")[:10]
+                    if not fecha.startswith(str(anio)):
+                        continue
+                    reg = _xml_a_registro_consulta(
+                        datos,
+                        origen=f"gmail-{anio}",
+                        fuente=adj.get("filename") or "",
+                    )
+                    if not reg:
+                        continue
+                    clave = reg["numero_factura"].upper()
+                    if clave in vistos:
+                        continue
+                    vistos.add(clave)
+                    facturas.append(reg)
+                except Exception as e:
+                    errores.append(f"{adj.get('filename')}: {e}")
+    except GmailAuthError as e:
+        errores.append(str(e))
+    except Exception as e:
+        errores.append(f"gmail: {e}")
+
+    facturas.sort(key=lambda r: r.get("fecha") or "", reverse=True)
+    payload = {
+        "anio": anio,
+        "facturas": facturas,
+        "actualizado": datetime.now().isoformat(),
+        "fuente": "gmail+local" if gmail_ok else "local",
+        "errores": errores[:20],
+    }
+    _guardar_indice_consulta_anio(anio, payload)
+
+    mensaje = f"Índice {anio}: {len(facturas)} factura(s)."
+    if not facturas and errores:
+        mensaje += " " + (errores[0][:180] if errores else "")
+    elif not facturas:
+        mensaje += " No se encontraron facturas de ese año en Gmail/local."
+
+    return {
+        "ok": True,
+        "anio": anio,
+        "facturas": len(facturas),
+        "actualizado": payload["actualizado"],
+        "cache_hit": False,
+        "gmail_ok": gmail_ok,
+        "errores": errores[:10],
+        "mensaje": mensaje,
+    }
+
+
+def estado_indice_consulta_anio(anio: int = 2025) -> dict:
+    cache = _cargar_indice_consulta_anio(anio)
+    return {
+        "anio": int(anio),
+        "facturas": len(cache.get("facturas") or []),
+        "actualizado": cache.get("actualizado"),
+        "fuente": cache.get("fuente"),
+        "listo": bool(cache.get("facturas")),
+    }
+
+
+def _filtro_anio_fecha(fecha: str, anio: int | None) -> bool:
+    if anio is None:
+        return True
+    return (fecha or "").startswith(str(anio))
+
+
+def consultar_facturas_por_producto(
+    q: str,
+    limit: int = 50,
+    anio: int | None = None,
+    *,
+    asegurar_indice_anio: bool = True,
+) -> dict:
+    """
+    Busca facturas de proveedores (pendientes + historial + archivo por año)
+    que contengan un producto por nombre o código.
+
+    anio=2025 incluye el índice Gmail/local de ese año (se construye si falta).
+    anio=None busca en todas las fuentes disponibles.
+    """
+    q_limpia = (q or '').strip()
+    q_norm = _normalizar(q_limpia)
+    if len(q_norm) < 2:
+        return {
+            'ok': True,
+            'q': q_limpia,
+            'anio': anio,
+            'resultados': [],
+            'total': 0,
+            'mensaje': 'Escribe al menos 2 caracteres para buscar por producto.',
+        }
+
+    sincronizar_historial_desde_importaciones()
+    resultados: list[dict] = []
+    avisos: list[str] = []
+
+    # ── Pendientes (correo en cola) ──────────────────────────────────────────
+    try:
+        pendientes = _cargar_pendientes().get('pendientes', {}) or {}
+    except Exception:
+        pendientes = {}
+    for sufijo, entrada in pendientes.items():
+        if not isinstance(entrada, dict):
+            continue
+        try:
+            datos = json.loads(entrada.get('datos_json') or '{}')
+        except Exception:
+            datos = {}
+        fecha = (datos.get('fecha') or '')[:10]
+        if not _filtro_anio_fecha(fecha, anio):
+            continue
+        items_raw = datos.get('items') or []
+        hits = _coincidencias_producto_items(items_raw, q_norm)
+        if not hits:
+            continue
+        resultados.append({
+            'origen': 'pendiente',
+            'id': f'pendiente-{sufijo}',
+            'sufijo': str(sufijo).upper(),
+            'numero_factura': entrada.get('numero_factura') or datos.get('number') or '',
+            'proveedor': entrada.get('proveedor') or datos.get('proveedor') or '',
+            'nit': entrada.get('nit') or datos.get('nit') or '',
+            'fecha': fecha,
+            'total': entrada.get('total') or datos.get('total_neto') or 0,
+            'accion': None,
+            'estado': entrada.get('estado') or 'pendiente',
+            'timestamp': entrada.get('timestamp') or '',
+            'coincidencias': hits,
+            'items_count': entrada.get('items_count') or len(items_raw),
+        })
+
+    # ── Historial (ya procesadas desde el correo) ────────────────────────────
+    historial = _cargar_historial().get('historial', [])
+    tendencias = _calcular_tendencias_precio_historial(historial)
+    for row in historial:
+        enriquecido = _enriquecer_registro_historial(row, tendencias)
+        fecha = (enriquecido.get('fecha_factura') or '')[:10]
+        if not _filtro_anio_fecha(fecha, anio):
+            continue
+        hits = _coincidencias_producto_items(enriquecido.get('items_resumen') or [], q_norm)
+        if not hits:
+            continue
+        resultados.append({
+            'origen': 'historial',
+            'id': enriquecido.get('id') or '',
+            'sufijo': enriquecido.get('sufijo') or '',
+            'numero_factura': enriquecido.get('numero_factura') or '',
+            'proveedor': enriquecido.get('proveedor') or '',
+            'nit': enriquecido.get('nit') or '',
+            'fecha': fecha,
+            'total': enriquecido.get('total') or 0,
+            'accion': enriquecido.get('accion'),
+            'estado': enriquecido.get('estado') or '',
+            'timestamp': enriquecido.get('timestamp') or '',
+            'coincidencias': hits,
+            'items_count': enriquecido.get('items_count') or len(enriquecido.get('items_resumen') or []),
+        })
+
+    # ── Archivo por año (Gmail/local, p. ej. 2025) ───────────────────────────
+    anios_archivo: list[int] = []
+    if anio is None:
+        anios_archivo = [2025]
+    elif int(anio) <= 2025:
+        anios_archivo = [int(anio)]
+
+    for anio_arch in anios_archivo:
+        cache = _cargar_indice_consulta_anio(anio_arch)
+        if asegurar_indice_anio and anio == anio_arch and not (cache.get("facturas")):
+            try:
+                build = construir_indice_consulta_anio(anio_arch, forzar=False)
+                if build.get("mensaje"):
+                    avisos.append(str(build["mensaje"]))
+                cache = _cargar_indice_consulta_anio(anio_arch)
+            except Exception as e:
+                avisos.append(f"No se pudo cargar archivo {anio_arch}: {e}")
+        elif anio is None and not (cache.get("facturas")):
+            avisos.append(
+                "Para incluir facturas 2025, elige el filtro 2025 o pulsa «Cargar archivo 2025»."
+            )
+        for row in cache.get("facturas") or []:
+            fecha = (row.get("fecha") or "")[:10]
+            if not _filtro_anio_fecha(fecha, anio):
+                continue
+            # Evitar duplicar si ya está en historial/pendientes
+            num = (row.get("numero_factura") or "").upper()
+            if any((r.get("numero_factura") or "").upper() == num for r in resultados):
+                continue
+            hits = _coincidencias_producto_items(row.get("items_resumen") or [], q_norm)
+            if not hits:
+                continue
+            resultados.append({
+                **row,
+                "coincidencias": hits,
+            })
+
+    # Pendientes primero; resto por fecha/timestamp descendente
+    pendientes_r = [r for r in resultados if r.get('origen') == 'pendiente']
+    otros_r = sorted(
+        [r for r in resultados if r.get('origen') != 'pendiente'],
+        key=lambda r: r.get('timestamp') or r.get('fecha') or '',
+        reverse=True,
+    )
+    resultados = pendientes_r + otros_r
+
+    limit = max(1, min(int(limit or 50), 200))
+    total = len(resultados)
+    return {
+        'ok': True,
+        'q': q_limpia,
+        'anio': anio,
+        'resultados': resultados[:limit],
+        'total': total,
+        'mostrando': min(total, limit),
+        'avisos': avisos,
+        'indices': {
+            str(a): estado_indice_consulta_anio(a) for a in (anios_archivo or [2025])
+        },
     }
 
 
@@ -2068,7 +2496,7 @@ def buscar_compra_siigo_registrada(datos: dict, compras_siigo: list[dict]) -> di
 #  Orquestador principal — fase 1: escaneo
 # ─────────────────────────────────────────────
 
-def escanear_facturas_gmail_para_panel(fecha_desde: str = "2026/01/01") -> dict:
+def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
     """
     Escanea Gmail, encola facturas en facturas_compra_pendientes.json
     y devuelve resultado estructurado para el panel (sin WhatsApp).
