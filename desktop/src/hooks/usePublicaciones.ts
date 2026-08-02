@@ -89,6 +89,9 @@ export interface GaleriaImagen {
   url: string;
   principal?: boolean;
   size_bytes?: number;
+  width?: number;
+  height?: number;
+  cumple_estandar?: boolean;
 }
 
 export interface GaleriaSkuItem {
@@ -197,6 +200,54 @@ export interface ImagenWeb {
   url: string;
   principal: boolean;
   size_bytes: number;
+  width?: number;
+  height?: number;
+  cumple_estandar?: boolean;
+}
+
+export interface NormalizarImagenesResult {
+  ok: boolean;
+  estandar?: string;
+  fondo?: string;
+  total: number;
+  normalizadas: number;
+  omitidas: number;
+  errores: number;
+  resultados?: Array<{
+    ok: boolean;
+    filename: string;
+    skipped?: boolean;
+    width?: number;
+    height?: number;
+    error?: string;
+  }>;
+  error?: string;
+}
+
+export function useNormalizarImagenesCatalogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: {
+      sku?: string;
+      filenames?: string[];
+      solo_no_cumplen?: boolean;
+      limit?: number;
+    }) =>
+      api.post<NormalizarImagenesResult>(
+        "/api/publicaciones/galeria/normalizar",
+        body || { solo_no_cumplen: true },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
+      if (vars?.sku) {
+        qc.invalidateQueries({ queryKey: ["fotos-actuales", vars.sku] });
+        qc.invalidateQueries({ queryKey: ["publicacion", vars.sku] });
+      } else {
+        qc.invalidateQueries({ queryKey: ["fotos-actuales"] });
+      }
+    },
+  });
 }
 
 export interface ImagenMeli {
@@ -262,6 +313,7 @@ export function useSubirImagen(sku: string) {
       qc.invalidateQueries({ queryKey: ["publicaciones"] });
       qc.invalidateQueries({ queryKey: ["publicacion", sku] });
       qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
+      qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
     },
   });
 }

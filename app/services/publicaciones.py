@@ -8,6 +8,7 @@ import requests as _req
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 _MELI_SITE_PREFIX = "MCO"
 
@@ -18,6 +19,208 @@ _CACHE_PATH = _REPO_DIR / "PAGINA_WEB" / "site" / "data" / "cache.json"
 _SIIGO_FOTOS_FILE = _REPO_DIR / "PAGINA_WEB" / "site" / "data" / "siigo_fotos.json"
 _IMAGENES_DIR = _REPO_DIR / "IMAGENES_PRODUCTOS_CATALOGO"
 _IMG_EXTS_OK = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+# Estándar catálogo / MeLi McKenna: cuadrado 1000×1000 con fondo blanco.
+_CATALOGO_IMG_SIZE = 1000
+_CATALOGO_FONDO = (255, 255, 255)
+
+
+def _url_imagen_panel(filename: str) -> str:
+    """URL same-origin del panel (proxied en Vite y bot.mckennagroup.co vía /api)."""
+    return f"/api/publicaciones/imagen-archivo/{quote(filename, safe='')}"
+
+
+def _meta_imagen_archivo(path: Path) -> dict:
+    """width/height/cumple_estandar para un archivo del catálogo."""
+    meta = {
+        "width": 0,
+        "height": 0,
+        "cumple_estandar": False,
+        "size_bytes": path.stat().st_size if path.is_file() else 0,
+    }
+    if not path.is_file():
+        return meta
+    try:
+        from PIL import Image
+
+        with Image.open(path) as im:
+            w, h = im.size
+            meta["width"] = int(w)
+            meta["height"] = int(h)
+            meta["cumple_estandar"] = w == _CATALOGO_IMG_SIZE and h == _CATALOGO_IMG_SIZE
+    except Exception:
+        pass
+    return meta
+
+
+def normalizar_imagen_catalogo(
+    file_bytes: bytes,
+    *,
+    size: int = _CATALOGO_IMG_SIZE,
+    out_format: str = "PNG",
+) -> tuple[bytes, dict]:
+    """
+    Centra el producto en canvas blanco size×size (contain, sin recortar).
+    Transparencia → blanco. Devuelve (bytes, meta).
+    """
+    from io import BytesIO
+    from PIL import Image
+
+    if size < 100:
+        size = _CATALOGO_IMG_SIZE
+
+    with Image.open(BytesIO(file_bytes)) as im:
+        im.load()
+        src_w, src_h = im.size
+        # Aplanar alfa / modos raros sobre blanco
+        if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+            rgba = im.convert("RGBA")
+            fondo = Image.new("RGBA", rgba.size, (*_CATALOGO_FONDO, 255))
+            rgba = Image.alpha_composite(fondo, rgba)
+            rgb = rgba.convert("RGB")
+        else:
+            rgb = im.convert("RGB")
+
+        # Contain: caber completo dentro del cuadrado
+        scale = min(size / max(rgb.width, 1), size / max(rgb.height, 1))
+        new_w = max(1, int(round(rgb.width * scale)))
+        new_h = max(1, int(round(rgb.height * scale)))
+        if (new_w, new_h) != rgb.size:
+            try:
+                resample = Image.Resampling.LANCZOS
+            except AttributeError:
+                resample = Image.LANCZOS  # type: ignore[attr-defined]
+            rgb = rgb.resize((new_w, new_h), resample)
+
+        canvas = Image.new("RGB", (size, size), _CATALOGO_FONDO)
+        canvas.paste(rgb, ((size - new_w) // 2, (size - new_h) // 2))
+
+        buf = BytesIO()
+        fmt = (out_format or "PNG").upper()
+        if fmt in ("JPG", "JPEG"):
+            canvas.save(buf, format="JPEG", quality=92, optimize=True)
+            fmt = "JPEG"
+        else:
+            canvas.save(buf, format="PNG", optimize=True)
+            fmt = "PNG"
+        out = buf.getvalue()
+
+    meta = {
+        "width": size,
+        "height": size,
+        "cumple_estandar": True,
+        "origen_width": int(src_w),
+        "origen_height": int(src_h),
+        "format": fmt,
+        "bytes": len(out),
+        "normalizada": True,
+    }
+    return out, meta
+
+
+def normalizar_archivo_catalogo(filename: str, *, force: bool = False) -> dict:
+    """Normaliza in-place un archivo de IMAGENES_PRODUCTOS_CATALOGO."""
+    safe = Path(filename).name
+    if not safe or safe != filename.replace("\\", "/").split("/")[-1]:
+        return {"ok": False, "error": "Nombre de archivo inválido", "filename": filename}
+    path = _IMAGENES_DIR / safe
+    if not path.is_file():
+        return {"ok": False, "error": "No encontrado", "filename": safe}
+    if path.suffix.lower() not in _IMG_EXTS_OK:
+        return {"ok": False, "error": "Extensión no soportada", "filename": safe}
+
+    antes = _meta_imagen_archivo(path)
+    if antes.get("cumple_estandar") and not force:
+        return {
+            "ok": True,
+            "filename": safe,
+            "skipped": True,
+            "width": antes["width"],
+            "height": antes["height"],
+            "cumple_estandar": True,
+        }
+
+    raw = path.read_bytes()
+    # Mantener PNG si ya era PNG/WEBP/GIF; JPEG si era jpg
+    ext = path.suffix.lower()
+    out_fmt = "JPEG" if ext in (".jpg", ".jpeg") else "PNG"
+    try:
+        out, meta = normalizar_imagen_catalogo(raw, out_format=out_fmt)
+    except Exception as e:
+        return {"ok": False, "error": str(e), "filename": safe}
+
+    # Si pedimos PNG pero el archivo era .jpg, reescribimos mismo path con formato coincidente
+    path.write_bytes(out)
+    return {
+        "ok": True,
+        "filename": safe,
+        "skipped": False,
+        "width": meta["width"],
+        "height": meta["height"],
+        "origen_width": meta.get("origen_width"),
+        "origen_height": meta.get("origen_height"),
+        "cumple_estandar": True,
+        "bytes": meta["bytes"],
+    }
+
+
+def normalizar_imagenes_catalogo(
+    *,
+    sku: str = "",
+    filenames: list[str] | None = None,
+    solo_no_cumplen: bool = True,
+    limit: int = 500,
+) -> dict:
+    """Normaliza varias imágenes del catálogo (por SKU, lista o todas)."""
+    targets: list[str] = []
+    if filenames:
+        targets = [Path(f).name for f in filenames if f]
+    elif sku:
+        targets = [img["filename"] for img in escanear_imagenes_web(sku)]
+    elif _IMAGENES_DIR.exists():
+        targets = sorted(
+            f.name
+            for f in _IMAGENES_DIR.iterdir()
+            if f.is_file() and f.suffix.lower() in _IMG_EXTS_OK
+        )
+
+    resultados = []
+    normalizadas = 0
+    omitidas = 0
+    errores = 0
+    for name in targets[: max(1, min(int(limit or 500), 2000))]:
+        path = _IMAGENES_DIR / name
+        if solo_no_cumplen and path.is_file():
+            meta = _meta_imagen_archivo(path)
+            if meta.get("cumple_estandar"):
+                omitidas += 1
+                resultados.append({
+                    "ok": True,
+                    "filename": name,
+                    "skipped": True,
+                    "width": meta["width"],
+                    "height": meta["height"],
+                    "cumple_estandar": True,
+                })
+                continue
+        r = normalizar_archivo_catalogo(name, force=not solo_no_cumplen)
+        resultados.append(r)
+        if r.get("ok") and r.get("skipped"):
+            omitidas += 1
+        elif r.get("ok"):
+            normalizadas += 1
+        else:
+            errores += 1
+
+    return {
+        "ok": errores == 0,
+        "estandar": f"{_CATALOGO_IMG_SIZE}x{_CATALOGO_IMG_SIZE}",
+        "fondo": "blanco",
+        "total": len(resultados),
+        "normalizadas": normalizadas,
+        "omitidas": omitidas,
+        "errores": errores,
+        "resultados": resultados,
+    }
 
 
 # ── persistencia overrides ─────────────────────────────────────────────────
@@ -543,16 +746,21 @@ def escanear_imagenes_web(sku: str) -> list[dict]:
 
     ordered_names = sorted(found.keys(), key=sort_key)
     # La imagen principal es la primera de la lista
-    return [
-        {
+    out = []
+    for i, name in enumerate(ordered_names):
+        meta = _meta_imagen_archivo(found[name])
+        out.append({
             "filename": name,
             "path": f"/imagenes-productos-catalogo/{name}",
-            "url": f"https://mckennagroup.co/imagenes-productos-catalogo/{name}",
+            "url": _url_imagen_panel(name),
+            "url_publica": f"https://mckennagroup.co/imagenes-productos-catalogo/{quote(name, safe='')}",
             "principal": i == 0,
-            "size_bytes": found[name].stat().st_size if found.get(name) else 0,
-        }
-        for i, name in enumerate(ordered_names)
-    ]
+            "size_bytes": meta["size_bytes"],
+            "width": meta["width"],
+            "height": meta["height"],
+            "cumple_estandar": meta["cumple_estandar"],
+        })
+    return out
 
 
 def _sku_desde_filename(filename: str, skus_conocidos: set[str]) -> str:
@@ -622,12 +830,16 @@ def listar_galeria_imagenes(buscar: str = "", solo_con_imagen: bool = True) -> d
                 continue
             skus_conocidos.add(sku)
             sku_nombre.setdefault(sku, sku)
+            meta = _meta_imagen_archivo(f)
             img = {
                 "filename": f.name,
                 "path": f"/imagenes-productos-catalogo/{f.name}",
-                "url": f"/imagenes-productos-catalogo/{f.name}",
-                "url_publica": f"https://mckennagroup.co/imagenes-productos-catalogo/{f.name}",
-                "size_bytes": f.stat().st_size,
+                "url": _url_imagen_panel(f.name),
+                "url_publica": f"https://mckennagroup.co/imagenes-productos-catalogo/{quote(f.name, safe='')}",
+                "size_bytes": meta["size_bytes"],
+                "width": meta["width"],
+                "height": meta["height"],
+                "cumple_estandar": meta["cumple_estandar"],
             }
             por_sku.setdefault(sku, []).append(img)
 
@@ -739,13 +951,22 @@ def _meli_set_pictures(meli_item_id: str, picture_ids: list[str]) -> dict:
 def subir_imagen_web(sku: str, file_bytes: bytes, original_filename: str) -> dict:
     """
     Guarda imagen en IMAGENES_PRODUCTOS_CATALOGO/ con nombre secuencial.
+    Normaliza a 1000×1000 fondo blanco (estándar catálogo / MeLi).
     Actualiza overrides (imagenes_web) y siigo_fotos.json.
     """
     ext = Path(original_filename).suffix.lower()
     if ext not in _IMG_EXTS_OK:
-        ext = ".jpg"
+        ext = ".png"
 
-    safe_name = _next_web_filename(sku, ext)
+    # Salida preferida PNG (fondo blanco opaco); JPEG si el origen era jpg
+    out_fmt = "JPEG" if ext in (".jpg", ".jpeg") else "PNG"
+    out_ext = ".jpg" if out_fmt == "JPEG" else ".png"
+    try:
+        file_bytes, norm_meta = normalizar_imagen_catalogo(file_bytes, out_format=out_fmt)
+    except Exception as e:
+        return {"ok": False, "error": f"No se pudo normalizar la imagen a 1000×1000: {e}"}
+
+    safe_name = _next_web_filename(sku, out_ext)
     _IMAGENES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Escaneamos ANTES de escribir para que la nueva imagen no se incluya como existente
@@ -764,6 +985,10 @@ def subir_imagen_web(sku: str, file_bytes: bytes, original_filename: str) -> dic
         "filename": safe_name,
         "path": f"/imagenes-productos-catalogo/{safe_name}",
         "bytes": len(file_bytes),
+        "width": norm_meta.get("width", _CATALOGO_IMG_SIZE),
+        "height": norm_meta.get("height", _CATALOGO_IMG_SIZE),
+        "cumple_estandar": True,
+        "normalizada": True,
         "es_principal": orden.index(safe_name) == 0 if safe_name in orden else False,
     }
 

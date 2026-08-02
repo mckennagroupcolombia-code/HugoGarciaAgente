@@ -77,6 +77,22 @@ def init_db() -> None:
             notas TEXT DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS compras_exterior (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            moneda TEXT NOT NULL DEFAULT 'USD',
+            trm REAL NOT NULL DEFAULT 0,
+            flete REAL NOT NULL DEFAULT 0,
+            moneda_flete TEXT NOT NULL DEFAULT '',
+            proveedor TEXT NOT NULL DEFAULT '',
+            soporte_path TEXT NOT NULL DEFAULT '',
+            soporte_nombre TEXT NOT NULL DEFAULT '',
+            soporte_mime TEXT NOT NULL DEFAULT '',
+            lineas_json TEXT NOT NULL DEFAULT '[]',
+            total_guardados INTEGER NOT NULL DEFAULT 0,
+            notas TEXT NOT NULL DEFAULT ''
+        );
         """)
     # Migración: columnas añadidas después del schema inicial
     _migraciones = [
@@ -84,6 +100,21 @@ def init_db() -> None:
         "ALTER TABLE empleados ADD COLUMN dia_pago INTEGER DEFAULT NULL",
         "ALTER TABLE empleados ADD COLUMN telefono_wa TEXT DEFAULT ''",
         "ALTER TABLE componente_costos ADD COLUMN iva_incluido INTEGER DEFAULT 0",
+        """CREATE TABLE IF NOT EXISTS compras_exterior (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            moneda TEXT NOT NULL DEFAULT 'USD',
+            trm REAL NOT NULL DEFAULT 0,
+            flete REAL NOT NULL DEFAULT 0,
+            moneda_flete TEXT NOT NULL DEFAULT '',
+            proveedor TEXT NOT NULL DEFAULT '',
+            soporte_path TEXT NOT NULL DEFAULT '',
+            soporte_nombre TEXT NOT NULL DEFAULT '',
+            soporte_mime TEXT NOT NULL DEFAULT '',
+            lineas_json TEXT NOT NULL DEFAULT '[]',
+            total_guardados INTEGER NOT NULL DEFAULT 0,
+            notas TEXT NOT NULL DEFAULT ''
+        )""",
     ]
     with _conn() as con:
         for sql in _migraciones:
@@ -364,3 +395,160 @@ def servicios_proximos_vencimiento(dias: int = 3) -> list[dict]:
                 if pago_mes["cnt"] == 0:
                     resultado.append({**dict(s), "dias_para_vencer": delta, "fecha_vencimiento": str(venc)})
     return resultado
+
+
+# ─── Compras exterior (historial + soporte) ───────────────────────────────────
+
+_SOPORTES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "compras_exterior_soportes")
+
+
+def _soportes_dir() -> str:
+    path = os.path.abspath(_SOPORTES_DIR)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def guardar_compra_exterior(
+    *,
+    moneda: str,
+    trm: float,
+    flete: float,
+    moneda_flete: str,
+    proveedor: str,
+    lineas: list,
+    total_guardados: int,
+    soporte_bytes: bytes | None = None,
+    soporte_nombre: str = "",
+    soporte_mime: str = "",
+    notas: str = "",
+) -> dict:
+    """Persiste historial de compra exterior y opcionalmente el pantallazo de soporte."""
+    import json
+    import re
+    import uuid
+
+    _ensure()
+    now = datetime.now().isoformat()
+    soporte_path = ""
+    nombre_safe = (soporte_nombre or "").strip()
+    mime = (soporte_mime or "").strip()
+
+    if soporte_bytes:
+        ext = ".bin"
+        if mime == "application/pdf" or nombre_safe.lower().endswith(".pdf"):
+            ext = ".pdf"
+        elif "png" in mime or nombre_safe.lower().endswith(".png"):
+            ext = ".png"
+        elif "webp" in mime:
+            ext = ".webp"
+        else:
+            ext = ".jpg"
+        base = re.sub(r"[^\w.\-]+", "_", nombre_safe)[:60] or "soporte"
+        fname = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}_{base}{ext}"
+        full = os.path.join(_soportes_dir(), fname)
+        with open(full, "wb") as f:
+            f.write(soporte_bytes)
+        soporte_path = fname  # relativo al dir de soportes
+
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO compras_exterior
+                 (created_at, moneda, trm, flete, moneda_flete, proveedor,
+                  soporte_path, soporte_nombre, soporte_mime, lineas_json,
+                  total_guardados, notas)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                now,
+                (moneda or "USD").strip().upper(),
+                float(trm or 0),
+                float(flete or 0),
+                (moneda_flete or "").strip().upper(),
+                (proveedor or "").strip(),
+                soporte_path,
+                nombre_safe,
+                mime,
+                json.dumps(lineas, ensure_ascii=False),
+                int(total_guardados),
+                (notas or "").strip(),
+            ),
+        )
+        row = con.execute(
+            "SELECT * FROM compras_exterior WHERE id = ?", (cur.lastrowid,)
+        ).fetchone()
+    return _compra_exterior_row(dict(row))
+
+
+def listar_compras_exterior(limit: int = 50) -> list[dict]:
+    import json
+
+    _ensure()
+    limit = max(1, min(int(limit or 50), 200))
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM compras_exterior ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["lineas"] = json.loads(d.get("lineas_json") or "[]")
+        except Exception:
+            d["lineas"] = []
+        out.append(_compra_exterior_row(d))
+    return out
+
+
+def obtener_compra_exterior(compra_id: int) -> dict | None:
+    import json
+
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM compras_exterior WHERE id = ?", (int(compra_id),)
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    try:
+        d["lineas"] = json.loads(d.get("lineas_json") or "[]")
+    except Exception:
+        d["lineas"] = []
+    return _compra_exterior_row(d)
+
+
+def ruta_soporte_compra_exterior(compra_id: int) -> tuple[str | None, str, str]:
+    """Devuelve (abspath, mime, nombre) del soporte o (None, '', '')."""
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT soporte_path, soporte_mime, soporte_nombre FROM compras_exterior WHERE id = ?",
+            (int(compra_id),),
+        ).fetchone()
+    if not row or not row["soporte_path"]:
+        return None, "", ""
+    full = os.path.join(_soportes_dir(), row["soporte_path"])
+    if not os.path.isfile(full):
+        return None, "", ""
+    return full, row["soporte_mime"] or "application/octet-stream", row["soporte_nombre"] or row["soporte_path"]
+
+
+def _compra_exterior_row(d: dict) -> dict:
+    return {
+        "id": d.get("id"),
+        "created_at": d.get("created_at"),
+        "moneda": d.get("moneda"),
+        "trm": d.get("trm"),
+        "flete": d.get("flete"),
+        "moneda_flete": d.get("moneda_flete"),
+        "proveedor": d.get("proveedor"),
+        "tiene_soporte": bool(d.get("soporte_path")),
+        "soporte_nombre": d.get("soporte_nombre") or "",
+        "soporte_mime": d.get("soporte_mime") or "",
+        "lineas": d.get("lineas") if isinstance(d.get("lineas"), list) else [],
+        "total_guardados": d.get("total_guardados") or 0,
+        "notas": d.get("notas") or "",
+        "soporte_url": f"/api/rentabilidad/compras-exterior/{d.get('id')}/soporte"
+        if d.get("soporte_path")
+        else None,
+    }

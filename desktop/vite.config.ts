@@ -11,6 +11,8 @@ export default defineConfig({
       "/api": "http://localhost:8081",
       "/app/api": "http://localhost:8081",
       "/chat": "http://localhost:8081",
+      // Galería Publicaciones / catálogo (también hay ruta /api/publicaciones/imagen-archivo)
+      "/imagenes-productos-catalogo": "http://localhost:8081",
     },
   },
   build: {

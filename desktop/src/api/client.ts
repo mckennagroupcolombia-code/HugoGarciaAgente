@@ -207,7 +207,12 @@ export const api = {
       ? { Authorization: `Bearer ${token}` }
       : {};
     let res = await fetch(url, { method: "POST", headers, body: form });
-    if (res.status === 405 && origin && path.startsWith("/api/")) {
+    // SPA/proxy puede devolver 404/405 en /app/api; reintentar el otro prefijo
+    if (
+      (res.status === 404 || res.status === 405) &&
+      origin &&
+      path.startsWith("/api/")
+    ) {
       const alt = alternateMutatingApiUrl(url, path, "POST", origin);
       if (alt) res = await fetch(alt, { method: "POST", headers, body: form });
     }
