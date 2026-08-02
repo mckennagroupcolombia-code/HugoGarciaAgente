@@ -109,9 +109,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Punto único de entrada de inventario: registra entradas y salidas de unidades aquí y se propagan a MeLi y a la página web, sin editar nada manualmente en la app de MeLi.",
     tips: [
       "'+ Entrada' y '− Salida' suman o restan unidades y empujan el resultado a MeLi y a la web.",
+      "La pestaña 'Códigos MeLi ↔ Siigo' muestra si el SKU de cada publicación coincide con el código en Siigo y permite vincularlos a mano.",
       "Un producto 'pausado en MeLi' igual acepta entradas — se actualiza la web de inmediato; MeLi puede seguir pausado hasta reactivarlo allá ('Abrir en MeLi' para ir directo).",
       "Siigo solo aparece como referencia de lectura — su API no permite escribirle stock; se sigue ajustando aparte.",
-      "Todos los días se reenvía el stock a la web automáticamente, así que un producto nuevo nunca queda sin control por mucho tiempo.",
     ],
     tier: "core",
     category: "productos",
@@ -186,6 +186,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "Las facturas se descargan del correo de compras automáticamente.",
       "Verifica que el proveedor y monto sean correctos antes de aprobar.",
+      "Usa la pestaña Consultar factura para buscar por nombre de producto.",
     ],
     tier: "standard",
     category: "contabilidad",
@@ -207,7 +208,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "Asigna cada gasto al centro de costo correspondiente para informes precisos.",
     ],
-    tier: "advanced",
+    tier: "standard",
     category: "contabilidad",
   },
   rentabilidad: {
@@ -216,8 +217,22 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Análisis de márgenes y rentabilidad por producto, categoría o período. Ideal para decisiones de precios y portafolio.",
     tips: [
       "Compara el costo de fabricación con el precio de venta para ver el margen real.",
+      "Todo el módulo Contabilidad (facturas, sync, costos…) está unificado en un solo botón del menú.",
     ],
-    tier: "advanced",
+    tier: "standard",
+    category: "contabilidad",
+  },
+  "compras-exterior": {
+    emoji: "🌐",
+    label: "Compras exterior",
+    description: "Extrae costos de producto desde un pantallazo de compra o cotización en el exterior. Incluye TRM y flete opcional prorrateado por valor.",
+    tips: [
+      "Pega el pantallazo con Ctrl+V o adjúntalo.",
+      "Ingresa la TRM si la factura no está en COP.",
+      "El flete es opcional y se reparte proporcional al valor de cada línea.",
+      "Revisa las líneas antes de guardar: el costo queda en Rentabilidad (manual).",
+    ],
+    tier: "standard",
     category: "contabilidad",
   },
   rrhh: {

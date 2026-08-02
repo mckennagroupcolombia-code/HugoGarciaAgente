@@ -45,6 +45,8 @@ app/data/5s_audio/
 mckenna_business.db
 *.sqlite3
 memoria_vectorial/
+app/data/relacion_codigos_cache.json
+app/data/meli_cobros_cache.json
 
 # Borradores HTML del agente de conocimiento (CLI opción CIENCIA)
 app/data/ciencia_borradores/

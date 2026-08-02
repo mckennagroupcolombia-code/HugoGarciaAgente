@@ -83,6 +83,45 @@ export function usePublicaciones(buscar = "", categoria = "") {
   });
 }
 
+export interface GaleriaImagen {
+  filename: string;
+  path: string;
+  url: string;
+  principal?: boolean;
+  size_bytes?: number;
+}
+
+export interface GaleriaSkuItem {
+  sku: string;
+  nombre: string;
+  total: number;
+  principal: string;
+  principal_url: string;
+  imagenes: GaleriaImagen[];
+}
+
+export interface GaleriaPublicaciones {
+  items: GaleriaSkuItem[];
+  total_skus: number;
+  total_imagenes: number;
+  buscar?: string;
+}
+
+export function useGaleriaPublicaciones(buscar = "") {
+  return useQuery<GaleriaPublicaciones>({
+    queryKey: ["publicaciones-galeria", buscar],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (buscar) params.set("buscar", buscar);
+      const qs = params.toString();
+      return api.get<GaleriaPublicaciones>(
+        `/api/publicaciones/galeria${qs ? `?${qs}` : ""}`,
+      );
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function usePublicacionDetalle(sku: string | null, liveMeli = false) {
   return useQuery<PublicacionDetalle>({
     queryKey: ["publicacion", sku, liveMeli],

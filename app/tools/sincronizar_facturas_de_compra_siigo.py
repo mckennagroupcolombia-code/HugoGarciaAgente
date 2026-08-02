@@ -395,14 +395,31 @@ def extraer_datos_xml_dian(xml_content):
         print(f"❌ Error extrayendo datos detallados del XML: {e}")
         return None
 
-def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
+def leer_correos_no_descargados(fecha_desde: str = "2025/01/01"):
     """
     Devuelve correos de la etiqueta FACTURAS-MCKG con adjuntos ZIP no descargados,
     desde `fecha_desde` (formato YYYY/MM/DD) hasta hoy.
     Maneja paginación para no perder correos cuando hay más de 100.
     """
+    return leer_correos_facturas_periodo(fecha_desde=fecha_desde, solo_no_descargados=True)
+
+
+def leer_correos_facturas_periodo(
+    fecha_desde: str = "2025/01/01",
+    fecha_hasta: str | None = None,
+    *,
+    solo_no_descargados: bool = True,
+) -> list:
+    """
+    Lista correos FACTURAS-MCKG con ZIP en un rango de fechas Gmail (YYYY/MM/DD).
+
+    Si solo_no_descargados=False, también incluye adjuntos ya bajados (con zip_path
+    local si existe) para poder reconsultar años anteriores (p. ej. 2025).
+    """
     service = get_gmail_service()
     query = f"label:FACTURAS-MCKG has:attachment filename:zip after:{fecha_desde}"
+    if fecha_hasta:
+        query += f" before:{fecha_hasta}"
 
     try:
         messages = []
@@ -422,7 +439,8 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
             print("No hay correos con facturas .zip en el período indicado")
             return []
 
-        print(f"  📧 {len(messages)} correo(s) encontrado(s) desde {fecha_desde}")
+        print(f"  📧 {len(messages)} correo(s) encontrado(s) desde {fecha_desde}"
+              + (f" hasta {fecha_hasta}" if fecha_hasta else ""))
         correos_con_facturas = []
         descargadas = _cargar_facturas_gmail_descargadas()
         manifest_cambio = False
@@ -433,8 +451,8 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
             headers = msg_data["payload"]["headers"]
             asunto = next((h["value"] for h in headers if h["name"] == "Subject"), "Sin Asunto")
 
-            # Buscar ZIPs en partes directas y en partes anidadas (multipart)
             adjuntos = []
+
             def _buscar_zips(partes):
                 nonlocal adjuntos_omitidos, manifest_cambio
                 for part in partes:
@@ -443,11 +461,19 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
                         if att_id:
                             filename = part["filename"]
                             before = len(descargadas.get("adjuntos", {}))
-                            if _adjunto_gmail_ya_descargado(msg["id"], att_id, filename, descargadas):
+                            ya = _adjunto_gmail_ya_descargado(msg["id"], att_id, filename, descargadas)
+                            manifest_cambio = manifest_cambio or len(descargadas.get("adjuntos", {})) != before
+                            if ya and solo_no_descargados:
                                 adjuntos_omitidos += 1
-                                manifest_cambio = manifest_cambio or len(descargadas.get("adjuntos", {})) != before
                                 continue
-                            adjuntos.append({"filename": filename, "id": att_id, "msg_id": msg["id"]})
+                            zip_path = os.path.join(CARPETA_FACTURAS_LOCAL, filename)
+                            adjuntos.append({
+                                "filename": filename,
+                                "id": att_id,
+                                "msg_id": msg["id"],
+                                "ya_descargado": bool(ya),
+                                "zip_path": zip_path if os.path.isfile(zip_path) else None,
+                            })
                     if "parts" in part:
                         _buscar_zips(part["parts"])
 
@@ -468,6 +494,8 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
             print(f"  ⏭️ {adjuntos_omitidos} adjunto(s) ZIP ya descargado(s) omitidos")
 
         return correos_con_facturas
+    except GmailAuthError:
+        raise
     except Exception as e:
         print(f"Error consultando Gmail: {e}")
         return []

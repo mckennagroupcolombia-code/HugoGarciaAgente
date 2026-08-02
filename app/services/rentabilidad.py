@@ -443,21 +443,123 @@ def autocompletar_costos_componentes(dry_run: bool = False) -> dict:
 
 # ─── Categorización de componentes ───────────────────────────────────────────
 
+# Envase primario / cierre / dosificación (producto)
+_ENVASE_KW = (
+    "farma",
+    "pastillero",
+    "frasco",
+    "gotero",
+    "envase",
+    "env.",
+    "valvula",
+    "válvula",
+    "dosificador",
+    "dosificadora",
+    "tapa",
+    "tapon",
+    "tapón",
+    "bolsa",
+    "banda",
+    "botero",
+    "botella",
+    "doypack",
+    "caneca",
+    "tarro",
+    "pote",
+    "tubo",
+    "sachet",
+    "blister",
+    "liner",
+    "dispensador",
+    "bomba",
+    "sifon",
+    "sifón",
+    "spray",
+    "copa dosificadora",
+)
+
+# Embalaje de despacho / protección
+_EMBALAJE_KW = (
+    "embalaje",
+    "empaque",
+    "vinipel",
+    "papel",
+    "burbuja",
+    "sobre seguridad",
+    "sobre",
+    "portaguia",
+    "porta guia",
+    "cinta",
+    "flejes",
+    "termocontraible",
+    "caja carton",
+    "caja cartón",
+    "carton",
+    "cartón",
+    "zipper",
+)
+
+# Unidad mínima típica de materia prima (g / mL)
+_RE_UNIDAD_MATERIA_PRIMA = re.compile(
+    r"(?:"
+    r"m\.?l\.?\s*$"                          # …mL / …ml al final (incl. pegado al nombre)
+    r"|"
+    r"\b\d+(?:[.,]\d+)?\s*m\.?l\.?\b"        # 5mL, 180 ml
+    r"|"
+    r"\bg\b"                                  # token g (UREA g, g mL)
+    r"|"
+    r"\b\d+(?:[.,]\d+)?\s*g\b"                # 5g, 30 g
+    r"|"
+    r"\bg\s*l\b"                              # gL
+    r")",
+    re.IGNORECASE,
+)
+
+
 def _categorizar(nombre: str) -> str:
+    """
+    Categorías de costo en rentabilidad:
+      - etiqueta: etiquetas / labels
+      - envase: farma, pastillero, frasco, gotero, envase, válvula, dosificador, tapa, bolsa…
+      - embalaje: papel, sobre de seguridad, vinipel, burbuja, cinta…
+      - material: materia prima con unidad mínima g / mL
+      - operativo: mano de obra
+    """
     n = nombre.lower()
-    if any(k in n for k in ["etiqueta", "label", "sticker", "adhesivo"]):
+    if any(k in n for k in ("etiqueta", "label", "sticker")):
         return "etiqueta"
-    if any(k in n for k in ["env.", "frasco", "botero", "botella", "doypack", "caneca",
-                             "tarro", "pote", "vaso", "gotero", "tubo", "sachet"]):
+    if any(k in n for k in _ENVASE_KW):
         return "envase"
-    if any(k in n for k in ["tapa", "tapón", "tapon", "liner", "dosificadora",
-                             "dispensador", "bomba", "sifon", "spray", "copa dosificadora"]):
-        return "envase"
-    if any(k in n for k in ["vinipel", "burbuja", "bolsa", "cinta", "flejes", "zipper"]):
-        return "empaque"
-    if any(k in n for k in ["operativo", "mano de obra", "m.o.", "minuto", "min "]):
+    if any(k in n for k in _EMBALAJE_KW):
+        return "embalaje"
+    if any(k in n for k in ("operativo", "mano de obra", "m.o.")):
         return "operativo"
+    if re.search(r"\bminutos?\b|\bmin\b", n):
+        return "operativo"
+    if _RE_UNIDAD_MATERIA_PRIMA.search(nombre):
+        return "material"
     return "material"
+
+
+def reclasificar_categorias_componentes() -> dict:
+    """Reaplica `_categorizar` a componentes ya guardados."""
+    from app.services.contabilidad_db import listar_componentes, upsert_componente
+
+    actualizados = []
+    for row in listar_componentes():
+        nombre = row.get("nombre_original") or ""
+        cat_nueva = _categorizar(nombre)
+        cat_actual = (row.get("categoria") or "material").strip()
+        if cat_nueva == cat_actual:
+            continue
+        upsert_componente(
+            nombre,
+            float(row.get("costo_unitario") or 0),
+            cat_nueva,
+            bool(row.get("iva_incluido")),
+        )
+        actualizados.append({"nombre": nombre, "antes": cat_actual, "despues": cat_nueva})
+    return {"actualizados": len(actualizados), "detalle": actualizados}
 
 
 # ─── Desglose de costos por combo ─────────────────────────────────────────────
@@ -549,7 +651,7 @@ def combo_costos_desglose(code: str) -> dict:
             totales["costo_envase"] += costo_total
         elif cat == "etiqueta":
             totales["costo_etiqueta"] += costo_total
-        elif cat == "empaque":
+        elif cat in ("embalaje", "empaque"):
             totales["otros_costos"] += costo_total
         elif cat == "operativo":
             totales["costo_nomina"] += costo_total
@@ -702,6 +804,463 @@ def precios_reales_meli() -> dict:
             continue
 
     return resultado
+
+
+# ─── Cobros MeLi (cargo por venta / envío MeLi “pagarás”) ─────────────────────
+
+_COBROS_MELI_CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "meli_cobros_cache.json")
+_COBROS_MELI_TTL = 3600  # 1 hora
+
+
+def _catalogo_publicaciones_meli() -> list[dict]:
+    """Publicaciones del cache web con meli_id (sku, nombre, meli_id)."""
+    cache_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json"
+    )
+    try:
+        with open(cache_path, encoding="utf-8") as f:
+            cache = json.load(f)
+    except Exception:
+        return []
+
+    out: list[dict] = []
+    seen: set[str] = set()
+    for p in cache.get("combos") or []:
+        mid = (p.get("meli_id") or "").strip().upper()
+        sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+        if not mid or not sku or mid in seen:
+            continue
+        seen.add(mid)
+        out.append({
+            "sku": sku,
+            "nombre": (p.get("name") or sku).strip(),
+            "meli_id": mid,
+        })
+    return out
+
+
+def parse_cobros_listing_prices(payload, listing_type_id: str | None = None) -> dict:
+    """
+    Cargo por venta = sale_fee_amount de /sites/MCO/listing_prices
+    (mismo monto que “Pagarás $X por venta” en el panel MeLi).
+    """
+    rows = payload if isinstance(payload, list) else ([payload] if isinstance(payload, dict) else [])
+    want = (listing_type_id or "").lower().strip()
+    best = None
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        fee = row.get("sale_fee_amount")
+        if fee is None:
+            fee = row.get("selling_fee_amount")
+        if fee is None:
+            continue
+        try:
+            fee_f = float(fee)
+        except (TypeError, ValueError):
+            continue
+        lt = (row.get("listing_type_id") or "").lower()
+        pct = None
+        details = row.get("sale_fee_details") or {}
+        if isinstance(details, dict) and details.get("percentage_fee") is not None:
+            try:
+                pct = float(details["percentage_fee"]) / 100.0
+            except (TypeError, ValueError):
+                pct = None
+        if want and lt == want:
+            score = 3
+        elif lt in ("gold_special", "gold_pro"):
+            score = 2
+        else:
+            score = 1
+        if best is None or score > best[0]:
+            best = (score, fee_f, pct, row)
+    if not best:
+        return {"cargo_venta": None, "pct_venta_api": None, "fuente_venta": "listing_prices"}
+    return {
+        "cargo_venta": best[1],
+        "pct_venta_api": best[2],
+        "fuente_venta": "listing_prices",
+    }
+
+
+def parse_shipping_options_free(payload: dict | None) -> float | None:
+    """
+    Costo que el vendedor paga por Envíos Mercado Libre (`list_cost`).
+    Coincide con “Envíos en Mercado Libre: pagarás $X” del panel del vendedor.
+    """
+    data = payload or {}
+    coverage = data.get("coverage") or {}
+    all_country = coverage.get("all_country") or {}
+    list_cost = all_country.get("list_cost")
+    if list_cost is None:
+        return None
+    try:
+        return float(list_cost)
+    except (TypeError, ValueError):
+        return None
+
+
+def _meli_user_id(token: str) -> int | None:
+    import requests as _req
+    try:
+        res = _req.get(
+            "https://api.mercadolibre.com/users/me",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=12,
+        )
+        if res.status_code != 200:
+            return None
+        uid = (res.json() or {}).get("id")
+        return int(uid) if uid is not None else None
+    except Exception:
+        return None
+
+
+def _fetch_cobros_un_item(meli_id: str, token: str, user_id: int | None = None) -> dict:
+    """
+    Cobros como en el panel de publicaciones MeLi:
+      - cargo_venta: listing_prices.sale_fee_amount (“Pagarás $X por venta”)
+      - cargo_envio: users/.../shipping_options/free list_cost
+        (“Envíos en Mercado Libre: pagarás $X”), según free_shipping actual del ítem.
+    """
+    import requests as _req
+
+    headers = {"Authorization": f"Bearer {token}"}
+    mid = meli_id.strip().upper()
+    try:
+        item_res = _req.get(
+            f"https://api.mercadolibre.com/items/{mid}",
+            headers=headers,
+            timeout=12,
+        )
+        if item_res.status_code != 200:
+            return {
+                "precio_meli": None,
+                "cargo_venta": None,
+                "cargo_envio": None,
+                "fuente": "error",
+                "error": f"item {item_res.status_code}",
+            }
+        item = item_res.json() or {}
+        price = item.get("price")
+        cat = item.get("category_id") or ""
+        lt = item.get("listing_type_id") or "gold_special"
+        ship = item.get("shipping") or {}
+        free_shipping = bool(ship.get("free_shipping"))
+        mode = ship.get("mode") or "me2"
+        logistic_type = ship.get("logistic_type") or "cross_docking"
+        condition = item.get("condition") or "new"
+
+        precio_f = None
+        if price is not None:
+            try:
+                precio_f = float(price)
+            except (TypeError, ValueError):
+                precio_f = None
+
+        # Cargo por venta
+        cargo_venta = None
+        pct_api = None
+        lp = _req.get(
+            "https://api.mercadolibre.com/sites/MCO/listing_prices",
+            params={"price": price, "category_id": cat, "listing_type_id": lt},
+            headers=headers,
+            timeout=12,
+        )
+        if lp.status_code == 200:
+            parsed_lp = parse_cobros_listing_prices(lp.json(), listing_type_id=lt)
+            cargo_venta = parsed_lp.get("cargo_venta")
+            pct_api = parsed_lp.get("pct_venta_api")
+
+        # Envíos Mercado Libre — pagarás (según configuración actual del ítem)
+        cargo_envio = None
+        uid = user_id or _meli_user_id(token)
+        if uid and precio_f is not None:
+            sh = _req.get(
+                f"https://api.mercadolibre.com/users/{uid}/shipping_options/free",
+                params={
+                    "item_id": mid,
+                    "verbose": "true",
+                    "free_shipping": "true" if free_shipping else "false",
+                    "item_price": precio_f,
+                    "listing_type_id": lt,
+                    "mode": mode,
+                    "condition": condition,
+                    "logistic_type": logistic_type,
+                },
+                headers=headers,
+                timeout=12,
+            )
+            if sh.status_code == 200:
+                cargo_envio = parse_shipping_options_free(sh.json())
+
+        return {
+            "precio_meli": precio_f,
+            "cargo_venta": cargo_venta,
+            "cargo_envio": cargo_envio,
+            "pct_venta_api": pct_api,
+            "free_shipping": free_shipping,
+            "envio_a_cargo_comprador": not free_shipping,
+            "fuente": "listing_prices+shipping_options",
+        }
+    except Exception as e:
+        return {
+            "precio_meli": None,
+            "cargo_venta": None,
+            "cargo_envio": None,
+            "fuente": "error",
+            "error": str(e),
+        }
+
+
+def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
+    """
+    Lista publicaciones activas con cargo por venta y cargo por envío (API MeLi).
+    Cachea resultados ~1 h en app/data/meli_cobros_cache.json.
+    """
+    q = (buscar or "").strip().lower()
+    now = time.time()
+    cache: dict = {}
+    if not refresh and os.path.isfile(_COBROS_MELI_CACHE_PATH):
+        try:
+            with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+                cache = json.load(f)
+        except Exception:
+            cache = {}
+
+    cache_ts = float(cache.get("ts") or 0)
+    cache_ver = int(cache.get("version") or 0)
+    cache_items = {str(i.get("meli_id") or "").upper(): i for i in (cache.get("items") or []) if i.get("meli_id")}
+    # v2 = listing_prices + shipping_options/free (Envíos MeLi “pagarás”)
+    cache_ok = (
+        cache_ver >= 2
+        and (now - cache_ts) < _COBROS_MELI_TTL
+        and bool(cache_items)
+    )
+
+    catalogo = _catalogo_publicaciones_meli()
+    if not catalogo:
+        return {
+            "items": [],
+            "totales": {"cargo_venta": 0.0, "cargo_envio": 0.0, "precio": 0.0},
+            "actualizado_en": None,
+            "fuente": "cache_vacio",
+            "total": 0,
+        }
+
+    from app.utils import refrescar_token_meli
+    token = refrescar_token_meli() if (refresh or not cache_ok) else None
+
+    items_out: list[dict] = []
+    need_fetch = []
+    for pub in catalogo:
+        mid = pub["meli_id"]
+        if cache_ok and mid in cache_items and not refresh:
+            row = dict(cache_items[mid])
+            row["sku"] = pub["sku"]
+            row["nombre"] = pub["nombre"]
+            items_out.append(row)
+        else:
+            need_fetch.append(pub)
+
+    if need_fetch:
+        if not token:
+            token = refrescar_token_meli()
+        if not token:
+            return {
+                "items": items_out,
+                "totales": _totales_cobros(items_out),
+                "actualizado_en": cache.get("actualizado_en"),
+                "fuente": "sin_token",
+                "error": "No se pudo refrescar token MeLi",
+                "total": len(items_out),
+            }
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        user_id = _meli_user_id(token)
+
+        def _uno(pub: dict) -> dict:
+            cobros = _fetch_cobros_un_item(pub["meli_id"], token, user_id=user_id)
+            precio = cobros.get("precio_meli")
+            cv = cobros.get("cargo_venta")
+            ce = cobros.get("cargo_envio")
+            pct = cobros.get("pct_venta_api")
+            if pct is None and precio and cv is not None and float(precio) > 0:
+                pct = round(float(cv) / float(precio), 4)
+            neto = None
+            if precio is not None:
+                neto = round(float(precio) - float(cv or 0) - float(ce or 0), 2)
+            return {
+                "sku": pub["sku"],
+                "nombre": pub["nombre"],
+                "meli_id": pub["meli_id"],
+                "precio_meli": precio,
+                "cargo_venta": cv,
+                "cargo_envio": ce,
+                "pct_venta": pct,
+                "neto_estimado": neto,
+                "free_shipping": cobros.get("free_shipping"),
+                "envio_a_cargo_comprador": cobros.get("envio_a_cargo_comprador"),
+                "fuente": cobros.get("fuente"),
+                "error": cobros.get("error"),
+            }
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            futures = {pool.submit(_uno, pub): pub for pub in need_fetch}
+            for fut in as_completed(futures):
+                try:
+                    row = fut.result()
+                except Exception as e:
+                    pub = futures[fut]
+                    row = {
+                        "sku": pub["sku"],
+                        "nombre": pub["nombre"],
+                        "meli_id": pub["meli_id"],
+                        "precio_meli": None,
+                        "cargo_venta": None,
+                        "cargo_envio": None,
+                        "pct_venta": None,
+                        "neto_estimado": None,
+                        "fuente": "error",
+                        "error": str(e),
+                    }
+                items_out.append(row)
+                cache_items[row["meli_id"]] = row
+
+        # Persistir caché completa del catálogo
+        try:
+            all_rows = list(cache_items.values())
+            payload = {
+                "version": 2,
+                "ts": now,
+                "actualizado_en": datetime.now().isoformat(timespec="seconds"),
+                "items": all_rows,
+            }
+            tmp = _COBROS_MELI_CACHE_PATH + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False)
+            os.replace(tmp, _COBROS_MELI_CACHE_PATH)
+            cache = payload
+        except Exception:
+            pass
+
+    if q:
+        items_out = [
+            i for i in items_out
+            if q in (i.get("sku") or "").lower()
+            or q in (i.get("nombre") or "").lower()
+            or q in (i.get("meli_id") or "").lower()
+        ]
+
+    items_out.sort(key=lambda i: (i.get("nombre") or "").lower())
+    return {
+        "items": items_out,
+        "totales": _totales_cobros(items_out),
+        "actualizado_en": cache.get("actualizado_en") or (datetime.now().isoformat(timespec="seconds") if need_fetch else None),
+        "fuente": "meli",
+        "total": len(items_out),
+        "cache_hit": cache_ok and not refresh and not need_fetch,
+    }
+
+
+def _totales_cobros(items: list[dict]) -> dict:
+    tv = te = tp = 0.0
+    for i in items:
+        if i.get("cargo_venta") is not None:
+            tv += float(i["cargo_venta"])
+        if i.get("cargo_envio") is not None:
+            te += float(i["cargo_envio"])
+        if i.get("precio_meli") is not None:
+            tp += float(i["precio_meli"])
+    return {
+        "cargo_venta": round(tv, 2),
+        "cargo_envio": round(te, 2),
+        "precio": round(tp, 2),
+    }
+
+
+def listar_ganancia_meli(buscar: str = "") -> dict:
+    """
+    Ganancia por publicación:
+      ganancia = precio_venta − costo_real_producto − (cargo_venta + cargo_envio MeLi)
+    Une costos Siigo (costos_todos_resumen) + cobros MeLi (caché/API).
+    """
+    cobros = listar_cobros_meli(buscar="", refresh=False)
+    costos = costos_todos_resumen()
+
+    q = (buscar or "").strip().lower()
+    items_out: list[dict] = []
+    sum_precio = sum_costo = sum_cobros = sum_ganancia = 0.0
+    n_con_ganancia = 0
+
+    for c in cobros.get("items") or []:
+        sku = (c.get("sku") or "").strip()
+        nombre = (c.get("nombre") or sku).strip()
+        mid = (c.get("meli_id") or "").strip()
+        if q and not (
+            q in sku.lower() or q in nombre.lower() or q in mid.lower()
+        ):
+            continue
+
+        precio = c.get("precio_meli")
+        cv = c.get("cargo_venta")
+        ce = c.get("cargo_envio")
+        cobros_total = None
+        if cv is not None or ce is not None:
+            cobros_total = round(float(cv or 0) + float(ce or 0), 2)
+
+        cost_info = costos.get(sku.upper()) or costos.get(sku) or {}
+        costo_real = cost_info.get("costo_total")
+        sin_costo = int(cost_info.get("sin_costo") or 0) if cost_info else None
+
+        ganancia = None
+        margen_pct = None
+        if precio is not None and costo_real is not None and cobros_total is not None:
+            ganancia = round(float(precio) - float(costo_real) - float(cobros_total), 2)
+            if float(precio) > 0:
+                margen_pct = round(ganancia / float(precio), 4)
+
+        if precio is not None:
+            sum_precio += float(precio)
+        if costo_real is not None:
+            sum_costo += float(costo_real)
+        if cobros_total is not None:
+            sum_cobros += float(cobros_total)
+        if ganancia is not None:
+            sum_ganancia += float(ganancia)
+            n_con_ganancia += 1
+
+        items_out.append({
+            "sku": sku,
+            "nombre": nombre,
+            "meli_id": mid,
+            "precio_venta": precio,
+            "costo_real": costo_real,
+            "sin_costo": sin_costo,
+            "cargo_venta": cv,
+            "cargo_envio": ce,
+            "cobros_meli": cobros_total,
+            "ganancia": ganancia,
+            "margen_pct": margen_pct,
+            "free_shipping": c.get("free_shipping"),
+        })
+
+    items_out.sort(key=lambda i: (i.get("nombre") or "").lower())
+    return {
+        "items": items_out,
+        "total": len(items_out),
+        "con_ganancia": n_con_ganancia,
+        "actualizado_en": cobros.get("actualizado_en"),
+        "cache_hit": cobros.get("cache_hit"),
+        "totales": {
+            "precio_venta": round(sum_precio, 2),
+            "costo_real": round(sum_costo, 2),
+            "cobros_meli": round(sum_cobros, 2),
+            "ganancia": round(sum_ganancia, 2),
+        },
+    }
 
 
 # ─── Recordatorios de pagos por WhatsApp ─────────────────────────────────────

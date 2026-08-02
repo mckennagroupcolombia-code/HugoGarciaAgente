@@ -116,7 +116,22 @@ Endpoints usados por React:
 | `/api/sync/aprendizaje` | POST | - | `status: iniciado` |
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
+| `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo) |
+| `/api/stock/relacion-codigos` | GET | `buscar`, `filtro`, `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` |
+| `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
+
+## Rentabilidad / compras exterior
+
+Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipart).
+
+| Endpoint | Metodo | Body | Notas |
+| --- | --- | --- | --- |
+| `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Siigo |
+| `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagen`, opcional `trm`, `flete`, `moneda_flete` | Gemini Vision → lineas + landed |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | `items[{nombre, costo_unitario, categoria?, iva_incluido?}]` | Batch upsert (IVA false por defecto) |
+
+Landed cost: `costo_unitario_cop = precio_unit * TRM + (flete_cop * peso_linea) / cantidad`, `peso_linea = subtotal / suma_subtotales`.
 
 ## 5S Panel
 

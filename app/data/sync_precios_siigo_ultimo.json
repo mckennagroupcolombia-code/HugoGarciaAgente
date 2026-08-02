@@ -1,0 +1,317 @@
+{
+  "timestamp": "2026-08-01T13:53:20.730246",
+  "fase": "siigo+web",
+  "iguales": 76,
+  "siigo_ok": 44,
+  "siigo_err": 8,
+  "sin_siigo_count": 87,
+  "sin_siigo_sample": [
+    "ACDKJCDPLM30ML",
+    "ACDSLC50G",
+    "ACDSRBKG",
+    "ADAOBDII",
+    "AGTMGNPLN",
+    "ALBHV500G",
+    "ALMLIJMKT123MM",
+    "ALNT100G",
+    "ALNT250G",
+    "ALPL12X8X1/4",
+    "ARCAM250G",
+    "AS-10",
+    "AS-107",
+    "AS-15",
+    "AS-38",
+    "AS-44",
+    "AS-5",
+    "AS-84",
+    "AS-86",
+    "BRCESC3PZS",
+    "BTMS500G",
+    "C- PISTOS250G",
+    "C-AGUDESSOBRPH",
+    "C-ALGSODCLOCAL100G",
+    "C-ALGSODLACCAL50G",
+    "C-ALMNAL500G",
+    "C-ALMNAT250G",
+    "C-COCDESHIL250G",
+    "C-COCDESHIL500G",
+    "C-NUEBRA250G"
+  ],
+  "actualizados": [
+    {
+      "code": "C-ACEESEROM5mL",
+      "de": 17000.0,
+      "a": 20900.0,
+      "meli_id": "MCO3152478202"
+    },
+    {
+      "code": "C-ACEITEATRE5mL",
+      "de": 17000.0,
+      "a": 19900.0,
+      "meli_id": "MCO1278699815"
+    },
+    {
+      "code": "C-ACERIC10mL",
+      "de": 10400.0,
+      "a": 9400.0,
+      "meli_id": "MCO602225162"
+    },
+    {
+      "code": "C-ACERIC250mL",
+      "de": 14500.0,
+      "a": 13500.0,
+      "meli_id": "MCO1636834856"
+    },
+    {
+      "code": "C-ACIMAL100g",
+      "de": 11900.0,
+      "a": 7800.0,
+      "meli_id": "MCO918703993"
+    },
+    {
+      "code": "C-ALCCET250g",
+      "de": 12500.0,
+      "a": 13900.0,
+      "meli_id": "MCO891097460"
+    },
+    {
+      "code": "C-ALU250g",
+      "de": 19000.0,
+      "a": 16200.0,
+      "meli_id": "MCO1929031180"
+    },
+    {
+      "code": "C-ALU500g",
+      "de": 36900.0,
+      "a": 25900.0,
+      "meli_id": "MCO3105735890"
+    },
+    {
+      "code": "C-BICSOD500g",
+      "de": 8000.0,
+      "a": 4500.0,
+      "meli_id": "MCO557974228"
+    },
+    {
+      "code": "C-BTMS250g",
+      "de": 46000.0,
+      "a": 44500.0,
+      "meli_id": "MCO595871200"
+    },
+    {
+      "code": "C-BTMS50125g",
+      "de": 29900.0,
+      "a": 24900.0,
+      "meli_id": "MCO1330892037"
+    },
+    {
+      "code": "C-CITMAG500g",
+      "de": 40000.0,
+      "a": 29900.0,
+      "meli_id": "MCO4074246724"
+    },
+    {
+      "code": "C-CITMAGKg",
+      "de": 65000.0,
+      "a": 54000.0,
+      "meli_id": "MCO4083547534"
+    },
+    {
+      "code": "C-CITPOT250g",
+      "de": 22100.0,
+      "a": 17000.0,
+      "meli_id": "MCO1572732833"
+    },
+    {
+      "code": "C-CITPOT500g",
+      "de": 38900.0,
+      "a": 31900.0,
+      "meli_id": "MCO2854712994"
+    },
+    {
+      "code": "C-COLHID500g",
+      "de": 73500.0,
+      "a": 59000.0,
+      "meli_id": "MCO3902022608"
+    },
+    {
+      "code": "C-CREMON500g",
+      "de": 59900.0,
+      "a": 53910.0,
+      "meli_id": "MCO2158622860"
+    },
+    {
+      "code": "C-DEXKg",
+      "de": 17150.0,
+      "a": 12200.0,
+      "meli_id": "MCO1298007835"
+    },
+    {
+      "code": "C-DIOTIT500g",
+      "de": 26400.0,
+      "a": 19500.0,
+      "meli_id": "MCO581503445"
+    },
+    {
+      "code": "C-DPAN50mL",
+      "de": 50500.0,
+      "a": 22900.0,
+      "meli_id": "MCO585538997"
+    },
+    {
+      "code": "C-DPAN85P120mL",
+      "de": 96900.0,
+      "a": 42900.0,
+      "meli_id": "MCO893531765"
+    },
+    {
+      "code": "C-DPG500mL",
+      "de": 30000.0,
+      "a": 25900.0,
+      "meli_id": "MCO581504092"
+    },
+    {
+      "code": "C-EXTTEMATVER100g",
+      "de": 34400.0,
+      "a": 29900.0,
+      "meli_id": "MCO1262314547"
+    },
+    {
+      "code": "C-FLOSECLAV100g",
+      "de": 69900.0,
+      "a": 68900.0,
+      "meli_id": "MCO2004400418"
+    },
+    {
+      "code": "C-INU500g",
+      "de": 38500.0,
+      "a": 28300.0,
+      "meli_id": "MCO991717213"
+    },
+    {
+      "code": "C-INUKg",
+      "de": 68900.0,
+      "a": 57500.0,
+      "meli_id": "MCO991723745"
+    },
+    {
+      "code": "C-LECSOY500g",
+      "de": 24000.0,
+      "a": 19800.0,
+      "meli_id": "MCO896116153"
+    },
+    {
+      "code": "C-MAL500g",
+      "de": 11900.0,
+      "a": 8900.0,
+      "meli_id": "MCO648703323"
+    },
+    {
+      "code": "C-MANKARBLA500g",
+      "de": 119000.0,
+      "a": 116000.0,
+      "meli_id": "MCO566618436"
+    },
+    {
+      "code": "C-MENCRI100g",
+      "de": 35000.0,
+      "a": 29500.0,
+      "meli_id": "MCO1146475504"
+    },
+    {
+      "code": "C-NIA100g",
+      "de": 63150.0,
+      "a": 28900.0,
+      "meli_id": "MCO880824875"
+    },
+    {
+      "code": "C-OXIZIN250g",
+      "de": 27700.0,
+      "a": 14500.0,
+      "meli_id": "MCO866834790"
+    },
+    {
+      "code": "C-PARKg",
+      "de": 25200.0,
+      "a": 23190.0,
+      "meli_id": "MCO865282647"
+    },
+    {
+      "code": "C-SEMCAL500g",
+      "de": 11500.0,
+      "a": 9900.0,
+      "meli_id": "MCO4160901374"
+    },
+    {
+      "code": "C-TAU250g",
+      "de": 48900.0,
+      "a": 41300.0,
+      "meli_id": "MCO1238594208"
+    },
+    {
+      "code": "C-TENSCI100g",
+      "de": 25100.0,
+      "a": 21900.0,
+      "meli_id": "MCO605845399"
+    },
+    {
+      "code": "C-TENSCIKg",
+      "de": 149000.0,
+      "a": 119900.0,
+      "meli_id": "MCO866417408"
+    },
+    {
+      "code": "C-URE250g",
+      "de": 17150.0,
+      "a": 12500.0,
+      "meli_id": "MCO820157855"
+    },
+    {
+      "code": "C-URE500g",
+      "de": 29800.0,
+      "a": 19900.0,
+      "meli_id": "MCO577075253"
+    },
+    {
+      "code": "C-VASPRE10mL",
+      "de": 13900.0,
+      "a": 12900.0,
+      "meli_id": "MCO1171713653"
+    },
+    {
+      "code": "C-VASPRE50mL",
+      "de": 13900.0,
+      "a": 20900.0,
+      "meli_id": "MCO833400087"
+    },
+    {
+      "code": "C-VITCACIASC100g",
+      "de": 13700.0,
+      "a": 10200.0,
+      "meli_id": "MCO891105315"
+    },
+    {
+      "code": "C-VITCACIASC250g",
+      "de": 19900.0,
+      "a": 13500.0,
+      "meli_id": "MCO845901602"
+    },
+    {
+      "code": "C-VITCACIASC500g",
+      "de": 37000.0,
+      "a": 21500.0,
+      "meli_id": "MCO851423221"
+    }
+  ],
+  "errores": [
+    "C-GLICVEG500mL: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[4].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}",
+    "C-GLIVEG250mL: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[7].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}",
+    "C-GLUMONKg: Siigo PUT 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}",
+    "C-GOMGUA500g: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[0].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}",
+    "C-GOMXAN500g: Siigo PUT 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}",
+    "C-GOMXANKg: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[6].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}",
+    "C-INU250g: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[0].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}",
+    "C-TEGBETLt: Siigo PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field code is required\",\"Params\":[\"components[2].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+  ],
+  "web": "✅ Catálogo web regenerado desde Siigo (/home/mckg/mi-agente/PAGINA_WEB/site/data/cache.json)"
+}

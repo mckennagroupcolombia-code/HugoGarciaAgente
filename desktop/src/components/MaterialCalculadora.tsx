@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "../icons";
 
 export type MaterialCalcField = "stock_actual" | "stock_minimo" | "precio_unitario" | "cantidad";
@@ -50,6 +50,8 @@ export default function MaterialCalculadora({
   const [pendingOp, setPendingOp] = useState<Op | null>(null);
   const [fresh, setFresh] = useState(true);
   const [applyField, setApplyField] = useState<MaterialCalcField>(fields[0]);
+  const [activa, setActiva] = useState(false);
+  const padRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!fields.includes(applyField)) setApplyField(fields[0]);
@@ -62,57 +64,69 @@ export default function MaterialCalculadora({
     setFresh(true);
   }, []);
 
-  const current = (): number | null => {
+  const current = useCallback((): number | null => {
     if (display === "Error") return null;
     const n = parseFloat(display);
     return Number.isFinite(n) ? n : null;
-  };
+  }, [display]);
 
-  const pressDigit = (d: string) => {
-    if (display === "Error") reset();
-    setDisplay((prev) => {
-      if (fresh) return d === "." ? "0." : d;
-      if (d === "." && prev.includes(".")) return prev;
-      if (prev === "0" && d !== ".") return d;
-      return prev + d;
-    });
-    setFresh(false);
-  };
+  const pressDigit = useCallback(
+    (d: string) => {
+      if (display === "Error") {
+        setDisplay(d === "." ? "0." : d);
+        setAccumulator(null);
+        setPendingOp(null);
+        setFresh(false);
+        return;
+      }
+      setDisplay((prev) => {
+        if (fresh) return d === "." ? "0." : d;
+        if (d === "." && prev.includes(".")) return prev;
+        if (prev === "0" && d !== ".") return d;
+        return prev + d;
+      });
+      setFresh(false);
+    },
+    [display, fresh],
+  );
 
-  const pressBackspace = () => {
+  const pressBackspace = useCallback(() => {
     if (display === "Error" || fresh) return;
     setDisplay((prev) => {
       if (prev.length <= 1) return "0";
       const next = prev.slice(0, -1);
       return next === "-" ? "0" : next;
     });
-  };
+  }, [display, fresh]);
 
-  const pressOp = (op: Op) => {
-    if (display === "Error") return;
-    const input = current();
-    if (input == null) return;
+  const pressOp = useCallback(
+    (op: Op) => {
+      if (display === "Error") return;
+      const input = current();
+      if (input == null) return;
 
-    if (accumulator != null && pendingOp != null && !fresh) {
-      const result = compute(accumulator, input, pendingOp);
-      if (result == null) {
-        setDisplay("Error");
-        setAccumulator(null);
-        setPendingOp(null);
-        setFresh(true);
-        return;
+      if (accumulator != null && pendingOp != null && !fresh) {
+        const result = compute(accumulator, input, pendingOp);
+        if (result == null) {
+          setDisplay("Error");
+          setAccumulator(null);
+          setPendingOp(null);
+          setFresh(true);
+          return;
+        }
+        setAccumulator(result);
+        setDisplay(fmtNum(result));
+      } else {
+        setAccumulator(input);
       }
-      setAccumulator(result);
-      setDisplay(fmtNum(result));
-    } else {
-      setAccumulator(input);
-    }
 
-    setPendingOp(op);
-    setFresh(true);
-  };
+      setPendingOp(op);
+      setFresh(true);
+    },
+    [accumulator, current, display, fresh, pendingOp],
+  );
 
-  const pressEquals = () => {
+  const pressEquals = useCallback(() => {
     if (display === "Error" || pendingOp == null || accumulator == null) return;
     const input = current();
     if (input == null) return;
@@ -130,7 +144,67 @@ export default function MaterialCalculadora({
     setAccumulator(null);
     setPendingOp(null);
     setFresh(true);
-  };
+  }, [accumulator, current, display, pendingOp]);
+
+  useEffect(() => {
+    if (!activa) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      // El select de campo no debe capturar dígitos/operadores del pad
+      if (target?.tagName === "SELECT" && padRef.current?.contains(target)) return;
+
+      const key = e.key;
+      if (/^[0-9]$/.test(key)) {
+        e.preventDefault();
+        pressDigit(key);
+        return;
+      }
+      if (key === "." || key === ",") {
+        e.preventDefault();
+        pressDigit(".");
+        return;
+      }
+      if (key === "Backspace") {
+        e.preventDefault();
+        pressBackspace();
+        return;
+      }
+      if (key === "Delete" || key === "c" || key === "C") {
+        e.preventDefault();
+        reset();
+        return;
+      }
+      if (key === "+") {
+        e.preventDefault();
+        pressOp("+");
+        return;
+      }
+      if (key === "-") {
+        e.preventDefault();
+        pressOp("-");
+        return;
+      }
+      if (key === "*" || key === "x" || key === "X") {
+        e.preventDefault();
+        pressOp("×");
+        return;
+      }
+      if (key === "/") {
+        e.preventDefault();
+        pressOp("÷");
+        return;
+      }
+      if (key === "Enter" || key === "=") {
+        e.preventDefault();
+        pressEquals();
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [activa, pressBackspace, pressDigit, pressEquals, pressOp, reset]);
 
   const canApply = display !== "Error" && current() != null;
 
@@ -158,13 +232,27 @@ export default function MaterialCalculadora({
 
   return (
     <aside
-      className={`shrink-0 rounded-paper border-2 border-border bg-surface-panel p-2 ${
-        compact ? "w-full" : "w-full lg:w-[11.5rem]"
-      }`}
+      ref={padRef}
+      tabIndex={0}
+      onFocus={() => setActiva(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiva(false);
+      }}
+      onMouseDown={() => setActiva(true)}
+      className={`shrink-0 rounded-paper border-2 bg-surface-panel p-2 outline-none ${
+        activa ? "border-accent/60" : "border-border"
+      } ${compact ? "w-full" : "w-full lg:w-[11.5rem]"}`}
+      aria-label="Calculadora de materiales"
+      aria-keyshortcuts="0-9, +, -, *, /, Enter, Backspace"
     >
-      <div className="mb-1.5 flex items-center gap-1 text-muted">
-        <Icon name="calculator" size={13} weight="regular" />
-        <span className="text-[10px] font-extrabold uppercase tracking-wide">Calculadora</span>
+      <div className="mb-1.5 flex items-center justify-between gap-1 text-muted">
+        <div className="flex items-center gap-1">
+          <Icon name="calculator" size={13} weight="regular" />
+          <span className="text-[10px] font-extrabold uppercase tracking-wide">Calculadora</span>
+        </div>
+        {activa && (
+          <span className="text-[8px] font-semibold uppercase tracking-wide text-accent">Teclado</span>
+        )}
       </div>
 
       <div

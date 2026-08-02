@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import PanelHelp from "./PanelHelp";
@@ -195,7 +195,296 @@ function StockRow({
   );
 }
 
+type StockView = "inventario" | "codigos";
+
+type FiltroRelacion = "todos" | "vinculados" | "sin_siigo" | "divergentes" | "sin_codigo";
+
+interface RelacionItem {
+  meli_id: string;
+  titulo: string;
+  sku_meli: string;
+  codigo_siigo: string;
+  nombre_siigo: string;
+  en_siigo: boolean;
+  sku_coincide: boolean;
+  estado: string;
+  permalink?: string;
+  tiene_override?: boolean;
+}
+
+interface RelacionResp {
+  items: RelacionItem[];
+  totales: {
+    total: number;
+    vinculados: number;
+    sin_siigo: number;
+    divergentes: number;
+    sin_codigo: number;
+    filtrados: number;
+  };
+  actualizado_en?: string | null;
+  fuente?: string;
+  error?: string | null;
+}
+
+const ESTADO_RELACION: Record<string, { label: string; className: string }> = {
+  vinculado: {
+    label: "Vinculado",
+    className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  },
+  sin_siigo: {
+    label: "Sin Siigo",
+    className: "bg-danger/15 text-danger",
+  },
+  sku_divergente: {
+    label: "SKU distinto",
+    className: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  },
+  sin_codigo: {
+    label: "Sin código",
+    className: "bg-muted/20 text-muted",
+  },
+};
+
+function RelacionCodigosTab() {
+  const [buscar, setBuscar] = useState("");
+  const [q, setQ] = useState("");
+  const [filtro, setFiltro] = useState<FiltroRelacion>("todos");
+  const [editMeli, setEditMeli] = useState<string | null>(null);
+  const [codigoDraft, setCodigoDraft] = useState("");
+  const forceRefreshRef = useRef(false);
+
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery<RelacionResp>({
+    queryKey: ["relacion-codigos", q, filtro],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (q) params.set("buscar", q);
+      if (filtro !== "todos") params.set("filtro", filtro);
+      if (forceRefreshRef.current) {
+        params.set("refresh", "1");
+        forceRefreshRef.current = false;
+      }
+      const qs = params.toString();
+      return api.get<RelacionResp>(`/api/stock/relacion-codigos${qs ? `?${qs}` : ""}`, {
+        timeoutMs: 180_000,
+      });
+    },
+    staleTime: 60_000,
+  });
+
+  const vincularMut = useMutation({
+    mutationFn: ({ codigo_siigo, meli_id }: { codigo_siigo: string; meli_id: string }) =>
+      api.post("/api/stock/relacion-codigos/vincular", { codigo_siigo, meli_id }),
+    onSuccess: () => {
+      setEditMeli(null);
+      setCodigoDraft("");
+      forceRefreshRef.current = true;
+      void refetch();
+    },
+  });
+
+  const totales = data?.totales;
+  const items = data?.items ?? [];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted">
+        Cruza el ID de Mercado Libre (MCO…) y el SKU de la publicación con el código de producto en
+        Siigo. Si el SKU de MeLi no coincide con Siigo, puedes vincularlos manualmente (queda
+        guardado igual que en Publicaciones).
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => {
+            forceRefreshRef.current = true;
+            void refetch();
+          }}
+          disabled={isFetching}
+          className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+        >
+          {isFetching ? "Actualizando..." : "🔄 Recalcular desde MeLi + Siigo"}
+        </button>
+        {data?.actualizado_en && (
+          <span className="text-[11px] text-muted">
+            Actualizado: {data.actualizado_en}
+            {data.fuente === "cache" ? " (caché)" : ""}
+          </span>
+        )}
+      </div>
+
+      {totales && (
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["todos", `Todos (${totales.total})`],
+              ["vinculados", `Vinculados (${totales.vinculados})`],
+              ["sin_siigo", `Sin Siigo (${totales.sin_siigo})`],
+              ["divergentes", `SKU distinto (${totales.divergentes})`],
+              ["sin_codigo", `Sin código (${totales.sin_codigo})`],
+            ] as [FiltroRelacion, string][]
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setFiltro(id)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                filtro === id
+                  ? "bg-accent text-white"
+                  : "border border-border bg-surface-panel text-ink-muted hover:border-accent/40"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setQ(buscar.trim());
+        }}
+      >
+        <input
+          type="text"
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          placeholder="Buscar por MCO, SKU MeLi, código Siigo o nombre..."
+          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover"
+        >
+          Buscar
+        </button>
+      </form>
+
+      {data?.error && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">Aviso: {data.error}</p>
+      )}
+      {isLoading && <p className="text-sm text-muted">Cargando cruce MeLi ↔ Siigo (puede tardar)...</p>}
+      {isError && (
+        <p className="text-sm text-danger">
+          {error instanceof Error ? error.message : "No se pudo cargar la relación de códigos"}
+        </p>
+      )}
+      {vincularMut.isError && (
+        <p className="text-xs text-danger">{vincularMut.error.message}</p>
+      )}
+      {vincularMut.isSuccess && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">Vínculo guardado.</p>
+      )}
+
+      {!isLoading && !isError && items.length === 0 && (
+        <p className="text-sm text-muted">No hay filas para este filtro.</p>
+      )}
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="min-w-full text-left text-xs">
+          <thead className="bg-surface text-[10px] uppercase tracking-wide text-muted">
+            <tr>
+              <th className="px-3 py-2 font-bold">MeLi</th>
+              <th className="px-3 py-2 font-bold">SKU MeLi</th>
+              <th className="px-3 py-2 font-bold">Código Siigo</th>
+              <th className="px-3 py-2 font-bold">Estado</th>
+              <th className="px-3 py-2 font-bold">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it) => {
+              const est = ESTADO_RELACION[it.estado] ?? ESTADO_RELACION.sin_codigo;
+              const editing = editMeli === it.meli_id;
+              return (
+                <tr key={it.meli_id} className="border-t border-border/70 align-top">
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-ink line-clamp-2">{it.titulo || "—"}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-muted">{it.meli_id}</p>
+                    {it.permalink && (
+                      <a
+                        href={it.permalink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 inline-block text-[11px] font-semibold text-accent"
+                      >
+                        Abrir ↗
+                      </a>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-ink">{it.sku_meli || "—"}</td>
+                  <td className="px-3 py-2">
+                    {editing ? (
+                      <input
+                        autoFocus
+                        value={codigoDraft}
+                        onChange={(e) => setCodigoDraft(e.target.value)}
+                        placeholder="Código Siigo"
+                        className="w-full min-w-[8rem] rounded border border-border bg-surface-input px-2 py-1 font-mono text-ink outline-none focus:border-accent"
+                      />
+                    ) : (
+                      <>
+                        <p className="font-mono text-ink">{it.codigo_siigo || "—"}</p>
+                        {it.nombre_siigo && (
+                          <p className="mt-0.5 text-[11px] text-muted line-clamp-2">{it.nombre_siigo}</p>
+                        )}
+                      </>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${est.className}`}>
+                      {est.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    {editing ? (
+                      <div className="flex flex-wrap gap-1">
+                        <button
+                          disabled={!codigoDraft.trim() || vincularMut.isPending}
+                          onClick={() =>
+                            vincularMut.mutate({
+                              codigo_siigo: codigoDraft.trim(),
+                              meli_id: it.meli_id,
+                            })
+                          }
+                          className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditMeli(null);
+                            setCodigoDraft("");
+                          }}
+                          className="rounded border border-border px-2 py-1 text-[11px] font-semibold text-muted"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditMeli(it.meli_id);
+                          setCodigoDraft(it.codigo_siigo || it.sku_meli || "");
+                        }}
+                        className="rounded border border-border px-2 py-1 text-[11px] font-semibold text-ink-muted transition hover:border-accent/50 hover:text-accent"
+                      >
+                        Vincular
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function StockPanel() {
+  const [view, setView] = useState<StockView>("inventario");
   const [search, setSearch] = useState("");
   const [busySku, setBusySku] = useState<string | null>(null);
   const [rowResult, setRowResult] = useState<Record<string, SincronizarResultado>>({});
@@ -205,6 +494,7 @@ export default function StockPanel() {
     queryKey: ["stock-resumen"],
     queryFn: () => api.get<StockResumen>("/api/stock/resumen"),
     staleTime: 60_000,
+    enabled: view === "inventario",
   });
 
   const items = useMemo(() => {
@@ -267,139 +557,164 @@ export default function StockPanel() {
       <PanelHelp panelId="stock" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-extrabold text-ink">📦 Stock e Inventario</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
-          >
-            {isFetching ? "Actualizando..." : "🔄 Actualizar desde MeLi"}
-          </button>
-          <button
-            onClick={() => sincronizarTodoMut.mutate()}
-            disabled={sincronizarTodoMut.isPending || !items.length}
-            className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
-          >
-            {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Reenviar todo a los canales"}
-          </button>
-        </div>
-      </div>
-
-      <p className="text-xs text-muted -mt-3">
-        Este panel es el punto único de entrada de inventario: registra aquí las entradas y salidas
-        de unidades y se propagan a MeLi y a la página web (además, todos los días se reenvía solo
-        a la web para que nunca quede un producto nuevo sin control de stock). Siigo se muestra solo
-        de referencia — su API no permite escribirle stock, así que ahí se sigue ajustando aparte.
-        Si un producto aparece "pausado en MeLi" igual puedes registrar la entrada — se actualiza la
-        web de una vez; MeLi normalmente exige reactivar la publicación allá para aceptar el stock
-        nuevo, así que usa "Abrir en MeLi" si hace falta reactivarla.
-      </p>
-
-      {sincronizarTodoMut.isSuccess && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-          Sincronización masiva iniciada en segundo plano. Revisa Sincronización → Actividad para
-          ver el detalle.
-        </p>
-      )}
-      {sincronizarTodoMut.isError && (
-        <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
-      )}
-
-      {/* Summary chips */}
-      {!!data?.total && (
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-xs text-ink-muted">
-            {data.total} productos con MeLi vinculado
-          </span>
-          {counts.agotados > 0 && (
-            <span className="rounded-full bg-danger/15 px-3 py-1 text-xs font-semibold text-danger">
-              {counts.agotados} agotados
-            </span>
-          )}
-          {counts.criticos > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-              {counts.criticos} en última unidad
-            </span>
-          )}
-          {counts.bloqueados > 0 && (
-            <span
-              className="rounded-full bg-muted/20 px-3 py-1 text-xs font-semibold text-muted"
-              title="Publicaciones pausadas, cerradas o en revisión en MeLi: no se les puede sincronizar el stock hasta reactivarlas allá"
+        {view === "inventario" && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
             >
-              {counts.bloqueados} sin publicación activa en MeLi
-            </span>
-          )}
-        </div>
-      )}
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Filtrar por nombre o SKU..."
-        className="w-full rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-      />
-
-      {isLoading && <p className="text-sm text-muted">Cargando stock desde MeLi...</p>}
-      {isError && (
-        <p className="text-sm text-danger">
-          No se pudo cargar el stock: {error instanceof Error ? error.message : "error desconocido"}
-        </p>
-      )}
-
-      {!isLoading && !isError && items.length === 0 && (
-        <p className="text-sm text-muted">No hay productos que coincidan.</p>
-      )}
-
-      <div className="space-y-2">
-        {items.map((it) => (
-          <StockRow
-            key={it.meli_id}
-            item={it}
-            isBusy={busySku === it.sku}
-            resultado={rowResult[it.sku]}
-            onAjustar={(delta) => {
-              setRowResult((prev) => {
-                const next = { ...prev };
-                delete next[it.sku];
-                return next;
-              });
-              ajustarMut.mutate({ sku: it.sku, meli_id: it.meli_id, delta });
-            }}
-            onSincronizar={() => {
-              setRowResult((prev) => {
-                const next = { ...prev };
-                delete next[it.sku];
-                return next;
-              });
-              sincronizarUnoMut.mutate({ sku: it.sku, stock: it.stock, meli_id: it.meli_id });
-            }}
-          />
-        ))}
+              {isFetching ? "Actualizando..." : "🔄 Actualizar desde MeLi"}
+            </button>
+            <button
+              onClick={() => sincronizarTodoMut.mutate()}
+              disabled={sincronizarTodoMut.isPending || !items.length}
+              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
+            >
+              {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Reenviar todo a los canales"}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Reporte por WhatsApp */}
-      <section className="rounded-xl border border-border bg-surface-panel p-5">
-        <p className="text-sm font-medium text-ink">Reporte de Stock por WhatsApp</p>
-        <p className="mt-1 text-xs text-muted">
-          {reporteMut.isPending
-            ? "Generando..."
-            : reporteMut.isSuccess
-              ? "Reporte enviado al grupo de Inventario"
-              : "Envía el resumen de agotados y últimas unidades al grupo de Inventario"}
-        </p>
-        {reporteMut.isError && <p className="mt-1 text-xs text-danger">{reporteMut.error.message}</p>}
+      <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
         <button
-          onClick={() => {
-            reporteMut.mutate();
-            queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
-          }}
-          disabled={reporteMut.isPending}
-          className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+          onClick={() => setView("inventario")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            view === "inventario" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
+          }`}
         >
-          Generar reporte
+          Inventario
         </button>
-      </section>
+        <button
+          onClick={() => setView("codigos")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            view === "codigos" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
+          }`}
+        >
+          Códigos MeLi ↔ Siigo
+        </button>
+      </div>
+
+      {view === "codigos" ? (
+        <RelacionCodigosTab />
+      ) : (
+        <>
+          <p className="text-xs text-muted -mt-1">
+            Este panel es el punto único de entrada de inventario: registra aquí las entradas y salidas
+            de unidades y se propagan a MeLi y a la página web (además, todos los días se reenvía solo
+            a la web para que nunca quede un producto nuevo sin control de stock). Siigo se muestra solo
+            de referencia — su API no permite escribirle stock, así que ahí se sigue ajustando aparte.
+            Si un producto aparece &quot;pausado en MeLi&quot; igual puedes registrar la entrada — se actualiza la
+            web de una vez; MeLi normalmente exige reactivar la publicación allá para aceptar el stock
+            nuevo, así que usa &quot;Abrir en MeLi&quot; si hace falta reactivarla.
+          </p>
+
+          {sincronizarTodoMut.isSuccess && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              Sincronización masiva iniciada en segundo plano. Revisa Sincronización → Actividad para
+              ver el detalle.
+            </p>
+          )}
+          {sincronizarTodoMut.isError && (
+            <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
+          )}
+
+          {!!data?.total && (
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-xs text-ink-muted">
+                {data.total} productos con MeLi vinculado
+              </span>
+              {counts.agotados > 0 && (
+                <span className="rounded-full bg-danger/15 px-3 py-1 text-xs font-semibold text-danger">
+                  {counts.agotados} agotados
+                </span>
+              )}
+              {counts.criticos > 0 && (
+                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  {counts.criticos} en última unidad
+                </span>
+              )}
+              {counts.bloqueados > 0 && (
+                <span
+                  className="rounded-full bg-muted/20 px-3 py-1 text-xs font-semibold text-muted"
+                  title="Publicaciones pausadas, cerradas o en revisión en MeLi: no se les puede sincronizar el stock hasta reactivarlas allá"
+                >
+                  {counts.bloqueados} sin publicación activa en MeLi
+                </span>
+              )}
+            </div>
+          )}
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filtrar por nombre o SKU..."
+            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+          />
+
+          {isLoading && <p className="text-sm text-muted">Cargando stock desde MeLi...</p>}
+          {isError && (
+            <p className="text-sm text-danger">
+              No se pudo cargar el stock: {error instanceof Error ? error.message : "error desconocido"}
+            </p>
+          )}
+
+          {!isLoading && !isError && items.length === 0 && (
+            <p className="text-sm text-muted">No hay productos que coincidan.</p>
+          )}
+
+          <div className="space-y-2">
+            {items.map((it) => (
+              <StockRow
+                key={it.meli_id}
+                item={it}
+                isBusy={busySku === it.sku}
+                resultado={rowResult[it.sku]}
+                onAjustar={(delta) => {
+                  setRowResult((prev) => {
+                    const next = { ...prev };
+                    delete next[it.sku];
+                    return next;
+                  });
+                  ajustarMut.mutate({ sku: it.sku, meli_id: it.meli_id, delta });
+                }}
+                onSincronizar={() => {
+                  setRowResult((prev) => {
+                    const next = { ...prev };
+                    delete next[it.sku];
+                    return next;
+                  });
+                  sincronizarUnoMut.mutate({ sku: it.sku, stock: it.stock, meli_id: it.meli_id });
+                }}
+              />
+            ))}
+          </div>
+
+          <section className="rounded-xl border border-border bg-surface-panel p-5">
+            <p className="text-sm font-medium text-ink">Reporte de Stock por WhatsApp</p>
+            <p className="mt-1 text-xs text-muted">
+              {reporteMut.isPending
+                ? "Generando..."
+                : reporteMut.isSuccess
+                  ? "Reporte enviado al grupo de Inventario"
+                  : "Envía el resumen de agotados y últimas unidades al grupo de Inventario"}
+            </p>
+            {reporteMut.isError && <p className="mt-1 text-xs text-danger">{reporteMut.error.message}</p>}
+            <button
+              onClick={() => {
+                reporteMut.mutate();
+                queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+              }}
+              disabled={reporteMut.isPending}
+              className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+            >
+              Generar reporte
+            </button>
+          </section>
+        </>
+      )}
     </div>
   );
 }

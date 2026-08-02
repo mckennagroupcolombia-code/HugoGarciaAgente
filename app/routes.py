@@ -3355,6 +3355,51 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/stock/relacion-codigos")
+    @app.route("/app/api/stock/relacion-codigos")
+    def api_stock_relacion_codigos():
+        """Cruce códigos MeLi (MCO + SKU publicación) ↔ código Siigo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        buscar = (request.args.get("buscar") or "").strip()
+        filtro = (request.args.get("filtro") or "todos").strip()
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "yes")
+        try:
+            from app.tools.relacion_codigos_meli_siigo import (
+                listar_relacion_codigos_meli_siigo,
+            )
+
+            return jsonify(
+                listar_relacion_codigos_meli_siigo(
+                    buscar=buscar, filtro=filtro, refresh=refresh
+                )
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/stock/relacion-codigos/vincular", methods=["POST"])
+    @app.route("/app/api/stock/relacion-codigos/vincular", methods=["POST"])
+    def api_stock_relacion_codigos_vincular():
+        """Guarda vínculo código Siigo → meli_id (override Publicaciones)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        codigo_siigo = str(body.get("codigo_siigo") or body.get("sku") or "").strip()
+        meli_id = str(body.get("meli_id") or "").strip()
+        if not codigo_siigo or not meli_id:
+            return jsonify({"error": "Campos 'codigo_siigo' y 'meli_id' requeridos"}), 400
+        try:
+            from app.tools.relacion_codigos_meli_siigo import vincular_meli_con_siigo
+            from app.panel_activity import log_line
+
+            res = vincular_meli_con_siigo(codigo_siigo, meli_id)
+            log_line(f"✔ vínculo códigos Siigo {codigo_siigo} ↔ MeLi {res.get('meli_id')}")
+            return jsonify(res)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/stock/sincronizar-todo", methods=["POST"])
     def api_stock_sincronizar_todo():
         if not _api_token_valido():
@@ -4765,6 +4810,87 @@ def register_routes(app):
 
         return jsonify({**row, "siigo": siigo_result})
 
+    @app.route("/app/api/rentabilidad/extraer-compra-imagen", methods=["POST"])
+    @app.route("/api/rentabilidad/extraer-compra-imagen", methods=["POST"])
+    def api_rentabilidad_extraer_compra_imagen():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("imagen") or request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        try:
+            trm_raw = request.form.get("trm")
+            flete_raw = request.form.get("flete")
+            moneda_flete = (request.form.get("moneda_flete") or "").strip() or None
+            trm = float(trm_raw) if trm_raw not in (None, "") else None
+            flete = float(flete_raw) if flete_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            return jsonify({"error": "trm y flete deben ser numéricos"}), 400
+
+        data = archivo.read()
+        from app.services.compra_exterior_ocr import extraer_compra_desde_imagen
+
+        result = extraer_compra_desde_imagen(
+            data,
+            trm=trm,
+            flete=flete,
+            moneda_flete=moneda_flete,
+        )
+        if result.get("error"):
+            code = 504 if "tardó" in str(result["error"]).lower() else 502
+            if "GOOGLE_API_KEY" in str(result["error"]):
+                code = 500
+            return jsonify(result), code
+        return jsonify(result)
+
+    @app.route("/app/api/rentabilidad/confirmar-compra-exterior", methods=["POST"])
+    @app.route("/api/rentabilidad/confirmar-compra-exterior", methods=["POST"])
+    def api_rentabilidad_confirmar_compra_exterior():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        items = data.get("items") or data.get("lineas") or []
+        if not isinstance(items, list) or not items:
+            return jsonify({"error": "Se requiere items[] con nombre y costo_unitario"}), 400
+
+        from app.services.contabilidad_db import upsert_componente
+        from app.services.siigo import actualizar_costo_componente_siigo
+
+        guardados = []
+        errores = []
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+            nombre = (raw.get("nombre") or "").strip()
+            if not nombre:
+                errores.append({"nombre": "", "error": "nombre vacío"})
+                continue
+            try:
+                costo = float(raw.get("costo_unitario"))
+            except (TypeError, ValueError):
+                errores.append({"nombre": nombre, "error": "costo_unitario inválido"})
+                continue
+            if costo < 0:
+                errores.append({"nombre": nombre, "error": "costo_unitario negativo"})
+                continue
+            categoria = (raw.get("categoria") or "material").strip() or "material"
+            iva_incluido = bool(raw.get("iva_incluido", False))
+            _IVA = 0.19
+            costo_neto = round(costo / (1 + _IVA), 4) if iva_incluido else costo
+            try:
+                row = upsert_componente(nombre, costo_neto, categoria, iva_incluido)
+                siigo_result = actualizar_costo_componente_siigo(nombre, costo_neto)
+                guardados.append({**row, "siigo": siigo_result})
+            except Exception as e:
+                errores.append({"nombre": nombre, "error": str(e)})
+
+        return jsonify({
+            "ok": len(errores) == 0,
+            "guardados": guardados,
+            "errores": errores,
+            "total": len(guardados),
+        })
+
     @app.route("/api/rentabilidad/combo-costos/<code>", methods=["GET"])
     def api_combo_costos(code):
         if not _api_token_valido():
@@ -4795,6 +4921,31 @@ def register_routes(app):
         from app.services.rentabilidad import precios_reales_meli
         try:
             return jsonify(precios_reales_meli())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+    @app.route("/api/rentabilidad/cobros-meli", methods=["GET"])
+    def api_cobros_meli():
+        """Cargo por venta y cargo por envío por publicación (API MeLi suggestions)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import listar_cobros_meli
+        buscar = (request.args.get("buscar") or "").strip()
+        refresh = (request.args.get("refresh") or "").strip().lower() in ("1", "true", "yes")
+        try:
+            return jsonify(listar_cobros_meli(buscar=buscar, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+    @app.route("/api/rentabilidad/ganancia", methods=["GET"])
+    def api_ganancia_meli():
+        """Precio − costo real − cobros MeLi = ganancia por publicación."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import listar_ganancia_meli
+        buscar = (request.args.get("buscar") or "").strip()
+        try:
+            return jsonify(listar_ganancia_meli(buscar=buscar))
         except Exception as e:
             return jsonify({"error": str(e)}), 502
 
@@ -5171,7 +5322,7 @@ def register_routes(app):
             from app.tools.importar_productos_siigo import escanear_facturas_gmail_para_panel
             from app.panel_activity import log_line
             body = request.get_json(silent=True) or {}
-            fecha_desde = (body.get("fecha_desde") or "2026/01/01").strip()
+            fecha_desde = (body.get("fecha_desde") or "2025/01/01").strip()
             log_line("▶ escanear_facturas_gmail — inicio (panel)")
             resultado = escanear_facturas_gmail_para_panel(fecha_desde=fecha_desde)
             n = len(resultado.get("encoladas") or [])
@@ -5221,6 +5372,49 @@ def register_routes(app):
             return jsonify(listar_historial_facturas(limit=limit, accion=accion or None, q=q or None))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/facturas/consultar", methods=["GET"])
+    @app.route("/app/api/facturas/consultar", methods=["GET"])
+    def api_facturas_consultar():
+        """Consulta facturas de proveedores buscando por nombre o código de producto.
+
+        Query:
+          q — texto producto
+          anio — opcional (2025, 2026…). Si se omite, busca en todas las fuentes
+                 e incluye índice del año pasado (2025) cuando exista.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import consultar_facturas_por_producto
+            q = (request.args.get("q") or "").strip()
+            limit = int(request.args.get("limit", 50) or 50)
+            anio_raw = (request.args.get("anio") or "").strip()
+            anio = int(anio_raw) if anio_raw.isdigit() else None
+            return jsonify(consultar_facturas_por_producto(q, limit=limit, anio=anio))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/facturas/consultar/indice", methods=["GET", "POST"])
+    @app.route("/app/api/facturas/consultar/indice", methods=["GET", "POST"])
+    def api_facturas_consultar_indice():
+        """Estado o reconstrucción del índice de consulta por año (p. ej. 2025 vía Gmail)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import (
+                construir_indice_consulta_anio,
+                estado_indice_consulta_anio,
+            )
+            if request.method == "GET":
+                anio = int(request.args.get("anio") or 2025)
+                return jsonify(estado_indice_consulta_anio(anio))
+            body = request.get_json(silent=True) or {}
+            anio = int(body.get("anio") or request.args.get("anio") or 2025)
+            forzar = bool(body.get("forzar", True))
+            return jsonify(construir_indice_consulta_anio(anio, forzar=forzar))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "mensaje": str(e)}), 502
 
     @app.route("/api/facturas/historial/<registro_id>", methods=["GET"])
     @app.route("/app/api/facturas/historial/<registro_id>", methods=["GET"])
@@ -11782,6 +11976,43 @@ def register_routes(app):
             return jsonify(listar_publicaciones(buscar=buscar, categoria=categoria))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/galeria", methods=["GET"])
+    @app.route("/app/api/publicaciones/galeria", methods=["GET"])
+    def api_publicaciones_galeria():
+        """Galería de imágenes web enlazadas a SKU (catálogo local)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import listar_galeria_imagenes
+        buscar = request.args.get("buscar", "").strip()
+        try:
+            return jsonify(listar_galeria_imagenes(buscar=buscar))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/imagen-archivo/<path:filename>", methods=["GET"])
+    @app.route("/app/api/publicaciones/imagen-archivo/<path:filename>", methods=["GET"])
+    @app.route("/imagenes-productos-catalogo/<path:filename>", methods=["GET"])
+    def api_publicaciones_imagen_archivo(filename: str):
+        """Sirve archivos de IMAGENES_PRODUCTOS_CATALOGO (galería del panel).
+
+        Sin Bearer: las etiquetas <img> no envían Authorization; el catálogo
+        de fotos de producto no es secreto (igual que en la tienda pública).
+        """
+        from pathlib import Path as _Path
+
+        base = (_Path(__file__).resolve().parent.parent / "IMAGENES_PRODUCTOS_CATALOGO").resolve()
+        safe = _Path(filename).name
+        if not safe or ".." in filename or "/" in filename or "\\" in filename:
+            return jsonify({"error": "Archivo inválido"}), 400
+        target = (base / safe).resolve()
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "Ruta no permitida"}), 400
+        if not target.is_file():
+            return jsonify({"error": "No encontrado"}), 404
+        return send_from_directory(str(base), safe)
 
     @app.route("/api/publicaciones/<sku>", methods=["GET"])
     def api_publicacion_detalle(sku: str):

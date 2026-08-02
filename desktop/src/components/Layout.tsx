@@ -8,6 +8,7 @@ import { Icon } from "../icons";
 import { PanelIcon } from "../icons/PanelIcon";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { navSectionForPanel, NAV_CATEGORY_LABEL } from "../lib/navStructure";
+import { esPanelContabilidad } from "../lib/contabilidadAccess";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
 
@@ -21,6 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { advanced } = useUiMode();
   const isCentroMando = panel === "hugo" || panel === "tickets";
   const hubIntegrado = isCentroMando && centroMandoView === "home";
+  const hubContabilidad = esPanelContabilidad(panel);
 
   const sectionId = navSectionForPanel(panel);
   const sectionLabel = sectionId ? NAV_CATEGORY_LABEL[sectionId] : null;
@@ -29,6 +31,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     ? "Mi perfil"
     : hubIntegrado
     ? "Hugo · Centro de Mando"
+    : hubContabilidad
+    ? "Contabilidad"
     : panelInfo?.label ?? "Panel de operaciones";
 
   const headerSubtitle =
@@ -36,6 +40,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       ? "Cuenta"
       : hubIntegrado
       ? "Inicio"
+      : hubContabilidad
+      ? (panelInfo?.label ?? sectionLabel)
       : sectionLabel;
 
   const showPanelIcon = panel !== "perfil" && !hubIntegrado && panelInfo;

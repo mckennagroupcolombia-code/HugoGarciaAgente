@@ -555,6 +555,136 @@ def escanear_imagenes_web(sku: str) -> list[dict]:
     ]
 
 
+def _sku_desde_filename(filename: str, skus_conocidos: set[str]) -> str:
+    """Infieren SKU desde nombre de archivo ({sku}.ext o {sku}_N.ext)."""
+    stem = Path(filename).stem
+    if stem in skus_conocidos:
+        return stem
+    # Match más largo primero: C-UREA250g_2 → C-UREA250g
+    candidatos = [s for s in skus_conocidos if stem.startswith(f"{s}_")]
+    if candidatos:
+        return max(candidatos, key=len)
+    # Fallback: parte antes del último _dígitos
+    m = re.match(r"^(.+)_(\d+)$", stem)
+    if m:
+        return m.group(1)
+    return stem
+
+
+def listar_galeria_imagenes(buscar: str = "", solo_con_imagen: bool = True) -> dict:
+    """
+    Galería de todas las imágenes web enlazadas a SKU (IMAGENES_PRODUCTOS_CATALOGO).
+    Agrupa por SKU con nombre de catálogo cuando existe.
+    """
+    cache = _load_cache()
+    productos = _products_flat(cache)
+    sku_nombre: dict[str, str] = {}
+    for p in productos:
+        sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+        if sku:
+            sku_nombre[sku] = (p.get("name") or p.get("nombre") or sku).strip()
+
+    skus_conocidos = set(sku_nombre.keys())
+    # SKUs solo en overrides / siigo_fotos
+    overrides = _load_overrides()
+    for sku in overrides:
+        skus_conocidos.add(sku)
+        if sku not in sku_nombre:
+            sku_nombre[sku] = sku
+    for sku_u, path in _load_siigo_fotos().items():
+        # keys en siigo_fotos suelen ir en mayúsculas
+        sku_match = next((s for s in skus_conocidos if s.upper() == sku_u.upper()), sku_u)
+        skus_conocidos.add(sku_match)
+        sku_nombre.setdefault(sku_match, sku_match)
+
+    # filename → sku (incl. legados de siigo_fotos)
+    file_to_sku: dict[str, str] = {}
+    for sku_u, path in _load_siigo_fotos().items():
+        fname = Path(str(path)).name
+        if not fname:
+            continue
+        sku_match = next((s for s in skus_conocidos if s.upper() == sku_u.upper()), sku_u)
+        file_to_sku[fname] = sku_match
+
+    for sku, ov in overrides.items():
+        for fname in ov.get("imagenes_web") or []:
+            if fname:
+                file_to_sku[str(fname)] = sku
+
+    # Escaneo del directorio
+    por_sku: dict[str, list[dict]] = {}
+    if _IMAGENES_DIR.exists():
+        for f in sorted(_IMAGENES_DIR.iterdir()):
+            if not f.is_file() or f.suffix.lower() not in _IMG_EXTS_OK:
+                continue
+            sku = file_to_sku.get(f.name) or _sku_desde_filename(f.name, skus_conocidos)
+            if not sku:
+                continue
+            skus_conocidos.add(sku)
+            sku_nombre.setdefault(sku, sku)
+            img = {
+                "filename": f.name,
+                "path": f"/imagenes-productos-catalogo/{f.name}",
+                "url": f"/imagenes-productos-catalogo/{f.name}",
+                "url_publica": f"https://mckennagroup.co/imagenes-productos-catalogo/{f.name}",
+                "size_bytes": f.stat().st_size,
+            }
+            por_sku.setdefault(sku, []).append(img)
+
+    q = (buscar or "").strip().lower()
+    items = []
+    for sku in sorted(por_sku.keys(), key=lambda s: s.upper()):
+        imagenes = por_sku[sku]
+        # Marcar principal según orden de overrides / primera
+        orden = _web_imagenes_orden(sku)
+        if orden:
+            rank = {n: i for i, n in enumerate(orden)}
+            imagenes.sort(key=lambda im: (rank.get(im["filename"], 999), im["filename"]))
+        for i, im in enumerate(imagenes):
+            im["principal"] = i == 0
+        nombre = sku_nombre.get(sku, sku)
+        if q and q not in sku.lower() and q not in nombre.lower():
+            continue
+        items.append(
+            {
+                "sku": sku,
+                "nombre": nombre,
+                "total": len(imagenes),
+                "principal": imagenes[0]["path"] if imagenes else "",
+                "principal_url": imagenes[0]["url"] if imagenes else "",
+                "imagenes": imagenes,
+            }
+        )
+
+    if not solo_con_imagen:
+        # Incluir SKUs del catálogo sin foto (opcional; por defecto no)
+        con_foto = {it["sku"] for it in items}
+        for sku, nombre in sorted(sku_nombre.items()):
+            if sku in con_foto:
+                continue
+            if q and q not in sku.lower() and q not in nombre.lower():
+                continue
+            items.append(
+                {
+                    "sku": sku,
+                    "nombre": nombre,
+                    "total": 0,
+                    "principal": "",
+                    "principal_url": "",
+                    "imagenes": [],
+                }
+            )
+        items.sort(key=lambda it: it["sku"].upper())
+
+    total_imagenes = sum(it["total"] for it in items)
+    return {
+        "items": items,
+        "total_skus": len(items),
+        "total_imagenes": total_imagenes,
+        "buscar": buscar,
+    }
+
+
 # ── MeLi helpers (reutilizados internamente) ───────────────────────────────
 
 def _meli_get_pictures(meli_item_id: str) -> tuple[list[dict], str]:

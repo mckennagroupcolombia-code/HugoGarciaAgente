@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { notifyNavChange } from "../lib/appBackNavigation";
 import { readNavHash, writeNavHash } from "../lib/navHash";
 import { LOGISTICA_PANEL_LEGACY } from "../lib/logisticaAccess";
+import { CONTABILIDAD_PANEL_OCULTO } from "../lib/contabilidadAccess";
 
 export type Panel =
   | "hugo"
@@ -24,6 +25,7 @@ export type Panel =
   | "costos-productos"
   | "centros-costo"
   | "rentabilidad"
+  | "compras-exterior"
   | "rrhh"
   | "tickets"
   | "etiquetas"
@@ -102,7 +104,7 @@ export type AccionesBootTab =
   | "bolsillo";
 
 /** Salto desde otro panel (p. ej. Sincronización) hacia una pestaña de Rentabilidad. */
-export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "precios";
+export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "precios" | "cobros-meli" | "ganancia";
 
 interface AppState {
   panel: Panel;
@@ -124,6 +126,9 @@ interface AppState {
   setAccionesBootTab: (v: AccionesBootTab | null) => void;
   rentabilidadBootTab: RentabilidadBootTab | null;
   setRentabilidadBootTab: (v: RentabilidadBootTab | null) => void;
+  /** Abrir detalle de factura pendiente al entrar al panel Facturas. */
+  facturasBootSufijo: string | null;
+  setFacturasBootSufijo: (v: string | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -141,6 +146,7 @@ interface AppState {
 function normalizePanel(panel: Panel): Panel {
   let next = panel === "tickets" ? "hugo" : panel;
   if ((next as string) === LOGISTICA_PANEL_LEGACY) next = "logistica-importaciones";
+  if ((next as string) === CONTABILIDAD_PANEL_OCULTO) next = "facturas";
   return next;
 }
 
@@ -190,6 +196,8 @@ export const useAppStore = create<AppState>()(
       setAccionesBootTab: (accionesBootTab) => set({ accionesBootTab }),
       rentabilidadBootTab: null,
       setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
+      facturasBootSufijo: null,
+      setFacturasBootSufijo: (facturasBootSufijo) => set({ facturasBootSufijo }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;
@@ -224,6 +232,7 @@ export const useAppStore = create<AppState>()(
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;
         if (s.panel === LOGISTICA_PANEL_LEGACY) s.panel = "logistica-importaciones";
+        if (s.panel === CONTABILIDAD_PANEL_OCULTO) s.panel = "facturas";
         if (version < 2) {
           if (!s.centroMandoView) s.centroMandoView = "home";
           if (!s.mobileTab) s.mobileTab = "home";

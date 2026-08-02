@@ -1,5 +1,6 @@
 import type { Panel } from "../stores/app";
 import type { PanelTier } from "./panelInfo";
+import { CONTABILIDAD_PANELS } from "./contabilidadAccess";
 import { LOGISTICA_PANELS } from "./logisticaAccess";
 
 export type NavCategory =
@@ -20,8 +21,10 @@ export interface NavItemDef {
 export interface NavSection {
   id: NavCategory;
   label: string;
-  /** Grupo plegable (contabilidad, logística). */
+  /** Grupo plegable (logística). */
   collapsible?: boolean;
+  /** Un solo botón en sidebar; subpaneles viven como pestañas internas. */
+  hub?: boolean;
   /** Solo visible con modo avanzado activo. */
   advancedOnly?: boolean;
 }
@@ -59,15 +62,14 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
   {
     id: "contabilidad",
     label: "Contabilidad",
-    collapsible: true,
-    items: [
-      { panel: "sync", tier: "standard" },
-      { panel: "facturas", tier: "standard" },
-      { panel: "costos-productos", tier: "advanced" },
-      { panel: "centros-costo", tier: "advanced" },
-      { panel: "rentabilidad", tier: "advanced" },
-      { panel: "rrhh", tier: "advanced" },
-    ],
+    hub: true,
+    items: CONTABILIDAD_PANELS.map((panel) => ({
+      panel,
+      tier:
+        panel === "costos-productos" || panel === "rrhh"
+          ? ("advanced" as PanelTier)
+          : ("standard" as PanelTier),
+    })),
   },
   {
     id: "contenido",
