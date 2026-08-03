@@ -1,5 +1,48 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "2000017704852398": {
+      "pack_id": "2000017704852398",
+      "codigo": "398",
+      "comprador": "Comprador 200272044",
+      "from_id": "200272044",
+      "texto": "3015559864",
+      "msg_id": "019fc43cbd657c329a36b24d46cdd9b3",
+      "productos": "  • Albumina De Huevo 500g x2 — $44,900 c/u",
+      "productos_detalle": [
+        {
+          "nombre": "Albumina De Huevo 500g",
+          "cantidad": 2,
+          "precio_unitario": 44900.0
+        }
+      ],
+      "total": "$89,800 COP (pagado)",
+      "fecha_compra": "01/08/2026 06:43 PM",
+      "envio": "",
+      "sugerencia_ia": "¡Perfecto veci! Ya recibimos el número, muchas gracias. Con esto completamos los datos para despachar tu envío a la mayor brevedad posible.\n\nQue tengas una excelente noche.",
+      "timestamp": "2026-08-02T15:49:19"
+    },
+    "398": {
+      "pack_id": "2000017704852398",
+      "codigo": "398",
+      "comprador": "Comprador 200272044",
+      "from_id": "200272044",
+      "texto": "3015559864",
+      "msg_id": "019fc43cbd657c329a36b24d46cdd9b3",
+      "productos": "  • Albumina De Huevo 500g x2 — $44,900 c/u",
+      "productos_detalle": [
+        {
+          "nombre": "Albumina De Huevo 500g",
+          "cantidad": 2,
+          "precio_unitario": 44900.0
+        }
+      ],
+      "total": "$89,800 COP (pagado)",
+      "fecha_compra": "01/08/2026 06:43 PM",
+      "envio": "",
+      "sugerencia_ia": "¡Perfecto veci! Ya recibimos el número, muchas gracias. Con esto completamos los datos para despachar tu envío a la mayor brevedad posible.\n\nQue tengas una excelente noche.",
+      "timestamp": "2026-08-02T15:49:19"
+    }
+  },
   "procesados": [
     "019f7304a1a877738ee4b6a2bf6e7c93",
     "019ed2e7f8df7885a568b7e4a2a8a1a3",
@@ -335,6 +378,7 @@
     "019ed7a8e412796a976b05e773b9f46f",
     "019e0d4564887394b60f4d70578ec5ad",
     "0196cffbf5647ae88dab51bdd794b456",
+    "019fc43cbd657c329a36b24d46cdd9b3",
     "019f396963567732b6c821c927f8e9c0",
     "019fae879c1d7a32bae273cd9dddfeff",
     "019f628d7ca572eba7e45866b6c9b0d0",

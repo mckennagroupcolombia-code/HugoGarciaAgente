@@ -1678,6 +1678,20 @@
       "respondida": true,
       "borrador_ia": "Hola veci, con gusto le colaboro.\n\nNuestro Ácido Glicólico al 50% es un excelente exfoliante que puede ayudarle a mejorar la apariencia de la piel en esa zona. Uno de sus principales beneficios es reducir las manchas oscuras y las irregularidades en la pigmentación, lo que puede ayudar a unificar el tono de las axilas.\n\nDado que es una zona delicada, es muy importante realizar primero una prueba de parche en un área pequeña para ver cómo reacciona su piel. Le recomendamos iniciar su uso una vez por semana, aplicando sobre la piel limpia y seca, y ajustar la frecuencia según su tolerancia.\n\nDespués de cada aplicación, asegúrese de hidratar bien la piel con una crema suave para evitar la sequedad y la irritación.",
       "nota": "Respondida automáticamente por monitor (reintento) 2026-08-01"
+    },
+    {
+      "question_id": "13633768628",
+      "titulo_producto": "Proteína 80% Suero De Leche",
+      "pregunta": "hoal, por favor me puedes enviar una foto de la tabla nutricional",
+      "timestamp": "2026-08-02T14:45:18.516939",
+      "respondida": true
+    },
+    {
+      "question_id": "13633820794",
+      "titulo_producto": "Semilla De Calabaza 500g",
+      "pregunta": "Fecha de vencimiento es comestible ?",
+      "timestamp": "2026-08-02T15:06:29.888109",
+      "respondida": true
     }
   ]
 }
