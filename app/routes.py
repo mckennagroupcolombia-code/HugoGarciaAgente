@@ -1929,10 +1929,80 @@ def register_routes(app):
                 )
                 return jsonify({"status": "ok", "respuesta": None})
 
+        def _manejar_hugo_dale_ok(texto: str) -> dict:
+            """Aprueba y envía el borrador IA de posventa: 'hugo dale ok <código>'."""
+            from app.meli_postventa_notif import sufijo_pack_postventa
+
+            token_ok = texto.split()[-1].strip()
+            target_order_id = None
+            message_to_send = None
+
+            if token_ok in borradores_aprobacion:
+                target_order_id = token_ok
+                message_to_send = borradores_aprobacion.pop(token_ok)
+            else:
+                matches = []
+                for pack_key, borrador in list(borradores_aprobacion.items()):
+                    digits = re.sub(r"\D", "", str(pack_key))
+                    if (
+                        pack_key == token_ok
+                        or pack_key.endswith(token_ok)
+                        or digits.endswith(token_ok)
+                        or sufijo_pack_postventa(pack_key) == token_ok
+                    ):
+                        matches.append((pack_key, borrador))
+                if len(matches) == 1:
+                    target_order_id, message_to_send = matches[0]
+                    borradores_aprobacion.pop(target_order_id, None)
+
+            # Sugerencia IA persistida en la cola postventa (generada por el
+            # proceso del webhook :8080 — el dict borradores_aprobacion vive
+            # solo en esta memoria, así que el cruce va por archivo).
+            comprador_id_sug = None
+            clave_pendiente_sug = None
+            if not (target_order_id and message_to_send):
+                entrada_sug, clave_pendiente_sug = _resolver_entrada_postventa(token_ok)
+                if entrada_sug and (entrada_sug.get("sugerencia_ia") or "").strip():
+                    target_order_id = str(entrada_sug.get("pack_id") or "")
+                    message_to_send = entrada_sug["sugerencia_ia"].strip()
+                    comprador_id_sug = entrada_sug.get("from_id")
+
+            if target_order_id and message_to_send:
+                resultado_envio = responder_mensaje_posventa(
+                    target_order_id, message_to_send, comprador_id_sug
+                )
+                print(f"Resultado del envío a posventa: {resultado_envio}")
+                sufijo = sufijo_pack_postventa(target_order_id)
+                if resultado_envio:
+                    _quitar_pendiente_postventa(
+                        str(target_order_id), clave_pendiente_sug
+                    )
+                return {
+                    "status": "sent",
+                    "respuesta": f"¡Listo! Mensaje enviado (código {sufijo}).",
+                }
+
+            return {
+                "status": "error",
+                "respuesta": (
+                    f"No encontré borrador pendiente para el código '{token_ok}'. "
+                    "Usa los 3 últimos dígitos del pack."
+                ),
+            }
+
         # --- COMANDOS DE GRUPOS ADMIN ---
         if es_any_grupo_admin:
             modos = cargar_modos_atencion()
             msg_lower = message_text.lower()
+
+            # "hugo dale ok <código>" / typo "hugo sale ok <código>" — aprueba y
+            # envía el borrador IA de posventa. Debe resolverse ANTES del resto
+            # de comandos de grupos admin: de lo contrario el catch-all de este
+            # bloque (más abajo) responde "ok" y descarta el comando sin que
+            # llegue nunca al manejador original (bug: no disparaba desde el
+            # propio grupo POSTVENTA, que es un grupo admin).
+            if re.match(r"^hugo\s+(dale|sale)\s+ok\b", message_text.strip(), re.IGNORECASE):
+                return jsonify(_manejar_hugo_dale_ok(message_text))
 
             # Rechazo corto: "no 463"
             if re.match(r"^no\s+\d{3}$", msg_lower):
@@ -2528,69 +2598,11 @@ def register_routes(app):
 
         # --- Flujo de Aprobación para Mensajes de Posventa ---
         # Acepta también el typo frecuente "hugo sale ok <código>".
+        # (Fallback para chats fuera de los grupos admin, p.ej. DM directo al
+        # número del negocio; el caso normal — grupo POSTVENTA — se resuelve
+        # arriba, dentro del bloque `es_any_grupo_admin`.)
         if re.match(r"^hugo\s+(dale|sale)\s+ok\b", message_text.strip(), re.IGNORECASE):
-            token_ok = message_text.split()[-1].strip()
-            target_order_id = None
-            message_to_send = None
-
-            if token_ok in borradores_aprobacion:
-                target_order_id = token_ok
-                message_to_send = borradores_aprobacion.pop(token_ok)
-            else:
-                from app.meli_postventa_notif import sufijo_pack_postventa
-
-                matches = []
-                for pack_key, borrador in list(borradores_aprobacion.items()):
-                    digits = re.sub(r"\D", "", str(pack_key))
-                    if (
-                        pack_key == token_ok
-                        or pack_key.endswith(token_ok)
-                        or digits.endswith(token_ok)
-                        or sufijo_pack_postventa(pack_key) == token_ok
-                    ):
-                        matches.append((pack_key, borrador))
-                if len(matches) == 1:
-                    target_order_id, message_to_send = matches[0]
-                    borradores_aprobacion.pop(target_order_id, None)
-
-            # Sugerencia IA persistida en la cola postventa (generada por el
-            # proceso del webhook :8080 — el dict borradores_aprobacion vive
-            # solo en esta memoria, así que el cruce va por archivo).
-            comprador_id_sug = None
-            clave_pendiente_sug = None
-            if not (target_order_id and message_to_send):
-                entrada_sug, clave_pendiente_sug = _resolver_entrada_postventa(token_ok)
-                if entrada_sug and (entrada_sug.get("sugerencia_ia") or "").strip():
-                    target_order_id = str(entrada_sug.get("pack_id") or "")
-                    message_to_send = entrada_sug["sugerencia_ia"].strip()
-                    comprador_id_sug = entrada_sug.get("from_id")
-
-            if target_order_id and message_to_send:
-                resultado_envio = responder_mensaje_posventa(
-                    target_order_id, message_to_send, comprador_id_sug
-                )
-                print(f"Resultado del envío a posventa: {resultado_envio}")
-                sufijo = sufijo_pack_postventa(target_order_id)
-                if resultado_envio:
-                    _quitar_pendiente_postventa(
-                        str(target_order_id), clave_pendiente_sug
-                    )
-                return jsonify(
-                    {
-                        "status": "sent",
-                        "respuesta": f"¡Listo! Mensaje enviado (código {sufijo}).",
-                    }
-                )
-
-            return jsonify(
-                {
-                    "status": "error",
-                    "respuesta": (
-                        f"No encontré borrador pendiente para el código '{token_ok}'. "
-                        "Usa los 3 últimos dígitos del pack."
-                    ),
-                }
-            )
+            return jsonify(_manejar_hugo_dale_ok(message_text))
 
         # --- Control para Evitar Duplicados ---
         if is_after_sale and order_id in borradores_aprobacion:
