@@ -3524,6 +3524,25 @@ def register_routes(app):
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
 
+    # ── Control de Versiones (panel Sistemas): grafo de commits + recaps ────
+    @app.route("/api/git/log")
+    def api_git_log():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.git_history import obtener_historial_git
+
+        limit = request.args.get("limit", default=200, type=int) or 200
+        return jsonify(obtener_historial_git(limit))
+
+    @app.route("/api/team-recaps")
+    def api_team_recaps():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.team_recaps import obtener_team_recaps
+
+        limit = request.args.get("limit", default=100, type=int) or 100
+        return jsonify(obtener_team_recaps(limit))
+
     # ── Tema visual del sitio web público (mckennagroup.co) ──────────────────
     # Config compartida en PAGINA_WEB/site/data/tema_web.json; website.py (8083)
     # la relee por mtime, así que los cambios aplican sin reiniciar el sitio.

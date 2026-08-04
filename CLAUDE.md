@@ -61,6 +61,7 @@ Archivos clave:
 - `docs/agentic/ECOSYSTEM.md` — mapa del ecosistema Gentleman: gentle-ai, Engram, ATL, Gentleman-Skills, GGA y Gentleman.Dots.
 - `docs/agentic/learned_context.md` — resumen portable/sincronizable de aprendizajes reutilizables.
 - `docs/agentic/modules/*.md` — fichas cortas por módulo crítico.
+- `docs/agentic/TEAM_WORKFLOW.md` — autoría de commits (`--author`), sincronización git y recap obligatorio en `docs/team-recaps.md`, visible en `/app` → Sistemas → Control de Versiones.
 
 ### Git: `git pull` sin rama de seguimiento
 

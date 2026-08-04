@@ -11,8 +11,55 @@ Contratos de alto nivel para no romper panel, WhatsApp ni MercadoLibre. Si cambi
 | `/api/sync/*` | Bearer `CHAT_API_TOKEN` | Responde rapido; trabajo en hilo |
 | `/api/panel/logs` | Bearer `CHAT_API_TOKEN` | GET/DELETE |
 | `/api/5s/*` | Bearer `CHAT_API_TOKEN` | Tambien puede existir prefijo `/app/api/5s/*` |
+| `/api/git/log` | Bearer `CHAT_API_TOKEN` o JWT tickets | GET, solo lectura |
+| `/api/team-recaps` | Bearer `CHAT_API_TOKEN` o JWT tickets | GET, solo lectura |
 | `/whatsapp` | Sin Bearer | Confia en bridge/red interna |
 | `/notifications` | Sin Bearer | Webhook MeLi; responder 200 rapido |
+
+## Control de Versiones (panel Sistemas)
+
+`GET /api/git/log?limit=200` — historial de commits (todas las ramas locales, `git log --all --topo-order`) para el grafo tipo cladograma. Sin diffs ni lista de archivos por commit (evita `git show` por request).
+
+Response:
+
+```json
+{
+  "rama_actual": "cursor/wa-metricas-panel",
+  "commits": [
+    {
+      "hash": "59c9607...",
+      "hash_corto": "59c9607",
+      "parents": ["1055057..."],
+      "autor": "McKenna Group Colombia",
+      "email": "mckennagroupcolombia-code@github.com",
+      "fecha": "2026-08-04T00:00:00-05:00",
+      "asunto": "Reorganiza sidebar del panel...",
+      "refs": ["HEAD -> cursor/wa-metricas-panel", "origin/cursor/wa-metricas-panel"]
+    }
+  ]
+}
+```
+
+`GET /api/team-recaps` — lee y parsea `docs/team-recaps.md` via `app/tools/team_recaps.py::obtener_team_recaps()` (plantilla en `docs/agentic/TEAM_WORKFLOW.md`), mas reciente primero (orden del archivo). Parseo best-effort: un bloque mal formado no rompe el resto.
+
+Response:
+
+```json
+{
+  "recaps": [
+    {
+      "fecha": "2026-08-04 16:00",
+      "titulo": "Metodologia de recaps + panel visual de Control de Versiones",
+      "autor": "Armando García",
+      "tipo_cambio": "Nueva funcionalidad",
+      "que_se_implemento": ["...", "..."],
+      "archivos_modificados": "..."
+    }
+  ]
+}
+```
+
+Sin endpoint de escritura: el recap lo agrega el agente de IA directamente al archivo como parte del protocolo de commit (no hay mutacion desde la UI).
 
 ## MercadoLibre Webhook
 
@@ -116,7 +163,8 @@ Endpoints usados por React:
 | `/api/sync/aprendizaje` | POST | - | `status: iniciado` |
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
-| `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo) |
+| `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo; omite closed/inactive) |
+| `/api/stock/ventas-30d` | GET | `dias?` (default 30), `refresh?` | `por_item[meli_id]{unidades,ordenes,monto,ritmo_diario,nivel}`, `ordenes`, caché ~30 min |
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/stock/relacion-codigos/editar` | POST | `meli_id`, `sku_meli?`, `codigo_siigo?`, `vincular_si_sku?` | Actualiza SKU en MeLi (`SELLER_SKU`) y/o vínculo Siigo; al menos un campo de código |

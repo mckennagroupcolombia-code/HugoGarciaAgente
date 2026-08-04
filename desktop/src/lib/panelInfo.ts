@@ -292,6 +292,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "sistemas",
   },
+  "control-versiones": {
+    emoji: "🌳",
+    label: "Control de Versiones",
+    description: "Historial de cambios del repositorio: árbol de commits en forma de grafo (tipo cladograma) y los recaps de cada sesión de trabajo con la IA.",
+    tips: [
+      "Pestaña 'Árbol de commits': cada nodo es un commit; los colores separan ramas.",
+      "Pestaña 'Recaps del equipo': resumen de qué se implementó, quién y en qué archivos, por tarea.",
+      "Los recaps se agregan automáticamente en docs/team-recaps.md al terminar una tarea con la IA.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
   webchat: {
     emoji: "🌐",
     label: "Chat web",

@@ -25,6 +25,7 @@ Usar antes y despues de cambios no triviales.
 - Revisar lints de archivos editados.
 - Actualizar ficha/contrato si cambio behavior publico.
 - Guardar memoria si hubo bug reusable o decision.
+- Agregar recap en `docs/team-recaps.md` (plantilla en `docs/agentic/TEAM_WORKFLOW.md`) en el mismo commit, para tareas medianas/grandes.
 - Reportar riesgo residual.
 
 ## Validacion Por Riesgo

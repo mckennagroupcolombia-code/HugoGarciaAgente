@@ -221,6 +221,15 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M8 12h2M14 12h2" />
     </>
   ),
+  "control-versiones": (
+    <>
+      <circle cx="7" cy="6" r="2" />
+      <circle cx="7" cy="18" r="2" />
+      <circle cx="17" cy="12" r="2" />
+      <path d="M7 8v8" />
+      <path d="M7 12c0-2.5 2-4 5-4h3" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="2.5" />
