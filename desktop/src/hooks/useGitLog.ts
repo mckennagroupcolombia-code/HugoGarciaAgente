@@ -12,9 +12,19 @@ export interface GitCommit {
   refs: string[];
 }
 
+export interface GitAutoCommitEstado {
+  archivos_pendientes: number;
+  /** ISO local del server: próximo cron auto_commit.sh (23:00, commit+push). */
+  proximo_diario: string;
+  /** ISO local del server: próximo backup nocturno (02:00, commit+push). */
+  proximo_backup: string;
+  ahora: string;
+}
+
 export interface GitLog {
   rama_actual?: string;
   commits?: GitCommit[];
+  auto_commit?: GitAutoCommitEstado;
   error?: string;
 }
 
