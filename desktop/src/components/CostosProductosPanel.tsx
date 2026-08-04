@@ -243,16 +243,8 @@ export default function CostosProductosPanel() {
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
-      <div className="rounded-xl border-2 border-border bg-surface-panel p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-ink">Costos de Productos</h2>
-            <p className="mt-1 text-sm text-muted max-w-2xl">
-              Historial de precios de compra construido desde las facturas de proveedores confirmadas como
-              inventario. El precio mostrado es el <strong className="text-ink">costo por unidad mínima</strong>{" "}
-              (g, mL, unidad) incluyendo IVA, tal como se registró en SIIGO.
-            </p>
-          </div>
+      <div className="rounded-xl border-2 border-border bg-surface-panel p-4">
+        <div className="flex flex-wrap items-center justify-end gap-4">
           <button
             type="button"
             onClick={() => void refetch()}

@@ -62,7 +62,10 @@ export function nombreDisplayPapel(
   const ref = (datos.ref || "").trim();
   const aw = datos.ancho_mm || 0;
   const ah = datos.alto_mm || 0;
-  if (ref && aw > 0 && ah > 0) return `${ref} · ${aw}×${ah} mm`;
+  if (ref && aw > 0 && ah > 0) {
+    const med = `${Math.round((aw / 25.4) * 100) / 100}×${Math.round((ah / 25.4) * 100) / 100} in`;
+    return `${ref} · ${med}`;
+  }
   return ref || "Papel";
 }
 

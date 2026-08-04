@@ -37,6 +37,10 @@ import {
   mmParaTipoEtiqueta,
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
+  formatoMedidasEtiqueta,
+  formatoMedidasEtiquetaTitle,
+  mmAPulgadasDisplay,
+  pulgadasAMm,
 } from "../lib/etiquetasTipos";
 import { SelectorFormatoEtiqueta, type FormatoEtiquetaValor } from "./etiquetas/SelectorFormatoEtiqueta";
 import {
@@ -58,13 +62,12 @@ import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
 import { useGuardarPublicacion } from "../hooks/usePublicaciones";
 import PlantillasVisualesPanel from "./plantillas-visuales/PlantillasVisualesPanel";
-import { EtiquetasTabNav } from "./etiquetas/EtiquetasTabNav";
 import { ImpresionEtiquetasHeader } from "./etiquetas/ImpresionEtiquetasHeader";
 import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
-import { puedeVerTabEtiquetas, esCynthiaEtiquetas, esTabEtiquetasSoloCynthia, tabsEtiquetasVisibles } from "../lib/studioVisualAccess";
+import { puedeVerTabEtiquetas, esCynthiaEtiquetas, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -1837,78 +1840,104 @@ function rotacionValida(r: string | undefined): string {
 const LOTE_PREFIJO = "LOT.";
 const EXP_PREFIJO = "EXP.";
 
-function conPrefijoLote(val: string | undefined): string {
+/** Normaliza a `LOT. CÓDIGO` / `EXP. FECHA` (espacio tras el punto). */
+function conPrefijoEspaciado(val: string | undefined, prefijo: string, alt: string): string {
   const v = (val ?? "").trim();
-  if (!v) return LOTE_PREFIJO;
-  if (v.toUpperCase().startsWith(LOTE_PREFIJO)) return v;
-  if (v.toUpperCase().startsWith("LOT")) return LOTE_PREFIJO + v.slice(3).replace(/^[.\s]+/, "");
-  return LOTE_PREFIJO + v;
+  if (!v) return prefijo;
+  const vu = v.toUpperCase();
+  const prefU = prefijo.toUpperCase();
+  let resto: string;
+  if (vu.startsWith(prefU)) {
+    resto = v.slice(prefijo.length).replace(/^[.\s]+/, "").trim();
+  } else if (vu.startsWith(alt.toUpperCase())) {
+    resto = v.slice(alt.length).replace(/^[.\s]+/, "").trim();
+  } else {
+    resto = v;
+  }
+  return resto ? `${prefijo} ${resto}` : prefijo;
+}
+
+function conPrefijoLote(val: string | undefined): string {
+  return conPrefijoEspaciado(val, LOTE_PREFIJO, "LOT");
 }
 
 function conPrefijoExp(val: string | undefined): string {
-  const v = (val ?? "").trim();
-  if (!v) return EXP_PREFIJO;
-  if (v.toUpperCase().startsWith(EXP_PREFIJO)) return v;
-  if (v.toUpperCase().startsWith("EXP")) return EXP_PREFIJO + v.slice(3).replace(/^[.\s]+/, "");
-  return EXP_PREFIJO + v;
+  return conPrefijoEspaciado(val, EXP_PREFIJO, "EXP");
 }
 
 function editarConPrefijo(valor: string, prefijo: string): string {
   const upper = valor.toUpperCase();
   const prefUpper = prefijo.toUpperCase();
-  if (!upper.startsWith(prefUpper)) {
-    const stripped = valor.replace(new RegExp(`^${prefijo.replace(".", "\\.")}`, "i"), "");
-    return prefijo + stripped;
+  if (valor.length < prefijo.length && prefUpper.startsWith(upper)) {
+    return prefijo;
   }
-  if (valor.length < prefijo.length) return prefijo;
-  return valor;
+  if (!upper.startsWith(prefUpper)) {
+    const stripped = valor
+      .replace(new RegExp(`^${prefijo.replace(".", "\\.")}`, "i"), "")
+      .replace(/^[.\s]+/, "")
+      .trimStart();
+    return stripped ? `${prefijo} ${stripped}` : prefijo;
+  }
+  const resto = valor.slice(prefijo.length);
+  if (!resto) return prefijo;
+  if (resto.startsWith(" ")) return prefijo + resto;
+  return `${prefijo} ${resto.replace(/^[.\s]+/, "")}`;
 }
 
 function loteParaEtiqueta(val: string | undefined): string | undefined {
-  const v = (val ?? "").trim();
-  if (!v || v === LOTE_PREFIJO) return undefined;
-  return v;
+  const normalizado = conPrefijoLote(val);
+  if (!normalizado || normalizado === LOTE_PREFIJO) return undefined;
+  return normalizado;
 }
 
 function expParaEtiqueta(val: string | undefined): string | undefined {
-  const v = (val ?? "").trim();
-  if (!v || v === EXP_PREFIJO) return undefined;
-  return v;
+  const normalizado = conPrefijoExp(val);
+  if (!normalizado || normalizado === EXP_PREFIJO) return undefined;
+  return normalizado;
 }
 
 const FORMAS = [
-  { label: "Troquelada — separación (gap)", value: "Diecut_Gap" },
+  { label: "Troquelada — gap", value: "Diecut_Gap" },
   { label: "Troquelada — marca negra", value: "Diecut_Blackmark" },
   { label: "Continua — sin detección", value: "Contlabel_no_detection" },
 ];
 
 const CALIDADES = [
-  { label: "Máxima velocidad (Borrador)", value: "MaxSpeed" },
+  { label: "Borrador (máx. velocidad)", value: "MaxSpeed" },
   { label: "Rápida", value: "Speed" },
   { label: "Normal", value: "Normal" },
   { label: "Alta calidad", value: "Quality" },
-  { label: "Máxima calidad (Fotos / Logos)", value: "MaxQuality" },
+  { label: "Máxima (fotos / logos)", value: "MaxQuality" },
 ];
 
-const ROTACIONES = ["0", "90"];
+const ROTACIONES = [
+  { label: "0°", value: "0" },
+  { label: "90°", value: "90" },
+];
 
 const LOTE_POS_PCT: Record<string, { x: number; y: number }> = {
+  "center": { x: 50, y: 48 },
   "bottom-left": { x: 5, y: 88 },
   "bottom-right": { x: 58, y: 88 },
   "top-left": { x: 5, y: 6 },
   "top-right": { x: 58, y: 6 },
 };
 
+/** Separación vertical (en % de alto) entre línea LOT y EXP dentro del bloque único. */
+const LOTE_EXP_GAP_PCT = 5.5;
+
+/** Tamaño por defecto al imprimir: bloque único grande y legible. */
+const LOTE_FONT_IMPRIMIR_DEFAULT = 14;
+
 function lotePctInicial(pos: string | undefined, x?: number, y?: number): { x: number; y: number } {
   if (typeof x === "number" && typeof y === "number") return { x, y };
-  return LOTE_POS_PCT[pos ?? "bottom-left"] ?? LOTE_POS_PCT["bottom-left"];
+  return LOTE_POS_PCT[pos ?? "center"] ?? LOTE_POS_PCT["center"];
 }
 
-/** Posición inicial del vencimiento: independiente si ya se guardó una, si no,
- * cae justo debajo del lote (comportamiento previo) como punto de partida. */
+/** Posición inicial del vencimiento: debajo del lote en el mismo bloque centrado. */
 function vencPctInicial(loteX: number, loteY: number, x?: number, y?: number): { x: number; y: number } {
   if (typeof x === "number" && typeof y === "number") return { x, y };
-  return { x: loteX, y: clampLotePct(loteY + 6) };
+  return { x: loteX, y: clampLotePct(loteY + LOTE_EXP_GAP_PCT) };
 }
 
 function clampLotePct(n: number): number {
@@ -1916,33 +1945,32 @@ function clampLotePct(n: number): number {
 }
 
 const PREVIEW_IMG_LARGE =
-  "block max-h-[min(58vh,640px)] max-w-full w-auto h-auto rounded-lg shadow-md transition-opacity duration-200";
+  "block max-h-full max-w-full w-auto h-auto object-contain rounded-md shadow-sm transition-opacity duration-200";
 const PREVIEW_CONTAINER_LARGE =
-  "flex items-center justify-center w-full h-full min-h-[min(52vh,460px)] p-3 sm:p-5";
-/** PNG de Studio (600 DPI): mostrar más grande con scroll, no comprimir a miniatura. */
+  "flex items-center justify-center w-full h-full min-h-0 overflow-hidden p-2";
+/** PNG de Studio: caber completo en el lienzo (contain), sin scroll forzado. */
 const PREVIEW_IMG_ETIQUETA_PNG =
-  "block h-auto max-w-none rounded-lg shadow-md transition-opacity duration-200";
+  "block h-auto w-auto max-h-full max-w-full object-contain rounded-md shadow-sm transition-opacity duration-200";
 const PREVIEW_CONTAINER_ETIQUETA_PNG =
-  "flex items-start justify-center w-full h-full min-h-[min(52vh,460px)] overflow-auto p-3 sm:p-5";
+  "flex items-center justify-center w-full h-full min-h-0 overflow-hidden p-2";
 /** Misma resolución que `_pdf_a_imagen` en Flask (180 DPI). */
 const PREVIEW_DPI = 180;
 
 type EditorRibbonTab = "inicio" | "lote" | "impresion" | "texto" | "editar-pdf";
-type ImprimirRibbonTab = "inicio" | "lote";
 
-/** Tipografía cinta — legible en pantalla */
-const RIB_FONT_INP = "text-[13.3px]";
-const RIB_FONT_LBL = "text-[12.1px]";
-const RIB_FONT_GRP = "text-[10.9px]";
-const RIB_FONT_TAB = "text-[14.5px]";
-const RIB_FONT_BTN = "text-[13.3px]";
-const RIB_FONT_META = "text-[12.1px]";
-const RIB_FONT_HINT = "text-[10.9px]";
+/** Tipografía cinta — compacta para dejar espacio al lienzo */
+const RIB_FONT_INP = "text-[11px]";
+const RIB_FONT_LBL = "text-[9px]";
+const RIB_FONT_GRP = "text-[8px]";
+const RIB_FONT_TAB = "text-[12px]";
+const RIB_FONT_BTN = "text-[11px]";
+const RIB_FONT_META = "text-[10px]";
+const RIB_FONT_HINT = "text-[9px]";
 
 const RIB_INP =
-  `h-9 min-w-[5rem] rounded border border-border bg-surface px-2.5 ${RIB_FONT_INP} text-ink outline-none focus:border-accent`;
+  `h-7 min-w-[4.5rem] rounded border border-border bg-surface px-1.5 ${RIB_FONT_INP} text-ink outline-none focus:border-accent`;
 const RIB_SEL = RIB_INP;
-const RIB_LBL = `mb-0.5 block ${RIB_FONT_LBL} text-muted whitespace-nowrap`;
+const RIB_LBL = `mb-0 block ${RIB_FONT_LBL} font-medium uppercase tracking-wide text-muted whitespace-nowrap`;
 
 function RibbonGroup({
   label,
@@ -1954,11 +1982,44 @@ function RibbonGroup({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-shrink-0 flex-col justify-between border-r border-border/60 px-3 py-1.5 ${className}`}>
-      <div className="flex min-h-[58px] flex-wrap items-end gap-2">{children}</div>
-      <span className={`mt-1 pt-0.5 text-center ${RIB_FONT_GRP} font-semibold uppercase tracking-wider text-muted`}>
-        {label}
-      </span>
+    <div
+      className={`flex min-w-0 flex-col justify-center border-r border-border/50 px-2 py-1 ${className}`}
+      aria-label={label}
+    >
+      <div className="flex flex-wrap items-end gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+/** Desplegable compacto para opciones cortas (Sensor, Calidad, Rotación). */
+function RibbonSelect({
+  label,
+  value,
+  options,
+  onChange,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  options: { label: string; value: string }[];
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label className={RIB_LBL}>{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${RIB_SEL} max-w-[10.5rem]`}
+        aria-label={label}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -2039,7 +2100,7 @@ function RibbonTabs<T extends string>({
   active,
   onChange,
 }: {
-  tabs: { id: T; label: string; disabled?: boolean }[];
+  tabs: { id: T; label: string; disabled?: boolean; hint?: string; emphasize?: boolean }[];
   active: T;
   onChange: (id: T) => void;
 }) {
@@ -2050,14 +2111,20 @@ function RibbonTabs<T extends string>({
           key={t.id}
           type="button"
           disabled={t.disabled}
+          title={t.hint}
           onClick={() => onChange(t.id)}
           className={`relative rounded-t-md px-4 py-2.5 ${RIB_FONT_TAB} font-semibold transition disabled:opacity-40 ${
             active === t.id
               ? "z-10 -mb-px border border-border border-b-surface bg-surface text-accent"
-              : "text-muted hover:bg-surface-hover/70 hover:text-ink"
+              : t.emphasize
+                ? "border border-b-0 border-amber-500/60 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                : "text-muted hover:bg-surface-hover/70 hover:text-ink"
           }`}
         >
           {t.label}
+          {t.emphasize && active !== t.id && (
+            <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle" aria-hidden />
+          )}
         </button>
       ))}
     </div>
@@ -2125,20 +2192,19 @@ function mejorCoincidenciaEanPorNombreArchivo(
   return empatados === 1 ? mejor : null;
 }
 
-/** Bloque de texto independiente (lote O vencimiento) arrastrable sobre la vista
- * previa. Muestra placeholder punteado cuando aún no hay texto real, para que
- * se pueda posicionar antes de escribir el valor definitivo. */
-function CampoArrastrablePreview({
-  texto,
-  placeholder,
+/** Un solo bloque LOTE + EXP (dos líneas), grande y centrado en la etiqueta.
+ * Se arrastra como unidad; la posición enviada es el centro del bloque. */
+function BloqueLoteExpPreview({
+  loteText,
+  vencText,
   xPct,
   yPct,
   fontPx,
   stageRef,
   onPositionChange,
 }: {
-  texto?: string;
-  placeholder: string;
+  loteText?: string;
+  vencText?: string;
   xPct: number;
   yPct: number;
   fontPx: number;
@@ -2146,8 +2212,12 @@ function CampoArrastrablePreview({
   onPositionChange?: (x: number, y: number) => void;
 }) {
   const [dragging, setDragging] = useState(false);
-  const esPlaceholder = !texto;
   const arrastrable = Boolean(onPositionChange);
+  const visible = loteText !== undefined || vencText !== undefined;
+  const lineaLote = loteText || LOTE_PREFIJO;
+  const lineaExp = vencText || EXP_PREFIJO;
+  const sinDatos = !loteText && !vencText;
+  const fontMostrar = Math.max(fontPx * 1.35, 16);
 
   const mover = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!stageRef.current) return;
@@ -2155,29 +2225,22 @@ function CampoArrastrablePreview({
     onPositionChange?.(x, y);
   };
 
+  if (!visible) return null;
+
   return (
     <div
       role="presentation"
-      title={arrastrable ? "Arrastra para posicionar" : undefined}
-      className={`absolute select-none whitespace-nowrap leading-[1.35] touch-none ${
+      title={arrastrable ? "Bloque LOTE / EXP — arrastra para mover" : "Bloque LOTE / EXP"}
+      aria-label="Bloque de lote y vencimiento"
+      className={`absolute select-none touch-none ${
         arrastrable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
       }`}
       style={{
         left: `${xPct}%`,
         top: `${yPct}%`,
+        transform: "translate(-50%, -50%)",
         zIndex: 10,
-        fontFamily: '"Montserrat", sans-serif',
-        fontWeight: 300,
-        fontSize: `${fontPx}px`,
-        color: esPlaceholder ? "rgba(1,109,130,0.9)" : "#000",
-        background: esPlaceholder ? "rgba(255,255,255,0.85)" : "transparent",
-        border: esPlaceholder
-          ? "1px dashed rgba(1,109,130,0.85)"
-          : dragging
-            ? "1px dashed var(--accent, #016d82)"
-            : "1px solid transparent",
-        borderRadius: 2,
-        padding: esPlaceholder ? "1px 4px" : 0,
+        minWidth: "min(72%, 14rem)",
       }}
       onPointerDown={(e) => {
         if (!arrastrable) return;
@@ -2203,7 +2266,29 @@ function CampoArrastrablePreview({
       }}
       onPointerCancel={() => setDragging(false)}
     >
-      {texto || placeholder}
+      <div
+        className="text-center"
+        style={{
+          fontFamily: '"Montserrat", sans-serif',
+          fontWeight: 300,
+          fontSize: `${fontMostrar}px`,
+          lineHeight: 1.35,
+          color: sinDatos ? "rgba(1,109,130,0.95)" : "#000",
+          background: sinDatos || dragging ? "rgba(232,247,250,0.96)" : "rgba(255,255,255,0.88)",
+          border: `2px dashed rgba(1,109,130,0.9)`,
+          borderRadius: 8,
+          padding: "10px 16px",
+          boxShadow: dragging
+            ? "0 0 0 3px rgba(1,109,130,0.45)"
+            : "0 2px 8px rgba(0,0,0,0.14)",
+        }}
+      >
+        <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-accent" style={{ fontFamily: "system-ui, sans-serif" }}>
+          Lote · Exp
+        </div>
+        <div className="whitespace-nowrap">{lineaLote}</div>
+        <div className="whitespace-nowrap">{lineaExp}</div>
+      </div>
     </div>
   );
 }
@@ -2220,8 +2305,8 @@ function VistaPreviaConLote({
   loteXPct,
   loteYPct,
   onLotePositionChange,
-  vencXPct,
-  vencYPct,
+  vencXPct: _vencXPct,
+  vencYPct: _vencYPct,
   onVencPositionChange,
   imgClassName = "block max-w-full max-h-full w-auto h-auto rounded-lg shadow transition-opacity duration-200",
   containerClassName = "flex items-center justify-center w-full h-full min-h-[8rem]",
@@ -2246,38 +2331,33 @@ function VistaPreviaConLote({
   const stageRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgMetrics, setImgMetrics] = useState({ displayH: 0, naturalH: 0, displayW: 0, naturalW: 0 });
-  const esPngAltaRes = Boolean(srcUrl);
 
+  /** Escala la imagen para que quepa completa en el contenedor (contain). */
   const syncImgMetrics = useCallback(() => {
     const img = imgRef.current;
     const stage = stageRef.current;
-    if (!img || !img.naturalHeight) return;
-    let displayW = img.offsetWidth;
-    if (esPngAltaRes && img.naturalWidth > 500) {
-      const contW = stage?.parentElement?.clientWidth ?? 720;
-      const ratioExport = img.naturalWidth >= 900 ? img.naturalWidth / Math.max(1, Math.round(img.naturalWidth / 6.25)) : 1;
-      const lienzoEst = ratioExport >= 4 ? img.naturalWidth / ratioExport : img.naturalWidth;
-      displayW = Math.min(
-        img.naturalWidth,
-        Math.max(Math.round(lienzoEst * 3), Math.round(contW * 0.9), 520),
-      );
-    }
-    const displayH =
-      displayW > 0 && img.naturalWidth > 0
-        ? Math.round((displayW * img.naturalHeight) / img.naturalWidth)
-        : img.offsetHeight;
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    const box = stage?.parentElement ?? stage;
+    const pad = 8;
+    const contW = Math.max(40, (box?.clientWidth ?? 640) - pad);
+    const contH = Math.max(40, (box?.clientHeight ?? 360) - pad);
+    const scale = Math.min(contW / img.naturalWidth, contH / img.naturalHeight, 1);
+    const displayW = Math.max(1, Math.round(img.naturalWidth * scale));
+    const displayH = Math.max(1, Math.round(img.naturalHeight * scale));
     setImgMetrics({
       displayH,
       naturalH: img.naturalHeight,
       displayW,
       naturalW: img.naturalWidth,
     });
-  }, [esPngAltaRes]);
+  }, []);
 
   useEffect(() => {
     syncImgMetrics();
-    const ro = new ResizeObserver(syncImgMetrics);
-    if (stageRef.current) ro.observe(stageRef.current);
+    const box = stageRef.current?.parentElement ?? stageRef.current;
+    if (!box) return;
+    const ro = new ResizeObserver(() => syncImgMetrics());
+    ro.observe(box);
     return () => ro.disconnect();
   }, [syncImgMetrics, imagen, srcUrl]);
 
@@ -2286,48 +2366,45 @@ function VistaPreviaConLote({
     imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
       ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
       : Math.max(TAMANO_TEXTO_PT_MIN, loteFont);
-  const anchoImg =
-    esPngAltaRes && imgMetrics.displayW > 0 && imgMetrics.naturalW > 500
-      ? imgMetrics.displayW
-      : undefined;
+
+  const moverBloque = onLotePositionChange || onVencPositionChange
+    ? (x: number, y: number) => {
+        onLotePositionChange?.(x, y);
+        onVencPositionChange?.(x, clampLotePct(y + LOTE_EXP_GAP_PCT));
+      }
+    : undefined;
+
+  const tieneMedida = imgMetrics.displayW > 0 && imgMetrics.displayH > 0;
 
   return (
     <div className={containerClassName}>
       {imgSrc ? (
         <div
           ref={stageRef}
-          className={
-            anchoImg
-              ? "relative inline-block leading-none"
-              : "relative inline-block max-w-full max-h-[min(58vh,640px)] leading-none"
-          }
+          className="relative inline-block max-h-full max-w-full leading-none"
+          style={tieneMedida ? { width: imgMetrics.displayW, height: imgMetrics.displayH } : undefined}
         >
           <img
             ref={imgRef}
             src={imgSrc}
             alt="Vista previa"
             className={`${imgClassName} ${loading ? "opacity-50" : "opacity-100"}`}
-            style={anchoImg ? { width: anchoImg, height: "auto", maxWidth: "none" } : undefined}
+            style={
+              tieneMedida
+                ? { width: imgMetrics.displayW, height: imgMetrics.displayH }
+                : { maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto" }
+            }
             onLoad={syncImgMetrics}
             draggable={false}
           />
-          <CampoArrastrablePreview
-            texto={loteText}
-            placeholder={LOTE_PREFIJO}
+          <BloqueLoteExpPreview
+            loteText={loteText}
+            vencText={vencText}
             xPct={loteXPct}
             yPct={loteYPct}
             fontPx={fontPx}
             stageRef={stageRef}
-            onPositionChange={onLotePositionChange}
-          />
-          <CampoArrastrablePreview
-            texto={vencText}
-            placeholder={EXP_PREFIJO}
-            xPct={vencXPct}
-            yPct={vencYPct}
-            fontPx={fontPx}
-            stageRef={stageRef}
-            onPositionChange={onVencPositionChange}
+            onPositionChange={moverBloque}
           />
         </div>
       ) : loading ? (
@@ -3775,7 +3852,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
 
           {/* Cinta — herramientas por pestaña */}
           {tabEditor !== "texto" && tabEditor !== "editar-pdf" && (
-            <div className="flex flex-shrink-0 overflow-x-auto border-b border-border bg-surface">
+            <div className="flex flex-shrink-0 flex-wrap border-b border-border bg-surface">
               {tabEditor === "inicio" && (
                 <>
                   <RibbonGroup label="Archivo">
@@ -3937,35 +4014,24 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       labelClass={RIB_LBL}
                       compact
                     />
-                    <div>
-                      <label className={RIB_LBL}>Sensor</label>
-                      <select value={form.forma ?? "Diecut_Gap"} onChange={(e) => set("forma", e.target.value)} className={RIB_SEL}>
-                        {FORMAS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                      </select>
-                    </div>
-                  </RibbonGroup>
-                  <RibbonGroup label="Calidad">
-                    <div>
-                      <label className={RIB_LBL}>Impresión</label>
-                      <select value={form.calidad ?? "Normal"} onChange={(e) => set("calidad", e.target.value)} className={RIB_SEL}>
-                        {CALIDADES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={RIB_LBL}>Rotación</label>
-                      <div className="flex gap-1">
-                        {ROTACIONES.map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => set("rotacion", r)}
-                            className={`h-9 min-w-[2.25rem] rounded border-2 ${RIB_FONT_BTN} font-bold ${form.rotacion === r ? "border-accent bg-accent text-white" : "border-border text-ink-secondary"}`}
-                          >
-                            {r}°
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <RibbonSelect
+                      label="Sensor"
+                      value={form.forma ?? "Diecut_Gap"}
+                      options={FORMAS}
+                      onChange={(v) => set("forma", v)}
+                    />
+                    <RibbonSelect
+                      label="Impresión"
+                      value={form.calidad ?? "Normal"}
+                      options={CALIDADES}
+                      onChange={(v) => set("calidad", v)}
+                    />
+                    <RibbonSelect
+                      label="Rotación"
+                      value={form.rotacion ?? "0"}
+                      options={ROTACIONES}
+                      onChange={(v) => set("rotacion", v)}
+                    />
                   </RibbonGroup>
                 </>
               )}
@@ -4983,12 +5049,12 @@ function TabImprimir({
   const [studioDatos, setStudioDatos] = useState<EtiquetaStudioDatos>({ ...ETIQUETA_STUDIO_DEFAULT });
   const [lote, setLote] = useState(LOTE_PREFIJO);
   const [vencimiento, setVencimiento] = useState(EXP_PREFIJO);
-  const [lotePos, setLotePos] = useState("bottom-left");
-  const [loteFont, setLoteFont] = useState(7);
-  const [loteXPct, setLoteXPct] = useState(LOTE_POS_PCT["bottom-left"].x);
-  const [loteYPct, setLoteYPct] = useState(LOTE_POS_PCT["bottom-left"].y);
-  const [vencXPct, setVencXPct] = useState(LOTE_POS_PCT["bottom-left"].x);
-  const [vencYPct, setVencYPct] = useState(clampLotePct(LOTE_POS_PCT["bottom-left"].y + 6));
+  const [lotePos, setLotePos] = useState("center");
+  const [loteFont, setLoteFont] = useState(LOTE_FONT_IMPRIMIR_DEFAULT);
+  const [loteXPct, setLoteXPct] = useState(LOTE_POS_PCT["center"].x);
+  const [loteYPct, setLoteYPct] = useState(LOTE_POS_PCT["center"].y);
+  const [vencXPct, setVencXPct] = useState(LOTE_POS_PCT["center"].x);
+  const [vencYPct, setVencYPct] = useState(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
   const [matchEanPng, setMatchEanPng] = useState<CodigoEan | null | "sin-match">(null);
   const { data: codigosEan } = useCodigosEan();
   const [camposTexto, setCamposTexto] = useState<CampoTexto[]>([]);
@@ -5002,7 +5068,7 @@ function TabImprimir({
     setInstaladorTab(tab);
     setMostrarInstalador(true);
   };
-  const [tabRibbon, setTabRibbon] = useState<ImprimirRibbonTab>("inicio");
+  const [incluirLoteExp, setIncluirLoteExp] = useState(false);
   const [errorImpresion, setErrorImpresion] = useState<ErrorImpresora | null>(null);
   const [mostrarPedidoEtiquetas, setMostrarPedidoEtiquetas] = useState(false);
   const [pdfStudioRuta, setPdfStudioRuta] = useState("");
@@ -5035,16 +5101,17 @@ function TabImprimir({
         setRotacion(rotacionDefaultEtiqueta(linea.tipoEtiqueta));
       }
       if (linea.cantidad > 0) setCantidad(Math.min(999, linea.cantidad));
-      setTabRibbon("inicio");
     }
     onSolicitudInicialConsumida?.();
   }, [solicitudInicial, onSolicitudInicialConsumida]);
 
   const qc = useQueryClient();
-  const ribbonTabsImprimir: { id: ImprimirRibbonTab; label: string }[] = [
-    { id: "inicio", label: "Inicio" },
-    { id: "lote", label: "Lote" },
-  ];
+  const loteVacio = !loteParaEtiqueta(lote);
+  const expVacio = !expParaEtiqueta(vencimiento);
+  /** Solo avisa si el usuario activó Lote·EXP y falta dato. */
+  const loteExpPendiente = incluirLoteExp && (loteVacio || expVacio);
+  const loteParaImpresion = incluirLoteExp ? loteParaEtiqueta(lote) : undefined;
+  const expParaImpresion = incluirLoteExp ? expParaEtiqueta(vencimiento) : undefined;
 
   const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => {
     const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
@@ -5057,10 +5124,11 @@ function TabImprimir({
       alto_mm: formato.altoMm,
       contenido_neto: pres.contenido_neto ?? studioDatos.contenido_neto,
       unidad: pres.unidad ?? studioDatos.unidad,
-      lote: loteParaEtiqueta(lote) || studioDatos.lote,
-      vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
+      lote: incluirLoteExp ? (loteParaEtiqueta(lote) || studioDatos.lote) : "",
+      vencimiento: incluirLoteExp ? (expParaEtiqueta(vencimiento) || studioDatos.vencimiento) : "",
+      mostrar_lote_vencimiento: incluirLoteExp,
     };
-  }, [studioDatos, formato, lote, vencimiento]);
+  }, [studioDatos, formato, lote, vencimiento, incluirLoteExp]);
 
   useEffect(() => {
     if (vistaImpresion !== "documento" || !studioDatosImpresion.sku.trim()) return;
@@ -5099,7 +5167,12 @@ function TabImprimir({
     if (!precargar) return;
     setPdfStudioRuta(precargar.pdf_ruta || "");
     setPdfStudioNombre(precargar.pdf_nombre || "");
-    if (precargar.pdf_ruta) setVistaImpresion("documento");
+    if (precargar.pdf_ruta) {
+      setVistaImpresion("documento");
+      if (precargar.lote_defecto || precargar.vencimiento_defecto) {
+        setIncluirLoteExp(true);
+      }
+    }
     if (precargar.tipo_etiqueta) {
       const [anchoMm, altoMm] = mmParaTipoEtiqueta(precargar.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT);
       setFormato({
@@ -5247,18 +5320,27 @@ function TabImprimir({
     if (datos.forma) setForma(datos.forma);
     if (datos.calidad) setCalidad(datos.calidad);
     if (datos.rotacion) setRotacion(rotacionValida(datos.rotacion));
-    if (datos.lote_pos) setLotePos(datos.lote_pos);
-    if (datos.lote_font) setLoteFont(datos.lote_font);
-    const pct = lotePctInicial(datos.lote_pos, datos.lote_x_pct, datos.lote_y_pct);
-    setLoteXPct(pct.x);
-    setLoteYPct(pct.y);
-    const pctVenc = vencPctInicial(pct.x, pct.y, datos.venc_x_pct, datos.venc_y_pct);
-    setVencXPct(pctVenc.x);
-    setVencYPct(pctVenc.y);
+    // En Imprimir: bloque LOTE·EXP grande al centro, salvo que ya haya posición custom guardada.
+    if (datos.lote_pos === "custom" && typeof datos.lote_x_pct === "number" && typeof datos.lote_y_pct === "number") {
+      if (datos.lote_font) setLoteFont(datos.lote_font);
+      setLotePos("custom");
+      setLoteXPct(datos.lote_x_pct);
+      setLoteYPct(datos.lote_y_pct);
+      const pctVenc = vencPctInicial(datos.lote_x_pct, datos.lote_y_pct, datos.venc_x_pct, datos.venc_y_pct);
+      setVencXPct(pctVenc.x);
+      setVencYPct(pctVenc.y);
+    } else {
+      setLotePos("center");
+      setLoteFont(datos.lote_font && datos.lote_font >= 12 ? datos.lote_font : LOTE_FONT_IMPRIMIR_DEFAULT);
+      setLoteXPct(LOTE_POS_PCT["center"].x);
+      setLoteYPct(LOTE_POS_PCT["center"].y);
+      setVencXPct(LOTE_POS_PCT["center"].x);
+      setVencYPct(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
+    }
     setLote(conPrefijoLote(loteFinal));
     setVencimiento(conPrefijoExp(vencFinal));
     setVistaImpresion("documento");
-    setTabRibbon("inicio");
+    setIncluirLoteExp(Boolean(loteFinal || vencFinal));
   }
 
   async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
@@ -5274,6 +5356,12 @@ function TabImprimir({
     setRectangulosPlantilla([]);
     setLote(LOTE_PREFIJO);
     setVencimiento(EXP_PREFIJO);
+    setLotePos("center");
+    setLoteFont(LOTE_FONT_IMPRIMIR_DEFAULT);
+    setLoteXPct(LOTE_POS_PCT["center"].x);
+    setLoteYPct(LOTE_POS_PCT["center"].y);
+    setVencXPct(LOTE_POS_PCT["center"].x);
+    setVencYPct(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
     setMatchEanPng(null);
 
     // Los PNG sueltos de la biblioteca no traen SKU propio — se asocian por
@@ -5314,7 +5402,7 @@ function TabImprimir({
       }));
     }
     setVistaImpresion("documento");
-    setTabRibbon("inicio");
+    setIncluirLoteExp(false);
   }
 
   function volverACatalogoPng() {
@@ -5352,7 +5440,7 @@ function TabImprimir({
       || "SVG";
     setLog((prev) => [
       ...prev,
-      `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · ${plantilla}...`,
+      `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formatoMedidasEtiqueta(formato.anchoMm, formato.altoMm) || `${formato.anchoMm}×${formato.altoMm}`}) · ${calidad}${loteInfo} · ${plantilla}...`,
     ]);
     setErrorImpresion(null);
 
@@ -5387,8 +5475,8 @@ function TabImprimir({
             offset_v: offsetV,
             offset_h: offsetH,
             ruta_pdf: res.ruta_completa,
-            lote: loteParaEtiqueta(lote),
-            vencimiento: expParaEtiqueta(vencimiento),
+            lote: loteParaImpresion,
+            vencimiento: expParaImpresion,
             lote_font: loteFont,
             lote_x_pct: loteXPct,
             lote_y_pct: loteYPct,
@@ -5418,8 +5506,8 @@ function TabImprimir({
       offset_h: offsetH,
       ruta_pdf: pdfStudioRuta || undefined,
       studio_datos: pdfStudioRuta ? undefined : studioDatosImpresion,
-      lote: loteParaEtiqueta(lote),
-      vencimiento: expParaEtiqueta(vencimiento),
+      lote: loteParaImpresion,
+      vencimiento: expParaImpresion,
       lote_font: loteFont,
       lote_x_pct: loteXPct,
       lote_y_pct: loteYPct,
@@ -5441,7 +5529,6 @@ function TabImprimir({
               setRotacion(rotacionDefaultEtiqueta(linea.tipoEtiqueta));
             }
             if (linea.cantidad > 0) setCantidad(Math.min(999, linea.cantidad));
-            setTabRibbon("inicio");
           }}
         />
       )}
@@ -5476,7 +5563,7 @@ function TabImprimir({
           </div>
         </div>
       ) : (
-      <div className="mck-card flex flex-col overflow-hidden shadow-paper-sm">
+      <div className="mck-card flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden shadow-paper-sm">
         <ImpresionEtiquetasHeader
           vista="documento"
           skuActivo={skuActivoImpresion}
@@ -5502,16 +5589,16 @@ function TabImprimir({
         )}
 
         {!impConectada && estadoTxt && !errorImpresion && (
-          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0">
+          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0 !py-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs">
+              <p className="text-[10px]">
                 {impDeshabilitada
                   ? "Impresora desinstalada o sin USB. Instala para Windows 10 Pro (sesión Jenniffer)."
                   : "Impresora no registrada. Pulsa Instalar para Windows 10 Pro."}
               </p>
               <div className="flex shrink-0 gap-2">
                 <Button variant="warning" size="sm" onClick={() => abrirInstalador("windows10pro")}>
-                  Instalar para Windows 10 Pro
+                  Instalar
                 </Button>
               </div>
             </div>
@@ -5519,178 +5606,158 @@ function TabImprimir({
         )}
 
         {impConectada && avisoRollo && estadoData?.niveles_tinta?.alerta_impresora && !errorImpresion && (
-          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0 text-xs">
+          <Banner tone="warning" className="flex-shrink-0 rounded-none border-x-0 border-t-0 !py-1 text-[10px]">
             {estadoData.niveles_tinta.alerta_impresora.error}
           </Banner>
         )}
 
         <NivelesTintaImpresora compact onExpand={onIrInventarioTinta} />
 
-        {/* Cinta — pestañas */}
-        <RibbonTabs tabs={ribbonTabsImprimir} active={tabRibbon} onChange={setTabRibbon} />
-
-        {/* Cinta — herramientas */}
-        <div className="flex flex-shrink-0 overflow-x-auto border-b border-border bg-surface">
-          {tabRibbon === "inicio" && (
+        {/* Cinta — controles compactos (desplegables) */}
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-y-0.5 border-b border-border bg-surface">
+          <RibbonGroup label="Formato">
+            <SelectorFormatoEtiqueta
+              readOnly
+              value={formato}
+              inputClass={RIB_INP}
+              selectClass={RIB_SEL}
+              labelClass={RIB_LBL}
+              labelNombre="Producto"
+              compact
+            />
+            <RibbonSelect label="Sensor" value={forma} options={FORMAS} onChange={setForma} />
+            <RibbonSelect label="Impresión" value={calidad} options={CALIDADES} onChange={setCalidad} />
+            <RibbonSelect label="Rotación" value={rotacion} options={ROTACIONES} onChange={setRotacion} />
+          </RibbonGroup>
+          <RibbonGroup label="Posición">
+            <AjusteOffsetImpresion
+              offsetV={offsetV}
+              offsetH={offsetH}
+              onOffsetVChange={setOffsetV}
+              onOffsetHChange={setOffsetH}
+            />
+          </RibbonGroup>
+          <RibbonGroup label="Cantidad">
+            <div className="flex items-center gap-0.5">
+              <button type="button" aria-label="Restar cantidad" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">−</button>
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={cantidad}
+                onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
+                className={`${RIB_INP} w-10 text-center font-semibold`}
+              />
+              <button type="button" aria-label="Sumar cantidad" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">+</button>
+            </div>
+          </RibbonGroup>
+          <RibbonGroup label="Trazabilidad">
+            <label
+              className={`mck-press relative inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded border px-1.5 text-[10px] font-semibold transition ${
+                incluirLoteExp
+                  ? loteExpPendiente
+                    ? "border-amber-500/70 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                    : "border-accent bg-accent text-white"
+                  : "border-border text-ink-secondary hover:bg-surface-hover hover:text-ink"
+              }`}
+              title={incluirLoteExp ? "Quitar lote/EXP de la etiqueta" : "Incluir lote/EXP en la etiqueta"}
+            >
+              <input
+                type="checkbox"
+                className="h-3 w-3 accent-accent"
+                checked={incluirLoteExp}
+                onChange={(e) => setIncluirLoteExp(e.target.checked)}
+                aria-label="Incluir lote y vencimiento"
+              />
+              <span>Lote</span>
+              {loteExpPendiente && (
+                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+              )}
+            </label>
+            {incluirLoteExp && (
               <>
-                <RibbonGroup label="Formato">
-                  <SelectorFormatoEtiqueta
-                    readOnly
-                    value={formato}
-                    inputClass={RIB_INP}
-                    selectClass={RIB_SEL}
-                    labelClass={RIB_LBL}
-                    labelNombre="Producto"
-                    compact
+                <input
+                  id="imprimir-lote-input"
+                  type="text"
+                  value={lote}
+                  onChange={(e) => setLote(editarConPrefijo(e.target.value, LOTE_PREFIJO))}
+                  placeholder="LOT. …"
+                  className={`${RIB_INP} w-[7.5rem] ${loteVacio ? "border-amber-500" : ""}`}
+                  aria-label="Lote"
+                  title="Lote"
+                />
+                <input
+                  id="imprimir-exp-input"
+                  type="text"
+                  value={vencimiento}
+                  onChange={(e) => setVencimiento(editarConPrefijo(e.target.value, EXP_PREFIJO))}
+                  placeholder="EXP. …"
+                  className={`${RIB_INP} w-[6.5rem] ${expVacio ? "border-amber-500" : ""}`}
+                  aria-label="Vencimiento"
+                  title="Vencimiento"
+                />
+                <div className="flex items-center gap-1" title="Tamaño del texto">
+                  <input
+                    type="range"
+                    min={TAMANO_TEXTO_PT_MIN}
+                    max={TAMANO_TEXTO_PT_MAX}
+                    step={1}
+                    value={clampTamanoTextoPt(loteFont)}
+                    onChange={(e) => setLoteFont(clampTamanoTextoPt(Number(e.target.value)))}
+                    className="h-4 w-14 accent-accent"
+                    aria-label="Tamaño del texto"
                   />
-                  <div>
-                    <label className={RIB_LBL}>Sensor</label>
-                    <select value={forma} onChange={(e) => setForma(e.target.value)} className={RIB_SEL}>
-                      {FORMAS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
-                  </div>
-                </RibbonGroup>
-                <RibbonGroup label="Calidad">
-                  <div>
-                    <label className={RIB_LBL}>Impresión</label>
-                    <select value={calidad} onChange={(e) => setCalidad(e.target.value)} className={RIB_SEL}>
-                      {CALIDADES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={RIB_LBL}>Rotación</label>
-                    <div className="flex gap-1">
-                      {ROTACIONES.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setRotacion(r)}
-                          className={`h-9 min-w-[2.25rem] rounded border-2 ${RIB_FONT_BTN} font-bold ${rotacion === r ? "border-accent bg-accent text-white" : "border-border text-ink-secondary"}`}
-                        >
-                          {r}°
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </RibbonGroup>
-                <RibbonGroup label="Posición">
-                  <AjusteOffsetImpresion
-                    offsetV={offsetV}
-                    offsetH={offsetH}
-                    onOffsetVChange={setOffsetV}
-                    onOffsetHChange={setOffsetH}
-                  />
-                </RibbonGroup>
-                <RibbonGroup label="Cantidad">
-                  <div className="flex items-center gap-1">
-                    <button type="button" aria-label="Restar cantidad" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">−</button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={999}
-                      value={cantidad}
-                      onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
-                      className={`${RIB_INP} w-12 text-center font-bold`}
-                    />
-                    <button type="button" aria-label="Sumar cantidad" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">+</button>
-                  </div>
-                </RibbonGroup>
+                  <span className={`${RIB_FONT_BTN} tabular-nums text-ink`}>{clampTamanoTextoPt(loteFont)}pt</span>
+                </div>
               </>
             )}
-            {tabRibbon === "lote" && (
-              <>
-                <RibbonGroup label="Texto">
-                  <div>
-                    <label className={RIB_LBL}>Lote</label>
-                    <input
-                      type="text"
-                      value={lote}
-                      onChange={(e) => setLote(editarConPrefijo(e.target.value, LOTE_PREFIJO))}
-                      placeholder="LOT.MCK-2026-001"
-                      className={`${RIB_INP} min-w-[9rem]`}
-                    />
-                  </div>
-                  <div>
-                    <label className={RIB_LBL}>Vencimiento</label>
-                    <input
-                      type="text"
-                      value={vencimiento}
-                      onChange={(e) => setVencimiento(editarConPrefijo(e.target.value, EXP_PREFIJO))}
-                      placeholder="EXP.12/2028"
-                      className={`${RIB_INP} min-w-[9rem]`}
-                    />
-                  </div>
-                </RibbonGroup>
-                <RibbonGroup label="Tipografía">
-                  <div className="flex min-w-[140px] flex-col gap-0.5">
-                    <label className={RIB_LBL}>Tamaño · Montserrat Light</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="range"
-                        min={TAMANO_TEXTO_PT_MIN}
-                        max={TAMANO_TEXTO_PT_MAX}
-                        step={1}
-                        value={clampTamanoTextoPt(loteFont)}
-                        onChange={(e) => setLoteFont(clampTamanoTextoPt(Number(e.target.value)))}
-                        className="w-24 accent-accent"
-                      />
-                      <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{clampTamanoTextoPt(loteFont)}pt</span>
-                    </div>
-                  </div>
-                </RibbonGroup>
-                <RibbonGroup label="Plantilla">
-                  <p className={`max-w-[220px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>
-                    {pngImpresion
-                      ? "Arrastra el lote y el vencimiento por separado en la vista previa para ubicar cada uno donde quieras."
-                      : "Lote y vencimiento se aplican en la posición original del archivo .ai"}
-                  </p>
-                </RibbonGroup>
-              </>
-            )}
+          </RibbonGroup>
         </div>
 
-        {/* Lienzo — vista previa */}
-        <div className="flex min-h-[min(55vh,520px)] flex-col bg-surface-hover/20">
-          <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-surface-panel/80 px-4 py-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Vista previa</span>
+        {/* Lienzo — ocupa el resto del alto */}
+        <div className="flex min-h-0 flex-1 flex-col bg-surface-hover/20">
+          <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-surface-panel/80 px-2.5 py-0.5">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-muted">
+              Vista previa
+            </span>
             <div className="flex items-center gap-2">
               {filaActiva?.archivo_ai && (
-                <span className="truncate font-mono text-[10px] text-muted" title={filaActiva.archivo_ai}>
+                <span className="truncate font-mono text-[9px] text-muted" title={filaActiva.archivo_ai}>
                   {filaActiva.archivo_ai}
                 </span>
               )}
             </div>
           </div>
-          <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
             {pngImpresion ? (
-              <div className="flex h-full w-full flex-col items-center gap-2">
-                <div className="flex w-full items-center justify-between gap-2 px-1">
-                  <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pngImpresion.nombre}>
-                    🖼 {pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre}
+              <div className="flex h-full min-h-0 w-full flex-col items-center gap-1">
+                <div className="flex w-full shrink-0 items-center justify-between gap-2 px-0.5">
+                  <p className="min-w-0 truncate text-[10px] font-semibold text-ink" title={pngImpresion.nombre}>
+                    {pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre}
                   </p>
                   <button
                     type="button"
                     onClick={volverACatalogoPng}
-                    className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent"
+                    className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:border-accent hover:text-accent"
                   >
-                    Volver a archivos
+                    Archivos
                   </button>
                 </div>
                 {matchEanPng === "sin-match" ? (
-                  <p className="w-full px-1 text-[11px] text-amber-600">
-                    ⚠️ No se encontró un producto en Códigos EAN que coincida con este archivo — el lote no se
-                    autocompletó, escríbelo a mano en la pestaña «Lote».
+                  <p className="w-full shrink-0 px-0.5 text-[10px] text-amber-600">
+                    Sin match EAN — escribe lote/EXP manualmente.
                   </p>
                 ) : matchEanPng ? (
-                  <p className="w-full px-1 text-[11px] text-emerald-600">
-                    ✅ Asociado a <strong>{matchEanPng.sku}</strong> — {matchEanPng.nombre_producto}
-                    {loteParaEtiqueta(lote) ? " · lote vigente autocompletado" : " · sin lote registrado aún"}
+                  <p className="w-full shrink-0 truncate px-0.5 text-[10px] text-emerald-600" title={`${matchEanPng.sku} — ${matchEanPng.nombre_producto}`}>
+                    {matchEanPng.sku} — {matchEanPng.nombre_producto}
+                    {loteParaEtiqueta(lote) ? " · lote OK" : " · sin lote"}
                   </p>
                 ) : null}
+                <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
                 <VistaPreviaPngConLote
                   nombre={pngImpresion.nombre}
-                  loteText={loteParaEtiqueta(lote)}
-                  vencText={expParaEtiqueta(vencimiento)}
+                  loteText={incluirLoteExp ? (loteParaEtiqueta(lote) ?? LOTE_PREFIJO) : undefined}
+                  vencText={incluirLoteExp ? (expParaEtiqueta(vencimiento) ?? EXP_PREFIJO) : undefined}
                   loteFont={loteFont}
                   loteXPct={loteXPct}
                   loteYPct={loteYPct}
@@ -5708,6 +5775,7 @@ function TabImprimir({
                     setVencYPct(y);
                   }}
                 />
+                </div>
               </div>
             ) : pdfStudioRuta ? (
               <div className="flex h-full w-full flex-col items-center gap-2">
@@ -5752,8 +5820,8 @@ function TabImprimir({
                     imagen={pdfStudioPreview?.imagen}
                     mime={pdfStudioPreview?.mime}
                     loading={pdfStudioPreviewLoading}
-                    loteText={loteParaEtiqueta(lote)}
-                    vencText={expParaEtiqueta(vencimiento)}
+                    loteText={incluirLoteExp ? (loteParaEtiqueta(lote) ?? LOTE_PREFIJO) : undefined}
+                    vencText={incluirLoteExp ? (expParaEtiqueta(vencimiento) ?? EXP_PREFIJO) : undefined}
                     loteFont={loteFont}
                     loteXPct={loteXPct}
                     loteYPct={loteYPct}
@@ -5808,29 +5876,31 @@ function TabImprimir({
           </div>
         </div>
 
-        {/* Barra inferior — imprimir */}
-        <div className="flex flex-shrink-0 flex-col items-center gap-2 border-t border-border bg-surface-panel px-4 py-4">
-          <p className="max-w-lg truncate text-center text-[11px] text-muted">
+        {/* Barra inferior — imprimir (compacta, resalta en verde) */}
+        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-border bg-surface-panel px-2.5 py-1.5">
+          <p className="min-w-0 flex-1 truncate text-[10px] text-muted">
             {pngImpresion
-              ? `🖼 ${pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre}`
+              ? (pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre)
               : pdfStudioRuta
-              ? `📄 ${pdfStudioNombre || "PDF de Studio"}`
+              ? (pdfStudioNombre || "PDF de Studio")
               : productoListo
               ? `${skuActivoImpresion} · ${filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "plantilla SVG"}`
-              : "Selecciona un archivo PNG del catálogo"}
+              : "Selecciona un PNG del catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
           <button
             type="button"
             onClick={handleImprimir}
             disabled={imprimirMut.isPending || preparandoPngImpresion || !productoListo}
-            className="w-full max-w-md rounded-xl border-2 border-success bg-success py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:opacity-90 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
+            className="mck-press inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-success px-3 text-[11px] font-bold tracking-wide text-white shadow-sm ring-1 ring-success/40 transition hover:brightness-110 disabled:opacity-40"
           >
-            {imprimirMut.isPending || preparandoPngImpresion ? "Imprimiendo…" : (
-              <span className="inline-flex items-center justify-center gap-2">
-                <Icon name="printer" size={20} />
-                IMPRIMIR
-              </span>
+            {imprimirMut.isPending || preparandoPngImpresion ? (
+              "Imprimiendo…"
+            ) : (
+              <>
+                <Icon name="printer" size={14} />
+                Imprimir
+              </>
             )}
           </button>
         </div>
@@ -6111,15 +6181,15 @@ function NivelesTintaImpresora({
 
   if (compact) {
     return (
-      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Tinta</span>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-2.5 py-1">
+        <span className="text-[8px] font-bold uppercase tracking-wide text-muted">Tinta</span>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {cartuchos.map((c) => {
             const pct = pctVisible(c);
             return (
-              <div key={c.codigo} className="flex min-w-[3.5rem] flex-col gap-0.5" title={`${c.etiqueta}: ${pct}%`}>
-                <span className="font-mono text-[9px] font-bold text-ink">{c.codigo} {pct}%</span>
-                <div className="h-1.5 w-14 overflow-hidden rounded-full bg-surface-panel ring-1 ring-border">
+              <div key={c.codigo} className="flex min-w-[2.75rem] flex-col gap-0" title={`${c.etiqueta}: ${pct}%`}>
+                <span className="font-mono text-[8px] font-semibold text-ink">{c.codigo} {pct}%</span>
+                <div className="h-1 w-10 overflow-hidden rounded-full bg-surface-panel ring-1 ring-border">
                   <div
                     className={`h-full rounded-full ${nivelTintaBarraClase(c.nivel ?? pct)}`}
                     style={{ width: barraAncho(c), backgroundColor: c.nivel == null ? c.color : undefined }}
@@ -6133,9 +6203,9 @@ function NivelesTintaImpresora({
           <button
             type="button"
             onClick={onExpand}
-            className="shrink-0 rounded border border-border px-2 py-1 text-[10px] font-semibold hover:bg-surface-hover"
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:bg-surface-hover hover:text-ink"
           >
-            Inventario →
+            Inventario
           </button>
         )}
       </div>
@@ -6335,6 +6405,10 @@ function FormularioPapelInventario({
     }));
   }
 
+  function setPulgadas(anchoIn: number, altoIn: number) {
+    setMm(pulgadasAMm(anchoIn), pulgadasAMm(altoIn));
+  }
+
   return (
     <div className="rounded-xl border border-border bg-surface p-3">
       <p className="mb-3 text-xs font-bold text-ink">{titulo}</p>
@@ -6350,49 +6424,30 @@ function FormularioPapelInventario({
           />
         </label>
         <label className="text-[10px] text-muted">
-          Ancho (mm)
+          Ancho (in)
           <input
             type="number"
-            min={1}
-            step={0.1}
-            value={draft.ancho_mm || ""}
-            onChange={(e) => setMm(Number(e.target.value), draft.alto_mm)}
+            min={0.04}
+            step={0.01}
+            value={draft.ancho_pulg || mmAPulgadasDisplay(draft.ancho_mm) || ""}
+            onChange={(e) => setPulgadas(Number(e.target.value), draft.alto_pulg || mmAPulgadasDisplay(draft.alto_mm))}
             className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
           />
         </label>
         <label className="text-[10px] text-muted">
-          Alto (mm)
+          Alto (in)
           <input
             type="number"
-            min={1}
-            step={0.1}
-            value={draft.alto_mm || ""}
-            onChange={(e) => setMm(draft.ancho_mm, Number(e.target.value))}
+            min={0.04}
+            step={0.01}
+            value={draft.alto_pulg || mmAPulgadasDisplay(draft.alto_mm) || ""}
+            onChange={(e) => setPulgadas(draft.ancho_pulg || mmAPulgadasDisplay(draft.ancho_mm), Number(e.target.value))}
             className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
           />
         </label>
-        <label className="text-[10px] text-muted">
-          Ancho (pulg)
-          <input
-            type="number"
-            min={0}
-            step={0.001}
-            value={draft.ancho_pulg || ""}
-            onChange={(e) => setDraft((d) => ({ ...d, ancho_pulg: Number(e.target.value) }))}
-            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
-          />
-        </label>
-        <label className="text-[10px] text-muted">
-          Alto (pulg)
-          <input
-            type="number"
-            min={0}
-            step={0.001}
-            value={draft.alto_pulg || ""}
-            onChange={(e) => setDraft((d) => ({ ...d, alto_pulg: Number(e.target.value) }))}
-            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
-          />
-        </label>
+        <p className="text-[10px] text-muted sm:col-span-2" title={formatoMedidasEtiquetaTitle(draft.ancho_mm, draft.alto_mm)}>
+          Equivale a {draft.ancho_mm || "—"}×{draft.alto_mm || "—"} mm
+        </p>
         <label className="text-[10px] text-muted">
           Etiquetas por rollo
           <input
@@ -6628,7 +6683,8 @@ function TabInventarioPapelTinta() {
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-ink">{v.ref}</p>
                         <p className="mt-0.5 text-muted">
-                          {v.ancho_mm}×{v.alto_mm} mm · {v.ancho_pulg}×{v.alto_pulg} in
+                          {formatoMedidasEtiqueta(v.ancho_mm, v.alto_mm) || `${v.ancho_pulg}×${v.alto_pulg} in`}
+                          <span className="text-muted"> · {v.ancho_mm}×{v.alto_mm} mm</span>
                         </p>
                         <p className="mt-0.5 text-muted">
                           {v.unidades_por_rollo} u/rollo · {v.rollos} rollos
@@ -6845,7 +6901,6 @@ export default function EtiquetasPanel() {
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
   const ticketsUser = useTicketsAuth((s) => s.user);
   const verAvanzado = esCynthiaEtiquetas(ticketsUser);
-  const tabsVisibles = tabsEtiquetasVisibles(ticketsUser);
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
     const user = useTicketsAuth.getState().user;
@@ -6898,17 +6953,9 @@ export default function EtiquetasPanel() {
   const studioFullscreen = tab === "studio" && verAvanzado && studioInmersivo;
 
   return (
-    <div className={`mck-animate-enter space-y-5 px-1 sm:px-0 ${
-      studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"
+    <div className={`mck-animate-enter px-1 sm:px-0 ${
+      studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl space-y-5"
     }`}>
-      {!studioFullscreen && (
-        <EtiquetasTabNav
-          active={tab}
-          onChange={setTab}
-          allowedTabs={tabsVisibles}
-        />
-      )}
-
       {tab === "imprimir" && (
         <TabImprimir
           precargar={precargarImpresion}

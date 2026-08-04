@@ -2996,14 +2996,6 @@ export default function RentabilidadPanel() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-3 pb-3">
-        <div>
-          <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
-          <p className="mt-1 text-sm text-muted">
-            Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes. Usa los iconos del
-            cabezote Contabilidad para facturas y calculadora.
-          </p>
-        </div>
-
         <div
           className="flex gap-1 overflow-x-auto rounded-paper border-2 border-border bg-surface-hover p-1 shadow-paper-sm"
           role="tablist"

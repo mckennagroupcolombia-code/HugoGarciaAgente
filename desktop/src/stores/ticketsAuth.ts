@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { conPrivilegiosAdminCynthia } from "../lib/adminAccess";
 import type { UserUiPreferences } from "../lib/userThemeSync";
 
 export interface TicketsRol {
@@ -43,9 +44,17 @@ export const useTicketsAuth = create<TicketsAuthState>()(
       token: null,
       user: null,
       apiToken: null,
-      setAuth: (token, user, apiToken = null) => set({ token, user, apiToken }),
+      setAuth: (token, user, apiToken = null) =>
+        set({ token, user: conPrivilegiosAdminCynthia(user), apiToken }),
       clear: () => set({ token: null, user: null, apiToken: null }),
     }),
-    { name: "mckenna-tickets-auth" },
+    {
+      name: "mckenna-tickets-auth",
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          state.user = conPrivilegiosAdminCynthia(state.user);
+        }
+      },
+    },
   ),
 );

@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import PanelHelp from "./PanelHelp";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -748,14 +747,6 @@ export default function RRHHPanel() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
-      <PanelHelp panelId="rrhh" />
-      <div>
-        <h2 className="text-xl font-black text-ink">RRHH · Compensaciones</h2>
-        <p className="text-sm text-muted">
-          Equidad interna, carga laboral medida y plan de formalización — datos sensibles, acceso restringido.
-        </p>
-      </div>
-
       <div className="flex flex-wrap gap-2">
         {tabs.map((t) => (
           <button

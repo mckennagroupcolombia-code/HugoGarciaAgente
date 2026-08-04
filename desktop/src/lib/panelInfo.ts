@@ -1,6 +1,6 @@
 /**
  * Metadata descriptiva de cada panel: descripción, tips y clasificación.
- * Usado por el Sidebar remasterizado y el componente PanelHelp.
+ * Usado por el Sidebar remasterizado (etiquetas y badges de paneles).
  */
 
 export type PanelTier = "core" | "standard" | "advanced";
@@ -108,25 +108,25 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     label: "Stock",
     description: "Punto único de entrada de inventario: registra entradas y salidas de unidades aquí y se propagan a MeLi y a la página web, sin editar nada manualmente en la app de MeLi.",
     tips: [
-      "'+ Entrada' y '− Salida' suman o restan unidades y empujan el resultado a MeLi y a la web.",
-      "La pestaña 'Códigos MeLi ↔ Siigo' cruza SKU de publicación con código Siigo; con Editar puedes cambiar el SKU en MeLi y el vínculo Siigo (filtro Sin C- para candidatos a combo).",
-      "Un producto 'pausado en MeLi' igual acepta entradas — se actualiza la web de inmediato; MeLi puede seguir pausado hasta reactivarlo allá ('Abrir en MeLi' para ir directo).",
+      "'+' / '−' en cada fila suman o restan unidades y empujan el resultado a MeLi y a la web.",
+      "Tabla unificada: columna Publicación (Activa / Pausada), stock por color, ventas 30 d y códigos MeLi ↔ Siigo. Editar SKU carga a MeLi; filtro Sin C- para candidatos a combo.",
+      "Un producto 'pausado en MeLi' igual acepta entradas — se actualiza la web de inmediato; MeLi puede seguir pausado hasta reactivarlo allá ('Abrir ↗').",
       "Siigo solo aparece como referencia de lectura — su API no permite escribirle stock; se sigue ajustando aparte.",
     ],
     tier: "core",
-    category: "inventario",
+    category: "tienda",
   },
   etiquetas: {
     emoji: "🏷️",
-    label: "Etiquetas",
-    description: "Imprime etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio, el editor visual de plantillas.",
+    label: "Diseño",
+    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio, el editor visual de plantillas.",
     tips: [
       "Selecciona el producto, el lote y la fecha de vencimiento antes de imprimir.",
       "El formato más usado es la etiqueta de 50×30mm para frascos pequeños.",
       "Usa la pestaña Studio para diseñar una plantilla y enviarla directo a imprimir.",
     ],
     tier: "core",
-    category: "inventario",
+    category: "diseno",
   },
   fichas: {
     emoji: "📄",
@@ -137,7 +137,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Puedes descargar el PDF de cada ficha para enviarlo a clientes.",
     ],
     tier: "standard",
-    category: "inventario",
+    category: "docs",
   },
 
   // ── Tienda y taller ───────────────────────────────────────────────────────────
@@ -154,25 +154,39 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   },
 
   sitioweb: {
-    emoji: "🌐",
-    label: "Sitio Web",
-    description: "Controla la apariencia de la tienda mckennagroup.co: elige entre el tema Clásico y el tema Pureza & Trazabilidad, y edita los textos del home (hero, ruta de trazabilidad, métricas y llamados a la acción).",
+    emoji: "🎨",
+    label: "Studio web",
+    description:
+      "Botón del menú lateral: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos Pureza y tema publicado). La página pública no tiene editor.",
     tips: [
-      "Usa 'Vista previa' para ver el tema en tu navegador sin cambiarlo para los clientes.",
-      "Los cambios guardados se publican de inmediato — no hace falta reiniciar el sitio.",
-      "'Restaurar textos' vuelve al contenido recomendado del tema Pureza.",
+      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos, agranda con la esquina azul y edita con doble clic.",
+      "Tokens = colores/tipografía; Contenido = formularios; Publicar = tema que ven los clientes.",
+      "Guarda en la app para aplicar el lienzo en el sitio. La página pública no tiene editor.",
     ],
     tier: "standard",
-    category: "tienda",
+    category: "studio-web",
   },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────────
+  facturacion: {
+    emoji: "🧾",
+    label: "Facturación",
+    description:
+      "Sync MeLi↔Siigo y facturas de compra desde Gmail. Consultar factura está en el icono del cabezote.",
+    tips: [
+      "Sync: fuerza o revisa la sincronización de facturas de venta MeLi con Siigo.",
+      "Facturas de compra: escanea Gmail y registra en Siigo con aprobación.",
+      "Para buscar por producto usa el icono de factura del encabezado.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   sync: {
     emoji: "🔄",
     label: "Sync Facturas",
     description: "Sincroniza automáticamente las facturas de MercadoLibre con el ERP Siigo. En modo automático funciona solo — aquí puedes forzar una sincronización manual.",
     tips: [
-      "Normalmente no necesitas entrar aquí — el sistema sincroniza solo cada día.",
+      "Ahora vive dentro de la pestaña Facturación.",
       "'Sync hoy' revisa las ventas de las últimas 24 horas.",
       "Usa 'Por Pack ID' cuando una factura específica no se subió correctamente.",
     ],
@@ -184,9 +198,8 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     label: "Facturas de compra",
     description: "Facturas de proveedores que llegan por Gmail. El sistema las detecta automáticamente y las organiza para su registro en Siigo.",
     tips: [
-      "Las facturas se descargan del correo de compras automáticamente.",
+      "Ahora vive dentro de la pestaña Facturación.",
       "Verifica que el proveedor y monto sean correctos antes de aprobar.",
-      "Usa la pestaña Consultar factura para buscar por nombre de producto.",
     ],
     tier: "standard",
     category: "contabilidad",
@@ -309,7 +322,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Configuración avanzada de productos para el sistema de etiquetado: formatos, campos personalizados y reglas normativas.",
     tips: ["Solo modifica esto si sabes exactamente qué cambiar — afecta todas las etiquetas."],
     tier: "advanced",
-    category: "inventario",
+    category: "diseno",
   },
   "logistica-importaciones": {
     emoji: "🚢",

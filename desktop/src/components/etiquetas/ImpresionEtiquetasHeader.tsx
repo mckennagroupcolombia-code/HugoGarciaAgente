@@ -32,17 +32,17 @@ export function ImpresionEtiquetasHeader({
   const mostrarEstado = vista === "documento" && impConectada !== undefined;
 
   return (
-    <header className="mck-header-glass flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-accent/25 bg-accent px-4 py-3 text-white">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-paper bg-white/15">
-          <Icon name="printer" size={18} className="text-white" />
+    <header className="mck-header-glass flex flex-shrink-0 flex-wrap items-center gap-1.5 border-b border-accent/25 bg-accent px-2.5 py-1.5 text-white sm:gap-2 sm:px-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/15">
+          <Icon name="printer" size={13} className="text-white" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold">Impresión de etiquetas</p>
-          <p className="truncate text-[10px] opacity-80">
+          <p className="truncate text-[12px] font-bold leading-tight">Impresión de etiquetas</p>
+          <p className="truncate text-[9px] leading-tight opacity-75">
             {vista === "catalogo"
               ? "Archivos PNG listos para imprimir"
-              : `Epson ColorWorks CW-C4000u${skuActivo ? ` · ${skuActivo}` : ""}`}
+              : `Epson CW-C4000u${skuActivo ? ` · ${skuActivo}` : ""}`}
           </p>
         </div>
       </div>
@@ -51,9 +51,9 @@ export function ImpresionEtiquetasHeader({
         <button
           type="button"
           onClick={() => onVistaChange("catalogo")}
-          className="mck-press rounded-lg border border-white/30 px-3 py-1.5 text-[10px] font-semibold text-white/90 hover:bg-white/15"
+          className="mck-press rounded border border-white/25 px-2 py-0.5 text-[9px] font-medium text-white/85 hover:bg-white/10"
         >
-          ← Volver a archivos
+          ← Archivos
         </button>
       )}
 
@@ -61,14 +61,15 @@ export function ImpresionEtiquetasHeader({
         <Badge
           tone={impDeshabilitada ? "warning" : impConectada ? (avisoRollo ? "warning" : "success") : "danger"}
           solid
+          className="!px-1.5 !py-0 !text-[9px]"
         >
           {impDeshabilitada
-            ? "Desconectada"
+            ? "Off"
             : impConectada
               ? avisoRollo
-                ? "Revisa rollo"
+                ? "Rollo"
                 : "Lista"
-              : "Sin impresora"}
+              : "Sin USB"}
         </Badge>
       )}
 
@@ -76,12 +77,12 @@ export function ImpresionEtiquetasHeader({
         <button
           type="button"
           onClick={onPedidosClick}
-          className="mck-press relative inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-2.5 py-1.5 text-[10px] font-semibold hover:bg-white/15"
+          className="mck-press relative inline-flex items-center gap-1 rounded border border-white/25 px-1.5 py-0.5 text-[9px] font-medium hover:bg-white/10"
         >
-          <Icon name="listChecks" size={14} />
+          <Icon name="listChecks" size={12} />
           En curso
           {solicitudesCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-1 text-[9px] font-black text-white">
+            <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-warning px-0.5 text-[8px] font-black text-white">
               {solicitudesCount}
             </span>
           )}
@@ -94,9 +95,9 @@ export function ImpresionEtiquetasHeader({
           size="sm"
           icon="printer"
           onClick={onInstalarClick}
-          className="!border-white/30 !text-white hover:!bg-white/15"
+          className="!h-6 !min-h-0 !border-white/20 !px-1.5 !py-0 !text-[9px] !text-white/80 hover:!bg-white/10"
         >
-          Instalar Windows 10 Pro
+          Instalar
         </Button>
       )}
 

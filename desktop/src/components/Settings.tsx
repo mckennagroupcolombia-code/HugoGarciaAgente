@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { esAdminPanel } from "../lib/adminAccess";
 import { useStatus } from "../hooks/useStatus";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
@@ -89,7 +90,7 @@ function ServiceCard({
 export default function Settings() {
   const token = useAuthStore((s) => s.token);
   const { user: ticketsUser, clear: clearTickets } = useTicketsAuth();
-  const isAdmin = (ticketsUser?.rol?.nivel ?? 0) >= 3;
+  const isAdmin = esAdminPanel(ticketsUser);
   const clearMain = useAuthStore((s) => s.clear);
   function logout() { clearTickets(); clearMain(); }
   const { data: status } = useStatus();
@@ -720,9 +721,9 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "chat",       label: "Chat IA" },
   { id: "whatsapp",   label: "Agente WA" },
   { id: "webchat",    label: "Chat web" },
-  { id: "stock",      label: "Stock" },
-  { id: "etiquetas",  label: "Impresora · Etiquetas" },
+  { id: "etiquetas",  label: "Diseño (etiquetas)" },
   { id: "fichas",     label: "Docs técnicos" },
+  { id: "stock",      label: "Stock (en Tienda y taller)" },
   { id: "publicaciones", label: "Publicaciones" },
   { id: "placas-concreto", label: "Placas de Concreto" },
   { id: "logistica-internacional", label: "Logística Internacional" },

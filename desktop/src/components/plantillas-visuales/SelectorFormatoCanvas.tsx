@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useTiposEtiqueta } from "../../lib/etiquetasTipos";
+import { formatoMedidasEtiqueta, useTiposEtiqueta } from "../../lib/etiquetasTipos";
 import { IllustrationIcon } from "../../icons/IllustrationIcon";
 import type { UiIconName } from "../../icons";
 import {
@@ -149,9 +149,9 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
                 <p className="font-semibold text-ink">{fmt.nombre}</p>
                 <p className="mt-0.5 text-xs text-muted">
                   {esEtiqueta && fmt.ancho_mm != null && fmt.alto_mm != null
-                    ? `${fmt.nombre} · ${fmt.ancho_mm}×${fmt.alto_mm} mm`
-                    : f.ancho_mm
-                      ? `${f.ancho_mm} × ${f.alto_mm} mm`
+                    ? `${fmt.nombre} · ${formatoMedidasEtiqueta(fmt.ancho_mm, fmt.alto_mm)}`
+                    : f.ancho_mm != null && f.alto_mm != null
+                      ? formatoMedidasEtiqueta(f.ancho_mm, f.alto_mm)
                       : `${f.ancho_px} × ${f.alto_px} px`}
                 </p>
                 {fmt.descripcion && (

@@ -5,10 +5,6 @@ interface UiModeState {
   advanced: boolean;
   toggleAdvanced: () => void;
   setAdvanced: (v: boolean) => void;
-  /** Panels whose help banner has been permanently dismissed */
-  dismissedHelps: string[];
-  dismissHelp: (panelId: string) => void;
-  resetHelps: () => void;
 }
 
 export const useUiMode = create<UiModeState>()(
@@ -17,14 +13,6 @@ export const useUiMode = create<UiModeState>()(
       advanced: false,
       toggleAdvanced: () => set((s) => ({ advanced: !s.advanced })),
       setAdvanced: (advanced) => set({ advanced }),
-      dismissedHelps: [],
-      dismissHelp: (panelId) =>
-        set((s) => ({
-          dismissedHelps: s.dismissedHelps.includes(panelId)
-            ? s.dismissedHelps
-            : [...s.dismissedHelps, panelId],
-        })),
-      resetHelps: () => set({ dismissedHelps: [] }),
     }),
     { name: "mckenna-ui-mode" },
   ),

@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import type { EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import type { CampoDiagramacionId } from "../../lib/etiquetasDiagramacion";
 import { formatoCanvasPx } from "../../lib/etiquetasDiagramacion";
+import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import { EtiquetaDiagramacionWorkspace } from "./EtiquetaDiagramEditor";
 import { Modal, Banner, Button, IconButton } from "./ui";
 
@@ -299,7 +300,7 @@ export function EtiquetaMckennaPreview({
       {modoStudio && (svgMarkup || src) && (
         <div className="mt-1 flex flex-col items-center gap-0.5">
           <p className="text-[10px] text-muted">
-            {anchoMm}×{altoMm} mm · {zoomPct}% ≈ tamaño impresión
+            {formatoMedidasEtiqueta(anchoMm, altoMm)} · {zoomPct}% ≈ tamaño impresión
             {debounced.tipo_etiqueta ? ` · ${debounced.tipo_etiqueta}` : ""}
           </p>
           <button
@@ -316,7 +317,7 @@ export function EtiquetaMckennaPreview({
       )}
       {marcoFormato && !modoStudio && anchoMm && altoMm && (
         <p className="mt-2 text-center text-[10px] text-muted">
-          {anchoMm}×{altoMm} mm · {debounced.tipo_etiqueta}
+          {formatoMedidasEtiqueta(anchoMm, altoMm)} · {debounced.tipo_etiqueta}
           {debounced.archivo_ai ? ` · ${debounced.archivo_ai}` : ""}
         </p>
       )}

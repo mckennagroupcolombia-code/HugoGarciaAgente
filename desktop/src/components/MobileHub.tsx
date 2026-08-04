@@ -284,7 +284,7 @@ function HomeTab({
     { icon: "listChecks" as UiIconName, tone: "accent" as const, label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]" },
     { icon: "chat" as UiIconName, tone: "plum" as const, label: "Chat con\nHugo", cat: "", action: () => onNavigateTo("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
     { icon: "package" as UiIconName, tone: "sky" as const, label: "Stock &\ninventario", cat: "", action: () => onNavigateTo("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Imprimir\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
+    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Diseño\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
   ];
 
   return (
@@ -635,8 +635,10 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
           { panel: "preventa" as Panel, label: "Preventa MeLi" },
           { panel: "postventa" as Panel, label: "Postventa" },
           { panel: "stock" as Panel, label: "Stock" },
-          { panel: "etiquetas" as Panel, label: "Etiquetas" },
-          { panel: "facturas" as Panel, label: "Contabilidad" },
+          { panel: "etiquetas" as Panel, label: "Diseño" },
+          { panel: "sitioweb" as Panel, label: "Studio web" },
+          { panel: "fichas" as Panel, label: "Docs técnicos" },
+          { panel: "facturacion" as Panel, label: "Contabilidad" },
         ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (
           <button
             key={s.panel}

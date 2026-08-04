@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import PanelHelp from "./PanelHelp";
 
 interface OrderItem {
   id?: string;
@@ -58,10 +57,14 @@ interface OrdersResponse {
 }
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  pending:  { label: "Pendiente",   cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
-  approved: { label: "Aprobado",    cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  rejected: { label: "Rechazado",   cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-  refunded: { label: "Reembolsado", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  pending:      { label: "Pendiente",    cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  approved:     { label: "Aprobado",     cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  declined:     { label: "Rechazado",    cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  rejected:     { label: "Rechazado",    cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  cancelled:    { label: "Anulado",      cls: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
+  canceled:     { label: "Anulado",      cls: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
+  refunded:     { label: "Reembolsado",  cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  no_realizado: { label: "No realizado", cls: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
 };
 
 const SHIP_LABELS: Record<string, { label: string; icon: string; cls: string }> = {
@@ -109,21 +112,35 @@ interface FacturarResponse {
   reference: string;
 }
 
+interface AnularResponse {
+  ok: boolean;
+  message: string;
+  reference: string;
+}
+
 function OrderRow({
   order,
   onExpand,
   expanded,
   onFacturar,
   facturando,
+  onAnular,
+  anulando,
 }: {
   order: Order;
   onExpand: () => void;
   expanded: boolean;
   onFacturar: (reference: string) => void;
   facturando: boolean;
+  onAnular: (reference: string, force: boolean) => void;
+  anulando: boolean;
 }) {
   const facturaEmitida = Boolean(order.siigo_invoice_number);
-  const puedeFacturar = order.status === "approved" && !facturaEmitida;
+  const status = (order.status || "").toLowerCase();
+  const anulado = status === "cancelled" || status === "canceled" || status === "refunded";
+  const puedeFacturar = status === "approved" && !facturaEmitida && !anulado;
+  const enviado = (order.shipping_status || "").toLowerCase() === "shipped";
+  const puedeAnular = !anulado && (status === "approved" || status === "pending");
 
   return (
     <>
@@ -291,19 +308,17 @@ function OrderRow({
                         e.stopPropagation();
                         onFacturar(order.reference);
                       }}
-                      disabled={!puedeFacturar || facturando}
+                      disabled={facturando || anulando}
                       className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
-                      title={
-                        order.status !== "approved"
-                          ? "Solo se puede facturar cuando el pago está aprobado"
-                          : "Emitir factura electrónica en Siigo"
-                      }
+                      title="Emitir factura electrónica en Siigo"
                     >
                       {facturando && (
                         <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
                       )}
                       {facturando ? "Facturando…" : "Facturar con Siigo"}
                     </button>
+                  ) : anulado ? (
+                    <p className="mt-2 text-[11px] text-muted">Pedido anulado.</p>
                   ) : (
                     <p className="mt-2 text-[11px] text-muted">
                       Disponible cuando el pago esté aprobado.
@@ -313,6 +328,31 @@ function OrderRow({
                     <p className="mt-2 text-[11px] text-danger">{order.siigo_invoice_error}</p>
                   )}
                 </div>
+
+                {puedeAnular && (
+                  <div>
+                    <p className="font-semibold text-muted uppercase tracking-wide mb-2">Anular venta</p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const msg = enviado
+                          ? `El pedido ${order.reference} ya tiene guía. ¿Anular de todas formas y devolver stock?`
+                          : `¿Anular el pedido ${order.reference} y devolver el stock a la tienda web?`;
+                        if (!window.confirm(msg)) return;
+                        onAnular(order.reference, enviado);
+                      }}
+                      disabled={anulando || facturando}
+                      className="inline-flex items-center gap-2 rounded-lg bg-red-500/15 px-3 py-1.5 text-[11px] font-bold text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Anula el pedido y restaura el stock web"
+                    >
+                      {anulando && (
+                        <span className="inline-block h-3 w-3 rounded-full border-2 border-red-300 border-t-transparent animate-spin" />
+                      )}
+                      {anulando ? "Anulando…" : enviado ? "Anular (forzar)" : "Anular venta"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </td>
@@ -356,6 +396,24 @@ export default function PedidosWebPanel() {
     },
   });
 
+  const anular = useMutation({
+    mutationFn: ({ reference, force }: { reference: string; force: boolean }) =>
+      api.post<AnularResponse>(
+        "/api/pedidos/web/anular",
+        { reference, force },
+        { timeoutMs: 60_000 },
+      ),
+    onMutate: () => setFacturarMsg(null),
+    onSuccess: (res) => {
+      setFacturarMsg({ type: "ok", text: res.message || "Pedido anulado." });
+      qc.invalidateQueries({ queryKey: ["pedidos-web"] });
+    },
+    onError: (e: Error) => {
+      setFacturarMsg({ type: "error", text: e.message || "No se pudo anular el pedido." });
+      qc.invalidateQueries({ queryKey: ["pedidos-web"] });
+    },
+  });
+
   const totalPages = data ? Math.ceil(data.total / data.per_page) : 1;
 
   const handleSearch = useCallback((e: React.FormEvent) => {
@@ -365,7 +423,6 @@ export default function PedidosWebPanel() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <PanelHelp panelId="pedidos" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -399,7 +456,9 @@ export default function PedidosWebPanel() {
           <option value="">Todos los estados</option>
           <option value="pending">Pendiente</option>
           <option value="approved">Aprobado</option>
-          <option value="rejected">Rechazado</option>
+          <option value="cancelled">Anulado</option>
+          <option value="declined">Rechazado</option>
+          <option value="no_realizado">No realizado</option>
           <option value="refunded">Reembolsado</option>
         </select>
       </form>
@@ -453,7 +512,9 @@ export default function PedidosWebPanel() {
                     order={order}
                     expanded={expandedRef === order.reference}
                     facturando={facturar.isPending && facturar.variables === order.reference}
+                    anulando={anular.isPending && anular.variables?.reference === order.reference}
                     onFacturar={(reference) => facturar.mutate(reference)}
+                    onAnular={(reference, force) => anular.mutate({ reference, force })}
                     onExpand={() =>
                       setExpandedRef((prev) =>
                         prev === order.reference ? null : order.reference,

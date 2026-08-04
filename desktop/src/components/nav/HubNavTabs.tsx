@@ -9,6 +9,7 @@ import {
   itemsVisiblesHub,
 } from "../../lib/hubNav";
 import { PanelIcon } from "../../icons/PanelIcon";
+import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 
 /**
@@ -27,7 +28,8 @@ export default function HubNavTabs({
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const { user } = useTicketsAuth();
-  const advanced = useUiMode((s) => s.advanced);
+  const advancedToggle = useUiMode((s) => s.advanced);
+  const advanced = modoAvanzadoEfectivo(user, advancedToggle);
 
   const section = NAV_SECTIONS.find((s) => s.id === sectionId);
   const tabs = useMemo(() => {
@@ -42,8 +44,6 @@ export default function HubNavTabs({
     if (subpanelId) guardarUltimoPanelHub(sectionId, subpanelId);
   }, [sectionId, subpanelId]);
 
-  if (!tabs.length && !leading) return null;
-
   function irA(id: Panel) {
     setAccionesBootTab(null);
     if (id === "hugo") {
@@ -53,35 +53,43 @@ export default function HubNavTabs({
     setPanel(id);
   }
 
+  if (tabs.length <= 1) {
+    // Un solo subpanel: sin franja de pestañas (el título del hub basta).
+    return leading ? <div className="flex min-w-0 flex-1 items-center">{leading}</div> : null;
+  }
+
   return (
-    <div
-      className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto"
-      role="tablist"
-      aria-label={`Secciones de ${section?.label ?? sectionId}`}
-    >
-      {leading}
-      {tabs.map((item) => {
-        const id = item.panel;
-        const info = PANEL_INFO[id];
-        const selected = subpanelId === id || (id === "hugo" && panel === "tickets");
-        return (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => irA(id)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition sm:gap-2 sm:px-3 sm:text-xs ${
-              selected
-                ? "bg-accent text-white shadow-sm"
-                : "text-muted hover:bg-surface-hover hover:text-ink"
-            }`}
-          >
-            <PanelIcon panel={id} size={20} active={selected} bubble={false} />
-            <span className="hidden truncate sm:inline">{info?.label ?? id}</span>
-          </button>
-        );
-      })}
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      {/* Fuera del scroll: con justify-end + overflow, el inicio del flex queda inaccesible. */}
+      {leading ? <div className="shrink-0">{leading}</div> : null}
+      <div
+        className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto"
+        role="tablist"
+        aria-label={`Secciones de ${section?.label ?? sectionId}`}
+      >
+        {tabs.map((item) => {
+          const id = item.panel;
+          const info = PANEL_INFO[id];
+          const selected = subpanelId === id || (id === "hugo" && panel === "tickets");
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => irA(id)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition sm:gap-2 sm:px-3 sm:text-xs ${
+                selected
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:bg-surface-hover hover:text-ink"
+              }`}
+            >
+              <PanelIcon panel={id} size={20} active={selected} bubble={false} />
+              <span className="hidden truncate sm:inline">{info?.label ?? id}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

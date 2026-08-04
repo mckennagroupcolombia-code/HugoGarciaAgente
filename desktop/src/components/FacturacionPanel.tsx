@@ -1,0 +1,116 @@
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { useAppStore } from "../stores/app";
+import {
+  FACTURACION_SUBTABS,
+  guardarSubtabFacturacion,
+  leerSubtabFacturacion,
+  puedeVerModuloContabilidad,
+  subtabDesdePanelLegacy,
+  type FacturacionSubtabId,
+} from "../lib/contabilidadAccess";
+import { PanelIcon } from "../icons/PanelIcon";
+
+const SyncPanel = lazy(() => import("./SyncPanel"));
+const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
+
+function Cargando() {
+  return (
+    <div className="flex min-h-[30vh] items-center justify-center text-sm text-muted">
+      Cargando…
+    </div>
+  );
+}
+
+/**
+ * Pestaña plana Facturación (como Rentabilidad): Sync + Facturas de compra.
+ * «Consultar factura» queda en el icono del cabezote, no aquí.
+ */
+export default function FacturacionPanel() {
+  const { user } = useTicketsAuth();
+  const panel = useAppStore((s) => s.panel);
+  const setFacturasBootVista = useAppStore((s) => s.setFacturasBootVista);
+
+  const puedeSync = Boolean(puedeVerModuloContabilidad(user, "sync"));
+  const puedeFacturas = Boolean(puedeVerModuloContabilidad(user, "facturas"));
+
+  const subtabs = useMemo(
+    () =>
+      FACTURACION_SUBTABS.filter((t) => {
+        if (t.id === "sync") return puedeSync;
+        return puedeFacturas;
+      }),
+    [puedeSync, puedeFacturas],
+  );
+
+  const [sub, setSub] = useState<FacturacionSubtabId>(() => {
+    const fromLegacy = subtabDesdePanelLegacy(panel);
+    if (fromLegacy === "sync" || fromLegacy === "compra") return fromLegacy;
+    return leerSubtabFacturacion();
+  });
+
+  useEffect(() => {
+    const fromLegacy = subtabDesdePanelLegacy(panel);
+    if (fromLegacy === "sync" || fromLegacy === "compra") setSub(fromLegacy);
+  }, [panel]);
+
+  useEffect(() => {
+    if (!subtabs.length) return;
+    if (!subtabs.some((t) => t.id === sub)) {
+      setSub(subtabs[0].id);
+    }
+  }, [subtabs, sub]);
+
+  useEffect(() => {
+    if (!subtabs.some((t) => t.id === sub)) return;
+    guardarSubtabFacturacion(sub);
+    if (sub === "compra") setFacturasBootVista("pendientes");
+    else setFacturasBootVista(null);
+  }, [sub, subtabs, setFacturasBootVista]);
+
+  if (!subtabs.length) {
+    return (
+      <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-panel p-6 text-sm text-muted">
+        No tienes permisos de facturación. Pide acceso al administrador.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div
+        className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface-panel p-1"
+        role="tablist"
+        aria-label="Facturación"
+      >
+        {subtabs.map((t) => {
+          const selected = sub === t.id;
+          const iconPanel = t.id === "sync" ? "sync" : "facturas";
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setSub(t.id)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
+                selected
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted hover:bg-surface-hover hover:text-ink"
+              }`}
+            >
+              <PanelIcon panel={iconPanel} size={18} active={selected} bubble={false} />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="min-h-0 flex-1">
+        <Suspense fallback={<Cargando />}>
+          {sub === "sync" ? <SyncPanel /> : <FacturasCompraPanel key="compra" />}
+        </Suspense>
+      </div>
+    </div>
+  );
+}

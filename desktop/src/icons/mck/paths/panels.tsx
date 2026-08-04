@@ -95,6 +95,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M10 9h6M10 13h6M10 17h4" />
     </>
   ),
+  facturacion: (
+    <>
+      <path d="M7 4h10v16l-2-1-2 1-2-1-2 1-2-1V4z" />
+      <path d="M10 9h6M10 13h6M10 17h4" />
+    </>
+  ),
   "costos-productos": (
     <>
       <path d="M4 7h16M4 12h16M4 17h10" />

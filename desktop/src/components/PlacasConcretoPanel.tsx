@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import PanelHelp from "./PanelHelp";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -117,7 +116,6 @@ export default function PlacasConcretoPanel() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PanelHelp panelId="placas-concreto" />
       <h2 className="text-xl font-extrabold text-ink">🧱 Placas de Concreto Pulido</h2>
 
       {/* Dimensiones del molde */}

@@ -36,32 +36,33 @@
 
   /*
    * Oscuro McKenna — base #2B454F.
-   * Acentos = mismos del modo claro (sin aclarar) para conservar contraste limpio.
+   * Acento elevado (~L58) para texto/iconos legibles; hover = teal profundo corporativo.
+   * muted/ink-muted más claros que en la 1ª pasada (fechas, títulos de sección).
    */
   .dark {
     --mck-surface: 43 69 79;
     --mck-surface-panel: 52 81 92;
     --mck-surface-input: 61 92 104;
     --mck-surface-hover: 70 103 114;
-    --mck-ink: 232 240 242;
-    --mck-ink-secondary: 197 212 217;
-    --mck-ink-muted: 143 168 176;
-    --mck-border: 74 106 118;
-    --mck-border-strong: 96 132 144;
-    --mck-muted: 156 180 188;
-    --mck-accent: 12 96 105;
-    --mck-accent-hover: 4 81 89;
+    --mck-ink: 236 244 246;
+    --mck-ink-secondary: 214 228 232;
+    --mck-ink-muted: 176 200 208;
+    --mck-border: 84 118 130;
+    --mck-border-strong: 110 148 160;
+    --mck-muted: 186 208 214;
+    --mck-accent: 94 186 198;
+    --mck-accent-hover: 12 96 105;
     --mck-accent-sun: 244 196 77;
     --mck-accent-sun-deep: 232 168 56;
-    --mck-accent-leaf: 74 154 106;
-    --mck-accent-leaf-deep: 45 122 78;
-    --mck-accent-sky: 106 172 179;
-    --mck-accent-sky-deep: 61 138 147;
-    --mck-accent-rose: 229 140 140;
-    --mck-accent-plum: 166 139 200;
-    --mck-success: 42 125 78;
-    --mck-danger: 200 106 106;
-    --mck-warning: 232 168 56;
+    --mck-accent-leaf: 110 198 148;
+    --mck-accent-leaf-deep: 74 154 106;
+    --mck-accent-sky: 126 200 210;
+    --mck-accent-sky-deep: 94 186 198;
+    --mck-accent-rose: 240 160 160;
+    --mck-accent-plum: 188 162 220;
+    --mck-success: 110 198 148;
+    --mck-danger: 228 130 130;
+    --mck-warning: 244 196 77;
     /* Elevación plana tipo IDE — sin “paper” grueso */
     --mck-shadow-paper: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.45);
     --mck-shadow-paper-sm: 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -890,9 +891,7 @@
     font-size: 9px !important;
     line-height: 1.35;
   }
-  .mck-help-text,
-  .mck-panel-help p,
-  .mck-panel-help li {
+  .mck-help-text {
     font-size: 9px !important;
     line-height: 1.35;
   }
@@ -1474,9 +1473,7 @@
   }
 }
 
-/* ── Textos explicativos más compactos en toda la app ─────────────────────
-   Descripciones bajo títulos, ayudas PanelHelp, empty states y hints muted.
-   No toca títulos ni texto de contenido principal. */
+/* ── Textos explicativos compactos (hints muted). El banner PanelHelp usa tamaños propios. ── */
 .text-sm.text-muted {
   font-size: 9px;
   line-height: 1.35;
@@ -1487,13 +1484,7 @@ p.text-sm.text-ink-secondary {
   line-height: 1.35;
 }
 
-.mck-help-text,
-.mck-panel-help p {
-  font-size: 9px;
-  line-height: 1.35;
-}
-
-.mck-panel-help li {
+.mck-help-text {
   font-size: 9px;
   line-height: 1.35;
 }

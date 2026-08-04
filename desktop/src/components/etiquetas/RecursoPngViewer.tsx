@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
+import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import { Modal, Button, Spinner } from "./ui";
 
 /** Codifica un nombre de recurso para usarlo en una ruta `/archivo/<path:nombre>`.
@@ -18,13 +19,13 @@ export type FormatoPngAsociado = {
 
 export function labelFormatoPng(f?: FormatoPngAsociado | null): string {
   if (!f) return "";
-  const mm =
+  const med =
     f.ancho_mm != null && f.alto_mm != null && Number(f.ancho_mm) > 0 && Number(f.alto_mm) > 0
-      ? `${f.ancho_mm}×${f.alto_mm} mm`
+      ? formatoMedidasEtiqueta(Number(f.ancho_mm), Number(f.alto_mm))
       : "";
   const tipo = (f.tipo_etiqueta || "").trim();
-  if (tipo && mm) return `${tipo} · ${mm}`;
-  return tipo || mm;
+  if (tipo && med) return `${tipo} · ${med}`;
+  return tipo || med;
 }
 
 /** Miniatura de un recurso PNG/JPG de la biblioteca de Etiquetas. Usa la

@@ -9,12 +9,14 @@ import {
 } from "./navStructure";
 import { CONTABILIDAD_TAB_OCULTAS } from "./contabilidadAccess";
 
-/** Icono del hub en sidebar / encabezado. */
+/** Icono del hub / standalone en sidebar y encabezado. */
 export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
   inicio: "home",
   atencion: "bell",
   canales: "chat",
-  inventario: "package",
+  diseno: "tag",
+  "studio-web": "palette",
+  docs: "file",
   contabilidad: "receipt",
   tienda: "megaphone",
   logistica: "ship",
@@ -26,9 +28,11 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   inicio: "Agenda del equipo y métricas del día.",
   atencion: "Preventa MeLi, postventa y pedidos de la tienda web.",
   canales: "Chat IA, WhatsApp y chat de la página web.",
-  inventario: "Stock, etiquetas y fichas técnicas.",
-  contabilidad: "Facturas, sync MeLi↔Siigo, rentabilidad y más.",
-  tienda: "Publicaciones, sitio web y herramientas de taller.",
+  diseno: "Etiquetas, plantillas Studio e impresión.",
+  "studio-web": "Ajustes visuales de mckennagroup.co desde la app (no desde la página pública).",
+  docs: "Fichas técnicas e información científica de ingredientes.",
+  contabilidad: "Facturas, sync MeLi↔Siigo, stock, rentabilidad y más.",
+  tienda: "Publicaciones MeLi y herramientas de taller.",
   logistica: "Importaciones, embarques, aduana y proveedores.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
 };
@@ -89,7 +93,8 @@ export function esPanelDeHub(panel: Panel): boolean {
   return section !== null && panel !== "settings" && panel !== "perfil";
 }
 
-/** Categorías que usan hub (todas las de NAV_SECTIONS). */
+/** Categorías con cabezote de hub (todas las del menú). */
 export function esCategoriaHub(sectionId: NavCategory | null): boolean {
-  return sectionId != null;
+  if (!sectionId) return false;
+  return NAV_SECTIONS.some((x) => x.id === sectionId);
 }

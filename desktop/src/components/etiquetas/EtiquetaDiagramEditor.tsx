@@ -41,6 +41,7 @@ import {
   ALINEACIONES_LIENZO,
   type AlineacionLienzo,
 } from "../../lib/etiquetasDiagramacion";
+import { formatoMedidasEtiqueta, formatoMedidasEtiquetaTitle } from "../../lib/etiquetasTipos";
 
 type CampoMedido = {
   id: string;
@@ -1106,8 +1107,8 @@ export function EtiquetaDiagramacionWorkspace({
 
   const zoomBar = onZoomPctChange ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <span className="text-[10px] text-muted">
-        {anchoMm}×{altoMm} mm
+      <span className="text-[10px] text-muted" title={formatoMedidasEtiquetaTitle(anchoMm, altoMm)}>
+        {formatoMedidasEtiqueta(anchoMm, altoMm)}
       </span>
       <div className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1">
       <button
