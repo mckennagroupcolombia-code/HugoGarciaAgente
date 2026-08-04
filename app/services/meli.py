@@ -454,9 +454,14 @@ def _item_ids_meli_por_sku(sku: str, seller_id, headers: dict) -> list[str]:
     return item_ids
 
 
-def actualizar_precio_meli_por_sku(sku: str, nuevo_precio: float) -> dict:
+def actualizar_precio_meli_por_sku(
+    sku: str,
+    nuevo_precio: float,
+    meli_id: str | None = None,
+) -> dict:
     """
     Busca publicaciones en MeLi por SKU (y fallbacks) y actualiza su precio.
+    Si se pasa meli_id (p. ej. desde Ganancia), se usa de forma prioritaria.
     Retorna {"ok": bool, "msg": str, "items": list}.
     """
     token = refrescar_token_meli()
@@ -471,7 +476,12 @@ def actualizar_precio_meli_por_sku(sku: str, nuevo_precio: float) -> dict:
             return {"ok": False, "msg": f"Error obteniendo seller_id: {res_me.status_code}"}
         seller_id = res_me.json().get("id")
 
-        item_ids = _item_ids_meli_por_sku(sku, seller_id, headers)
+        item_ids: list[str] = []
+        mid = (meli_id or "").strip().upper()
+        if mid.startswith("MCO"):
+            item_ids = [mid]
+        if not item_ids:
+            item_ids = _item_ids_meli_por_sku(sku, seller_id, headers)
         if not item_ids:
             return {
                 "ok": False,

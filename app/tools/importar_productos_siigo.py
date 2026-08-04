@@ -2113,8 +2113,16 @@ def crear_producto_en_siigo(producto: dict) -> dict:
     """
     Crea un producto inventariable en SIIGO vía POST /v1/products.
     Retorna {ok, mensaje|error, siigo_producto?}.
+
+    Campos útiles en `producto`:
+      codigo, nombre, unidad_min, precio_neto (costo),
+      precio_unitario (base compra/venta según flujo factura),
+      precio_lista (opcional: precio de lista final; si viene, no se aplica ×1.3),
+      iva (>0 → impuesto 3118).
     """
     codigo = _codigo_manual_valido(str(producto.get('codigo', '')).strip())
+    if not codigo:
+        return {'ok': False, 'error': 'Código SIIGO vacío o inválido'}
     existente = buscar_producto_en_siigo_por_codigo(codigo)
     if existente:
         return {
@@ -2127,10 +2135,32 @@ def crear_producto_en_siigo(producto: dict) -> dict:
     if not token:
         return {'ok': False, 'error': 'No se pudo autenticar con SIIGO'}
 
-    has_iva = producto.get('iva', 0) > 0
+    has_iva = float(producto.get('iva') or 0) > 0
     taxes = [{'id': 3118}] if has_iva else []
-    precio_vu = producto.get('precio_unitario', 0)
-    precio_neto = producto.get('precio_neto', precio_vu)
+    try:
+        precio_vu = float(producto.get('precio_unitario') or 0)
+    except (TypeError, ValueError):
+        precio_vu = 0.0
+    try:
+        precio_neto = float(producto.get('precio_neto') if producto.get('precio_neto') is not None else precio_vu)
+    except (TypeError, ValueError):
+        precio_neto = precio_vu
+
+    # Precio de lista opcional. Si se envía `prices` con value 0/null, Siigo falla
+    # (parameter_required). Sin precio: omitir el bloque completo.
+    valor_lista = None
+    if 'precio_lista' in producto:
+        try:
+            pl = producto.get('precio_lista')
+            if pl not in (None, '') and float(pl) > 0:
+                valor_lista = round(float(pl), 0)
+        except (TypeError, ValueError):
+            valor_lista = None
+    elif precio_vu > 0:
+        # Flujo factura (sin precio_lista explícito): deriva lista ≈ ×1.3
+        valor_lista = round(precio_vu * 1.3, 0)
+
+    unit_cost = max(0.0, float(precio_neto or 0))
     siigo_unit_code = _SIIGO_UNIT_API.get(producto.get('unidad_min', 'Un'), '94')
 
     payload = {
@@ -2140,13 +2170,14 @@ def crear_producto_en_siigo(producto: dict) -> dict:
         'type': 'Product',
         'stock_control': True,
         'unit': {'code': siigo_unit_code},
-        'warehouses': [{'id': 41, 'quantity': 0, 'unit_cost': precio_neto}],
-        'prices': [{
-            'currency_code': 'COP',
-            'price_list': [{'position': 1, 'value': round(precio_vu * 1.3, 0)}],
-        }],
+        'warehouses': [{'id': 41, 'quantity': 0, 'unit_cost': unit_cost}],
         'taxes': taxes,
     }
+    if valor_lista is not None and valor_lista > 0:
+        payload['prices'] = [{
+            'currency_code': 'COP',
+            'price_list': [{'position': 1, 'value': valor_lista}],
+        }]
     headers = {
         'Authorization': f'Bearer {token}',
         'Partner-Id': PARTNER_ID,
@@ -2167,6 +2198,16 @@ def crear_producto_en_siigo(producto: dict) -> dict:
                 'unidad': producto.get('unidad_min', ''),
                 'activo': True,
             }
+            try:
+                from app.services.rentabilidad import registrar_producto_en_cache_costos
+                registrar_producto_en_cache_costos(
+                    resumen.get('codigo') or codigo,
+                    resumen.get('nombre') or str(producto.get('nombre', '')),
+                    unit_cost=unit_cost,
+                    precio_lista=float(valor_lista or 0),
+                )
+            except Exception:
+                pass
             return {
                 'ok': True,
                 'mensaje': f"Producto {codigo} creado en SIIGO",

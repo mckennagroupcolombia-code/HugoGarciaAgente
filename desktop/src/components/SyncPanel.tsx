@@ -461,16 +461,16 @@ export default function SyncPanel() {
           <button
             type="button"
             onClick={() => {
-              useAppStore.getState().setRentabilidadBootTab("precios");
+              useAppStore.getState().setRentabilidadBootTab("ganancia");
               useAppStore.getState().setPanel("rentabilidad");
             }}
             className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2.5 text-left hover:bg-accent/10 transition"
           >
             <p className="text-xs font-bold uppercase tracking-wide text-accent">
-              💲 Precios multicanal
+              💲 Precios en Ganancia
             </p>
             <p className="mt-0.5 text-[11px] text-muted/90">
-              Cambiaste un precio en MeLi — sincronízalo a Siigo y a la página web desde acá.
+              Edita el precio de venta desde Ganancia — se aplica a MeLi, Siigo y la web.
             </p>
           </button>
 

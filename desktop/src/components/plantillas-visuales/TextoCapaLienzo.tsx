@@ -101,6 +101,7 @@ export default function TextoCapaLienzo({
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
     transformOrigin: "center center",
     zIndex: el.zIndex,
+    boxSizing: "border-box",
     color: el.color,
     fontSize: `${el.fontSize}px`,
     fontFamily: el.fontFamily,

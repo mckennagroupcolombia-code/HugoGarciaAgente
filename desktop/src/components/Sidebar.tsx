@@ -107,7 +107,7 @@ function NavItem({
             <IllustrationIcon name={id} size={20} bubble={false} tone="accent" />
             {label}
           </p>
-          <p className="text-xs leading-relaxed text-ink-secondary">{description}</p>
+          <p className="mck-help-text leading-snug text-ink-secondary">{description}</p>
           {info?.tips?.[0] && (
             <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted">
               <span className="text-accent">✦</span> {info.tips[0]}

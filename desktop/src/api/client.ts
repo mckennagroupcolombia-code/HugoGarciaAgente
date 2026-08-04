@@ -98,7 +98,7 @@ async function request<T>(
     throw e;
   }
   if (
-    res.status === 405 &&
+    (res.status === 405 || res.status === 404) &&
     typeof window !== "undefined" &&
     origin &&
     path.startsWith("/api/")
@@ -219,7 +219,12 @@ export const api = {
     if (res.status === 401) throw new Error("No autorizado");
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || body.mensaje || `HTTP ${res.status}`);
+      const msg =
+        (body && (body.error || body.mensaje)) ||
+        (res.status === 404
+          ? "Ruta no encontrada (404). Recarga el panel o reinicia el agente."
+          : `HTTP ${res.status}`);
+      throw new Error(msg);
     }
     return res.json() as Promise<T>;
   },

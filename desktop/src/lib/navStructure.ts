@@ -1,6 +1,6 @@
 import type { Panel } from "../stores/app";
 import type { PanelTier } from "./panelInfo";
-import { CONTABILIDAD_PANELS } from "./contabilidadAccess";
+import { CONTABILIDAD_PANELS, CONTABILIDAD_TAB_OCULTAS } from "./contabilidadAccess";
 import { LOGISTICA_PANELS } from "./logisticaAccess";
 
 export type NavCategory =
@@ -63,13 +63,15 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "contabilidad",
     label: "Contabilidad",
     hub: true,
-    items: CONTABILIDAD_PANELS.map((panel) => ({
-      panel,
-      tier:
-        panel === "costos-productos" || panel === "rrhh"
-          ? ("advanced" as PanelTier)
-          : ("standard" as PanelTier),
-    })),
+    items: CONTABILIDAD_PANELS.filter((panel) => !CONTABILIDAD_TAB_OCULTAS.has(panel)).map(
+      (panel) => ({
+        panel,
+        tier:
+          panel === "costos-productos" || panel === "rrhh"
+            ? ("advanced" as PanelTier)
+            : ("standard" as PanelTier),
+      }),
+    ),
   },
   {
     id: "contenido",

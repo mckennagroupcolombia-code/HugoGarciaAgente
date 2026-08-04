@@ -49,6 +49,8 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
     // Los arcos se rasterizan en canvas (html-to-image rompe textPath+rotate).
     if ((el.arco ?? 0) !== 0 && el.forma !== "circulo") return null;
 
+    // Misma tipografía/caja que TextoCapaLienzo (sin antialias extra: cambia
+    // métricas frente al lienzo y el PNG deja de coincidir).
     const base = estiloElementoEscalado(el, escala);
     const estilo: React.CSSProperties = {
       ...base,
@@ -62,18 +64,22 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       overflow: "visible",
-      WebkitFontSmoothing: "antialiased",
-      MozOsxFontSmoothing: "grayscale",
-      textRendering: "geometricPrecision",
+      boxSizing: "border-box",
     };
     if (el.forma === "circulo") {
       return (
         <div style={estilo}>
-          <TextoCirculoDom el={el} escala={escala} />
+          <div style={{ pointerEvents: "none", width: "100%" }}>
+            <TextoCirculoDom el={el} escala={escala} />
+          </div>
         </div>
       );
     }
-    return <div style={estilo}>{el.content}</div>;
+    return (
+      <div style={estilo}>
+        <div style={{ pointerEvents: "none", width: "100%" }}>{el.content}</div>
+      </div>
+    );
   }
 
   if (el.type === "rect") {
@@ -114,6 +120,7 @@ export default function PlantillaVisualEstaticoDom({
         overflow: "hidden",
         width: ancho,
         height: alto,
+        boxSizing: "border-box",
         background: fondoTransparente ? "transparent" : doc.fondo || "#ffffff",
       }}
     >

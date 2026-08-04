@@ -14,6 +14,7 @@ type LineaEditable = {
   unidad: string;
   precio_unit: number;
   subtotal: number;
+  descuento: number;
   categoria: string;
   costo_unitario_cop: number | null;
 };
@@ -27,17 +28,46 @@ type LineaApi = {
   unidad: string;
   precio_unit: number;
   subtotal: number;
+  descuento?: number | null;
+  descuento_pct?: number | null;
+  descuento_pedido_asignado?: number | null;
+  subtotal_neto?: number | null;
   costo_unitario_cop?: number | null;
 };
 
 type ExtractResp = {
   moneda: string;
+  fecha_compra?: string | null;
   proveedor?: string;
   referencia?: string;
   flete_detectado?: number | null;
   moneda_flete_detectada?: string | null;
+  descuento_detectado?: number | null;
+  descuento_pct?: number | null;
   lineas: LineaApi[];
   lineas_landed?: LineaApi[];
+  trm_usada?: number | null;
+  trm_fuente?: string | null;
+  trm_detalle?: {
+    valor?: number;
+    vigencia_desde?: string;
+    vigencia_hasta?: string;
+    aproximada?: boolean;
+    aviso?: string;
+  } | null;
+  trm_error?: string | null;
+  imagenes_procesadas?: number;
+  error?: string;
+};
+
+type TrmResp = {
+  valor: number;
+  fecha?: string;
+  vigencia_desde?: string;
+  vigencia_hasta?: string;
+  fuente?: string;
+  aproximada?: boolean;
+  aviso?: string;
   error?: string;
 };
 
@@ -56,24 +86,104 @@ function n(v: unknown, fallback = 0): number {
   return Number.isFinite(x) ? x : fallback;
 }
 
-function inferirPcs(nombre: string, unidad: string, explicit?: number): number {
-  if (explicit != null && explicit > 0) return explicit;
-  const blob = `${nombre} ${unidad}`;
-  const m =
-    blob.match(/(\d+)\s*(?:pcs|pc|pieces?|piezas?|uds?|unidades?|units?)\b/i) ||
-    blob.match(/(?:pack|set|juego|caja|box)\s*(?:de|of)?\s*(\d+)/i);
-  if (m?.[1]) {
-    const v = parseInt(m[1], 10);
-    if (v > 0) return v;
-  }
-  return 1;
+type UnidadBase = "ml" | "g" | "un";
+
+function normalizarUnidadBase(unidad: string): UnidadBase | null {
+  const u = unidad.trim().toLowerCase().replace(/\s+/g, "");
+  if (u === "ml" || u === "g" || u === "un") return u;
+  if (/^(m\.?l\.?|mililitros?|l|lt|litros?)$/.test(u)) return "ml";
+  if (/^(grs?|gramos?|kg|kilos?|kilogramos?)$/.test(u)) return "g";
+  if (/^(pcs?|piezas?|uds?|unidades?|units?|set|pack|bottle|frasco|tubo)$/.test(u)) return "un";
+  return null;
 }
 
-/** Costo por unidad mínima: (subtotal_cop + flete) / (sets × pcs_por_set). */
-export function calcularLandedCliente(
-  lineas: Array<Pick<LineaEditable, "cantidad" | "unidades_por_pack" | "precio_unit" | "subtotal">>,
-  opts: { trm: number; flete: number; moneda: string; monedaFlete: string },
-): number[] {
+/** Detecta ml | g | un y el contenido por pack desde el texto del producto. */
+export function inferirUnidadYContenido(
+  nombre: string,
+  unidad: string,
+  explicit?: number,
+): { unidad: UnidadBase; contenido: number } {
+  const blob = `${nombre} ${unidad}`;
+  const num = (m: RegExpMatchArray | null) => {
+    if (!m?.[1]) return null;
+    const v = parseFloat(m[1].replace(",", "."));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  };
+
+  let ml = num(blob.match(/(\d+(?:[.,]\d+)?)\s*(?:m\.?\s*l\.?|mililitros?)\b/i));
+  if (ml == null) {
+    const litros = num(blob.match(/(\d+(?:[.,]\d+)?)\s*(?:litros?|lts?\b|l)\b(?!\s*b\b)/i));
+    if (litros != null) ml = litros * 1000;
+  }
+  let g = num(blob.match(/(\d+(?:[.,]\d+)?)\s*(?:gramos?|grs?|g)\b(?!\s*[/.a-z])/i));
+  const kg = num(blob.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?|kilogramos?)\b/i));
+  if (kg != null) g = g == null ? kg * 1000 : Math.max(g, kg * 1000);
+
+  const pack =
+    blob.match(/(\d+)\s*(?:pcs|pc|pieces?|piezas?|uds?|unidades?|units?)\b/i) ||
+    blob.match(/(?:pack|set|juego|caja|box)\s*(?:de|of)?\s*(\d+)/i);
+  const pcs = pack?.[1] ? parseInt(pack[1], 10) : null;
+  const pcsOk = pcs != null && pcs > 0 ? pcs : null;
+
+  const unidadNorm = normalizarUnidadBase(unidad);
+  // Solo confiar en explicit si aporta contenido real (>1) o no hay señal en el texto
+  const explicitOk = explicit != null && explicit > 0 ? explicit : null;
+
+  const esMateria = /\b(glycer|oil|acid|extract|serum|agua|water|alcohol|urea|powder|sal|aceite|glicer|manteca|butter|clay|arcilla|polvo)\b/i.test(
+    blob,
+  );
+  const esEmpaque = /\b(bottle|tubo|tube|frasco|vial|jar|dropper|gotero|tapa|cap|bag|bolsa|sachet)\b/i.test(
+    blob,
+  );
+
+  if (ml != null) {
+    if (pcsOk != null && pcsOk >= 10 && ml <= 1000 && esEmpaque && !esMateria) {
+      return { unidad: "un", contenido: explicitOk && explicitOk > 1 ? explicitOk : pcsOk };
+    }
+    return { unidad: "ml", contenido: explicitOk && explicitOk > 1 ? explicitOk : ml };
+  }
+  if (g != null) {
+    if (pcsOk != null && pcsOk >= 10 && g <= 5000 && esEmpaque && !esMateria) {
+      return { unidad: "un", contenido: explicitOk && explicitOk > 1 ? explicitOk : pcsOk };
+    }
+    return { unidad: "g", contenido: explicitOk && explicitOk > 1 ? explicitOk : g };
+  }
+  if (pcsOk != null) {
+    return {
+      unidad: "un",
+      contenido: explicitOk && explicitOk > 1 ? explicitOk : pcsOk,
+    };
+  }
+  if (unidadNorm && explicitOk) return { unidad: unidadNorm, contenido: explicitOk };
+  if (unidadNorm) return { unidad: unidadNorm, contenido: 1 };
+  return { unidad: "un", contenido: explicitOk || 1 };
+}
+
+/** Costo unitario COP = (precio_neto_pack × TRM + flete_del_pack) ÷ contenido.
+
+Neto = subtotal − descuento_línea − descuento_pedido_prorrateado.
+Flete total se reparte por unidades compradas (packs × contenido), no por valor $.
+*/
+export type LandedDetalle = {
+  costo: number;
+  fleteAsignadoCop: number;
+  fletePorUnidadCop: number;
+  precioPackCop: number;
+};
+
+export function calcularLandedDetalleCliente(
+  lineas: Array<
+    Pick<LineaEditable, "cantidad" | "unidades_por_pack" | "precio_unit" | "subtotal" | "descuento">
+  >,
+  opts: {
+    trm: number;
+    flete: number;
+    moneda: string;
+    monedaFlete: string;
+    descuentoPedido?: number;
+    descuentoPct?: number;
+  },
+): LandedDetalle[] {
   const mon = (opts.moneda || "USD").toUpperCase();
   const monF = (opts.monedaFlete || mon).toUpperCase();
   const rate = mon === "COP" ? 1 : Math.max(opts.trm, 0);
@@ -82,16 +192,92 @@ export function calcularLandedCliente(
     if (monF === "COP") fleteCop = opts.flete;
     else fleteCop = opts.flete * (rate || 0);
   }
-  const suma = lineas.reduce((a, l) => a + Math.max(l.subtotal, 0), 0);
-  return lineas.map((l) => {
-    const sets = Math.max(l.cantidad, 0) || 1;
-    const upp = Math.max(l.unidades_por_pack, 1);
-    const unidades = sets * upp;
-    const peso = suma > 0 ? Math.max(l.subtotal, 0) / suma : 1 / (lineas.length || 1);
-    const subtotalCop = l.subtotal * (mon === "COP" ? 1 : rate);
-    const fleteAsig = fleteCop > 0 ? fleteCop * peso : 0;
-    return Math.round(((subtotalCop + fleteAsig) / unidades) * 1e4) / 1e4;
+  const brutos = lineas.map((l) => {
+    const packs = Math.max(Number(l.cantidad) || 0, 0) || 1;
+    const sub = l.subtotal > 0 ? l.subtotal : packs * Math.max(l.precio_unit, 0);
+    return Math.max(sub, 0);
   });
+  const unidades = lineas.map((l) => {
+    const packs = Math.max(Number(l.cantidad) || 0, 0) || 1;
+    const contenido = Math.max(Number(l.unidades_por_pack) || 0, 0) || 1;
+    return packs * contenido;
+  });
+  const sumaUnidades = unidades.reduce((a, u) => a + u, 0);
+  const descLineas = lineas.map((l, i) => {
+    const d = Math.max(l.descuento || 0, 0);
+    return Math.min(d, brutos[i]);
+  });
+  const sumaBruta = brutos.reduce((a, s) => a + s, 0);
+  const sumaTrasLinea = Math.max(
+    brutos.reduce((a, s, i) => a + (s - descLineas[i]), 0),
+    0,
+  );
+  let descPedido = Math.max(opts.descuentoPedido || 0, 0);
+  if (descPedido <= 0 && (opts.descuentoPct || 0) > 0) {
+    descPedido = (sumaBruta * Math.min(opts.descuentoPct || 0, 100)) / 100;
+  }
+  descPedido = Math.min(descPedido, sumaTrasLinea);
+  const nLin = lineas.length || 1;
+
+  return lineas.map((l, i) => {
+    const packs = Math.max(Number(l.cantidad) || 0, 0) || 1;
+    const contenido = Math.max(Number(l.unidades_por_pack) || 0, 0);
+    if (contenido <= 0 || (rate <= 0 && mon !== "COP")) {
+      return { costo: NaN, fleteAsignadoCop: 0, fletePorUnidadCop: 0, precioPackCop: 0 };
+    }
+    const bruto = brutos[i];
+    const dLin = descLineas[i];
+    const base = Math.max(bruto - dLin, 0);
+    const pesoPed = sumaTrasLinea > 0 ? base / sumaTrasLinea : 1 / nLin;
+    const dPed = descPedido > 0 ? descPedido * pesoPed : 0;
+    const neto = Math.max(bruto - dLin - dPed, 0);
+    const precioNetoPack = packs > 0 ? neto / packs : 0;
+    const precioPackCop = precioNetoPack * rate;
+    const pesoFlete = sumaUnidades > 0 ? unidades[i] / sumaUnidades : 1 / nLin;
+    const fleteAsignadoCop = fleteCop > 0 ? fleteCop * pesoFlete : 0;
+    const fletePorPack = packs > 0 ? fleteAsignadoCop / packs : 0;
+    const unidadesTotales = packs * contenido;
+    const costo = Math.round(((precioPackCop + fletePorPack) / contenido) * 1e4) / 1e4;
+    return {
+      costo,
+      fleteAsignadoCop: Math.round(fleteAsignadoCop * 1e4) / 1e4,
+      fletePorUnidadCop:
+        unidadesTotales > 0 ? Math.round((fleteAsignadoCop / unidadesTotales) * 1e4) / 1e4 : 0,
+      precioPackCop: Math.round(precioPackCop * 1e4) / 1e4,
+    };
+  });
+}
+
+export function calcularLandedCliente(
+  lineas: Array<
+    Pick<LineaEditable, "cantidad" | "unidades_por_pack" | "precio_unit" | "subtotal" | "descuento">
+  >,
+  opts: {
+    trm: number;
+    flete: number;
+    moneda: string;
+    monedaFlete: string;
+    descuentoPedido?: number;
+    descuentoPct?: number;
+  },
+): number[] {
+  return calcularLandedDetalleCliente(lineas, opts).map((d) => d.costo);
+}
+
+/** Precio de un pack ya convertido a COP (sin flete). */
+export function precioPackCop(
+  precioUnit: number,
+  trm: number,
+  moneda: string,
+): number {
+  const mon = (moneda || "USD").toUpperCase();
+  const rate = mon === "COP" ? 1 : Math.max(trm, 0);
+  return Math.round(Math.max(precioUnit, 0) * rate * 1e4) / 1e4;
+}
+
+function etiquetaUnidad(u: string): string {
+  const n = normalizarUnidadBase(u) || "un";
+  return n.toUpperCase();
 }
 
 function fmtCop(v: number | null): string {
@@ -110,21 +296,54 @@ type CompraHistorial = {
   created_at: string;
   moneda: string;
   trm: number;
+  trm_fuente?: string;
+  fecha_compra?: string;
   flete: number;
   moneda_flete: string;
   proveedor: string;
   tiene_soporte: boolean;
   soporte_nombre: string;
   soporte_url: string | null;
+  soporte_urls?: string[];
+  soportes_count?: number;
   lineas: Array<{
     nombre: string;
     codigo?: string | null;
+    nombre_ocr?: string;
     costo_unitario?: number;
     cantidad?: number;
+    unidades_por_pack?: number;
     unidades_totales?: number;
+    unidad?: string;
+    precio_unit?: number;
+    subtotal?: number;
+    descuento?: number;
+    categoria?: string;
     ok?: boolean;
   }>;
   total_guardados: number;
+};
+
+type BorradorCompra = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  titulo: string;
+  moneda: string;
+  trm: number;
+  trm_fuente?: string;
+  fecha_compra?: string;
+  flete: number;
+  moneda_flete: string;
+  descuento_pedido?: number;
+  descuento_pct?: number;
+  proveedor: string;
+  lineas: LineaEditable[];
+  lineas_count: number;
+  tiene_soporte: boolean;
+  soportes_count?: number;
+  soporte_urls?: string[];
+  estado?: { lineas?: LineaEditable[] };
 };
 
 function bearerPanel(): string {
@@ -132,15 +351,73 @@ function bearerPanel(): string {
   return t.apiToken || t.token || useAuthStore.getState().token || "";
 }
 
-async function fetchSoporteBlobUrl(compraId: number): Promise<string | null> {
+async function fetchAuthBlobUrl(apiPath: string): Promise<string | null> {
   try {
-    const url = resolvePanelApiUrl(`/api/rentabilidad/compras-exterior/${compraId}/soporte`, "GET");
+    const path = apiPath.startsWith("/") ? apiPath : `/${apiPath}`;
+    const url = resolvePanelApiUrl(path, "GET");
     const res = await fetch(url, {
       headers: bearerPanel() ? { Authorization: `Bearer ${bearerPanel()}` } : {},
     });
     if (!res.ok) return null;
     const blob = await res.blob();
     return URL.createObjectURL(blob);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSoporteBlobUrl(compraId: number): Promise<string | null> {
+  return fetchAuthBlobUrl(`/api/rentabilidad/compras-exterior/${compraId}/soporte`);
+}
+
+type GaleriaItem = {
+  id: string;
+  preview: string | null;
+  file: File | null;
+  /** Índice original en el servidor (borrador); null si es archivo nuevo. */
+  serverIndex: number | null;
+  name: string;
+};
+
+async function galeriaDesdeSoporteUrls(urls: string[]): Promise<GaleriaItem[]> {
+  const out: GaleriaItem[] = [];
+  for (let i = 0; i < urls.length; i++) {
+    const preview = await fetchAuthBlobUrl(urls[i]);
+    if (!preview) continue;
+    out.push({
+      id: `srv-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      preview,
+      file: null,
+      serverIndex: i,
+      name: `soporte-${i + 1}`,
+    });
+  }
+  return out;
+}
+
+function revokeGaleria(items: GaleriaItem[]) {
+  items.forEach((g) => {
+    if (g.preview?.startsWith("blob:")) URL.revokeObjectURL(g.preview);
+  });
+}
+
+async function fileDesdeGaleriaItem(g: GaleriaItem): Promise<File | null> {
+  if (g.file) return g.file;
+  if (!g.preview) return null;
+  try {
+    const res = await fetch(g.preview);
+    const blob = await res.blob();
+    const ext =
+      blob.type === "application/pdf"
+        ? "pdf"
+        : blob.type === "image/png"
+          ? "png"
+          : blob.type === "image/webp"
+            ? "webp"
+            : "jpg";
+    return new File([blob], g.name.includes(".") ? g.name : `${g.name}.${ext}`, {
+      type: blob.type || "image/jpeg",
+    });
   } catch {
     return null;
   }
@@ -374,32 +651,46 @@ export default function ComprasExteriorPanel() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [archivoActual, setArchivoActual] = useState<File | null>(null);
+  const [galeria, setGaleria] = useState<GaleriaItem[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
   const [moneda, setMoneda] = useState("USD");
   const [trm, setTrm] = useState("");
+  const [trmFuente, setTrmFuente] = useState<string>("");
+  const [trmDetalle, setTrmDetalle] = useState<string>("");
+  const [fechaCompra, setFechaCompra] = useState(() => new Date().toISOString().slice(0, 10));
+  const [trmLoading, setTrmLoading] = useState(false);
   const [flete, setFlete] = useState("");
+  const [descuentoPedido, setDescuentoPedido] = useState("");
+  const [descuentoPct, setDescuentoPct] = useState("");
   const [monedaFlete, setMonedaFlete] = useState("USD");
   const [proveedor, setProveedor] = useState("");
   const [lineas, setLineas] = useState<LineaEditable[]>([]);
   const [zonaActiva, setZonaActiva] = useState(true);
   const [historial, setHistorial] = useState<CompraHistorial[]>([]);
   const [historialLoading, setHistorialLoading] = useState(false);
+  const [borradores, setBorradores] = useState<BorradorCompra[]>([]);
+  const [borradorId, setBorradorId] = useState<number | null>(null);
+  const [compraIdEditando, setCompraIdEditando] = useState<number | null>(null);
+  const [guardandoBorrador, setGuardandoBorrador] = useState(false);
   const [detalleId, setDetalleId] = useState<number | null>(null);
   const [soporteThumbs, setSoporteThumbs] = useState<Record<number, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const zonaRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const fromFileRef = useRef<(file: File) => void>(() => {});
+  const addFilesRef = useRef<(files: File[]) => void>(() => {});
+  const trmManualRef = useRef(false);
 
   const cargarHistorial = useCallback(async () => {
     setHistorialLoading(true);
     try {
-      const res = await api.get<{ compras: CompraHistorial[] }>(
-        "/api/rentabilidad/compras-exterior?limit=30",
-      );
+      const [res, bor] = await Promise.all([
+        api.get<{ compras: CompraHistorial[] }>("/api/rentabilidad/compras-exterior?limit=30"),
+        api.get<{ borradores: BorradorCompra[] }>(
+          "/api/rentabilidad/compras-exterior/borradores?limit=30",
+        ).catch(() => ({ borradores: [] as BorradorCompra[] })),
+      ]);
       setHistorial(res.compras || []);
+      setBorradores(bor.borradores || []);
     } catch {
       /* silencioso al abrir */
     } finally {
@@ -410,6 +701,50 @@ export default function ComprasExteriorPanel() {
   useEffect(() => {
     void cargarHistorial();
   }, [cargarHistorial]);
+
+  const cargarTrmBanrep = useCallback(
+    async (fecha: string, { forzar = false }: { forzar?: boolean } = {}) => {
+      if (moneda.toUpperCase() !== "USD") return;
+      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return;
+      if (trmManualRef.current && !forzar) return;
+      setTrmLoading(true);
+      try {
+        const data = await api.get<TrmResp>(
+          `/api/rentabilidad/trm?fecha=${encodeURIComponent(fecha)}`,
+        );
+        if (data.error) throw new Error(data.error);
+        setTrm(String(data.valor));
+        setTrmFuente("banrep");
+        trmManualRef.current = false;
+        const vig =
+          data.vigencia_desde && data.vigencia_hasta
+            ? `vigente ${data.vigencia_desde} → ${data.vigencia_hasta}`
+            : "";
+        setTrmDetalle(
+          [vig, data.aproximada ? "aproximada" : "", data.aviso || ""]
+            .filter(Boolean)
+            .join(" · ") || "BanRep (datos.gov.co)",
+        );
+      } catch (e: unknown) {
+        setTrmDetalle(e instanceof Error ? e.message : "No se pudo cargar TRM BanRep");
+      } finally {
+        setTrmLoading(false);
+      }
+    },
+    [moneda],
+  );
+
+  useEffect(() => {
+    if (moneda.toUpperCase() !== "USD") {
+      if (moneda.toUpperCase() === "COP") {
+        setTrm("1");
+        setTrmFuente("cop");
+        setTrmDetalle("");
+      }
+      return;
+    }
+    void cargarTrmBanrep(fechaCompra);
+  }, [moneda, fechaCompra, cargarTrmBanrep]);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,45 +775,172 @@ export default function ComprasExteriorPanel() {
 
   const trmNum = n(trm);
   const fleteNum = n(flete);
+  const descuentoPedidoNum = n(descuentoPedido);
+  const descuentoPctNum = n(descuentoPct);
   const necesitaTrm = moneda.toUpperCase() !== "COP";
 
-  const costosRecalc = useMemo(() => {
-    if (!lineas.length) return [] as number[];
-    if (necesitaTrm && trmNum <= 0) return lineas.map(() => NaN);
-    return calcularLandedCliente(lineas, {
+  // Solo campos que afectan el landed cost (evita bucles al escribir costo_unitario_cop)
+  const landedInputsKey = useMemo(
+    () =>
+      JSON.stringify({
+        trm: necesitaTrm ? trmNum : 1,
+        flete: fleteNum,
+        moneda: moneda.toUpperCase(),
+        monedaFlete: (monedaFlete || moneda).toUpperCase(),
+        descuentoPedido: descuentoPedidoNum,
+        descuentoPct: descuentoPctNum,
+        rows: lineas.map((l) => [
+          l.id,
+          l.cantidad,
+          l.unidades_por_pack,
+          l.precio_unit,
+          l.subtotal,
+          l.descuento,
+        ]),
+      }),
+    [
+      lineas,
+      trmNum,
+      fleteNum,
+      descuentoPedidoNum,
+      descuentoPctNum,
+      moneda,
+      monedaFlete,
+      necesitaTrm,
+    ],
+  );
+
+  const landedDetalle = useMemo(() => {
+    if (!lineas.length) return [] as LandedDetalle[];
+    if (necesitaTrm && trmNum <= 0) {
+      return lineas.map(() => ({
+        costo: NaN,
+        fleteAsignadoCop: 0,
+        fletePorUnidadCop: 0,
+        precioPackCop: 0,
+      }));
+    }
+    return calcularLandedDetalleCliente(lineas, {
       trm: necesitaTrm ? trmNum : 1,
       flete: fleteNum,
       moneda,
-      monedaFlete,
+      monedaFlete: monedaFlete || moneda,
+      descuentoPedido: descuentoPedidoNum,
+      descuentoPct: descuentoPctNum,
     });
-  }, [lineas, trmNum, fleteNum, moneda, monedaFlete, necesitaTrm]);
-
-  useEffect(() => {
-    if (!lineas.length) return;
-    setLineas((prev) =>
-      prev.map((l, i) => {
-        const c = costosRecalc[i];
-        const next = Number.isFinite(c) ? c : null;
-        if (l.costo_unitario_cop === next) return l;
-        return { ...l, costo_unitario_cop: next };
-      }),
-    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [costosRecalc]);
+  }, [landedInputsKey]);
+
+  const costosRecalc = useMemo(
+    () => landedDetalle.map((d) => d.costo),
+    [landedDetalle],
+  );
+
+  const fleteTotalCop = useMemo(() => {
+    if (fleteNum <= 0) return 0;
+    const mon = moneda.toUpperCase();
+    const monF = (monedaFlete || moneda).toUpperCase();
+    const rate = mon === "COP" ? 1 : Math.max(trmNum, 0);
+    if (monF === "COP") return fleteNum;
+    return fleteNum * rate;
+  }, [fleteNum, moneda, monedaFlete, trmNum]);
+
+  const preciosNetoPack = useMemo(() => {
+    const brutos = lineas.map((x) => Math.max(x.subtotal || x.cantidad * x.precio_unit, 0));
+    const tras = brutos.map((b, i) => Math.max(b - (lineas[i]?.descuento || 0), 0));
+    const sumaTras = tras.reduce((a, b) => a + b, 0);
+    const sumaBruta = brutos.reduce((a, b) => a + b, 0);
+    let ped = descuentoPedidoNum;
+    if (ped <= 0 && descuentoPctNum > 0) {
+      ped = (sumaBruta * Math.min(descuentoPctNum, 100)) / 100;
+    }
+    ped = Math.min(ped, sumaTras);
+    return lineas.map((l, i) => {
+      const packs = Math.max(l.cantidad, 0) || 1;
+      const base = tras[i];
+      const dPed = sumaTras > 0 ? (ped * base) / sumaTras : 0;
+      const neto = Math.max(brutos[i] - (l.descuento || 0) - dPed, 0);
+      return neto / packs;
+    });
+  }, [lineas, descuentoPedidoNum, descuentoPctNum]);
+
+  // Al cambiar flete / TRM / cantidades, forzar costo unitario desde la fórmula
+  useEffect(() => {
+    setLineas((prev) => {
+      if (!prev.length || costosRecalc.length !== prev.length) return prev;
+      let changed = false;
+      const next = prev.map((l, i) => {
+        const c = costosRecalc[i];
+        const nextC = Number.isFinite(c) ? c : null;
+        const same =
+          (l.costo_unitario_cop == null && nextC == null) ||
+          (l.costo_unitario_cop != null &&
+            nextC != null &&
+            Math.abs(l.costo_unitario_cop - nextC) < 1e-9);
+        if (same) return l;
+        changed = true;
+        return { ...l, costo_unitario_cop: nextC };
+      });
+      return changed ? next : prev;
+    });
+  }, [landedInputsKey, costosRecalc]);
 
   const aplicarExtract = useCallback((json: ExtractResp) => {
     const mon = (json.moneda || "USD").toUpperCase();
     setMoneda(mon);
     setMonedaFlete((json.moneda_flete_detectada || mon).toUpperCase());
     setProveedor(json.proveedor || "");
+    if (json.fecha_compra) {
+      setFechaCompra(json.fecha_compra);
+      trmManualRef.current = false;
+    }
+    if (json.trm_usada != null && json.trm_usada > 0) {
+      setTrm(String(json.trm_usada));
+      setTrmFuente(json.trm_fuente || (mon === "USD" ? "banrep" : "manual"));
+      trmManualRef.current = json.trm_fuente === "manual";
+      const d = json.trm_detalle;
+      if (d) {
+        const vig =
+          d.vigencia_desde && d.vigencia_hasta
+            ? `vigente ${d.vigencia_desde} → ${d.vigencia_hasta}`
+            : "";
+        setTrmDetalle(
+          [vig, d.aproximada ? "aproximada" : "", d.aviso || ""]
+            .filter(Boolean)
+            .join(" · ") || "BanRep",
+        );
+      } else if (json.trm_fuente === "banrep") {
+        setTrmDetalle("BanRep (datos.gov.co)");
+      }
+    } else if (json.trm_error) {
+      setTrmDetalle(json.trm_error);
+    }
     if (json.flete_detectado != null && json.flete_detectado > 0) {
       setFlete(String(json.flete_detectado));
+    }
+    if (json.descuento_detectado != null && json.descuento_detectado > 0) {
+      setDescuentoPedido(String(json.descuento_detectado));
+      setDescuentoPct("");
+    } else if (json.descuento_pct != null && json.descuento_pct > 0) {
+      setDescuentoPct(String(json.descuento_pct));
     }
     const src = json.lineas_landed?.length ? json.lineas_landed : json.lineas;
     setLineas(
       (src || []).map((l, i) => {
         const cantidad = n(l.cantidad, 1);
-        const upp = inferirPcs(l.nombre, l.unidad || "", n(l.unidades_por_pack, 0) || undefined);
+        const inferred = inferirUnidadYContenido(
+          l.nombre,
+          l.unidad || "",
+          n(l.unidades_por_pack, 0) || undefined,
+        );
+        const unidad = (normalizarUnidadBase(l.unidad || "") || inferred.unidad) as UnidadBase;
+        const upp =
+          n(l.unidades_por_pack, 0) > 0 ? n(l.unidades_por_pack) : inferred.contenido;
+        const subtotal = n(l.subtotal) || cantidad * n(l.precio_unit);
+        let desc = n(l.descuento);
+        if (desc <= 0 && l.descuento_pct != null && n(l.descuento_pct) > 0) {
+          desc = Math.round(subtotal * Math.min(n(l.descuento_pct), 100) / 100 * 1e6) / 1e6;
+        }
         return {
           id: l.id || `L${i + 1}`,
           seleccionada: true,
@@ -487,10 +949,11 @@ export default function ComprasExteriorPanel() {
           sku: "",
           cantidad,
           unidades_por_pack: upp,
-          unidad: l.unidad || "un",
+          unidad,
           precio_unit: n(l.precio_unit),
-          subtotal: n(l.subtotal) || cantidad * n(l.precio_unit),
-          categoria: "material",
+          subtotal,
+          descuento: desc,
+          categoria: unidad === "un" ? "empaque" : "material",
           costo_unitario_cop:
             l.costo_unitario_cop != null && Number.isFinite(l.costo_unitario_cop)
               ? Number(l.costo_unitario_cop)
@@ -501,54 +964,98 @@ export default function ComprasExteriorPanel() {
   }, []);
 
   const enviar = useCallback(
-    async (file: File) => {
+    async (files: File[]) => {
+      if (!files.length) return;
       setError(null);
       setOkMsg(null);
       setScanning(true);
       try {
         const fd = new FormData();
-        fd.append("imagen", file);
-        if (trm.trim()) fd.append("trm", trm.trim());
+        for (const f of files) fd.append("imagenes", f);
+        if (fechaCompra.trim()) fd.append("fecha_compra", fechaCompra.trim());
+        if (trmManualRef.current && trm.trim()) fd.append("trm", trm.trim());
         if (flete.trim()) fd.append("flete", flete.trim());
         if (monedaFlete.trim()) fd.append("moneda_flete", monedaFlete.trim());
         const json = await api.upload<ExtractResp>("/api/rentabilidad/extraer-compra-imagen", fd);
         if (json.error) throw new Error(json.error);
         aplicarExtract(json);
-        setOkMsg(`Extraídas ${json.lineas?.length ?? 0} líneas. Revisa TRM/flete y confirma.`);
+        const nImg = json.imagenes_procesadas ?? files.length;
+        const trmMsg =
+          json.trm_fuente === "banrep" && json.trm_usada
+            ? ` TRM BanRep ${json.trm_usada} (${json.fecha_compra || fechaCompra}).`
+            : "";
+        setOkMsg(
+          `Extraídas ${json.lineas?.length ?? 0} líneas desde ${nImg} imagen(es).${trmMsg} Revisa y confirma.`,
+        );
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setScanning(false);
       }
     },
-    [aplicarExtract, flete, monedaFlete, trm],
+    [aplicarExtract, fechaCompra, flete, monedaFlete, trm],
   );
 
-  const fromFile = useCallback(
-    (file: File) => {
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      const valid = incoming.filter(
+        (f) => f.type.startsWith("image/") || f.type === "application/pdf" || esImagenPortapapeles(f),
+      );
+      if (!valid.length) return;
       setOkMsg(null);
       setError(null);
-      setArchivoActual(file);
-      if (file.type.startsWith("image/") || esImagenPortapapeles(file)) {
-        if (preview) URL.revokeObjectURL(preview);
-        setPreview(URL.createObjectURL(file));
-      } else {
-        setPreview(null);
-      }
-      setFileName(file.name);
-      void enviar(file);
+      setGaleria((prev) => {
+        const added: GaleriaItem[] = valid.map((file) => ({
+          id: `loc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          file,
+          preview:
+            file.type.startsWith("image/") || esImagenPortapapeles(file)
+              ? URL.createObjectURL(file)
+              : null,
+          serverIndex: null,
+          name: file.name || "imagen",
+        }));
+        const next = [...prev, ...added];
+        const locales = next.filter((g) => g.file).map((g) => g.file as File);
+        if (locales.length) queueMicrotask(() => void enviar(locales));
+        return next;
+      });
     },
-    [enviar, preview],
+    [enviar],
   );
 
-  fromFileRef.current = fromFile;
+  addFilesRef.current = addFiles;
+
+  const quitarDeGaleria = (id: string) => {
+    setGaleria((prev) => {
+      const victim = prev.find((g) => g.id === id);
+      if (victim?.preview?.startsWith("blob:")) URL.revokeObjectURL(victim.preview);
+      const next = prev.filter((g) => g.id !== id);
+      const locales = next.filter((g) => g.file).map((g) => g.file as File);
+      if (locales.length) void enviar(locales);
+      else if (!next.length) setLineas([]);
+      return next;
+    });
+  };
+
+  const reordenarGaleria = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setGaleria((prev) => {
+      const from = prev.findIndex((g) => g.id === fromId);
+      const to = prev.findIndex((g) => g.id === toId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
 
   /** Ctrl+V en toda la pestaña (capture), mientras el panel esté montado. */
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const file = imagenDesdePortapapeles(e.clipboardData);
       if (!file) return;
-      // Si el foco está en otro panel fuera de Contabilidad, no interferir
       const active = document.activeElement;
       if (
         active instanceof HTMLElement &&
@@ -557,8 +1064,6 @@ export default function ComprasExteriorPanel() {
         active !== document.body &&
         active !== document.documentElement
       ) {
-        // Aún así, si estamos viendo esta pestaña lazy-montada, aceptamos la imagen
-        // salvo que sea un input de texto con selección de texto (pegar texto).
         const tag = active.tagName;
         if ((tag === "INPUT" || tag === "TEXTAREA") && !panelRef.current?.contains(active)) {
           return;
@@ -566,14 +1071,13 @@ export default function ComprasExteriorPanel() {
       }
       e.preventDefault();
       e.stopPropagation();
-      fromFileRef.current(file);
+      addFilesRef.current([file]);
     };
     window.addEventListener("paste", onPaste, true);
     return () => window.removeEventListener("paste", onPaste, true);
   }, []);
 
   useEffect(() => {
-    // Foco en la zona para que Ctrl+V sea obvio al abrir la pestaña
     zonaRef.current?.focus();
   }, []);
 
@@ -582,18 +1086,257 @@ export default function ComprasExteriorPanel() {
     if (!file) return;
     e.preventDefault();
     e.stopPropagation();
-    fromFile(file);
+    addFiles([file]);
   };
 
   const limpiar = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
-    setFileName(null);
-    setArchivoActual(null);
+    setGaleria((prev) => {
+      revokeGaleria(prev);
+      return [];
+    });
     setLineas([]);
     setOkMsg(null);
     setError(null);
     setProveedor("");
+    setDescuentoPedido("");
+    setDescuentoPct("");
+    setBorradorId(null);
+    setCompraIdEditando(null);
+  };
+
+  const guardarBorrador = async () => {
+    if (!lineas.length && !galeria.length) {
+      setError("No hay nada que guardar: agrega imágenes o líneas primero.");
+      return;
+    }
+    setGuardandoBorrador(true);
+    setError(null);
+    setOkMsg(null);
+    try {
+      const estado = {
+        lineas: lineas.map((l, i) => ({
+          id: l.id,
+          seleccionada: l.seleccionada,
+          nombre: l.nombre,
+          nombre_ocr: l.nombre_ocr,
+          sku: l.sku,
+          cantidad: l.cantidad,
+          unidades_por_pack: l.unidades_por_pack,
+          unidad: l.unidad,
+          precio_unit: l.precio_unit,
+          subtotal: l.subtotal,
+          descuento: l.descuento,
+          categoria: l.categoria,
+          costo_unitario_cop: Number.isFinite(costosRecalc[i])
+            ? costosRecalc[i]
+            : l.costo_unitario_cop,
+        })),
+      };
+      const fd = new FormData();
+      fd.append("estado", JSON.stringify(estado));
+      if (borradorId) fd.append("borrador_id", String(borradorId));
+      fd.append("moneda", moneda);
+      fd.append("trm", String(trmNum || 0));
+      fd.append("trm_fuente", trmFuente || "");
+      fd.append("fecha_compra", fechaCompra || "");
+      fd.append("flete", String(fleteNum || 0));
+      fd.append("moneda_flete", monedaFlete || moneda);
+      fd.append("descuento_pedido", String(descuentoPedidoNum || 0));
+      fd.append("descuento_pct", String(descuentoPctNum || 0));
+      fd.append("proveedor", proveedor);
+      fd.append("titulo", proveedor || lineas[0]?.nombre || "Borrador compra exterior");
+
+      // Solo índices de servidor = reordenar/eliminar sin re-subir.
+      // Si hay archivos nuevos o mezcla → reemplazar toda la galería en orden.
+      const soloServidor =
+        galeria.length === 0 ||
+        galeria.every((g) => g.serverIndex != null && !g.file);
+      if (soloServidor) {
+        fd.append(
+          "soportes_indices",
+          JSON.stringify(galeria.map((g) => g.serverIndex as number)),
+        );
+        fd.append("append_soportes", "1");
+      } else {
+        fd.append("replace_soportes", "1");
+        fd.append("append_soportes", "0");
+        fd.append("soportes_indices", "[]");
+        for (const g of galeria) {
+          const f = await fileDesdeGaleriaItem(g);
+          if (f) fd.append("imagenes", f);
+        }
+      }
+
+      const res = await api.upload<{ ok: boolean; borrador: BorradorCompra }>(
+        "/api/rentabilidad/compras-exterior/borrador",
+        fd,
+      );
+      setBorradorId(res.borrador.id);
+      setGaleria((prev) => {
+        revokeGaleria(prev);
+        return [];
+      });
+      const thumbs = await galeriaDesdeSoporteUrls(res.borrador.soporte_urls || []);
+      setGaleria(thumbs);
+      setOkMsg(
+        `Borrador #${res.borrador.id} guardado. Puedes cerrar y retomar después desde la lista.`,
+      );
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGuardandoBorrador(false);
+    }
+  };
+
+  const retomarBorrador = async (id: number) => {
+    setError(null);
+    setOkMsg(null);
+    try {
+      const b = await api.get<BorradorCompra>(
+        `/api/rentabilidad/compras-exterior/borrador/${id}`,
+      );
+      const rawLineas = (b.estado?.lineas || b.lineas || []) as LineaEditable[];
+      setBorradorId(b.id);
+      setCompraIdEditando(null);
+      setMoneda((b.moneda || "USD").toUpperCase());
+      setTrm(b.trm ? String(b.trm) : "");
+      setTrmFuente(b.trm_fuente || (b.moneda === "USD" ? "banrep" : ""));
+      trmManualRef.current = b.trm_fuente === "manual";
+      setFechaCompra(b.fecha_compra || new Date().toISOString().slice(0, 10));
+      setFlete(b.flete != null && Number(b.flete) !== 0 ? String(b.flete) : b.flete === 0 ? "0" : "");
+      setMonedaFlete((b.moneda_flete || b.moneda || "USD").toUpperCase());
+      setDescuentoPedido(b.descuento_pedido ? String(b.descuento_pedido) : "");
+      setDescuentoPct(b.descuento_pct ? String(b.descuento_pct) : "");
+      setProveedor(b.proveedor || "");
+      setLineas(
+        rawLineas.map((l, i) => ({
+          id: l.id || `L${i + 1}`,
+          seleccionada: l.seleccionada !== false,
+          nombre: l.nombre || "",
+          nombre_ocr: l.nombre_ocr || l.nombre || "",
+          sku: l.sku || "",
+          cantidad: n(l.cantidad, 1),
+          unidades_por_pack: n(l.unidades_por_pack, 1),
+          unidad: l.unidad || "un",
+          precio_unit: n(l.precio_unit),
+          subtotal: n(l.subtotal) || n(l.cantidad, 1) * n(l.precio_unit),
+          descuento: n(l.descuento),
+          categoria: l.categoria || "material",
+          costo_unitario_cop:
+            l.costo_unitario_cop != null && Number.isFinite(Number(l.costo_unitario_cop))
+              ? Number(l.costo_unitario_cop)
+              : null,
+        })),
+      );
+      setGaleria((prev) => {
+        revokeGaleria(prev);
+        return [];
+      });
+      const thumbs = await galeriaDesdeSoporteUrls(b.soporte_urls || []);
+      setGaleria(thumbs);
+      setOkMsg(
+        `Borrador #${b.id} retomado (${rawLineas.length} líneas). Arrastra las fotos para reordenar o quítalas con ✕.`,
+      );
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const eliminarBorrador = async (id: number) => {
+    if (!confirm(`¿Eliminar borrador #${id}?`)) return;
+    try {
+      await api.delete(`/api/rentabilidad/compras-exterior/borrador/${id}`);
+      if (borradorId === id) limpiar();
+      await cargarHistorial();
+      setOkMsg(`Borrador #${id} eliminado.`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const eliminarCompra = async (id: number) => {
+    if (!confirm(`¿Eliminar la compra #${id} del historial? Se borrarán también los pantallazos de soporte.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/api/rentabilidad/compras-exterior/${id}`);
+      if (compraIdEditando === id) limpiar();
+      setDetalleId((prev) => (prev === id ? null : prev));
+      setSoporteThumbs((prev) => {
+        const next = { ...prev };
+        const u = next[id];
+        if (u?.startsWith("blob:")) URL.revokeObjectURL(u);
+        delete next[id];
+        return next;
+      });
+      await cargarHistorial();
+      setOkMsg(`Compra #${id} eliminada del historial.`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const editarCompra = async (id: number) => {
+    setError(null);
+    setOkMsg(null);
+    try {
+      const c = await api.get<CompraHistorial>(
+        `/api/rentabilidad/compras-exterior/${id}`,
+      );
+      setCompraIdEditando(c.id);
+      setBorradorId(null);
+      setMoneda((c.moneda || "USD").toUpperCase());
+      setTrm(c.trm ? String(c.trm) : "");
+      setTrmFuente(c.trm_fuente || (c.moneda === "USD" ? "banrep" : ""));
+      trmManualRef.current = c.trm_fuente === "manual";
+      setFechaCompra(c.fecha_compra || new Date().toISOString().slice(0, 10));
+      setFlete(c.flete != null && Number(c.flete) !== 0 ? String(c.flete) : c.flete === 0 ? "0" : "");
+      setMonedaFlete((c.moneda_flete || c.moneda || "USD").toUpperCase());
+      setProveedor(c.proveedor || "");
+      setDescuentoPedido("");
+      setDescuentoPct("");
+      setLineas(
+        (c.lineas || []).map((l, i) => {
+          const cant = n(l.cantidad, 1);
+          const upp = n(l.unidades_por_pack, 1) || 1;
+          const precio = n(l.precio_unit);
+          const sub = n(l.subtotal) || cant * precio;
+          return {
+            id: `H${c.id}-${i + 1}`,
+            seleccionada: true,
+            nombre: l.nombre || "",
+            nombre_ocr: l.nombre_ocr || l.nombre || "",
+            sku: (l.codigo || "").trim(),
+            cantidad: cant,
+            unidades_por_pack: upp,
+            unidad: l.unidad || "un",
+            precio_unit: precio,
+            subtotal: sub,
+            descuento: n(l.descuento),
+            categoria: l.categoria || "material",
+            costo_unitario_cop:
+              l.costo_unitario != null && Number.isFinite(Number(l.costo_unitario))
+                ? Number(l.costo_unitario)
+                : null,
+          };
+        }),
+      );
+      setGaleria((prev) => {
+        revokeGaleria(prev);
+        return [];
+      });
+      const thumbs = await galeriaDesdeSoporteUrls(c.soporte_urls || []);
+      setGaleria(thumbs);
+      setDetalleId(c.id);
+      setOkMsg(
+        `Editando compra #${c.id}. Cambia líneas, fotos o TRM y pulsa «Actualizar costos».`,
+      );
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   const patchLinea = (id: string, patch: Partial<LineaEditable>) => {
@@ -601,22 +1344,38 @@ export default function ComprasExteriorPanel() {
       prev.map((l) => {
         if (l.id !== id) return l;
         const next = { ...l, ...patch };
-        if (patch.nombre != null && patch.unidades_por_pack == null) {
-          const inferred = inferirPcs(next.nombre, next.unidad);
-          if (inferred > 1 && l.unidades_por_pack <= 1) next.unidades_por_pack = inferred;
+        if (
+          (patch.nombre != null || patch.unidad != null) &&
+          patch.unidades_por_pack == null
+        ) {
+          const inferred = inferirUnidadYContenido(next.nombre, next.unidad);
+          if (patch.unidad == null) next.unidad = inferred.unidad;
+          if (inferred.contenido > 1 && l.unidades_por_pack <= 1) {
+            next.unidades_por_pack = inferred.contenido;
+          }
         }
         if (patch.cantidad != null || patch.precio_unit != null) {
           next.subtotal = Math.round(next.cantidad * next.precio_unit * 1e6) / 1e6;
+          if (next.descuento > next.subtotal) next.descuento = next.subtotal;
         }
+        if (patch.descuento != null && next.descuento < 0) next.descuento = 0;
         return next;
       }),
     );
   };
 
   const seleccionadas = lineas.filter((l) => l.seleccionada);
+  const costoDeLinea = (l: LineaEditable) => {
+    const idx = lineas.findIndex((x) => x.id === l.id);
+    if (idx >= 0 && Number.isFinite(costosRecalc[idx])) return costosRecalc[idx];
+    return l.costo_unitario_cop;
+  };
   const puedenGuardar =
     seleccionadas.length > 0 &&
-    seleccionadas.every((l) => l.nombre.trim() && l.costo_unitario_cop != null && l.costo_unitario_cop >= 0) &&
+    seleccionadas.every((l) => {
+      const c = costoDeLinea(l);
+      return l.nombre.trim() && c != null && Number.isFinite(c) && c >= 0;
+    }) &&
     (!necesitaTrm || trmNum > 0);
 
   const guardar = async () => {
@@ -625,33 +1384,59 @@ export default function ComprasExteriorPanel() {
     setError(null);
     setOkMsg(null);
     try {
-      const items = seleccionadas.map((l) => ({
-        nombre: l.nombre.trim(),
-        codigo: l.sku.trim() || undefined,
-        sku: l.sku.trim() || undefined,
-        nombre_ocr: l.nombre_ocr,
-        cantidad: l.cantidad,
-        unidades_por_pack: l.unidades_por_pack,
-        unidades_totales: l.cantidad * Math.max(l.unidades_por_pack, 1),
-        precio_unit: l.precio_unit,
-        subtotal: l.subtotal,
-        costo_unitario: l.costo_unitario_cop,
-        categoria: l.categoria || "material",
-        iva_incluido: false,
-      }));
+      const items = seleccionadas.map((l) => {
+        const costoLive = costoDeLinea(l);
+        return {
+          nombre: l.nombre.trim(),
+          codigo: l.sku.trim() || undefined,
+          sku: l.sku.trim() || undefined,
+          nombre_ocr: l.nombre_ocr,
+          cantidad: l.cantidad,
+          unidades_por_pack: l.unidades_por_pack,
+          unidades_totales: l.cantidad * Math.max(l.unidades_por_pack, 1),
+          unidad: normalizarUnidadBase(l.unidad) || "un",
+          precio_unit: l.precio_unit,
+          subtotal: l.subtotal,
+          descuento: l.descuento,
+          costo_unitario: costoLive,
+          categoria: l.categoria || "material",
+          iva_incluido: false,
+        };
+      });
 
       const fd = new FormData();
       fd.append("items", JSON.stringify(items));
       fd.append("moneda", moneda);
       fd.append("trm", String(necesitaTrm ? trmNum : 1));
+      fd.append("trm_fuente", trmFuente || (moneda.toUpperCase() === "USD" ? "banrep" : ""));
+      fd.append("fecha_compra", fechaCompra || "");
       fd.append("flete", String(fleteNum || 0));
       fd.append("moneda_flete", monedaFlete || moneda);
+      fd.append("descuento_pedido", String(descuentoPedidoNum || 0));
+      fd.append("descuento_pct", String(descuentoPctNum || 0));
       fd.append("proveedor", proveedor);
-      if (archivoActual) fd.append("imagen", archivoActual);
+      if (borradorId) fd.append("borrador_id", String(borradorId));
+      if (compraIdEditando) fd.append("compra_id", String(compraIdEditando));
+
+      const soloServidor =
+        galeria.length > 0 &&
+        galeria.every((g) => g.serverIndex != null && !g.file);
+      if (soloServidor) {
+        fd.append(
+          "soportes_indices",
+          JSON.stringify(galeria.map((g) => g.serverIndex as number)),
+        );
+      } else {
+        for (const g of galeria) {
+          const f = await fileDesdeGaleriaItem(g);
+          if (f) fd.append("imagenes", f);
+        }
+      }
 
       const res = await api.upload<{
         ok: boolean;
         total: number;
+        editado?: boolean;
         errores: Array<{ nombre: string; error: string }>;
         historial?: CompraHistorial | null;
       }>("/api/rentabilidad/confirmar-compra-exterior", fd);
@@ -661,14 +1446,22 @@ export default function ComprasExteriorPanel() {
           `Guardados ${res.total}. Errores: ${res.errores.map((e) => `${e.nombre}: ${e.error}`).join("; ")}`,
         );
       } else {
+        const verbo = res.editado || compraIdEditando ? "Actualizados" : "Guardados";
         setOkMsg(
-          `Guardados ${res.total} costos` +
+          `${verbo} ${res.total} costos` +
             (res.historial?.tiene_soporte
-              ? " y el pantallazo quedó en el historial como soporte."
-              : archivoActual
+              ? ` y ${galeria.length || res.historial.soportes_count || 1} soporte(s) en el historial.`
+              : galeria.length
                 ? "."
                 : " (sin pantallazo: vuelve a pegarlo antes de guardar para adjuntar soporte)."),
         );
+        setBorradorId(null);
+        setCompraIdEditando(null);
+        setGaleria((prev) => {
+          revokeGaleria(prev);
+          return [];
+        });
+        setLineas([]);
       }
       await cargarHistorial();
       if (res.historial?.id) setDetalleId(res.historial.id);
@@ -686,10 +1479,10 @@ export default function ComprasExteriorPanel() {
       <div>
         <h2 className="text-lg font-semibold text-ink">Compras exterior</h2>
         <p className="text-sm text-muted">
-          Pega el pantallazo con <kbd className="rounded border border-border bg-surface-input px-1 font-mono text-[11px]">Ctrl</kbd>
-          +
+          Pega o adjunta <strong>varias</strong> imágenes del mismo pedido (
+          <kbd className="rounded border border-border bg-surface-input px-1 font-mono text-[11px]">Ctrl</kbd>+
           <kbd className="rounded border border-border bg-surface-input px-1 font-mono text-[11px]">V</kbd>
-          . Si compras sets (ej. 3×100 pcs = 300 uds), el costo guardado es por unidad suelta.
+          ). Unidades <strong>ml / g / un</strong>; si es <strong>USD</strong>, TRM BanRep de la fecha de compra.
         </p>
       </div>
 
@@ -697,7 +1490,7 @@ export default function ComprasExteriorPanel() {
         ref={zonaRef}
         tabIndex={0}
         role="button"
-        aria-label="Zona para pegar pantallazo con Control V"
+        aria-label="Zona para pegar o adjuntar varias imágenes"
         onFocus={() => setZonaActiva(true)}
         onBlur={() => setZonaActiva(false)}
         onClick={() => zonaRef.current?.focus()}
@@ -707,17 +1500,17 @@ export default function ComprasExteriorPanel() {
         }`}
         onDrop={(e) => {
           e.preventDefault();
-          const f = e.dataTransfer.files[0];
-          if (f && esValido(f)) fromFile(f);
+          const list = Array.from(e.dataTransfer.files || []).filter(esValido);
+          if (list.length) addFiles(list);
         }}
         onDragOver={(e) => e.preventDefault()}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-semibold text-accent">Pegar pantallazo aquí</p>
+            <p className="text-sm font-semibold text-accent">Pegar / adjuntar pantallazos</p>
             <p className="text-xs text-muted">
-              Haz clic en esta zona y pulsa <strong>Ctrl+V</strong> (también funciona en cualquier
-              parte de esta pestaña). Arrastra o adjunta imagen/PDF.
+              Puedes pegar varias veces o seleccionar múltiples. Arrastra para reordenar;
+              ✕ para quitar.
             </p>
           </div>
           <div className="flex gap-2">
@@ -730,9 +1523,9 @@ export default function ComprasExteriorPanel() {
               disabled={scanning}
               className="rounded border border-accent/40 px-3 py-1 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
             >
-              {scanning ? "Extrayendo…" : "Adjuntar"}
+              {scanning ? "Extrayendo…" : "Adjuntar…"}
             </button>
-            {(preview || fileName) && (
+            {(galeria.length > 0 || lineas.length > 0 || borradorId || compraIdEditando) && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -749,35 +1542,117 @@ export default function ComprasExteriorPanel() {
             ref={fileRef}
             type="file"
             accept="image/*,application/pdf"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
+              const list = Array.from(e.target.files || []).filter(esValido);
               e.target.value = "";
-              if (f && esValido(f)) fromFile(f);
+              if (list.length) addFiles(list);
             }}
           />
         </div>
-        {preview && (
-          <img
-            src={preview}
-            alt="Vista previa"
-            className="max-h-40 rounded border border-border object-contain"
-          />
-        )}
-        {!preview && fileName && (
-          <p className="text-xs text-ink truncate">{fileName}</p>
+        {galeria.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {galeria.map((g, idx) => (
+              <div
+                key={g.id}
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  setDragId(g.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", g.id);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const from = e.dataTransfer.getData("text/plain") || dragId;
+                  if (from) reordenarGaleria(from, g.id);
+                  setDragId(null);
+                }}
+                onDragEnd={() => setDragId(null)}
+                className={`relative w-28 cursor-grab active:cursor-grabbing rounded border bg-surface overflow-hidden ${
+                  dragId === g.id
+                    ? "border-accent opacity-60 ring-2 ring-accent/40"
+                    : g.serverIndex != null
+                      ? "border-accent/40"
+                      : "border-border"
+                }`}
+                title="Arrastra para reordenar"
+              >
+                {g.preview ? (
+                  <img
+                    src={g.preview}
+                    alt={g.name}
+                    className="h-20 w-full object-contain bg-surface-input pointer-events-none"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex h-20 items-center justify-center px-1 text-[10px] text-muted truncate pointer-events-none">
+                    {g.name}
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-1 px-1 py-0.5 text-[10px]">
+                  <span className="truncate text-muted">
+                    #{idx + 1}
+                    {g.serverIndex != null ? " · guardada" : " · nueva"}
+                  </span>
+                  <button
+                    type="button"
+                    title="Quitar imagen"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      quitarDeGaleria(g.id);
+                    }}
+                    className="rounded px-1 font-bold text-danger hover:bg-danger/10"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         {scanning && (
-          <p className="text-xs text-accent animate-pulse">Analizando con IA…</p>
+          <p className="text-xs text-accent animate-pulse">
+            Analizando {galeria.filter((g) => g.file).length || galeria.length || "…"} imagen(es) con IA…
+          </p>
         )}
-        {!preview && !scanning && !fileName && (
+        {!galeria.length && !scanning && (
           <p className="py-6 text-center text-sm font-medium text-muted">
-            Ctrl+V para pegar el pantallazo
+            Ctrl+V varias veces o Adjuntar… (múltiples)
+          </p>
+        )}
+        {borradorId && (
+          <p className="text-[11px] text-accent">
+            Editando borrador #{borradorId}. Guarda de nuevo para actualizar, o confirma costos cuando esté listo.
+          </p>
+        )}
+        {compraIdEditando && (
+          <p className="text-[11px] text-accent">
+            Editando compra registrada #{compraIdEditando}. Al guardar se actualiza el historial y los costos.
           </p>
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block text-xs">
+          <span className="font-bold text-muted">Fecha compra</span>
+          <input
+            type="date"
+            value={fechaCompra}
+            onChange={(e) => {
+              trmManualRef.current = false;
+              setFechaCompra(e.target.value);
+            }}
+            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
         <label className="block text-xs">
           <span className="font-bold text-muted">Moneda factura</span>
           <input
@@ -786,30 +1661,100 @@ export default function ComprasExteriorPanel() {
             className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
           />
         </label>
-        <label className="block text-xs">
+        <label className="block text-xs sm:col-span-2 lg:col-span-1">
           <span className="font-bold text-muted">
-            TRM {necesitaTrm ? "(obligatoria)" : "(N/A si COP)"}
+            TRM{" "}
+            {moneda.toUpperCase() === "USD"
+              ? "(BanRep)"
+              : necesitaTrm
+                ? "(obligatoria)"
+                : "(N/A si COP)"}
           </span>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={trm}
-            disabled={!necesitaTrm}
-            onChange={(e) => setTrm(e.target.value)}
-            placeholder={necesitaTrm ? "Ej. 4100" : "1"}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono disabled:opacity-40"
-          />
+          <div className="mt-1 flex gap-1">
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={trm}
+              disabled={!necesitaTrm || trmLoading}
+              onChange={(e) => {
+                trmManualRef.current = true;
+                setTrmFuente("manual");
+                setTrmDetalle("manual (override)");
+                setTrm(e.target.value);
+              }}
+              placeholder={necesitaTrm ? "Auto BanRep" : "1"}
+              className="w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono disabled:opacity-40"
+            />
+            {moneda.toUpperCase() === "USD" && (
+              <button
+                type="button"
+                title="Recargar TRM BanRep de la fecha"
+                disabled={trmLoading || !fechaCompra}
+                onClick={() => {
+                  trmManualRef.current = false;
+                  void cargarTrmBanrep(fechaCompra, { forzar: true });
+                }}
+                className="shrink-0 rounded-lg border border-accent/50 bg-accent/10 px-2 text-[10px] font-bold text-accent disabled:opacity-40"
+              >
+                {trmLoading ? "…" : "↻"}
+              </button>
+            )}
+          </div>
+          {necesitaTrm && trmDetalle && (
+            <span className="mt-0.5 block text-[10px] text-muted truncate" title={trmDetalle}>
+              {trmFuente === "banrep" ? "BanRep · " : ""}
+              {trmDetalle}
+            </span>
+          )}
         </label>
         <label className="block text-xs">
-          <span className="font-bold text-muted">Flete (opcional)</span>
+          <span className="font-bold text-muted">Flete (se reparte por unidades)</span>
           <input
             type="number"
             min={0}
             step="0.01"
             value={flete}
             onChange={(e) => setFlete(e.target.value)}
+            onBlur={() => {
+              // Normaliza y dispara recálculo si quedó basura
+              if (flete.trim() !== "" && !Number.isFinite(n(flete))) setFlete("");
+            }}
             placeholder="0"
+            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+          />
+          <span className="mt-0.5 block text-[10px] text-muted">
+            Al cambiar este valor se recalcula el costo / ud de todas las líneas.
+          </span>
+        </label>
+        <label className="block text-xs">
+          <span className="font-bold text-muted">Descuento pedido</span>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={descuentoPedido}
+            onChange={(e) => {
+              setDescuentoPedido(e.target.value);
+              if (e.target.value) setDescuentoPct("");
+            }}
+            placeholder="Cupón $"
+            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="font-bold text-muted">Desc. % pedido</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step="0.01"
+            value={descuentoPct}
+            onChange={(e) => {
+              setDescuentoPct(e.target.value);
+              if (e.target.value) setDescuentoPedido("");
+            }}
+            placeholder="ej. 10"
             className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
           />
         </label>
@@ -822,6 +1767,78 @@ export default function ComprasExteriorPanel() {
           />
         </label>
       </div>
+
+      {moneda.toUpperCase() === "USD" && (
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs ${
+            trmNum > 0
+              ? "border-emerald-500/40 bg-emerald-500/5 text-ink"
+              : "border-amber-500/40 bg-amber-500/5 text-amber-800 dark:text-amber-300"
+          }`}
+        >
+          {trmLoading ? (
+            <span>Consultando TRM BanRep…</span>
+          ) : trmNum > 0 ? (
+            <span>
+              Conversión activa: <strong className="font-mono">1 USD = {trmNum.toLocaleString("es-CO", { maximumFractionDigits: 2 })} COP</strong>
+              {fechaCompra ? ` · fecha compra ${fechaCompra}` : ""}
+              {trmFuente === "banrep" ? " · BanRep" : trmFuente === "manual" ? " · manual" : ""}
+              {trmDetalle ? ` · ${trmDetalle}` : ""}
+            </span>
+          ) : (
+            <span>
+              Sin TRM: no se puede convertir a COP. Elige fecha de compra y pulsa ↻, o escribe la tasa.
+              {trmDetalle ? ` (${trmDetalle})` : ""}
+            </span>
+          )}
+        </div>
+      )}
+
+      {fleteNum > 0 && lineas.length > 0 && (
+        <div className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs text-ink">
+          Flete{" "}
+          <strong className="font-mono">
+            {fleteNum.toLocaleString("en-US", { maximumFractionDigits: 2 })}{" "}
+            {(monedaFlete || moneda).toUpperCase()}
+          </strong>
+          {necesitaTrm && (monedaFlete || moneda).toUpperCase() !== "COP" ? (
+            <>
+              {" "}
+              → <strong className="font-mono">{fmtCop(fleteTotalCop)}</strong>
+              {trmNum > 0 ? ` (× TRM ${trmNum})` : " (falta TRM)"}
+            </>
+          ) : (
+            <>
+              {" "}
+              = <strong className="font-mono">{fmtCop(fleteTotalCop)}</strong>
+            </>
+          )}
+          . Repartido por packs × contenido en cada línea; el costo / ud se actualiza al instante.
+        </div>
+      )}
+
+      {(descuentoPedidoNum > 0 || descuentoPctNum > 0 || lineas.some((l) => l.descuento > 0)) && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-ink">
+          Descuento aplicado al costo:{" "}
+          {descuentoPedidoNum > 0 && (
+            <strong className="font-mono">pedido −{descuentoPedidoNum}</strong>
+          )}
+          {descuentoPctNum > 0 && (
+            <strong className="font-mono">
+              {descuentoPedidoNum > 0 ? " · " : ""}pedido −{descuentoPctNum}%
+            </strong>
+          )}
+          {lineas.some((l) => l.descuento > 0) && (
+            <span>
+              {(descuentoPedidoNum > 0 || descuentoPctNum > 0) ? " · " : ""}
+              líneas −
+              {lineas.reduce((a, l) => a + (l.descuento || 0), 0).toLocaleString("en-US", {
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          )}
+        </div>
+      )}
 
       {proveedor && (
         <p className="text-xs text-muted">
@@ -855,21 +1872,34 @@ export default function ComprasExteriorPanel() {
                   />
                 </th>
                 <th className="px-2 py-2">Producto / SKU</th>
-                <th className="px-2 py-2" title="Cantidad de sets/packs comprados">
-                  Sets
+                <th className="px-2 py-2" title="Cantidad de packs/ítems comprados (xN)">
+                  Packs
                 </th>
-                <th className="px-2 py-2" title="Piezas por cada set">
-                  Pcs/set
+                <th className="px-2 py-2" title="Unidad base del costo: ml, g o un">
+                  Ud.
                 </th>
-                <th className="px-2 py-2">Total uds</th>
-                <th className="px-2 py-2">P. set</th>
-                <th className="px-2 py-2">Subtotal</th>
-                <th className="px-2 py-2">Costo / ud COP</th>
+                <th className="px-2 py-2" title="Contenido por pack en la unidad base (500ml → 500)">
+                  Contenido
+                </th>
+                <th className="px-2 py-2">Total</th>
+                <th className="px-2 py-2" title="Precio de un pack en moneda factura">
+                  P. pack
+                </th>
+                <th className="px-2 py-2" title="Descuento de la línea (monto)">
+                  Desc. línea
+                </th>
+                <th className="px-2 py-2" title="P. pack neto × TRM → COP">
+                  P. pack COP
+                </th>
+                <th className="px-2 py-2" title="(P. pack neto COP + flete/ud) ÷ Contenido">
+                  Costo / ud COP
+                </th>
                 <th className="px-2 py-2">Cat.</th>
               </tr>
             </thead>
             <tbody>
-              {lineas.map((l) => {
+              {lineas.map((l, idx) => {
+                const ud = etiquetaUnidad(l.unidad);
                 const totalUds = Math.round(l.cantidad * Math.max(l.unidades_por_pack, 1) * 1e4) / 1e4;
                 return (
                 <tr key={l.id} className="border-t border-border">
@@ -896,20 +1926,42 @@ export default function ComprasExteriorPanel() {
                       className="w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono"
                     />
                   </td>
+                  <td className="px-2 py-1.5 w-16">
+                    <select
+                      value={normalizarUnidadBase(l.unidad) || "un"}
+                      onChange={(e) => {
+                        const unidad = e.target.value as UnidadBase;
+                        const inferred = inferirUnidadYContenido(l.nombre, unidad);
+                        patchLinea(l.id, {
+                          unidad,
+                          unidades_por_pack:
+                            l.unidades_por_pack > 1 ? l.unidades_por_pack : inferred.contenido,
+                          categoria: unidad === "un" ? l.categoria : "material",
+                        });
+                      }}
+                      className="w-full rounded border border-accent/40 bg-accent/5 px-1 py-1 font-mono font-semibold"
+                      title="Unidad base del costo real"
+                    >
+                      <option value="ml">ml</option>
+                      <option value="g">g</option>
+                      <option value="un">un</option>
+                    </select>
+                  </td>
                   <td className="px-2 py-1.5 w-20">
                     <input
                       type="number"
                       min={1}
-                      step="1"
+                      step="any"
                       value={l.unidades_por_pack}
                       onChange={(e) =>
-                        patchLinea(l.id, { unidades_por_pack: Math.max(1, n(e.target.value, 1)) })
+                        patchLinea(l.id, { unidades_por_pack: Math.max(0.001, n(e.target.value, 1)) })
                       }
                       className="w-full rounded border border-accent/40 bg-accent/5 px-1.5 py-1 font-mono font-semibold"
+                      title={`Contenido por pack en ${ud}`}
                     />
                   </td>
                   <td className="px-2 py-1.5 font-mono font-bold text-ink whitespace-nowrap">
-                    {totalUds}
+                    {totalUds} {ud}
                   </td>
                   <td className="px-2 py-1.5 w-24">
                     <input
@@ -921,23 +1973,70 @@ export default function ComprasExteriorPanel() {
                       className="w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono"
                     />
                   </td>
-                  <td className="px-2 py-1.5 font-mono text-muted whitespace-nowrap">
-                    {l.subtotal.toLocaleString("en-US", { maximumFractionDigits: 4 })}
-                  </td>
-                  <td className="px-2 py-1.5">
+                  <td className="px-2 py-1.5 w-20">
                     <input
                       type="number"
                       min={0}
                       step="any"
-                      value={l.costo_unitario_cop ?? ""}
+                      value={l.descuento}
+                      onChange={(e) =>
+                        patchLinea(l.id, {
+                          descuento: Math.min(Math.max(0, n(e.target.value)), l.subtotal || 0),
+                        })
+                      }
+                      className="w-full rounded border border-amber-500/40 bg-amber-500/5 px-1.5 py-1 font-mono"
+                      title="Descuento de esta línea"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 font-mono text-ink whitespace-nowrap">
+                    {trmNum > 0 || moneda.toUpperCase() === "COP"
+                      ? fmtCop(precioPackCop(preciosNetoPack[idx] ?? l.precio_unit, trmNum, moneda))
+                      : "—"}
+                    <div className="text-[9px] text-muted">
+                      {l.descuento > 0 || descuentoPedidoNum > 0 || descuentoPctNum > 0
+                        ? "neto tras desc."
+                        : moneda.toUpperCase() === "COP"
+                          ? "COP"
+                          : trmNum > 0
+                            ? `× TRM ${trmNum}`
+                            : "sin TRM"}
+                    </div>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      key={`costo-${l.id}-${Number.isFinite(costosRecalc[idx]) ? costosRecalc[idx] : "x"}-${fleteNum}`}
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={
+                        Number.isFinite(costosRecalc[idx])
+                          ? costosRecalc[idx]
+                          : (l.costo_unitario_cop ?? "")
+                      }
                       onChange={(e) =>
                         patchLinea(l.id, {
                           costo_unitario_cop: e.target.value === "" ? null : n(e.target.value),
                         })
                       }
+                      title="Se recalcula al cambiar flete, TRM, cantidades o descuentos"
                       className="w-28 rounded border border-accent/40 bg-accent/5 px-1.5 py-1 font-mono font-semibold"
                     />
-                    <div className="text-[9px] text-muted">{fmtCop(l.costo_unitario_cop)}</div>
+                    <div className="text-[9px] text-muted">
+                      {fmtCop(
+                        Number.isFinite(costosRecalc[idx])
+                          ? costosRecalc[idx]
+                          : l.costo_unitario_cop,
+                      )}
+                      /{ud.toLowerCase()}
+                      {(landedDetalle[idx]?.fletePorUnidadCop || 0) > 0 ? (
+                        <span className="text-accent">
+                          {" "}
+                          · flete {fmtCop(landedDetalle[idx].fletePorUnidadCop)}/{ud.toLowerCase()}
+                        </span>
+                      ) : fleteNum > 0 ? (
+                        <span className="text-amber-600 dark:text-amber-400"> · flete pendiente TRM</span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-2 py-1.5 w-24">
                     <select
@@ -959,21 +2058,108 @@ export default function ComprasExteriorPanel() {
         </div>
       )}
 
-      {lineas.length > 0 && (
+      {(lineas.length > 0 || galeria.length > 0 || borradorId || compraIdEditando) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-muted">
-            Costo por unidad = (subtotal + flete) ÷ (sets × pcs/set). Asocia cada línea a un
-            componente Siigo por SKU para que el costo quede en el insumo correcto.
+            Costo / ud = (P. pack neto × TRM + flete repartido por unidades) ÷ Contenido.
+            El flete se reparte según packs × contenido de cada línea. Puedes{" "}
+            <strong>guardar borrador</strong> y retomar después; al confirmar costos se archiva.
+            {compraIdEditando ? " Estás editando una compra ya registrada." : ""}
           </p>
-          <button
-            type="button"
-            disabled={!puedenGuardar || guardando}
-            onClick={() => void guardar()}
-            className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent-hover"
-          >
-            {guardando ? "Guardando…" : `Guardar seleccionados (${seleccionadas.length})`}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {!compraIdEditando && (
+              <button
+                type="button"
+                disabled={guardandoBorrador || (!lineas.length && !galeria.length)}
+                onClick={() => void guardarBorrador()}
+                className="rounded-lg border-2 border-border bg-surface px-4 py-2 text-xs font-bold text-ink hover:border-accent disabled:opacity-40"
+              >
+                {guardandoBorrador
+                  ? "Guardando borrador…"
+                  : borradorId
+                    ? `Actualizar borrador #${borradorId}`
+                    : "Guardar para después"}
+              </button>
+            )}
+            {lineas.length > 0 && (
+              <button
+                type="button"
+                disabled={!puedenGuardar || guardando}
+                onClick={() => void guardar()}
+                className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent-hover"
+              >
+                {guardando
+                  ? "Guardando…"
+                  : compraIdEditando
+                    ? `Actualizar costos (#${compraIdEditando})`
+                    : `Confirmar costos (${seleccionadas.length})`}
+              </button>
+            )}
+          </div>
         </div>
+      )}
+
+      {borradores.length > 0 && (
+        <section className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Borradores pendientes</h3>
+              <p className="text-[11px] text-muted">
+                Compras a medias: retoma, edita y confirma cuando esté listo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void cargarHistorial()}
+              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+            >
+              Actualizar
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {borradores.map((b) => {
+              const fecha = b.updated_at
+                ? new Date(b.updated_at).toLocaleString("es-CO")
+                : "";
+              const activo = borradorId === b.id;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-2 ${
+                    activo ? "border-accent bg-accent/10" : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-ink">
+                      #{b.id} · {b.titulo || b.proveedor || "Sin título"}
+                      {activo ? " · en edición" : ""}
+                    </p>
+                    <p className="text-[10px] text-muted">
+                      {fecha}
+                      {b.moneda ? ` · ${b.moneda}` : ""}
+                      {b.lineas_count != null ? ` · ${b.lineas_count} líneas` : ""}
+                      {b.soportes_count ? ` · ${b.soportes_count} foto(s)` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void retomarBorrador(b.id)}
+                    className="rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Retomar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void eliminarBorrador(b.id)}
+                    className="rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
@@ -981,7 +2167,8 @@ export default function ComprasExteriorPanel() {
           <div>
             <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
             <p className="text-[11px] text-muted">
-              Cada guardado conserva el pantallazo como soporte y las líneas/costos asociados.
+              Cada confirmación conserva el pantallazo. Usa <strong>Editar</strong> para corregir
+              una compra ya registrada.
             </p>
           </div>
           <button
@@ -995,7 +2182,7 @@ export default function ComprasExteriorPanel() {
 
         {historial.length === 0 && !historialLoading && (
           <p className="text-xs text-muted py-4 text-center">
-            Aún no hay compras guardadas. Pega un pantallazo, asocia SKU y guarda.
+            Aún no hay compras confirmadas. Usa «Guardar para después» si quieres retomar más tarde.
           </p>
         )}
 
@@ -1004,45 +2191,68 @@ export default function ComprasExteriorPanel() {
             const abierto = detalleId === c.id;
             const thumb = soporteThumbs[c.id];
             const fecha = c.created_at ? new Date(c.created_at).toLocaleString("es-CO") : "";
+            const editando = compraIdEditando === c.id;
             return (
               <li
                 key={c.id}
-                className="rounded-lg border border-border bg-surface overflow-hidden"
+                className={`rounded-lg border bg-surface overflow-hidden ${
+                  editando ? "border-accent ring-1 ring-accent/30" : "border-border"
+                }`}
               >
-                <button
-                  type="button"
-                  className="flex w-full items-start gap-3 p-2 text-left hover:bg-surface-hover"
-                  onClick={() => setDetalleId(abierto ? null : c.id)}
-                >
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
-                    {thumb ? (
-                      <img src={thumb} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-[9px] text-muted">
-                        {c.tiene_soporte ? "…" : "sin foto"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-ink">
-                      #{c.id} · {fecha}
-                      {c.proveedor ? ` · ${c.proveedor}` : ""}
-                    </p>
-                    <p className="text-[10px] text-muted">
-                      {c.moneda}
-                      {c.trm ? ` · TRM ${c.trm}` : ""}
-                      {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
-                      {" · "}
-                      {c.total_guardados} costo(s)
-                    </p>
-                    <p className="truncate text-[10px] text-muted">
-                      {(c.lineas || [])
-                        .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
-                        .join(" · ") || "Sin líneas"}
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
-                </button>
+                <div className="flex items-start gap-2 p-2">
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
+                    onClick={() => setDetalleId(abierto ? null : c.id)}
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
+                      {thumb ? (
+                        <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[9px] text-muted">
+                          {c.tiene_soporte ? "…" : "sin foto"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-ink">
+                        #{c.id} · {fecha}
+                        {c.proveedor ? ` · ${c.proveedor}` : ""}
+                        {editando ? " · en edición" : ""}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        {c.moneda}
+                        {c.fecha_compra ? ` · compra ${c.fecha_compra}` : ""}
+                        {c.trm
+                          ? ` · TRM ${c.trm}${c.trm_fuente === "banrep" ? " BanRep" : ""}`
+                          : ""}
+                        {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
+                        {" · "}
+                        {c.total_guardados} costo(s)
+                      </p>
+                      <p className="truncate text-[10px] text-muted">
+                        {(c.lineas || [])
+                          .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
+                          .join(" · ") || "Sin líneas"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void editarCompra(c.id)}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void eliminarCompra(c.id)}
+                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </div>
                 {abierto && (
                   <div className="border-t border-border bg-surface-input/40 p-2 space-y-2">
                     {thumb && (
@@ -1059,23 +2269,28 @@ export default function ComprasExteriorPanel() {
                         <tr>
                           <th className="px-1 py-1">SKU</th>
                           <th className="px-1 py-1">Producto</th>
-                          <th className="px-1 py-1">Uds</th>
+                          <th className="px-1 py-1">Total</th>
                           <th className="px-1 py-1">Costo/ud</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {(c.lineas || []).map((l, i) => (
+                        {(c.lineas || []).map((l, i) => {
+                          const ud = etiquetaUnidad(l.unidad || "un").toLowerCase();
+                          return (
                           <tr key={i} className="border-t border-border/60">
                             <td className="px-1 py-1 font-mono text-accent">{l.codigo || "—"}</td>
                             <td className="px-1 py-1">{l.nombre}</td>
-                            <td className="px-1 py-1 font-mono">{l.unidades_totales ?? l.cantidad ?? "—"}</td>
+                            <td className="px-1 py-1 font-mono">
+                              {l.unidades_totales ?? l.cantidad ?? "—"} {ud}
+                            </td>
                             <td className="px-1 py-1 font-mono">
                               {l.costo_unitario != null
-                                ? fmtCop(Number(l.costo_unitario))
+                                ? `${fmtCop(Number(l.costo_unitario))}/${ud}`
                                 : "—"}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

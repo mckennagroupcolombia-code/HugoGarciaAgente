@@ -5,10 +5,13 @@ from pathlib import Path
 
 def sincronizar_productos_pagina_web(productos_meli: list) -> str:
     """
-    Sincroniza precios hacia la tienda web McKenna.
+    Sincroniza stock/precios hacia la tienda web McKenna.
 
-    Si WEB_API_URL está configurada, hace PUT por SKU.
-    Si no, regenera `PAGINA_WEB/site/data/cache.json` desde Siigo (fuente real del catálogo).
+    Si WEB_API_URL está configurada:
+      - con `stock` en el payload → PUT /products/<sku> (actualiza stock_web)
+      - solo `precio` (sin stock) → regenera cache.json desde Siigo; NO toca stock
+        (evitar stock=0 accidental al cambiar precios desde Ganancia)
+    Si no hay API: regenera `PAGINA_WEB/site/data/cache.json` desde Siigo.
     """
     api_url = (os.getenv("WEB_API_URL") or "").strip().rstrip("/")
     api_key = (os.getenv("WEB_API_KEY") or "").strip()
@@ -24,6 +27,7 @@ def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     resultados = []
     exitos = errores = 0
+    solo_precio = []
 
     for producto in productos_meli:
         sku = producto.get("sku")
@@ -31,6 +35,13 @@ def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
             resultados.append("⚠️ [WEB SYNC] Producto sin SKU ignorado.")
             errores += 1
             continue
+
+        # Sin stock explícito: no llamar al PUT (que exige stock y antes defaultaba a 0,
+        # ocultando el producto del catálogo web). Solo regenerar precios desde Siigo.
+        if "stock" not in producto:
+            solo_precio.append(sku)
+            continue
+
         payload = {
             "sku": sku,
             "stock": producto.get("stock", 0),
@@ -55,8 +66,23 @@ def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
             resultados.append(f"❌ [WEB SYNC] SKU {sku}: {e}")
             errores += 1
 
-    resultados.append(f"Éxitos: {exitos}, Errores: {errores}")
-    return "\n".join(resultados)
+    if solo_precio:
+        rebuild_msg = _rebuild_catalogo_web_cache()
+        resultados.append(
+            f"ℹ️ [WEB SYNC] Solo precio ({len(solo_precio)} SKU): {rebuild_msg}"
+        )
+        if rebuild_msg.startswith("✅"):
+            exitos += len(solo_precio)
+        else:
+            errores += len(solo_precio)
+
+    # "Errores: 0" no es un fallo — no usar substring "Error"
+    ok_global = errores == 0
+    resultados.append(f"Éxitos: {exitos}, Fallos: {errores}")
+    summary = "\n".join(resultados)
+    if not ok_global:
+        return summary
+    return summary
 
 
 def _rebuild_catalogo_web_cache() -> str:
