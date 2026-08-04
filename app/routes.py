@@ -573,6 +573,12 @@ def _token_tras_facturar(texto: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def _token_tras_anular(texto: str) -> str | None:
+    t = _normalizar_texto_comando_wa(texto)
+    m = re.search(r"\b(?:anular|cancelar)\s+(\S+)", t, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
 from app.sync import (
     sincronizar_stock_todas_las_plataformas,
     sincronizar_facturas_recientes,
@@ -1873,6 +1879,54 @@ def register_routes(app):
                 )
                 return jsonify({"status": "ok", "respuesta": None})
 
+            if re.search(r"\b(?:anular|cancelar)\b", tn, re.IGNORECASE):
+
+                def _wa_pedido_anular(texto_norm: str, destino: str):
+                    from app.tools import web_pedidos as wp
+
+                    tok = _token_tras_anular(texto_norm)
+                    if not tok:
+                        enviar_whatsapp_reporte(
+                            "⚠️ Usa: *anular 250* (últimos 3) o *anular MCKG-…*\n"
+                            "Si ya tiene guía: *anular 250 force*",
+                            numero_destino=destino,
+                        )
+                        return
+                    force = bool(
+                        re.search(r"\bforce\b", texto_norm, re.IGNORECASE)
+                    )
+                    # Quitar "force" del token si quedó pegado
+                    tok_limpio = re.sub(r"\bforce\b", "", tok, flags=re.IGNORECASE).strip()
+                    if not tok_limpio:
+                        partes = texto_norm.split()
+                        tok_limpio = next(
+                            (
+                                p
+                                for p in partes[1:]
+                                if p.lower() not in ("force", "forzar")
+                            ),
+                            "",
+                        )
+                    if not tok_limpio:
+                        enviar_whatsapp_reporte(
+                            "⚠️ Usa: *anular 250* o *anular MCKG-…*",
+                            numero_destino=destino,
+                        )
+                        return
+                    ok, out = wp.anular_pedido_web(
+                        tok_limpio, force=force, notify_wa=False
+                    )
+                    enviar_whatsapp_reporte(
+                        f"{'✅' if ok else '❌'} {out}", numero_destino=destino
+                    )
+
+                spawn_thread(
+                    _wa_pedido_anular,
+                    args=(tn, destino_grupo),
+                    daemon=True,
+                )
+                return jsonify({"status": "ok", "respuesta": None})
+
             if tn.lower().startswith("envio "):
 
                 def _wa_pedido_envio(texto_norm: str, destino: str):
@@ -3047,6 +3101,7 @@ def register_routes(app):
         sincronizar_manual_por_id as _sync_manual_id,
         sincronizar_por_dia_especifico as _sync_por_dia,
         obtener_estado_stock_meli as _obtener_estado_stock_meli,
+        obtener_ventas_meli_por_item as _obtener_ventas_meli_por_item,
         sincronizar_stock_multicanal as _sincronizar_stock_multicanal,
         ajustar_stock_multicanal as _ajustar_stock_multicanal,
     )
@@ -3319,6 +3374,130 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/stock/detalle-producto")
+    @app.route("/app/api/stock/detalle-producto")
+    def api_stock_detalle_producto():
+        """Precio MeLi en vivo + rentabilidad general (costo, cobros, ganancia, margen)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        meli_id = (request.args.get("meli_id") or "").strip().upper()
+        sku = (request.args.get("sku") or "").strip()
+        if not meli_id and not sku:
+            return jsonify({"error": "meli_id o sku requerido"}), 400
+
+        precio = None
+        moneda = "COP"
+        titulo = None
+        permalink = None
+        estado_meli = None
+        stock = None
+        err_meli = None
+
+        if meli_id:
+            try:
+                from app.utils import refrescar_token_meli
+                import requests as _req
+
+                token = refrescar_token_meli()
+                if not token:
+                    err_meli = "Token MeLi no disponible"
+                else:
+                    resp = _req.get(
+                        f"https://api.mercadolibre.com/items/{meli_id}",
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=25,
+                    )
+                    if resp.status_code == 200:
+                        body = resp.json() or {}
+                        precio = body.get("price")
+                        moneda = body.get("currency_id") or "COP"
+                        titulo = body.get("title")
+                        permalink = body.get("permalink")
+                        estado_meli = body.get("status")
+                        if body.get("variations"):
+                            stock = sum(
+                                int(v.get("available_quantity") or 0)
+                                for v in body["variations"]
+                            )
+                        else:
+                            stock = body.get("available_quantity")
+                    else:
+                        err_meli = f"MeLi HTTP {resp.status_code}"
+            except Exception as e:
+                err_meli = str(e)
+
+        rentabilidad = None
+        try:
+            from app.services.rentabilidad import listar_ganancia_meli
+
+            buscar = sku or meli_id
+            data = listar_ganancia_meli(buscar=buscar, refresh=False)
+            items = data.get("items") or []
+            match = None
+            mid_u = meli_id.upper()
+            sku_u = sku.upper()
+            for it in items:
+                if mid_u and (it.get("meli_id") or "").upper() == mid_u:
+                    match = it
+                    break
+            if match is None and sku_u:
+                for it in items:
+                    if (it.get("sku") or "").upper() == sku_u:
+                        match = it
+                        break
+            if match is None and items:
+                match = items[0]
+            if match:
+                rentabilidad = {
+                    "sku": match.get("sku"),
+                    "precio_venta": match.get("precio_venta"),
+                    "costo_real": match.get("costo_real"),
+                    "sin_costo": match.get("sin_costo"),
+                    "cargo_venta": match.get("cargo_venta"),
+                    "cargo_envio": match.get("cargo_envio"),
+                    "cobros_meli": match.get("cobros_meli"),
+                    "ganancia": match.get("ganancia"),
+                    "margen_pct": match.get("margen_pct"),
+                    "free_shipping": match.get("free_shipping"),
+                }
+                if precio is None and match.get("precio_venta") is not None:
+                    precio = match.get("precio_venta")
+        except Exception as e:
+            rentabilidad = {"error": str(e)}
+
+        return jsonify({
+            "meli_id": meli_id or None,
+            "sku": sku or None,
+            "nombre": titulo,
+            "permalink": permalink,
+            "estado_meli": estado_meli,
+            "stock": stock,
+            "precio": precio,
+            "moneda": moneda,
+            "error_meli": err_meli,
+            "rentabilidad": rentabilidad,
+        })
+
+    @app.route("/api/stock/ventas-30d")
+    @app.route("/app/api/stock/ventas-30d")
+    def api_stock_ventas_30d():
+        """Ventas MeLi pagadas agregadas por meli_id (últimos N días, default 30)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = int(request.args.get("dias") or 30)
+        except (TypeError, ValueError):
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        try:
+            return jsonify(_obtener_ventas_meli_por_item(dias=dias, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/stock/sincronizar", methods=["POST"])
     def api_stock_sincronizar():
         if not _api_token_valido():
@@ -3444,7 +3623,7 @@ def register_routes(app):
                 partes.append(f"SKU MeLi→{res['meli'].get('sku_meli')}")
             if res.get("vinculo"):
                 partes.append(f"Siigo {res['vinculo'].get('codigo_siigo')}")
-            log_line(f"✔ edición códigos {meli_id}: {', '.join(partes) or 'ok'}")
+            log_line(f"✔ SKU cargado a MeLi {meli_id}: {', '.join(partes) or 'ok'}")
             return jsonify(res)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
@@ -3534,6 +3713,19 @@ def register_routes(app):
         limit = request.args.get("limit", default=200, type=int) or 200
         return jsonify(obtener_historial_git(limit))
 
+    @app.route("/api/git/log/autor", methods=["POST"])
+    @app.route("/app/api/git/log/autor", methods=["POST"])
+    def api_git_log_autor():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.git_history import asignar_autor_commit
+
+        body = request.get_json(silent=True) or {}
+        hash_commit = (body.get("hash") or "").strip()
+        if not hash_commit:
+            return jsonify({"ok": False, "error": "hash requerido"}), 400
+        return jsonify(asignar_autor_commit(hash_commit, body.get("autor") or ""))
+
     @app.route("/api/team-recaps")
     def api_team_recaps():
         if not _api_token_valido():
@@ -3542,6 +3734,21 @@ def register_routes(app):
 
         limit = request.args.get("limit", default=100, type=int) or 100
         return jsonify(obtener_team_recaps(limit))
+
+    @app.route("/api/team-recaps/autor", methods=["POST"])
+    @app.route("/app/api/team-recaps/autor", methods=["POST"])
+    def api_team_recaps_autor():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.team_recaps import asignar_autor_recap
+
+        body = request.get_json(silent=True) or {}
+        try:
+            indice = int(body.get("indice"))
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "indice requerido"}), 400
+        resultado = asignar_autor_recap(indice, body.get("autor") or "")
+        return jsonify(resultado), (200 if resultado.get("ok") else 400)
 
     # ── Tema visual del sitio web público (mckennagroup.co) ──────────────────
     # Config compartida en PAGINA_WEB/site/data/tema_web.json; website.py (8083)
@@ -3556,6 +3763,8 @@ def register_routes(app):
             TEMAS_VALIDOS,
             cargar_tema_web,
             guardar_tema_web,
+            restaurar_diseno,
+            restaurar_layout,
             restaurar_tema_pureza,
         )
 
@@ -3564,6 +3773,7 @@ def register_routes(app):
                 "config": cargar_tema_web(),
                 "temas": list(TEMAS_VALIDOS),
                 "site_url": "https://mckennagroup.co",
+                "preview_url": os.environ.get("WEB_PREVIEW_URL", "http://127.0.0.1:8083"),
             })
 
         body = request.get_json(silent=True) or {}
@@ -3571,6 +3781,16 @@ def register_routes(app):
             return jsonify({
                 "config": restaurar_tema_pureza(),
                 "mensaje": "Contenido del tema Pureza restaurado a los valores por defecto",
+            })
+        if body.get("accion") == "restaurar_diseno":
+            return jsonify({
+                "config": restaurar_diseno(),
+                "mensaje": "Tokens del Studio de diseño restaurados",
+            })
+        if body.get("accion") == "restaurar_layout":
+            return jsonify({
+                "config": restaurar_layout(),
+                "mensaje": "Lienzo visual restaurado (posición y escala)",
             })
         try:
             nuevo = guardar_tema_web(body.get("config") or {})
@@ -6242,8 +6462,8 @@ def register_routes(app):
 
         Query:
           q — texto producto
-          anio — opcional (2025, 2026…). Si se omite, busca en todas las fuentes
-                 e incluye índice del año pasado (2025) cuando exista.
+          anio — opcional (2022…año actual). Si se omite, busca en todas las fuentes
+                 e incluye índices de archivo desde 2022 cuando existan.
         """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -6260,20 +6480,35 @@ def register_routes(app):
     @app.route("/api/facturas/consultar/indice", methods=["GET", "POST"])
     @app.route("/app/api/facturas/consultar/indice", methods=["GET", "POST"])
     def api_facturas_consultar_indice():
-        """Estado o reconstrucción del índice de consulta por año (p. ej. 2025 vía Gmail)."""
+        """Estado o reconstrucción del índice de consulta por año (archivo desde 2022).
+
+        POST body:
+          anio — un año (default 2025)
+          rango — true → indexa desde `desde` (default 2022) hasta `hasta` (año actual)
+          forzar — reconstruir aunque ya exista caché
+        """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
             from app.tools.importar_productos_siigo import (
+                ANIO_CONSULTA_ARCHIVO_MIN,
                 construir_indice_consulta_anio,
+                construir_indices_consulta_rango,
                 estado_indice_consulta_anio,
             )
             if request.method == "GET":
                 anio = int(request.args.get("anio") or 2025)
                 return jsonify(estado_indice_consulta_anio(anio))
             body = request.get_json(silent=True) or {}
-            anio = int(body.get("anio") or request.args.get("anio") or 2025)
             forzar = bool(body.get("forzar", True))
+            if body.get("rango") or str(body.get("anio") or "").lower() in ("todos", "all", "*"):
+                desde = int(body.get("desde") or ANIO_CONSULTA_ARCHIVO_MIN)
+                hasta_raw = body.get("hasta")
+                hasta = int(hasta_raw) if hasta_raw not in (None, "") else None
+                return jsonify(
+                    construir_indices_consulta_rango(desde=desde, hasta=hasta, forzar=forzar)
+                )
+            anio = int(body.get("anio") or request.args.get("anio") or 2025)
             return jsonify(construir_indice_consulta_anio(anio, forzar=forzar))
         except Exception as e:
             return jsonify({"ok": False, "error": str(e), "mensaje": str(e)}), 502
@@ -6540,6 +6775,37 @@ def register_routes(app):
 
             ok, message = marcar_solicitud_facturacion(reference)
             payload = {"ok": ok, "message": message, "reference": reference}
+            if not ok:
+                payload["error"] = message
+            return jsonify(payload), (200 if ok else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "message": str(e)}), 500
+
+    @app.route("/app/api/pedidos/web/anular", methods=["POST"])
+    @app.route("/api/pedidos/web/anular", methods=["POST"])
+    def api_pedidos_web_anular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        reference = (body.get("reference") or body.get("ref") or "").strip()
+        if not reference:
+            return jsonify({"ok": False, "message": "Falta la referencia del pedido."}), 400
+        reason = (body.get("reason") or body.get("motivo") or "").strip()
+        force = bool(body.get("force"))
+        try:
+            from app.tools.web_pedidos import anular_pedido_web
+
+            ok, message = anular_pedido_web(
+                reference,
+                reason=reason,
+                force=force,
+                notify_wa=True,
+            )
+            payload = {
+                "ok": ok,
+                "message": message,
+                "reference": reference.upper(),
+            }
             if not ok:
                 payload["error"] = message
             return jsonify(payload), (200 if ok else 400)
@@ -9039,10 +9305,12 @@ def register_routes(app):
             return _LOTE_PREFIJO_ETI
         vu = v.upper()
         if vu.startswith(_LOTE_PREFIJO_ETI.upper()):
-            return v
-        if vu.startswith("LOT"):
-            return _LOTE_PREFIJO_ETI + v[3:].lstrip(". ")
-        return _LOTE_PREFIJO_ETI + v
+            resto = v[len(_LOTE_PREFIJO_ETI):].lstrip(". ").strip()
+        elif vu.startswith("LOT"):
+            resto = v[3:].lstrip(". ").strip()
+        else:
+            resto = v
+        return f"{_LOTE_PREFIJO_ETI} {resto}" if resto else _LOTE_PREFIJO_ETI
 
     def _con_prefijo_exp_etiqueta(val):
         v = (val or "").strip()
@@ -9050,17 +9318,19 @@ def register_routes(app):
             return _EXP_PREFIJO_ETI
         vu = v.upper()
         if vu.startswith(_EXP_PREFIJO_ETI.upper()):
-            return v
-        if vu.startswith("EXP"):
-            return _EXP_PREFIJO_ETI + v[3:].lstrip(". ")
-        return _EXP_PREFIJO_ETI + v
+            resto = v[len(_EXP_PREFIJO_ETI):].lstrip(". ").strip()
+        elif vu.startswith("EXP"):
+            resto = v[3:].lstrip(". ").strip()
+        else:
+            resto = v
+        return f"{_EXP_PREFIJO_ETI} {resto}" if resto else _EXP_PREFIJO_ETI
 
     def _lote_impresion_etiqueta(val):
-        v = (val or "").strip()
+        v = _con_prefijo_lote_etiqueta(val)
         return "" if not v or v == _LOTE_PREFIJO_ETI else v
 
     def _exp_impresion_etiqueta(val):
-        v = (val or "").strip()
+        v = _con_prefijo_exp_etiqueta(val)
         return "" if not v or v == _EXP_PREFIJO_ETI else v
 
     def _rotacion_etiqueta_valida(val):

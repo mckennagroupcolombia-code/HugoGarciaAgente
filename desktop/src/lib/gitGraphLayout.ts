@@ -14,6 +14,7 @@ export interface GraphCommit {
   fecha: string;
   asunto: string;
   refs: string[];
+  autor_manual?: string | null;
 }
 
 export interface LaidOutCommit extends GraphCommit {

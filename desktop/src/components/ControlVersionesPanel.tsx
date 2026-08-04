@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useGitLog, type GitAutoCommitEstado } from "../hooks/useGitLog";
-import { useTeamRecaps, type TeamRecap } from "../hooks/useTeamRecaps";
+import { asignarAutorCommit, useGitLog, type GitAutoCommitEstado } from "../hooks/useGitLog";
+import { asignarAutorRecap, useTeamRecaps, type TeamRecap } from "../hooks/useTeamRecaps";
 import { layoutCommitGraph, type GraphEdge, type LaidOutCommit } from "../lib/gitGraphLayout";
+
+// Desarrolladores conocidos del proyecto (cuenta git compartida): usado para
+// el selector "¿Quién hizo esto?" en commits y recaps. Coincide con
+// DESARROLLADORES_CONOCIDOS en app/tools/git_history.py (solo sugerencia de UX;
+// el backend acepta cualquier texto).
+const DESARROLLADORES_CONOCIDOS = ["Cynthia", "Armando García"];
 
 // ── Paleta categórica (skill dataviz — references/palette.md, columna dark) ─
 // Orden fijo, nunca ciclado por rango/rank: se asigna por índice de carril.
@@ -243,13 +249,107 @@ function RefBadge({ nombre }: { nombre: string }) {
   );
 }
 
+/** Botón + menú pequeño: "¿Quién hizo esto?" — asigna autor entre los desarrolladores conocidos. */
+function SelectorAutorBoton({
+  valorActual,
+  onAsignar,
+  guardando,
+  compacto,
+  ocultarValorEnBoton,
+}: {
+  valorActual?: string | null;
+  onAsignar: (autor: string) => void;
+  guardando?: boolean;
+  compacto?: boolean;
+  /** Si el autor ya se muestra afuera (ej. chip en la tarjeta), no repetirlo en el botón. */
+  ocultarValorEnBoton?: boolean;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const mostrarValor = valorActual && !ocultarValorEnBoton;
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        disabled={guardando}
+        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition disabled:opacity-50 ${
+          mostrarValor
+            ? "border-accent/30 bg-accent/10 text-accent"
+            : "border-border bg-surface-hover text-muted hover:text-ink hover:border-accent/40"
+        }`}
+        title="Asignar quién hizo esto"
+      >
+        {guardando ? "…" : mostrarValor ? `👤 ${valorActual}` : compacto ? "¿Quién? ▾" : "¿Quién hizo esto? ▾"}
+      </button>
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
+          <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-border bg-surface-panel shadow-lg py-1">
+            <p className="px-3 py-1 text-[10px] text-muted uppercase tracking-wide">¿Quién hizo esto?</p>
+            {DESARROLLADORES_CONOCIDOS.map((nombre) => (
+              <button
+                key={nombre}
+                type="button"
+                onClick={() => {
+                  onAsignar(nombre);
+                  setAbierto(false);
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-surface-hover ${
+                  valorActual === nombre ? "text-accent font-semibold" : "text-ink"
+                }`}
+              >
+                <AutorChip autor={nombre} tamano={16} />
+                {nombre}
+                {valorActual === nombre && <span className="ml-auto">✓</span>}
+              </button>
+            ))}
+            {valorActual && (
+              <button
+                type="button"
+                onClick={() => {
+                  onAsignar("");
+                  setAbierto(false);
+                }}
+                className="w-full px-3 py-1.5 mt-1 border-t border-border/60 text-left text-xs text-muted hover:bg-surface-hover"
+              >
+                Quitar asignación
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function TabCommits() {
-  const { data, isLoading, error } = useGitLog(200);
+  const { data, isLoading, error, refetch } = useGitLog(200);
   const [seleccionado, setSeleccionado] = useState<LaidOutCommit | null>(null);
   const [zoom, setZoom] = useState(100);
   const [atenuarAuto, setAtenuarAuto] = useState(true);
+  const [guardandoHash, setGuardandoHash] = useState<string | null>(null);
 
   const layout = useMemo(() => layoutCommitGraph(data?.commits ?? []), [data?.commits]);
+
+  // Tras reasignar autor, `data` se refresca con objetos nuevos: mantener el
+  // commit seleccionado sincronizado con la versión más reciente (mismo hash).
+  useEffect(() => {
+    if (!seleccionado) return;
+    const actualizado = layout.nodes.find((n) => n.hash === seleccionado.hash);
+    if (actualizado && actualizado !== seleccionado) setSeleccionado(actualizado);
+  }, [layout.nodes, seleccionado]);
+
+  async function handleAsignarCommit(hash: string, autor: string) {
+    setGuardandoHash(hash);
+    try {
+      await asignarAutorCommit(hash, autor);
+      await refetch();
+    } catch {
+      /* silencioso — el chip vuelve a mostrar el valor anterior tras refetch */
+    } finally {
+      setGuardandoHash(null);
+    }
+  }
 
   const autores = useMemo(() => {
     const s = new Map<string, number>();
@@ -366,39 +466,45 @@ function TabCommits() {
           </svg>
 
           {/* Filas HTML alineadas al grafo (texto grande y legible) */}
-          <div className="flex-1 min-w-[420px]">
+          <div className="flex-1 min-w-[480px]">
             {layout.nodes.map((n) => {
               const activo = seleccionado?.hash === n.hash;
               const auto = esAutoCommit(n.asunto);
+              const nombreMostrado = n.autor_manual || n.autor;
               return (
-                <button
+                <div
                   key={n.hash}
-                  onClick={() => setSeleccionado(activo ? null : n)}
-                  className={`w-full flex items-center gap-3 px-3 text-left transition border-l-2 ${
-                    activo
-                      ? "bg-accent/10 border-accent"
-                      : "border-transparent hover:bg-surface-hover"
+                  className={`flex items-center gap-2 pr-3 border-l-2 transition ${
+                    activo ? "bg-accent/10 border-accent" : "border-transparent hover:bg-surface-hover"
                   } ${atenuarAuto && auto && !activo ? "opacity-45" : ""}`}
                   style={{ height: ROW_H }}
                 >
-                  <AutorChip autor={n.autor} />
-                  <span className="font-mono text-xs text-muted shrink-0">{n.hash_corto}</span>
-                  <span
-                    className={`text-[13.5px] truncate ${
-                      auto ? "text-muted" : "text-ink font-medium"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => setSeleccionado(activo ? null : n)}
+                    className="flex-1 min-w-0 flex items-center gap-3 pl-3 h-full text-left"
                   >
-                    {n.asunto}
-                  </span>
-                  <span className="flex items-center gap-1 ml-auto">
+                    <AutorChip autor={nombreMostrado} />
+                    <span className="font-mono text-xs text-muted shrink-0">{n.hash_corto}</span>
+                    <span
+                      className={`text-[13.5px] truncate ${auto ? "text-muted" : "text-ink font-medium"}`}
+                    >
+                      {n.asunto}
+                    </span>
+                  </button>
+                  <span className="flex items-center gap-1.5 shrink-0">
                     {n.refs.slice(0, 2).map((r) => (
                       <RefBadge key={r} nombre={r} />
                     ))}
-                    <span className="shrink-0 text-[11px] text-muted whitespace-nowrap pl-2">
-                      {fechaRelativa(n.fecha)}
-                    </span>
+                    <span className="text-[11px] text-muted whitespace-nowrap">{fechaRelativa(n.fecha)}</span>
+                    <SelectorAutorBoton
+                      valorActual={n.autor_manual}
+                      guardando={guardandoHash === n.hash}
+                      compacto
+                      onAsignar={(autor) => handleAsignarCommit(n.hash, autor)}
+                    />
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -421,11 +527,19 @@ function TabCommits() {
             )}
           </div>
           <p className="text-sm text-ink font-medium">{seleccionado.asunto}</p>
-          <div className="flex items-center gap-2">
-            <AutorChip autor={seleccionado.autor} tamano={20} />
+          <div className="flex flex-wrap items-center gap-2">
+            <AutorChip autor={seleccionado.autor_manual || seleccionado.autor} tamano={20} />
             <p className="text-xs text-muted">
               {seleccionado.autor} · {seleccionado.email}
+              {seleccionado.autor_manual && (
+                <span className="text-accent"> · asignado a {seleccionado.autor_manual}</span>
+              )}
             </p>
+            <SelectorAutorBoton
+              valorActual={seleccionado.autor_manual}
+              guardando={guardandoHash === seleccionado.hash}
+              onAsignar={(autor) => handleAsignarCommit(seleccionado.hash, autor)}
+            />
           </div>
           {seleccionado.refs.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -454,7 +568,15 @@ function badgeTipo(tipo: string): string {
   return TIPO_BADGE[tipo.trim().toLowerCase()] ?? "border-border bg-surface-hover text-muted";
 }
 
-function RecapCard({ recap }: { recap: TeamRecap }) {
+function RecapCard({
+  recap,
+  onAsignarAutor,
+  guardando,
+}: {
+  recap: TeamRecap;
+  onAsignarAutor: (indice: number, autor: string) => void;
+  guardando: boolean;
+}) {
   return (
     <div className="rounded-xl border border-border bg-surface-panel px-4 py-3.5 space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -473,6 +595,13 @@ function RecapCard({ recap }: { recap: TeamRecap }) {
             <span className="text-xs text-muted">{recap.autor}</span>
           </span>
         )}
+        <SelectorAutorBoton
+          valorActual={recap.autor || null}
+          guardando={guardando}
+          compacto
+          ocultarValorEnBoton
+          onAsignar={(autor) => onAsignarAutor(recap.indice, autor)}
+        />
       </div>
       {recap.que_se_implemento.length > 0 && (
         <ul className="list-disc list-inside space-y-0.5 text-xs text-ink/90">
@@ -491,10 +620,23 @@ function RecapCard({ recap }: { recap: TeamRecap }) {
 }
 
 function TabRecaps() {
-  const { data, isLoading, error } = useTeamRecaps(100);
+  const { data, isLoading, error, refetch } = useTeamRecaps(100);
   const [autorFiltro, setAutorFiltro] = useState<string | null>(null);
+  const [guardandoIndice, setGuardandoIndice] = useState<number | null>(null);
 
   const recaps = useMemo(() => data?.recaps ?? [], [data?.recaps]);
+
+  async function handleAsignarRecap(indice: number, autor: string) {
+    setGuardandoIndice(indice);
+    try {
+      await asignarAutorRecap(indice, autor);
+      await refetch();
+    } catch {
+      /* silencioso — refetch conserva el valor previo si falló */
+    } finally {
+      setGuardandoIndice(null);
+    }
+  }
 
   const autores = useMemo(() => {
     const s = new Map<string, number>();
@@ -562,8 +704,13 @@ function TabRecaps() {
         {visibles.length} recap{visibles.length !== 1 ? "s" : ""}
         {autorFiltro ? ` de ${autorFiltro}` : ""} · más reciente primero
       </p>
-      {visibles.map((r, i) => (
-        <RecapCard key={i} recap={r} />
+      {visibles.map((r) => (
+        <RecapCard
+          key={r.indice}
+          recap={r}
+          onAsignarAutor={handleAsignarRecap}
+          guardando={guardandoIndice === r.indice}
+        />
       ))}
     </div>
   );
