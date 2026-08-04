@@ -8,6 +8,7 @@ import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon, type UiIconName } from "../icons";
 import UserAvatar from "./UserAvatar";
+import ThemeModeToggle from "./ThemeModeToggle";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -79,19 +80,19 @@ interface QuickCategory {
 // ── Quick categories ───────────────────────────────────────────────────────────
 
 const QUICK_CATS: QuickCategory[] = [
-  { slug: "etiquetas",     label: "Etiquetas",    icon: "tag",     tone: "plum",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "inventario",    label: "Inventario",   icon: "package", tone: "sky",     color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "ventas",        label: "Ventas MeLi",  icon: "cart",    tone: "sun",     color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "contabilidad",  label: "Contabilidad", icon: "receipt", tone: "leaf",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
-  { slug: "mantenimiento", label: "Mantenim.",    icon: "wrench",  tone: "rose",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "etiquetas",     label: "Etiquetas",    icon: "tag",     tone: "plum",    color: "bg-accent/10 text-accent" },
+  { slug: "inventario",    label: "Inventario",   icon: "package", tone: "sky",     color: "bg-accent/10 text-accent" },
+  { slug: "ventas",        label: "Ventas MeLi",  icon: "cart",    tone: "sun",     color: "bg-accent/10 text-accent" },
+  { slug: "contabilidad",  label: "Contabilidad", icon: "receipt", tone: "leaf",    color: "bg-accent/10 text-accent" },
+  { slug: "mantenimiento", label: "Mantenim.",    icon: "wrench",  tone: "rose",    color: "bg-accent/10 text-accent" },
   { slug: "general",       label: "General",      icon: "chat",    tone: "neutral", color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
 ];
 
 const ESTADO_COLOR: Record<string, string> = {
-  pendiente:            "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
-  en_proceso:           "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
-  esperando_aprobacion: "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
-  resuelto:             "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
+  pendiente:            "bg-accent/10 text-accent",
+  en_proceso:           "bg-accent/10 text-accent",
+  esperando_aprobacion: "bg-accent/10 text-accent",
+  resuelto:             "bg-accent/10 text-accent",
   rechazado:            "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-200",
 };
 
@@ -171,8 +172,8 @@ function NuevaSolicitudSheet({
         <div className="overflow-y-auto px-5 pb-8 pt-2">
           {done ? (
             <div className="flex flex-col items-center gap-3 py-10">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 dark:bg-accent/30">
-                <Icon name="check" size={32} weight="duotone" className="text-accent dark:text-accent/40" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+                <Icon name="check" size={32} weight="duotone" className="text-accent" />
               </div>
               <p className="text-center font-bold text-ink">Solicitud enviada</p>
               <p className="text-center text-sm text-muted">El equipo la recibirá pronto</p>
@@ -370,7 +371,7 @@ function HomeTab({
               <span
                 key={key}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                  ok ? "bg-accent/5 text-accent dark:bg-accent/30 dark:text-accent/30" : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
+                  ok ? "bg-accent/5 text-accent" : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-accent/50" : "bg-red-500"}`} />
@@ -582,12 +583,12 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
         <button
           type="button"
           onClick={() => onNavigateTo("preventa")}
-          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-accent/5 border border-accent/20 dark:bg-accent/20 dark:border-accent/40 px-4 py-3.5 text-left transition-all active:scale-[0.98]"
+          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-accent/5 border border-accent/20   px-4 py-3.5 text-left transition-all active:scale-[0.98]"
         >
           <IllustrationIcon name="question" size={28} tone="sun" />
           <div className="flex-1">
-            <p className="font-bold text-accent dark:text-accent/20">{preventa} pregunta{preventa > 1 ? "s" : ""} sin responder</p>
-            <p className="text-sm text-accent dark:text-accent/40">Preventa MercadoLibre · Toca para ver</p>
+            <p className="font-bold text-accent">{preventa} pregunta{preventa > 1 ? "s" : ""} sin responder</p>
+            <p className="text-sm text-accent">Preventa MercadoLibre · Toca para ver</p>
           </div>
           <span className="text-accent/50">→</span>
         </button>
@@ -610,7 +611,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
                 {res === "loading" ? (
                   <p className="mt-0.5 text-xs text-accent animate-pulse">Procesando…</p>
                 ) : res ? (
-                  <p className={`mt-0.5 text-xs font-semibold ${res.ok ? "text-accent dark:text-accent/40" : "text-red-500"}`}>
+                  <p className={`mt-0.5 text-xs font-semibold ${res.ok ? "text-accent" : "text-red-500"}`}>
                     {res.ok ? "✓ " : "✗ "}{res.msg}
                   </p>
                 ) : (
@@ -679,6 +680,7 @@ function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => v
 
       {/* Menu */}
       <div className="space-y-2">
+        <ThemeModeToggle variant="sidebar" className="rounded-2xl bg-surface-panel px-4 py-4 shadow-paper-sm" />
         {[
           { icon: "nut" as UiIconName, label: "Ajustes y preferencias", action: () => onNavigateTo("settings") },
           { icon: "user" as UiIconName, label: "Mi perfil", action: () => onNavigateTo("perfil") },

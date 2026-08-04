@@ -183,7 +183,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
         </div>
 
         {authError && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
             {authError}
           </div>
         )}

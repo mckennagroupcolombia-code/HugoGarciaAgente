@@ -117,8 +117,9 @@ Endpoints usados por React:
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
 | `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo) |
-| `/api/stock/relacion-codigos` | GET | `buscar`, `filtro`, `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` |
+| `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
+| `/api/stock/relacion-codigos/editar` | POST | `meli_id`, `sku_meli?`, `codigo_siigo?`, `vincular_si_sku?` | Actualiza SKU en MeLi (`SELLER_SKU`) y/o vínculo Siigo; al menos un campo de código |
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
 | `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea Product inventariable; `{ok, mensaje\|error, siigo_producto?}` |
 | `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Siigo + caché; `{items[{codigo,nombre,type}], total}` |

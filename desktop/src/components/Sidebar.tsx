@@ -11,48 +11,17 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import TemasSidebarButton from "./TemasSidebarButton";
-import NavCollapsibleGroup from "./nav/NavCollapsibleGroup";
-import NavContabilidadHub from "./nav/NavContabilidadHub";
-import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
-import { puedeVerModuloLogistica } from "../lib/logisticaAccess";
+import NavCategoryHub from "./nav/NavCategoryHub";
 import { NAV_SECTIONS } from "../lib/navStructure";
 import type { NavItemDef } from "../lib/navStructure";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import { useUiMode } from "../stores/uiMode";
 import { PANEL_INFO, type PanelTier } from "../lib/panelInfo";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon } from "../icons";
 
-// ── Access control ─────────────────────────────────────────────────────────────
-
-function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
-  if (!user) return false;
-  const logistica = puedeVerModuloLogistica(user, seccion);
-  if (logistica !== null) return logistica;
-  const contab = puedeVerModuloContabilidad(user, seccion);
-  if (contab !== null) return contab;
-  if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
-  if ((user.rol?.nivel ?? 0) >= 3) return true;
-  if (seccion === "settings") return true;
-  if (seccion === "etiquetas") return true;
-  const p = user.permisos_secciones;
-  if (!p) return new Set(["tickets", "etiquetas"]).has(seccion);
-  if (seccion === "postventa" && p.preventa) return true;
-  return Boolean(p[seccion]);
-}
-
-function puedeVerTickets(user: TicketsUser): boolean {
-  if ((user.rol?.nivel ?? 0) >= 3) return true;
-  const p = user.permisos_secciones;
-  if (!p) return new Set(["tickets", "etiquetas"]).has("tickets");
-  return Boolean(p.tickets);
-}
-
-export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string): boolean {
-  return puedeVerSeccion(user, seccion);
-}
-
-// ── NavItem ────────────────────────────────────────────────────────────────────
+export { puedeVerSeccionPanel } from "../lib/panelAccess";
 
 function NavItem({
   id, panel, user, badges = {}, onNavigate, advanced, tier,
@@ -66,11 +35,11 @@ function NavItem({
   tier: PanelTier;
 }) {
   const [hovered, setHovered] = useState(false);
-  if (!puedeVerSeccion(user, id)) return null;
+  if (!puedeVerSeccionPanel(user, id)) return null;
   if (tier === "advanced" && !advanced) return null;
 
   const info = PANEL_INFO[id];
-  const active = panel === id || (id === "hugo" && panel === "tickets");
+  const active = panel === id;
   const badge = badges[id] ?? 0;
   const label = info?.label ?? id;
   const description = info?.description ?? "";
@@ -95,12 +64,8 @@ function NavItem({
             {badge > 99 ? "99+" : badge}
           </span>
         )}
-        {tier === "advanced" && !active && (
-          <span className="shrink-0 rounded px-1 text-[9px] font-bold uppercase tracking-wide text-muted opacity-60">pro</span>
-        )}
       </button>
 
-      {/* Tooltip on hover (desktop only) — shows description */}
       {hovered && description && !active && (
         <div className="mck-tooltip-fly pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel/95 p-3 shadow-paper-lg backdrop-blur-sm">
           <p className="mb-1 flex items-center gap-2 text-xs font-bold text-ink">
@@ -119,18 +84,6 @@ function NavItem({
   );
 }
 
-// ── SectionLabel ───────────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted/70">
-      {children}
-    </p>
-  );
-}
-
-// ── Divider ────────────────────────────────────────────────────────────────────
-
 function Divider() {
   return <div className="mx-3 my-1 h-px bg-border/60" />;
 }
@@ -141,11 +94,9 @@ function sectionVisible(
   advanced: boolean,
 ): boolean {
   return items.some(
-    (item) => puedeVerSeccion(user, item.panel) && (item.tier !== "advanced" || advanced),
+    (item) => puedeVerSeccionPanel(user, item.panel) && (item.tier !== "advanced" || advanced),
   );
 }
-
-// ── AdvancedToggle ─────────────────────────────────────────────────────────────
 
 function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: () => void }) {
   return (
@@ -158,9 +109,7 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
           : "text-muted hover:bg-surface-hover hover:text-ink"
       }`}
     >
-      <span className="text-base">
-        <Icon name={advanced ? "flask" : "lock"} size={18} weight="duotone" />
-      </span>
+      <Icon name={advanced ? "flask" : "lock"} size={18} weight="duotone" />
       <span className="flex-1">{advanced ? "Modo avanzado activo" : "Activar modo avanzado"}</span>
       <span
         className={`relative h-5 w-9 rounded-full transition-colors ${
@@ -176,8 +125,6 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
     </button>
   );
 }
-
-// ── Main Sidebar ───────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
   const panel = useAppStore((s) => s.panel);
@@ -243,12 +190,11 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border/80 bg-surface-panel/95 backdrop-blur-md
+        mck-sidebar fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border/80 bg-surface-panel/95 backdrop-blur-md
         transition-transform duration-300 ease-out lg:static lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
     >
-      {/* ── Header: Branding + Usuario ── */}
       <div className="shrink-0 border-b border-border px-4 pb-4 pt-5">
         {user && token ? (
           <div className="flex items-center gap-3">
@@ -294,70 +240,30 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* ── Nav (estructura centralizada en lib/navStructure.ts) ── */}
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
+      <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2.5 py-3">
         {NAV_SECTIONS.filter(
           (section) =>
             (!section.advancedOnly || advanced)
             && sectionVisible(section.items, user, advanced),
-        ).map((section, idx) => (
-          <div key={section.id}>
-            {idx > 0 && <Divider />}
-            {!section.collapsible && !section.hub && <SectionLabel>{section.label}</SectionLabel>}
-            <div className="space-y-0.5">
-              {section.hub ? (
-                <NavContabilidadHub
-                  label={section.label}
-                  items={section.items}
-                  panel={panel}
-                  user={user}
-                  badges={badges}
-                  puedeVer={puedeVerSeccion}
-                  onNavigate={navegarPanel}
-                />
-              ) : section.collapsible ? (
-                <NavCollapsibleGroup
-                  label={section.label}
-                  items={section.items}
-                  panel={panel}
-                  user={user}
-                  advanced={advanced}
-                  badges={badges}
-                  puedeVer={puedeVerSeccion}
-                  onNavigate={navegarPanel}
-                  badgePanel={undefined}
-                />
-              ) : (
-                section.items.map((item) => (
-                  <NavItem
-                    key={item.panel}
-                    id={item.panel}
-                    panel={panel}
-                    user={user}
-                    badges={badges}
-                    onNavigate={navegarPanel}
-                    advanced={advanced}
-                    tier={item.tier}
-                  />
-                ))
-              )}
-            </div>
-          </div>
+        ).map((section) => (
+          <NavCategoryHub
+            key={section.id}
+            sectionId={section.id}
+            items={section.items}
+            panel={panel}
+            user={user}
+            badges={badges}
+            puedeVer={puedeVerSeccionPanel}
+            onNavigate={navegarPanel}
+          />
         ))}
 
         <Divider />
-        <SectionLabel>Cuenta</SectionLabel>
-        <div className="space-y-0.5">
-          <NavItem id="settings" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
-        </div>
+        <NavItem id="settings" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
       </nav>
 
-      {/* ── Footer ── */}
       <div className="shrink-0 space-y-1 border-t border-border px-2.5 py-3">
-        {/* Modo avanzado toggle */}
         <AdvancedToggle advanced={advanced} onToggle={toggleAdvanced} />
-
-        {/* Help reset */}
         {advanced && (
           <button
             type="button"
@@ -368,9 +274,7 @@ export default function Sidebar() {
             Volver a mostrar ayudas
           </button>
         )}
-
         <TemasSidebarButton />
-
         <button
           type="button"
           onClick={logout}

@@ -99,6 +99,9 @@ export default function TemasSidebarButton() {
                 </button>
               ))}
             </div>
+            <p className="mt-1.5 text-[10px] leading-snug text-muted">
+              Oscuro: base #2B454F (teal McKenna) con jerarquía tipo editor.
+            </p>
           </div>
 
           <div>

@@ -3412,6 +3412,45 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/stock/relacion-codigos/editar", methods=["POST"])
+    @app.route("/app/api/stock/relacion-codigos/editar", methods=["POST"])
+    def api_stock_relacion_codigos_editar():
+        """Edita SKU en MeLi y/o vínculo código Siigo → meli_id."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        meli_id = str(body.get("meli_id") or "").strip()
+        sku_meli = str(body.get("sku_meli") or body.get("sku") or "").strip()
+        codigo_siigo = str(body.get("codigo_siigo") or "").strip()
+        vincular_si_sku = body.get("vincular_si_sku", True)
+        if isinstance(vincular_si_sku, str):
+            vincular_si_sku = vincular_si_sku.strip().lower() in ("1", "true", "yes", "si", "sí")
+        if not meli_id:
+            return jsonify({"error": "Campo 'meli_id' requerido"}), 400
+        if not sku_meli and not codigo_siigo:
+            return jsonify({"error": "Indica 'sku_meli' y/o 'codigo_siigo'"}), 400
+        try:
+            from app.tools.relacion_codigos_meli_siigo import editar_relacion_codigos
+            from app.panel_activity import log_line
+
+            res = editar_relacion_codigos(
+                meli_id,
+                sku_meli=sku_meli,
+                codigo_siigo=codigo_siigo,
+                vincular_si_sku=bool(vincular_si_sku),
+            )
+            partes = []
+            if res.get("meli"):
+                partes.append(f"SKU MeLi→{res['meli'].get('sku_meli')}")
+            if res.get("vinculo"):
+                partes.append(f"Siigo {res['vinculo'].get('codigo_siigo')}")
+            log_line(f"✔ edición códigos {meli_id}: {', '.join(partes) or 'ok'}")
+            return jsonify(res)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/stock/sincronizar-todo", methods=["POST"])
     def api_stock_sincronizar_todo():
         if not _api_token_valido():

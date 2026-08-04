@@ -105,10 +105,16 @@ export default function ContabilidadPanel() {
     : activo;
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
-        <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
-      </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      {subpanelId === "rentabilidad" ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+          <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
+        </div>
+      )}
     </div>
   );
 }

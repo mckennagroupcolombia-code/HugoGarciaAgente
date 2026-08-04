@@ -86,6 +86,7 @@ export function leerUltimoPanelContabilidad(): ContabilidadPanelId | null {
 export function guardarUltimoPanelContabilidad(panel: ContabilidadPanelId): void {
   try {
     localStorage.setItem(LAST_KEY, panel);
+    localStorage.setItem("mckenna-hub-last:contabilidad", panel);
   } catch {
     /* ignore */
   }
@@ -108,5 +109,9 @@ export function primerPanelContabilidad(
   }
   const last = leerUltimoPanelContabilidad();
   if (last && visibles.includes(last)) return last;
+  try {
+    const hubLast = localStorage.getItem("mckenna-hub-last:contabilidad") || "";
+    if (esPanelContabilidad(hubLast) && visibles.includes(hubLast)) return hubLast;
+  } catch { /* */ }
   return visibles[0] ?? "facturas";
 }

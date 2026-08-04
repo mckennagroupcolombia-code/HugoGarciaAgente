@@ -710,23 +710,23 @@ interface UsuarioResumen {
   permisos_secciones: Record<string, boolean> | null;
 }
 
-// Sidebar sections (top-level)
+// Permisos por panel — mismo orden conceptual que el sidebar (navStructure).
 const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
-  { id: "dashboard",  label: "Dashboard" },
-  { id: "chat",       label: "Chat IA" },
-  { id: "voz",        label: "Voz IA" },
-  { id: "webchat",    label: "Chat web" },
-  { id: "whatsapp",   label: "Agente WA" },
+  { id: "tickets",    label: "Agenda / Centro de Mando" },
+  { id: "dashboard",  label: "Métricas" },
   { id: "preventa",   label: "Preventa MeLi" },
   { id: "postventa",  label: "Postventa MeLi" },
+  { id: "pedidos",    label: "Pedidos Web" },
+  { id: "chat",       label: "Chat IA" },
+  { id: "whatsapp",   label: "Agente WA" },
+  { id: "webchat",    label: "Chat web" },
   { id: "stock",      label: "Stock" },
+  { id: "etiquetas",  label: "Impresora · Etiquetas" },
   { id: "fichas",     label: "Docs técnicos" },
   { id: "publicaciones", label: "Publicaciones" },
-  { id: "pedidos",    label: "Pedidos Web" },
-  { id: "logistica-internacional", label: "Logística Internacional" },
-  { id: "etiquetas",  label: "Impresora · Etiquetas" },
   { id: "placas-concreto", label: "Placas de Concreto" },
-  { id: "tickets",    label: "Centro de Mando" },
+  { id: "logistica-internacional", label: "Logística Internacional" },
+  { id: "voz",        label: "Voz IA" },
   { id: "settings",   label: "Ajustes" },
 ];
 
