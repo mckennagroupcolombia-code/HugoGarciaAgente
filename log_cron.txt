@@ -27,3 +27,47 @@
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=13 activas=10 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel 45b96d1] Auto-commit: actualizacion diaria 2026-08-03 23:00
+ 82 files changed, 7192 insertions(+), 5989 deletions(-)
+ delete mode 100644 .tunnel.pid
+ delete mode 100644 .website.pid
+ create mode 100644 app/data/compras_exterior_soportes/20260803_113716_bbe2a5d5_20260803_105453_0a9b760c_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_113716_d3071b0f_20260803_105453_f9d0590f_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_205349_42b7576d_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_205613_4b1f4bca_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_210320_331e9180_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_210320_debb76e9_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_211000_324a64f7_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_211000_fcf9ba73_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260803_211532_21f1edee_imagen.png
+ create mode 100644 app/data/facturas_consulta_2025.json
+ create mode 100644 app/services/trm.py
+ create mode 100644 desktop/src/components/ContabilidadHerramientas.tsx
+ create mode 100644 desktop/src/components/ContabilidadNavTabs.tsx
+ create mode 100644 desktop/src/components/CrearProductosSiigoPanel.tsx
+ create mode 100644 desktop/src/components/CrearSiigoFab.tsx
+ create mode 100644 desktop/src/components/FloatingToolWindow.tsx
+ delete mode 100644 infografias_preview/comparativa_alfa-arbutina_vs_acido-kojico.jpg
+ delete mode 100644 infografias_preview/ficha_aceite-esencial-bergamota.jpg
+ delete mode 100644 infografias_preview/ficha_acido-salicilico.jpg
+ delete mode 100644 infografias_preview/receta_26.jpg
+ delete mode 100644 infografias_preview/receta_36.jpg
+ delete mode 100644 infografias_preview/tip_aceite-esencial-bergamota.jpg
+ delete mode 100644 infografias_preview/tip_acido-salicilico.jpg
+ delete mode 100644 pipeline_temp/jabon_potasico.mp3
+ delete mode 100644 pipeline_temp/jabon_potasico_final.mp4
+ delete mode 100644 pipeline_temp/jabon_potasico_infografia.jpg
+ delete mode 100644 pipeline_temp/jabon_potasico_raw.mp4
+ delete mode 100644 pipeline_temp/jabon_potasico_v2.mp3
+ delete mode 100644 pipeline_temp/linaza_final.mp4
+ delete mode 100644 pipeline_temp/linaza_test.mp4
+ delete mode 100644 tunnel_url.txt
+ create mode 100644 uploads/tickets/0c029cd737eb4c3581d517d96416565d.docx
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-03 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

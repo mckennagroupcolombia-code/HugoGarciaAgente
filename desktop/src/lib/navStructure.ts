@@ -3,13 +3,17 @@ import type { PanelTier } from "./panelInfo";
 import { CONTABILIDAD_PANELS, CONTABILIDAD_TAB_OCULTAS } from "./contabilidadAccess";
 import { LOGISTICA_PANELS } from "./logisticaAccess";
 
+/**
+ * Categorías del sidebar — cada una es un hub (un botón + pestañas en el cabezote),
+ * misma lógica/estética que Contabilidad.
+ */
 export type NavCategory =
   | "inicio"
-  | "clientes"
-  | "productos"
+  | "atencion"
+  | "canales"
+  | "inventario"
   | "contabilidad"
-  | "contenido"
-  | "produccion"
+  | "tienda"
   | "logistica"
   | "sistemas";
 
@@ -21,9 +25,9 @@ export interface NavItemDef {
 export interface NavSection {
   id: NavCategory;
   label: string;
-  /** Grupo plegable (logística). */
+  /** @deprecated Todos los hubs usan pestañas en el encabezado. */
   collapsible?: boolean;
-  /** Un solo botón en sidebar; subpaneles viven como pestañas internas. */
+  /** Un solo botón en sidebar; subpaneles como pestañas internas. */
   hub?: boolean;
   /** Solo visible con modo avanzado activo. */
   advancedOnly?: boolean;
@@ -33,26 +37,36 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
   {
     id: "inicio",
     label: "Inicio",
+    hub: true,
     items: [
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
-      { panel: "chat", tier: "core" },
     ],
   },
   {
-    id: "clientes",
-    label: "Clientes y ventas",
+    id: "atencion",
+    label: "Atención",
+    hub: true,
     items: [
       { panel: "preventa", tier: "core" },
       { panel: "postventa", tier: "core" },
       { panel: "pedidos", tier: "core" },
+    ],
+  },
+  {
+    id: "canales",
+    label: "Canales",
+    hub: true,
+    items: [
+      { panel: "chat", tier: "core" },
       { panel: "whatsapp", tier: "standard" },
       { panel: "webchat", tier: "advanced" },
     ],
   },
   {
-    id: "productos",
-    label: "Productos e inventario",
+    id: "inventario",
+    label: "Inventario",
+    hub: true,
     items: [
       { panel: "stock", tier: "core" },
       { panel: "etiquetas", tier: "core" },
@@ -74,28 +88,26 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     ),
   },
   {
-    id: "contenido",
-    label: "Contenido",
+    id: "tienda",
+    label: "Tienda y taller",
+    hub: true,
     items: [
       { panel: "publicaciones", tier: "standard" },
       { panel: "sitioweb", tier: "standard" },
+      { panel: "placas-concreto", tier: "standard" },
     ],
   },
   {
-    id: "produccion",
-    label: "Producción",
-    items: [{ panel: "placas-concreto", tier: "standard" }],
-  },
-  {
     id: "logistica",
-    label: "Logística internacional",
-    collapsible: true,
+    label: "Logística",
+    hub: true,
     advancedOnly: true,
     items: LOGISTICA_PANELS.map((panel) => ({ panel, tier: "advanced" as PanelTier })),
   },
   {
     id: "sistemas",
-    label: "Monitoreo",
+    label: "Sistemas",
+    hub: true,
     advancedOnly: true,
     items: [
       { panel: "supervisor", tier: "advanced" },
@@ -113,19 +125,19 @@ export const NAV_PANEL_ORDER: Panel[] = [
 
 export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   inicio: "Inicio",
-  clientes: "Clientes y ventas",
-  productos: "Productos e inventario",
+  atencion: "Atención",
+  canales: "Canales",
+  inventario: "Inventario",
   contabilidad: "Contabilidad",
-  contenido: "Contenido",
-  produccion: "Producción",
-  logistica: "Logística internacional",
-  sistemas: "Monitoreo",
+  tienda: "Tienda y taller",
+  logistica: "Logística",
+  sistemas: "Sistemas",
 };
 
 export function navSectionForPanel(panel: Panel): NavCategory | null {
   for (const section of NAV_SECTIONS) {
     if (section.items.some((i) => i.panel === panel)) return section.id;
   }
-  if (panel === "settings" || panel === "perfil") return "inicio";
+  if (panel === "settings" || panel === "perfil") return null;
   return null;
 }

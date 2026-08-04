@@ -2,14 +2,15 @@ import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
+import HubNavTabs from "./nav/HubNavTabs";
+import ThemeModeToggle from "./ThemeModeToggle";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
-import { PanelIcon } from "../icons/PanelIcon";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { navSectionForPanel, NAV_CATEGORY_LABEL } from "../lib/navStructure";
-import { esPanelContabilidad } from "../lib/contabilidadAccess";
+import { HUB_SECTION_ICON } from "../lib/hubNav";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
 
@@ -23,29 +24,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { advanced } = useUiMode();
   const isCentroMando = panel === "hugo" || panel === "tickets";
   const hubIntegrado = isCentroMando && centroMandoView === "home";
-  const hubContabilidad = esPanelContabilidad(panel);
 
   const sectionId = navSectionForPanel(panel);
+  const isHub = sectionId != null;
   const sectionLabel = sectionId ? NAV_CATEGORY_LABEL[sectionId] : null;
   const panelInfo = PANEL_INFO[panel];
+
   const headerTitle = panel === "perfil"
     ? "Mi perfil"
-    : hubIntegrado
-    ? "Hugo · Centro de Mando"
-    : hubContabilidad
-    ? "Contabilidad"
+    : isHub && sectionLabel
+    ? sectionLabel
     : panelInfo?.label ?? "Panel de operaciones";
 
   const headerSubtitle =
     panel === "perfil"
       ? "Cuenta"
-      : hubIntegrado
-      ? "Inicio"
-      : hubContabilidad
-      ? null
-      : sectionLabel;
-
-  const showPanelIcon = panel !== "perfil" && !hubIntegrado && !hubContabilidad && panelInfo;
+      : panel === "settings"
+      ? "Cuenta"
+      : null;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface">
@@ -71,20 +67,20 @@ export default function Layout({ children }: { children: ReactNode }) {
           </button>
 
           <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
-            {showPanelIcon && (
-              <PanelIcon panel={panel} size={32} bubble className="shrink-0" />
-            )}
-            {hubIntegrado && (
-              <PanelIcon panel="hugo" size={32} bubble className="shrink-0" />
-            )}
-            {hubContabilidad && (
-              <PanelIcon panel="facturas" size={28} bubble className="shrink-0" />
-            )}
+            {isHub && sectionId ? (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <Icon name={HUB_SECTION_ICON[sectionId]} size={20} weight="duotone" />
+              </span>
+            ) : panel === "perfil" || panel === "settings" ? (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
+              </span>
+            ) : null}
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
                 {headerTitle}
               </h1>
-              {headerSubtitle && !hubIntegrado && (
+              {headerSubtitle && (
                 <p className="hidden truncate text-[10px] leading-snug text-muted lg:block">
                   {headerSubtitle}
                 </p>
@@ -92,15 +88,25 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {hubContabilidad ? (
-            <ContabilidadNavTabs />
-          ) : (
-            advanced && (
-              <span className="ml-auto hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent lg:inline">
-                Avanzado
-              </span>
-            )
+          {isHub && sectionId === "contabilidad" && (
+            <div className="min-w-0 flex-1">
+              <ContabilidadNavTabs />
+            </div>
           )}
+          {isHub && sectionId && sectionId !== "contabilidad" && (
+            <div className="min-w-0 flex-1">
+              <HubNavTabs sectionId={sectionId} />
+            </div>
+          )}
+          {!isHub && advanced && (
+            <span className="ml-auto hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent lg:inline">
+              Avanzado
+            </span>
+          )}
+
+          <div className={`shrink-0 ${isHub || advanced ? "ml-2" : "ml-auto"}`}>
+            <ThemeModeToggle />
+          </div>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -110,12 +116,20 @@ export default function Layout({ children }: { children: ReactNode }) {
                 ? hubIntegrado
                   ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
                   : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
-                : hubContabilidad
+                : sectionId === "contabilidad"
+                ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
+                : isHub
                 ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
                 : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"
             }`}
           >
-            <PanelTransition>{children}</PanelTransition>
+            {isHub && !isCentroMando && sectionId !== "contabilidad" ? (
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+                <PanelTransition>{children}</PanelTransition>
+              </div>
+            ) : (
+              <PanelTransition>{children}</PanelTransition>
+            )}
           </div>
           {isAdmin && !hubIntegrado && (
             <div className="shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm lg:px-8">

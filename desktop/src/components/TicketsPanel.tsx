@@ -1034,8 +1034,8 @@ function TicketRecurrenciaSection({
   }
 
   return (
-    <div className="rounded-xl border-2 border-accent/20 bg-accent/50 p-4 space-y-3 dark:border-accent dark:bg-accent/30">
-      <p className="text-xs font-bold uppercase tracking-wide text-accent dark:text-accent/30">
+    <div className="rounded-xl border-2 border-accent/20 bg-accent/50 p-4 space-y-3 dark:border-accent">
+      <p className="text-xs font-bold uppercase tracking-wide text-accent">
         ♻️ Recurrencia del ticket
       </p>
       {canEdit ? (
@@ -1058,7 +1058,7 @@ function TicketRecurrenciaSection({
         </p>
       )}
       {ticket.frecuencia && ticket.proxima_renovacion && ticket.estado === "resuelto" && (
-        <p className="text-xs font-semibold text-accent dark:text-accent/40">
+        <p className="text-xs font-semibold text-accent">
           ⏰ Próxima renovación automática: {fmtFecha(ticket.proxima_renovacion)}
         </p>
       )}
@@ -2269,7 +2269,7 @@ function ReinosView({
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Ubicación padre *</label>
               {!hayPadresDepartamento ? (
-                <p className="text-xs text-accent dark:text-accent/30">
+                <p className="text-xs text-accent">
                   No hay zonas en el catálogo. Crea primero una <strong>zona</strong> bajo el reino (ej. Cocina).
                 </p>
               ) : (
@@ -2304,7 +2304,7 @@ function ReinosView({
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Zona padre * (debe ser zona, no el reino)</label>
               {zonasParaSub.length === 0 ? (
-                <p className="text-xs text-accent dark:text-accent/30">
+                <p className="text-xs text-accent">
                   No hay zonas todavía. Usa <strong>+ Zona</strong> bajo un reino, o el botón <strong>+ Zona</strong> en la fila del reino.
                 </p>
               ) : (
@@ -2409,7 +2409,7 @@ function ReinosView({
       )}
 
       {actionMsg && (
-        <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent dark:bg-accent/50 dark:text-accent/30" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
+        <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
           {actionMsg.text}
         </p>
       )}
@@ -3683,7 +3683,7 @@ function MisionGroupCard({
                 </span>
               </>
             )}
-            {isComplete && <span className="font-bold text-accent dark:text-accent/70">✓</span>}
+            {isComplete && <span className="font-bold text-accent">✓</span>}
           </p>
         </button>
         {progMision.total > 0 && (
@@ -5404,11 +5404,11 @@ function NotaAccionInline({
   }
 
   return (
-    <div className="rounded-2xl border border-accent/70 dark:border-accent/50 bg-accent/60 dark:bg-accent/20 p-4">
+    <div className="rounded-2xl border border-accent/70  bg-accent/60  p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-sm font-extrabold text-accent dark:text-accent/30">📝 Notas</span>
+        <span className="text-sm font-extrabold text-accent">📝 Notas</span>
         {saving && <span className="text-[10px] text-muted animate-pulse">Guardando…</span>}
-        {saved && <span className="text-[10px] text-accent dark:text-accent/40">✓ Guardado</span>}
+        {saved && <span className="text-[10px] text-accent">✓ Guardado</span>}
       </div>
       <textarea
         readOnly={readOnly}
@@ -5419,7 +5419,7 @@ function NotaAccionInline({
         }}
         placeholder="Anota ideas, pendientes, observaciones…"
         rows={4}
-        className="w-full resize-none rounded-xl border border-accent/50 dark:border-accent/40 bg-white/70 dark:bg-accent/30 px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-accent/50 dark:focus:border-accent/50 transition-colors"
+        className="w-full resize-none rounded-xl border border-accent/50  bg-white/70  px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-accent/50  transition-colors"
       />
     </div>
   );
@@ -6575,7 +6575,7 @@ function PasoNotaPostit({
         type="button"
         onClick={onToggle}
         title={tieneNota ? "Ver nota post-it" : "Agregar nota post-it"}
-        className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-accent/50 dark:bg-accent/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
+        className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5   dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
       >
         📝
         {tieneNota && (
@@ -6584,18 +6584,18 @@ function PasoNotaPostit({
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-accent/60 dark:bg-accent/5 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
+          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)]   dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
           role="dialog"
           aria-label={`Nota: ${titulo}`}
         >
-          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80 dark:text-accent/90">
+          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80">
             {titulo}
           </p>
           <ProseTextarea
             readOnly={readonly}
             rows={4}
             autoFocus={!readonly}
-            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent dark:bg-accent/40 dark:text-accent/5 dark:placeholder:text-accent/30"
+            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
             placeholder="Detalle, tips o contexto del paso…"
             value={noteDraft}
             onChange={(e) => onNoteDraftChange(e.target.value)}
@@ -6605,7 +6605,7 @@ function PasoNotaPostit({
               <button
                 type="button"
                 onClick={onToggle}
-                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5 dark:text-accent/70"
+                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5"
               >
                 Cancelar
               </button>
@@ -6613,7 +6613,7 @@ function PasoNotaPostit({
                 type="button"
                 onClick={onSave}
                 disabled={saving}
-                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50 dark:border-accent/50 dark:bg-accent dark:text-accent/5"
+                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50  dark:bg-accent"
               >
                 {saving ? "..." : "Guardar"}
               </button>
@@ -6622,7 +6622,7 @@ function PasoNotaPostit({
             <button
               type="button"
               onClick={onToggle}
-              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60 dark:text-accent/70"
+              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60"
             >
               Cerrar
             </button>
@@ -6822,7 +6822,7 @@ function PasosDraftEditor({
                 </button>
               </div>
               {p.notas?.trim() && openNoteIdx !== i && (
-                <p className="mt-1.5 border-l-4 border-accent/80 bg-accent/60 px-2 py-1 text-[10px] italic text-accent/90 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 line-clamp-2">
+                <p className="mt-1.5 border-l-4 border-accent/80 bg-accent/60 px-2 py-1 text-[10px] italic text-accent/90    line-clamp-2">
                   {p.notas}
                 </p>
               )}
@@ -7380,7 +7380,7 @@ function PasosSection({
                 <button
                   type="button"
                   onClick={() => togglePasoNote(p)}
-                  className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 dark:hover:bg-accent/70"
+                  className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10"
                 >
                   {p.notas!.length > 180 ? `${p.notas!.slice(0, 180)}…` : p.notas}
                 </button>
@@ -7922,7 +7922,7 @@ function MaterialesSection({
                     <p className="text-xs text-muted">
                       Requerido: <span className="font-bold">{it.cantidad_requerida} {it.unidad}</span>
                       {" · "}
-                      <span className={stockOk ? "text-accent dark:text-accent/70" : "text-red-500"}>
+                      <span className={stockOk ? "text-accent" : "text-red-500"}>
                         Stock: {it.stock_actual} {it.unidad} {stockOk ? "✓" : "⚠️ insuficiente"}
                       </span>
                     </p>
@@ -7936,7 +7936,7 @@ function MaterialesSection({
                         type="button"
                         onClick={() => toggleMaterialNote(it)}
                         title={tieneNota ? "Ver observación" : "Agregar observación"}
-                        className={`relative flex h-9 w-9 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-base shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-accent/50 dark:bg-accent/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${noteOpen ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-base shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5   dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${noteOpen ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
                       >
                         📝
                         {tieneNota && (
@@ -7945,18 +7945,18 @@ function MaterialesSection({
                       </button>
                       {noteOpen && (
                         <div
-                          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-accent/60 dark:bg-accent/5 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
+                          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)]   dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
                           role="dialog"
                           aria-label={`Observación: ${it.nombre}`}
                         >
-                          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80 dark:text-accent/90">
+                          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80">
                             {it.nombre}
                           </p>
                           <ProseTextarea
                             readOnly={readonly}
                             rows={4}
                             autoFocus={!readonly}
-                            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent dark:bg-accent/40 dark:text-accent/5 dark:placeholder:text-accent/30"
+                            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
                             placeholder="Observación sobre este material en la etapa..."
                             value={noteDraft}
                             onChange={(e) => setNoteDraft(e.target.value)}
@@ -7966,7 +7966,7 @@ function MaterialesSection({
                               <button
                                 type="button"
                                 onClick={() => toggleMaterialNote(it)}
-                                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5 dark:text-accent/70"
+                                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5"
                               >
                                 Cancelar
                               </button>
@@ -7974,7 +7974,7 @@ function MaterialesSection({
                                 type="button"
                                 onClick={() => saveMaterialNote(it.id)}
                                 disabled={saving}
-                                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50 dark:border-accent/50 dark:bg-accent dark:text-accent/5"
+                                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50  dark:bg-accent"
                               >
                                 {saving ? "..." : "Guardar"}
                               </button>
@@ -7983,7 +7983,7 @@ function MaterialesSection({
                             <button
                               type="button"
                               onClick={() => setOpenNoteId(null)}
-                              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60 dark:text-accent/70"
+                              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60"
                             >
                               Cerrar
                             </button>
@@ -8001,7 +8001,7 @@ function MaterialesSection({
                   <button
                     type="button"
                     onClick={() => toggleMaterialNote(it)}
-                    className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 dark:hover:bg-accent/70"
+                    className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10"
                   >
                     {it.notas!.length > 180 ? `${it.notas!.slice(0, 180)}…` : it.notas}
                   </button>
@@ -8707,8 +8707,8 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
               onClick={() => agregarMaterialAlCarrito(m)}
               className={`rounded-paper border-2 px-2.5 py-1.5 text-xs font-bold transition ${
                 enCarrito(m.id)
-                  ? "border-accent/70 bg-accent/20 text-accent dark:text-accent/20"
-                  : "border-border text-muted hover:border-accent/60 hover:text-accent dark:hover:text-accent/20"
+                  ? "border-accent/70 bg-accent/20 text-accent"
+                  : "border-border text-muted hover:border-accent/60 hover:text-accent"
               }`}
               title={enCarrito(m.id) ? "Ya en el carrito — clic suma cantidad" : "Agregar al carrito de compras"}
             >
@@ -8881,7 +8881,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
       </div>
 
       {cartFlash && (
-        <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent dark:text-accent/20">
+        <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">
           🛒 <span className="font-bold">{cartFlash}</span> agregado al carrito.
           <button
             type="button"
@@ -8975,7 +8975,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
             </div>
           )}
           {actionMsg && (
-            <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent dark:bg-accent/50 dark:text-accent/30" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
+            <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
               {actionMsg.text}
             </p>
           )}
@@ -9682,7 +9682,7 @@ function CreateMisionView({
           </span>
           <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
             form.modo_ciclo === "infinita"
-              ? "border-accent/30 bg-accent/5 text-accent dark:bg-accent/40 dark:text-accent/30"
+              ? "border-accent/30 bg-accent/5 text-accent"
               : "border-border bg-surface-panel text-muted"
           }`}>
             {form.modo_ciclo === "infinita" ? "♾️ Infinita" : "📌 Finita"}
@@ -9691,7 +9691,7 @@ function CreateMisionView({
             {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
           </span>
           {infoMsg && (
-            <span className="rounded-full border border-accent/30 bg-accent/5 px-2.5 py-1 text-xs font-semibold text-accent dark:bg-accent/40 dark:text-accent/30">
+            <span className="rounded-full border border-accent/30 bg-accent/5 px-2.5 py-1 text-xs font-semibold text-accent">
               {infoMsg}
             </span>
           )}
@@ -9812,7 +9812,7 @@ function CreateMisionView({
                   }}
                 />
               ) : (
-                <div className="rounded-lg border-2 border-accent/30 bg-accent/5 px-3 py-2 text-xs text-accent dark:border-accent dark:bg-accent/40 dark:text-accent/20">
+                <div className="rounded-lg border-2 border-accent/30 bg-accent/5 px-3 py-2 text-xs text-accent dark:border-accent">
                   Crea reinos en <strong>🏰 Reinos</strong> primero.
                 </div>
               )}
@@ -10587,7 +10587,7 @@ function MisionDetailView({
         </span>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${
           misionInfinita
-            ? "bg-accent/10 text-accent border-accent/30 dark:bg-accent/50 dark:text-accent/30"
+            ? "bg-accent/10 text-accent border-accent/30"
             : "bg-surface-hover text-muted border-border"
         }`}>
           {misionInfinita ? "♾️ Infinita" : "📌 Finita"}
@@ -10864,16 +10864,16 @@ function MisionDetailView({
           finally { setNuevoProdSaving(false); }
         }
         return (
-          <div className="rounded-paper border-2 border-accent/20 bg-accent/40 p-5 shadow-paper space-y-3 dark:border-accent/30 dark:bg-accent/30">
+          <div className="rounded-paper border-2 border-accent/20 bg-accent/40 p-5 shadow-paper space-y-3">
             <div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-accent dark:text-accent/30">✨ Producto resultante</h3>
-              <p className="mt-0.5 text-xs text-accent dark:text-accent/80">
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-accent">✨ Producto resultante</h3>
+              <p className="mt-0.5 text-xs text-accent">
                 Al completar esta misión, el stock del producto vinculado aumenta automáticamente con la suma de todos los insumos usados.
               </p>
             </div>
 
             {prod ? (
-              <div className="flex items-center gap-3 rounded-paper border border-accent/30 bg-white px-4 py-3 dark:border-accent/40 dark:bg-surface-input">
+              <div className="flex items-center gap-3 rounded-paper border border-accent/30 bg-white px-4 py-3  dark:bg-surface-input">
                 <div className="flex-1">
                   <p className="font-bold text-sm text-ink">{prod.nombre}</p>
                   <p className="text-xs text-muted">Stock actual: <span className="font-bold text-accent">{prod.stock_actual} {prod.unidad}</span></p>
@@ -10895,7 +10895,7 @@ function MisionDetailView({
                   <select
                     value={prodSelId}
                     onChange={(e) => setProdSelId(e.target.value)}
-                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/40 dark:focus:border-accent/40">
+                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/40">
                     <option value="">Seleccionar producto del catálogo...</option>
                     {disponiblesProd.map((m) => (
                       <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>
@@ -10914,7 +10914,7 @@ function MisionDetailView({
                   {showNuevoProd ? "▲ Cancelar" : "+ Crear nuevo producto elaborado"}
                 </button>
                 {showNuevoProd && (
-                  <div className="rounded-paper border border-accent/20 bg-surface-input p-3 space-y-2 dark:border-accent/30">
+                  <div className="rounded-paper border border-accent/20 bg-surface-input p-3 space-y-2">
                     <div className="flex gap-2">
                       <input
                         className="flex-1 rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-accent/40"
@@ -11182,7 +11182,7 @@ function MisionDetailView({
         {!isLocked && !readonly && (
           <div className="mt-4">
             {misionInfinita && (
-              <p className="mb-2 text-xs text-accent dark:text-accent/40">
+              <p className="mb-2 text-xs text-accent">
                 Misión recurrente: agrega tickets o usa 🚀 Iniciar misión para comenzar un nuevo ciclo.
               </p>
             )}
@@ -11670,13 +11670,13 @@ function WorkloadView({
             const lista: any[] = Array.isArray(u.tickets_lista) ? u.tickets_lista : [];
             const prioBadge: Record<string, string> = {
               urgente: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-              alta: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
-              media: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
+              alta: "bg-accent/10 text-accent",
+              media: "bg-accent/10 text-accent",
               baja: "bg-surface-hover text-muted",
             };
             const tipoBadge: Record<string, string> = {
-              accion: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
-              solicitud: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
+              accion: "bg-accent/10 text-accent",
+              solicitud: "bg-accent/10 text-accent",
               ticket: "bg-surface-hover text-muted",
             };
             return (
@@ -12017,7 +12017,7 @@ function esTarjetaSoloCompras(ticket: Ticket, user?: TicketsUser): boolean {
 
 function AccionCardAvisoCompras({ ticket }: { ticket: Ticket }) {
   return (
-    <div className="rounded-xl border border-accent/50 bg-accent/50 dark:bg-accent/20 p-3 space-y-2">
+    <div className="rounded-xl border border-accent/50 bg-accent/50  p-3 space-y-2">
       <p className="text-sm font-bold text-ink">🛒 {ticket.titulo}</p>
       <p className="text-xs text-muted font-mono">{ticket.numero}</p>
       <p className="text-xs text-muted">
@@ -12283,7 +12283,7 @@ function AccionCardOperativa({
 
       {/* Resumen al completar */}
       {resolucionInfo && (
-        <div className="rounded-lg border border-accent/30 bg-accent/5 dark:bg-accent/30 px-2 py-1.5 text-xs text-accent dark:text-accent/30">
+        <div className="rounded-lg border border-accent/30 bg-accent/5  px-2 py-1.5 text-xs text-accent">
           ✓ Completada a las <strong>{resolucionInfo.horario}</strong> · {fmtTiempo(resolucionInfo.duracion)} de trabajo
         </div>
       )}
@@ -12307,7 +12307,7 @@ function AccionCardOperativa({
               onClick={iniciarPausar}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-bold min-h-[40px] transition-colors ${
                 enProceso
-                  ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
+                  ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10"
                   : "border-border bg-surface-panel text-muted hover:border-accent hover:text-accent"
               }`}
             >
@@ -12318,7 +12318,7 @@ function AccionCardOperativa({
               type="button"
               disabled={busy}
               onClick={resolver}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/5 px-3 py-2.5 text-xs font-bold text-accent min-h-[40px] transition-colors hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/5 px-3 py-2.5 text-xs font-bold text-accent min-h-[40px] transition-colors hover:bg-accent/10"
             >
               <Icon name="check" size={14} weight="bold" />
               Listo
@@ -12940,7 +12940,7 @@ function SolicitudListaChecklist({
                 numero: ticket.numero,
                 creado_por_nombre: ticket.creado_por_nombre ?? undefined,
               })}
-              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent hover:bg-accent/5 dark:text-accent/30 dark:hover:bg-accent/30"
+              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent hover:bg-accent/5"
             >
               🖨 Abrir Impresora · Etiquetas
             </button>
@@ -14258,18 +14258,18 @@ function SolicitudCard({
 
       {/* Banner: esta solicitud ES una intervención que otro usuario necesita */}
       {esIntervencion && (
-        <div className="rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-3 py-2.5 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-accent dark:text-accent/40">
+        <div className="rounded-lg border border-accent/60 bg-accent/60  px-3 py-2.5 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-accent">
             <span>🛑</span>
             <span>Intervención solicitada</span>
           </div>
-          <p className="text-xs text-accent/80 dark:text-accent/80 leading-snug">
+          <p className="text-xs text-accent/80  leading-snug">
             <strong>{ticket.creado_por_nombre ?? "Un compañero"}</strong> necesita tu ayuda
             para continuar{ticket.ticket_padre_numero ? ` el ticket ${ticket.ticket_padre_numero}` : ""}.
             {ticket.ticket_padre_titulo ? ` — ${ticket.ticket_padre_titulo}` : ""}
           </p>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className="text-xs text-accent/70 dark:text-accent/70 italic">
+            <p className="text-xs text-accent/70  italic">
               {ticket.descripcion}
             </p>
           )}
@@ -14278,7 +14278,7 @@ function SolicitudCard({
 
       {/* Resolver intervención — arriba del chat para que sea visible de inmediato */}
       {!resuelta && esAsignado && !supervision && esIntervencion && (
-        <div ref={intervencionZoneRef} className={`space-y-2 ${detalleAmpliado ? "shrink-0 rounded-xl border-2 border-accent/50 bg-accent/40 dark:bg-accent/15 p-3" : "pt-1"}`}>
+        <div ref={intervencionZoneRef} className={`space-y-2 ${detalleAmpliado ? "shrink-0 rounded-xl border-2 border-accent/50 bg-accent/40  p-3" : "pt-1"}`}>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           <ProseTextarea
             className="quest-input w-full resize-none text-sm"
@@ -14288,7 +14288,7 @@ function SolicitudCard({
             onChange={(e) => setResolucionInter(e.target.value)}
             onPaste={handlePasteImagen}
           />
-          {vistaPreviaPegada("border-accent/40 bg-accent/30 dark:bg-accent/10")}
+          {vistaPreviaPegada("border-accent/40 bg-accent/30")}
           <div className="flex gap-2">
             <button
               type="button"
@@ -14338,7 +14338,7 @@ function SolicitudCard({
 
       {/* Bloqueado por intervención */}
       {ticket.bloqueado_por && (
-        <div className="rounded-lg border border-accent/40 bg-accent/50 dark:bg-accent/10 px-3 py-2.5 text-xs text-accent dark:text-accent/40 space-y-2">
+        <div className="rounded-lg border border-accent/40 bg-accent/50  px-3 py-2.5 text-xs text-accent  space-y-2">
           <div className="flex items-center gap-2">
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -14351,12 +14351,12 @@ function SolicitudCard({
             <button
               type="button"
               onClick={() => onIrAIntervencion(ticket.bloqueado_por!)}
-              className="w-full rounded-lg border border-accent/60 bg-accent/80 dark:bg-accent/30 px-3 py-2 text-xs font-bold text-accent dark:text-accent/20 hover:bg-accent/80 transition-colors"
+              className="w-full rounded-lg border border-accent/60 bg-accent/80  px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/80 transition-colors"
             >
               Ir a resolver {ticket.bloqueado_por_numero} →
             </button>
           )}
-          <p className="text-[10px] text-accent/80 dark:text-accent/70">
+          <p className="text-[10px] text-accent/80">
             La solicitud se desbloquea cuando el asignado a esa intervención la resuelve.
           </p>
         </div>
@@ -14364,9 +14364,9 @@ function SolicitudCard({
 
       {/* Datos sensibles */}
       {showSensible && (
-        <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/50 bg-accent/30  p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent  flex items-center gap-1">
               🔒 Datos sensibles / Protocolo privado
               <InfoTooltip text="Visible solo para el asignado, quien creó la solicitud, participantes directos y supervisores. Aquí puedes guardar contraseñas, procedimientos internos o notas confidenciales de resolución. Solo supervisores pueden editar." />
             </span>
@@ -14797,20 +14797,20 @@ function SolicitudCard({
                     </div>
                     {/* Intervención pendiente en este paso */}
                     {p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-2.5 py-1.5 text-[11px]">
-                        <span className="font-semibold text-accent dark:text-accent/40">
+                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px]">
+                        <span className="font-semibold text-accent">
                           🛑 Esperando intervención {p.intervencion_pendiente_numero}
                         </span>
                         {p.intervencion_asignado_nombre && (
-                          <span className="text-accent/70 dark:text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
+                          <span className="text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
                         )}
                       </div>
                     )}
                     {/* Respuesta de la intervención resuelta */}
                     {p.respuesta_intervencion && !p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-2.5 py-1.5 text-[11px] space-y-0.5">
-                        <p className="font-semibold text-accent dark:text-accent/40">✅ Intervención resuelta</p>
-                        <p className="text-accent/80 dark:text-accent/80 whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
+                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px] space-y-0.5">
+                        <p className="font-semibold text-accent">✅ Intervención resuelta</p>
+                        <p className="text-accent/80  whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
                       </div>
                     )}
                     {/* Notas del paso (si no son respuesta de intervención) */}
@@ -14923,16 +14923,16 @@ function SolicitudCard({
 
       {/* Modal: Pedir intervención */}
       {showIntervencion && (
-        <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/50 bg-accent/30  p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent  flex items-center gap-1">
               🛑 Pedir intervención
               <InfoTooltip text="Crea una sub-solicitud para otro usuario. Esta solicitud quedará PAUSADA hasta que el otro usuario resuelva su tarea. Cuando termine, la solicitud se reactiva sola y puedes continuar donde quedaste." />
             </span>
             <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-muted hover:text-ink text-xs">✕</button>
           </div>
           {interForm.paso_ref && (
-            <p className="text-[10px] text-accent/80 bg-accent/50 dark:bg-accent/20 rounded px-2 py-1">
+            <p className="text-[10px] text-accent/80 bg-accent/50  rounded px-2 py-1">
               Origen: {interForm.paso_ref}
             </p>
           )}
@@ -14975,9 +14975,9 @@ function SolicitudCard({
 
       {/* Lista de compras */}
       {showCompras && (
-        <div className="rounded-xl border border-accent/40 bg-accent/20 dark:bg-accent/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/40 bg-accent/20  p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent  flex items-center gap-1">
               🛒 Lista de compras
               <InfoTooltip text="Agrega los productos que se deben comprar para esta solicitud. Puedes buscarlos en el catálogo de materiales o escribir uno nuevo. Marca los que ya se compraron." />
             </span>
@@ -15134,7 +15134,7 @@ function SolicitudCard({
               <div className="flex gap-2">
                 {ticket.estado === "en_proceso" && (
                   <button type="button" disabled={busy} onClick={iniciarPausar}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-bold text-accent transition hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40 disabled:opacity-40"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-bold text-accent transition hover:bg-accent/10   disabled:opacity-40"
                   >
                     <Icon name="clock" size={13} weight="bold" /> Pausar
                   </button>
@@ -15147,7 +15147,7 @@ function SolicitudCard({
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
                     ticket.bloqueado_por
                       ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                      : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
+                      : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10"
                   }`}
                 >
                   <Icon name="check" size={13} weight="bold" />
@@ -15157,11 +15157,11 @@ function SolicitudCard({
             </div>
           ) : ticket.estado === "esperando_aprobacion" ? (
             /* En revisión — esperando al creador */
-            <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 px-3 py-2.5 space-y-2">
-              <p className="text-sm font-bold text-accent dark:text-accent/40 flex items-center gap-2">
+            <div className="rounded-xl border border-accent/50 bg-accent/30  px-3 py-2.5 space-y-2">
+              <p className="text-sm font-bold text-accent  flex items-center gap-2">
                 🔔 Esperando revisión del solicitante
               </p>
-              <p className="text-xs text-accent/80 dark:text-accent/70">
+              <p className="text-xs text-accent/80">
                 {ticket.creado_por_nombre ?? "El solicitante"} debe aprobar para cerrar la solicitud.
               </p>
               <button type="button" disabled={busy} onClick={cancelarRevision}
@@ -15176,7 +15176,7 @@ function SolicitudCard({
                 <button type="button" disabled={busy} onClick={iniciarPausar}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
                     ticket.estado === "en_proceso"
-                      ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
+                      ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10"
                       : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
                   }`}
                 >
@@ -15195,7 +15195,7 @@ function SolicitudCard({
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
                         noPermite
                           ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                          : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
+                          : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10"
                       }`}
                     >
                       <Icon name="check" size={15} weight="bold" />
@@ -15208,12 +15208,12 @@ function SolicitudCard({
               {!showPedirRevision ? (
                 <button type="button" disabled={busy}
                   onClick={() => setShowPedirRevision(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20 dark:bg-accent/10 px-3 py-2 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/50 dark:hover:bg-accent/20 transition-colors">
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20  px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/50  transition-colors">
                   🔔 Solicitar revisión del solicitante
                 </button>
               ) : (
-                <div className="rounded-xl border border-accent/40 bg-accent/20 dark:bg-accent/10 p-3 space-y-2">
-                  <p className="text-xs font-bold text-accent dark:text-accent/40">
+                <div className="rounded-xl border border-accent/40 bg-accent/20  p-3 space-y-2">
+                  <p className="text-xs font-bold text-accent">
                     Solicitar revisión a {ticket.creado_por_nombre ?? "el solicitante"}
                   </p>
                   <ProseTextarea
@@ -15324,8 +15324,8 @@ function SolicitudCard({
 
       {/* Panel de aprobación — visible al creador cuando la solicitud espera revisión */}
       {!resuelta && esCreadoPorMi && !esAsignado && ticket.estado === "esperando_aprobacion" && (
-        <div className="rounded-xl border-2 border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-3">
-          <p className="text-sm font-extrabold text-accent dark:text-accent/40 flex items-center gap-2">
+        <div className="rounded-xl border-2 border-accent/50 bg-accent/30  p-3 space-y-3">
+          <p className="text-sm font-extrabold text-accent  flex items-center gap-2">
             🔔 {ticket.asignado_a_nombre ?? "El ejecutor"} completó la solicitud y pide tu revisión
           </p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
@@ -15341,7 +15341,7 @@ function SolicitudCard({
           {!showPedirAjustes ? (
             <button type="button" disabled={busy}
               onClick={() => setShowPedirAjustes(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/50 px-3 py-2 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/40 dark:hover:bg-accent/20 transition-colors disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/50 px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/40  transition-colors disabled:opacity-40">
               🔄 Pedir ajustes
             </button>
           ) : (
@@ -15355,7 +15355,7 @@ function SolicitudCard({
                 onChange={(e) => setAjustesMensaje(e.target.value)}
               />
               {/* Adjuntar imagen */}
-              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-accent/40 bg-accent/30 dark:bg-accent/10 text-accent dark:text-accent/40" : "border-dashed border-border text-muted hover:border-accent/60 hover:text-accent"}`}>
+              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-accent/40 bg-accent/30  text-accent" : "border-dashed border-border text-muted hover:border-accent/60 hover:text-accent"}`}>
                 <span>{ajustesArchivo ? "📎" : "🖼️"}</span>
                 <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional) — Ctrl+V"}</span>
                 {ajustesArchivo && (
@@ -16142,11 +16142,11 @@ function NuevaAccionWizard({
   function pantallaEsperaCompras() {
     if (!bloqueoCompras) return null;
     return (
-      <div className="rounded-2xl border-2 border-accent/60 bg-accent/80 dark:bg-accent/30 p-4 space-y-3">
-        <p className="text-sm font-extrabold text-accent dark:text-accent/20">
+      <div className="rounded-2xl border-2 border-accent/60 bg-accent/80  p-4 space-y-3">
+        <p className="text-sm font-extrabold text-accent">
           Esperando compras delegadas
         </p>
-        <p className="text-sm text-accent/90 dark:text-accent/90">
+        <p className="text-sm text-accent/90">
           <strong>{bloqueoCompras.asignado_nombre ?? "Tu compañero"}</strong> está con la lista
           ({bloqueoCompras.numero}). Cuando marque <em>Terminé las compras</em>, podrás continuar.
         </p>
@@ -16155,7 +16155,7 @@ function NuevaAccionWizard({
           type="button"
           disabled={loading}
           onClick={() => void refrescarBloqueoCompras()}
-          className="w-full rounded-xl border border-accent/50 py-2 text-xs font-bold text-accent dark:text-accent/20"
+          className="w-full rounded-xl border border-accent/50 py-2 text-xs font-bold text-accent"
         >
           Actualizar estado
         </button>
@@ -16552,7 +16552,7 @@ function NuevaAccionWizard({
       </div>
 
       {bloqueadoIntervencion && !bloqueoCompras && (
-        <div className="mb-4 rounded-xl border border-accent/50 bg-accent/60 dark:bg-accent/25 px-4 py-3 text-sm text-accent dark:text-accent/20">
+        <div className="mb-4 rounded-xl border border-accent/50 bg-accent/60  px-4 py-3 text-sm text-accent">
           Esperando intervención <strong>{bloqueadoIntervencion}</strong> antes de seguir.
         </div>
       )}
@@ -16569,14 +16569,14 @@ function NuevaAccionWizard({
       {cronometroVisible && (
         <div className={`mb-4 flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-colors ${
           corridaPausada
-            ? "border-accent/50 bg-accent/80 dark:bg-accent/30"
+            ? "border-accent/50 bg-accent/80"
             : "border-accent/35 bg-accent/8"
         }`}>
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex-1">
             {corridaPausada ? "En pausa" : "En proceso"}
           </span>
           <span className={`font-mono text-2xl font-extrabold tabular-nums ${
-            corridaPausada ? "text-accent dark:text-accent/40" : "text-accent"
+            corridaPausada ? "text-accent" : "text-accent"
           }`}>
             {fmtTiempo(segDisplay)}
           </span>
@@ -16585,7 +16585,7 @@ function NuevaAccionWizard({
               type="button"
               onClick={() => void pausarCronometroWizard()}
               title="Pausar"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-accent/70 text-accent dark:text-accent/40 transition hover:bg-accent/5 dark:hover:bg-accent/40 active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-accent/70 text-accent  transition hover:bg-accent/5  active:scale-95"
             >
               <Icon name="pause" size={18} weight="bold" />
             </button>
@@ -16755,7 +16755,7 @@ function NuevaAccionWizard({
                 + Agregar producto
               </button>
 
-              <div className="rounded-2xl border border-accent/30 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
+              <div className="rounded-2xl border border-accent/30 bg-accent/30  p-3 space-y-2">
                 <p className="text-xs font-bold text-ink">¿Alguien más va de compras?</p>
                 <p className="text-[11px] text-muted">
                   Se crea una solicitud solo con este checklist para esa persona.
@@ -16776,7 +16776,7 @@ function NuevaAccionWizard({
                   type="button"
                   disabled={loading || !delegarAId || itemsCompraOk.length === 0}
                   onClick={() => void delegarListaCompras()}
-                  className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent dark:text-accent/30 hover:bg-accent/10 disabled:opacity-40"
+                  className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent  hover:bg-accent/10 disabled:opacity-40"
                 >
                   Enviar lista a compañero
                 </button>
@@ -16822,7 +16822,7 @@ function NuevaAccionWizard({
                       setLoading(false);
                     }
                   }}
-                  className="w-full rounded-2xl border-2 border-accent/50 py-3.5 text-sm font-bold text-accent dark:text-accent/20"
+                  className="w-full rounded-2xl border-2 border-accent/50 py-3.5 text-sm font-bold text-accent"
                 >
                   Compras delegadas — verificar y continuar →
                 </button>
@@ -16872,7 +16872,7 @@ function NuevaAccionWizard({
                     setLoading(false);
                   }
                 }}
-                className="w-full rounded-2xl border-2 border-accent/50 py-3 text-sm font-bold text-accent dark:text-accent/20"
+                className="w-full rounded-2xl border-2 border-accent/50 py-3 text-sm font-bold text-accent"
               >
                 Verificar si ya terminaron →
               </button>
@@ -17026,7 +17026,7 @@ function NuevaAccionWizard({
                       });
                       setShowInterPaso(true);
                     }}
-                    className="shrink-0 rounded-lg border border-accent/50 px-2 py-1 text-[10px] font-bold text-accent transition hover:bg-accent/5 dark:hover:bg-accent/30"
+                    className="shrink-0 rounded-lg border border-accent/50 px-2 py-1 text-[10px] font-bold text-accent transition hover:bg-accent/5"
                     title="Pedir verificación a otro usuario"
                   >
                     🛑
@@ -17047,8 +17047,8 @@ function NuevaAccionWizard({
           )}
 
           {showInterPaso && (
-            <div className="rounded-2xl border border-accent/50 bg-accent/50 dark:bg-accent/20 p-4 space-y-3">
-              <p className="text-sm font-bold text-accent dark:text-accent/30">
+            <div className="rounded-2xl border border-accent/50 bg-accent/50  p-4 space-y-3">
+              <p className="text-sm font-bold text-accent">
                 Pedir verificación{interPasoIdx != null ? ` — paso ${interPasoIdx + 1}` : ""}
               </p>
               <ProseInput
@@ -17480,8 +17480,8 @@ function ProtocolosView({
                   title="Delegar a un aliado del equipo"
                   className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                     delegarId === p.id
-                      ? "border-accent/50 bg-accent/15 text-accent dark:text-accent/30"
-                      : "border-accent/40 text-accent dark:text-accent/40 hover:bg-accent/10"
+                      ? "border-accent/50 bg-accent/15 text-accent"
+                      : "border-accent/40 text-accent  hover:bg-accent/10"
                   }`}
                 >
                   Delegar
@@ -18575,7 +18575,7 @@ function HistorialSolicitudCard({
       className={`rounded-2xl border-2 px-4 py-3.5 transition space-y-2
         ${rechazado
           ? "border-red-400/30 bg-red-50/10 dark:bg-red-900/10"
-          : "border-accent/30 bg-accent/20 dark:bg-accent/10"
+          : "border-accent/30 bg-accent/20"
         }`}
     >
       <button
@@ -18593,7 +18593,7 @@ function HistorialSolicitudCard({
           <span className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border
             ${rechazado
               ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
-              : "text-accent dark:text-accent/40 bg-accent/15 border-accent/25"
+              : "text-accent  bg-accent/15 border-accent/25"
             }`}>
             {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
           </span>
@@ -18774,7 +18774,7 @@ function HistorialSolicitudDetalle({
         <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 border
           ${rechazado
             ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
-            : "text-accent dark:text-accent/40 bg-accent/15 border-accent/25"
+            : "text-accent  bg-accent/15 border-accent/25"
           }`}>
           {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
         </span>
@@ -18859,7 +18859,7 @@ function HistorialSolicitudDetalle({
                 <div key={p.id}
                   className={`rounded-xl border px-3 py-2.5 space-y-1.5 transition-colors
                     ${hecho
-                      ? "border-accent/30 bg-accent/20 dark:bg-accent/10"
+                      ? "border-accent/30 bg-accent/20"
                       : "border-border/40 bg-surface opacity-55"
                     }`}>
                   <div className="flex items-start gap-2.5">
@@ -18880,7 +18880,7 @@ function HistorialSolicitudDetalle({
                         <p className="text-[11px] text-muted mt-0.5">{p.notas}</p>
                       )}
                       {p.respuesta_intervencion && (
-                        <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5">
+                        <p className="text-[11px] text-accent  mt-0.5">
                           ✅ {p.respuesta_intervencion}
                         </p>
                       )}
@@ -19567,7 +19567,7 @@ function SolicitudesView({
     <div className="space-y-4">
       {/* Header */}
       {tab === "subhome" ? (
-        <div className="rounded-xl border border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50 px-3 py-2.5">
+        <div className="rounded-xl border border-accent/20  bg-accent/5  px-3 py-2.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface/80 text-ink">
               <TopicIcon value="📋" size={15} />
@@ -19586,7 +19586,7 @@ function SolicitudesView({
                 type="button"
                 onClick={() => void load(false)}
                 disabled={loading}
-                className="rounded-lg border border-accent/30 dark:border-accent/70 px-2.5 py-1 text-xs font-bold text-accent dark:text-accent/30 hover:bg-accent/10 dark:hover:bg-accent/40 disabled:opacity-50"
+                className="rounded-lg border border-accent/30  px-2.5 py-1 text-xs font-bold text-accent  hover:bg-accent/10  disabled:opacity-50"
               >
                 ↻
               </button>
@@ -19662,7 +19662,7 @@ function SolicitudesView({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
             <button type="button" onClick={() => setTab("asignadas")}
-              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${sc} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📥" size={24} />
@@ -19674,7 +19674,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("creadas")}
-              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${sc} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📤" size={24} />
@@ -19686,7 +19686,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("equipo")}
-              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${sc} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="👥" size={24} />
@@ -19709,7 +19709,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("protocolos")}
-              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${sc} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📋" size={24} />
@@ -19727,7 +19727,7 @@ function SolicitudesView({
                   useAppStore.getState().setEtiquetasTab("imprimir");
                   useAppStore.getState().setPanel("etiquetas");
                 }}
-                className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/30 dark:border-accent/60`}
+                className={`${sc} bg-accent/5  border-accent/30`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
@@ -19774,7 +19774,7 @@ function SolicitudesView({
               key={t.id}
               type="button"
               onClick={() => setCompraActiva(t)}
-              className="w-full rounded-xl border-2 border-accent/50 bg-accent/60 dark:bg-accent/30 px-4 py-3 text-left transition hover:border-accent"
+              className="w-full rounded-xl border-2 border-accent/50 bg-accent/60  px-4 py-3 text-left transition hover:border-accent"
             >
               <p className="text-sm font-bold text-ink">🛒 {t.titulo}</p>
               <p className="text-xs text-muted font-mono">{t.numero}</p>
@@ -19929,11 +19929,11 @@ function SolicitudesView({
       )}
 
       {tab === "asignadas" && !asignadaDetalle && !loading && etiquetasPendientes.length > 0 && puedeVerSeccionPanel(user, "etiquetas") && (
-        <div className="rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 dark:bg-accent/30">
-          <p className="text-sm font-bold text-accent dark:text-accent/20">
+        <div className="rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3">
+          <p className="text-sm font-bold text-accent">
             🏷️ {etiquetasPendientes.length} pedido{etiquetasPendientes.length !== 1 ? "s" : ""} de etiquetas
           </p>
-          <p className="mt-1 text-xs text-accent dark:text-accent/90">
+          <p className="mt-1 text-xs text-accent">
             Estos pedidos están en Impresora · Etiquetas, no en esta lista de solicitudes.
           </p>
           <button
@@ -20312,9 +20312,9 @@ function RepetirAccionWizard({
             <p className="text-sm text-muted">{pasos.length} paso{pasos.length !== 1 ? "s" : ""} completado{pasos.length !== 1 ? "s" : ""}</p>
           )}
           <div className="flex justify-center pt-1">
-            <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 dark:bg-accent/30 dark:border-accent px-3 py-1">
+            <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5  dark:border-accent px-3 py-1">
               <span className="text-sm">⏱</span>
-              <span className="font-mono text-sm font-extrabold text-accent dark:text-accent/40 tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
+              <span className="font-mono text-sm font-extrabold text-accent  tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
             </div>
           </div>
         </div>
@@ -20442,7 +20442,7 @@ function RepetirAccionWizard({
             ))}
           </div>
 
-          <div className="rounded-2xl border border-accent/30 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
+          <div className="rounded-2xl border border-accent/30 bg-accent/30  p-3 space-y-2">
             <p className="text-xs font-bold text-ink">¿Alguien más va de compras?</p>
             <p className="text-[11px] text-muted">Crea una solicitud con este checklist para esa persona.</p>
             <select
@@ -20461,7 +20461,7 @@ function RepetirAccionWizard({
               type="button"
               disabled={delegando || !delegarAId}
               onClick={() => void delegarListaCompras()}
-              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent dark:text-accent/30 hover:bg-accent/10 disabled:opacity-40"
+              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent  hover:bg-accent/10 disabled:opacity-40"
             >
               {delegando ? "Enviando…" : "Enviar lista a compañero"}
             </button>
@@ -20854,8 +20854,8 @@ function PendientesPanel({
 
   const badgeClases = {
     vencido: "bg-danger/15 text-danger border border-danger/30",
-    hoy:     "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/40 border border-accent/50",
-    pronto:  "bg-accent/5 dark:bg-accent/30 text-accent dark:text-accent/40 border border-accent/40",
+    hoy:     "bg-accent/10  text-accent  border border-accent/50",
+    pronto:  "bg-accent/5  text-accent  border border-accent/40",
     futuro:  "bg-surface border border-border text-muted",
   };
 
@@ -20880,7 +20880,7 @@ function PendientesPanel({
         <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
           🗓️ Acciones futuras
           {pendientes.length > 0 && (
-            <span className="rounded-full bg-accent/10 dark:bg-accent/50 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">
+            <span className="rounded-full bg-accent/10  px-2 py-0.5 text-[10px] font-bold text-accent">
               {pendientes.length}
             </span>
           )}
@@ -21442,7 +21442,7 @@ function RecordatoriosPanel({
                   <p className="font-bold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
-                    <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5 font-semibold">
+                    <p className="text-[11px] text-accent  mt-0.5 font-semibold">
                       👤 Para: {r.asignado_a_nombre}
                     </p>
                   )}
@@ -21492,7 +21492,7 @@ function RecordatoriosPanel({
                   <p className="font-semibold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
-                    <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5 font-semibold">
+                    <p className="text-[11px] text-accent  mt-0.5 font-semibold">
                       👤 Para: {r.asignado_a_nombre}
                     </p>
                   )}
@@ -21859,7 +21859,7 @@ function DelegarProcedimientoPanel({
   }
 
   return (
-    <div className="rounded-xl border-2 border-accent/40 bg-accent/30 dark:bg-accent/20 p-3 space-y-3">
+    <div className="rounded-xl border-2 border-accent/40 bg-accent/30  p-3 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-extrabold text-ink">Delegar a un aliado</p>
@@ -21885,7 +21885,7 @@ function DelegarProcedimientoPanel({
               onClick={() => toggleAsignado(u.id)}
               className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
                 asignados.includes(u.id)
-                  ? "border-accent/50 bg-accent/10 text-accent dark:text-accent/30"
+                  ? "border-accent/50 bg-accent/10 text-accent"
                   : "border-border text-muted hover:border-accent/40 hover:text-accent"
               }`}
             >
@@ -22120,7 +22120,7 @@ function ProcedimientoCard({
                 ${alcanceActual === "global"
                   ? "text-accent bg-accent/10 border-accent/25"
                   : alcanceActual === "seleccionado"
-                    ? "text-accent dark:text-accent/40 bg-accent/10 border-accent/25"
+                    ? "text-accent  bg-accent/10 border-accent/25"
                     : "text-muted bg-surface-hover border-border"
                 }`}>
               {alcanceActual === "global" ? "🌐 Equipo" : alcanceActual === "seleccionado" ? "👤 Específico" : "🔒 Privado"}
@@ -22364,7 +22364,7 @@ function ProcedimientoCard({
       )}
 
       {delegarMsg && !editando && (
-        <p className="text-xs font-semibold text-accent dark:text-accent/40">{delegarMsg}</p>
+        <p className="text-xs font-semibold text-accent">{delegarMsg}</p>
       )}
 
       {showDelegar && !editando && (
@@ -22392,7 +22392,7 @@ function ProcedimientoCard({
           <button
             type="button"
             onClick={() => { setShowDelegar(true); setDelegarMsg(""); }}
-            className="rounded-xl border border-accent/50 bg-accent/10 px-2.5 py-2 text-xs font-bold text-accent dark:text-accent/30 hover:bg-accent/20 transition-colors"
+            className="rounded-xl border border-accent/50 bg-accent/10 px-2.5 py-2 text-xs font-bold text-accent  hover:bg-accent/20 transition-colors"
             title="Asignar este procedimiento a un aliado del equipo"
           >
             👥 Delegar
@@ -22485,12 +22485,12 @@ function AdminSubhomePanel({
     <div className="space-y-4">
       {/* Resumen global */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-accent/20 dark:border-accent/40 bg-accent/5 dark:bg-accent/40 p-4 text-center">
-          <p className="text-3xl font-black text-accent dark:text-accent/40 tabular-nums leading-none">{totalActivas}</p>
+        <div className="rounded-2xl border border-accent/20  bg-accent/5  p-4 text-center">
+          <p className="text-3xl font-black text-accent  tabular-nums leading-none">{totalActivas}</p>
           <p className="text-xs font-bold text-muted mt-1.5">En proceso</p>
         </div>
-        <div className="rounded-2xl border border-accent/20 dark:border-accent/40 bg-accent/5 dark:bg-accent/40 p-4 text-center">
-          <p className="text-3xl font-black text-accent dark:text-accent/40 tabular-nums leading-none">{totalPendientes}</p>
+        <div className="rounded-2xl border border-accent/20  bg-accent/5  p-4 text-center">
+          <p className="text-3xl font-black text-accent  tabular-nums leading-none">{totalPendientes}</p>
           <p className="text-xs font-bold text-muted mt-1.5">Pendientes</p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4 text-center">
@@ -22532,12 +22532,12 @@ function AdminSubhomePanel({
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {r.activas > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-accent/10 dark:bg-accent/60 px-2 py-0.5 text-xs font-bold text-accent dark:text-accent/40">
+                    <span className="inline-flex items-center rounded-full bg-accent/10  px-2 py-0.5 text-xs font-bold text-accent">
                       ⚡ {r.activas}
                     </span>
                   )}
                   {r.pendientes > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-accent/10 dark:bg-accent/60 px-2 py-0.5 text-xs font-bold text-accent dark:text-accent/40">
+                    <span className="inline-flex items-center rounded-full bg-accent/10  px-2 py-0.5 text-xs font-bold text-accent">
                       🗓 {r.pendientes}
                     </span>
                   )}
@@ -22573,13 +22573,13 @@ const CENTRO_MANDO_CTA_BTN =
   "inline-flex items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
 
 const ACCIONES_TAB_CFG = {
-  subhome:        { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",               icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  activas:        { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",               icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  agenda:         { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",                   icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#134e4a]",     ctaBase: false },
-  pendientes:     { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",       icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
-  procedimientos: { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",                      icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
+  subhome:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  activas:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  agenda:         { card: "border-accent/20  bg-accent/5",                   icon: "bg-accent/70  text-accent",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#134e4a]",     ctaBase: false },
+  pendientes:     { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
+  procedimientos: { card: "border-accent/20  bg-accent/5",                      icon: "bg-accent/70  text-accent",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
-  notas:          { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",       icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
+  notas:          { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
   bolsillo:       { card: "border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-950/50",               icon: "bg-slate-200/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300",             emoji: "🔑", titulo: "Bolsillo",           desc: "Notas cifradas con tu PIN personal. Nadie más puede verlas.",                                          btnCtaCls: "bg-slate-600 hover:bg-slate-700 shadow-[0_2px_0_#1e293b]",   ctaBase: false },
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
@@ -22950,8 +22950,8 @@ function BolsilloSeguro({ token }: { token: string }) {
 
   if (vista === "cargando") return null;
 
-  const em = "border-accent/60 dark:border-accent/50";
-  const emBg = "bg-accent/40 dark:bg-accent/20";
+  const em = "border-accent/60";
+  const emBg = "bg-accent/40";
 
   return (
     <div className="border-t border-border/50 pt-6">
@@ -23019,13 +23019,13 @@ function BolsilloSeguro({ token }: { token: string }) {
       {vista === "lista" && (
         <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1.5">
+            <p className="text-xs font-bold text-accent  flex items-center gap-1.5">
               🔓 Abierto
               {guardando === "saving" && <span className="text-muted font-normal">Guardando…</span>}
               {guardando === "ok"     && <span className="font-normal">✓</span>}
             </p>
             <button type="button" onClick={bloquear}
-              className="flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-3 py-1 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/20 transition">
+              className="flex items-center gap-1 rounded-full bg-accent/10  px-3 py-1 text-xs font-bold text-accent  hover:bg-accent/20 transition">
               🔒 Bloquear
             </button>
           </div>
@@ -23037,7 +23037,7 @@ function BolsilloSeguro({ token }: { token: string }) {
           <div className="space-y-2">
             {notas.map((n) => (
               <button key={n.id} type="button" onClick={() => abrirNota(n)}
-                className="w-full text-left rounded-xl border border-accent/20 dark:border-accent/50 bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-accent/40 active:scale-[0.98]">
+                className="w-full text-left rounded-xl border border-accent/20  bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-accent/40 active:scale-[0.98]">
                 <p className="text-sm font-bold text-ink truncate">{n.titulo || <span className="text-muted italic">Sin título</span>}</p>
                 {n.contenido && (
                   <p className="text-xs text-muted line-clamp-2 font-mono">{n.contenido}</p>
@@ -23047,7 +23047,7 @@ function BolsilloSeguro({ token }: { token: string }) {
           </div>
 
           <button type="button" onClick={nuevaNota}
-            className="w-full rounded-xl border-2 border-dashed border-accent/30 dark:border-accent py-2.5 text-sm font-bold text-accent dark:text-accent/40 hover:bg-accent/5 dark:hover:bg-accent/20 transition">
+            className="w-full rounded-xl border-2 border-dashed border-accent/30 dark:border-accent py-2.5 text-sm font-bold text-accent  hover:bg-accent/5  transition">
             + Nueva nota
           </button>
           <p className="text-[10px] text-muted text-center">AES-256-GCM · el servidor solo guarda el blob cifrado</p>
@@ -23059,7 +23059,7 @@ function BolsilloSeguro({ token }: { token: string }) {
         <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between gap-2">
             <button type="button" onClick={guardarYVolver}
-              className="text-xs font-bold text-accent dark:text-accent/40 hover:underline">
+              className="text-xs font-bold text-accent  hover:underline">
               ‹ Volver
             </button>
             <span className="text-xs text-muted flex items-center gap-1">
@@ -23077,14 +23077,14 @@ function BolsilloSeguro({ token }: { token: string }) {
             placeholder="Título de la nota"
             value={notaActiva.titulo}
             onChange={(e) => onCambioNota("titulo", e.target.value)}
-            className="w-full rounded-xl border-2 border-accent/20 dark:border-accent/60 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-accent/40 focus:outline-none"
+            className="w-full rounded-xl border-2 border-accent/20  bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-accent/40 focus:outline-none"
           />
           <textarea
             rows={10}
             placeholder="Contenido confidencial…"
             value={notaActiva.contenido}
             onChange={(e) => onCambioNota("contenido", e.target.value)}
-            className="w-full resize-none rounded-xl border-2 border-accent/20 dark:border-accent/60 bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-accent/40 focus:outline-none font-mono leading-relaxed"
+            className="w-full resize-none rounded-xl border-2 border-accent/20  bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-accent/40 focus:outline-none font-mono leading-relaxed"
           />
         </div>
       )}
@@ -23940,7 +23940,7 @@ function AccionesView({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
             <button type="button" onClick={() => setTabAcciones("activas")}
-              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${subCard} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="⚡" size={24} />
@@ -23953,7 +23953,7 @@ function AccionesView({
 
             {/* Agenda unificada: futuras + recordatorios en una sola card */}
             <button type="button" onClick={() => setTabAcciones("agenda")}
-              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${subCard} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📅" size={24} />
@@ -23963,7 +23963,7 @@ function AccionesView({
                     {recordatorios.length}
                   </span>
                   {recHoy > 0 && (
-                    <p className="text-xs font-bold text-accent dark:text-accent/30">{recHoy} para hoy</p>
+                    <p className="text-xs font-bold text-accent">{recHoy} para hoy</p>
                   )}
                 </div>
               </div>
@@ -23983,7 +23983,7 @@ function AccionesView({
             </button>
 
             <button type="button" onClick={() => setTabAcciones("procedimientos")}
-              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
+              className={`${subCard} bg-accent/5  border-accent/20`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="🔒" size={24} />
@@ -24094,7 +24094,7 @@ function AccionesView({
                       )}
                       {total > 0 && (
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                          completa ? "border-accent/40 text-accent dark:text-accent/40" : "border-accent/40 text-accent dark:text-accent/40"
+                          completa ? "border-accent/40 text-accent" : "border-accent/40 text-accent"
                         }`}>
                           {completa ? `✓ ${total} paso${total !== 1 ? "s" : ""}` : `${ok}/${total} pasos`}
                         </span>
@@ -24152,9 +24152,9 @@ function AccionesView({
 
                 const badge =
                   estado === "completa"
-                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">✓ Completa</span>
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10  px-2 py-0.5 text-[10px] font-bold text-accent">✓ Completa</span>
                   : estado === "incompleta"
-                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">⚠ Incompleta</span>
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10  px-2 py-0.5 text-[10px] font-bold text-accent">⚠ Incompleta</span>
                   : <span className="inline-flex items-center gap-1 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-bold text-muted">Sin pasos</span>;
 
                 const tiempoStr = (() => {
@@ -24194,8 +24194,8 @@ function AccionesView({
                       {total > 0 && (
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
                           estado === "completa"
-                            ? "bg-accent/5 dark:bg-accent/30 border-accent/40 text-accent dark:text-accent/40"
-                            : "bg-accent/5 dark:bg-accent/30 border-accent/40 text-accent dark:text-accent/40"
+                            ? "bg-accent/5  border-accent/40 text-accent"
+                            : "bg-accent/5  border-accent/40 text-accent"
                         }`}>
                           {estado === "completa" ? "✓" : `${ok}/`}{estado !== "completa" && total} {total === 1 ? "paso" : "pasos"}
                         </span>
@@ -24488,8 +24488,8 @@ function AccionesView({
       {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "historial" && tabAcciones !== "procedimientos" && tabAcciones !== "notas" && tabAcciones !== "bolsillo" && tabAcciones !== "agenda" && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { tab: "pendientes" as const,    emoji: "🗓️", label: "Futuras",        count: pendientes.length,      color: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50 hover:border-accent/40" },
-            { tab: "procedimientos" as const,emoji: "🔒", label: "Procedimientos", count: procedimientos.length,  color: "border-accent/20     dark:border-accent/60     bg-accent/5     dark:bg-accent/50     hover:border-accent/40"     },
+            { tab: "pendientes" as const,    emoji: "🗓️", label: "Futuras",        count: pendientes.length,      color: "border-accent/20  bg-accent/5  hover:border-accent/40" },
+            { tab: "procedimientos" as const,emoji: "🔒", label: "Procedimientos", count: procedimientos.length,  color: "border-accent/20          bg-accent/5          hover:border-accent/40"     },
             { tab: "historial" as const,     emoji: "📜", label: "Historial",      count: null,                   color: "border-stone-200   dark:border-stone-600/50   bg-stone-50   dark:bg-stone-900/60   hover:border-stone-400"   },
           ].map(({ tab, emoji, label, count, color }) => (
             <button
@@ -24949,7 +24949,7 @@ function PanelComprasEjecucion({
           </div>
           {activos.length > 0 && (
             <div className="shrink-0 flex items-center gap-1 bg-accent/10 rounded-full px-3 py-1">
-              <span className="text-xs font-black tabular-nums text-accent dark:text-accent/40">{comprados}/{activos.length}</span>
+              <span className="text-xs font-black tabular-nums text-accent">{comprados}/{activos.length}</span>
             </div>
           )}
         </div>
@@ -24965,7 +24965,7 @@ function PanelComprasEjecucion({
           </div>
         )}
         {activos.map(item => (
-          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-accent/50 dark:border-accent/30 opacity-70" : "border-gray-200 dark:border-white/10"}`}>
+          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-accent/50  opacity-70" : "border-gray-200 dark:border-white/10"}`}>
             <button type="button" onClick={() => void toggleComprado(item)}
               className={`shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${item.comprado ? "bg-accent/50 border-accent/50 text-white" : "border-gray-300 dark:border-white/20"}`}>
               {item.comprado && <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -24980,7 +24980,7 @@ function PanelComprasEjecucion({
               className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition text-xs">✕</button>
           </div>
         ))}
-        {msg && <p className={`text-center text-xs px-4 py-2 font-semibold ${msg.startsWith("✅") ? "text-accent dark:text-accent/40" : "text-red-500 dark:text-red-400"}`}>{msg}</p>}
+        {msg && <p className={`text-center text-xs px-4 py-2 font-semibold ${msg.startsWith("✅") ? "text-accent" : "text-red-500 dark:text-red-400"}`}>{msg}</p>}
       </div>
 
       {/* Formulario agregar + factura */}
@@ -25010,7 +25010,7 @@ function PanelComprasEjecucion({
         <input ref={facturaRef} type="file" accept="image/*,.pdf" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) void subirFactura(f); e.target.value = ""; }}/>
         <button type="button" onClick={() => facturaRef.current?.click()} disabled={subiendoFactura}
-          className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-accent/40 text-accent dark:text-accent/40 bg-accent/5 dark:bg-accent/10" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
+          className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-accent/40 text-accent  bg-accent/5" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
           <span>🧾</span>
           <span>{subiendoFactura ? "Subiendo…" : facturaFile ? `Factura: ${facturaFile.name}` : "Adjuntar factura de compras"}</span>
         </button>
@@ -25277,9 +25277,9 @@ function EjecucionAccionChat({
           </div>
           {/* Cronómetro + pausa */}
           <div className="shrink-0 flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${cronometroActivo ? "bg-accent/10" : "bg-accent/10 dark:bg-accent/30"}`}>
+            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${cronometroActivo ? "bg-accent/10" : "bg-accent/10"}`}>
               <span className="text-xs">⏱</span>
-              <span className={`text-sm font-black tabular-nums ${cronometroActivo ? "text-accent" : "text-accent dark:text-accent/40"}`}>{fmtSeg(segundos)}</span>
+              <span className={`text-sm font-black tabular-nums ${cronometroActivo ? "text-accent" : "text-accent"}`}>{fmtSeg(segundos)}</span>
               {cronometroActivo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
             </div>
             {cronometroActivo ? (
@@ -25287,7 +25287,7 @@ function EjecucionAccionChat({
                 type="button"
                 onClick={() => void pausar()}
                 title="Pausar cronómetro"
-                className="flex items-center justify-center h-8 w-8 rounded-full bg-accent/10 text-accent hover:bg-accent/20 dark:bg-accent/40 dark:text-accent/40 dark:hover:bg-accent/60 transition shrink-0"
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-accent/10 text-accent hover:bg-accent/20    transition shrink-0"
               >
                 ⏸
               </button>
@@ -25539,7 +25539,7 @@ function RevisionSolicitudView({
         <button type="button" onClick={onVolver}
           className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-accent dark:text-accent/40 mb-0.5">⏳ Revisar y confirmar</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-accent  mb-0.5">⏳ Revisar y confirmar</p>
           <p className="text-base font-extrabold text-ink leading-snug line-clamp-2 tracking-tight">{solicitud.titulo}</p>
           {solicitud.asignado_a_nombre && (
             <p className="text-sm font-bold text-muted mt-0.5">Resolvió: {solicitud.asignado_a_nombre}</p>
@@ -25550,18 +25550,18 @@ function RevisionSolicitudView({
       {/* Hilo */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
         {/* Tarjeta de contexto */}
-        <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/20 px-4 py-3 space-y-1">
+        <div className="rounded-2xl border-2 border-accent/60  bg-accent/5  px-4 py-3 space-y-1">
           <div className="flex items-center gap-2">
             <span className="h-6 w-6 shrink-0 rounded-full bg-accent/50 text-white text-[11px] font-black flex items-center justify-center">
               {solicitud.asignado_a_nombre?.charAt(0)?.toUpperCase() ?? "?"}
             </span>
-            <p className="text-[11px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
+            <p className="text-[11px] font-extrabold text-accent  uppercase tracking-wide">
               {solicitud.asignado_a_nombre} · {shortNumero(solicitud.numero)}
             </p>
           </div>
-          <p className="text-sm font-bold text-accent dark:text-accent/20 leading-snug">{solicitud.titulo}</p>
+          <p className="text-sm font-bold text-accent  leading-snug">{solicitud.titulo}</p>
           {descripcion && descripcion !== solicitud.titulo && (
-            <p className="text-sm text-accent/80 dark:text-accent/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+            <p className="text-sm text-accent/80  leading-relaxed whitespace-pre-wrap">{descripcion}</p>
           )}
         </div>
 
@@ -25656,7 +25656,7 @@ function RevisionSolicitudView({
             ))}
 
             <button type="button" onClick={agregarItemAjuste}
-              className="flex items-center gap-1.5 text-xs text-accent dark:text-accent/40 hover:underline font-bold">
+              className="flex items-center gap-1.5 text-xs text-accent  hover:underline font-bold">
               + Agregar otro punto de ajuste
             </button>
 
@@ -25700,7 +25700,7 @@ function RevisionSolicitudView({
           <div className="flex gap-2">
             <button type="button"
               onClick={() => setShowRechazo(true)}
-              className="flex-1 rounded-2xl border-2 border-accent/40 py-3 text-sm font-extrabold text-accent transition hover:bg-accent/5 dark:hover:bg-accent/30 active:scale-[0.98]">
+              className="flex-1 rounded-2xl border-2 border-accent/40 py-3 text-sm font-extrabold text-accent transition hover:bg-accent/5  active:scale-[0.98]">
               ↩️ Pedir ajustes
             </button>
             <button type="button"
@@ -26097,7 +26097,7 @@ function ResolverActividadChat({
               onClick={() => setModoIntervencion("pausar")}
               className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
                 modoIntervencion === "pausar"
-                  ? "border-accent/40 bg-accent/5 dark:bg-accent/30"
+                  ? "border-accent/40 bg-accent/5"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
               <p className="text-sm font-extrabold text-ink">🛑 Pausar y delegar</p>
@@ -26107,7 +26107,7 @@ function ResolverActividadChat({
               onClick={() => setModoIntervencion("colaborar")}
               className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
                 modoIntervencion === "colaborar"
-                  ? "border-accent/40 bg-accent/5 dark:bg-accent/30"
+                  ? "border-accent/40 bg-accent/5"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
               <p className="text-sm font-extrabold text-ink">👥 Invitar a colaborar</p>
@@ -26217,11 +26217,11 @@ function ResolverActividadChat({
 
         {/* Banner: bloqueo por intervención pendiente */}
         {bloqueadoPorNumero && (
-          <div className="rounded-2xl border-2 border-accent/70 bg-accent/5 dark:bg-accent/30 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-2xl border-2 border-accent/70 bg-accent/5  px-4 py-3 flex items-start gap-3">
             <span className="text-xl shrink-0">⏳</span>
             <div>
-              <p className="text-xs font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">Esperando intervención</p>
-              <p className="text-sm text-accent dark:text-accent/30 leading-snug mt-0.5">
+              <p className="text-xs font-extrabold text-accent  uppercase tracking-wide">Esperando intervención</p>
+              <p className="text-sm text-accent  leading-snug mt-0.5">
                 Sub-ticket <strong>{bloqueadoPorNumero}</strong>{bloqueadoPorNombre ? ` asignado a ${bloqueadoPorNombre}` : ""} debe resolverse antes de poder marcar esta solicitud como terminada. Puedes seguir comunicándote en el hilo.
               </p>
             </div>
@@ -26230,42 +26230,42 @@ function ResolverActividadChat({
 
         {/* Hilo del ticket padre (cuando este es un sub-ticket de intervención) */}
         {padreInfo && (
-          <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/20">
+          <div className="rounded-2xl border-2 border-accent/60  bg-accent/5">
             <button type="button"
               onClick={() => setShowPadre(v => !v)}
               className="w-full flex items-center justify-between px-4 py-2.5 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-accent dark:text-accent/40">👥</span>
-                <span className="text-xs font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
+                <span className="text-accent">👥</span>
+                <span className="text-xs font-extrabold text-accent  uppercase tracking-wide">
                   Hilo principal · {padreInfo.numero}
                 </span>
-                <span className="text-xs text-accent/70 dark:text-accent/60 truncate max-w-[150px]">{padreInfo.titulo}</span>
+                <span className="text-xs text-accent/70  truncate max-w-[150px]">{padreInfo.titulo}</span>
               </div>
               <span className="text-xs font-bold text-accent/50 shrink-0 ml-2">{showPadre ? "▲ Ocultar" : `▼ Ver (${padreInfo.notasPadre.length})`}</span>
             </button>
             {showPadre && (
-              <div className="border-t border-accent/20 dark:border-accent/40 px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
+              <div className="border-t border-accent/20  px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
                 {padreInfo.notasPadre.map(nota => {
                   const esSol = !!nota.esSolicitante;
                   return (
                     <div key={nota.id} className={`flex ${esSol ? "justify-start" : "justify-end"}`}>
                       <div className="max-w-[88%] space-y-0.5">
                         {nota.autorNombre && (
-                          <p className="text-[10px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide px-1">{nota.autorNombre}</p>
+                          <p className="text-[10px] font-extrabold text-accent  uppercase tracking-wide px-1">{nota.autorNombre}</p>
                         )}
                         {nota.fotoUrl && (
                           <>
                             {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
                             <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
-                              <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-accent/20 dark:border-accent/40 object-cover group-hover:opacity-80 transition-opacity" />
+                              <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-accent/20  object-cover group-hover:opacity-80 transition-opacity" />
                               <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
                             </button>
                           </>
                         )}
                         {nota.texto && (
                           <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed ${
-                            esSol ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
-                                  : "bg-accent/20 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-br-sm"
+                            esSol ? "bg-accent/10  text-accent  rounded-bl-sm"
+                                  : "bg-accent/20  text-accent  rounded-br-sm"
                           }`}>{nota.texto}</div>
                         )}
                       </div>
@@ -26279,18 +26279,18 @@ function ResolverActividadChat({
 
         {/* Tarjeta de contexto: descripción de la solicitud (siempre visible) */}
         {!cargandoNotas && (
-          <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/30 px-4 py-3 space-y-1">
+          <div className="rounded-2xl border-2 border-accent/60  bg-accent/5  px-4 py-3 space-y-1">
             <div className="flex items-center gap-2">
               <span className="h-6 w-6 shrink-0 rounded-full bg-accent/50 text-white text-[11px] font-black flex items-center justify-center">
                 {solicitud.creado_por_nombre?.charAt(0)?.toUpperCase() ?? "?"}
               </span>
-              <p className="text-[11px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
+              <p className="text-[11px] font-extrabold text-accent  uppercase tracking-wide">
                 {solicitud.creado_por_nombre} · Solicitud {solicitud.numero}
               </p>
             </div>
-            <p className="text-sm font-bold text-accent dark:text-accent/20 leading-snug">{solicitud.titulo}</p>
+            <p className="text-sm font-bold text-accent  leading-snug">{solicitud.titulo}</p>
             {descripcion && descripcion !== solicitud.titulo && (
-              <p className="text-sm text-accent/80 dark:text-accent/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+              <p className="text-sm text-accent/80  leading-relaxed whitespace-pre-wrap">{descripcion}</p>
             )}
           </div>
         )}
@@ -26331,7 +26331,7 @@ function ResolverActividadChat({
                 {/* Nombre del autor — para solicitante y colaboradores */}
                 {(esSol || esColab) && nota.autorNombre && (
                   <p className={`text-[10px] font-extrabold uppercase tracking-wide px-1 ${
-                    esColab ? "text-accent dark:text-accent/40" : "text-accent dark:text-accent/40"
+                    esColab ? "text-accent" : "text-accent"
                   }`}>
                     {nota.autorNombre}
                   </p>
@@ -26341,8 +26341,8 @@ function ResolverActividadChat({
                     <button type="button" onClick={() => !(nota.guardando || nota.eliminando) && setLbUrl(nota.fotoUrl!)} className="block w-full max-w-xs text-left" title="Ver imagen">
                       <img src={nota.fotoUrl} alt="foto"
                         className={`rounded-xl w-full max-w-xs border object-cover transition group-hover/img:opacity-80 ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
-                          esSol ? "border-accent/20 dark:border-accent/40"
-                          : esColab ? "border-accent/20 dark:border-accent/40"
+                          esSol ? "border-accent/20"
+                          : esColab ? "border-accent/20"
                           : "border-gray-200 dark:border-white/10"
                         }`}/>
                       {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
@@ -26361,9 +26361,9 @@ function ResolverActividadChat({
                   <div className="relative">
                     <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
                       esSol
-                        ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
+                        ? "bg-accent/10  text-accent  rounded-bl-sm"
                         : esColab
-                          ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
+                          ? "bg-accent/10  text-accent  rounded-bl-sm"
                           : "bg-accent text-white rounded-br-sm"
                     }`}>
                       {nota.texto}
@@ -27478,12 +27478,12 @@ function AgenteMandoView({
               lastChips.filter(c => !c.tipo || c.tipo === "util"),
             ).map((chip, i) => {
               const meta: Record<string, { icon: string; dot: string; bg: string; label: string }> = {
-                accion_activa:        { icon: "⚡", dot: "bg-accent/50",   bg: "bg-accent/70 dark:bg-accent/20",   label: "text-accent dark:text-accent/30" },
-                solicitud_asignada:   { icon: "📋", dot: "bg-accent/40",   bg: "bg-accent/60 dark:bg-accent/20",   label: "text-accent dark:text-accent/30" },
-                solicitud_aprobar:    { icon: "⏳", dot: "bg-accent/40",  bg: "bg-accent/60 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
-                recordatorio:         { icon: "🔔", dot: "bg-accent/40", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
-                pendiente:            { icon: "🗓️", dot: "bg-accent/40", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
-                colaboracion:         { icon: "👥", dot: "bg-accent/30", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
+                accion_activa:        { icon: "⚡", dot: "bg-accent/50",   bg: "bg-accent/70",   label: "text-accent" },
+                solicitud_asignada:   { icon: "📋", dot: "bg-accent/40",   bg: "bg-accent/60",   label: "text-accent" },
+                solicitud_aprobar:    { icon: "⏳", dot: "bg-accent/40",  bg: "bg-accent/60", label: "text-accent" },
+                recordatorio:         { icon: "🔔", dot: "bg-accent/40", bg: "bg-accent/50", label: "text-accent" },
+                pendiente:            { icon: "🗓️", dot: "bg-accent/40", bg: "bg-accent/50", label: "text-accent" },
+                colaboracion:         { icon: "👥", dot: "bg-accent/30", bg: "bg-accent/50", label: "text-accent" },
                 labor_tablero:        { icon: "🎯", dot: "bg-stone-400",  bg: "bg-stone-50/60 dark:bg-stone-900/20",  label: "text-stone-700 dark:text-stone-300" },
                 solicitud_esperando:  { icon: "·",  dot: "bg-slate-300",  bg: "bg-slate-50/40 dark:bg-slate-900/10",  label: "text-slate-500 dark:text-slate-400" },
                 util:                 { icon: "→",  dot: "bg-border",     bg: "bg-surface",                            label: "text-ink" },
@@ -27562,7 +27562,7 @@ function AgenteMandoView({
           <button type="button" onClick={onGoSolicitudes}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition active:scale-[0.97] ${
               solicitudesCount > 0
-                ? "border-accent/20 bg-accent/5 text-accent dark:border-accent/50 dark:bg-accent/40 dark:text-accent/30"
+                ? "border-accent/20 bg-accent/5 text-accent"
                 : "border-border bg-surface text-muted"
             }`}>
             <TopicIcon value="📋" size={12} weight="regular" />

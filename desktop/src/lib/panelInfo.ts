@@ -50,7 +50,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Hugo recuerda el contexto de la conversación mientras estés en esta sesión.",
     ],
     tier: "core",
-    category: "inicio",
+    category: "canales",
   },
   whatsapp: {
     emoji: "💚",
@@ -61,10 +61,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Las conversaciones marcadas en naranja esperan tu aprobación.",
     ],
     tier: "standard",
-    category: "clientes",
+    category: "canales",
   },
 
-  // ── Ventas ───────────────────────────────────────────────────────────────────
+  // ── Atención (bandejas con pendientes) ───────────────────────────────────────
   preventa: {
     emoji: "🛒",
     label: "Preventa MeLi",
@@ -75,7 +75,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "El número rojo en el menú indica cuántas hay sin responder.",
     ],
     tier: "core",
-    category: "clientes",
+    category: "atencion",
   },
   postventa: {
     emoji: "📬",
@@ -87,7 +87,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Los RUT para facturación electrónica llegan como archivo adjunto en estos mensajes.",
     ],
     tier: "core",
-    category: "clientes",
+    category: "atencion",
   },
   pedidos: {
     emoji: "📦",
@@ -99,7 +99,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Actualiza el número de guía para que el cliente pueda rastrear su envío.",
     ],
     tier: "core",
-    category: "clientes",
+    category: "atencion",
   },
 
   // ── Inventario ────────────────────────────────────────────────────────────────
@@ -109,12 +109,12 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Punto único de entrada de inventario: registra entradas y salidas de unidades aquí y se propagan a MeLi y a la página web, sin editar nada manualmente en la app de MeLi.",
     tips: [
       "'+ Entrada' y '− Salida' suman o restan unidades y empujan el resultado a MeLi y a la web.",
-      "La pestaña 'Códigos MeLi ↔ Siigo' muestra si el SKU de cada publicación coincide con el código en Siigo y permite vincularlos a mano.",
+      "La pestaña 'Códigos MeLi ↔ Siigo' cruza SKU de publicación con código Siigo; con Editar puedes cambiar el SKU en MeLi y el vínculo Siigo (filtro Sin C- para candidatos a combo).",
       "Un producto 'pausado en MeLi' igual acepta entradas — se actualiza la web de inmediato; MeLi puede seguir pausado hasta reactivarlo allá ('Abrir en MeLi' para ir directo).",
       "Siigo solo aparece como referencia de lectura — su API no permite escribirle stock; se sigue ajustando aparte.",
     ],
     tier: "core",
-    category: "productos",
+    category: "inventario",
   },
   etiquetas: {
     emoji: "🏷️",
@@ -126,7 +126,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Usa la pestaña Studio para diseñar una plantilla y enviarla directo a imprimir.",
     ],
     tier: "core",
-    category: "productos",
+    category: "inventario",
   },
   fichas: {
     emoji: "📄",
@@ -137,10 +137,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Puedes descargar el PDF de cada ficha para enviarlo a clientes.",
     ],
     tier: "standard",
-    category: "productos",
+    category: "inventario",
   },
 
-  // ── Contenido ────────────────────────────────────────────────────────────────
+  // ── Tienda y taller ───────────────────────────────────────────────────────────
   publicaciones: {
     emoji: "📢",
     label: "Publicaciones",
@@ -150,7 +150,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Puedes editar el contenido antes de publicar.",
     ],
     tier: "standard",
-    category: "contenido",
+    category: "tienda",
   },
 
   sitioweb: {
@@ -163,7 +163,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "'Restaurar textos' vuelve al contenido recomendado del tema Pureza.",
     ],
     tier: "standard",
-    category: "contenido",
+    category: "tienda",
   },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────────
@@ -285,10 +285,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Conversaciones iniciadas desde el chat de la página web mckennagroup.co.",
     tips: ["Las conversaciones sin respuesta en más de 10 minutos se marcan en rojo."],
     tier: "advanced",
-    category: "clientes",
+    category: "canales",
   },
 
-  // ── Producción ────────────────────────────────────────────────────────────────
+  // ── Tienda y taller ───────────────────────────────────────────────────────────
   "placas-concreto": {
     emoji: "🧱",
     label: "Placas de Concreto",
@@ -299,7 +299,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Los resultados en gramos y mililitros quedan listos para pesar directo en la báscula del taller.",
     ],
     tier: "standard",
-    category: "produccion",
+    category: "tienda",
   },
 
   // ── Config ────────────────────────────────────────────────────────────────────
@@ -309,7 +309,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Configuración avanzada de productos para el sistema de etiquetado: formatos, campos personalizados y reglas normativas.",
     tips: ["Solo modifica esto si sabes exactamente qué cambiar — afecta todas las etiquetas."],
     tier: "advanced",
-    category: "productos",
+    category: "inventario",
   },
   "logistica-importaciones": {
     emoji: "🚢",

@@ -1,4 +1,5 @@
 import { useQuestTheme } from "../stores/questTheme";
+import { usePanelTheme } from "../stores/panelTheme";
 import { questNavBtn } from "../lib/questStyles";
 import { Icon } from "../icons";
 
@@ -13,9 +14,17 @@ export default function QuestThemeToggle({
   variant?: "quest" | "sidebar";
 }) {
   const dark = useQuestTheme((s) => s.dark);
-  const toggle = useQuestTheme((s) => s.toggle);
+  const toggleQuest = useQuestTheme((s) => s.toggle);
+  const setMode = usePanelTheme((s) => s.setMode);
   const label = dark ? "Modo claro" : "Modo oscuro";
   const btnClass = variant === "sidebar" ? SIDEBAR_BTN : questNavBtn(false);
+
+  function toggle() {
+    const nextDark = !dark;
+    toggleQuest();
+    // Mantener el panel global alineado con el tablero
+    setMode(nextDark ? "dark" : "light");
+  }
 
   return (
     <button

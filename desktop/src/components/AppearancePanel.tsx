@@ -84,6 +84,9 @@ export default function AppearancePanel() {
 
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
         <h3 className="text-sm font-semibold text-ink">Modo</h3>
+        <p className="text-xs text-muted -mt-2">
+          Oscuro usa base #2B454F (teal McKenna) con jerarquía tipo editor.
+        </p>
         <div className="flex flex-wrap gap-2">
           {MODES.map((m) => (
             <button

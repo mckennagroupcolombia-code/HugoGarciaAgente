@@ -29,22 +29,21 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
 
   root.classList.toggle("dark", dark);
   root.style.colorScheme = dark ? "dark" : "light";
-  const accent = dark ? brightenAccentRgb(config.accentRgb, 0.52) : config.accentRgb;
-  root.style.setProperty("--mck-accent", accent);
-  root.style.setProperty(
-    "--mck-accent-hover",
-    dark ? brightenAccentRgb(config.accentRgb, 0.68) : darkenAccentRgb(config.accentRgb),
-  );
+  try {
+    localStorage.setItem("mck-theme-mode-hint", config.mode === "system" ? "system" : config.mode);
+  } catch {
+    /* ignore */
+  }
+  // Mismos acentos que en claro: saturación limpia (sin aclarar → no se ensucian).
+  root.style.setProperty("--mck-accent", config.accentRgb);
+  root.style.setProperty("--mck-accent-hover", darkenAccentRgb(config.accentRgb));
   root.style.setProperty("--mck-font-sans", FONT_STACKS[config.fontSans]);
   root.style.setProperty("--mck-radius-paper", RADIUS_PX[config.radius]);
-}
 
-function brightenAccentRgb(rgb: string, amount: number): string {
-  const parts = rgb.trim().split(/\s+/).map(Number);
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return rgb;
-  return parts
-    .map((n) => Math.min(255, Math.round(n + (255 - n) * amount)))
-    .join(" ");
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute("content", dark ? "#2B454F" : rgbToHex(config.accentRgb));
+  }
 }
 
 function darkenAccentRgb(rgb: string): string {

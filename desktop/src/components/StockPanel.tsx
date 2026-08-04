@@ -197,7 +197,13 @@ function StockRow({
 
 type StockView = "inventario" | "codigos";
 
-type FiltroRelacion = "todos" | "vinculados" | "sin_siigo" | "divergentes" | "sin_codigo";
+type FiltroRelacion =
+  | "todos"
+  | "vinculados"
+  | "sin_siigo"
+  | "divergentes"
+  | "sin_codigo"
+  | "sin_c";
 
 interface RelacionItem {
   meli_id: string;
@@ -220,6 +226,7 @@ interface RelacionResp {
     sin_siigo: number;
     divergentes: number;
     sin_codigo: number;
+    sin_c: number;
     filtrados: number;
   };
   actualizado_en?: string | null;
@@ -251,6 +258,7 @@ function RelacionCodigosTab() {
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<FiltroRelacion>("todos");
   const [editMeli, setEditMeli] = useState<string | null>(null);
+  const [skuDraft, setSkuDraft] = useState("");
   const [codigoDraft, setCodigoDraft] = useState("");
   const forceRefreshRef = useRef(false);
 
@@ -272,11 +280,25 @@ function RelacionCodigosTab() {
     staleTime: 60_000,
   });
 
-  const vincularMut = useMutation({
-    mutationFn: ({ codigo_siigo, meli_id }: { codigo_siigo: string; meli_id: string }) =>
-      api.post("/api/stock/relacion-codigos/vincular", { codigo_siigo, meli_id }),
+  const editarMut = useMutation({
+    mutationFn: ({
+      meli_id,
+      sku_meli,
+      codigo_siigo,
+    }: {
+      meli_id: string;
+      sku_meli: string;
+      codigo_siigo: string;
+    }) =>
+      api.post("/api/stock/relacion-codigos/editar", {
+        meli_id,
+        sku_meli,
+        codigo_siigo,
+        vincular_si_sku: true,
+      }),
     onSuccess: () => {
       setEditMeli(null);
+      setSkuDraft("");
       setCodigoDraft("");
       forceRefreshRef.current = true;
       void refetch();
@@ -285,13 +307,15 @@ function RelacionCodigosTab() {
 
   const totales = data?.totales;
   const items = data?.items ?? [];
+  const puedeGuardar = Boolean(skuDraft.trim() || codigoDraft.trim());
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted">
         Cruza el ID de Mercado Libre (MCO…) y el SKU de la publicación con el código de producto en
-        Siigo. Si el SKU de MeLi no coincide con Siigo, puedes vincularlos manualmente (queda
-        guardado igual que en Publicaciones).
+        Siigo. Con <span className="font-semibold text-ink">Editar</span> puedes cambiar el SKU en
+        MeLi (queda escrito en la publicación) y el código Siigo (vínculo local). Usa el filtro{" "}
+        <span className="font-semibold text-ink">Sin C-</span> para ver candidatos a combo.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -318,6 +342,7 @@ function RelacionCodigosTab() {
           {(
             [
               ["todos", `Todos (${totales.total})`],
+              ["sin_c", `Sin C- (${totales.sin_c ?? 0})`],
               ["vinculados", `Vinculados (${totales.vinculados})`],
               ["sin_siigo", `Sin Siigo (${totales.sin_siigo})`],
               ["divergentes", `SKU distinto (${totales.divergentes})`],
@@ -327,6 +352,11 @@ function RelacionCodigosTab() {
             <button
               key={id}
               onClick={() => setFiltro(id)}
+              title={
+                id === "sin_c"
+                  ? "Publicaciones cuyo SKU MeLi / código Siigo no empieza por C- (para registrar combo en Siigo)"
+                  : undefined
+              }
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 filtro === id
                   ? "bg-accent text-white"
@@ -337,6 +367,14 @@ function RelacionCodigosTab() {
             </button>
           ))}
         </div>
+      )}
+
+      {filtro === "sin_c" && (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          Estos productos no tienen código con prefijo <span className="font-mono font-bold">C-</span>.
+          Edita el SKU a un código <span className="font-mono">C-…</span>, guárdalo en MeLi y luego
+          registra el combo en Siigo / catálogo.
+        </p>
       )}
 
       <form
@@ -370,11 +408,13 @@ function RelacionCodigosTab() {
           {error instanceof Error ? error.message : "No se pudo cargar la relación de códigos"}
         </p>
       )}
-      {vincularMut.isError && (
-        <p className="text-xs text-danger">{vincularMut.error.message}</p>
+      {editarMut.isError && (
+        <p className="text-xs text-danger">{editarMut.error.message}</p>
       )}
-      {vincularMut.isSuccess && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">Vínculo guardado.</p>
+      {editarMut.isSuccess && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          Cambios guardados (SKU MeLi y/o vínculo Siigo).
+        </p>
       )}
 
       {!isLoading && !isError && items.length === 0 && (
@@ -412,11 +452,32 @@ function RelacionCodigosTab() {
                       </a>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-ink">{it.sku_meli || "—"}</td>
                   <td className="px-3 py-2">
                     {editing ? (
                       <input
                         autoFocus
+                        value={skuDraft}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSkuDraft(v);
+                          // Si el código Siigo seguía igual al SKU viejo, alinear al nuevo
+                          if (
+                            !codigoDraft.trim() ||
+                            codigoDraft.trim() === (it.sku_meli || it.codigo_siigo || "").trim()
+                          ) {
+                            setCodigoDraft(v);
+                          }
+                        }}
+                        placeholder="C-… SKU MeLi"
+                        className="w-full min-w-[8rem] rounded border border-border bg-surface-input px-2 py-1 font-mono text-ink outline-none focus:border-accent"
+                      />
+                    ) : (
+                      <p className="font-mono text-ink">{it.sku_meli || "—"}</p>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {editing ? (
+                      <input
                         value={codigoDraft}
                         onChange={(e) => setCodigoDraft(e.target.value)}
                         placeholder="Código Siigo"
@@ -440,20 +501,22 @@ function RelacionCodigosTab() {
                     {editing ? (
                       <div className="flex flex-wrap gap-1">
                         <button
-                          disabled={!codigoDraft.trim() || vincularMut.isPending}
+                          disabled={!puedeGuardar || editarMut.isPending}
                           onClick={() =>
-                            vincularMut.mutate({
-                              codigo_siigo: codigoDraft.trim(),
+                            editarMut.mutate({
                               meli_id: it.meli_id,
+                              sku_meli: skuDraft.trim(),
+                              codigo_siigo: codigoDraft.trim(),
                             })
                           }
                           className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
                         >
-                          Guardar
+                          {editarMut.isPending ? "Guardando…" : "Guardar"}
                         </button>
                         <button
                           onClick={() => {
                             setEditMeli(null);
+                            setSkuDraft("");
                             setCodigoDraft("");
                           }}
                           className="rounded border border-border px-2 py-1 text-[11px] font-semibold text-muted"
@@ -465,11 +528,13 @@ function RelacionCodigosTab() {
                       <button
                         onClick={() => {
                           setEditMeli(it.meli_id);
-                          setCodigoDraft(it.codigo_siigo || it.sku_meli || "");
+                          const initial = it.sku_meli || it.codigo_siigo || "";
+                          setSkuDraft(it.sku_meli || "");
+                          setCodigoDraft(it.codigo_siigo || initial);
                         }}
                         className="rounded border border-border px-2 py-1 text-[11px] font-semibold text-ink-muted transition hover:border-accent/50 hover:text-accent"
                       >
-                        Vincular
+                        Editar
                       </button>
                     )}
                   </td>

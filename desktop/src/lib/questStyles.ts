@@ -58,7 +58,7 @@ export const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> 
   },
   logistica: {
     label: "Logística",
-    cls: "bg-teal-100 text-teal-800 dark:bg-accent/20 dark:text-accent-sun",
+    cls: "bg-teal-100 text-teal-800  dark:text-accent-sun",
   },
   mantenimiento: {
     label: "Mantenimiento",

@@ -2994,18 +2994,18 @@ export default function RentabilidadPanel() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
-        <p className="mt-1 text-sm text-muted">
-          Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes. Usa los iconos del
-          cabezote Contabilidad para facturas y calculadora.
-        </p>
-      </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="shrink-0 space-y-3 pb-3">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
+          <p className="mt-1 text-sm text-muted">
+            Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes. Usa los iconos del
+            cabezote Contabilidad para facturas y calculadora.
+          </p>
+        </div>
 
-      <div className="sticky top-0 z-20 -mx-1 bg-surface/95 px-1 pb-2 pt-1 backdrop-blur-md">
         <div
-          className="flex gap-1 overflow-x-auto rounded-paper border-2 border-border bg-surface-hover p-1"
+          className="flex gap-1 overflow-x-auto rounded-paper border-2 border-border bg-surface-hover p-1 shadow-paper-sm"
           role="tablist"
           aria-label="Secciones de Rentabilidad"
         >
@@ -3026,12 +3026,14 @@ export default function RentabilidadPanel() {
         </div>
       </div>
 
-      {tab === "combos" && <TabCombos />}
-      {tab === "cobros-meli" && <TabCobrosMeli />}
-      {tab === "ganancia" && <TabGanancia />}
-      {tab === "nomina" && <TabNomina />}
-      {tab === "servicios" && <TabServicios />}
-      {tab === "periodo" && <TabPeriodo />}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4">
+        {tab === "combos" && <TabCombos />}
+        {tab === "cobros-meli" && <TabCobrosMeli />}
+        {tab === "ganancia" && <TabGanancia />}
+        {tab === "nomina" && <TabNomina />}
+        {tab === "servicios" && <TabServicios />}
+        {tab === "periodo" && <TabPeriodo />}
+      </div>
     </div>
   );
 }

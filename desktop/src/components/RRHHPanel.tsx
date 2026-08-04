@@ -436,7 +436,7 @@ function TabHallazgos() {
           <p className="mt-2 text-sm font-extrabold text-ink">{h.titulo}</p>
           {h.detalle && <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{h.detalle}</p>}
           {h.accion && (
-            <p className="mt-2 rounded-lg bg-accent/5 px-3 py-2 text-xs text-ink dark:bg-accent/15">
+            <p className="mt-2 rounded-lg bg-accent/5 px-3 py-2 text-xs text-ink">
               <span className="font-bold text-accent">Acción: </span>{h.accion}
             </p>
           )}

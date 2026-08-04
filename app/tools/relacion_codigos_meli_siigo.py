@@ -39,6 +39,19 @@ def _norm_key(s: str) -> str:
     return _norm(s).upper()
 
 
+def _es_prefijo_combo(code: str) -> bool:
+    """True si el código es combo Siigo (prefijo C-), tolerando espacios raros."""
+    compact = "".join(_norm(code).split()).upper()
+    return compact.startswith("C-")
+
+
+def _fila_tiene_prefijo_c(it: dict) -> bool:
+    """True si SKU MeLi o código Siigo de la fila empieza por C-."""
+    return _es_prefijo_combo(it.get("sku_meli") or "") or _es_prefijo_combo(
+        it.get("codigo_siigo") or ""
+    )
+
+
 def _load_cache() -> dict:
     try:
         return json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
@@ -177,7 +190,9 @@ def listar_relacion_codigos_meli_siigo(
     """
     Lista el cruce MeLi ↔ Siigo.
 
-    filtro: todos | vinculados | sin_siigo | divergentes | sin_codigo
+    filtro: todos | vinculados | sin_siigo | divergentes | sin_codigo | sin_c
+    sin_c = filas cuyo SKU MeLi / código Siigo no empieza por C-
+            (candidatos a registrar combo en Siigo y cargar al catálogo).
     """
     q = _norm(buscar).lower()
     filtro_n = _norm(filtro).lower() or "todos"
@@ -331,13 +346,17 @@ def listar_relacion_codigos_meli_siigo(
         filtrados = [it for it in filtrados if it.get("estado") == "sku_divergente"]
     elif filtro_n == "sin_codigo":
         filtrados = [it for it in filtrados if it.get("estado") == "sin_codigo"]
+    elif filtro_n in ("sin_c", "sin_prefijo_c", "sin_combo"):
+        filtrados = [it for it in filtrados if not _fila_tiene_prefijo_c(it)]
 
+    sin_c_count = sum(1 for it in items if not _fila_tiene_prefijo_c(it))
     totales = {
         "total": len(items),
         "vinculados": sum(1 for it in items if it.get("estado") == "vinculado"),
         "sin_siigo": sum(1 for it in items if it.get("estado") == "sin_siigo"),
         "divergentes": sum(1 for it in items if it.get("estado") == "sku_divergente"),
         "sin_codigo": sum(1 for it in items if it.get("estado") == "sin_codigo"),
+        "sin_c": sin_c_count,
         "filtrados": len(filtrados),
     }
 
@@ -386,3 +405,129 @@ def vincular_meli_con_siigo(codigo_siigo: str, meli_id: str) -> dict:
         "nombre_siigo": (prod or {}).get("nombre") or "",
         "override": res.get("override"),
     }
+
+
+def _invalidar_cache_relacion() -> None:
+    try:
+        if _CACHE_PATH.exists():
+            _CACHE_PATH.unlink()
+    except Exception:
+        pass
+
+
+def actualizar_sku_meli_item(meli_id: str, sku: str) -> dict:
+    """
+    Actualiza el SKU de una publicación MeLi (SELLER_SKU + seller_custom_field).
+    McKenna usa User Products: el atributo SELLER_SKU es la fuente de verdad.
+    """
+    from app.services.publicaciones import normalizar_meli_item_id
+    from app.utils import refrescar_token_meli
+
+    mid = normalizar_meli_item_id(_norm(meli_id))
+    nuevo = _norm(sku)
+    if not mid or not nuevo:
+        raise ValueError("Se requieren 'meli_id' y 'sku'.")
+    if len(nuevo) > 60:
+        raise ValueError("El SKU no puede superar 60 caracteres.")
+
+    token = refrescar_token_meli()
+    if not token:
+        raise RuntimeError("Token de Mercado Libre no disponible.")
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    # Leer SKU actual
+    prev = requests.get(
+        f"https://api.mercadolibre.com/items/{mid}"
+        f"?attributes=id,seller_custom_field,attributes",
+        headers=headers,
+        timeout=25,
+    )
+    sku_antes = ""
+    if prev.status_code == 200:
+        sku_antes = _sku_desde_item_meli(prev.json() or {})
+    elif prev.status_code == 404:
+        raise ValueError(f"Publicación {mid} no encontrada en MeLi.")
+
+    payload = {
+        "seller_custom_field": nuevo,
+        "attributes": [{"id": "SELLER_SKU", "value_name": nuevo}],
+    }
+    r = requests.put(
+        f"https://api.mercadolibre.com/items/{mid}",
+        headers=headers,
+        json=payload,
+        timeout=30,
+    )
+
+    # Si seller_custom_field falla en User Products, reintentar solo SELLER_SKU
+    if r.status_code >= 400:
+        r2 = requests.put(
+            f"https://api.mercadolibre.com/items/{mid}",
+            headers=headers,
+            json={"attributes": [{"id": "SELLER_SKU", "value_name": nuevo}]},
+            timeout=30,
+        )
+        if r2.status_code >= 400:
+            detail = (r2.text or r.text or "")[:500]
+            raise RuntimeError(f"MeLi rechazó el SKU ({r2.status_code}): {detail}")
+        r = r2
+
+    body = r.json() if r.content else {}
+    sku_despues = _sku_desde_item_meli(body) if isinstance(body, dict) else ""
+    if not sku_despues:
+        # Confirmar con GET fresco
+        conf = requests.get(
+            f"https://api.mercadolibre.com/items/{mid}"
+            f"?attributes=id,seller_custom_field,attributes",
+            headers=headers,
+            timeout=25,
+        )
+        if conf.status_code == 200:
+            sku_despues = _sku_desde_item_meli(conf.json() or {})
+
+    _invalidar_cache_relacion()
+
+    return {
+        "ok": True,
+        "meli_id": mid,
+        "sku_antes": sku_antes,
+        "sku_meli": sku_despues or nuevo,
+    }
+
+
+def editar_relacion_codigos(
+    meli_id: str,
+    sku_meli: str = "",
+    codigo_siigo: str = "",
+    vincular_si_sku: bool = True,
+) -> dict:
+    """
+    Edita SKU en MeLi y/o vínculo código Siigo → meli_id.
+
+    - Si viene sku_meli: PUT en la publicación MeLi.
+    - Si viene codigo_siigo: guarda override (vincular).
+    - Si solo viene sku_meli y vincular_si_sku=True: también vincula con ese SKU.
+    """
+    mid = _norm(meli_id)
+    sku = _norm(sku_meli)
+    codigo = _norm(codigo_siigo)
+    if not mid:
+        raise ValueError("Se requiere 'meli_id'.")
+    if not sku and not codigo:
+        raise ValueError("Indica 'sku_meli' y/o 'codigo_siigo'.")
+
+    out: dict[str, Any] = {"ok": True, "meli_id": mid}
+
+    if sku:
+        out["meli"] = actualizar_sku_meli_item(mid, sku)
+
+    codigo_vincular = codigo or (sku if vincular_si_sku and sku else "")
+    if codigo_vincular:
+        out["vinculo"] = vincular_meli_con_siigo(codigo_vincular, mid)
+
+    return out
