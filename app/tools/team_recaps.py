@@ -26,6 +26,7 @@ RECAPS_PATH = _REPO_ROOT / "docs" / "team-recaps.md"
 _ENTRADA_RE = re.compile(r"^###\s+(.+)$", re.MULTILINE)
 _CAMPO_RE = re.compile(r"^-\s+\*\*(.+?):\*\*\s*(.*)$")
 _SUBBULLET_RE = re.compile(r"^\s{2,}-\s+(.+)$")
+_CAMPO_RE_AUTOR = re.compile(r"^-\s+\*\*Autor:\*\*.*$", re.MULTILINE | re.IGNORECASE)
 
 
 def _parsear_titulo(linea: str) -> dict:
@@ -78,6 +79,19 @@ def _parsear_bloque(titulo_linea: str, cuerpo: str) -> dict:
     return entrada
 
 
+def _bloques_entrada(texto: str) -> list[tuple[int, int, int, int]]:
+    """
+    Para cada entrada "### ...": (inicio_titulo, fin_titulo, inicio_cuerpo, fin_cuerpo).
+    Mismo orden que devuelve `obtener_team_recaps` (orden del archivo).
+    """
+    matches = list(_ENTRADA_RE.finditer(texto))
+    bloques = []
+    for i, m in enumerate(matches):
+        fin_cuerpo = matches[i + 1].start() if i + 1 < len(matches) else len(texto)
+        bloques.append((m.start(), m.end(), m.end(), fin_cuerpo))
+    return bloques
+
+
 def obtener_team_recaps(limite: int = 100) -> dict:
     """Devuelve {recaps: [...]} en el mismo orden del archivo (mas reciente primero)."""
     if not RECAPS_PATH.exists():
@@ -94,7 +108,48 @@ def obtener_team_recaps(limite: int = 100) -> dict:
         inicio_cuerpo = m.end()
         fin_cuerpo = matches[i + 1].start() if i + 1 < len(matches) else len(texto)
         cuerpo = texto[inicio_cuerpo:fin_cuerpo]
-        recaps.append(_parsear_bloque(m.group(1).strip(), cuerpo))
+        entrada = _parsear_bloque(m.group(1).strip(), cuerpo)
+        entrada["indice"] = i
+        recaps.append(entrada)
 
     limite = max(1, min(int(limite or 100), 500))
     return {"recaps": recaps[:limite]}
+
+
+def asignar_autor_recap(indice: int, autor: str) -> dict:
+    """
+    Reescribe (o agrega) la linea "- **Autor:** ..." de la entrada `indice`
+    (mismo orden/indice que devuelve obtener_team_recaps). No toca el resto
+    del archivo. Devuelve {ok, recaps} con la lista ya actualizada.
+    """
+    autor = (autor or "").strip()
+    if not RECAPS_PATH.exists():
+        return {"ok": False, "error": "docs/team-recaps.md no existe"}
+
+    try:
+        texto = RECAPS_PATH.read_text(encoding="utf-8")
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    bloques = _bloques_entrada(texto)
+    if indice < 0 or indice >= len(bloques):
+        return {"ok": False, "error": f"indice {indice} fuera de rango (hay {len(bloques)} recaps)"}
+
+    _, _, inicio_cuerpo, fin_cuerpo = bloques[indice]
+    cuerpo = texto[inicio_cuerpo:fin_cuerpo]
+
+    linea_autor = f"- **Autor:** {autor}"
+    if _CAMPO_RE_AUTOR.search(cuerpo):
+        cuerpo_nuevo = _CAMPO_RE_AUTOR.sub(linea_autor, cuerpo, count=1)
+    else:
+        # Sin campo Autor previo: lo insertamos como primera linea del cuerpo.
+        cuerpo_nuevo = f"\n{linea_autor}" + cuerpo
+
+    texto_nuevo = texto[:inicio_cuerpo] + cuerpo_nuevo + texto[fin_cuerpo:]
+
+    try:
+        RECAPS_PATH.write_text(texto_nuevo, encoding="utf-8")
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+    return {"ok": True, **obtener_team_recaps()}
