@@ -151,3 +151,30 @@ Archivos:
 - `docs/agentic/ORCHESTRATION.md`
 - `docs/agentic/SKILLS.md`
 - `docs/agentic/MEMORY.md`
+
+## 2026-08-04 - Metodologia de recaps + panel de control de versiones
+
+Contexto:
+
+El repo se trabaja bajo cuenta git compartida ("McKenna Group Colombia") sin autoria individual por commit, y los cambios significativos quedaban solo en mensajes de commit o en la memoria de cada sesion de IA, sin un registro visible para el equipo.
+
+Decision:
+
+1. Protocolo obligatorio en `docs/agentic/TEAM_WORKFLOW.md`: identificar al desarrollador activo, firmar commits con `--author`, sincronizar con `git fetch`/`git pull` antes de programar, y agregar un recap estructurado en `docs/team-recaps.md` en el mismo commit del cambio.
+2. Exponer ese historial en el panel `/app`: endpoints de solo lectura `GET /api/git/log` (grafo de commits) y `GET /api/team-recaps` (recaps parseados), y un panel nuevo "Control de Versiones" en el hub Sistemas con un grafo tipo cladograma dibujado en SVG y una lista de recaps.
+
+Motivo:
+
+Dar trazabilidad real de quien hizo que cambio pese a la cuenta compartida, y hacer visible para todo el equipo (no solo en un archivo perdido) el trabajo de cada sesion de IA.
+
+Validacion:
+
+- `venv/bin/python -m pytest tests/test_smoke.py`
+- `cd desktop && npm run qa:full`
+- Revision manual del panel Sistemas → Control de Versiones contra `git log --graph --oneline --all`.
+
+Archivos:
+
+- `docs/agentic/TEAM_WORKFLOW.md`, `docs/team-recaps.md`
+- `app/tools/git_history.py`, `app/tools/team_recaps.py`, `app/routes.py`
+- `desktop/src/components/ControlVersionesPanel.tsx`, `desktop/src/lib/gitGraphLayout.ts`, `desktop/src/hooks/useGitLog.ts`, `desktop/src/hooks/useTeamRecaps.ts`

@@ -25,6 +25,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Aprendizaje/sync | `docs/agentic/learned_context.md` | `HISTORIAL_MODIFICACIONES.md`, `app/data/debugging_resuelto.jsonl` | revisar que no tenga secretos |
 | Ecosistema Gentleman | `docs/agentic/ECOSYSTEM.md` | `docs/agentic/*`, `.agents/skills/*`, `.cursor/skills*` | no instalar sin backup |
 | Revision AI | `docs/agentic/modules/guardian-review.md` | `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, workflows QA | modo reporte antes de bloquear |
+| Autoria, sync git y recaps de equipo | `docs/agentic/TEAM_WORKFLOW.md` | `docs/team-recaps.md`, `app/tools/git_history.py`, `app/tools/team_recaps.py`, `ControlVersionesPanel.tsx` | `pytest tests/test_smoke.py`, revisar entrada en `docs/team-recaps.md` |
 
 ## Protocolo Corto
 

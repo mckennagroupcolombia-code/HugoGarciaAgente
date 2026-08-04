@@ -38,6 +38,7 @@ export type Panel =
   | "logistica-aduanas"
   | "logistica-proveedores"
   | "logistica-seguimiento"
+  | "control-versiones"
   | "settings"
   | "perfil";
 

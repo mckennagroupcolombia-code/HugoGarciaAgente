@@ -20,6 +20,7 @@ const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
+const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPanel"));
 const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
 const ConfigurarProductosPanel = lazy(() =>
   import("./components/EtiquetasPanel").then((m) => ({
@@ -83,6 +84,8 @@ function PanelRouterInner() {
       return <WhatsAppPanel />;
     case "supervisor":
       return <SupervisorPanel />;
+    case "control-versiones":
+      return <ControlVersionesPanel />;
     case "preventa":
       return <PreventaPanel />;
     case "postventa":
