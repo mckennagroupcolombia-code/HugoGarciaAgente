@@ -14,7 +14,7 @@ Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea
 Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer** (más reciente arriba, justo debajo de este encabezado) un bloque con esta plantilla exacta, en el mismo commit que el código:
 
 ```markdown
-### [Fecha y Hora] - [Título Corto del Cambio]
+#### [Fecha y Hora] - [Título Corto del Cambio]
 - **Autor:** [Nombre del Desarrollador Activo]
 - **Tipo de Cambio:** [Nueva funcionalidad / Corrección / Mejora técnica]
 - **Qué se implementó:**
@@ -22,6 +22,8 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Impacto principal en la arquitectura o en la interfaz de la app.
 - **Archivos Modificados:** (Lista breve de módulos o componentes afectados)
 ```
+
+(La entrada real usa tres `#` — `### Fecha - Título`, sin corchetes. El bloque de arriba usa cuatro `#` a propósito, solo para que este ejemplo no aparezca como un recap real en el panel.)
 
 ---
 
