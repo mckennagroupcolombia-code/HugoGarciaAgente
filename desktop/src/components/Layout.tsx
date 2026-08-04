@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
+import ContabilidadNavTabs from "./ContabilidadNavTabs";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
@@ -41,10 +42,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       : hubIntegrado
       ? "Inicio"
       : hubContabilidad
-      ? (panelInfo?.label ?? sectionLabel)
+      ? null
       : sectionLabel;
 
-  const showPanelIcon = panel !== "perfil" && !hubIntegrado && panelInfo;
+  const showPanelIcon = panel !== "perfil" && !hubIntegrado && !hubContabilidad && panelInfo;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface">
@@ -52,13 +53,14 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div
           className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm transition-opacity duration-200 lg:hidden"
           onClick={toggle}
+          role="presentation"
         />
       )}
 
       <Sidebar />
 
       <main className="flex flex-1 flex-col overflow-hidden bg-transparent">
-        <header className="mck-header-glass flex shrink-0 items-center gap-3 border-b border-border/80 px-4 py-3 shadow-paper-sm">
+        <header className="mck-header-glass z-30 flex shrink-0 items-center gap-2 border-b border-border/80 px-3 py-2.5 shadow-paper-sm sm:gap-3 sm:px-4 sm:py-3">
           <button
             type="button"
             onClick={toggle}
@@ -68,29 +70,36 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
             {showPanelIcon && (
               <PanelIcon panel={panel} size={32} bubble className="shrink-0" />
             )}
             {hubIntegrado && (
               <PanelIcon panel="hugo" size={32} bubble className="shrink-0" />
             )}
+            {hubContabilidad && (
+              <PanelIcon panel="facturas" size={28} bubble className="shrink-0" />
+            )}
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
                 {headerTitle}
               </h1>
               {headerSubtitle && !hubIntegrado && (
-                <p className="hidden truncate text-[11px] text-muted lg:block">
+                <p className="hidden truncate text-[10px] leading-snug text-muted lg:block">
                   {headerSubtitle}
                 </p>
               )}
             </div>
           </div>
 
-          {advanced && (
-            <span className="hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent lg:inline">
-              Avanzado
-            </span>
+          {hubContabilidad ? (
+            <ContabilidadNavTabs />
+          ) : (
+            advanced && (
+              <span className="ml-auto hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent lg:inline">
+                Avanzado
+              </span>
+            )
           )}
         </header>
 
@@ -101,6 +110,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 ? hubIntegrado
                   ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
                   : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
+                : hubContabilidad
+                ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
                 : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"
             }`}
           >

@@ -1,0 +1,649 @@
+import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { api } from "../api/client";
+
+type Modo = "producto" | "combo";
+
+interface SiigoResumen {
+  codigo?: string;
+  nombre?: string;
+  unidad?: string;
+  activo?: boolean;
+  type?: string;
+}
+
+interface CrearResp {
+  ok: boolean;
+  mensaje?: string;
+  error?: string;
+  siigo_id?: string;
+  siigo_producto?: SiigoResumen | null;
+}
+
+interface CodigoCheck {
+  codigo: string;
+  existe_en_siigo: boolean;
+  duplicado: boolean;
+  siigo_producto: SiigoResumen | null;
+}
+
+interface BusquedaItem {
+  codigo: string;
+  nombre: string;
+}
+
+interface ComponenteLinea {
+  id: string;
+  codigo: string;
+  nombre: string;
+  cantidad: string;
+}
+
+function cop(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+}
+
+function nuevaLinea(): ComponenteLinea {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    codigo: "",
+    nombre: "",
+    cantidad: "1",
+  };
+}
+
+export default function CrearProductosSiigoPanel({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
+  const [modo, setModo] = useState<Modo>("producto");
+
+  // Producto
+  const [codigo, setCodigo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [unidad, setUnidad] = useState<"Un" | "mL" | "g">("Un");
+  const [precioCosto, setPrecioCosto] = useState("");
+  const [precioVenta, setPrecioVenta] = useState("");
+  const [iva, setIva] = useState(true);
+
+  // Combo
+  const [comboCodigo, setComboCodigo] = useState("C-");
+  const [comboNombre, setComboNombre] = useState("");
+  const [comboPrecio, setComboPrecio] = useState("");
+  const [comboIva, setComboIva] = useState(true);
+  const [componentes, setComponentes] = useState<ComponenteLinea[]>([nuevaLinea()]);
+  const [busqueda, setBusqueda] = useState("");
+  const [sugerencias, setSugerencias] = useState<BusquedaItem[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [lineaActiva, setLineaActiva] = useState<string | null>(null);
+
+  const [check, setCheck] = useState<CodigoCheck | null>(null);
+  const [resultado, setResultado] = useState<CrearResp | null>(null);
+
+  const codigoActivo = modo === "producto" ? codigo : comboCodigo;
+
+  const verificarCodigo = useMutation({
+    mutationFn: (c: string) =>
+      api.post<CodigoCheck>("/api/facturas/codigo/check", { codigo: c }),
+    onSuccess: (data) => {
+      setCheck(data);
+      setResultado(null);
+    },
+  });
+
+  const crearProducto = useMutation({
+    mutationFn: () =>
+      api.post<CrearResp>("/api/siigo/productos", {
+        codigo: codigo.trim(),
+        nombre: nombre.trim(),
+        unidad,
+        precio_costo: Number(precioCosto || 0),
+        ...(Number(precioVenta || 0) > 0
+          ? { precio_venta: Number(precioVenta) }
+          : {}),
+        iva,
+      }),
+    onSuccess: (res) => {
+      setResultado(res);
+      if (res.ok) {
+        setCheck({
+          codigo: res.siigo_producto?.codigo || codigo.trim(),
+          existe_en_siigo: true,
+          duplicado: true,
+          siigo_producto: res.siigo_producto || null,
+        });
+      }
+    },
+    onError: (err: Error) => {
+      setResultado({ ok: false, error: err.message });
+    },
+  });
+
+  const crearCombo = useMutation({
+    mutationFn: () =>
+      api.post<CrearResp>("/api/siigo/combos", {
+        codigo: comboCodigo.trim(),
+        nombre: comboNombre.trim(),
+        ...(Number(comboPrecio || 0) > 0
+          ? { precio_lista: Number(comboPrecio) }
+          : {}),
+        iva: comboIva,
+        componentes: componentes
+          .filter((c) => c.codigo.trim())
+          .map((c) => ({
+            code: c.codigo.trim(),
+            quantity: Number(c.cantidad || 1) || 1,
+          })),
+      }),
+    onSuccess: (res) => {
+      setResultado(res);
+      if (res.ok) {
+        setCheck({
+          codigo: res.siigo_producto?.codigo || comboCodigo.trim(),
+          existe_en_siigo: true,
+          duplicado: true,
+          siigo_producto: res.siigo_producto || null,
+        });
+      }
+    },
+    onError: (err: Error) => {
+      setResultado({ ok: false, error: err.message });
+    },
+  });
+
+  useEffect(() => {
+    const q = busqueda.trim();
+    if (q.length < 1 || !lineaActiva) {
+      setSugerencias([]);
+      return;
+    }
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      setBuscando(true);
+      void api
+        .get<{ items: BusquedaItem[] }>(
+          `/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=40&excluir_combos=0`,
+        )
+        .then((data) => {
+          if (!cancelled) setSugerencias(data.items ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setSugerencias([]);
+        })
+        .finally(() => {
+          if (!cancelled) setBuscando(false);
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [busqueda, lineaActiva]);
+
+  const precioVentaSugerido = useMemo(() => {
+    const costo = Number(precioCosto || 0);
+    if (!costo) return 0;
+    return Math.round(costo * 1.3);
+  }, [precioCosto]);
+
+  const creando = crearProducto.isPending || crearCombo.isPending;
+  const existe = check?.existe_en_siigo || check?.duplicado;
+
+  function resetFormulario() {
+    setResultado(null);
+    setCheck(null);
+    if (modo === "producto") {
+      setCodigo("");
+      setNombre("");
+      setUnidad("Un");
+      setPrecioCosto("");
+      setPrecioVenta("");
+      setIva(true);
+    } else {
+      setComboCodigo("C-");
+      setComboNombre("");
+      setComboPrecio("");
+      setComboIva(true);
+      setComponentes([nuevaLinea()]);
+      setBusqueda("");
+      setSugerencias([]);
+      setLineaActiva(null);
+    }
+  }
+
+  function onVerificar() {
+    const c = codigoActivo.trim();
+    if (c.length < 2) return;
+    verificarCodigo.mutate(c);
+  }
+
+  function onCrear() {
+    setResultado(null);
+    if (modo === "producto") crearProducto.mutate();
+    else crearCombo.mutate();
+  }
+
+  return (
+    <div className={`mx-auto space-y-4 ${compact ? "max-w-none" : "max-w-3xl space-y-5"}`}>
+      {!compact && (
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Crear productos y combos en Siigo</h2>
+          <p className="mt-1 text-sm text-muted">
+            Alta directa en el ERP: insumos (Product) o kits de venta (Combo con componentes).
+          </p>
+        </div>
+      )}
+
+      <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
+        {(
+          [
+            { id: "producto" as const, label: "Producto / insumo" },
+            { id: "combo" as const, label: "Combo / kit" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => {
+              setModo(t.id);
+              setResultado(null);
+              setCheck(null);
+            }}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition ${
+              modo === t.id
+                ? "bg-accent text-white shadow-sm"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {modo === "producto" ? (
+        <div className="space-y-4 rounded-xl border border-border bg-surface-panel p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1 sm:col-span-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Código</span>
+              <div className="flex gap-2">
+                <input
+                  value={codigo}
+                  onChange={(e) => {
+                    setCodigo(e.target.value.replace(/\s/g, ""));
+                    setCheck(null);
+                    setResultado(null);
+                  }}
+                  placeholder="Ej: NIAC100g"
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={onVerificar}
+                  disabled={codigo.trim().length < 2 || verificarCodigo.isPending}
+                  className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                >
+                  {verificarCodigo.isPending ? "…" : "Verificar"}
+                </button>
+              </div>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Unidad</span>
+              <select
+                value={unidad}
+                onChange={(e) => setUnidad(e.target.value as "Un" | "mL" | "g")}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                <option value="Un">Unidades</option>
+                <option value="g">Gramos</option>
+                <option value="mL">Mililitros</option>
+              </select>
+            </label>
+            <label className="block space-y-1 sm:col-span-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
+              <input
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Nombre en Siigo (máx. 100)"
+                maxLength={100}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Costo (sin IVA, opcional)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="1"
+                value={precioCosto}
+                onChange={(e) => setPrecioCosto(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Precio lista (opcional)
+                {precioVentaSugerido > 0 && !precioVenta
+                  ? ` · sug. ${cop(precioVentaSugerido)}`
+                  : ""}
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="1"
+                value={precioVenta}
+                onChange={(e) => setPrecioVenta(e.target.value)}
+                placeholder="Vacío = sin lista de precios"
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+              />
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={iva}
+              onChange={(e) => setIva(e.target.checked)}
+              className="accent-accent"
+            />
+            Incluye IVA (19%)
+          </label>
+        </div>
+      ) : (
+        <div className="space-y-4 rounded-xl border border-border bg-surface-panel p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Código combo
+              </span>
+              <div className="flex gap-2">
+                <input
+                  value={comboCodigo}
+                  onChange={(e) => {
+                    setComboCodigo(e.target.value.replace(/\s/g, ""));
+                    setCheck(null);
+                    setResultado(null);
+                  }}
+                  placeholder="C-PRODUCTO100g"
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={onVerificar}
+                  disabled={comboCodigo.trim().length < 2 || verificarCodigo.isPending}
+                  className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                >
+                  {verificarCodigo.isPending ? "…" : "Verificar"}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted">Convención McKenna: prefijo C-</p>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Precio lista (opcional)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="1"
+                value={comboPrecio}
+                onChange={(e) => setComboPrecio(e.target.value)}
+                placeholder="Vacío = sin lista de precios"
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block space-y-1 sm:col-span-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
+              <input
+                value={comboNombre}
+                onChange={(e) => setComboNombre(e.target.value)}
+                placeholder="Nombre del kit / combo"
+                maxLength={100}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              />
+            </label>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={comboIva}
+              onChange={(e) => setComboIva(e.target.checked)}
+              className="accent-accent"
+            />
+            Incluye IVA (19%)
+          </label>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                Componentes
+              </p>
+              <button
+                type="button"
+                onClick={() => setComponentes((prev) => [...prev, nuevaLinea()])}
+                className="text-xs font-bold text-accent hover:underline"
+              >
+                + Agregar línea
+              </button>
+            </div>
+            <p className="text-[10px] text-muted">
+              Puedes agregar insumos o combos existentes (ej. C-AGUDES250mL): Siigo no acepta
+              combo-dentro-de-combo, así que la app expande automáticamente a sus productos.
+            </p>
+            <div className="space-y-2">
+              {componentes.map((linea) => (
+                <div
+                  key={linea.id}
+                  className="relative grid grid-cols-[1fr_5.5rem_auto] gap-2 rounded-lg border border-border/70 bg-surface p-2"
+                >
+                  <div>
+                    <input
+                      value={linea.codigo || (lineaActiva === linea.id ? busqueda : "")}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setLineaActiva(linea.id);
+                        setBusqueda(v);
+                        setComponentes((prev) =>
+                          prev.map((c) =>
+                            c.id === linea.id ? { ...c, codigo: "", nombre: "" } : c,
+                          ),
+                        );
+                      }}
+                      onFocus={() => {
+                        setLineaActiva(linea.id);
+                        setBusqueda(linea.codigo || linea.nombre || "");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        const typed = (busqueda || linea.codigo || "").trim();
+                        if (!typed) return;
+                        const match =
+                          sugerencias.find((s) => s.codigo.toUpperCase() === typed.toUpperCase())
+                          || sugerencias[0];
+                        const codigoSel = match?.codigo || typed.replace(/\s/g, "");
+                        const nombreSel = match?.nombre || "";
+                        setComponentes((prev) =>
+                          prev.map((c) =>
+                            c.id === linea.id
+                              ? { ...c, codigo: codigoSel, nombre: nombreSel }
+                              : c,
+                          ),
+                        );
+                        setLineaActiva(null);
+                        setBusqueda("");
+                        setSugerencias([]);
+                      }}
+                      placeholder="Buscar código o nombre… (Enter para usar)"
+                      className="w-full rounded-md border border-border bg-surface-panel px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent"
+                    />
+                    {linea.nombre && (
+                      <p className="mt-0.5 truncate text-[10px] text-muted">{linea.nombre}</p>
+                    )}
+                    {lineaActiva === linea.id && (sugerencias.length > 0 || buscando || busqueda.trim().length >= 1) && (
+                      <div className="absolute left-2 right-2 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
+                        {buscando && (
+                          <p className="px-3 py-2 text-[11px] text-muted">Buscando en Siigo…</p>
+                        )}
+                        {!buscando && sugerencias.length === 0 && busqueda.trim().length >= 1 && (
+                          <button
+                            type="button"
+                            className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent/10"
+                            onClick={() => {
+                              const codigoSel = busqueda.trim().replace(/\s/g, "");
+                              setComponentes((prev) =>
+                                prev.map((c) =>
+                                  c.id === linea.id
+                                    ? { ...c, codigo: codigoSel, nombre: "" }
+                                    : c,
+                                ),
+                              );
+                              setLineaActiva(null);
+                              setBusqueda("");
+                              setSugerencias([]);
+                            }}
+                          >
+                            <span className="font-mono text-xs font-bold text-ink">
+                              Usar código: {busqueda.trim().replace(/\s/g, "")}
+                            </span>
+                            <span className="text-[10px] text-muted">
+                              No apareció en la lista — se enviará tal cual a Siigo
+                            </span>
+                          </button>
+                        )}
+                        {sugerencias.map((s) => (
+                          <button
+                            key={s.codigo}
+                            type="button"
+                            className="flex w-full flex-col items-start gap-0.5 border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-accent/10"
+                            onClick={() => {
+                              setComponentes((prev) =>
+                                prev.map((c) =>
+                                  c.id === linea.id
+                                    ? { ...c, codigo: s.codigo, nombre: s.nombre }
+                                    : c,
+                                ),
+                              );
+                              setLineaActiva(null);
+                              setBusqueda("");
+                              setSugerencias([]);
+                            }}
+                          >
+                            <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                            <span className="text-[10px] text-muted">{s.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    min={0.001}
+                    step="any"
+                    value={linea.cantidad}
+                    onChange={(e) =>
+                      setComponentes((prev) =>
+                        prev.map((c) =>
+                          c.id === linea.id ? { ...c, cantidad: e.target.value } : c,
+                        ),
+                      )
+                    }
+                    className="rounded-md border border-border bg-surface-panel px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent"
+                    title="Cantidad"
+                  />
+                  <button
+                    type="button"
+                    disabled={componentes.length <= 1}
+                    onClick={() =>
+                      setComponentes((prev) => prev.filter((c) => c.id !== linea.id))
+                    }
+                    className="rounded-md px-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-30 dark:hover:bg-red-900/20"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {check && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            existe
+              ? "border-amber-300/60 bg-amber-50 text-amber-900 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-200"
+              : "border-emerald-300/60 bg-emerald-50 text-emerald-800 dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300"
+          }`}
+        >
+          {existe ? (
+            <>
+              El código <span className="font-mono font-bold">{check.codigo}</span> ya existe
+              {check.siigo_producto?.nombre ? ` — ${check.siigo_producto.nombre}` : ""}.
+            </>
+          ) : (
+            <>
+              Código <span className="font-mono font-bold">{check.codigo}</span> disponible en Siigo.
+            </>
+          )}
+        </div>
+      )}
+
+      {resultado && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            resultado.ok
+              ? "border-emerald-300/60 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+              : "border-red-300/50 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
+          }`}
+        >
+          {resultado.ok
+            ? resultado.mensaje || "Creado en Siigo"
+            : resultado.error || "No se pudo crear"}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onCrear}
+          disabled={
+            creando
+            || existe
+            || (modo === "producto"
+              ? !codigo.trim() || !nombre.trim()
+              : !comboCodigo.trim()
+                || !comboNombre.trim()
+                || componentes.every((c) => !c.codigo.trim()))
+          }
+          className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
+        >
+          {creando
+            ? "Creando en Siigo…"
+            : modo === "producto"
+              ? "Crear producto en Siigo"
+              : "Crear combo en Siigo"}
+        </button>
+        <button
+          type="button"
+          onClick={resetFormulario}
+          className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-ink hover:border-accent hover:text-accent"
+        >
+          Limpiar
+        </button>
+      </div>
+
+      <p className={`text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
+        Los productos usan categoría de inventario 297 (Productos). Los combos heredan la
+        clasificación de un combo existente. Requiere plan Siigo Nube Premium para combos.
+      </p>
+    </div>
+  );
+}

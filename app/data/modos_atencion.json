@@ -1,30 +1,37 @@
 {
   "numeros_en_humano": [
     "573009990001@c.us",
-    "573028200001@c.us",
-    "156315888394321@lid"
+    "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629",
+    "83679015608440@lid",
+    "573197731558@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1785445955.6947217,
-    "573028200001@c.us": 1785552348.7528238,
-    "156315888394321@lid": 1785552348.7528238
+    "573009990001@c.us": 1785763204.6081574,
+    "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629": 1785792216.2140524,
+    "83679015608440@lid": 1785793922.457864,
+    "573197731558@c.us": 1785793922.457864
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
-      "timestamp": 1785445955.6947217,
+      "timestamp": 1785763204.6081574,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
+      "ultimo_mensaje": "listo, gracias"
     },
-    "573028200001@c.us": {
-      "timestamp": 1785552348.7528238,
-      "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
+    "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629": {
+      "timestamp": 1785792216.2140527,
+      "razon": "web_pago_pedido",
+      "ultimo_mensaje": "listo, gracias"
     },
-    "156315888394321@lid": {
-      "timestamp": 1785552348.7528238,
-      "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "\u00a1Hola! \ud83d\udc4b Qu\u00e9 bueno verte por ac\u00e1. Soy Vale, tu asesora digital de WOM \ud83d\udc9c. Llegaste justo a tiempo. \u23f1\ufe0f Hoy tengo unos descuentos en planes que est\u00e1n volando. \u00bfQuieres gigas ilimitadas o prefieres ver toda la oferta?"
+    "83679015608440@lid": {
+      "timestamp": 1785793922.457864,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "listo, gracias"
+    },
+    "573197731558@c.us": {
+      "timestamp": 1785793922.457864,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "listo, gracias"
     }
   },
   "bot_global_activo": false,

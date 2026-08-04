@@ -879,6 +879,18 @@
   .text-xs   { font-size: 0.8rem  !important; }
   .text-sm   { font-size: 0.9rem  !important; }
 
+  /* Explicativos siguen un peldaño por debajo del texto base */
+  .text-sm.text-muted,
+  p.text-sm.text-ink-secondary {
+    font-size: 0.8rem !important;
+    line-height: 1.4;
+  }
+  .mck-help-text,
+  .mck-panel-help p {
+    font-size: 0.75rem !important;
+    line-height: 1.4;
+  }
+
   /* Opciones de select más legibles */
   select { font-size: 0.9rem; min-height: 44px; }
 
@@ -1433,4 +1445,28 @@
       animation: none !important;
     }
   }
+}
+
+/* ── Textos explicativos más compactos en toda la app ─────────────────────
+   Descripciones bajo títulos, ayudas PanelHelp, empty states y hints muted.
+   No toca títulos ni texto de contenido principal. */
+.text-sm.text-muted {
+  font-size: 0.75rem; /* ≈ text-xs */
+  line-height: 1.4;
+}
+
+p.text-sm.text-ink-secondary {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.mck-help-text,
+.mck-panel-help p {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.mck-panel-help li {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.4;
 }

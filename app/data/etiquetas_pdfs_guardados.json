@@ -1,6 +1,69 @@
 {
   "archivos": [
     {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
+      "subido_at": "2026-08-03T14:07:19",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
+      "subido_at": "2026-08-03T14:07:06",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
+      "subido_at": "2026-08-03T14:06:50",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140549.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140549.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140549.pdf",
+      "subido_at": "2026-08-03T14:05:49",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140525.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140525.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140525.pdf",
+      "subido_at": "2026-08-03T14:05:25",
+      "bytes": 281604
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113356.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113356.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113356.pdf",
+      "subido_at": "2026-08-03T11:33:56",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113312.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113312.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113312.pdf",
+      "subido_at": "2026-08-03T11:33:12",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113253.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113253.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113253.pdf",
+      "subido_at": "2026-08-03T11:32:54",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113217.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113217.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260803_113217.pdf",
+      "subido_at": "2026-08-03T11:32:17",
+      "bytes": 253349
+    },
+    {
       "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260731_094950.pdf",
       "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260731_094950.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260731_094950.pdf",
@@ -1336,69 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_4x_20260712_173947.pdf",
       "subido_at": "2026-07-12T17:39:47",
       "bytes": 208123
-    },
-    {
-      "nombre": "INULINA_Kg_4x_20260712_173921.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_4x_20260712_173921.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_4x_20260712_173921.pdf",
-      "subido_at": "2026-07-12T17:39:21",
-      "bytes": 210933
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_20260712_173233.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_173233.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_173233.pdf",
-      "subido_at": "2026-07-12T17:32:33",
-      "bytes": 176234
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_20260712_172830.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_172830.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_172830.pdf",
-      "subido_at": "2026-07-12T17:28:30",
-      "bytes": 176234
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_2_20260712_171226.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_2_20260712_171226.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_2_20260712_171226.pdf",
-      "subido_at": "2026-07-12T17:12:26",
-      "bytes": 176238
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_2_20260712_171222.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_2_20260712_171222.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_2_20260712_171222.pdf",
-      "subido_at": "2026-07-12T17:12:22",
-      "bytes": 176238
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_20260712_170828.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_170828.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_170828.pdf",
-      "subido_at": "2026-07-12T17:08:28",
-      "bytes": 176234
-    },
-    {
-      "nombre": "INULINA_Kg_4x_20260712_162659.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_4x_20260712_162659.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_4x_20260712_162659.pdf",
-      "subido_at": "2026-07-12T16:26:59",
-      "bytes": 210933
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_20260712_162537.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_162537.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260712_162537.pdf",
-      "subido_at": "2026-07-12T16:25:37",
-      "bytes": 176234
-    },
-    {
-      "nombre": "FLORES_DE_LAVANDA_100g_4x_20260711_134717.pdf",
-      "ruta": "Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260711_134717.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/FLORES_DE_LAVANDA_100g_4x_20260711_134717.pdf",
-      "subido_at": "2026-07-11T13:47:17",
-      "bytes": 176234
     }
   ]
 }

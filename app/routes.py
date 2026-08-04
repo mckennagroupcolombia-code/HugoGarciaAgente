@@ -4717,6 +4717,143 @@ def register_routes(app):
             return jsonify({"error": err}), 502
         return jsonify({"centros": centros or [], "total": len(centros or [])})
 
+    @app.route("/api/siigo/productos", methods=["POST"])
+    @app.route("/app/api/siigo/productos", methods=["POST"])
+    def api_siigo_crear_producto():
+        """Crea un producto inventariable en SIIGO (panel Contabilidad)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import crear_producto_en_siigo
+            from app.panel_activity import log_line
+
+            body = request.get_json(silent=True) or {}
+            codigo = str(body.get("codigo") or "").strip()
+            nombre = str(body.get("nombre") or "").strip()
+            if not codigo or not nombre:
+                return jsonify({"error": "codigo y nombre son obligatorios"}), 400
+            unidad = str(body.get("unidad") or body.get("unidad_min") or "Un").strip() or "Un"
+            if unidad not in ("Un", "mL", "g"):
+                unidad = "Un"
+            try:
+                precio_costo = float(body.get("precio_costo") or body.get("precio_neto") or 0)
+            except (TypeError, ValueError):
+                precio_costo = 0.0
+            precio_venta = None
+            raw_venta = body.get("precio_venta")
+            if raw_venta in (None, ""):
+                raw_venta = body.get("precio_unitario")
+            if raw_venta not in (None, ""):
+                try:
+                    pv = float(raw_venta)
+                    if pv > 0:
+                        precio_venta = pv
+                except (TypeError, ValueError):
+                    precio_venta = None
+            iva_flag = body.get("iva", True)
+            if isinstance(iva_flag, str):
+                iva_flag = iva_flag.strip().lower() not in ("0", "false", "no")
+            producto = {
+                "codigo": codigo,
+                "nombre": nombre,
+                "unidad_min": unidad,
+                "precio_neto": precio_costo,
+                "precio_unitario": precio_costo,
+                "precio_lista": precio_venta,  # None = no enviar prices a Siigo
+                "iva": 1 if iva_flag else 0,
+            }
+            log_line(f"▶ crear_producto_siigo {codigo}")
+            resultado = crear_producto_en_siigo(producto)
+            if resultado.get("ok"):
+                try:
+                    from app.services.rentabilidad import registrar_producto_en_cache_costos
+                    registrar_producto_en_cache_costos(
+                        codigo,
+                        nombre,
+                        unit_cost=precio_costo,
+                        precio_lista=float(precio_venta or 0),
+                    )
+                except Exception:
+                    pass
+                log_line(f"✔ crear_producto_siigo {codigo}")
+                return jsonify(resultado)
+            log_line(f"✖ crear_producto_siigo {codigo} — {resultado.get('error', '')[:120]}")
+            return jsonify(resultado), 400
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/siigo/combos", methods=["POST"])
+    @app.route("/app/api/siigo/combos", methods=["POST"])
+    def api_siigo_crear_combo():
+        """Crea un producto tipo Combo en SIIGO (panel Contabilidad)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.siigo import crear_combo_en_siigo
+            from app.panel_activity import log_line
+
+            body = request.get_json(silent=True) or {}
+            codigo = str(body.get("codigo") or "").strip()
+            nombre = str(body.get("nombre") or "").strip()
+            componentes = body.get("componentes") or body.get("components") or []
+            if not isinstance(componentes, list):
+                return jsonify({"error": "componentes debe ser una lista"}), 400
+            try:
+                precio_lista = float(body.get("precio_lista") or body.get("precio") or 0)
+            except (TypeError, ValueError):
+                precio_lista = 0.0
+            iva_flag = body.get("iva", True)
+            if isinstance(iva_flag, str):
+                iva_flag = iva_flag.strip().lower() not in ("0", "false", "no")
+            ag = body.get("account_group")
+            try:
+                account_group = int(ag) if ag is not None and str(ag).strip() != "" else None
+            except (TypeError, ValueError):
+                account_group = None
+            log_line(f"▶ crear_combo_siigo {codigo}")
+            resultado = crear_combo_en_siigo(
+                codigo,
+                nombre,
+                componentes,
+                precio_lista=precio_lista,
+                iva=bool(iva_flag),
+                account_group=account_group,
+            )
+            if resultado.get("ok"):
+                log_line(f"✔ crear_combo_siigo {codigo}")
+                return jsonify(resultado)
+            log_line(f"✖ crear_combo_siigo {codigo} — {resultado.get('error', '')[:120]}")
+            return jsonify(resultado), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/siigo/productos/buscar", methods=["GET"])
+    @app.route("/app/api/siigo/productos/buscar", methods=["GET"])
+    def api_siigo_productos_buscar():
+        """Busca productos Siigo en vivo (código/nombre) para armar combos."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 1:
+            return jsonify({"items": [], "total": 0})
+        try:
+            from app.services.siigo import buscar_productos_siigo_picker
+            excluir = (request.args.get("excluir_combos") or "1").strip().lower() not in (
+                "0", "false", "no",
+            )
+            try:
+                limit = min(max(int(request.args.get("limit") or 40), 1), 80)
+            except (TypeError, ValueError):
+                limit = 40
+            items = buscar_productos_siigo_picker(
+                q, max_items=limit, excluir_combos=excluir,
+            )
+            return jsonify({"items": items, "total": len(items)})
+        except Exception as e:
+            return jsonify({"error": str(e), "items": []}), 502
+
     # ── Rentabilidad ─────────────────────────────────────────────────────────
 
     @app.route("/api/rentabilidad/productos", methods=["GET"])
@@ -4808,33 +4945,35 @@ def register_routes(app):
         if len(q) < 1:
             return jsonify({"items": []})
         try:
-            from app.services.rentabilidad import construir_catalogo_costos
+            limit = min(max(int(request.args.get("limit") or 40), 1), 80)
+        except (TypeError, ValueError):
+            limit = 40
+
+        # Preferir búsqueda en vivo Siigo (misma que Crear productos / combos)
+        try:
+            from app.services.siigo import buscar_productos_siigo_picker
+            items = buscar_productos_siigo_picker(
+                q, max_items=limit, excluir_combos=True,
+            )
+            if items:
+                return jsonify({"items": items, "total": len(items), "fuente": "siigo"})
+        except Exception:
+            items = []
+
+        # Fallback: índice local de costos (reparado si codigo_a_nombre estaba incompleto)
+        try:
+            from app.services.rentabilidad import construir_catalogo_costos, indice_codigo_a_nombre
             catalogo = construir_catalogo_costos()
+            codigo_a_nombre = indice_codigo_a_nombre(catalogo)
         except Exception as e:
-            return jsonify({"error": str(e), "items": []}), 502
+            return jsonify({"error": str(e), "items": items or []}), 502
 
-        # Cache antigua puede no traer codigo_a_nombre: reconstruir desde codigo_a_producto
-        codigo_a_nombre = dict(catalogo.get("codigo_a_nombre") or {})
-        if not codigo_a_nombre:
-            for code, meta in (catalogo.get("codigo_a_producto") or {}).items():
-                if isinstance(meta, dict):
-                    nombre = (meta.get("nombre") or "").strip()
-                else:
-                    nombre = str(meta or "").strip()
-                if code:
-                    codigo_a_nombre[str(code)] = nombre or str(code)
-            for _norm_name, code in (catalogo.get("nombre_a_codigo") or {}).items():
-                code_s = str(code)
-                if code_s and code_s not in codigo_a_nombre:
-                    codigo_a_nombre[code_s] = str(_norm_name)
-
-        # Si el usuario pega "SKU — nombre", buscar solo el SKU
         if "—" in q or " - " in q:
             q = q.split("—")[0].split(" - ")[0].strip()
 
         q_low = q.lower()
         q_up = q.upper()
-        items = []
+        out = []
         exactos = []
         prefijos = []
         nombres = []
@@ -4850,12 +4989,12 @@ def register_routes(app):
                 nombres.append({"codigo": code_s, "nombre": name_s})
         for bucket in (exactos, prefijos, nombres):
             for it in bucket:
-                items.append(it)
-                if len(items) >= 40:
+                out.append(it)
+                if len(out) >= limit:
                     break
-            if len(items) >= 40:
+            if len(out) >= limit:
                 break
-        return jsonify({"items": items, "total": len(items)})
+        return jsonify({"items": out, "total": len(out), "fuente": "cache"})
 
     @app.route("/api/rentabilidad/componentes", methods=["POST"])
     def api_componentes_save():
@@ -4869,6 +5008,7 @@ def register_routes(app):
         costo_bruto = float(data.get("costo_unitario") or 0)
         iva_incluido = bool(data.get("iva_incluido", False))
         categoria = data.get("categoria", "material")
+        codigo = (data.get("codigo") or data.get("code_siigo") or "").strip() or None
 
         _IVA = 0.19
         costo_neto = round(costo_bruto / (1 + _IVA), 4) if iva_incluido else costo_bruto
@@ -4877,35 +5017,65 @@ def register_routes(app):
         row = upsert_componente(nombre, costo_neto, categoria, iva_incluido)
 
         from app.services.siigo import actualizar_costo_componente_siigo
-        siigo_result = actualizar_costo_componente_siigo(nombre, costo_neto)
+        siigo_result = actualizar_costo_componente_siigo(
+            nombre, costo_neto, codigo=codigo
+        )
 
-        return jsonify({**row, "siigo": siigo_result})
+        return jsonify({**row, "siigo": siigo_result, "codigo": codigo or siigo_result.get("codigo")})
+
+    @app.route("/app/api/rentabilidad/trm", methods=["GET"])
+    @app.route("/api/rentabilidad/trm", methods=["GET"])
+    def api_rentabilidad_trm():
+        """TRM BanRep vigente para una fecha (USD→COP). Query: fecha=YYYY-MM-DD."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.trm import obtener_trm
+
+        fecha = (request.args.get("fecha") or "").strip() or None
+        data = obtener_trm(fecha)
+        if data.get("error"):
+            return jsonify(data), 502
+        return jsonify(data)
 
     @app.route("/app/api/rentabilidad/extraer-compra-imagen", methods=["POST"])
     @app.route("/api/rentabilidad/extraer-compra-imagen", methods=["POST"])
     def api_rentabilidad_extraer_compra_imagen():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        archivo = request.files.get("imagen") or request.files.get("archivo")
-        if not archivo or not archivo.filename:
-            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        archivos = (
+            request.files.getlist("imagenes")
+            or request.files.getlist("imagen")
+            or request.files.getlist("archivo")
+            or request.files.getlist("files[]")
+        )
+        archivos = [a for a in archivos if a and a.filename]
+        if not archivos:
+            uno = request.files.get("imagen") or request.files.get("archivo")
+            if uno and uno.filename:
+                archivos = [uno]
+        if not archivos:
+            return jsonify({"error": "Envíe una o más imágenes en «imagenes» o «imagen»"}), 400
         try:
             trm_raw = request.form.get("trm")
             flete_raw = request.form.get("flete")
             moneda_flete = (request.form.get("moneda_flete") or "").strip() or None
+            fecha_compra = (request.form.get("fecha_compra") or "").strip() or None
             trm = float(trm_raw) if trm_raw not in (None, "") else None
+            if trm is not None and trm <= 0:
+                trm = None
             flete = float(flete_raw) if flete_raw not in (None, "") else None
         except (TypeError, ValueError):
             return jsonify({"error": "trm y flete deben ser numéricos"}), 400
 
-        data = archivo.read()
-        from app.services.compra_exterior_ocr import extraer_compra_desde_imagen
+        blobs = [a.read() for a in archivos]
+        from app.services.compra_exterior_ocr import extraer_compra_desde_imagenes
 
-        result = extraer_compra_desde_imagen(
-            data,
+        result = extraer_compra_desde_imagenes(
+            blobs,
             trm=trm,
             flete=flete,
             moneda_flete=moneda_flete,
+            fecha_compra=fecha_compra,
         )
         if result.get("error"):
             code = 504 if "tardó" in str(result["error"]).lower() else 502
@@ -4920,10 +5090,13 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
 
-        # Acepta JSON o multipart (con pantallazo de soporte)
+        # Acepta JSON o multipart (con pantallazo(s) de soporte)
         soporte_bytes = None
         soporte_nombre = ""
         soporte_mime = ""
+        soportes_multi = None
+        borrador_id_raw = ""
+        compra_id_raw = ""
         if request.content_type and "multipart/form-data" in request.content_type:
             raw_items = request.form.get("items") or request.form.get("lineas") or "[]"
             try:
@@ -4935,16 +5108,77 @@ def register_routes(app):
             moneda_flete = (request.form.get("moneda_flete") or moneda).strip()
             proveedor = (request.form.get("proveedor") or "").strip()
             notas = (request.form.get("notas") or "").strip()
+            fecha_compra = (request.form.get("fecha_compra") or "").strip()
+            trm_fuente = (request.form.get("trm_fuente") or "").strip()
+            borrador_id_raw = (request.form.get("borrador_id") or "").strip()
+            compra_id_raw = (request.form.get("compra_id") or "").strip()
             try:
                 trm = float(request.form.get("trm") or 0)
                 flete = float(request.form.get("flete") or 0)
+                descuento_pedido = float(request.form.get("descuento_pedido") or 0)
+                descuento_pct = float(request.form.get("descuento_pct") or 0)
             except (TypeError, ValueError):
-                return jsonify({"error": "trm/flete inválidos"}), 400
-            archivo = request.files.get("imagen") or request.files.get("soporte") or request.files.get("archivo")
-            if archivo and archivo.filename:
-                soporte_bytes = archivo.read()
-                soporte_nombre = archivo.filename
-                soporte_mime = archivo.mimetype or ""
+                return jsonify({"error": "trm/flete/descuento inválidos"}), 400
+            soportes_multi = []
+            for key in ("imagenes", "imagen", "soporte", "archivo", "files[]"):
+                for f in request.files.getlist(key):
+                    if f and f.filename:
+                        soportes_multi.append(
+                            {
+                                "bytes": f.read(),
+                                "nombre": f.filename,
+                                "mime": f.mimetype or "",
+                            }
+                        )
+            if soportes_multi:
+                vistos = set()
+                uniq = []
+                for s in soportes_multi:
+                    firma = (s["nombre"], len(s["bytes"]))
+                    if firma in vistos:
+                        continue
+                    vistos.add(firma)
+                    uniq.append(s)
+                soportes_multi = uniq
+                soporte_bytes = soportes_multi[0]["bytes"]
+                soporte_nombre = soportes_multi[0]["nombre"]
+                soporte_mime = soportes_multi[0]["mime"]
+            else:
+                soportes_multi = None
+            # Sin imágenes nuevas: tomar soportes del borrador o de la compra en edición
+            if not soportes_multi:
+                indices = None
+                raw_idx = (request.form.get("soportes_indices") or "").strip()
+                if raw_idx:
+                    try:
+                        import json as _json_idx
+                        parsed = _json_idx.loads(raw_idx)
+                        if isinstance(parsed, list):
+                            indices = parsed
+                    except Exception:
+                        indices = None
+                if borrador_id_raw:
+                    try:
+                        from app.services.contabilidad_db import soportes_desde_borrador
+                        soportes_multi = soportes_desde_borrador(int(borrador_id_raw), indices=indices) or None
+                    except (TypeError, ValueError, Exception):
+                        pass
+                elif compra_id_raw:
+                    try:
+                        from app.services.contabilidad_db import (
+                            actualizar_soportes_compra,
+                            soportes_desde_compra,
+                        )
+                        # Solo reordenar/eliminar si vienen índices y no hay archivos nuevos
+                        if indices is not None:
+                            actualizar_soportes_compra(int(compra_id_raw), indices)
+                        soportes_multi = None  # no re-subir; se conservan en UPDATE
+                    except (TypeError, ValueError, Exception):
+                        pass
+                if soportes_multi:
+                    soporte_bytes = soportes_multi[0]["bytes"]
+                    soporte_nombre = soportes_multi[0]["nombre"]
+                    soporte_mime = soportes_multi[0]["mime"]
         else:
             data = request.get_json(silent=True) or {}
             items = data.get("items") or data.get("lineas") or []
@@ -4952,38 +5186,131 @@ def register_routes(app):
             moneda_flete = (data.get("moneda_flete") or moneda).strip()
             proveedor = (data.get("proveedor") or "").strip()
             notas = (data.get("notas") or "").strip()
+            fecha_compra = (data.get("fecha_compra") or "").strip()
+            trm_fuente = (data.get("trm_fuente") or "").strip()
+            borrador_id_raw = str(data.get("borrador_id") or "").strip()
+            compra_id_raw = str(data.get("compra_id") or "").strip()
             try:
                 trm = float(data.get("trm") or 0)
                 flete = float(data.get("flete") or 0)
+                descuento_pedido = float(data.get("descuento_pedido") or 0)
+                descuento_pct = float(data.get("descuento_pct") or 0)
             except (TypeError, ValueError):
-                return jsonify({"error": "trm/flete inválidos"}), 400
+                return jsonify({"error": "trm/flete/descuento inválidos"}), 400
+            if borrador_id_raw:
+                try:
+                    from app.services.contabilidad_db import soportes_desde_borrador
+                    soportes_multi = soportes_desde_borrador(int(borrador_id_raw)) or None
+                    if soportes_multi:
+                        soporte_bytes = soportes_multi[0]["bytes"]
+                        soporte_nombre = soportes_multi[0]["nombre"]
+                        soporte_mime = soportes_multi[0]["mime"]
+                except (TypeError, ValueError):
+                    pass
+            elif compra_id_raw and data.get("soportes_indices") is not None:
+                try:
+                    from app.services.contabilidad_db import actualizar_soportes_compra
+                    indices = data.get("soportes_indices")
+                    if isinstance(indices, list):
+                        actualizar_soportes_compra(int(compra_id_raw), indices)
+                except (TypeError, ValueError, Exception):
+                    pass
 
         if not isinstance(items, list) or not items:
             return jsonify({"error": "Se requiere items[] con nombre y costo_unitario"}), 400
 
-        from app.services.contabilidad_db import guardar_compra_exterior, upsert_componente
+        # USD → COP: TRM BanRep de la fecha de compra si no viene tasa válida
+        moneda_u = (moneda or "USD").strip().upper()
+        if moneda_u == "COP":
+            trm = 1.0
+            trm_fuente = trm_fuente or "cop"
+        elif moneda_u == "USD" and trm <= 0:
+            from app.services.trm import obtener_trm, normalizar_fecha
+
+            fecha_n = normalizar_fecha(fecha_compra)
+            trm_data = obtener_trm(fecha_n)
+            if trm_data.get("error"):
+                return jsonify({
+                    "error": trm_data["error"],
+                    "hint": "Indique fecha_compra (YYYY-MM-DD) para consultar la TRM BanRep",
+                }), 502
+            trm = float(trm_data["valor"])
+            trm_fuente = "banrep"
+            if not fecha_compra and trm_data.get("fecha"):
+                fecha_compra = str(trm_data["fecha"])
+        elif moneda_u == "USD" and not trm_fuente:
+            trm_fuente = "banrep" if fecha_compra else "manual"
+
+        from app.services.contabilidad_db import (
+            actualizar_compra_exterior,
+            guardar_compra_exterior,
+            upsert_componente,
+        )
+        from app.services.compra_exterior_ocr import calcular_landed
         from app.services.siigo import actualizar_costo_componente_siigo
 
         catalogo = None
         try:
-            from app.services.rentabilidad import construir_catalogo_costos
+            from app.services.rentabilidad import construir_catalogo_costos, indice_codigo_a_nombre
             catalogo = construir_catalogo_costos()
+            codigo_a_nombre = indice_codigo_a_nombre(catalogo)
         except Exception:
             catalogo = None
-        codigo_a_nombre = dict((catalogo or {}).get("codigo_a_nombre") or {})
-        if not codigo_a_nombre:
-            for code, meta in ((catalogo or {}).get("codigo_a_producto") or {}).items():
-                if isinstance(meta, dict):
-                    nombre_cat = (meta.get("nombre") or "").strip()
-                else:
-                    nombre_cat = str(meta or "").strip()
-                if code:
-                    codigo_a_nombre[str(code)] = nombre_cat or str(code)
+            codigo_a_nombre = {}
+
+        # Recalcular landed en servidor con flete/TRM/descuentos actuales
+        # (evita guardar costos viejos si el cliente no sincronizó el input).
+        costos_landed: list[float | None] = [None] * len(items)
+        try:
+            base_landed = []
+            for raw in items:
+                if not isinstance(raw, dict):
+                    base_landed.append(
+                        {
+                            "nombre": "",
+                            "cantidad": 1,
+                            "unidades_por_pack": 1,
+                            "unidad": "un",
+                            "precio_unit": 0,
+                            "subtotal": 0,
+                            "descuento": 0,
+                        }
+                    )
+                    continue
+                base_landed.append(
+                    {
+                        "nombre": (raw.get("nombre") or "").strip(),
+                        "cantidad": raw.get("cantidad"),
+                        "unidades_por_pack": raw.get("unidades_por_pack"),
+                        "unidad": raw.get("unidad") or "un",
+                        "precio_unit": raw.get("precio_unit"),
+                        "subtotal": raw.get("subtotal"),
+                        "descuento": raw.get("descuento"),
+                    }
+                )
+            landed_out = calcular_landed(
+                base_landed,
+                trm=trm,
+                flete=flete,
+                moneda=moneda,
+                moneda_flete=moneda_flete,
+                descuento=descuento_pedido,
+                descuento_pct=descuento_pct if descuento_pct > 0 else None,
+            )
+            for i, row_l in enumerate(landed_out):
+                c = row_l.get("costo_unitario_cop")
+                if c is not None:
+                    try:
+                        costos_landed[i] = float(c)
+                    except (TypeError, ValueError):
+                        pass
+        except Exception:
+            costos_landed = [None] * len(items)
 
         guardados = []
         errores = []
         lineas_hist = []
-        for raw in items:
+        for idx_item, raw in enumerate(items):
             if not isinstance(raw, dict):
                 continue
             codigo = (raw.get("codigo") or raw.get("sku") or "").strip()
@@ -4994,7 +5321,10 @@ def register_routes(app):
                 errores.append({"nombre": "", "codigo": codigo, "error": "nombre vacío"})
                 continue
             try:
-                costo = float(raw.get("costo_unitario"))
+                if costos_landed[idx_item] is not None:
+                    costo = float(costos_landed[idx_item])
+                else:
+                    costo = float(raw.get("costo_unitario"))
             except (TypeError, ValueError):
                 errores.append({"nombre": nombre, "codigo": codigo, "error": "costo_unitario inválido"})
                 continue
@@ -5012,8 +5342,10 @@ def register_routes(app):
                 "cantidad": raw.get("cantidad"),
                 "unidades_por_pack": raw.get("unidades_por_pack"),
                 "unidades_totales": raw.get("unidades_totales"),
+                "unidad": (raw.get("unidad") or "un"),
                 "precio_unit": raw.get("precio_unit"),
                 "subtotal": raw.get("subtotal"),
+                "descuento": raw.get("descuento"),
                 "costo_unitario": costo_neto,
                 "categoria": categoria,
             }
@@ -5031,19 +5363,55 @@ def register_routes(app):
 
         historial = None
         try:
-            historial = guardar_compra_exterior(
-                moneda=moneda,
-                trm=trm if trm > 0 else (1.0 if moneda.upper() == "COP" else 0.0),
-                flete=flete,
-                moneda_flete=moneda_flete,
-                proveedor=proveedor,
-                lineas=lineas_hist,
-                total_guardados=len(guardados),
-                soporte_bytes=soporte_bytes,
-                soporte_nombre=soporte_nombre,
-                soporte_mime=soporte_mime,
-                notas=notas,
-            )
+            compra_id_edit = int(compra_id_raw) if compra_id_raw else None
+        except (TypeError, ValueError):
+            return jsonify({"error": "compra_id inválido"}), 400
+
+        try:
+            if compra_id_edit:
+                replace = bool(soportes_multi)
+                historial = actualizar_compra_exterior(
+                    compra_id_edit,
+                    moneda=moneda,
+                    trm=trm if trm > 0 else (1.0 if moneda.upper() == "COP" else 0.0),
+                    flete=flete,
+                    moneda_flete=moneda_flete,
+                    proveedor=proveedor,
+                    lineas=lineas_hist,
+                    total_guardados=len(guardados),
+                    soportes=soportes_multi,
+                    notas=notas,
+                    fecha_compra=fecha_compra,
+                    trm_fuente=trm_fuente,
+                    replace_soportes=replace,
+                    append_soportes=False,
+                )
+                if not historial:
+                    return jsonify({"error": f"Compra #{compra_id_edit} no encontrada"}), 404
+            else:
+                historial = guardar_compra_exterior(
+                    moneda=moneda,
+                    trm=trm if trm > 0 else (1.0 if moneda.upper() == "COP" else 0.0),
+                    flete=flete,
+                    moneda_flete=moneda_flete,
+                    proveedor=proveedor,
+                    lineas=lineas_hist,
+                    total_guardados=len(guardados),
+                    soporte_bytes=soporte_bytes,
+                    soporte_nombre=soporte_nombre,
+                    soporte_mime=soporte_mime,
+                    soportes=soportes_multi,
+                    notas=notas,
+                    fecha_compra=fecha_compra,
+                    trm_fuente=trm_fuente,
+                )
+            # Al confirmar, eliminar borrador asociado (archivos ya copiados a historial)
+            if borrador_id_raw:
+                try:
+                    from app.services.contabilidad_db import eliminar_borrador_compra_exterior
+                    eliminar_borrador_compra_exterior(int(borrador_id_raw), borrar_archivos=True)
+                except Exception:
+                    pass
         except Exception as e:
             return jsonify({
                 "ok": False,
@@ -5059,6 +5427,7 @@ def register_routes(app):
             "errores": errores,
             "total": len(guardados),
             "historial": historial,
+            "editado": bool(compra_id_edit),
         })
 
     @app.route("/app/api/rentabilidad/compras-exterior", methods=["GET"])
@@ -5084,6 +5453,17 @@ def register_routes(app):
             return jsonify({"error": "No encontrado"}), 404
         return jsonify(row)
 
+    @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>", methods=["DELETE"])
+    @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>", methods=["DELETE"])
+    def api_compras_exterior_eliminar(compra_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import eliminar_compra_exterior
+        ok = eliminar_compra_exterior(compra_id, borrar_archivos=True)
+        if not ok:
+            return jsonify({"error": "Compra no encontrada"}), 404
+        return jsonify({"ok": True, "id": compra_id})
+
     @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>/soporte", methods=["GET"])
     @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/soporte", methods=["GET"])
     def api_compras_exterior_soporte(compra_id: int):
@@ -5091,10 +5471,186 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.contabilidad_db import ruta_soporte_compra_exterior
         from flask import send_file
-        path, mime, nombre = ruta_soporte_compra_exterior(compra_id)
+        try:
+            idx = int(request.args.get("i") or request.args.get("index") or 0)
+        except (TypeError, ValueError):
+            idx = 0
+        path, mime, nombre = ruta_soporte_compra_exterior(compra_id, index=idx)
         if not path:
             return jsonify({"error": "Soporte no encontrado"}), 404
         return send_file(path, mimetype=mime or "application/octet-stream", download_name=nombre or "soporte", as_attachment=False)
+
+    @app.route("/app/api/rentabilidad/compras-exterior/borradores", methods=["GET"])
+    @app.route("/api/rentabilidad/compras-exterior/borradores", methods=["GET"])
+    def api_compras_exterior_borradores_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import listar_borradores_compra_exterior
+        try:
+            limit = int(request.args.get("limit") or 50)
+        except (TypeError, ValueError):
+            limit = 50
+        return jsonify({"borradores": listar_borradores_compra_exterior(limit=limit)})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/borrador", methods=["POST"])
+    @app.route("/api/rentabilidad/compras-exterior/borrador", methods=["POST"])
+    def api_compras_exterior_borrador_guardar():
+        """Guarda o actualiza un borrador para retomar la compra más tarde."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import guardar_borrador_compra_exterior
+        import json as _json
+
+        if request.content_type and "multipart/form-data" in request.content_type:
+            try:
+                estado = _json.loads(request.form.get("estado") or request.form.get("payload") or "{}")
+            except Exception:
+                return jsonify({"error": "estado JSON inválido"}), 400
+            if not isinstance(estado, dict):
+                estado = {}
+            lineas = estado.get("lineas")
+            if lineas is None:
+                try:
+                    lineas = _json.loads(request.form.get("lineas") or "[]")
+                except Exception:
+                    lineas = []
+                estado["lineas"] = lineas if isinstance(lineas, list) else []
+            try:
+                borrador_id = request.form.get("borrador_id") or request.form.get("id")
+                borrador_id = int(borrador_id) if borrador_id not in (None, "") else None
+            except (TypeError, ValueError):
+                return jsonify({"error": "borrador_id inválido"}), 400
+            try:
+                trm = float(request.form.get("trm") or 0)
+                flete = float(request.form.get("flete") or 0)
+                descuento_pedido = float(request.form.get("descuento_pedido") or 0)
+                descuento_pct = float(request.form.get("descuento_pct") or 0)
+            except (TypeError, ValueError):
+                return jsonify({"error": "trm/flete/descuento inválidos"}), 400
+            soportes = []
+            for key in ("imagenes", "imagen", "soporte", "archivo", "files[]"):
+                for f in request.files.getlist(key):
+                    if f and f.filename:
+                        soportes.append(
+                            {"bytes": f.read(), "nombre": f.filename, "mime": f.mimetype or ""}
+                        )
+            append = (request.form.get("append_soportes") or "1").strip() not in ("0", "false", "False")
+            # Reordenar/eliminar soportes existentes antes de append
+            indices_raw = (request.form.get("soportes_indices") or "").strip()
+            if borrador_id and indices_raw:
+                try:
+                    import json as _json2
+                    indices = _json2.loads(indices_raw)
+                    if isinstance(indices, list):
+                        from app.services.contabilidad_db import actualizar_soportes_borrador
+                        actualizar_soportes_borrador(int(borrador_id), indices)
+                except Exception:
+                    pass
+            # replace_all: si viene append=0 y hay nuevas imágenes, reemplazar todo
+            replace_all = (request.form.get("replace_soportes") or "").strip() in ("1", "true", "True")
+            if replace_all and soportes:
+                append = False
+            try:
+                row = guardar_borrador_compra_exterior(
+                    borrador_id=borrador_id,
+                    titulo=(request.form.get("titulo") or "").strip(),
+                    moneda=(request.form.get("moneda") or "USD").strip(),
+                    trm=trm,
+                    trm_fuente=(request.form.get("trm_fuente") or "").strip(),
+                    fecha_compra=(request.form.get("fecha_compra") or "").strip(),
+                    flete=flete,
+                    moneda_flete=(request.form.get("moneda_flete") or "").strip(),
+                    descuento_pedido=descuento_pedido,
+                    descuento_pct=descuento_pct,
+                    proveedor=(request.form.get("proveedor") or "").strip(),
+                    notas=(request.form.get("notas") or "").strip(),
+                    estado=estado,
+                    soportes=soportes or None,
+                    append_soportes=append,
+                )
+            except PermissionError as e:
+                return jsonify({"error": str(e)}), 500
+            except Exception as e:
+                return jsonify({"error": f"No se pudo guardar borrador: {e}"}), 500
+            return jsonify({"ok": True, "borrador": row})
+
+        data = request.get_json(silent=True) or {}
+        estado = data.get("estado") if isinstance(data.get("estado"), dict) else {}
+        if "lineas" in data and "lineas" not in estado:
+            estado["lineas"] = data.get("lineas") or []
+        try:
+            borrador_id = data.get("borrador_id") or data.get("id")
+            borrador_id = int(borrador_id) if borrador_id not in (None, "") else None
+        except (TypeError, ValueError):
+            return jsonify({"error": "borrador_id inválido"}), 400
+        try:
+            trm = float(data.get("trm") or 0)
+            flete = float(data.get("flete") or 0)
+            descuento_pedido = float(data.get("descuento_pedido") or 0)
+            descuento_pct = float(data.get("descuento_pct") or 0)
+        except (TypeError, ValueError):
+            return jsonify({"error": "trm/flete/descuento inválidos"}), 400
+        row = guardar_borrador_compra_exterior(
+            borrador_id=borrador_id,
+            titulo=(data.get("titulo") or "").strip(),
+            moneda=(data.get("moneda") or "USD").strip(),
+            trm=trm,
+            trm_fuente=(data.get("trm_fuente") or "").strip(),
+            fecha_compra=(data.get("fecha_compra") or "").strip(),
+            flete=flete,
+            moneda_flete=(data.get("moneda_flete") or "").strip(),
+            descuento_pedido=descuento_pedido,
+            descuento_pct=descuento_pct,
+            proveedor=(data.get("proveedor") or "").strip(),
+            notas=(data.get("notas") or "").strip(),
+            estado=estado,
+            soportes=None,
+            append_soportes=True,
+        )
+        return jsonify({"ok": True, "borrador": row})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>", methods=["GET"])
+    @app.route("/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>", methods=["GET"])
+    def api_compras_exterior_borrador_get(borrador_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import obtener_borrador_compra_exterior
+        row = obtener_borrador_compra_exterior(borrador_id)
+        if not row:
+            return jsonify({"error": "Borrador no encontrado"}), 404
+        return jsonify(row)
+
+    @app.route("/app/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>", methods=["DELETE"])
+    @app.route("/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>", methods=["DELETE"])
+    def api_compras_exterior_borrador_delete(borrador_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import eliminar_borrador_compra_exterior
+        ok = eliminar_borrador_compra_exterior(borrador_id, borrar_archivos=True)
+        if not ok:
+            return jsonify({"error": "Borrador no encontrado"}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>/soporte", methods=["GET"])
+    @app.route("/api/rentabilidad/compras-exterior/borrador/<int:borrador_id>/soporte", methods=["GET"])
+    def api_compras_exterior_borrador_soporte(borrador_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import ruta_soporte_borrador_compra
+        from flask import send_file
+        try:
+            idx = int(request.args.get("i") or request.args.get("index") or 0)
+        except (TypeError, ValueError):
+            idx = 0
+        path, mime, nombre = ruta_soporte_borrador_compra(borrador_id, index=idx)
+        if not path:
+            return jsonify({"error": "Soporte no encontrado"}), 404
+        return send_file(
+            path,
+            mimetype=mime or "application/octet-stream",
+            download_name=nombre or "soporte",
+            as_attachment=False,
+        )
 
     @app.route("/api/rentabilidad/combo-costos/<code>", methods=["GET"])
     def api_combo_costos(code):
@@ -5149,8 +5705,9 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.rentabilidad import listar_ganancia_meli
         buscar = (request.args.get("buscar") or "").strip()
+        refresh = str(request.args.get("refresh") or "").strip().lower() in ("1", "true", "yes", "si")
         try:
-            return jsonify(listar_ganancia_meli(buscar=buscar))
+            return jsonify(listar_ganancia_meli(buscar=buscar, refresh=refresh))
         except Exception as e:
             return jsonify({"error": str(e)}), 502
 
@@ -5217,14 +5774,17 @@ def register_routes(app):
         return jsonify(resolver_precios_multicanal(code, precio, nombre=nombre))
 
     @app.route("/api/rentabilidad/actualizar-precio", methods=["POST"])
+    @app.route("/app/api/rentabilidad/actualizar-precio", methods=["POST"])
     def api_rentabilidad_actualizar_precio():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json(silent=True) or {}
         code = (data.get("code") or "").strip()
         nuevo_precio = data.get("nuevo_precio")
-        plataformas = list(data.get("plataformas", ["siigo", "meli"]))
+        # Por defecto siempre MeLi + Siigo (editor de Ganancia).
+        plataformas = list(data.get("plataformas") or ["meli", "siigo"])
         nombre = (data.get("nombre") or "").strip()
+        meli_id = (data.get("meli_id") or "").strip()
 
         # La web arma su precio a partir del precio de lista de Siigo (ver
         # PAGINA_WEB/site/website.py) — sincronizar "web" sin "siigo" dejaría
@@ -5255,9 +5815,19 @@ def register_routes(app):
         if "meli" in plataformas:
             try:
                 from app.services.meli import actualizar_precio_meli_por_sku
-                resultados["meli"] = actualizar_precio_meli_por_sku(code, precios["meli"])
+                resultados["meli"] = actualizar_precio_meli_por_sku(
+                    code, precios["meli"], meli_id=meli_id or None
+                )
             except Exception as e:
                 resultados["meli"] = {"ok": False, "msg": str(e)}
+            # Mantener Ganancia usable aunque falle/regeneración del cache web:
+            # parchea precio en cobros cache para el próximo listado.
+            if resultados.get("meli", {}).get("ok"):
+                try:
+                    from app.services.rentabilidad import parchear_precio_en_cobros_cache
+                    parchear_precio_en_cobros_cache(code, precios["meli"])
+                except Exception:
+                    pass
 
         # 2° Siigo — facturación (precio lista = mismo que MeLi)
         if "siigo" in plataformas:
@@ -5267,22 +5837,51 @@ def register_routes(app):
             except Exception as e:
                 resultados["siigo"] = {"ok": False, "msg": str(e)}
 
-        # 3° Página web — reconstruye el catálogo desde Siigo (por eso siempre
-        # va después de actualizar Siigo, arriba).
+        # 3° Página web — en segundo plano (no bloquea el editor de Ganancia).
+        # Regenerar cache.json desde Siigo tarda ~40s y antes marcaba fallo falso
+        # por la palabra "Errores" en el resumen.
         if "web" in plataformas:
             try:
-                from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
-                msg = sincronizar_productos_pagina_web([{"sku": code, "precio": precios["lista"]}])
-                ok = "❌" not in msg and "Error" not in msg
-                resultados["web"] = {"ok": ok, "msg": msg}
+                from app.observability import spawn_thread
+                from app.tools.sincronizar_productos_pagina_web import (
+                    sincronizar_productos_pagina_web,
+                )
+
+                def _web_bg(sku=code, precio_lista=precios["lista"]):
+                    try:
+                        sincronizar_productos_pagina_web(
+                            [{"sku": sku, "precio": precio_lista}]
+                        )
+                    except Exception:
+                        pass
+
+                spawn_thread(_web_bg, "web_precio_async")
+                resultados["web"] = {
+                    "ok": True,
+                    "msg": "Catálogo web en segundo plano (no bloquea)",
+                    "async": True,
+                }
             except Exception as e:
                 resultados["web"] = {"ok": False, "msg": str(e)}
 
         if siigo_implicito:
             resultados["siigo_implicito"] = True
 
-        canales = [k for k in ("meli", "siigo", "web") if k in plataformas]
-        resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in canales)
+        # Solo MeLi/Siigo cuentan para el OK del editor (web es async)
+        criticos = [k for k in ("meli", "siigo") if k in plataformas]
+        if criticos:
+            resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in criticos)
+            if not resultados["ok"]:
+                partes = []
+                for k in criticos:
+                    r = resultados.get(k) or {}
+                    if not r.get("ok"):
+                        partes.append(f"{k.upper()}: {r.get('msg') or 'falló'}")
+                resultados["error"] = " | ".join(partes) or "No se pudo actualizar MeLi/Siigo"
+                return jsonify(resultados), 502
+        else:
+            canales = [k for k in ("meli", "siigo", "web") if k in plataformas]
+            resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in canales)
         return jsonify(resultados)
 
     # ── Nómina ────────────────────────────────────────────────────────────────
@@ -15860,7 +16459,7 @@ REGLAS:
 
     # ── SPA React ─────────────────────────────────────────────────────────────
 
-    @app.route("/app", methods=["GET", "HEAD"])
+    @app.route("/app", methods=["GET", "HEAD"], strict_slashes=False)
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])
     def serve_spa(path=""):
         if not os.path.isdir(_SPA_DIR):

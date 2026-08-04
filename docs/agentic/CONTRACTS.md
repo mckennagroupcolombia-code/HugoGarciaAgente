@@ -120,6 +120,11 @@ Endpoints usados por React:
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro`, `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
+| `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea Product inventariable; `{ok, mensaje\|error, siigo_producto?}` |
+| `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Siigo + caché; `{items[{codigo,nombre,type}], total}` |
+| `/api/siigo/combos` | POST | `codigo`, `nombre`, `componentes[{code,quantity}]`, `precio_lista?`, `iva?` | Crea Combo; requiere ≥1 componente existente; Premium |
+
+También existen prefijos `/app/api/siigo/productos` y `/app/api/siigo/combos` para mutaciones bajo el SPA.
 
 ## Rentabilidad / compras exterior
 
@@ -128,13 +133,24 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 | Endpoint | Metodo | Body | Notas |
 | --- | --- | --- | --- |
 | `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Siigo |
-| `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre) | Hasta 40 matches `{codigo,nombre}` del catálogo Siigo |
-| `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagen`, opcional `trm`, `flete`, `moneda_flete` | Gemini Vision → lineas + landed |
-| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart o JSON: `items`, `moneda`, `trm`, `flete`, `imagen?` | Upsert costos + historial con soporte |
+| `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre), `limit?` | Busca en vivo Siigo + caché; hasta 80 `{codigo,nombre}` |
+| `/api/rentabilidad/trm` | GET | query `fecha=YYYY-MM-DD` | TRM BanRep (datos.gov.co) USD→COP para esa fecha |
+| `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas consolidadas + landed; USD sin TRM → BanRep |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?` | Upsert costos + historial; con `compra_id` actualiza pedido ya registrado; con `borrador_id` usa/elimina borrador |
 | `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` |
+| `/api/rentabilidad/compras-exterior/<id>` | GET/DELETE | - | Detalle o eliminar compra (+ soportes) |
 | `/api/rentabilidad/compras-exterior/<id>/soporte` | GET | - | Imagen/PDF del pantallazo |
+| `/api/rentabilidad/compras-exterior/borradores` | GET | `limit?` | Lista borradores `{borradores[]}` |
+| `/api/rentabilidad/compras-exterior/borrador` | POST | multipart/JSON: `estado`, `moneda`, `trm`, `imagenes?`, `borrador_id?` | Crear/actualizar borrador para retomar |
+| `/api/rentabilidad/compras-exterior/borrador/<id>` | GET/DELETE | - | Detalle o eliminar borrador |
+| `/api/rentabilidad/compras-exterior/borrador/<id>/soporte` | GET | `i?` | Soporte del borrador |
 
-Landed cost: `costo_unitario_cop = (subtotal_cop + flete_asignado) / (sets × pcs_por_set)`.
+Landed cost: `costo_unitario_cop = (subtotal_neto_cop + flete_asignado) / (packs × contenido)`.
+El flete total se reparte por **unidades compradas** (packs × ml/g/un), no por valor $.
+Unidad base obligatoria por línea: `ml` | `g` | `un` (detectada del texto: 500ml→ml, 1kg→g/1000, 100pcs→un).
+El costo guardado es por esa unidad mínima (COP/ml, COP/g o COP/un).
+USD→COP: TRM = tasa representativa BanRep vigente en `fecha_compra` (fuente `banrep`); override manual opcional.
+Descuentos: `descuento_detectado` / `descuento_pct` (pedido) y `descuento` / `descuento_pct` por línea; el costo usa el neto tras descuentos.
 
 ## 5S Panel
 

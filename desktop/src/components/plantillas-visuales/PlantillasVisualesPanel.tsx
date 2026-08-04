@@ -1004,10 +1004,21 @@ export default function PlantillasVisualesPanel({
                   backgroundColor: "#f0f0f0",
                 }}
               >
+                {/* Ancho CSS = px del lienzo (no píxeles nativos del PNG a 600 DPI),
+                    para que tipografía/tamaño coincidan visualmente con el editor. */}
                 <img
                   src={previewExport.url}
                   alt="Vista previa del PNG a descargar"
-                  className="max-h-[55vh] max-w-full rounded shadow-lg"
+                  width={doc.formato.ancho_px}
+                  height={doc.formato.alto_px}
+                  className="rounded shadow-lg"
+                  style={{
+                    width: Math.min(doc.formato.ancho_px, 720),
+                    maxWidth: "100%",
+                    height: "auto",
+                    maxHeight: "55vh",
+                    objectFit: "contain",
+                  }}
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">

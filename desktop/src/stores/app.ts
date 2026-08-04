@@ -26,6 +26,7 @@ export type Panel =
   | "centros-costo"
   | "rentabilidad"
   | "compras-exterior"
+  | "productos-siigo"
   | "rrhh"
   | "tickets"
   | "etiquetas"
@@ -104,7 +105,7 @@ export type AccionesBootTab =
   | "bolsillo";
 
 /** Salto desde otro panel (p. ej. Sincronización) hacia una pestaña de Rentabilidad. */
-export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "precios" | "cobros-meli" | "ganancia";
+export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
 
 interface AppState {
   panel: Panel;

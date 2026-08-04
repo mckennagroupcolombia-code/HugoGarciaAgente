@@ -91,6 +91,7 @@ function PanelRouterInner() {
     case "costos-productos":
     case "rentabilidad":
     case "compras-exterior":
+    case "productos-siigo":
     case "rrhh":
       return <ContabilidadPanel />;
     case "stock":

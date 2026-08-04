@@ -34,33 +34,33 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
   }
 
   return (
-    <div className="mck-card mb-5 overflow-hidden border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 shadow-paper-sm transition-shadow hover:shadow-paper">
-      <div className="flex items-start gap-3 px-5 py-4">
-        <PanelIcon panel={panelId as Panel} size={36} className="mt-0.5 shrink-0" />
+    <div className="mck-panel-help mck-card mb-4 overflow-hidden border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 shadow-paper-sm transition-shadow hover:shadow-paper">
+      <div className="flex items-start gap-2.5 px-4 py-3">
+        <PanelIcon panel={panelId as Panel} size={28} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-extrabold text-ink">{info.label}</h3>
-            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+            <h3 className="text-sm font-extrabold text-ink">{info.label}</h3>
+            <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
               {info.tier === "core" ? "Esencial" : info.tier === "standard" ? "Frecuente" : "Avanzado"}
             </span>
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{info.description}</p>
+          <p className="mck-help-text mt-0.5 leading-snug text-ink-secondary">{info.description}</p>
 
           {info.tips.length > 0 && (
             <>
               <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="mt-2 mck-press flex items-center gap-1 text-xs font-semibold text-accent transition-colors hover:underline"
+                className="mt-1.5 mck-press flex items-center gap-1 text-[11px] font-semibold text-accent transition-colors hover:underline"
               >
                 <span>{open ? "▾" : "▸"}</span>
                 {open ? "Ocultar tips" : `Ver ${info.tips.length} tip${info.tips.length > 1 ? "s" : ""}`}
               </button>
 
               {open && (
-                <ul className="mt-2 space-y-1.5">
+                <ul className="mt-1.5 space-y-1">
                   {info.tips.map((tip, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-ink-secondary">
+                    <li key={i} className="flex items-start gap-1.5 text-ink-secondary">
                       <span className="mt-0.5 shrink-0 text-accent">✦</span>
                       {tip}
                     </li>
@@ -108,14 +108,14 @@ export function PanelHelpInline({ panelId }: { panelId: string }) {
         ?
       </button>
       {show && (
-        <div className="absolute left-7 top-0 z-50 w-72 rounded-xl border border-border bg-surface-panel p-3 shadow-paper-lg text-xs text-ink-secondary leading-relaxed">
-          <p className="font-bold text-ink mb-1 flex items-center gap-2">
-            <PanelIcon panel={panelId as Panel} size={20} bubble={false} />
+        <div className="mck-panel-help absolute left-7 top-0 z-50 w-64 rounded-xl border border-border bg-surface-panel p-2.5 shadow-paper-lg text-[11px] text-ink-secondary leading-snug">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-ink">
+            <PanelIcon panel={panelId as Panel} size={16} bubble={false} />
             {info.label}
           </p>
-          <p>{info.description}</p>
+          <p className="mck-help-text">{info.description}</p>
           {info.tips.length > 0 && (
-            <ul className="mt-2 space-y-1">
+            <ul className="mt-1.5 space-y-1">
               {info.tips.slice(0, 2).map((t, i) => (
                 <li key={i} className="flex gap-1.5">
                   <span className="text-accent shrink-0">✦</span>{t}

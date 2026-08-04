@@ -1736,6 +1736,148 @@ def buscar_producto_siigo_por_sku(sku: str):
     return None
 
 
+def buscar_productos_siigo_picker(
+    consulta: str,
+    *,
+    max_items: int = 40,
+    excluir_combos: bool = True,
+) -> list[dict]:
+    """
+    Busca productos activos en Siigo para pickers del panel (código o nombre).
+    Combina API en vivo (código exacto, name, creados recientes) + caché de costos,
+    para que productos recién creados aparezcan de inmediato.
+    Retorna [{codigo, nombre, type}].
+    """
+    from datetime import datetime, timedelta
+
+    q = (consulta or "").strip()
+    if "—" in q or " - " in q:
+        q = q.split("—")[0].split(" - ")[0].strip()
+    if len(q) < 1:
+        return []
+
+    items: list[dict] = []
+    seen: set[str] = set()
+
+    def _add(raw: dict) -> None:
+        if len(items) >= max_items:
+            return
+        code = (raw.get("code") or "").strip()
+        name = (raw.get("name") or "").strip()
+        if not code:
+            return
+        cu = code.upper()
+        if cu in seen:
+            return
+        t = (raw.get("type") or "Product").strip() or "Product"
+        if excluir_combos and t.lower() == "combo":
+            return
+        if raw.get("active") is False:
+            return
+        seen.add(cu)
+        items.append({"codigo": code, "nombre": name or code, "type": t})
+
+    def _match_local(code: str, name: str) -> bool:
+        q_up = q.upper()
+        q_low = q.lower()
+        cu = (code or "").upper()
+        nl = (name or "").lower()
+        return cu == q_up or q_up in cu or q_low in nl
+
+    # 1) Código exacto en Siigo (incluye recién creados)
+    res = _siigo_get(
+        "https://api.siigo.com/v1/products",
+        params={"code": q, "page_size": 10},
+    )
+    if res is not None and res.status_code == 200:
+        for p in (res.json() or {}).get("results") or []:
+            code = (p.get("code") or "").strip()
+            # Siigo a veces ignora el filtro; solo aceptar coincidencias reales
+            if code and (code.upper() == q.upper() or q.upper() in code.upper()):
+                _add(p)
+
+    # Si el usuario pegó un código exacto y ya hay match, no hace falta más red
+    if items and any(it["codigo"].upper() == q.upper() for it in items):
+        return items[:max_items]
+
+    # 2) Filtro por nombre (algunos tenants Siigo lo soportan)
+    if len(items) < max_items and len(q) >= 2:
+        res = _siigo_get(
+            "https://api.siigo.com/v1/products",
+            params={"name": q, "active": "true", "page_size": min(max_items, 100)},
+        )
+        if res is not None and res.status_code == 200:
+            for p in (res.json() or {}).get("results") or []:
+                code = (p.get("code") or "").strip()
+                name = (p.get("name") or "").strip()
+                if _match_local(code, name):
+                    _add(p)
+
+    # 3) Productos creados recientemente (cubre altas del panel no indexadas en caché)
+    if len(items) < max_items and len(q) >= 2:
+        created_start = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        for page in range(1, 4):
+            if len(items) >= max_items:
+                break
+            res = _siigo_get(
+                "https://api.siigo.com/v1/products",
+                params={
+                    "created_start": created_start,
+                    "active": "true",
+                    "page": page,
+                    "page_size": 100,
+                },
+            )
+            if res is None or res.status_code != 200:
+                break
+            results = (res.json() or {}).get("results") or []
+            if not results:
+                break
+            for p in results:
+                code = (p.get("code") or "").strip()
+                name = (p.get("name") or "").strip()
+                if _match_local(code, name):
+                    _add(p)
+            if len(results) < 100:
+                break
+
+    # 4) Caché de costos (cobertura histórica / búsqueda por nombre)
+    if len(items) < max_items:
+        try:
+            from app.services.rentabilidad import construir_catalogo_costos, indice_codigo_a_nombre
+
+            catalogo = construir_catalogo_costos()
+            codigo_a_nombre = indice_codigo_a_nombre(catalogo)
+        except Exception:
+            codigo_a_nombre = {}
+
+        q_up = q.upper()
+        q_low = q.lower()
+        exactos, prefijos, nombres = [], [], []
+        for code, name in codigo_a_nombre.items():
+            code_s = str(code)
+            name_s = str(name or "")
+            # Prefijo C- suele ser combo: se incluyen (la creación los expande a Product)
+            cu = code_s.upper()
+            if cu in seen:
+                continue
+            if cu == q_up:
+                exactos.append((code_s, name_s))
+            elif cu.startswith(q_up) or q_up in cu:
+                prefijos.append((code_s, name_s))
+            elif q_low in name_s.lower():
+                nombres.append((code_s, name_s))
+        for bucket in (exactos, prefijos, nombres):
+            for code_s, name_s in bucket:
+                _add({"code": code_s, "name": name_s, "type": "Product", "active": True})
+                if len(items) >= max_items:
+                    break
+            if len(items) >= max_items:
+                break
+
+    return items[:max_items]
+
+
 def _precio_lista_siigo_producto(p: dict) -> float:
     try:
         return float(p["prices"][0]["price_list"][0]["value"])
@@ -1807,6 +1949,411 @@ def listar_productos_combo_siigo() -> list:
     # decía al cliente "no encontré esa referencia" para productos que sí
     # existen, de forma intermitente según el minuto del TTL.
     return _combos_cache
+
+
+_ACCOUNT_GROUP_PRODUCTO_DEFAULT = 297
+_TAX_IVA_ID = 3118
+
+
+def _account_group_desde_combo_existente() -> int:
+    """Toma el account_group de un combo activo; fallback al de productos (297)."""
+    for raw in listar_productos_combo_siigo() or []:
+        ag = raw.get("account_group")
+        if isinstance(ag, dict) and ag.get("id"):
+            try:
+                return int(ag["id"])
+            except (TypeError, ValueError):
+                continue
+        if isinstance(ag, int):
+            return ag
+    return _ACCOUNT_GROUP_PRODUCTO_DEFAULT
+
+
+def _invalidar_cache_combos_siigo() -> None:
+    global _combos_cache, _combos_cache_ts
+    _combos_cache = []
+    _combos_cache_ts = 0.0
+
+
+def _obtener_producto_siigo_por_codigo(codigo: str, headers: dict) -> dict | None:
+    """GET producto por code (prueba variantes de mayúsculas)."""
+    code = (codigo or "").strip()
+    if not code:
+        return None
+    variants = [code]
+    for v in (code.upper(), code.lower()):
+        if v not in variants:
+            variants.append(v)
+    for variant in variants:
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/products",
+                params={"code": variant, "page_size": 5},
+                headers=headers,
+                timeout=15,
+            )
+        except requests.RequestException:
+            continue
+        if res.status_code != 200:
+            continue
+        for p in (res.json() or {}).get("results") or []:
+            if (p.get("code") or "").strip().upper() == variant.upper():
+                return p
+        results = (res.json() or {}).get("results") or []
+        if results:
+            return results[0]
+    return None
+
+
+def _codigo_desde_componente_siigo(comp: dict, headers: dict) -> str:
+    """Resuelve el code de un componente GET (a veces solo trae id/name)."""
+    code = (comp.get("code") or "").strip()
+    if code:
+        return code
+    comp_id = comp.get("id")
+    if not comp_id:
+        return ""
+    try:
+        rc = requests.get(
+            f"https://api.siigo.com/v1/products/{comp_id}",
+            headers=headers,
+            timeout=12,
+        )
+        if rc.status_code == 200:
+            return ((rc.json() or {}).get("code") or "").strip()
+    except requests.RequestException:
+        pass
+    return ""
+
+
+def _expandir_lineas_componentes_combo(
+    lineas: list[tuple[str, float]],
+    headers: dict,
+    *,
+    max_depth: int = 4,
+) -> tuple[list[tuple[str, float]], list[str], str]:
+    """
+    Siigo no admite Combo como componente de otro Combo.
+    Expande recursivamente combos anidados a productos inventariables.
+    Retorna (lineas_planas, notas_expansion, error).
+    """
+    acumulado: dict[str, float] = {}
+    notas: list[str] = []
+
+    def _sumar(code: str, qty: float) -> None:
+        cu = code.upper()
+        # conservar casing del primero visto
+        for k in list(acumulado.keys()):
+            if k.upper() == cu:
+                acumulado[k] = acumulado[k] + qty
+                return
+        acumulado[code] = qty
+
+    def _walk(codigo: str, cantidad: float, depth: int, ruta: list[str]) -> str:
+        if depth > max_depth:
+            return (
+                f"Anidamiento demasiado profundo al expandir '{codigo}' "
+                f"({' → '.join(ruta + [codigo])})."
+            )
+        prod = _obtener_producto_siigo_por_codigo(codigo, headers)
+        if not prod:
+            return (
+                f"El componente '{codigo}' no existe en Siigo. "
+                "Créalo primero o verifica el código."
+            )
+        code_real = (prod.get("code") or codigo).strip()
+        tipo_low = (prod.get("type") or "").strip().lower()
+
+        if tipo_low != "combo":
+            _sumar(code_real, cantidad)
+            return ""
+
+        if prod.get("active") is False:
+            return f"El combo '{code_real}' está inactivo; no se puede expandir."
+
+        comps = prod.get("components") or []
+        if not comps:
+            return f"El combo '{code_real}' no tiene componentes en Siigo."
+
+        notas.append(
+            f"{code_real}×{cantidad:g} → {len(comps)} componente(s) inventariable(s)"
+        )
+        for sub in comps:
+            sub_code = _codigo_desde_componente_siigo(sub, headers)
+            if not sub_code:
+                nombre = (sub.get("name") or "?").strip()
+                return (
+                    f"No se pudo resolver el código del componente '{nombre}' "
+                    f"dentro de '{code_real}'."
+                )
+            try:
+                sub_qty = float(sub.get("quantity") or 1)
+            except (TypeError, ValueError):
+                sub_qty = 1.0
+            if sub_qty <= 0:
+                continue
+            err = _walk(sub_code, cantidad * sub_qty, depth + 1, ruta + [code_real])
+            if err:
+                return err
+        return ""
+
+    for codigo, qty in lineas:
+        err = _walk(codigo, qty, 0, [])
+        if err:
+            return [], notas, err
+
+    planos = [(c, q) for c, q in acumulado.items() if q > 0]
+    if not planos:
+        return [], notas, "Tras expandir combos no quedó ningún producto inventariable"
+    return planos, notas, ""
+
+
+def _validar_componente_para_combo(
+    codigo: str,
+    cantidad: float,
+    headers: dict,
+) -> tuple[dict | None, str]:
+    """
+    Verifica que un código pueda usarse como componente de Combo en Siigo.
+    Retorna ({code, quantity}, "") o (None, error_es).
+    (Los Combos deben expandirse antes con _expandir_lineas_componentes_combo.)
+    """
+    prod = _obtener_producto_siigo_por_codigo(codigo, headers)
+    if not prod:
+        return None, (
+            f"El componente '{codigo}' no existe en Siigo. "
+            "Créalo primero como Producto (no Combo) o verifica el código."
+        )
+
+    code_real = (prod.get("code") or codigo).strip()
+    nombre = (prod.get("name") or "").strip()
+    tipo = (prod.get("type") or "").strip()
+    tipo_low = tipo.lower()
+
+    if prod.get("active") is False:
+        return None, (
+            f"El componente '{code_real}' ({nombre}) está inactivo en Siigo. Actívalo antes de usarlo en un combo."
+        )
+
+    if tipo_low == "combo":
+        return None, (
+            f"'{code_real}' sigue siendo Combo tras la expansión. "
+            "Revisa que sus componentes tengan código de Producto."
+        )
+
+    if tipo_low in ("service", "consumergood", "consumer good"):
+        return None, (
+            f"'{code_real}' es tipo '{tipo}'. Los componentes del combo deben ser Productos inventariables."
+        )
+
+    if tipo and tipo_low != "product":
+        return None, (
+            f"'{code_real}' tiene tipo '{tipo}'. Solo productos tipo Product pueden armar un combo."
+        )
+
+    if not prod.get("stock_control", False):
+        # Intentar activar control de inventario (requisito frecuente en Siigo Premium).
+        product_id = prod.get("id")
+        if product_id:
+            try:
+                body, err = _preparar_producto_siigo_para_put(
+                    copy.deepcopy(prod), headers
+                )
+                if body and not err:
+                    body["stock_control"] = True
+                    if not body.get("warehouses"):
+                        body["warehouses"] = [
+                            {"id": 41, "quantity": 0, "unit_cost": 0}
+                        ]
+                    ru = requests.put(
+                        f"https://api.siigo.com/v1/products/{product_id}",
+                        json=body,
+                        headers=headers,
+                        timeout=20,
+                    )
+                    if ru.status_code not in (200, 201):
+                        return None, (
+                            f"'{code_real}' no tiene control de inventario y Siigo lo exige para combos. "
+                            f"Actívalo en Siigo Nube (Inventario → producto → control de stock). "
+                            f"Detalle: {(ru.text or '')[:160]}"
+                        )
+            except Exception as e:
+                return None, (
+                    f"'{code_real}' no tiene control de inventario (requerido en combos). "
+                    f"Actívalo en Siigo. ({e})"
+                )
+        else:
+            return None, (
+                f"'{code_real}' no tiene control de inventario. Actívalo en Siigo antes de usarlo en un combo."
+            )
+
+    qty = float(cantidad)
+    if qty <= 0:
+        return None, f"Cantidad inválida para '{code_real}'"
+    # Siigo suele preferir enteros cuando la cantidad es exacta
+    qty_out: float | int = int(qty) if abs(qty - int(qty)) < 1e-9 else qty
+    return {"code": code_real, "quantity": qty_out}, ""
+
+
+def _mensaje_error_combo_siigo(status: int, text: str) -> str:
+    """Traduce errores frecuentes de creación de combo a mensaje accionable."""
+    raw = (text or "").strip()
+    low = raw.lower()
+    if "product_settings" in low and "components" in low:
+        return (
+            "Siigo rechazó un componente del combo (product_settings). "
+            "Cada componente debe existir, estar activo, ser tipo Product "
+            "(no Combo/Servicio) y tener control de inventario. "
+            f"Detalle: {raw[:220]}"
+        )
+    if "parameter_required" in low and "prices" in low:
+        return (
+            "Siigo exige un precio de lista válido si se envía la lista de precios. "
+            f"Detalle: {raw[:220]}"
+        )
+    return f"SIIGO HTTP {status}: {raw[:300]}"
+
+
+def crear_combo_en_siigo(
+    codigo: str,
+    nombre: str,
+    componentes: list,
+    *,
+    precio_lista: float = 0.0,
+    iva: bool = True,
+    account_group: int | None = None,
+) -> dict:
+    """
+    Crea un producto tipo Combo en SIIGO (POST /v1/products).
+    componentes: [{code|codigo, quantity|cantidad}, ...]
+    Retorna {ok, mensaje|error, siigo_id?, siigo_producto?}.
+    """
+    import re
+
+    codigo_limpio = re.sub(r"[^A-Za-z0-9._-]", "", (codigo or "").strip())
+    if not codigo_limpio or not re.match(r"^[A-Za-z0-9._-]{2,40}$", codigo_limpio):
+        return {"ok": False, "error": f"Código SIIGO inválido: {codigo}"}
+    nombre_limpio = (nombre or "").strip()[:100]
+    if not nombre_limpio:
+        return {"ok": False, "error": "El nombre del combo es obligatorio"}
+
+    comps_raw = []
+    for raw in componentes or []:
+        if not isinstance(raw, dict):
+            continue
+        c = re.sub(
+            r"[^A-Za-z0-9._-]",
+            "",
+            str(raw.get("code") or raw.get("codigo") or "").strip(),
+        )
+        if not c:
+            continue
+        try:
+            qty = float(
+                raw.get("quantity")
+                if raw.get("quantity") is not None
+                else raw.get("cantidad") or 1
+            )
+        except (TypeError, ValueError):
+            qty = 1.0
+        if qty <= 0:
+            return {"ok": False, "error": f"Cantidad inválida para componente {c}"}
+        comps_raw.append((c, qty))
+
+    if len(comps_raw) < 1:
+        return {"ok": False, "error": "El combo necesita al menos un componente"}
+
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con SIIGO"}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    # Duplicado del código del combo
+    existente_combo = _obtener_producto_siigo_por_codigo(codigo_limpio, headers)
+    if existente_combo:
+        return {
+            "ok": False,
+            "error": f"El código {codigo_limpio} ya existe en SIIGO",
+            "siigo_producto": {
+                "codigo": existente_combo.get("code", codigo_limpio),
+                "nombre": existente_combo.get("name", ""),
+                "activo": existente_combo.get("active", True),
+            },
+        }
+
+    comps_out = []
+    planos, notas_exp, err_exp = _expandir_lineas_componentes_combo(comps_raw, headers)
+    if err_exp:
+        return {"ok": False, "error": err_exp}
+    for c, qty in planos:
+        normalizado, err = _validar_componente_para_combo(c, qty, headers)
+        if err or not normalizado:
+            return {"ok": False, "error": err or f"Componente inválido: {c}"}
+        comps_out.append(normalizado)
+
+    ag = account_group if account_group is not None else _account_group_desde_combo_existente()
+    try:
+        precio = float(precio_lista or 0)
+    except (TypeError, ValueError):
+        precio = 0.0
+
+    payload = {
+        "code": codigo_limpio,
+        "name": nombre_limpio,
+        "account_group": int(ag),
+        "type": "Combo",
+        "stock_control": False,
+        "unit": {"code": "94"},
+        "components": comps_out,
+        "taxes": [{"id": _TAX_IVA_ID}] if iva else [],
+    }
+    if precio > 0:
+        payload["prices"] = [
+            {
+                "currency_code": "COP",
+                "price_list": [{"position": 1, "value": round(precio, 0)}],
+            }
+        ]
+
+    try:
+        r = requests.post(
+            "https://api.siigo.com/v1/products",
+            json=payload,
+            headers=headers,
+            timeout=25,
+        )
+        if r.status_code in (200, 201):
+            data = r.json() if r.content else {}
+            _invalidar_cache_combos_siigo()
+            mensaje = f"Combo {codigo_limpio} creado en SIIGO"
+            if notas_exp:
+                mensaje += " · Expandió: " + "; ".join(notas_exp[:3])
+                if len(notas_exp) > 3:
+                    mensaje += f" (+{len(notas_exp) - 3} más)"
+            return {
+                "ok": True,
+                "mensaje": mensaje,
+                "siigo_id": data.get("id"),
+                "siigo_producto": {
+                    "codigo": data.get("code", codigo_limpio),
+                    "nombre": data.get("name", nombre_limpio),
+                    "activo": data.get("active", True),
+                    "type": "Combo",
+                },
+                "componentes_expandidos": comps_out,
+                "expansion": notas_exp,
+            }
+        return {
+            "ok": False,
+            "error": _mensaje_error_combo_siigo(r.status_code, r.text or ""),
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 def actualizar_precio_combo_siigo(code: str, nuevo_precio: float) -> dict:
@@ -2266,27 +2813,42 @@ def actualizar_costo_componente_siigo(
     nombre: str,
     precio_sin_iva: float,
     catalogo: dict | None = None,
+    codigo: str | None = None,
 ) -> dict:
     """
     Actualiza el precio de lista de un componente (insumo) en Siigo.
-    Busca el producto por nombre normalizado en el catálogo y hace GET → PUT.
-    Retorna {"ok": bool, "msg": str}.
+    Preferir `codigo` (SKU Siigo) cuando se conozca; si no, busca por nombre
+    normalizado en el catálogo. GET → PUT prices.
+    Retorna {"ok": bool, "msg": str, "codigo": str|None}.
     """
     from app.services.rentabilidad import _norm, construir_catalogo_costos
 
-    if catalogo is None:
-        try:
-            catalogo = construir_catalogo_costos()
-        except Exception as e:
-            return {"ok": False, "msg": f"Error cargando catálogo: {e}"}
+    codigo_eff = (codigo or "").strip()
+    if not codigo_eff:
+        if catalogo is None:
+            try:
+                catalogo = construir_catalogo_costos()
+            except Exception as e:
+                return {"ok": False, "msg": f"Error cargando catálogo: {e}", "codigo": None}
 
-    codigo = catalogo.get("nombre_a_codigo", {}).get(_norm(nombre))
-    if not codigo:
-        return {"ok": False, "msg": f"'{nombre}' no encontrado en catálogo Siigo"}
+        codigo_eff = (catalogo.get("nombre_a_codigo", {}) or {}).get(_norm(nombre)) or ""
+        if not codigo_eff:
+            # Fallback: match parcial por nombre en codigo_a_nombre / nombre_a_codigo
+            target = _norm(nombre)
+            for nrm, code in (catalogo.get("nombre_a_codigo") or {}).items():
+                if nrm == target or (target and target in nrm) or (nrm and nrm in target):
+                    codigo_eff = str(code)
+                    break
+        if not codigo_eff:
+            return {
+                "ok": False,
+                "msg": f"'{nombre}' no encontrado en catálogo Siigo (indique código SKU)",
+                "codigo": None,
+            }
 
     token = autenticar_siigo()
     if not token:
-        return {"ok": False, "msg": "No se pudo autenticar en Siigo"}
+        return {"ok": False, "msg": "No se pudo autenticar en Siigo", "codigo": codigo_eff}
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -2297,39 +2859,83 @@ def actualizar_costo_componente_siigo(
     try:
         res = requests.get(
             "https://api.siigo.com/v1/products",
-            params={"code": codigo},
+            params={"code": codigo_eff},
             headers=headers,
             timeout=15,
         )
     except requests.RequestException as e:
-        return {"ok": False, "msg": f"Error de red: {e}"}
+        return {"ok": False, "msg": f"Error de red: {e}", "codigo": codigo_eff}
 
     if res.status_code != 200:
-        return {"ok": False, "msg": f"Siigo GET {res.status_code}: {res.text[:200]}"}
+        return {"ok": False, "msg": f"Siigo GET {res.status_code}: {res.text[:200]}", "codigo": codigo_eff}
 
     products = res.json().get("results", [])
     if not products:
-        return {"ok": False, "msg": f"Producto code='{codigo}' no encontrado en Siigo"}
+        # Variantes mayúsculas/minúsculas
+        for variant in {codigo_eff.upper(), codigo_eff.lower()} - {codigo_eff}:
+            try:
+                rv = requests.get(
+                    "https://api.siigo.com/v1/products",
+                    params={"code": variant},
+                    headers=headers,
+                    timeout=15,
+                )
+                if rv.status_code == 200 and rv.json().get("results"):
+                    products = rv.json()["results"]
+                    codigo_eff = variant
+                    break
+            except requests.RequestException:
+                pass
+    if not products:
+        return {
+            "ok": False,
+            "msg": f"Producto code='{codigo_eff}' no encontrado en Siigo",
+            "codigo": codigo_eff,
+        }
 
     product = copy.deepcopy(products[0])
     product_id = product.get("id")
     if not product_id:
-        return {"ok": False, "msg": "Producto sin ID en Siigo"}
+        return {"ok": False, "msg": "Producto sin ID en Siigo", "codigo": codigo_eff}
 
     # Siigo PUT exige account_group numérico; GET devuelve objeto
     ag = product.get("account_group")
     if isinstance(ag, dict) and ag.get("id"):
         product["account_group"] = ag["id"]
     elif not isinstance(ag, int):
-        return {"ok": False, "msg": "Producto sin account_group válido en Siigo"}
+        return {"ok": False, "msg": "Producto sin account_group válido en Siigo", "codigo": codigo_eff}
 
     prices = product.get("prices") or []
     if not prices:
-        return {"ok": False, "msg": "Producto sin estructura de precios en Siigo"}
+        return {"ok": False, "msg": "Producto sin estructura de precios en Siigo", "codigo": codigo_eff}
     for price_group in prices:
         for pl in (price_group.get("price_list") or []):
-            pl["value"] = round(precio_sin_iva, 2)
+            pl["value"] = round(float(precio_sin_iva), 2)
     product["prices"] = prices
+
+    # Limpiar campos que Siigo rechaza en PUT de Product
+    for k in ("metadata", "available_quantity", "id"):
+        product.pop(k, None)
+
+    # Completar code en componentes si es Combo
+    for comp in product.get("components") or []:
+        if comp.get("code"):
+            continue
+        comp_id = comp.get("id")
+        if not comp_id:
+            continue
+        try:
+            rc = requests.get(
+                f"https://api.siigo.com/v1/products/{comp_id}",
+                headers=headers,
+                timeout=12,
+            )
+            if rc.status_code == 200:
+                fetched = (rc.json().get("code") or "").strip()
+                if fetched:
+                    comp["code"] = fetched
+        except requests.RequestException:
+            pass
 
     try:
         res_put = requests.put(
@@ -2339,11 +2945,19 @@ def actualizar_costo_componente_siigo(
             timeout=20,
         )
     except requests.RequestException as e:
-        return {"ok": False, "msg": f"Error de red al actualizar: {e}"}
+        return {"ok": False, "msg": f"Error de red al actualizar: {e}", "codigo": codigo_eff}
 
     if res_put.status_code in (200, 201):
-        return {"ok": True, "msg": f"Actualizado en Siigo (code={codigo})"}
-    return {"ok": False, "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}"}
+        return {
+            "ok": True,
+            "msg": f"Costo actualizado en Siigo (code={codigo_eff})",
+            "codigo": codigo_eff,
+        }
+    return {
+        "ok": False,
+        "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}",
+        "codigo": codigo_eff,
+    }
 
 
 _MELI_COMMISSION_WEB = 0.165

@@ -1692,6 +1692,30 @@
       "pregunta": "Fecha de vencimiento es comestible ?",
       "timestamp": "2026-08-02T15:06:29.888109",
       "respondida": true
+    },
+    {
+      "question_id": "13634403484",
+      "titulo_producto": "Ácido Salicílico 50gr ",
+      "pregunta": "Se mezcla con algo o se aplica natural?",
+      "timestamp": "2026-08-03T13:18:03.751856",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nEs muy importante que mezcle el producto antes de aplicarlo. Nuestro Ácido Salicílico es un ingrediente activo puro que debe ser preparado e incorporado en una formulación cosmética de su elección, ya que no está diseñado para aplicarse directamente sobre la piel.\n\nPara el cuidado de la piel, la dosificación recomendada es del 0.5% al 2%. Esto significa que debe diluirlo en una base o vehículo que prefiera hasta alcanzar esa concentración. Es fundamental no exceder esta cantidad, ya que usarlo puro o en exceso puede causar irritación y sequedad.\n\n¡Quedo atento si tiene alguna otra pregunta",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-03"
+    },
+    {
+      "question_id": "13634403994",
+      "titulo_producto": "Ácido Salicílico 50gr ",
+      "pregunta": "Sirve para mezquinos",
+      "timestamp": "2026-08-03T12:40:01.020615",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nSí, nuestro ácido salicílico se utiliza en tratamientos para eliminar verrugas (mezquinos), ya que ayuda a disolver las capas externas de la piel que están afectadas.\n\nPara el tratamiento de verrugas, la dosificación recomendada es del 17% al 40%. La aplicación sugerida es una vez al día, preferiblemente por la noche, colocando una pequeña cantidad del producto directamente sobre la verruga y evitando el contacto con la piel sana de alrededor.\n\nEs muy importante recordar que nuestro producto es un ingrediente activo puro que debe ser preparado e incorporado en una formulación cosmética de su elección para alcanzar la concentración adecuada, ya que no está diseñado para aplicarse directamente sobre la piel en su estado original."
+    },
+    {
+      "question_id": "13633975577",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Como dice que es natural y sin refinar",
+      "timestamp": "2026-08-03T21:18:28.696485",
+      "respondida": false
     }
   ]
 }

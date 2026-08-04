@@ -36,7 +36,14 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
-function CalculadoraPad({ onClose }: { onClose: () => void }) {
+export function CalculadoraPad({
+  onClose,
+  /** Solo el pad (sin marco/cabecera); para embeber en FloatingToolWindow. */
+  bare = false,
+}: {
+  onClose: () => void;
+  bare?: boolean;
+}) {
   const [display, setDisplay] = useState("0");
   const [accumulator, setAccumulator] = useState<number | null>(null);
   const [pendingOp, setPendingOp] = useState<Op | null>(null);
@@ -231,6 +238,81 @@ function CalculadoraPad({ onClose }: { onClose: () => void }) {
   const opBtn = (op: Op) =>
     btn(op, () => pressOp(op), "border-accent/40 bg-accent/5 text-accent hover:bg-accent/15");
 
+  const body = (
+    <div className="p-2.5">
+      <div
+        className="mb-2 overflow-hidden rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-right font-mono text-xl font-bold text-ink"
+        aria-live="polite"
+      >
+        {display}
+      </div>
+
+      <div className="grid grid-cols-4 gap-1">
+        {btn("C", reset, "text-red-600 dark:text-red-400")}
+        {btn("⌫", pressBackspace)}
+        {opBtn("÷")}
+        {opBtn("×")}
+
+        {btn("7", () => pressDigit("7"))}
+        {btn("8", () => pressDigit("8"))}
+        {btn("9", () => pressDigit("9"))}
+        {opBtn("-")}
+
+        {btn("4", () => pressDigit("4"))}
+        {btn("5", () => pressDigit("5"))}
+        {btn("6", () => pressDigit("6"))}
+        {opBtn("+")}
+
+        {btn("1", () => pressDigit("1"))}
+        {btn("2", () => pressDigit("2"))}
+        {btn("3", () => pressDigit("3"))}
+        <button
+          type="button"
+          onClick={pressEquals}
+          className="row-span-2 rounded-paper border-2 border-accent bg-accent text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:scale-95"
+        >
+          =
+        </button>
+
+        <button
+          type="button"
+          onClick={() => pressDigit("0")}
+          className="col-span-2 rounded-paper border-2 border-border py-2 text-sm font-bold transition hover:bg-surface-hover active:scale-95"
+        >
+          0
+        </button>
+        {btn(".", () => pressDigit("."))}
+      </div>
+
+      <button
+        type="button"
+        disabled={display === "Error" || current() == null}
+        onClick={() => void copiar()}
+        className="mt-2 w-full rounded-paper border-2 border-accent/50 bg-accent/10 py-1.5 text-[11px] font-bold text-accent transition hover:bg-accent/20 disabled:opacity-40"
+      >
+        {copiado ? "✓ Copiado" : "Copiar resultado"}
+      </button>
+      <p className="mt-1.5 text-center text-[9px] text-muted">
+        Teclado: 0-9 · + − * / · Enter · ⌫ · Esc
+      </p>
+    </div>
+  );
+
+  if (bare) {
+    return (
+      <div
+        ref={padRef}
+        tabIndex={0}
+        className="outline-none"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Calculadora mágica"
+        aria-keyshortcuts="0-9, +, -, *, /, Enter, Backspace, Escape"
+      >
+        {body}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={padRef}
@@ -256,78 +338,30 @@ function CalculadoraPad({ onClose }: { onClose: () => void }) {
           ✕
         </button>
       </div>
-
-      <div className="p-2.5">
-        <div
-          className="mb-2 overflow-hidden rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-right font-mono text-xl font-bold text-ink"
-          aria-live="polite"
-        >
-          {display}
-        </div>
-
-        <div className="grid grid-cols-4 gap-1">
-          {btn("C", reset, "text-red-600 dark:text-red-400")}
-          {btn("⌫", pressBackspace)}
-          {opBtn("÷")}
-          {opBtn("×")}
-
-          {btn("7", () => pressDigit("7"))}
-          {btn("8", () => pressDigit("8"))}
-          {btn("9", () => pressDigit("9"))}
-          {opBtn("-")}
-
-          {btn("4", () => pressDigit("4"))}
-          {btn("5", () => pressDigit("5"))}
-          {btn("6", () => pressDigit("6"))}
-          {opBtn("+")}
-
-          {btn("1", () => pressDigit("1"))}
-          {btn("2", () => pressDigit("2"))}
-          {btn("3", () => pressDigit("3"))}
-          <button
-            type="button"
-            onClick={pressEquals}
-            className="row-span-2 rounded-paper border-2 border-accent bg-accent text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:scale-95"
-          >
-            =
-          </button>
-
-          <button
-            type="button"
-            onClick={() => pressDigit("0")}
-            className="col-span-2 rounded-paper border-2 border-border py-2 text-sm font-bold transition hover:bg-surface-hover active:scale-95"
-          >
-            0
-          </button>
-          {btn(".", () => pressDigit("."))}
-        </div>
-
-        <button
-          type="button"
-          disabled={display === "Error" || current() == null}
-          onClick={() => void copiar()}
-          className="mt-2 w-full rounded-paper border-2 border-accent/50 bg-accent/10 py-1.5 text-[11px] font-bold text-accent transition hover:bg-accent/20 disabled:opacity-40"
-        >
-          {copiado ? "✓ Copiado" : "Copiar resultado"}
-        </button>
-        <p className="mt-1.5 text-center text-[9px] text-muted">
-          Teclado: 0-9 · + − * / · Enter · ⌫ · Esc
-        </p>
-      </div>
+      {body}
     </div>
   );
 }
 
 /**
- * Botón flotante de calculadora visible sobre pestañas y ventanas emergentes (portal + z-index alto).
+ * Botón flotante de calculadora (legacy). En Contabilidad usa la barra del cabezote.
  */
-export default function CalculadoraMagica() {
+export default function CalculadoraMagica({
+  position = "right",
+}: {
+  position?: "left" | "right";
+} = {}) {
   const [abierta, setAbierta] = useState(false);
 
   if (typeof document === "undefined") return null;
 
+  const posClass =
+    position === "left"
+      ? "fixed top-5 left-5 z-[900] flex flex-col items-start gap-3 sm:top-6 sm:left-6"
+      : "fixed top-5 right-5 z-[900] flex flex-col items-end gap-3 sm:top-6 sm:right-6";
+
   return createPortal(
-    <div className="pointer-events-none fixed top-5 right-5 z-[900] flex flex-col items-end gap-3 sm:top-6 sm:right-6">
+    <div className={`pointer-events-none ${posClass}`}>
       <button
         type="button"
         onClick={() => setAbierta((v) => !v)}

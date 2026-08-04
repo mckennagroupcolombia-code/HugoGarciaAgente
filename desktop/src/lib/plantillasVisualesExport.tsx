@@ -294,7 +294,7 @@ async function dibujarTextoArcoEnCanvas(
   if ((el.arco ?? 0) === 0 || boxH <= 0 || el.width <= 0) return;
 
   const host = document.createElement("div");
-  host.style.cssText = `position:fixed;left:-99999px;top:0;width:${el.width}px;height:${boxH}px;overflow:visible;background:transparent;`;
+  host.style.cssText = `position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;width:${el.width}px;height:${boxH}px;overflow:visible;background:transparent;`;
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
@@ -394,24 +394,41 @@ export async function renderPlantillaToCanvasDom(
 
   const runs = agruparPorTipoRender(doc);
 
-  const probeFuentes = document.createElement("div");
-  probeFuentes.style.cssText =
-    'position:fixed;left:-99999px;top:0;font-family:"Montserrat",system-ui,sans-serif;font-weight:700;font-size:16px;';
-  probeFuentes.textContent = "Ag";
-  document.body.appendChild(probeFuentes);
+  // Embebe Montserrat (y otras) una vez; sin esto el SVG del export cae a
+  // system-ui y tipografía/tamaño dejan de coincidir con el lienzo.
   let fontEmbedCSS = "";
   try {
-    fontEmbedCSS = await getFontEmbedCSS(probeFuentes);
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.cssText =
+      'position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;font-family:"Montserrat",system-ui,sans-serif;font-weight:400;font-size:16px;';
+    probe.textContent = "Ag";
+    const pesos = new Set<number>([400, 600, 700]);
+    for (const el of doc.elementos) {
+      if (el.type === "text" && el.visible !== false) {
+        pesos.add(pesoFontWeightCss(el.fontWeight));
+      }
+    }
+    for (const fw of pesos) {
+      const span = document.createElement("span");
+      span.style.cssText = `font-family:"Montserrat",system-ui,sans-serif;font-weight:${fw};font-size:16px;`;
+      span.textContent = "Ag";
+      probe.appendChild(span);
+    }
+    document.body.appendChild(probe);
+    if (document.fonts) await document.fonts.ready;
+    fontEmbedCSS = await getFontEmbedCSS(probe);
+    probe.remove();
   } catch {
     fontEmbedCSS = "";
   }
-  probeFuentes.remove();
 
+  // Host en viewport (opacity 0): fuera de pantalla (-99999px) algunos
+  // navegadores no aplican bien tipografías web al foreignObject de html-to-image.
   const contenedor = document.createElement("div");
-  contenedor.style.position = "fixed";
-  contenedor.style.left = "-99999px";
-  contenedor.style.top = "0";
-  contenedor.style.pointerEvents = "none";
+  contenedor.setAttribute("aria-hidden", "true");
+  contenedor.style.cssText =
+    "position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;";
   document.body.appendChild(contenedor);
   const raiz = createRoot(contenedor);
 
@@ -447,6 +464,14 @@ export async function renderPlantillaToCanvasDom(
       try {
         if (document.fonts) await document.fonts.ready;
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        // Re-embebe desde el nodo real (todas las familias/pesos del tramo).
+        let cssTramo = fontEmbedCSS;
+        try {
+          const cssNodo = await getFontEmbedCSS(nodo);
+          if (cssNodo) cssTramo = cssNodo;
+        } catch {
+          /* usar CSS global del probe */
+        }
         const subCanvas = await toCanvas(nodo, {
           width: w,
           height: h,
@@ -456,6 +481,7 @@ export async function renderPlantillaToCanvasDom(
           imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
           quality: 1,
           skipAutoScale: true,
+          ...(cssTramo ? { fontEmbedCSS: cssTramo } : {}),
         });
         if (subCanvas.width === anchoFinal && subCanvas.height === altoFinal) {
           ctx.imageSmoothingEnabled = false;

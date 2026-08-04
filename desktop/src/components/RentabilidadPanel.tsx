@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
 import { ConsultarFacturaPorProducto } from "./FacturasCompraPanel";
+import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -267,9 +268,18 @@ function TabCombos() {
     const key = `${parentCode}::${nombre}`;
     setGuardandoCostos((prev) => ({ ...prev, [key]: true }));
     try {
+      const codeSiigo =
+        desgloses[parentCode]?.componentes.find((c) => c.nombre === nombre)?.code_siigo || undefined;
       const res = await api.post<{ siigo?: { ok: boolean; msg: string } }>(
         "/api/rentabilidad/componentes",
-        { nombre, costo_unitario: costo, categoria, iva_incluido: ivaIncluido },
+        {
+          nombre,
+          costo_unitario: costo,
+          categoria,
+          iva_incluido: ivaIncluido,
+          codigo: codeSiigo || undefined,
+          code_siigo: codeSiigo || undefined,
+        },
       );
       if (res.siigo) {
         setSiigoCostoResult((prev) => ({ ...prev, [key]: res.siigo! }));
@@ -1587,609 +1597,8 @@ function TabPeriodo() {
   );
 }
 
-// ─── Tab: Actualizar precios ──────────────────────────────────────────────────
-
-interface ResultadoPlataforma {
-  ok: boolean;
-  msg: string;
-  items?: Array<{ item_id: string; ok: boolean; status: number }>;
-}
-
-interface CanalPrecioPreview {
-  prioridad?: number;
-  precio?: number;
-  precio_producto?: number;
-  rol?: string;
-  regla?: string;
-  nota?: string;
-  envio_gratis?: boolean;
-  envio_apartado?: boolean;
-  envio_estimado_referencia?: number;
-  ahorro_vs_meli_producto?: number;
-  descuento_pct?: number;
-}
-
-interface PreciosMulticanal {
-  precio_meli_referencia?: number;
-  precio_publico?: number;
-  lista: number;
-  meli: number;
-  web: number;
-  envio_referencia?: number;
-  envio_web_apartado?: boolean;
-  ahorro_web_vs_meli?: number;
-  desglose: string;
-  documentacion?: {
-    titulo: string;
-    resumen: string;
-    prioridad: Array<{
-      orden: number;
-      canal: string;
-      clave: string;
-      rol: string;
-      descripcion: string;
-    }>;
-    entrada_panel: string;
-    comision_meli_pct: number;
-  };
-  canales?: {
-    meli?: CanalPrecioPreview;
-    siigo?: CanalPrecioPreview;
-    web?: CanalPrecioPreview;
-  };
-  reglas?: Record<string, string>;
-}
-
-interface ResultadoActualizacion {
-  precios?: PreciosMulticanal;
-  siigo?: ResultadoPlataforma;
-  meli?: ResultadoPlataforma;
-  web?: ResultadoPlataforma;
-  /** true si "siigo" se aplicó automáticamente porque se pidió "web" (la web lee de Siigo). */
-  siigo_implicito?: boolean;
-}
-
-function LogicaPreciosPanel() {
-  const [doc, setDoc] = useState<PreciosMulticanal["documentacion"] | null>(null);
-
-  useEffect(() => {
-    void api
-      .get<PreciosMulticanal["documentacion"]>("/api/rentabilidad/logica-precios")
-      .then(setDoc)
-      .catch(() => setDoc(null));
-  }, []);
-
-  if (!doc) return null;
-
-  const pct = Math.round((doc.comision_meli_pct ?? 0.165) * 100);
-
-  return (
-    <div className="rounded-xl border border-border bg-surface-panel px-4 py-4 space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-ink">{doc.titulo}</h3>
-        <p className="mt-1 text-sm text-muted leading-relaxed">{doc.resumen}</p>
-      </div>
-      <ol className="space-y-3">
-        {doc.prioridad.map((p) => (
-          <li key={p.clave} className="flex gap-3 text-sm">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent">
-              {p.orden}°
-            </span>
-            <div>
-              <p className="font-semibold text-ink">
-                {p.canal}
-                <span className="ml-2 text-xs font-normal text-muted">— {p.rol}</span>
-              </p>
-              <p className="mt-0.5 text-muted leading-relaxed">{p.descripcion}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-      <p className="text-xs text-muted border-t border-border/60 pt-3 leading-relaxed">
-        {doc.entrada_panel} Descuento web automático: ~{pct}% (comisión MeLi que el cliente no paga al comprar directo).
-      </p>
-    </div>
-  );
-}
-
-function TabPrecios() {
-  const [busqueda, setBusqueda] = useState("");
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [costos, setCostos] = useState<Record<string, ResumenCosto>>({});
-  const [preciosMeli, setPreciosMeli] = useState<Record<string, number>>({});
-
-  const [editando, setEditando] = useState<string | null>(null);
-  const [nuevoPrecio, setNuevoPrecio] = useState("");
-  const [plataformas, setPlataformas] = useState<Record<string, boolean>>({
-    siigo: true,
-    meli: true,
-    web: true,
-  });
-  const [previewPrecios, setPreviewPrecios] = useState<PreciosMulticanal | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [resultados, setResultados] = useState<Record<string, ResultadoActualizacion>>({});
-
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.get<{ productos: Producto[] }>("/api/rentabilidad/productos");
-      setProductos(data.productos ?? []);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-    api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos")
-      .then(setCostos)
-      .catch(() => {});
-    api.get<Record<string, number>>("/api/rentabilidad/precios-meli")
-      .then(setPreciosMeli)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => { void cargar(); }, [cargar]);
-
-  useEffect(() => {
-    if (!editando) {
-      setPreviewPrecios(null);
-      return;
-    }
-    const precio = parseFloat(nuevoPrecio);
-    if (isNaN(precio) || precio <= 0) {
-      setPreviewPrecios(null);
-      return;
-    }
-    const prod = productos.find((p) => p.code === editando);
-    const t = window.setTimeout(() => {
-      void api
-        .get<PreciosMulticanal>(
-          `/api/rentabilidad/preview-precios?code=${encodeURIComponent(editando)}&precio=${precio}${prod?.name ? `&nombre=${encodeURIComponent(prod.name)}` : ""}`
-        )
-        .then(setPreviewPrecios)
-        .catch(() => setPreviewPrecios(null));
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [editando, nuevoPrecio, productos]);
-
-  const productosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return productos;
-    return productos.filter((p) =>
-      p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
-    );
-  }, [productos, busqueda]);
-
-  const abrirEditor = (p: Producto) => {
-    const precioMeliReal = preciosMeli[p.code.toUpperCase()];
-    const yaDifiere = precioMeliReal != null && precioMeliReal !== p.precio_lista;
-    setEditando(p.code);
-    // Si MeLi ya tiene un precio distinto, es la referencia real — se precarga
-    // para no tener que reescribirlo, y no hace falta re-enviarlo a MeLi.
-    setNuevoPrecio(String(precioMeliReal ?? p.precio_lista));
-    setPlataformas(
-      yaDifiere ? { siigo: true, web: true, meli: false } : { siigo: true, web: true, meli: true }
-    );
-    setResultados((prev) => { const n = { ...prev }; delete n[p.code]; return n; });
-  };
-
-  /** Sincroniza directo con el precio real de MeLi, sin abrir el editor. */
-  const sincronizarConMeli = async (p: Producto) => {
-    const precioMeliReal = preciosMeli[p.code.toUpperCase()];
-    if (precioMeliReal == null) return;
-    setGuardando(true);
-    try {
-      const data = await api.post<ResultadoActualizacion>("/api/rentabilidad/actualizar-precio", {
-        code: p.code,
-        nuevo_precio: precioMeliReal,
-        plataformas: ["siigo", "web"],
-        nombre: p.name,
-      });
-      setResultados((prev) => ({ ...prev, [p.code]: data }));
-      setProductos((prev) =>
-        prev.map((x) => (x.code === p.code ? { ...x, precio_lista: precioMeliReal } : x))
-      );
-    } catch (e) {
-      setResultados((prev) => ({
-        ...prev,
-        [p.code]: { siigo: { ok: false, msg: (e as Error).message } },
-      }));
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const productosConDiffMeli = useMemo(
-    () =>
-      productos.filter((p) => {
-        const real = preciosMeli[p.code.toUpperCase()];
-        return real != null && real !== p.precio_lista;
-      }),
-    [productos, preciosMeli]
-  );
-
-  const [sincronizandoTodos, setSincronizandoTodos] = useState(false);
-
-  const sincronizarTodosConMeli = async () => {
-    setSincronizandoTodos(true);
-    try {
-      for (const p of productosConDiffMeli) {
-        await sincronizarConMeli(p);
-      }
-    } finally {
-      setSincronizandoTodos(false);
-    }
-  };
-
-  const cerrarEditor = () => {
-    setEditando(null);
-    setNuevoPrecio("");
-  };
-
-  const togglePlataforma = (key: string) =>
-    setPlataformas((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const aplicarCambio = async (code: string) => {
-    const precio = parseFloat(nuevoPrecio);
-    if (isNaN(precio) || precio <= 0) return;
-    const plats = Object.entries(plataformas).filter(([, v]) => v).map(([k]) => k);
-    if (plats.length === 0) return;
-    const prod = productos.find((p) => p.code === code);
-
-    setGuardando(true);
-    try {
-      const data = await api.post<ResultadoActualizacion>("/api/rentabilidad/actualizar-precio", {
-        code,
-        nuevo_precio: precio,
-        plataformas: plats,
-        nombre: prod?.name ?? "",
-      });
-      setResultados((prev) => ({ ...prev, [code]: data }));
-      setProductos((prev) =>
-        prev.map((p) => (p.code === code ? { ...p, precio_lista: precio } : p))
-      );
-      setEditando(null);
-    } catch (e) {
-      setResultados((prev) => ({
-        ...prev,
-        [code]: { siigo: { ok: false, msg: (e as Error).message } },
-      }));
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const PLAT_LABELS: Record<string, string> = {
-    siigo: "Siigo",
-    meli: "MercadoLibre",
-    web: "Página web",
-  };
-
-  return (
-    <div className="space-y-4">
-      <LogicaPreciosPanel />
-
-      {!loading && productosConDiffMeli.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3">
-          <p className="text-sm text-ink">
-            <strong className="text-accent">{productosConDiffMeli.length}</strong>{" "}
-            producto{productosConDiffMeli.length !== 1 ? "s tienen" : " tiene"} un precio distinto
-            entre MercadoLibre y Siigo/web — probablemente cambiaste el precio en MeLi hace poco.
-          </p>
-          <button
-            type="button"
-            onClick={() => void sincronizarTodosConMeli()}
-            disabled={sincronizandoTodos || guardando}
-            className="shrink-0 rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40 transition"
-          >
-            {sincronizandoTodos ? "Sincronizando…" : `Sincronizar los ${productosConDiffMeli.length} con MeLi`}
-          </button>
-        </div>
-      )}
-
-      <div>
-        <input
-          type="text"
-          placeholder="Buscar por nombre o código…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition"
-        />
-      </div>
-
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          Cargando productos Siigo…
-        </div>
-      )}
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {!loading && productosFiltrados.length === 0 && !error && (
-        <p className="py-10 text-center text-sm text-muted">
-          {busqueda ? "Sin resultados para esa búsqueda." : "No hay productos combo en Siigo."}
-        </p>
-      )}
-
-      {!loading && productosFiltrados.length > 0 && (
-        <div className={TABLE_SCROLL}>
-          <table className="w-full text-sm">
-            <thead className={THEAD_STICKY}>
-              <tr>
-                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
-                <th className="bg-surface-hover px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
-                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
-                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio MercadoLibre</th>
-                <th className="bg-surface-hover px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {productosFiltrados.map((p) => {
-                const isEditing = editando === p.code;
-                const resultado = resultados[p.code];
-                const costoInfo = costos[p.code.toUpperCase()];
-                const precioMeliReal = preciosMeli[p.code.toUpperCase()];
-                const diffMeli = precioMeliReal != null && precioMeliReal !== p.precio_lista;
-
-                return (
-                  <Fragment key={p.code}>
-                    <tr className={`border-b border-border/50 transition-colors ${isEditing ? "bg-surface-hover/60" : "hover:bg-surface-hover/30"}`}>
-                      <td className="px-4 py-3 font-mono text-xs text-muted">{p.code}</td>
-                      <td className="px-4 py-3 font-medium text-ink">
-                        <div className="truncate">{p.name}</div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {costoInfo == null ? (
-                          <span className="text-xs text-muted">—</span>
-                        ) : costoInfo.sin_costo > 0 ? (
-                          <span className="inline-flex flex-col items-end gap-0.5">
-                            <span className="font-mono text-xs text-ink">{cop(costoInfo.costo_total)}</span>
-                            <span className="text-[10px] text-orange-500">{costoInfo.sin_costo} sin costo</span>
-                          </span>
-                        ) : (
-                          <span className="font-mono text-xs text-ink">{cop(costoInfo.costo_total)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {precioMeliReal != null ? (
-                          <span className="inline-flex flex-col items-end gap-0.5">
-                            <span className="font-mono text-xs text-ink">{cop(precioMeliReal)}</span>
-                            {diffMeli && (
-                              <span className="text-[10px] text-muted" title="Precio Siigo (lista)">Siigo: {cop(p.precio_lista)}</span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="font-mono text-xs text-ink">{cop(p.precio_lista)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {resultado && !isEditing && (
-                          <div className="mb-1 space-y-1 text-right">
-                            <div className="flex flex-wrap gap-1 justify-end">
-                              {(["meli", "siigo", "web"] as const)
-                                .filter((plat) => plat in resultado)
-                                .map((plat) => { const res = resultado[plat]!; return (
-                                <span
-                                  key={plat}
-                                  title={"msg" in res ? res.msg : ""}
-                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold cursor-default ${
-                                    "ok" in res && res.ok
-                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                      : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                  }`}
-                                >
-                                  {"ok" in res && res.ok ? "✓" : "✗"} {PLAT_LABELS[plat]}
-                                </span>
-                              ); })}
-                            </div>
-                            {(["meli", "siigo", "web"] as const)
-                              .filter((plat) => plat in resultado && "ok" in resultado[plat]! && !resultado[plat]!.ok && resultado[plat]!.msg)
-                              .map((plat) => (
-                                <p key={plat} className="text-[10px] text-red-600 dark:text-red-400 leading-snug max-w-[220px] ml-auto">
-                                  {PLAT_LABELS[plat]}: {resultado[plat]!.msg}
-                                </p>
-                              ))}
-                            {resultado.siigo_implicito && (
-                              <p className="text-[10px] text-muted leading-snug max-w-[220px] ml-auto">
-                                Siigo se actualizó también porque la web depende de ese precio.
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {isEditing ? (
-                          <button
-                            type="button"
-                            onClick={cerrarEditor}
-                            className="text-xs text-muted hover:text-ink"
-                          >
-                            Cancelar
-                          </button>
-                        ) : (
-                          <div className="flex flex-wrap justify-end gap-1.5">
-                            {diffMeli && (
-                              <button
-                                type="button"
-                                disabled={guardando}
-                                onClick={() => void sincronizarConMeli(p)}
-                                title={`Aplicar ${cop(precioMeliReal!)} (precio de MeLi) a Siigo y web`}
-                                className="rounded-lg border border-accent bg-accent px-3 py-1 text-xs font-bold text-white disabled:opacity-40 transition"
-                              >
-                                Sincronizar con MeLi
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => abrirEditor(p)}
-                              className="rounded-lg border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition"
-                            >
-                              Cambiar precio
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-
-                    {isEditing && (
-                      <tr className="border-b border-border/50">
-                        <td colSpan={5} className="px-4 pb-4 pt-2">
-                          <div className="rounded-xl border-2 border-accent/30 bg-surface p-4 space-y-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                              <div className="space-y-1">
-                                <label className="block text-xs font-semibold text-ink-secondary">
-                                  Precio actual en MercadoLibre
-                                </label>
-                                <div className="rounded-paper border-2 border-border bg-surface-hover px-3 py-2 font-mono text-sm text-ink">
-                                  {cop(preciosMeli[p.code.toUpperCase()] ?? p.precio_lista)}
-                                </div>
-                                {preciosMeli[p.code.toUpperCase()] != null
-                                  && preciosMeli[p.code.toUpperCase()] !== p.precio_lista && (
-                                  <p className="text-[10px] text-muted">
-                                    Siigo/web siguen en {cop(p.precio_lista)}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="space-y-1">
-                                <label className="block text-xs font-semibold text-ink-secondary">
-                                  Nuevo precio MercadoLibre
-                                </label>
-                                <p className="text-[11px] text-muted leading-snug">
-                                  Canal principal de ventas. Siigo y la página web se actualizan automáticamente con este precio.
-                                </p>
-                                <div className="flex items-center rounded-paper border-2 border-accent bg-surface focus-within:border-accent transition">
-                                  <span className="px-2 text-xs text-muted">$</span>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    step="1000"
-                                    value={nuevoPrecio}
-                                    onChange={(e) => setNuevoPrecio(e.target.value)}
-                                    placeholder="0"
-                                    autoFocus
-                                    className="flex-1 bg-transparent py-2 pr-2 text-sm text-ink outline-none"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {previewPrecios && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-semibold text-ink-secondary">
-                                  Vista previa por canal (según prioridad)
-                                </p>
-                                <div className="grid gap-2 sm:grid-cols-3 text-xs">
-                                  {(
-                                    [
-                                      { key: "meli" as const, titulo: "1° MercadoLibre" },
-                                      { key: "siigo" as const, titulo: "2° Siigo" },
-                                      { key: "web" as const, titulo: "3° Página web" },
-                                    ] as const
-                                  ).map(({ key, titulo }) => {
-                                    const c = previewPrecios.canales?.[key];
-                                    if (!c) return null;
-                                    const precio =
-                                      key === "web"
-                                        ? c.precio_producto ?? c.precio ?? 0
-                                        : c.precio ?? 0;
-                                    return (
-                                      <div
-                                        key={key}
-                                        className="rounded-lg border border-border/70 bg-surface-hover/50 px-3 py-2 space-y-1.5"
-                                      >
-                                        <p className="font-bold text-ink">{titulo}</p>
-                                        {c.rol && (
-                                          <p className="text-[10px] uppercase tracking-wide text-accent font-semibold">
-                                            {c.rol}
-                                          </p>
-                                        )}
-                                        <p className="font-mono text-sm text-ink">
-                                          {cop(precio)}
-                                          {key === "web" && (
-                                            <span className="text-muted font-sans text-[11px]"> + envío apartado</span>
-                                          )}
-                                        </p>
-                                        <p className="text-muted leading-snug">{c.nota}</p>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {previewPrecios?.desglose && (
-                              <p className="text-xs text-muted">{previewPrecios.desglose}</p>
-                            )}
-
-                            <div className="space-y-2">
-                              <p className="text-xs font-semibold text-ink-secondary">Actualizar en:</p>
-                              <div className="flex flex-wrap gap-3">
-                                {(["meli", "siigo", "web"] as const).map((key) => (
-                                  <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-                                    <input
-                                      type="checkbox"
-                                      checked={plataformas[key]}
-                                      onChange={() => togglePlataforma(key)}
-                                      className="h-4 w-4 rounded accent-accent"
-                                    />
-                                    <span className="text-sm text-ink">
-                                      {PLAT_LABELS[key]}
-                                      {key === "meli" && <span className="ml-1 text-[10px] font-bold text-accent">★ principal</span>}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 border-t border-border/50 pt-3">
-                              <button
-                                type="button"
-                                onClick={() => void aplicarCambio(p.code)}
-                                disabled={
-                                  guardando ||
-                                  !nuevoPrecio ||
-                                  parseFloat(nuevoPrecio) <= 0 ||
-                                  !Object.values(plataformas).some(Boolean)
-                                }
-                                className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white disabled:opacity-40 transition"
-                              >
-                                {guardando ? "Actualizando…" : "Aplicar cambio"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cerrarEditor}
-                                className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink hover:border-accent hover:text-accent transition"
-                              >
-                                Cancelar
-                              </button>
-                              {nuevoPrecio && parseFloat(nuevoPrecio) > 0 && parseFloat(nuevoPrecio) !== p.precio_lista && (
-                                <span className="text-xs text-muted">
-                                  Cambio:{" "}
-                                  <span className={parseFloat(nuevoPrecio) > p.precio_lista ? "text-green-600 dark:text-green-400 font-semibold" : "text-red-500 font-semibold"}>
-                                    {parseFloat(nuevoPrecio) > p.precio_lista ? "+" : ""}
-                                    {cop(parseFloat(nuevoPrecio) - p.precio_lista)}
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+// Precio editable vive en TabGanancia (actualizar-precio).
+// La pestaña «Cambiar precios» se eliminó.
 
 // ─── Tab: Cobros MeLi (cargo por venta / envío) ───────────────────────────────
 
@@ -2423,30 +1832,162 @@ function TabGanancia() {
   const [guardandoCostos, setGuardandoCostos] = useState<Record<string, boolean>>({});
   const [ivaIncluidoKeys, setIvaIncluidoKeys] = useState<Set<string>>(new Set());
   const [siigoCostoResult, setSiigoCostoResult] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null);
+  const [nuevoPrecio, setNuevoPrecio] = useState("");
+  const [guardandoPrecio, setGuardandoPrecio] = useState(false);
+  const [msgPrecio, setMsgPrecio] = useState<Record<string, string>>({});
 
-  const cargar = useCallback(async (busqueda?: string) => {
+  const cargar = useCallback(async (opts?: { buscar?: string; refresh?: boolean }) => {
+    const busqueda = opts?.buscar ?? q;
+    const refresh = Boolean(opts?.refresh);
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      const b = busqueda ?? q;
-      if (b) params.set("buscar", b);
+      if (busqueda) params.set("buscar", busqueda);
+      if (refresh) params.set("refresh", "1");
       const qs = params.toString();
       const resp = await api.get<GananciaResp>(
         `/api/rentabilidad/ganancia${qs ? `?${qs}` : ""}`,
-        { timeoutMs: 120_000 },
+        { timeoutMs: refresh ? 300_000 : 120_000 },
       );
       setData(resp);
+      if (refresh) {
+        // Invalidar desgloses cacheados para que se recarguen con costos frescos
+        setDesgloses({});
+        const abiertos = Array.from(expandidos);
+        if (abiertos.length > 0) {
+          await Promise.all(
+            abiertos.map((code) =>
+              api
+                .get<ComboDesglose>(`/api/rentabilidad/combo-costos/${encodeURIComponent(code)}`)
+                .then((d) => setDesgloses((prev) => ({ ...prev, [code]: d })))
+                .catch(() => {}),
+            ),
+          );
+        }
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [q]);
+  }, [q, expandidos]);
 
   useEffect(() => {
     void cargar();
-  }, [cargar]);
+    // Solo carga inicial / cambio de búsqueda vía setQ — no re-fetch por expandir filas
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const abrirEditorPrecio = (row: GananciaItem) => {
+    const code = (row.sku || "").trim().toUpperCase();
+    if (!code || row.precio_venta == null) return;
+    setEditandoPrecio(code);
+    setNuevoPrecio(String(row.precio_venta));
+    setMsgPrecio((prev) => {
+      const n = { ...prev };
+      delete n[code];
+      return n;
+    });
+  };
+
+  const guardarPrecio = async (row: GananciaItem) => {
+    const codeRaw = (row.sku || "").trim();
+    const code = codeRaw.toUpperCase();
+    const precio = parseFloat(nuevoPrecio);
+    if (!codeRaw || isNaN(precio) || precio <= 0) return;
+    setGuardandoPrecio(true);
+    setError(null);
+    try {
+      type ActPrecioRes = {
+        ok?: boolean;
+        error?: string;
+        meli?: { ok?: boolean; msg?: string };
+        siigo?: { ok?: boolean; msg?: string };
+        web?: { ok?: boolean; msg?: string };
+      };
+      const res = await api.post<ActPrecioRes>(
+        "/api/rentabilidad/actualizar-precio",
+        {
+          code: codeRaw,
+          nuevo_precio: precio,
+          // Solo MeLi + Siigo (la web se regenera en segundo plano en el backend).
+          plataformas: ["meli", "siigo"],
+          nombre: row.nombre ?? "",
+          meli_id: row.meli_id || "",
+        },
+        { timeoutMs: 60_000 },
+      );
+
+      const meliOk = Boolean(res.meli?.ok);
+      const siigoOk = Boolean(res.siigo?.ok);
+      const partes: string[] = [];
+      if (meliOk) partes.push("MeLi");
+      else partes.push(`MeLi ✗ ${res.meli?.msg || "falló"}`.trim());
+      if (siigoOk) partes.push("Siigo");
+      else partes.push(`Siigo ✗ ${res.siigo?.msg || "falló"}`.trim());
+
+      if (!meliOk || !siigoOk) {
+        setError(
+          res.error
+            || `No se pudo actualizar: ${partes.join(" · ")}`,
+        );
+        return;
+      }
+
+      setEditandoPrecio(null);
+      setMsgPrecio((prev) => ({ ...prev, [code]: "MeLi + Siigo OK" }));
+      setTimeout(
+        () =>
+          setMsgPrecio((prev) => {
+            const n = { ...prev };
+            delete n[code];
+            return n;
+          }),
+        6000,
+      );
+
+      // Actualiza la fila en memoria al instante
+      setData((prev) => {
+        if (!prev?.items?.length) return prev;
+        const oldPrecio = row.precio_venta;
+        const items = prev.items.map((r) => {
+          if ((r.sku || "").trim().toUpperCase() !== code) return r;
+          let cobros = r.cobros_meli;
+          let cargoVenta = r.cargo_venta;
+          if (
+            oldPrecio != null &&
+            oldPrecio > 0 &&
+            cargoVenta != null &&
+            r.cargo_envio != null
+          ) {
+            cargoVenta = Math.round((cargoVenta * (precio / oldPrecio)) * 100) / 100;
+            cobros = Math.round((cargoVenta + (r.cargo_envio || 0)) * 100) / 100;
+          }
+          let ganancia: number | null = null;
+          let margen: number | null = null;
+          if (r.costo_real != null && cobros != null) {
+            ganancia = Math.round((precio - r.costo_real - cobros) * 100) / 100;
+            margen = precio > 0 ? Math.round((ganancia / precio) * 10000) / 10000 : null;
+          }
+          return {
+            ...r,
+            precio_venta: precio,
+            cargo_venta: cargoVenta,
+            cobros_meli: cobros,
+            ganancia,
+            margen_pct: margen,
+          };
+        });
+        return { ...prev, items };
+      });
+    } catch (e) {
+      setError((e as Error).message || "No se pudo actualizar el precio en MeLi/Siigo");
+    } finally {
+      setGuardandoPrecio(false);
+    }
+  };
 
   const toggleDesglose = async (sku: string) => {
     const code = sku.trim().toUpperCase();
@@ -2493,9 +2034,18 @@ function TabGanancia() {
     const key = `${parentCode}::${nombre}`;
     setGuardandoCostos((prev) => ({ ...prev, [key]: true }));
     try {
+      const codeSiigo =
+        desgloses[parentCode]?.componentes.find((c) => c.nombre === nombre)?.code_siigo || undefined;
       const res = await api.post<{ siigo?: { ok: boolean; msg: string } }>(
         "/api/rentabilidad/componentes",
-        { nombre, costo_unitario: costo, categoria, iva_incluido: ivaIncluido },
+        {
+          nombre,
+          costo_unitario: costo,
+          categoria,
+          iva_incluido: ivaIncluido,
+          codigo: codeSiigo || undefined,
+          code_siigo: codeSiigo || undefined,
+        },
       );
       if (res.siigo) {
         setSiigoCostoResult((prev) => ({ ...prev, [key]: res.siigo! }));
@@ -2540,8 +2090,10 @@ function TabGanancia() {
     <div className="space-y-4">
       <p className="text-sm text-muted">
         <strong className="text-ink">Ganancia</strong> = precio de venta − costo real del producto − cobros MeLi
-        (cargo por venta + Envíos MeLi). Haz clic en <strong className="text-ink">Costo real</strong> para ver
-        y <strong className="text-ink">ajustar el precio</strong> de cada componente.
+        (cargo por venta + Envíos MeLi). Haz clic en el <strong className="text-ink">precio</strong> para
+        editarlo (actualiza MeLi y Siigo), o en <strong className="text-ink">Costo real</strong> para ajustar
+        componentes. Los productos con algún componente sin costo aparecen en{" "}
+        <strong className="text-orange-700 dark:text-orange-300">naranja</strong>.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -2551,7 +2103,6 @@ function TabGanancia() {
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               setQ(buscar.trim());
-              void cargar(buscar.trim());
             }
           }}
           placeholder="Buscar SKU, nombre o MCO…"
@@ -2559,10 +2110,7 @@ function TabGanancia() {
         />
         <button
           type="button"
-          onClick={() => {
-            setQ(buscar.trim());
-            void cargar(buscar.trim());
-          }}
+          onClick={() => setQ(buscar.trim())}
           className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
         >
           Buscar
@@ -2570,17 +2118,18 @@ function TabGanancia() {
         <button
           type="button"
           disabled={loading}
-          onClick={() => void cargar()}
+          onClick={() => void cargar({ refresh: true })}
+          title="Refresca precios MeLi y costos Siigo (sin caché)"
           className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent disabled:opacity-40"
         >
-          {loading ? "Cargando…" : "Actualizar"}
+          {loading ? "Actualizando…" : "Actualizar"}
         </button>
       </div>
 
       {data?.actualizado_en && (
         <p className="text-[11px] text-muted">
-          Cobros MeLi: {data.actualizado_en}
-          {data.cache_hit ? " (caché)" : ""} · {data.con_ganancia ?? 0}/{data.total} con ganancia completa
+          Precios/cobros MeLi: {data.actualizado_en}
+          {data.cache_hit ? " (caché)" : " (fresco)"} · {data.con_ganancia ?? 0}/{data.total} con ganancia completa
         </p>
       )}
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -2588,9 +2137,13 @@ function TabGanancia() {
       {loading && !data ? (
         <p className="animate-pulse text-sm text-muted">Calculando ganancia…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted">
-          Sin datos. Abre Cobros MeLi y pulsa «Actualizar desde MeLi», luego vuelve aquí.
-        </p>
+        <div className="space-y-2 rounded-xl border border-dashed border-border p-6 text-sm text-muted">
+          <p className="font-semibold text-ink">Sin publicaciones para mostrar</p>
+          <p>
+            Si antes veías el listado, pulsa <strong className="text-ink">Actualizar</strong> aquí
+            o en Cobros MeLi «Actualizar desde MeLi». El catálogo no depende solo del cache web.
+          </p>
+        </div>
       ) : (
         <div className={TABLE_SCROLL_PAPER}>
           <table className="w-full min-w-[800px] text-sm">
@@ -2611,18 +2164,88 @@ function TabGanancia() {
                 const desglose = desgloses[code];
                 const isLoadingThis = loadingDesgloses.has(code);
                 const errDesg = desgloseError[code];
+                const faltaCosto = Boolean(row.sin_costo && row.sin_costo > 0);
                 return (
                   <Fragment key={row.meli_id || row.sku}>
-                    <tr className="border-t border-border/70">
+                    <tr
+                      className={`border-t border-border/70 ${
+                        faltaCosto
+                          ? "bg-orange-500/15 dark:bg-orange-500/20"
+                          : ""
+                      }`}
+                      title={
+                        faltaCosto
+                          ? `${row.sin_costo} componente(s) sin costo — expandí «Costo real» para completarlos`
+                          : undefined
+                      }
+                    >
                       <td className="px-3 py-2">
-                        <div className="font-semibold text-ink">{row.nombre}</div>
-                        <div className="text-[11px] text-muted">
+                        <div className={`font-semibold ${faltaCosto ? "text-orange-800 dark:text-orange-200" : "text-ink"}`}>
+                          {row.nombre}
+                        </div>
+                        <div className={`text-[11px] ${faltaCosto ? "text-orange-700 dark:text-orange-300" : "text-muted"}`}>
                           {row.sku} · {row.meli_id}
-                          {row.sin_costo ? ` · ${row.sin_costo} comp. sin costo` : ""}
+                          {faltaCosto ? ` · ${row.sin_costo} comp. sin costo` : ""}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-ink">
-                        {row.precio_venta != null ? cop(row.precio_venta) : "—"}
+                      <td className="px-3 py-2 text-right">
+                        {editandoPrecio === code ? (
+                          <div className="inline-flex flex-col items-end gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={nuevoPrecio}
+                              onChange={(e) => setNuevoPrecio(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void guardarPrecio(row);
+                                if (e.key === "Escape") setEditandoPrecio(null);
+                              }}
+                              className="w-28 rounded border border-accent bg-surface px-2 py-1 text-right text-sm tabular-nums text-ink outline-none"
+                              autoFocus
+                              disabled={guardandoPrecio}
+                            />
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                disabled={guardandoPrecio || !(parseFloat(nuevoPrecio) > 0)}
+                                onClick={() => void guardarPrecio(row)}
+                                className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-40"
+                              >
+                                {guardandoPrecio ? "…" : "Guardar"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={guardandoPrecio}
+                                onClick={() => setEditandoPrecio(null)}
+                                className="rounded border border-border px-2 py-0.5 text-[10px] text-muted hover:text-ink"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="inline-flex flex-col items-end gap-0.5">
+                            <button
+                              type="button"
+                              disabled={!code || row.precio_venta == null}
+                              onClick={() => abrirEditorPrecio(row)}
+                              className={`tabular-nums font-semibold transition ${
+                                code && row.precio_venta != null
+                                  ? "text-accent hover:underline"
+                                  : "cursor-default text-muted"
+                              }`}
+                              title="Clic para cambiar precio (actualiza MeLi y Siigo)"
+                            >
+                              {row.precio_venta != null ? cop(row.precio_venta) : "—"}
+                            </button>
+                            {msgPrecio[code] && (
+                              <span className="text-[10px] font-bold text-emerald-600">
+                                {msgPrecio[code]}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
@@ -2630,11 +2253,17 @@ function TabGanancia() {
                           disabled={!code}
                           onClick={() => void toggleDesglose(code)}
                           className={`inline-flex items-center gap-1 tabular-nums font-semibold transition ${
-                            code
-                              ? "text-accent hover:underline"
-                              : "cursor-default text-muted"
+                            !code
+                              ? "cursor-default text-muted"
+                              : faltaCosto
+                                ? "text-orange-700 hover:underline dark:text-orange-300"
+                                : "text-accent hover:underline"
                           }`}
-                          title="Ver desglose de costo real"
+                          title={
+                            faltaCosto
+                              ? "Faltan costos de componentes — clic para completar"
+                              : "Ver desglose de costo real"
+                          }
                         >
                           {row.costo_real != null ? cop(row.costo_real) : "—"}
                           {code && (
@@ -2670,7 +2299,7 @@ function TabGanancia() {
                     </tr>
 
                     {isExpanded && isLoadingThis && (
-                      <tr className="border-b border-border/50 bg-surface-hover/40">
+                      <tr className={`border-b border-border/50 ${faltaCosto ? "bg-orange-500/10" : "bg-surface-hover/40"}`}>
                         <td colSpan={6} className="px-4 py-3 text-center text-xs text-muted">
                           <div className="flex items-center justify-center gap-2">
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -2681,7 +2310,7 @@ function TabGanancia() {
                     )}
 
                     {isExpanded && errDesg && !isLoadingThis && (
-                      <tr className="border-b border-border/50 bg-surface-hover/40">
+                      <tr className={`border-b border-border/50 ${faltaCosto ? "bg-orange-500/10" : "bg-surface-hover/40"}`}>
                         <td colSpan={6} className="px-4 py-3 text-sm text-danger">
                           No se pudo cargar el desglose: {errDesg}
                         </td>
@@ -2689,11 +2318,12 @@ function TabGanancia() {
                     )}
 
                     {isExpanded && desglose && !isLoadingThis && (
-                      <tr className="border-b border-border/50 bg-surface-hover/30">
+                      <tr className={`border-b border-border/50 ${faltaCosto ? "bg-orange-500/10" : "bg-surface-hover/30"}`}>
                         <td colSpan={6} className="px-4 pb-4 pt-2">
-                          <p className="mb-2 text-[11px] text-muted">
-                            Ajusta el costo unitario de cada componente. El cambio aplica a todos los combos
-                            que lo usen y recalcula la ganancia.
+                          <p className={`mb-2 text-[11px] ${faltaCosto ? "text-orange-800 dark:text-orange-200" : "text-muted"}`}>
+                            {faltaCosto
+                              ? `Hay ${row.sin_costo} componente(s) sin costo — completa el costo unitario abajo.`
+                              : "Ajusta el costo unitario de cada componente. El cambio aplica a todos los combos que lo usen y recalcula la ganancia."}
                           </p>
                           <div className="max-h-72 overflow-auto rounded-lg border border-border">
                             <table className="w-full text-xs">
@@ -2824,7 +2454,7 @@ function TabGanancia() {
                                               disabled={guardandoCostos[key]}
                                               className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
                                             >
-                                              {guardandoCostos[key] ? "Guardando…" : "Guardar"}
+                                              {guardandoCostos[key] ? "Guardando…" : "Guardar en Siigo"}
                                             </button>
                                             <button
                                               type="button"
@@ -2921,7 +2551,7 @@ function TabGanancia() {
 
 // ─── Panel principal ──────────────────────────────────────────────────────────
 
-type Tab = "combos" | "nomina" | "servicios" | "periodo" | "precios" | "cobros-meli" | "ganancia";
+type Tab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
 
 interface ComponenteSinCosto {
   nombre: string;
@@ -3001,6 +2631,8 @@ function PanelSinCosto() {
           costo_unitario: costo,
           categoria: c.categoria || "material",
           iva_incluido: ivaKeys.has(c.nombre),
+          codigo: c.code_siigo || undefined,
+          code_siigo: c.code_siigo || undefined,
         },
       );
       setGuardados((prev) => new Set(prev).add(c.nombre));
@@ -3168,7 +2800,7 @@ function PanelSinCosto() {
                           onClick={() => void guardarUno(c)}
                           className="rounded bg-accent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40"
                         >
-                          {guardando[c.nombre] ? "…" : "Guardar"}
+                          {guardando[c.nombre] ? "…" : "Guardar en Siigo"}
                         </button>
                       </td>
                     </tr>
@@ -3187,21 +2819,108 @@ function PanelConsultarFacturas({ onAbrirPendiente }: { onAbrirPendiente: (sufij
   return <ConsultarFacturaPorProducto compact onAbrirPendiente={onAbrirPendiente} />;
 }
 
-function ModalHerramientasRentabilidad({
+export function ModalHerramientasRentabilidad({
   onClose,
+  foco = "ambos",
+  flotante = false,
 }: {
   onClose: () => void;
+  /** Qué panel destacar al abrir (ambos = layout actual lado a lado). */
+  foco?: "sin-costo" | "facturas" | "ambos";
+  /** Sin overlay: la pestaña Contabilidad sigue usable en paralelo. */
+  flotante?: boolean;
 }) {
   const setPanel = useAppStore((s) => s.setPanel);
   const setFacturasBootSufijo = useAppStore((s) => s.setFacturasBootSufijo);
+  const soloSinCosto = foco === "sin-costo";
+  const soloFacturas = foco === "facturas";
 
   useEffect(() => {
+    if (flotante) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, flotante]);
+
+  const body = (
+    <div
+      className={`grid min-h-0 flex-1 overflow-y-auto lg:overflow-hidden ${
+        foco === "ambos"
+          ? "grid-cols-1 divide-y divide-border lg:grid-cols-2 lg:divide-x lg:divide-y-0"
+          : "grid-cols-1"
+      } ${flotante ? "h-full" : ""}`}
+    >
+      {!soloFacturas && (
+        <section
+          className={`flex flex-col overflow-hidden ${flotante ? "min-h-0 flex-1" : "min-h-[50vh] lg:min-h-0"}`}
+          aria-label="Componentes sin costo"
+        >
+          {foco === "ambos" && (
+            <div className="shrink-0 border-b border-border bg-orange-500/10 px-4 py-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">
+                Sin costo
+              </h4>
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            <PanelSinCosto />
+          </div>
+        </section>
+      )}
+      {!soloSinCosto && (
+        <section
+          className={`flex flex-col overflow-hidden ${flotante ? "min-h-0 flex-1" : "min-h-[50vh] lg:min-h-0"}`}
+          aria-label="Consultar facturas"
+        >
+          {foco === "ambos" && (
+            <div className="shrink-0 border-b border-border bg-surface-hover px-4 py-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-ink">
+                Consultar facturas
+              </h4>
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            <PanelConsultarFacturas
+              onAbrirPendiente={(sufijo) => {
+                onClose();
+                setFacturasBootSufijo(sufijo);
+                setPanel("facturas");
+              }}
+            />
+          </div>
+        </section>
+      )}
+    </div>
+  );
+
+  if (flotante) {
+    const title = soloFacturas ? "Consultar facturas" : soloSinCosto ? "Componentes sin costo" : "Herramientas";
+    return (
+      <FloatingToolWindow
+        id={soloFacturas ? "facturas" : soloSinCosto ? "sin-costo" : "herramientas"}
+        title={title}
+        headerClassName={
+          soloFacturas
+            ? "border-border bg-surface-hover text-ink"
+            : "border-border bg-orange-500/10 text-orange-700 dark:text-orange-300"
+        }
+        borderClassName={soloFacturas ? "border-ink/30" : "border-orange-500/40"}
+        defaultRect={
+          soloFacturas
+            ? defaultFloatRect("ml", 448, 560)
+            : defaultFloatRect("tl", 448, 560)
+        }
+        minWidth={320}
+        minHeight={280}
+        zIndex={soloFacturas ? 885 : 880}
+        onClose={onClose}
+      >
+        {body}
+      </FloatingToolWindow>
+    );
+  }
 
   return (
     <div
@@ -3211,18 +2930,28 @@ function ModalHerramientasRentabilidad({
     >
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal
         aria-labelledby="rentabilidad-herramientas-title"
-        className="flex max-h-[96vh] w-full max-w-[96vw] flex-col overflow-hidden rounded-paper-lg border border-border bg-surface-panel shadow-paper-lg xl:max-w-7xl"
+        className={`flex max-h-[96vh] w-full flex-col overflow-hidden rounded-paper-lg border-2 border-border bg-surface-panel shadow-paper-lg ${
+          foco === "ambos" ? "max-w-[96vw] xl:max-w-7xl" : "max-w-3xl"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0">
             <h3 id="rentabilidad-herramientas-title" className="text-sm font-semibold text-ink">
-              Sin costo + Consultar facturas
+              {soloSinCosto
+                ? "Componentes sin costo"
+                : soloFacturas
+                  ? "Consultar facturas"
+                  : "Sin costo + Consultar facturas"}
             </h3>
             <p className="text-[11px] text-muted">
-              Trabaja costos a la izquierda y consulta facturas a la derecha, en paralelo.
+              {soloSinCosto
+                ? "Insumos de combos sin costo unitario asignado."
+                : soloFacturas
+                  ? "Busca facturas de compra por producto."
+                  : "Trabaja costos a la izquierda y consulta facturas a la derecha, en paralelo."}
             </p>
           </div>
           <button
@@ -3234,41 +2963,7 @@ function ModalHerramientasRentabilidad({
             ✕
           </button>
         </div>
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 divide-y divide-border overflow-y-auto lg:grid-cols-2 lg:divide-x lg:divide-y-0 lg:overflow-hidden">
-          <section
-            className="flex min-h-[50vh] flex-col overflow-hidden lg:min-h-0"
-            aria-label="Componentes sin costo"
-          >
-            <div className="shrink-0 border-b border-border bg-orange-500/10 px-4 py-2">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">
-                Sin costo
-              </h4>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto p-4">
-              <PanelSinCosto />
-            </div>
-          </section>
-          <section
-            className="flex min-h-[50vh] flex-col overflow-hidden lg:min-h-0"
-            aria-label="Consultar facturas"
-          >
-            <div className="shrink-0 border-b border-border bg-surface-hover px-4 py-2">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-ink">
-                Consultar facturas
-              </h4>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto p-4">
-              <PanelConsultarFacturas
-                onAbrirPendiente={(sufijo) => {
-                  onClose();
-                  setFacturasBootSufijo(sufijo);
-                  setPanel("facturas");
-                }}
-              />
-            </div>
-          </section>
-        </div>
+        {body}
       </div>
     </div>
   );
@@ -3276,13 +2971,15 @@ function ModalHerramientasRentabilidad({
 
 export default function RentabilidadPanel() {
   const [tab, setTab] = useState<Tab>("ganancia");
-  const [modalOpen, setModalOpen] = useState(false);
   const rentabilidadBootTab = useAppStore((s) => s.rentabilidadBootTab);
   const setRentabilidadBootTab = useAppStore((s) => s.setRentabilidadBootTab);
 
   useEffect(() => {
     if (rentabilidadBootTab) {
-      setTab(rentabilidadBootTab);
+      // Compat: la pestaña «precios» se unificó en ganancia
+      const tabBoot =
+        (rentabilidadBootTab as string) === "precios" ? "ganancia" : rentabilidadBootTab;
+      setTab(tabBoot);
       setRentabilidadBootTab(null);
     }
   }, [rentabilidadBootTab, setRentabilidadBootTab]);
@@ -3291,7 +2988,6 @@ export default function RentabilidadPanel() {
     { id: "ganancia", label: "Ganancia" },
     { id: "cobros-meli", label: "Cobros MeLi" },
     { id: "combos", label: "Costo real producto" },
-    { id: "precios", label: "Cambiar precios" },
     { id: "nomina", label: "Nómina" },
     { id: "servicios", label: "Servicios" },
     { id: "periodo", label: "Análisis de período" },
@@ -3299,48 +2995,43 @@ export default function RentabilidadPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
-          <p className="mt-1 text-sm text-muted">
-            Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="rounded-xl border border-border bg-surface-panel px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:border-accent hover:text-accent"
-          >
-            Sin costo / Facturas
-          </button>
-        </div>
+      <div>
+        <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
+        <p className="mt-1 text-sm text-muted">
+          Costo real, cobros MeLi, ganancia, nómina, servicios y márgenes. Usa los iconos del
+          cabezote Contabilidad para facturas y calculadora.
+        </p>
       </div>
 
-      <div className="flex gap-1 rounded-paper border-2 border-border bg-surface-hover p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-              tab === t.id ? "bg-surface-panel text-ink shadow-sm" : "text-muted hover:text-ink"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="sticky top-0 z-20 -mx-1 bg-surface/95 px-1 pb-2 pt-1 backdrop-blur-md">
+        <div
+          className="flex gap-1 overflow-x-auto rounded-paper border-2 border-border bg-surface-hover p-1"
+          role="tablist"
+          aria-label="Secciones de Rentabilidad"
+        >
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`shrink-0 flex-1 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                tab === t.id ? "bg-surface-panel text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === "combos" && <TabCombos />}
       {tab === "cobros-meli" && <TabCobrosMeli />}
       {tab === "ganancia" && <TabGanancia />}
-      {tab === "precios" && <TabPrecios />}
       {tab === "nomina" && <TabNomina />}
       {tab === "servicios" && <TabServicios />}
       {tab === "periodo" && <TabPeriodo />}
-
-      {modalOpen && <ModalHerramientasRentabilidad onClose={() => setModalOpen(false)} />}
     </div>
   );
 }

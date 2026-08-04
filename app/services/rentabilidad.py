@@ -135,12 +135,58 @@ def _cache_costos_valido(cache: dict) -> bool:
     return bool(cache.get("nombre_a_codigo")) and int(cache.get("productos_total") or 0) > 0
 
 
+def indice_codigo_a_nombre(catalogo: dict | None) -> dict[str, str]:
+    """
+    Índice código → nombre desde el caché de costos.
+
+    Une codigo_a_nombre + codigo_a_producto + nombre_a_codigo: caches viejos o
+    parcialmente escritos a veces dejan codigo_a_nombre casi vacío aunque haya
+    miles de productos en codigo_a_producto.
+    """
+    cat = catalogo or {}
+    out: dict[str, str] = {}
+    for code, name in (cat.get("codigo_a_nombre") or {}).items():
+        code_s = str(code or "").strip()
+        if code_s:
+            out[code_s] = str(name or "").strip() or code_s
+    for code, meta in (cat.get("codigo_a_producto") or {}).items():
+        code_s = str(code or "").strip()
+        if not code_s:
+            continue
+        if isinstance(meta, dict):
+            nombre = (meta.get("nombre") or "").strip()
+        else:
+            nombre = str(meta or "").strip()
+        if code_s not in out or (nombre and not out[code_s]):
+            out[code_s] = nombre or code_s
+    for norm_name, code in (cat.get("nombre_a_codigo") or {}).items():
+        code_s = str(code or "").strip()
+        if code_s and code_s not in out:
+            out[code_s] = str(norm_name or "").strip() or code_s
+    return out
+
+
+def _reparar_codigo_a_nombre_cache(cache: dict) -> dict:
+    """Rellena codigo_a_nombre si está incompleto respecto al resto del índice."""
+    merged = indice_codigo_a_nombre(cache)
+    prev = cache.get("codigo_a_nombre") or {}
+    if len(merged) > len(prev):
+        cache = dict(cache)
+        cache["codigo_a_nombre"] = merged
+        # Persistir reparación para no repetir el merge en cada request
+        try:
+            _guardar_cache_costos(cache)
+        except Exception:
+            pass
+    return cache
+
+
 def _cargar_cache_costos() -> dict | None:
     try:
         with open(_CACHE_PATH, encoding="utf-8") as f:
             cache = json.load(f)
         if time.time() - float(cache.get("ts", 0)) < _CACHE_TTL and _cache_costos_valido(cache):
-            return cache
+            return _reparar_codigo_a_nombre_cache(cache)
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
         pass
     return None
@@ -151,6 +197,59 @@ def _guardar_cache_costos(cache: dict) -> None:
     os.makedirs(os.path.dirname(os.path.abspath(_CACHE_PATH)), exist_ok=True)
     with open(_CACHE_PATH, "w", encoding="utf-8") as f:
         json.dump(cache, f, ensure_ascii=False)
+
+
+def registrar_producto_en_cache_costos(
+    codigo: str,
+    nombre: str,
+    *,
+    unit_cost: float = 0.0,
+    precio_lista: float = 0.0,
+) -> None:
+    """
+    Inserta/actualiza un producto en el caché de costos sin rebuild completo.
+    Permite que pickers y rentabilidad vean altas recién hechas en Siigo.
+    """
+    code = (codigo or "").strip()
+    name = (nombre or "").strip()
+    if not code:
+        return
+    cache = _cargar_cache_costos()
+    if not cache:
+        # Caché vacío/vencido: no forzar rebuild (caro); crear stub mínimo
+        cache = {
+            "nombre_a_codigo": {},
+            "por_nombre": {},
+            "por_codigo": {},
+            "codigo_a_producto": {},
+            "codigo_a_nombre": {},
+            "productos_total": 0,
+            "con_precio_compra": 0,
+        }
+    nombre_a_codigo = dict(cache.get("nombre_a_codigo") or {})
+    codigo_a_nombre = dict(cache.get("codigo_a_nombre") or {})
+    codigo_a_producto = dict(cache.get("codigo_a_producto") or {})
+    if name:
+        nombre_a_codigo[_norm(name)] = code
+        codigo_a_nombre[code] = name
+    else:
+        codigo_a_nombre.setdefault(code, code)
+    prev = codigo_a_producto.get(code) if isinstance(codigo_a_producto.get(code), dict) else {}
+    codigo_a_producto[code] = {
+        "nombre": name or prev.get("nombre") or code,
+        "unit_cost": float(unit_cost or prev.get("unit_cost") or 0),
+        "precio_lista": float(precio_lista or prev.get("precio_lista") or 0),
+    }
+    cache["nombre_a_codigo"] = nombre_a_codigo
+    cache["codigo_a_nombre"] = codigo_a_nombre
+    cache["codigo_a_producto"] = codigo_a_producto
+    cache["productos_total"] = max(int(cache.get("productos_total") or 0), len(codigo_a_producto))
+    try:
+        _guardar_cache_costos(cache)
+    except OSError:
+        # El proceso del panel a veces no puede escribir el JSON (dueño systemd).
+        # La búsqueda viva en Siigo igual cubre productos recién creados.
+        pass
 
 
 def construir_catalogo_costos(forzar: bool = False) -> dict:
@@ -684,16 +783,26 @@ def combo_costos_desglose(code: str) -> dict:
     }
 
 
-def costos_todos_resumen() -> dict:
+def costos_todos_resumen(refresh: bool = False) -> dict:
     """
     Devuelve {code: {costo_total, sin_costo}} para todos los combos en una sola pasada.
     Construye el catálogo y carga los combos una sola vez.
+    Con refresh=True fuerza reconstrucción del catálogo Siigo y limpia caché de combos/excel.
     """
     from app.services.siigo import listar_productos_combo_siigo
     from app.services.contabilidad_db import buscar_componente
 
+    if refresh:
+        invalidar_cache_excel()
+        try:
+            import app.services.siigo as _siigo
+            _siigo._combos_cache = []
+            _siigo._combos_cache_ts = 0.0
+        except Exception:
+            pass
+
     try:
-        catalogo = construir_catalogo_costos()
+        catalogo = construir_catalogo_costos(forzar=refresh)
     except Exception:
         catalogo = {}
 
@@ -813,30 +922,187 @@ _COBROS_MELI_TTL = 3600  # 1 hora
 
 
 def _catalogo_publicaciones_meli() -> list[dict]:
-    """Publicaciones del cache web con meli_id (sku, nombre, meli_id)."""
+    """Publicaciones con meli_id (sku, nombre, meli_id).
+
+    Une cache web + cobros MeLi. El cache web a veces:
+      - omite un SKU,
+      - o asigna el mismo meli_id a dos códigos (ej. ACERIC250mL y C-ACERIC250mL).
+    En colisión de meli_id se prefiere el SKU de la caché de cobros / con prefijo C-.
+    """
     cache_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json"
     )
+    out: list[dict] = []
+    mid_index: dict[str, int] = {}
+    seen_sku: set[str] = set()
+    cobros_sku_por_mid: dict[str, str] = {}
+
+    def _rank(sku: str, mid: str) -> tuple:
+        s = (sku or "").strip()
+        su = s.upper()
+        mid_u = (mid or "").strip().upper()
+        preferido_cobros = cobros_sku_por_mid.get(mid_u, "").upper()
+        return (
+            2 if preferido_cobros and su == preferido_cobros else 0,
+            1 if su.startswith("C-") else 0,
+            len(s),
+        )
+
+    def _add(sku: str, nombre: str, mid: str) -> None:
+        sku_clean = (sku or "").strip()
+        mid_u = (mid or "").strip().upper()
+        sku_u = sku_clean.upper()
+        if not sku_u or not mid_u:
+            return
+        if sku_u in seen_sku:
+            return
+        entry = {
+            "sku": sku_clean,
+            "nombre": (nombre or sku_clean).strip(),
+            "meli_id": mid_u,
+        }
+        if mid_u in mid_index:
+            idx = mid_index[mid_u]
+            actual = out[idx]
+            if _rank(sku_clean, mid_u) > _rank(actual["sku"], mid_u):
+                seen_sku.discard((actual.get("sku") or "").strip().upper())
+                out[idx] = entry
+                seen_sku.add(sku_u)
+            return
+        mid_index[mid_u] = len(out)
+        seen_sku.add(sku_u)
+        out.append(entry)
+
+    # Cobros primero como referencia de SKU canónico por meli_id
+    try:
+        if os.path.isfile(_COBROS_MELI_CACHE_PATH):
+            with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+                cobros = json.load(f)
+            for i in cobros.get("items") or []:
+                mid = (i.get("meli_id") or "").strip().upper()
+                sku = (i.get("sku") or "").strip()
+                if mid and sku and mid not in cobros_sku_por_mid:
+                    cobros_sku_por_mid[mid] = sku
+                _add(sku, (i.get("nombre") or sku), mid)
+    except Exception:
+        pass
+
     try:
         with open(cache_path, encoding="utf-8") as f:
             cache = json.load(f)
+        for p in cache.get("combos") or []:
+            mid = (p.get("meli_id") or "").strip().upper()
+            sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+            _add(sku, (p.get("name") or sku), mid)
     except Exception:
-        return []
+        pass
 
-    out: list[dict] = []
-    seen: set[str] = set()
-    for p in cache.get("combos") or []:
-        mid = (p.get("meli_id") or "").strip().upper()
-        sku = (p.get("ref") or p.get("rep_sku") or "").strip()
-        if not mid or not sku or mid in seen:
-            continue
-        seen.add(mid)
-        out.append({
-            "sku": sku,
-            "nombre": (p.get("name") or sku).strip(),
-            "meli_id": mid,
-        })
     return out
+
+
+def _alinear_skus_con_cobros(items_out: list[dict], cache_items: dict) -> None:
+    """Si el catálogo web puso un SKU duplicado sin C-, restaura el de cobros."""
+    for row in items_out:
+        mid = (row.get("meli_id") or "").strip().upper()
+        cached = (cache_items or {}).get(mid)
+        if not cached:
+            continue
+        cob_sku = (cached.get("sku") or "").strip()
+        web_sku = (row.get("sku") or "").strip()
+        if not cob_sku or cob_sku.upper() == web_sku.upper():
+            continue
+        cob_u, web_u = cob_sku.upper(), web_sku.upper()
+        if cob_u.startswith("C-") and not web_u.startswith("C-"):
+            row["sku"] = cob_sku
+            if cached.get("nombre"):
+                row["nombre"] = cached["nombre"]
+        elif web_u.startswith("C-") and not cob_u.startswith("C-"):
+            continue
+        elif cob_u.startswith("C-"):
+            row["sku"] = cob_sku
+            if cached.get("nombre"):
+                row["nombre"] = cached["nombre"]
+
+
+def _incorporar_cobros_huerfanos(items_out: list[dict], cache_items: dict) -> int:
+    """Reincorpora publicaciones de la caché de cobros omitidas por el catálogo web."""
+    present_mids = {(r.get("meli_id") or "").strip().upper() for r in items_out}
+    present_skus = {(r.get("sku") or "").strip().upper() for r in items_out}
+    added = 0
+    for mid, cached in (cache_items or {}).items():
+        mid_u = (mid or "").strip().upper()
+        if not mid_u or mid_u in present_mids:
+            continue
+        row = dict(cached)
+        sku_u = (row.get("sku") or "").strip().upper()
+        if not sku_u:
+            continue
+        # Evita duplicar el mismo SKU con otro meli_id si ya está listado
+        if sku_u in present_skus:
+            continue
+        items_out.append(row)
+        present_mids.add(mid_u)
+        present_skus.add(sku_u)
+        added += 1
+    return added
+
+
+def parchear_precio_en_cobros_cache(sku: str, nuevo_precio: float) -> bool:
+    """Actualiza precio_meli (y neto) en la caché de cobros tras editar precio en panel."""
+    code = (sku or "").strip().upper()
+    try:
+        precio = float(nuevo_precio)
+    except (TypeError, ValueError):
+        return False
+    if not code or precio <= 0:
+        return False
+    if not os.path.isfile(_COBROS_MELI_CACHE_PATH):
+        return False
+    try:
+        with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+            cache = json.load(f)
+    except Exception:
+        return False
+
+    items = list(cache.get("items") or [])
+    changed = False
+    for row in items:
+        if (row.get("sku") or "").strip().upper() != code:
+            continue
+        old = row.get("precio_meli")
+        row["precio_meli"] = round(precio, 2)
+        # Aproxima cargo por venta si era proporcional al precio anterior
+        try:
+            old_f = float(old) if old is not None else 0.0
+            cv = row.get("cargo_venta")
+            if old_f > 0 and cv is not None:
+                row["cargo_venta"] = round(float(cv) * (precio / old_f), 2)
+                row["pct_venta"] = round(float(row["cargo_venta"]) / precio, 4) if precio else row.get("pct_venta")
+        except (TypeError, ValueError):
+            pass
+        cv2 = row.get("cargo_venta")
+        ce2 = row.get("cargo_envio")
+        try:
+            row["neto_estimado"] = round(
+                precio - float(cv2 or 0) - float(ce2 or 0), 2
+            )
+        except (TypeError, ValueError):
+            row["neto_estimado"] = None
+        changed = True
+
+    if not changed:
+        return False
+
+    cache["items"] = items
+    cache["actualizado_en"] = datetime.now().isoformat(timespec="seconds")
+    try:
+        tmp = _COBROS_MELI_CACHE_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False)
+        os.replace(tmp, _COBROS_MELI_CACHE_PATH)
+        return True
+    except Exception:
+        return False
 
 
 def parse_cobros_listing_prices(payload, listing_type_id: str | None = None) -> dict:
@@ -1041,6 +1307,26 @@ def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
 
     catalogo = _catalogo_publicaciones_meli()
     if not catalogo:
+        # Último recurso: devolver cobros cacheados aunque no haya catálogo web
+        if cache_items:
+            items_fb = list(cache_items.values())
+            if q:
+                items_fb = [
+                    i for i in items_fb
+                    if q in (i.get("sku") or "").lower()
+                    or q in (i.get("nombre") or "").lower()
+                    or q in (i.get("meli_id") or "").lower()
+                ]
+            items_fb.sort(key=lambda i: (i.get("nombre") or "").lower())
+            return {
+                "items": items_fb,
+                "totales": _totales_cobros(items_fb),
+                "actualizado_en": cache.get("actualizado_en"),
+                "fuente": "cobros_cache_sin_catalogo_web",
+                "total": len(items_fb),
+                "cache_hit": True,
+                "aviso": "Catálogo web (cache.json) no disponible; mostrando cobros MeLi en caché.",
+            }
         return {
             "items": [],
             "totales": {"cargo_venta": 0.0, "cargo_envio": 0.0, "precio": 0.0},
@@ -1068,6 +1354,7 @@ def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
         if not token:
             token = refrescar_token_meli()
         if not token:
+            _incorporar_cobros_huerfanos(items_out, cache_items)
             return {
                 "items": items_out,
                 "totales": _totales_cobros(items_out),
@@ -1146,6 +1433,10 @@ def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
         except Exception:
             pass
 
+    # Publicaciones que el catálogo web dejó fuera (meli_id distinto/colisionado)
+    _alinear_skus_con_cobros(items_out, cache_items)
+    _incorporar_cobros_huerfanos(items_out, cache_items)
+
     if q:
         items_out = [
             i for i in items_out
@@ -1181,14 +1472,15 @@ def _totales_cobros(items: list[dict]) -> dict:
     }
 
 
-def listar_ganancia_meli(buscar: str = "") -> dict:
+def listar_ganancia_meli(buscar: str = "", refresh: bool = False) -> dict:
     """
     Ganancia por publicación:
       ganancia = precio_venta − costo_real_producto − (cargo_venta + cargo_envio MeLi)
     Une costos Siigo (costos_todos_resumen) + cobros MeLi (caché/API).
+    Con refresh=True fuerza cobros/precios MeLi + reconstrucción de costos Siigo.
     """
-    cobros = listar_cobros_meli(buscar="", refresh=False)
-    costos = costos_todos_resumen()
+    cobros = listar_cobros_meli(buscar="", refresh=refresh)
+    costos = costos_todos_resumen(refresh=refresh)
 
     q = (buscar or "").strip().lower()
     items_out: list[dict] = []

@@ -7,6 +7,7 @@ export const CONTABILIDAD_PANELS = [
   "sync",
   "rentabilidad",
   "compras-exterior",
+  "productos-siigo",
   "costos-productos",
   "rrhh",
 ] as const satisfies readonly Panel[];
@@ -17,6 +18,9 @@ const CONTABILIDAD_SET = new Set<string>(CONTABILIDAD_PANELS);
 
 /** Panel legado oculto: ya no tiene pestaña en el hub. */
 export const CONTABILIDAD_PANEL_OCULTO = "centros-costo" as const;
+
+/** Pestañas del hub reemplazadas por FAB / otra UI (siguen en permisos). */
+export const CONTABILIDAD_TAB_OCULTAS = new Set<ContabilidadPanelId>(["productos-siigo"]);
 
 export function esPanelContabilidad(panel: string): panel is ContabilidadPanelId {
   return CONTABILIDAD_SET.has(panel);
@@ -33,6 +37,7 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.sync
       || p.rentabilidad
       || p["compras-exterior"]
+      || p["productos-siigo"]
       || p["costos-productos"]
       || p.rrhh,
   );
@@ -57,6 +62,9 @@ export function puedeVerModuloContabilidad(
   }
   if (seccion === "rentabilidad" || seccion === "compras-exterior") {
     return Boolean(p.rentabilidad || p.facturas || p.sync || p["compras-exterior"]);
+  }
+  if (seccion === "productos-siigo") {
+    return Boolean(p["productos-siigo"] || p.facturas || p.sync);
   }
   if (seccion === "rrhh") {
     return Boolean(p.rrhh);
@@ -90,6 +98,7 @@ export function primerPanelContabilidad(
   preferido?: Panel | null,
 ): ContabilidadPanelId {
   const visibles = CONTABILIDAD_PANELS.filter((id) => {
+    if (CONTABILIDAD_TAB_OCULTAS.has(id)) return false;
     if (!puedeVerModuloContabilidad(user, id)) return false;
     if (id === "costos-productos" || id === "rrhh") return advanced;
     return true;
