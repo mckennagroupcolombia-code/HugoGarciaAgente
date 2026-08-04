@@ -27,6 +27,17 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 
 ---
 
+### 2026-08-03 08:32 - Fix: "hugo dale ok <código>" no disparaba desde el grupo POSTVENTA
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El comando de aprobación de respuestas postventa (`hugo dale ok <código>`) no hacía nada al escribirse dentro del propio grupo POSTVENTA de WhatsApp — solo funcionaba desde fuera de los grupos admin (ej. un DM directo al número del negocio), porque el catch-all del bloque `es_any_grupo_admin` en `routes.py` lo interceptaba y respondía "ok" sin procesarlo antes de llegar a su manejador real.
+  - Se extrajo la lógica de envío a `_manejar_hugo_dale_ok()` y se resuelve primero dentro de ese bloque, antes de cualquier otro comando de grupo admin. El caso de DM directo se mantiene como fallback más abajo, reutilizando la misma función.
+  - Servicio `agente-pro` reiniciado en producción para que el fix quede activo; se avisó al grupo POSTVENTA por WhatsApp.
+- **Archivos Modificados:**
+  - `app/routes.py` (`_manejar_hugo_dale_ok`)
+  - `tests/test_postventa_hugo_dale_ok.py` (nuevo — 2 casos de regresión)
+
 ### 2026-08-04 15:45 - Selector "¿Quién hizo esto?" en commits y recaps
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad
