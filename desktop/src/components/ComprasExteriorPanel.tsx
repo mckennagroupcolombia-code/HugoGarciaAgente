@@ -1476,16 +1476,6 @@ export default function ComprasExteriorPanel() {
 
   return (
     <div ref={panelRef} className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-ink">Compras exterior</h2>
-        <p className="text-sm text-muted">
-          Pega o adjunta <strong>varias</strong> imágenes del mismo pedido (
-          <kbd className="rounded border border-border bg-surface-input px-1 font-mono text-[11px]">Ctrl</kbd>+
-          <kbd className="rounded border border-border bg-surface-input px-1 font-mono text-[11px]">V</kbd>
-          ). Unidades <strong>ml / g / un</strong>; si es <strong>USD</strong>, TRM BanRep de la fecha de compra.
-        </p>
-      </div>
-
       <div
         ref={zonaRef}
         tabIndex={0}

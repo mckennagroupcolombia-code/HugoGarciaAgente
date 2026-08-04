@@ -51,6 +51,7 @@ function ToolBtn({
 /**
  * Iconos de herramientas a la izquierda del cabezote Contabilidad.
  * Ventanas flotantes: arrastrables, redimensionables, posición recordada.
+ * Stock y Rentabilidad se mantienen vivos vía ContabilidadPanel (keep-alive).
  */
 export default function ContabilidadHerramientas({
   puedeCrearSiigo,

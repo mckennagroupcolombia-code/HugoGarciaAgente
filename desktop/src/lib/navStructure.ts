@@ -4,14 +4,17 @@ import { CONTABILIDAD_PANELS, CONTABILIDAD_TAB_OCULTAS } from "./contabilidadAcc
 import { LOGISTICA_PANELS } from "./logisticaAccess";
 
 /**
- * Categorías del sidebar — cada una es un hub (un botón + pestañas en el cabezote),
- * misma lógica/estética que Contabilidad.
+ * Categorías del sidebar.
+ * - hub: un botón + pestañas en el cabezote (estilo Contabilidad)
+ * - advancedOnly: solo con modo avanzado
  */
 export type NavCategory =
   | "inicio"
   | "atencion"
   | "canales"
-  | "inventario"
+  | "diseno"
+  | "studio-web"
+  | "docs"
   | "contabilidad"
   | "tienda"
   | "logistica"
@@ -25,10 +28,10 @@ export interface NavItemDef {
 export interface NavSection {
   id: NavCategory;
   label: string;
-  /** @deprecated Todos los hubs usan pestañas en el encabezado. */
-  collapsible?: boolean;
-  /** Un solo botón en sidebar; subpaneles como pestañas internas. */
+  /** Un solo botón + pestañas en el cabezote (estilo Contabilidad). */
   hub?: boolean;
+  /** @deprecated Todas las secciones son hub; se ignora si hub=true. */
+  standalone?: boolean;
   /** Solo visible con modo avanzado activo. */
   advancedOnly?: boolean;
 }
@@ -64,14 +67,22 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     ],
   },
   {
-    id: "inventario",
-    label: "Inventario",
+    id: "diseno",
+    label: "Diseño",
     hub: true,
-    items: [
-      { panel: "stock", tier: "core" },
-      { panel: "etiquetas", tier: "core" },
-      { panel: "fichas", tier: "standard" },
-    ],
+    items: [{ panel: "etiquetas", tier: "core" }],
+  },
+  {
+    id: "studio-web",
+    label: "Studio web",
+    hub: true,
+    items: [{ panel: "sitioweb", tier: "standard" }],
+  },
+  {
+    id: "docs",
+    label: "Docs técnicos",
+    hub: true,
+    items: [{ panel: "fichas", tier: "standard" }],
   },
   {
     id: "contabilidad",
@@ -92,8 +103,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     label: "Tienda y taller",
     hub: true,
     items: [
+      { panel: "stock", tier: "core" },
       { panel: "publicaciones", tier: "standard" },
-      { panel: "sitioweb", tier: "standard" },
       { panel: "placas-concreto", tier: "standard" },
     ],
   },
@@ -127,14 +138,27 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   inicio: "Inicio",
   atencion: "Atención",
   canales: "Canales",
-  inventario: "Inventario",
+  diseno: "Diseño",
+  "studio-web": "Studio web",
+  docs: "Docs técnicos",
   contabilidad: "Contabilidad",
   tienda: "Tienda y taller",
   logistica: "Logística",
   sistemas: "Sistemas",
 };
 
+export function navSectionDef(sectionId: NavCategory) {
+  return NAV_SECTIONS.find((s) => s.id === sectionId);
+}
+
+export function esSeccionHub(sectionId: NavCategory | null): boolean {
+  if (!sectionId) return false;
+  // Todas las categorías del menú operan como hub (cabezote + pestañas).
+  return NAV_SECTIONS.some((s) => s.id === sectionId);
+}
+
 export function navSectionForPanel(panel: Panel): NavCategory | null {
+  if (panel === "etiquetas-config") return "diseno";
   for (const section of NAV_SECTIONS) {
     if (section.items.some((i) => i.panel === panel)) return section.id;
   }

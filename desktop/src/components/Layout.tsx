@@ -3,13 +3,19 @@ import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
 import HubNavTabs from "./nav/HubNavTabs";
+import DisenoNavTabs from "./nav/DisenoNavTabs";
 import ThemeModeToggle from "./ThemeModeToggle";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
-import { navSectionForPanel, NAV_CATEGORY_LABEL } from "../lib/navStructure";
+import { esAdminPanel, modoAvanzadoEfectivo } from "../lib/adminAccess";
+import {
+  esSeccionHub,
+  navSectionForPanel,
+  NAV_CATEGORY_LABEL,
+} from "../lib/navStructure";
 import { HUB_SECTION_ICON } from "../lib/hubNav";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
@@ -20,28 +26,37 @@ export default function Layout({ children }: { children: ReactNode }) {
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
-  const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;
-  const { advanced } = useUiMode();
+  const user = useTicketsAuth((s) => s.user);
+  const isAdmin = esAdminPanel(user);
+  const { advanced: advancedToggle } = useUiMode();
+  const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
   const hubIntegrado = isCentroMando && centroMandoView === "home";
 
   const sectionId = navSectionForPanel(panel);
-  const isHub = sectionId != null;
+  const isHub = esSeccionHub(sectionId);
   const sectionLabel = sectionId ? NAV_CATEGORY_LABEL[sectionId] : null;
   const panelInfo = PANEL_INFO[panel];
 
   const headerTitle = panel === "perfil"
     ? "Mi perfil"
+    : panel === "settings"
+    ? "Ajustes"
     : isHub && sectionLabel
     ? sectionLabel
     : panelInfo?.label ?? "Panel de operaciones";
 
   const headerSubtitle =
-    panel === "perfil"
-      ? "Cuenta"
-      : panel === "settings"
-      ? "Cuenta"
-      : null;
+    panel === "perfil" || panel === "settings" ? "Cuenta" : null;
+
+  /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
+  const contentScrollClass = isCentroMando
+    ? hubIntegrado
+      ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
+      : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
+    : isHub
+    ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
+    : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8";
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface">
@@ -93,7 +108,12 @@ export default function Layout({ children }: { children: ReactNode }) {
               <ContabilidadNavTabs />
             </div>
           )}
-          {isHub && sectionId && sectionId !== "contabilidad" && (
+          {isHub && sectionId === "diseno" && (
+            <div className="min-w-0 flex-1">
+              <DisenoNavTabs />
+            </div>
+          )}
+          {isHub && sectionId && sectionId !== "contabilidad" && sectionId !== "diseno" && (
             <div className="min-w-0 flex-1">
               <HubNavTabs sectionId={sectionId} />
             </div>
@@ -110,23 +130,17 @@ export default function Layout({ children }: { children: ReactNode }) {
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div
-            className={`min-h-0 min-w-0 flex-1 ${
-              isCentroMando
-                ? hubIntegrado
-                  ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
-                  : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
-                : sectionId === "contabilidad"
-                ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
-                : isHub
-                ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
-                : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"
-            }`}
-          >
-            {isHub && !isCentroMando && sectionId !== "contabilidad" ? (
-              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
-                <PanelTransition>{children}</PanelTransition>
-              </div>
+          <div className={`min-h-0 min-w-0 flex-1 ${contentScrollClass}`}>
+            {isHub && !isCentroMando ? (
+              sectionId === "contabilidad" ? (
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <PanelTransition>{children}</PanelTransition>
+                </div>
+              ) : (
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+                  <PanelTransition>{children}</PanelTransition>
+                </div>
+              )
             ) : (
               <PanelTransition>{children}</PanelTransition>
             )}

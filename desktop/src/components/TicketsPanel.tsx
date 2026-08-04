@@ -4125,7 +4125,7 @@ function CentroMandoHome({
     <div className="space-y-4 pb-4">
       {/* ── Header ── */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted/50 mb-1">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-1">
           {fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1)}
         </p>
         <h2 className="text-2xl font-black text-ink leading-tight tracking-tight">

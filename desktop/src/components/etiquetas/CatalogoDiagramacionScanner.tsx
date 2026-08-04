@@ -9,6 +9,7 @@ import {
   FUENTE_ETIQUETA,
   FUENTE_ETIQUETA_FAMILY,
 } from "../../lib/etiquetasDiagramacion";
+import { formatoMedidasEtiqueta, formatoMedidasEtiquetaTitle } from "../../lib/etiquetasTipos";
 import type {
   EscaneoDiagramacionTarget,
   FormatoImpresionEscaneo,
@@ -435,7 +436,7 @@ export function CatalogoDiagramacionScanner({
       <section className={`${shellCls} items-center justify-center p-8 text-center`}>
         <p className="text-sm font-semibold text-ink">Elige un formato de impresión</p>
         <p className="mt-1 max-w-xs text-xs text-muted">
-          Usa el selector de la izquierda para definir el tamaño del marco (mm).
+          Usa el selector de la izquierda para definir el tamaño del marco (pulgadas).
         </p>
       </section>
     );
@@ -451,7 +452,7 @@ export function CatalogoDiagramacionScanner({
           Haz clic en un producto con archivo .ai en la lista. El escaneo arranca solo.
         </p>
         <p className="mt-3 rounded-lg bg-surface px-3 py-1.5 font-mono text-[11px] text-muted">
-          {formato.ancho_mm}×{formato.alto_mm} mm
+          {formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)}
         </p>
       </section>
     );
@@ -488,7 +489,7 @@ export function CatalogoDiagramacionScanner({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-ink">{titulo}</p>
             <p className="truncate font-mono text-[10px] text-muted">
-              {target.archivo_ai} · {formato.nombre} · {formato.ancho_mm}×{formato.alto_mm} mm
+              {target.archivo_ai} · {formato.nombre} · {formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)}
             </p>
           </div>
         )}
@@ -672,7 +673,7 @@ function CanvasArea({
       </div>
       {activo && meta && !ocultarZoom && (
         <p className="mt-1.5 text-center text-[10px] text-muted">
-          {meta.ancho_mm}×{meta.alto_mm} mm · {meta.graficos_detectados.length} líneas
+          {formatoMedidasEtiqueta(meta.ancho_mm, meta.alto_mm)} · {meta.graficos_detectados.length} líneas
           {modoEdicionTexto ? " · edición de texto" : " · ajuste de líneas"}
         </p>
       )}

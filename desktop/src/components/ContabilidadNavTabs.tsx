@@ -5,8 +5,8 @@ import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 
 /**
- * Pestañas Contabilidad + FAB de herramientas en el cabezote.
- * El resto de hubs usan HubNavTabs directamente.
+ * Pestañas Contabilidad + herramientas en el cabezote.
+ * Facturación es pestaña plana (como Rentabilidad), sin desplegable.
  */
 export default function ContabilidadNavTabs() {
   const { user } = useTicketsAuth();

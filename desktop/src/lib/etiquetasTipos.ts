@@ -54,6 +54,30 @@ export function mmParaTipoEtiqueta(nombre: string, tipos: TipoEtiqueta[]): [numb
   return fb ? [fb.ancho_mm, fb.alto_mm] : [76, 66];
 }
 
+/** mm → pulgadas para UI (2 decimales, legible). */
+export function mmAPulgadasDisplay(mm: number): number {
+  if (!Number.isFinite(mm) || mm <= 0) return 0;
+  return Math.round((mm / 25.4) * 100) / 100;
+}
+
+/** pulgadas → mm (1 decimal, compatible con catálogo / impresora). */
+export function pulgadasAMm(pulg: number): number {
+  if (!Number.isFinite(pulg) || pulg <= 0) return 0;
+  return Math.round(pulg * 25.4 * 10) / 10;
+}
+
+/** Texto principal de medidas: `4.02×1.50 in`. */
+export function formatoMedidasEtiqueta(anchoMm: number, altoMm: number): string {
+  if (!(anchoMm > 0 && altoMm > 0)) return "";
+  return `${mmAPulgadasDisplay(anchoMm)}×${mmAPulgadasDisplay(altoMm)} in`;
+}
+
+/** Tooltip con pulgadas + mm de referencia. */
+export function formatoMedidasEtiquetaTitle(anchoMm: number, altoMm: number): string {
+  if (!(anchoMm > 0 && altoMm > 0)) return "";
+  return `${formatoMedidasEtiqueta(anchoMm, altoMm)} · ${anchoMm}×${altoMm} mm`;
+}
+
 export function useTiposEtiqueta() {
   return useQuery({
     queryKey: ["etiquetas-tipos"],

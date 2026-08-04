@@ -767,6 +767,8 @@ export default function FacturasCompraPanel() {
   const qc = useQueryClient();
   const facturasBootSufijo = useAppStore((s) => s.facturasBootSufijo);
   const setFacturasBootSufijo = useAppStore((s) => s.setFacturasBootSufijo);
+  const facturasBootVista = useAppStore((s) => s.facturasBootVista);
+  const setFacturasBootVista = useAppStore((s) => s.setFacturasBootVista);
 
   useEffect(() => {
     if (!facturasBootSufijo) return;
@@ -774,6 +776,17 @@ export default function FacturasCompraPanel() {
     setDetalleAbierto(facturasBootSufijo);
     setFacturasBootSufijo(null);
   }, [facturasBootSufijo, setFacturasBootSufijo]);
+
+  useEffect(() => {
+    if (!facturasBootVista) return;
+    // Consultar factura vive en el FAB del cabezote, no en este panel.
+    if (facturasBootVista === "consultar") {
+      setVista("pendientes");
+      return;
+    }
+    setVista(facturasBootVista);
+    setDetalleAbierto(null);
+  }, [facturasBootVista]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["facturas-pendientes"],
@@ -841,7 +854,10 @@ export default function FacturasCompraPanel() {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setVista("pendientes")}
+          onClick={() => {
+            setVista("pendientes");
+            setFacturasBootVista("pendientes");
+          }}
           className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
             vista === "pendientes"
               ? "bg-accent text-white"
@@ -852,7 +868,10 @@ export default function FacturasCompraPanel() {
         </button>
         <button
           type="button"
-          onClick={() => setVista("historial")}
+          onClick={() => {
+            setVista("historial");
+            setFacturasBootVista("historial");
+          }}
           className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
             vista === "historial"
               ? "bg-accent text-white"
@@ -861,22 +880,9 @@ export default function FacturasCompraPanel() {
         >
           Historial
         </button>
-        <button
-          type="button"
-          onClick={() => setVista("consultar")}
-          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-            vista === "consultar"
-              ? "bg-accent text-white"
-              : "border border-border bg-surface-panel text-muted hover:text-ink"
-          }`}
-        >
-          Consultar factura
-        </button>
       </div>
 
-      {vista === "consultar" ? (
-        <ConsultarFacturaPorProducto onAbrirPendiente={setDetalleAbierto} />
-      ) : vista === "historial" ? (
+      {vista === "historial" ? (
         <HistorialFacturas
           items={historial}
           total={historialQuery.data?.total ?? 0}

@@ -1,22 +1,26 @@
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useUiMode } from "../stores/uiMode";
+import { modoAvanzadoEfectivo } from "../lib/adminAccess";
 import {
   CONTABILIDAD_PANELS,
   CONTABILIDAD_TAB_OCULTAS,
-  esPanelContabilidad,
   guardarUltimoPanelContabilidad,
+  normalizarPanelContabilidad,
   primerPanelContabilidad,
   puedeVerModuloContabilidad,
   type ContabilidadPanelId,
 } from "../lib/contabilidadAccess";
-const SyncPanel = lazy(() => import("./SyncPanel"));
-const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
+
+const FacturacionPanel = lazy(() => import("./FacturacionPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
 const RRHHPanel = lazy(() => import("./RRHHPanel"));
+
+/** Subpaneles que se mantienen montados al cambiar de pestaña (edición paralela). */
+const KEEP_ALIVE: ReadonlySet<ContabilidadPanelId> = new Set(["rentabilidad"]);
 
 function TabCargando() {
   return (
@@ -28,16 +32,15 @@ function TabCargando() {
 
 function renderSubpanel(id: ContabilidadPanelId) {
   switch (id) {
-    case "facturas":
-      return <FacturasCompraPanel />;
+    case "facturacion":
     case "sync":
-      return <SyncPanel />;
+    case "facturas":
+    case "productos-siigo":
+      return <FacturacionPanel />;
     case "rentabilidad":
       return <RentabilidadPanel />;
     case "compras-exterior":
       return <ComprasExteriorPanel />;
-    case "productos-siigo":
-      return <FacturasCompraPanel />;
     case "costos-productos":
       return <CostosProductosPanel />;
     case "rrhh":
@@ -47,11 +50,36 @@ function renderSubpanel(id: ContabilidadPanelId) {
   }
 }
 
+function KeepAlivePane({
+  id,
+  active,
+  mounted,
+}: {
+  id: ContabilidadPanelId;
+  active: boolean;
+  mounted: boolean;
+}) {
+  if (!mounted) return null;
+  const scroll = id === "rentabilidad" ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto pb-6";
+  return (
+    <div
+      className={`min-h-0 flex-1 flex-col ${scroll} ${active ? "flex" : "hidden"}`}
+      aria-hidden={!active}
+      inert={!active ? true : undefined}
+    >
+      <Suspense fallback={<TabCargando />}>{renderSubpanel(id)}</Suspense>
+    </div>
+  );
+}
+
 export default function ContabilidadPanel() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const { user } = useTicketsAuth();
-  const advanced = useUiMode((s) => s.advanced);
+  const advancedToggle = useUiMode((s) => s.advanced);
+  const advanced = modoAvanzadoEfectivo(user, advancedToggle);
+  /** Una vez visitados, Stock y Rentabilidad no se desmontan. */
+  const [vivos, setVivos] = useState<Set<ContabilidadPanelId>>(() => new Set());
 
   const tabs = useMemo(() => {
     return CONTABILIDAD_PANELS.filter((id) => {
@@ -62,25 +90,35 @@ export default function ContabilidadPanel() {
     });
   }, [user, advanced]);
 
-  const activo: ContabilidadPanelId = esPanelContabilidad(panel)
-    ? panel
-    : (tabs[0] ?? "facturas");
-
   const puedeCrearSiigo = Boolean(puedeVerModuloContabilidad(user, "productos-siigo"));
 
   useEffect(() => {
     if (!tabs.length) return;
-    if (
-      !esPanelContabilidad(panel)
-      || !tabs.includes(panel)
-      || CONTABILIDAD_TAB_OCULTAS.has(panel as ContabilidadPanelId)
-    ) {
+    const n = normalizarPanelContabilidad(panel);
+    if (n && n !== panel) {
+      setPanel(n);
+      return;
+    }
+    if (!n || !tabs.includes(n)) {
       const next = primerPanelContabilidad(user, advanced, panel);
       if (next !== panel) setPanel(next);
       return;
     }
-    guardarUltimoPanelContabilidad(panel);
+    guardarUltimoPanelContabilidad(n);
   }, [panel, tabs, user, advanced, setPanel]);
+
+  const nActivo = normalizarPanelContabilidad(panel);
+  const subpanelId = nActivo && tabs.includes(nActivo) ? nActivo : (tabs[0] ?? "facturacion");
+
+  useEffect(() => {
+    if (!KEEP_ALIVE.has(subpanelId)) return;
+    setVivos((prev) => {
+      if (prev.has(subpanelId)) return prev;
+      const next = new Set(prev);
+      next.add(subpanelId);
+      return next;
+    });
+  }, [subpanelId]);
 
   if (!tabs.length) {
     if (puedeCrearSiigo) {
@@ -100,18 +138,25 @@ export default function ContabilidadPanel() {
     );
   }
 
-  const subpanelId = CONTABILIDAD_TAB_OCULTAS.has(activo)
-    ? (tabs[0] ?? "facturas")
-    : activo;
+  const keepAliveIds = (["rentabilidad"] as const).filter(
+    (id) => tabs.includes(id) && vivos.has(id),
+  );
+  const activoEsKeepAlive = KEEP_ALIVE.has(subpanelId);
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      {subpanelId === "rentabilidad" ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
-        </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+      {keepAliveIds.map((id) => (
+        <KeepAlivePane key={id} id={id} active={subpanelId === id} mounted />
+      ))}
+
+      {!activoEsKeepAlive && (
+        <div
+          className={
+            subpanelId === "rentabilidad"
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6"
+          }
+        >
           <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
         </div>
       )}

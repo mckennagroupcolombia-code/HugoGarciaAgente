@@ -1,5 +1,6 @@
 import type { Panel } from "../stores/app";
 import type { TicketsUser } from "../stores/ticketsAuth";
+import { esAdminPanel } from "./adminAccess";
 
 /** Clave de permiso única para todo el módulo Logística Internacional. */
 export const LOGISTICA_PERMISO = "logistica-internacional";
@@ -27,7 +28,7 @@ export function puedeVerModuloLogistica(
 ): boolean | null {
   if (!esPanelLogistica(seccion) && seccion !== LOGISTICA_PANEL_LEGACY) return null;
   if (!user) return false;
-  if ((user.rol?.nivel ?? 0) >= 3) return true;
+  if (esAdminPanel(user)) return true;
   const p = user.permisos_secciones;
   if (!p) return false;
   return Boolean(p[LOGISTICA_PERMISO] || p[seccion]);

@@ -6,7 +6,7 @@ import { ACCENT_PRESETS } from "../theme/presets";
 import type { ThemeMode } from "../theme/types";
 
 const SIDEBAR_BTN =
-  "flex w-full items-center gap-3 rounded-paper border-2 border-transparent px-3 py-2.5 text-left text-sm font-semibold text-muted transition hover:border-border-strong hover:bg-surface-hover hover:text-ink";
+  "flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-2 text-left text-[11px] font-semibold text-muted transition hover:border-border-strong hover:bg-surface-hover hover:text-ink";
 
 const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Claro" },

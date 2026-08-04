@@ -12,6 +12,7 @@ import {
   type QuickReply,
 } from "../hooks/useWebChat";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { esAdminPanel } from "../lib/adminAccess";
 import { ProseTextarea } from "./ProseTextarea";
 
 function sourceLabel(source?: string) {
@@ -75,7 +76,7 @@ function SessionCard({
 
 function RespuestasRapidasSection() {
   const { user } = useTicketsAuth();
-  const isAdmin = (user?.rol?.nivel ?? 0) >= 3;
+  const isAdmin = esAdminPanel(user);
   const { data, isLoading } = useWebChatQuickReplies();
   const addReply = useAddWebChatQuickReply();
   const deleteReply = useDeleteWebChatQuickReply();

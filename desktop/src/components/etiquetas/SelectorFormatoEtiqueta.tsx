@@ -2,6 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import {
   TIPOS_ETIQUETA_DEFAULT,
+  formatoMedidasEtiqueta,
+  formatoMedidasEtiquetaTitle,
+  mmAPulgadasDisplay,
+  pulgadasAMm,
   useGuardarTiposEtiqueta,
   useTiposEtiqueta,
   type TipoEtiqueta,
@@ -20,15 +24,15 @@ export interface FormatoEtiquetaValor {
 const CUSTOM_KEY = "__custom__";
 
 export function etiquetaOpcionLabel(t: TipoEtiqueta): string {
-  return `${t.nombre} · ${t.ancho_mm}×${t.alto_mm} mm`;
+  const med = formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm);
+  return med ? `${t.nombre} · ${med}` : t.nombre;
 }
 
 export function formatoEtiquetaValorLabel(v: FormatoEtiquetaValor): string {
   const nombre = (v.nombre || "").trim();
-  const mm =
-    v.anchoMm > 0 && v.altoMm > 0 ? `${v.anchoMm}×${v.altoMm} mm` : "";
-  if (nombre && mm) return `${nombre} · ${mm}`;
-  return nombre || mm || "—";
+  const med = formatoMedidasEtiqueta(v.anchoMm, v.altoMm);
+  if (nombre && med) return `${nombre} · ${med}`;
+  return nombre || med || "—";
 }
 
 interface MenuFormatoProps {
@@ -119,7 +123,7 @@ function MenuFormatoDropdown({
           style={{ top: pos.top, left: pos.left, minWidth: pos.minWidth }}
           role="listbox"
         >
-          <ul className="max-h-56 overflow-y-auto">
+          <ul className={tipos.length > 14 ? "max-h-64 overflow-y-auto" : undefined}>
             {tipos.map((t) => (
               <li key={t.nombre} className="flex items-center">
                 <button
@@ -222,8 +226,8 @@ export function SelectorFormatoEtiqueta({
 
   const etiquetaLectura = formatoEtiquetaValorLabel(value);
   const lecturaCls = dark
-    ? "inline-flex min-h-9 items-center rounded border border-white/30 bg-white/10 px-2 py-1 text-xs text-white"
-    : `${inputClass || "rounded border border-border bg-surface-panel px-2 py-1.5 text-xs text-ink"} inline-flex min-h-9 items-center font-semibold tabular-nums`;
+    ? "inline-flex min-h-7 items-center rounded border border-white/30 bg-white/10 px-2 py-0.5 text-[11px] text-white"
+    : `${inputClass || "rounded border border-border bg-surface-panel px-2 py-1 text-xs text-ink"} inline-flex items-center font-semibold tabular-nums`;
 
   if (readOnly) {
     if (previewBar) {
@@ -329,10 +333,42 @@ export function SelectorFormatoEtiqueta({
   const medidasActuales = (
     <span
       className={`shrink-0 tabular-nums ${dark ? "text-[10px] text-white/80" : "text-[10px] font-semibold text-accent"}`}
-      title="Medidas actuales"
+      title={formatoMedidasEtiquetaTitle(value.anchoMm, value.altoMm) || "Medidas actuales"}
     >
-      {value.anchoMm}×{value.altoMm} mm
+      {formatoMedidasEtiqueta(value.anchoMm, value.altoMm) || "—"}
     </span>
+  );
+
+  const inputAnchoIn = (
+    <input
+      type="number"
+      min={0.04}
+      max={4.25}
+      step={0.01}
+      value={mmAPulgadasDisplay(value.anchoMm) || ""}
+      onChange={(e) => {
+        setMsgGuardar("");
+        setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+      }}
+      className={mmInputClass}
+      title={formatoMedidasEtiquetaTitle(value.anchoMm, value.altoMm) || "Ancho (pulgadas)"}
+    />
+  );
+
+  const inputAltoIn = (
+    <input
+      type="number"
+      min={0.04}
+      max={16}
+      step={0.01}
+      value={mmAPulgadasDisplay(value.altoMm) || ""}
+      onChange={(e) => {
+        setMsgGuardar("");
+        setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+      }}
+      className={mmInputClass}
+      title={formatoMedidasEtiquetaTitle(value.anchoMm, value.altoMm) || "Alto (pulgadas)"}
+    />
   );
 
   const menuDropdown = (
@@ -371,31 +407,32 @@ export function SelectorFormatoEtiqueta({
             />
             <input
               type="number"
-              min={1}
-              max={108}
-              step={0.1}
-              value={value.anchoMm}
+              min={0.04}
+              max={4.25}
+              step={0.01}
+              value={mmAPulgadasDisplay(value.anchoMm) || ""}
               onChange={(e) => {
                 setMsgGuardar("");
-                setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
+                setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
-              title="Ancho mm"
+              title="Ancho (pulgadas)"
             />
             <span className="text-[10px] text-muted">×</span>
             <input
               type="number"
-              min={1}
-              max={406}
-              step={0.1}
-              value={value.altoMm}
+              min={0.04}
+              max={16}
+              step={0.01}
+              value={mmAPulgadasDisplay(value.altoMm) || ""}
               onChange={(e) => {
                 setMsgGuardar("");
-                setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
+                setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
-              title="Alto mm"
+              title="Alto (pulgadas)"
             />
+            <span className="text-[10px] text-muted">in</span>
             <button
               type="button"
               onClick={guardarEnCatalogo}
@@ -436,25 +473,26 @@ export function SelectorFormatoEtiqueta({
             />
             <input
               type="number"
-              min={1}
-              max={108}
-              step={0.1}
-              value={value.anchoMm}
-              onChange={(e) => setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 })}
+              min={0.04}
+              max={4.25}
+              step={0.01}
+              value={mmAPulgadasDisplay(value.anchoMm) || ""}
+              onChange={(e) => setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) })}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
-              title="Ancho mm"
+              title="Ancho (pulgadas)"
             />
             <span className="text-[10px] opacity-60">×</span>
             <input
               type="number"
-              min={1}
-              max={406}
-              step={0.1}
-              value={value.altoMm}
-              onChange={(e) => setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 })}
+              min={0.04}
+              max={16}
+              step={0.01}
+              value={mmAPulgadasDisplay(value.altoMm) || ""}
+              onChange={(e) => setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) })}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
-              title="Alto mm"
+              title="Alto (pulgadas)"
             />
+            <span className="text-[10px] opacity-60">in</span>
             <button
               type="button"
               onClick={guardarEnCatalogo}
@@ -491,39 +529,17 @@ export function SelectorFormatoEtiqueta({
           />
         </div>
         <div>
-          <label className={labelClass}>Ancho</label>
-          <input
-            type="number"
-            min={1}
-            max={108}
-            step={0.1}
-            value={value.anchoMm}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
-            }}
-            className={mmInputClass}
-            title="Ancho mm"
-          />
+          <label className={labelClass}>Ancho (in)</label>
+          {inputAnchoIn}
         </div>
         <div>
-          <label className={labelClass}>Alto</label>
-          <input
-            type="number"
-            min={1}
-            max={406}
-            step={0.1}
-            value={value.altoMm}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
-            }}
-            className={mmInputClass}
-            title="Alto mm"
-          />
+          <label className={labelClass}>Alto (in)</label>
+          {inputAltoIn}
         </div>
         <div className="flex flex-col justify-end">
-          <span className={`${labelClass} mb-0.5 tabular-nums text-accent`}>{value.anchoMm}×{value.altoMm}</span>
+          <span className={`${labelClass} mb-0.5 tabular-nums text-accent`}>
+            {formatoMedidasEtiqueta(value.anchoMm, value.altoMm) || "—"}
+          </span>
           <button
             type="button"
             onClick={guardarEnCatalogo}
@@ -560,36 +576,12 @@ export function SelectorFormatoEtiqueta({
           />
         </div>
         <div>
-          <label className={labelClass}>Ancho</label>
-          <input
-            type="number"
-            min={1}
-            max={108}
-            step={0.1}
-            value={value.anchoMm}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
-            }}
-            className={mmInputClass}
-            title="Ancho mm"
-          />
+          <label className={labelClass}>Ancho (in)</label>
+          {inputAnchoIn}
         </div>
         <div>
-          <label className={labelClass}>Alto</label>
-          <input
-            type="number"
-            min={1}
-            max={406}
-            step={0.1}
-            value={value.altoMm}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, altoMm: parseFloat(e.target.value) || 0 });
-            }}
-            className={mmInputClass}
-            title="Alto mm"
-          />
+          <label className={labelClass}>Alto (in)</label>
+          {inputAltoIn}
         </div>
         <div className="flex flex-col gap-0.5">
           <span className={`${labelClass} invisible select-none`}>·</span>

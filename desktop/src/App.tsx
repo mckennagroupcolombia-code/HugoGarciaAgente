@@ -46,6 +46,7 @@ import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigati
 import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
 import { puedeVerModuloLogistica } from "./lib/logisticaAccess";
+import { esAdminPanel } from "./lib/adminAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -88,6 +89,7 @@ function PanelRouterInner() {
       return <PostventaPanel />;
     case "sync":
     case "facturas":
+    case "facturacion":
     case "costos-productos":
     case "rentabilidad":
     case "compras-exterior":
@@ -225,12 +227,12 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (contab !== null) return contab;
   if (panel === "etiquetas") return true;
   if (panel === "hugo" || panel === "tickets") {
-    if ((user.rol?.nivel ?? 0) >= 3) return true;
+    if (esAdminPanel(user)) return true;
     const p = user.permisos_secciones;
     if (!p) return true;
     return Boolean(p.tickets);
   }
-  if ((user.rol?.nivel ?? 0) >= 3) return true;
+  if (esAdminPanel(user)) return true;
   const p = user.permisos_secciones;
   if (!p) return panel === "settings";
   if (panel === "postventa" && p.preventa) return true;

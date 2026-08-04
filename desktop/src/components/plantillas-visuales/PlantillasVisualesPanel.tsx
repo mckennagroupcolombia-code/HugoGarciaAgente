@@ -19,6 +19,7 @@ import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoPng } from "../etiquetas/RecursoPngViewer";
+import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
@@ -909,7 +910,7 @@ export default function PlantillasVisualesPanel({
 
       const dimMm =
         doc.formato.ancho_mm && doc.formato.alto_mm
-          ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm`
+          ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
           : "";
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
       setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓`);
@@ -980,7 +981,7 @@ export default function PlantillasVisualesPanel({
                     {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
                     {Math.round(doc.formato.alto_px * previewExport.escala)} px
                     {doc.formato.ancho_mm && doc.formato.alto_mm
-                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm`
+                      ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
                       : ""}
                     {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
                   </p>

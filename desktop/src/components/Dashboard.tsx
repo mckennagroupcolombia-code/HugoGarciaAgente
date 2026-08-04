@@ -3,7 +3,7 @@ import { useStatus } from "../hooks/useStatus";
 import { usePreventa } from "../hooks/usePreventa";
 import { usePanelMetricas, usePanelMiResumen } from "../hooks/usePanelMetricas";
 import { useTicketsAuth } from "../stores/ticketsAuth";
-import PanelHelp from "./PanelHelp";
+import { esAdminPanel } from "../lib/adminAccess";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import type { IllustrationTone } from "../icons/IllustrationIcon";
 import type { UiIconName } from "../icons";
@@ -75,7 +75,7 @@ export default function Dashboard() {
   const { data: status } = useStatus();
   const { data: prev } = usePreventa();
   const user = useTicketsAuth((s) => s.user);
-  const isAdmin = (user?.rol?.nivel ?? 0) >= 3;
+  const isAdmin = esAdminPanel(user);
   const { data: panelOps } = usePanelMetricas(isAdmin);
   const { data: miResumen } = usePanelMiResumen(!isAdmin && !!user);
 
@@ -85,8 +85,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PanelHelp panelId="dashboard" />
-
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <IllustrationIcon name="chartBar" size={40} tone="sky" className="mck-illus-icon--hoverable" />

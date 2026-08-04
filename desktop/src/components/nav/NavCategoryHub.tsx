@@ -10,6 +10,7 @@ import {
   primerPanelHub,
 } from "../../lib/hubNav";
 import { Icon } from "../../icons";
+import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { useUiMode } from "../../stores/uiMode";
 
 /** Un solo botón de menú que abre el hub (pestañas en el cabezote). */
@@ -33,7 +34,8 @@ export default function NavCategoryHub({
   /** Contenido extra opcional (p. ej. nada — Contabilidad ya no necesita variante). */
   children?: ReactNode;
 }) {
-  const advanced = useUiMode((s) => s.advanced);
+  const advancedToggle = useUiMode((s) => s.advanced);
+  const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const visible = itemsVisiblesHub(items, user, advanced, puedeVer);
   const active = visible.some((i) => i.panel === panel || (i.panel === "hugo" && panel === "tickets"));
   const [hovered, setHovered] = useState(false);
@@ -57,20 +59,20 @@ export default function NavCategoryHub({
         onClick={abrir}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`group mck-nav-item mck-press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
+        className={`group mck-nav-item mck-press flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left ${
           active
             ? "is-active bg-accent text-white"
             : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
         }`}
       >
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
             active ? "bg-white/15 text-white" : "bg-accent/10 text-accent"
           }`}
         >
-          <Icon name={icon} size={18} weight="duotone" />
+          <Icon name={icon} size={16} weight="duotone" />
         </span>
-        <span className="min-w-0 flex-1 text-sm font-semibold leading-none truncate">{label}</span>
+        <span className="min-w-0 flex-1 text-[13px] font-semibold leading-none truncate">{label}</span>
         {badge > 0 && (
           <span
             className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${

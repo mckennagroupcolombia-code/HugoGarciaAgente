@@ -34,9 +34,14 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
   } catch {
     /* ignore */
   }
-  // Mismos acentos que en claro: saturación limpia (sin aclarar → no se ensucian).
-  root.style.setProperty("--mck-accent", config.accentRgb);
-  root.style.setProperty("--mck-accent-hover", darkenAccentRgb(config.accentRgb));
+  // Oscuro: acento legible sobre #2B454F (misma tinta McKenna, más luminoso).
+  // Claro: acento corporativo profundo. Hover siempre un paso más oscuro.
+  const accent = dark ? liftAccentForDark(config.accentRgb) : config.accentRgb;
+  root.style.setProperty("--mck-accent", accent);
+  root.style.setProperty(
+    "--mck-accent-hover",
+    dark ? config.accentRgb : darkenAccentRgb(config.accentRgb),
+  );
   root.style.setProperty("--mck-font-sans", FONT_STACKS[config.fontSans]);
   root.style.setProperty("--mck-radius-paper", RADIUS_PX[config.radius]);
 
@@ -44,6 +49,58 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
   if (themeMeta) {
     themeMeta.setAttribute("content", dark ? "#2B454F" : rgbToHex(config.accentRgb));
   }
+}
+
+/** Sube luminosidad HSL ~58% sin blanquear (evita acentos “sucios”). */
+function liftAccentForDark(rgb: string): string {
+  const parts = rgb.trim().split(/\s+/).map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return "94 186 198";
+  const [r, g, b] = parts.map((n) => n / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      default:
+        h = ((r - g) / d + 4) / 6;
+    }
+  }
+  const targetL = Math.max(l, 0.58);
+  const targetS = Math.min(0.72, Math.max(s, 0.45));
+
+  function hue2rgb(p: number, q: number, t: number) {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  }
+
+  let outR: number;
+  let outG: number;
+  let outB: number;
+  if (targetS === 0) {
+    outR = outG = outB = targetL;
+  } else {
+    const q = targetL < 0.5 ? targetL * (1 + targetS) : targetL + targetS - targetL * targetS;
+    const p = 2 * targetL - q;
+    outR = hue2rgb(p, q, h + 1 / 3);
+    outG = hue2rgb(p, q, h);
+    outB = hue2rgb(p, q, h - 1 / 3);
+  }
+  return [outR, outG, outB].map((n) => Math.round(Math.min(255, Math.max(0, n * 255)))).join(" ");
 }
 
 function darkenAccentRgb(rgb: string): string {
