@@ -11,6 +11,7 @@ cladograma. Sigue el mismo patron de subprocess que `app/tools/backup_drive.py`
 from __future__ import annotations
 
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +40,38 @@ def _rama_actual() -> str:
         return (r.stdout or "").strip() or "HEAD"
     except Exception:
         return "HEAD"
+
+
+def _proxima_hora(hora: int, minuto: int = 0) -> str:
+    """Próxima ocurrencia de HH:MM en hora local, en ISO."""
+    ahora = datetime.now()
+    objetivo = ahora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+    if objetivo <= ahora:
+        objetivo += timedelta(days=1)
+    return objetivo.isoformat()
+
+
+def estado_auto_commit() -> dict:
+    """
+    Estado de los auto-commits programados del repo, para los indicadores del
+    panel Control de Versiones:
+      - 23:00 cron `auto_commit.sh` (commit + push diario)
+      - 02:00 backup nocturno `backup_drive.py` (commit + push tras el backup)
+    Incluye cuántos archivos cambiados esperan al próximo auto-commit.
+    """
+    pendientes = 0
+    try:
+        st = _run_git(["status", "--porcelain"])
+        if st.returncode == 0:
+            pendientes = len([l for l in st.stdout.splitlines() if l.strip()])
+    except Exception:
+        pass
+    return {
+        "archivos_pendientes": pendientes,
+        "proximo_diario": _proxima_hora(23, 0),
+        "proximo_backup": _proxima_hora(2, 0),
+        "ahora": datetime.now().isoformat(),
+    }
 
 
 def obtener_historial_git(limite: int = 150) -> dict:
@@ -87,4 +120,8 @@ def obtener_historial_git(limite: int = 150) -> dict:
             }
         )
 
-    return {"rama_actual": _rama_actual(), "commits": commits}
+    return {
+        "rama_actual": _rama_actual(),
+        "commits": commits,
+        "auto_commit": estado_auto_commit(),
+    }
