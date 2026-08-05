@@ -919,30 +919,64 @@ def precios_reales_meli() -> dict:
 
 _COBROS_MELI_CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "meli_cobros_cache.json")
 _COBROS_MELI_TTL = 3600  # 1 hora
+_RELACION_CODIGOS_CACHE_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "data", "relacion_codigos_cache.json"
+)
+_WEB_CACHE_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json"
+)
+
+
+def _sku_canonico_desde_relacion() -> dict[str, dict]:
+    """meli_id → {sku, nombre} desde relacion_codigos (vínculo panel Stock)."""
+    out: dict[str, dict] = {}
+    try:
+        if not os.path.isfile(_RELACION_CODIGOS_CACHE_PATH):
+            return out
+        with open(_RELACION_CODIGOS_CACHE_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        for it in data.get("items") or []:
+            mid = (it.get("meli_id") or "").strip().upper()
+            if not mid or mid in out:
+                continue
+            sku = (it.get("sku_meli") or it.get("codigo_siigo") or "").strip()
+            if not sku:
+                continue
+            nombre = (
+                (it.get("nombre_siigo") or "").strip()
+                or (it.get("titulo") or "").strip()
+                or sku
+            )
+            out[mid] = {"sku": sku, "nombre": nombre}
+    except Exception:
+        return {}
+    return out
 
 
 def _catalogo_publicaciones_meli() -> list[dict]:
     """Publicaciones con meli_id (sku, nombre, meli_id).
 
-    Une cache web + cobros MeLi. El cache web a veces:
+    Une relacion_codigos + cobros MeLi + cache web. El cache web a veces:
       - omite un SKU,
-      - o asigna el mismo meli_id a dos códigos (ej. ACERIC250mL y C-ACERIC250mL).
-    En colisión de meli_id se prefiere el SKU de la caché de cobros / con prefijo C-.
+      - o asigna el mismo meli_id a dos códigos (ej. C-SORPOTKg y C-SORPOT100g).
+    En colisión de meli_id se prefiere el SKU de relacion_codigos (vínculo real),
+    luego cobros, luego prefijo C-.
     """
-    cache_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json"
-    )
+    cache_path = _WEB_CACHE_PATH
     out: list[dict] = []
     mid_index: dict[str, int] = {}
     seen_sku: set[str] = set()
+    relacion_por_mid = _sku_canonico_desde_relacion()
     cobros_sku_por_mid: dict[str, str] = {}
 
     def _rank(sku: str, mid: str) -> tuple:
         s = (sku or "").strip()
         su = s.upper()
         mid_u = (mid or "").strip().upper()
+        preferido_rel = (relacion_por_mid.get(mid_u) or {}).get("sku", "").upper()
         preferido_cobros = cobros_sku_por_mid.get(mid_u, "").upper()
         return (
+            3 if preferido_rel and su == preferido_rel else 0,
             2 if preferido_cobros and su == preferido_cobros else 0,
             1 if su.startswith("C-") else 0,
             len(s),
@@ -973,7 +1007,28 @@ def _catalogo_publicaciones_meli() -> list[dict]:
         seen_sku.add(sku_u)
         out.append(entry)
 
-    # Cobros primero como referencia de SKU canónico por meli_id
+    # 1) Relación MeLi↔Siigo (fuente de verdad del vínculo / panel Stock).
+    # Si un SKU tiene varios MCO, preferir el que ya esté en cobros (tiene precio/cargos).
+    cobros_mids: set[str] = set()
+    try:
+        if os.path.isfile(_COBROS_MELI_CACHE_PATH):
+            with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+                cobros_preload = json.load(f)
+            for i in cobros_preload.get("items") or []:
+                mid = (i.get("meli_id") or "").strip().upper()
+                if mid:
+                    cobros_mids.add(mid)
+    except Exception:
+        pass
+
+    rel_ordenado = sorted(
+        relacion_por_mid.items(),
+        key=lambda kv: (0 if kv[0] in cobros_mids else 1, kv[0]),
+    )
+    for mid, info in rel_ordenado:
+        _add(info.get("sku") or "", info.get("nombre") or "", mid)
+
+    # 2) Cobros (precios/cargos); SKU cede ante relación
     try:
         if os.path.isfile(_COBROS_MELI_CACHE_PATH):
             with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
@@ -987,6 +1042,7 @@ def _catalogo_publicaciones_meli() -> list[dict]:
     except Exception:
         pass
 
+    # 3) Catálogo web
     try:
         with open(cache_path, encoding="utf-8") as f:
             cache = json.load(f)
@@ -1001,9 +1057,18 @@ def _catalogo_publicaciones_meli() -> list[dict]:
 
 
 def _alinear_skus_con_cobros(items_out: list[dict], cache_items: dict) -> None:
-    """Si el catálogo web puso un SKU duplicado sin C-, restaura el de cobros."""
+    """Asegura SKU/nombre canónicos: relacion_codigos > cobros > fila actual."""
+    relacion_por_mid = _sku_canonico_desde_relacion()
     for row in items_out:
         mid = (row.get("meli_id") or "").strip().upper()
+        if not mid:
+            continue
+        rel = relacion_por_mid.get(mid)
+        if rel and rel.get("sku"):
+            row["sku"] = rel["sku"]
+            if rel.get("nombre"):
+                row["nombre"] = rel["nombre"]
+            continue
         cached = (cache_items or {}).get(mid)
         if not cached:
             continue
@@ -1024,8 +1089,42 @@ def _alinear_skus_con_cobros(items_out: list[dict], cache_items: dict) -> None:
                 row["nombre"] = cached["nombre"]
 
 
+def _parchear_skus_cobros_cache_desde_relacion() -> int:
+    """Corrige SKUs erróneos en meli_cobros_cache.json según relacion_codigos."""
+    relacion_por_mid = _sku_canonico_desde_relacion()
+    if not relacion_por_mid or not os.path.isfile(_COBROS_MELI_CACHE_PATH):
+        return 0
+    try:
+        with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return 0
+    changed = 0
+    for row in data.get("items") or []:
+        mid = (row.get("meli_id") or "").strip().upper()
+        rel = relacion_por_mid.get(mid)
+        if not rel or not rel.get("sku"):
+            continue
+        if (row.get("sku") or "").strip().upper() != rel["sku"].upper():
+            row["sku"] = rel["sku"]
+            changed += 1
+        if rel.get("nombre") and (row.get("nombre") or "").strip() != rel["nombre"]:
+            row["nombre"] = rel["nombre"]
+    if not changed:
+        return 0
+    try:
+        tmp = _COBROS_MELI_CACHE_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        os.replace(tmp, _COBROS_MELI_CACHE_PATH)
+    except Exception:
+        return 0
+    return changed
+
+
 def _incorporar_cobros_huerfanos(items_out: list[dict], cache_items: dict) -> int:
     """Reincorpora publicaciones de la caché de cobros omitidas por el catálogo web."""
+    relacion_por_mid = _sku_canonico_desde_relacion()
     present_mids = {(r.get("meli_id") or "").strip().upper() for r in items_out}
     present_skus = {(r.get("sku") or "").strip().upper() for r in items_out}
     added = 0
@@ -1034,6 +1133,11 @@ def _incorporar_cobros_huerfanos(items_out: list[dict], cache_items: dict) -> in
         if not mid_u or mid_u in present_mids:
             continue
         row = dict(cached)
+        rel = relacion_por_mid.get(mid_u)
+        if rel and rel.get("sku"):
+            row["sku"] = rel["sku"]
+            if rel.get("nombre"):
+                row["nombre"] = rel["nombre"]
         sku_u = (row.get("sku") or "").strip().upper()
         if not sku_u:
             continue
@@ -1094,6 +1198,38 @@ def parchear_precio_en_cobros_cache(sku: str, nuevo_precio: float) -> bool:
         return False
 
     cache["items"] = items
+    cache["actualizado_en"] = datetime.now().isoformat(timespec="seconds")
+    try:
+        tmp = _COBROS_MELI_CACHE_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False)
+        os.replace(tmp, _COBROS_MELI_CACHE_PATH)
+        return True
+    except Exception:
+        return False
+
+
+def parchear_sku_en_cobros_cache(meli_id: str, nuevo_sku: str) -> bool:
+    """Actualiza el SKU de una publicación en meli_cobros_cache tras editarlo en Stock."""
+    mid = (meli_id or "").strip().upper()
+    sku = (nuevo_sku or "").strip()
+    if not mid or not sku or not os.path.isfile(_COBROS_MELI_CACHE_PATH):
+        return False
+    try:
+        with open(_COBROS_MELI_CACHE_PATH, encoding="utf-8") as f:
+            cache = json.load(f)
+    except Exception:
+        return False
+    changed = False
+    for row in cache.get("items") or []:
+        if (row.get("meli_id") or "").strip().upper() != mid:
+            continue
+        if (row.get("sku") or "").strip() != sku:
+            row["sku"] = sku
+            changed = True
+        break
+    if not changed:
+        return False
     cache["actualizado_en"] = datetime.now().isoformat(timespec="seconds")
     try:
         tmp = _COBROS_MELI_CACHE_PATH + ".tmp"
@@ -1285,6 +1421,12 @@ def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
     Lista publicaciones activas con cargo por venta y cargo por envío (API MeLi).
     Cachea resultados ~1 h en app/data/meli_cobros_cache.json.
     """
+    # Corrige SKUs desfasados (ej. C-SORPOTKg vs C-SORPOT100g en el mismo MCO).
+    try:
+        _parchear_skus_cobros_cache_desde_relacion()
+    except Exception:
+        pass
+
     q = (buscar or "").strip().lower()
     now = time.time()
     cache: dict = {}

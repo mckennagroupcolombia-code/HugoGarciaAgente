@@ -71,3 +71,45 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-08-03 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/scripts/auditar_scripts_cron.py", line 100, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/mckg/mi-agente/scripts/auditar_scripts_cron.py", line 63, in main
+    data = ejecutar_auditoria_dict(rutas_extra=rutas_extra)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/script_audit.py", line 60, in ejecutar_auditoria_dict
+    py_compile.compile(str(full), doraise=True)
+  File "/usr/lib/python3.12/py_compile.py", line 172, in compile
+    importlib._bootstrap_external._write_atomic(cfile, bytecode, mode)
+  File "<frozen importlib._bootstrap_external>", line 201, in _write_atomic
+PermissionError: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/__pycache__/routes.cpython-312.pyc.124683827983872'
+[monitor_correos_certificados_retencion] ERROR: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[meli_compliance_monitor] revisadas=13 activas=11 problemas=2 alertas_wa=0

@@ -2934,6 +2934,37 @@ def register_routes(app):
             log_actividad=[],
         )
 
+    @app.route("/api/costos-ia")
+    def api_costos_ia():
+        """Costos LLM vía API (Gemini/Claude): hoy, historial y resumen semanal.
+        Sin auth (agregados no sensibles), igual que /api/metricas; lo consume
+        el monitor de bot-mckenna y el panel."""
+        try:
+            from app.services.llm_budget import (
+                _f as _budget_f,
+                gasto_hoy,
+                historial_dias,
+                resumen_semanal,
+            )
+
+            hoy = gasto_hoy()
+            return jsonify(
+                {
+                    "hoy": {
+                        k: hoy.get(k)
+                        for k in ("fecha", "gasto_usd", "llamadas", "por_modelo", "por_contexto")
+                    },
+                    "semana": resumen_semanal(),
+                    "historial_30d": historial_dias(30),
+                    "limites": {
+                        "alerta_diaria_usd": _budget_f("LLM_BUDGET_DIARIO_USD", 1.0),
+                        "tope_diario_usd": _budget_f("LLM_BUDGET_TOPE_USD", 3.0),
+                    },
+                }
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)[:200]}), 500
+
     @app.route("/api/metricas")
     def api_metricas():
         import json as _json

@@ -3,35 +3,49 @@
     "573009990001@c.us",
     "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629",
     "83679015608440@lid",
-    "573197731558@c.us"
+    "573197731558@c.us",
+    "573104578432@c.us",
+    "174869778043120@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
     "573009990001@c.us": 1785763204.6081574,
     "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629": 1785792216.2140524,
     "83679015608440@lid": 1785793922.457864,
-    "573197731558@c.us": 1785793922.457864
+    "573197731558@c.us": 1785793922.457864,
+    "573104578432@c.us": 1785864435.0379915,
+    "174869778043120@lid": 1785864435.0379915
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1785763204.6081574,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "listo, gracias"
+      "ultimo_mensaje": "?"
     },
     "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629": {
       "timestamp": 1785792216.2140527,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "listo, gracias"
+      "ultimo_mensaje": "?"
     },
     "83679015608440@lid": {
       "timestamp": 1785793922.457864,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "listo, gracias"
+      "ultimo_mensaje": "?"
     },
     "573197731558@c.us": {
       "timestamp": 1785793922.457864,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "listo, gracias"
+      "ultimo_mensaje": "?"
+    },
+    "573104578432@c.us": {
+      "timestamp": 1785864435.0379915,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "?"
+    },
+    "174869778043120@lid": {
+      "timestamp": 1785864435.0379915,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "?"
     }
   },
   "bot_global_activo": false,

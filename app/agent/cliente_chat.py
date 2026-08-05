@@ -169,6 +169,14 @@ def _completar_gemini(
     modelo = (modelo_id or _FALLBACK_GEMINI).strip()
     if not modelo.startswith("gemini-"):
         modelo = _FALLBACK_GEMINI
+
+    from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+    ok, motivo = permitir_llamada(modelo, contexto="cliente_chat")
+    if not ok:
+        log_json("cliente_chat_budget_bloqueado", model=modelo, motivo=motivo[:150])
+        return None
+
     prompt = (
         f"{system}\n\n"
         f"Historial reciente:\n{historial_texto or '[sin historial]'}\n\n"
@@ -186,6 +194,15 @@ def _completar_gemini(
         except Exception:
             resp = cliente_gemini.models.generate_content(model=modelo, contents=prompt)
         txt = (getattr(resp, "text", "") or "").strip()
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo,
+            tokens_in=t_in,
+            tokens_out=t_out,
+            contexto="cliente_chat",
+            chars_prompt=len(prompt),
+            chars_respuesta=len(txt),
+        )
         return txt or None
     except Exception as e:
         log_json("cliente_chat_gemini_error", model=modelo, error=str(e)[:200])

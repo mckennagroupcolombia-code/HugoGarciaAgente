@@ -39,6 +39,11 @@ def create_app():
     """Fábrica de aplicaciones: Crea y configura la instancia de Flask."""
     app = Flask(__name__, template_folder='templates')
 
+    # Servicio de larga vida: exento del límite por-proceso del presupuesto LLM
+    # (sigue sujeto al tope diario global). Ver app/services/llm_budget.py.
+    from app.services.llm_budget import marcar_proceso_servicio
+    marcar_proceso_servicio()
+
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
 

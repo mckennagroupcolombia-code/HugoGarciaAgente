@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
@@ -1189,12 +1189,17 @@ export function ConsultarFacturaPorProducto({
   /** Sin tarjeta de título (para usar dentro de un modal). */
   compact?: boolean;
 }) {
+  const ANIO_MIN = 2022;
+  const ANIO_MAX = new Date().getFullYear();
+  const ANIOS = Array.from({ length: ANIO_MAX - ANIO_MIN + 1 }, (_, i) => String(ANIO_MIN + i));
+
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
   const [abierto, setAbierto] = useState<string | null>(null);
-  const [anio, setAnio] = useState<"todos" | "2025" | "2026">("todos");
+  const [anio, setAnio] = useState<"todos" | string>("todos");
   const [indiceMsg, setIndiceMsg] = useState<string | null>(null);
   const [indiceLoading, setIndiceLoading] = useState(false);
+  const autoIndexRef = useRef(false);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(q.trim()), 320);
@@ -1210,6 +1215,7 @@ export function ConsultarFacturaPorProducto({
         ok: boolean;
         q: string;
         anio?: number | null;
+        anio_min?: number;
         resultados: FacturaConsultaResultado[];
         total: number;
         mostrando: number;
@@ -1223,30 +1229,58 @@ export function ConsultarFacturaPorProducto({
     staleTime: 20_000,
   });
 
-  const cargarIndice2025 = async () => {
+  const cargarArchivo = useCallback(async () => {
     setIndiceLoading(true);
     setIndiceMsg(null);
     try {
+      const body =
+        anio === "todos"
+          ? { rango: true, desde: ANIO_MIN, forzar: true }
+          : { anio: Number(anio), forzar: true };
       const res = await api.post<{
         ok?: boolean;
         facturas?: number;
         mensaje?: string;
         error?: string;
-      }>("/api/facturas/consultar/indice", { anio: 2025, forzar: true }, { timeoutMs: 300_000 });
-      setIndiceMsg(res.mensaje || `Índice 2025: ${res.facturas ?? 0} factura(s).`);
+        anios?: number[];
+      }>("/api/facturas/consultar/indice", body, { timeoutMs: 600_000 });
+      setIndiceMsg(
+        res.mensaje
+          || (anio === "todos"
+            ? `Índices ${ANIO_MIN}–${ANIO_MAX}: ${res.facturas ?? 0} factura(s).`
+            : `Índice ${anio}: ${res.facturas ?? 0} factura(s).`),
+      );
       if (debounced.length >= 2) {
         await consulta.refetch();
       }
     } catch (e) {
-      setIndiceMsg((e as Error).message || "No se pudo cargar el índice 2025");
+      setIndiceMsg((e as Error).message || "No se pudo cargar el archivo de facturas");
     } finally {
       setIndiceLoading(false);
     }
-  };
+  }, [anio, debounced.length, consulta, ANIO_MIN, ANIO_MAX]);
+
+  // Si falta índice al buscar, indexar una sola vez en segundo plano.
+  useEffect(() => {
+    if (autoIndexRef.current || indiceLoading) return;
+    const avisos = consulta.data?.avisos ?? [];
+    const falta = avisos.some((a) => /falta indexar|aún no hay índice|falta índice/i.test(a));
+    if (!falta || debounced.length < 2) return;
+    autoIndexRef.current = true;
+    void cargarArchivo();
+  }, [consulta.data?.avisos, debounced.length, indiceLoading, cargarArchivo]);
 
   const resultados = consulta.data?.resultados ?? [];
   const avisos = consulta.data?.avisos ?? [];
-  const idx2025 = consulta.data?.indices?.["2025"];
+  const indices = consulta.data?.indices ?? {};
+  const indicesListos = Object.entries(indices)
+    .filter(([, v]) => v?.listo)
+    .map(([k, v]) => `${k}: ${v.facturas ?? 0}`)
+    .join(" · ");
+  const btnArchivoLabel =
+    anio === "todos"
+      ? `Cargar archivo ${ANIO_MIN}–${ANIO_MAX}`
+      : `Cargar archivo ${anio}`;
 
   return (
     <div className="space-y-4">
@@ -1255,21 +1289,17 @@ export function ConsultarFacturaPorProducto({
           <>
             <h2 className="text-lg font-bold text-ink">Consultar factura</h2>
             <p className="mt-1 text-sm text-muted">
-              Busca facturas de proveedores por nombre o código (pendientes, historial y archivo 2025).
+              Busca facturas de proveedores por nombre o código (pendientes, historial y archivo desde {ANIO_MIN}).
             </p>
           </>
         )}
         {compact && (
           <p className="text-sm text-muted">
-            Busca por nombre o código en facturas de proveedores (incluye archivo 2025).
+            Busca por nombre o código en facturas de proveedores (archivo desde {ANIO_MIN}).
           </p>
         )}
         <div className={`flex flex-wrap gap-1 ${compact ? "" : "mt-3"}`}>
-          {([
-            { id: "todos" as const, label: "Todos" },
-            { id: "2025" as const, label: "2025" },
-            { id: "2026" as const, label: "2026" },
-          ]).map((opt) => (
+          {[{ id: "todos" as const, label: "Todos" }, ...ANIOS.map((y) => ({ id: y, label: y }))].map((opt) => (
             <button
               key={opt.id}
               type="button"
@@ -1285,20 +1315,21 @@ export function ConsultarFacturaPorProducto({
           ))}
           <button
             type="button"
-            onClick={() => void cargarIndice2025()}
+            onClick={() => void cargarArchivo()}
             disabled={indiceLoading}
             className="rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-800 hover:border-orange-500 disabled:opacity-50 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200"
-            title="Indexa facturas 2025 desde Gmail/local para poder consultarlas"
+            title={
+              anio === "todos"
+                ? `Indexa facturas ${ANIO_MIN}–${ANIO_MAX} desde Gmail/local`
+                : `Indexa facturas ${anio} desde Gmail/local`
+            }
           >
-            {indiceLoading ? "Indexando 2025…" : "Cargar archivo 2025"}
+            {indiceLoading ? "Indexando…" : btnArchivoLabel}
           </button>
         </div>
-        {(indiceMsg || idx2025?.listo) && (
+        {(indiceMsg || indicesListos) && (
           <p className="text-[11px] text-muted">
-            {indiceMsg
-              || (idx2025?.listo
-                ? `Archivo 2025 listo: ${idx2025.facturas ?? 0} factura(s)${idx2025.actualizado ? ` · ${idx2025.actualizado.slice(0, 16)}` : ""}`
-                : null)}
+            {indiceMsg || (indicesListos ? `Archivo listo · ${indicesListos}` : null)}
           </p>
         )}
         <div className={compact ? "flex flex-wrap gap-2" : "mt-3 flex flex-wrap gap-2"}>
@@ -1328,7 +1359,17 @@ export function ConsultarFacturaPorProducto({
 
       {avisos.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          {avisos[0]}
+          <p>{avisos[0]}</p>
+          {/falta indexar|aún no hay índice|falta índice|cargar archivo/i.test(avisos[0]) && (
+            <button
+              type="button"
+              onClick={() => void cargarArchivo()}
+              disabled={indiceLoading}
+              className="mt-2 rounded-lg border border-amber-500/50 bg-amber-100/80 px-3 py-1.5 text-[11px] font-bold text-amber-950 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/50 dark:text-amber-50"
+            >
+              {indiceLoading ? "Indexando archivo…" : btnArchivoLabel}
+            </button>
+          )}
         </div>
       )}
 
@@ -1337,12 +1378,8 @@ export function ConsultarFacturaPorProducto({
           <p className="text-base font-semibold text-ink">Sin coincidencias</p>
           <p className="mt-1 text-sm text-muted">
             No hay facturas{anio !== "todos" ? ` de ${anio}` : ""} con producto que coincida con «{debounced}».
-            {anio !== "2026" && (
-              <>
-                {" "}
-                Si faltan las de 2025, pulsa <strong>Cargar archivo 2025</strong>.
-              </>
-            )}
+            {" "}
+            Si faltan años antiguos, pulsa <strong>{btnArchivoLabel}</strong>.
           </p>
         </div>
       )}
@@ -1359,12 +1396,13 @@ export function ConsultarFacturaPorProducto({
         {resultados.map((row) => {
           const expandido = abierto === row.id;
           const origen = String(row.origen || "");
+          const anioArchivo = origen.match(/(?:gmail|archivo)-(\d{4})/)?.[1];
           const acc =
             origen === "pendiente"
               ? { label: "En cola", cls: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200" }
               : origen.startsWith("gmail-") || origen.startsWith("archivo-")
                 ? {
-                    label: origen.includes("2025") ? "Archivo 2025" : "Archivo",
+                    label: anioArchivo ? `Archivo ${anioArchivo}` : "Archivo",
                     cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
                   }
                 : ACCION_HISTORIAL[row.accion || ""] || {

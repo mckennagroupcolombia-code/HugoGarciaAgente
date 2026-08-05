@@ -779,10 +779,25 @@ Genera únicamente la respuesta para el cliente, sin comillas ni texto introduct
     except Exception:
         modelos_intento = list(_GEMINI_MODELS)
 
+    from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
     for model_name in modelos_intento:
+        ok_budget, motivo_budget = permitir_llamada(model_name, contexto="meli_preventa")
+        if not ok_budget:
+            print(f"⛔ Preventa: llamada a {model_name} bloqueada por presupuesto LLM: {motivo_budget}")
+            return None
         try:
             resp = gemini_client.models.generate_content(model=model_name, contents=prompt)
             texto = (resp.text or "").strip()
+            t_in, t_out = usage_gemini(resp)
+            registrar_llamada(
+                model_name,
+                tokens_in=t_in,
+                tokens_out=t_out,
+                contexto="meli_preventa",
+                chars_prompt=len(prompt),
+                chars_respuesta=len(texto),
+            )
             # Las respuestas de MeLi son texto plano: el markdown (**negrita**)
             # se vería con asteriscos literales.
             texto = texto.replace("**", "").replace("__", "")

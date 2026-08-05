@@ -194,7 +194,28 @@ def main():
     ap.add_argument("--max", type=int, default=0)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--desde", type=int, default=0)
+    ap.add_argument(
+        "--autorizar-gasto-usd",
+        type=float,
+        default=0.0,
+        help="Autorización EXPLÍCITA de gasto LLM en USD para esta corrida. "
+        "Sin este flag el presupuesto (app/services/llm_budget.py) corta el "
+        "proceso a ~25 llamadas / US$1 estimado.",
+    )
     args = ap.parse_args()
+
+    from app.services.llm_budget import autorizar_lote
+
+    if args.autorizar_gasto_usd > 0:
+        autorizar_lote(args.autorizar_gasto_usd, "simular_conversaciones_wa")
+        print(f"💸 Gasto autorizado para esta corrida: US${args.autorizar_gasto_usd:.2f}")
+    else:
+        print(
+            "⚠️ Corrida SIN autorización de gasto: el presupuesto LLM la cortará a "
+            "~25 llamadas / US$1 estimado. Referencia: la corrida completa del "
+            "31-jul-2026 (723 turnos, gemini-2.5-pro) costó del orden de US$10-25. "
+            "Para una corrida completa usa --autorizar-gasto-usd <monto>."
+        )
 
     core.configurar_ia(None)
     if not (core.cliente_gemini or core.cliente_ia):
@@ -227,7 +248,13 @@ def main():
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         list(ex.map(_worker, list(enumerate(guiones, start=args.desde))))
 
-    print(f"OK — resultados en {args.out} | alertas WA bloqueadas: {len(_wa_bloqueados)}")
+    from app.services.llm_budget import gasto_hoy
+
+    g = gasto_hoy()
+    print(
+        f"OK — resultados en {args.out} | alertas WA bloqueadas: {len(_wa_bloqueados)} | "
+        f"gasto LLM estimado hoy: US${g.get('gasto_usd', 0):.2f} ({g.get('llamadas', 0)} llamadas)"
+    )
 
 
 if __name__ == "__main__":

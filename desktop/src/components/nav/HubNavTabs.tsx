@@ -53,17 +53,17 @@ export default function HubNavTabs({
     setPanel(id);
   }
 
-  if (tabs.length <= 1) {
-    // Un solo subpanel: sin franja de pestañas (el título del hub basta).
+  if (!tabs.length) {
     return leading ? <div className="flex min-w-0 flex-1 items-center">{leading}</div> : null;
   }
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
-      {/* Fuera del scroll: con justify-end + overflow, el inicio del flex queda inaccesible. */}
+      {/* Fuera del scroll: herramientas siempre visibles. */}
       {leading ? <div className="shrink-0">{leading}</div> : null}
+      {/* justify-start: Facturación/Stock no se recortan (justify-end + overflow los escondía). */}
       <div
-        className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto"
+        className="flex min-w-0 flex-1 items-center justify-start gap-1 overflow-x-auto"
         role="tablist"
         aria-label={`Secciones de ${section?.label ?? sectionId}`}
       >

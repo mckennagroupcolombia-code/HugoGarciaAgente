@@ -39,11 +39,20 @@ fbq('track','PageView');
   src="https://www.facebook.com/tr?id={{ META_PIXEL_ID }}&ev=PageView&noscript=1"/></noscript>
 {% endif %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260714">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260714">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260804">
 {% if TEMA_ACTIVO == 'pureza' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260714">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260804">
+{% endif %}
 <style>
+  :root {
+    --studio-font-display: {{ DISENO_CSS.fuente_display | default("'Montserrat', system-ui, sans-serif") }};
+    --studio-radio-btn: {{ DISENO_CSS.radio_btn | default('999px') }};
+    --studio-section-y: {{ DISENO_CSS.section_y | default('72px') }};
+    --studio-hero-pad: {{ DISENO_CSS.hero_pad | default('84px 24px 64px') }};
+    --studio-card-radius: {{ DISENO_CSS.card_radius | default('16px') }};
+  }
+  {% if TEMA_ACTIVO == 'pureza' %}
   body.tema-pureza {
     --pz-acento:        {{ TW.colores.acento | default('#0c6069') }};
     --pz-acento-oscuro: {{ TW.colores.acento_oscuro | default('#04353b') }};
@@ -51,8 +60,8 @@ fbq('track','PageView');
     --pz-tinta:         {{ TW.colores.tinta | default('#1c2b2a') }};
     --pz-destacado:     {{ TW.colores.destacado | default('#b9862f') }};
   }
+  {% endif %}
 </style>
-{% endif %}
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 {% block head %}{% endblock %}
 {% block jsonld %}
@@ -92,7 +101,7 @@ fbq('track','PageView');
       <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group" class="site-logo-img">
       <div class="brand-text">
         MCKENNA GROUP S.A.S
-        <span>Proveemos a tus ideas</span>
+        <span>{{ DISENO_CSS.tagline | default('Proveemos a tus ideas') }}</span>
       </div>
     </a>
 

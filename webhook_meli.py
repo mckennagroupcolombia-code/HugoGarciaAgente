@@ -779,5 +779,7 @@ def proxy_well_known(path):
 
 if __name__ == "__main__":
     # Este corre en el 8080. El agente_pro corre en el 8081.
+    from app.services.llm_budget import marcar_proceso_servicio
+    marcar_proceso_servicio()  # exento del límite por-proceso; tope diario aplica
     print("🚀 Webhook MeLi escuchando en puerto 8080...")
     app.run(host="0.0.0.0", port=8080)

@@ -2,33 +2,44 @@
 {% block title %}McKenna Group — Materias Primas Puras y Trazables{% endblock %}
 {% block description %}Materias primas farmacéuticas y cosméticas con COA por lote, ficha técnica y trazabilidad completa. Importación legal VUCE/INVIMA. Despachos a todo Colombia.{% endblock %}
 
-{% block content %}
+{% macro nodo_style(nid) -%}
+{{ LAYOUT.estilos.get(nid, '') }}
+{%- endmacro %}
 
-<!-- ════════════════════════════════════════════════════════
-     HERO — tema Pureza & Trazabilidad
-════════════════════════════════════════════════════════ -->
-<section class="pz-hero">
+{% macro icono_nodo(nid, fallback) -%}
+{%- set n = LAYOUT.nodos.get(nid, {}) -%}
+{{- n.icono if n.icono else fallback -}}
+{%- endmacro %}
+
+{% block content %}
+<div class="pz-home-stack" style="display:flex;flex-direction:column;">
+
+{% for sec in LAYOUT.orden %}
+
+{% if sec == 'hero' %}
+<section class="pz-hero" style="order:{{ LAYOUT.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
   <div class="pz-hero-inner">
     <div class="pz-hero-copy">
-      <span class="pz-eyebrow">{{ TW.hero.eyebrow }}</span>
+      <span class="pz-eyebrow" style="{{ nodo_style('hero.eyebrow') }}">{{ TW.hero.eyebrow }}</span>
       <h1 class="pz-hero-title">
-        {{ TW.hero.titulo }} <em>{{ TW.hero.titulo_em }}</em>
+        <span style="{{ nodo_style('hero.titulo') }}">{{ TW.hero.titulo }}</span>
+        <em style="{{ nodo_style('hero.titulo_em') }}">{{ TW.hero.titulo_em }}</em>
       </h1>
-      <p class="pz-hero-sub">{{ TW.hero.subtitulo }}</p>
+      <p class="pz-hero-sub" style="{{ nodo_style('hero.subtitulo') }}">{{ TW.hero.subtitulo }}</p>
 
       <div class="pz-hero-cta">
-        <a href="{{ url_for('catalogo') }}" class="btn pz-btn-solid btn-lg">
+        <a href="{{ url_for('catalogo') }}" class="btn pz-btn-solid btn-lg" style="{{ nodo_style('hero.cta_principal') }}">
           <i class="ph ph-storefront"></i> {{ TW.hero.cta_principal }}
         </a>
         <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20asesor%C3%ADa%20t%C3%A9cnica"
-           target="_blank" rel="noopener" class="btn pz-btn-outline btn-lg">
+           target="_blank" rel="noopener" class="btn pz-btn-outline btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
           <i class="ph ph-whatsapp-logo"></i> {{ TW.hero.cta_secundario }}
         </a>
       </div>
 
       <div class="pz-hero-chips">
         {% for b in TW.badges_producto %}
-        <span class="pz-chip"><i class="ph ph-seal-check"></i> {{ b }}</span>
+        <span class="pz-chip" style="{{ nodo_style('badge.' ~ loop.index0) }}"><i class="ph ph-seal-check"></i> {{ b }}</span>
         {% endfor %}
         <span class="pz-chip"><i class="ph ph-scales"></i> Res. 2674/2013</span>
       </div>
@@ -37,7 +48,7 @@
     <div class="pz-hero-doc" aria-hidden="true">
       <div class="pz-doc-card">
         <div class="pz-doc-head">
-          <i class="ph ph-flask"></i>
+          <i class="ph ph-{{ icono_nodo('hero.doc.icon', 'flask') }}" style="{{ nodo_style('hero.doc.icon') }}"></i>
           <div>
             <div class="pz-doc-title">Certificado de Análisis</div>
             <div class="pz-doc-sub">COA · emitido por laboratorio</div>
@@ -52,61 +63,60 @@
     </div>
   </div>
 </section>
+{% endif %}
 
-{% if TW.secciones.metricas %}
-<!-- MÉTRICAS DE CONFIANZA -->
-<div class="pz-metrics">
+{% if sec == 'metricas' and TW.secciones.metricas %}
+<div class="pz-metrics" style="order:{{ LAYOUT.orden_map.metricas | default(1) }};{{ nodo_style('metricas') }}">
   {% for m in TW.metricas %}
   <div class="pz-metric reveal reveal-delay-{{ loop.index0 % 4 }}">
-    <div class="pz-metric-val">{{ m.valor }}</div>
-    <div class="pz-metric-label">{{ m.etiqueta }}</div>
+    <div class="pz-metric-val" style="{{ nodo_style('metricas.' ~ loop.index0 ~ '.valor') }}">{{ m.valor }}</div>
+    <div class="pz-metric-label" style="{{ nodo_style('metricas.' ~ loop.index0 ~ '.etiqueta') }}">{{ m.etiqueta }}</div>
   </div>
   {% endfor %}
 </div>
 {% endif %}
 
-{% if TW.secciones.trazabilidad %}
-<!-- ════════════════════════════════════════════════════════
-     RUTA DE TRAZABILIDAD
-════════════════════════════════════════════════════════ -->
-<section class="pz-section">
+{% if sec == 'trazabilidad' and TW.secciones.trazabilidad %}
+<section class="pz-section" style="order:{{ LAYOUT.orden_map.trazabilidad | default(2) }};{{ nodo_style('trazabilidad') }}">
   <div class="pz-section-head reveal">
-    <span class="pz-eyebrow">{{ TW.trazabilidad.eyebrow }}</span>
-    <h2 class="pz-title">{{ TW.trazabilidad.titulo }}</h2>
-    <p class="pz-lead">{{ TW.trazabilidad.texto }}</p>
+    <span class="pz-eyebrow" style="{{ nodo_style('trazabilidad.eyebrow') }}">{{ TW.trazabilidad.eyebrow }}</span>
+    <h2 class="pz-title" style="{{ nodo_style('trazabilidad.titulo') }}">{{ TW.trazabilidad.titulo }}</h2>
+    <p class="pz-lead" style="{{ nodo_style('trazabilidad.texto') }}">{{ TW.trazabilidad.texto }}</p>
   </div>
 
   <ol class="pz-route">
     {% for paso in TW.trazabilidad.pasos %}
     <li class="pz-route-step reveal reveal-delay-{{ loop.index0 % 5 }}">
-      <div class="pz-route-icon"><i class="ph ph-{{ paso.icono | default('circle') }}"></i></div>
+      <div class="pz-route-icon" style="{{ nodo_style('trazabilidad.paso.' ~ loop.index0 ~ '.icono') }}">
+        <i class="ph ph-{{ icono_nodo('trazabilidad.paso.' ~ loop.index0 ~ '.icono', paso.icono | default('circle')) }}"></i>
+      </div>
       <div class="pz-route-num">{{ '%02d' | format(loop.index) }}</div>
-      <h3>{{ paso.titulo }}</h3>
-      <p>{{ paso.texto }}</p>
+      <h3 style="{{ nodo_style('trazabilidad.paso.' ~ loop.index0 ~ '.titulo') }}">{{ paso.titulo }}</h3>
+      <p style="{{ nodo_style('trazabilidad.paso.' ~ loop.index0 ~ '.texto') }}">{{ paso.texto }}</p>
     </li>
     {% endfor %}
   </ol>
 </section>
 {% endif %}
 
-{% if TW.secciones.pilares %}
-<!-- PILARES -->
-<section class="pz-section pz-section-alt">
+{% if sec == 'pilares' and TW.secciones.pilares %}
+<section class="pz-section pz-section-alt" style="order:{{ LAYOUT.orden_map.pilares | default(3) }};{{ nodo_style('pilares') }}">
   <div class="pz-pillars">
     {% for pilar in TW.pilares %}
     <div class="pz-pillar reveal reveal-delay-{{ loop.index0 % 3 }}">
-      <div class="pz-pillar-icon"><i class="ph ph-{{ pilar.icono | default('star') }}"></i></div>
-      <h3>{{ pilar.titulo }}</h3>
-      <p>{{ pilar.texto }}</p>
+      <div class="pz-pillar-icon" style="{{ nodo_style('pilares.' ~ loop.index0 ~ '.icono') }}">
+        <i class="ph ph-{{ icono_nodo('pilares.' ~ loop.index0 ~ '.icono', pilar.icono | default('star')) }}"></i>
+      </div>
+      <h3 style="{{ nodo_style('pilares.' ~ loop.index0 ~ '.titulo') }}">{{ pilar.titulo }}</h3>
+      <p style="{{ nodo_style('pilares.' ~ loop.index0 ~ '.texto') }}">{{ pilar.texto }}</p>
     </div>
     {% endfor %}
   </div>
 </section>
 {% endif %}
 
-{% if TW.secciones.categorias %}
-<!-- CATEGORÍAS -->
-<section class="pz-section">
+{% if sec == 'categorias' and TW.secciones.categorias %}
+<section class="pz-section" style="order:{{ LAYOUT.orden_map.categorias | default(4) }};{{ nodo_style('categorias') }}">
   <div class="pz-section-head reveal">
     <span class="pz-eyebrow">Portafolio</span>
     <h2 class="pz-title">Explora por categoría</h2>
@@ -123,9 +133,8 @@
 </section>
 {% endif %}
 
-{% if TW.secciones.destacados %}
-<!-- DESTACADOS -->
-<section class="pz-section pz-section-alt">
+{% if sec == 'destacados' and TW.secciones.destacados %}
+<section class="pz-section pz-section-alt" style="order:{{ LAYOUT.orden_map.destacados | default(5) }};{{ nodo_style('destacados') }}">
   <div class="pz-section-head reveal">
     <span class="pz-eyebrow">Selección</span>
     <h2 class="pz-title">Productos destacados</h2>
@@ -191,15 +200,14 @@
 </section>
 {% endif %}
 
-{% if TW.secciones.cta %}
-<!-- CTA FINAL -->
-<section class="pz-cta-band">
+{% if sec == 'cta' and TW.secciones.cta %}
+<section class="pz-cta-band" style="order:{{ LAYOUT.orden_map.cta | default(6) }};{{ nodo_style('cta') }}">
   <div class="pz-cta-inner reveal">
-    <h2>{{ TW.cta.titulo }}</h2>
-    <p>{{ TW.cta.texto }}</p>
+    <h2 style="{{ nodo_style('cta.titulo') }}">{{ TW.cta.titulo }}</h2>
+    <p style="{{ nodo_style('cta.texto') }}">{{ TW.cta.texto }}</p>
     <div class="pz-hero-cta" style="justify-content:center;">
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
-         target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+         target="_blank" rel="noopener" class="btn btn-wa btn-lg" style="{{ nodo_style('cta.boton') }}">
         <i class="ph ph-whatsapp-logo"></i> {{ TW.cta.boton }}
       </a>
       <a href="{{ url_for('contacto') }}" class="btn pz-btn-outline btn-lg">Formulario de contacto</a>
@@ -208,4 +216,6 @@
 </section>
 {% endif %}
 
+{% endfor %}
+</div>
 {% endblock %}

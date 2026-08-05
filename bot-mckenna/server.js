@@ -1257,6 +1257,13 @@ app.get('/monitor', (req, res) => {
     <thead><tr><th>Hora</th><th>Tipo</th><th>Número</th><th>Mensaje</th></tr></thead>
     <tbody>${filas || '<tr><td colspan="4" style="padding:24px;color:#555;text-align:center">Sin actividad registrada aún</td></tr>'}</tbody>
   </table>
+  <h2 style="font-size:14px;color:#888;margin:28px 0 8px">💸 Costos IA vía API (Gemini / Claude)</h2>
+  <p class="meta" id="cmeta" style="margin-top:0">Cargando costos…</p>
+  <div id="ctarjetas" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"></div>
+  <table>
+    <thead><tr><th>Día</th><th>Gasto (USD)</th><th>Llamadas</th><th>Por canal</th></tr></thead>
+    <tbody id="ctb"><tr><td colspan="4" style="padding:16px;color:#555">…</td></tr></tbody>
+  </table>
   <h2 style="font-size:14px;color:#888;margin:28px 0 8px">Grupos (sesión WhatsApp actual)</h2>
   <p class="meta" id="gmeta" style="margin-top:0">Cargando lista de grupos…</p>
   <table>
@@ -1267,6 +1274,35 @@ app.get('/monitor', (req, res) => {
 <script>
 (function(){
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function usd(v){ return 'US$' + Number(v||0).toFixed(2); }
+  var ctb=document.getElementById('ctb'), cmeta=document.getElementById('cmeta'), ctar=document.getElementById('ctarjetas');
+  function tarjeta(titulo, valor, sub){
+    return '<div style="background:#181818;border:1px solid #2a2a2a;border-radius:8px;padding:12px 16px;min-width:150px">'
+      + '<div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px">'+esc(titulo)+'</div>'
+      + '<div style="font-size:22px;font-weight:700;color:#4DB3A0;margin:4px 0">'+esc(valor)+'</div>'
+      + '<div style="font-size:11px;color:#888">'+esc(sub||'')+'</div></div>';
+  }
+  fetch('/costos-ia',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+    if(j.error){ cmeta.textContent='⚠️ '+j.error; ctb.innerHTML=''; return; }
+    var hoy=j.hoy||{}, sem=j.semana||{}, lim=j.limites||{};
+    cmeta.textContent='Semana '+(sem.desde||'?')+' → '+(sem.hasta||'?')
+      +' · Alerta diaria: '+usd(lim.alerta_diaria_usd)+' · Bloqueo: '+usd(lim.tope_diario_usd)
+      +' · Resumen semanal al grupo de sistemas los lunes';
+    ctar.innerHTML =
+      tarjeta('Hoy', usd(hoy.gasto_usd), (hoy.llamadas||0)+' llamadas') +
+      tarjeta('Semana (7 días)', usd(sem.total_usd), (sem.llamadas||0)+' llamadas') +
+      tarjeta('Promedio / día', usd(sem.promedio_dia_usd), 'últimos 7 días');
+    var dias=(j.historial_30d||[]).slice(-10).reverse();
+    ctb.innerHTML = dias.map(function(d){
+      var pc = d.por_contexto||{};
+      var canales = Object.keys(pc).sort(function(a,b){ return pc[b]-pc[a]; })
+        .map(function(k){ return esc(k)+': '+usd(pc[k]); }).join(' · ');
+      return '<tr><td style="padding:8px">'+esc(d.fecha)+'</td>'
+        + '<td style="padding:8px;font-weight:700;color:'+((d.gasto_usd||0)>=(lim.alerta_diaria_usd||1)?'#f59e0b':'#e5e5e5')+'">'+usd(d.gasto_usd)+'</td>'
+        + '<td style="padding:8px">'+(d.llamadas||0)+'</td>'
+        + '<td style="padding:8px;font-size:12px;color:#aaa">'+(canales||'—')+'</td></tr>';
+    }).join('') || '<tr><td colspan="4" style="padding:12px;color:#555">Sin llamadas registradas aún</td></tr>';
+  }).catch(function(e){ cmeta.textContent='⚠️ '+e; ctb.innerHTML=''; });
   var gtb=document.getElementById('gtb'), gmeta=document.getElementById('gmeta');
   fetch('/grupos',{cache:'no-store'}).then(function(r){ return r.json().then(function(j){ return {r:r,j:j}; }); }).then(function(x){
     var r=x.r, j=x.j;
@@ -1288,6 +1324,21 @@ app.get('/monitor', (req, res) => {
 </script>
 </body>
 </html>`);
+});
+
+// ==========================================
+// ENDPOINT: Costos IA vía API (proxy al Flask :8081)
+// El presupuesto vive en Python (app/services/llm_budget.py); aquí solo
+// lo re-exponemos para que el monitor (puerto 3000) lo muestre sin CORS.
+// ==========================================
+app.get('/costos-ia', async (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    try {
+        const r = await axios.get('http://127.0.0.1:8081/api/costos-ia', { timeout: 8000 });
+        res.json(r.data);
+    } catch (e) {
+        res.status(502).json({ error: 'No se pudo consultar /api/costos-ia en :8081', detalle: String(e.message || e) });
+    }
 });
 
 // ==========================================

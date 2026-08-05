@@ -837,16 +837,191 @@ def sincronizar_inteligente():
         return f"❌ Error crítico en Sync Inteligente: {e}"
 
 
+_VENTAS_CACHE_PATH = os.path.join(
+    os.path.dirname(__file__), "data", "meli_ventas_30d_cache.json"
+)
+_VENTAS_CACHE_TTL_S = 30 * 60
+
+
+def obtener_ventas_meli_por_item(dias: int = 30, refresh: bool = False) -> dict:
+    """
+    Agrega ventas pagadas de MeLi por item_id (MCO…) en los últimos `dias`.
+
+    Retorna:
+      {
+        "dias": 30,
+        "actualizado_en": "...",
+        "fuente": "cache"|"live",
+        "ordenes": N,
+        "por_item": {
+          "MCOxxx": {
+            "unidades": int,
+            "ordenes": int,
+            "monto": float,
+            "ritmo_diario": float,
+            "nivel": "sin_ventas"|"baja"|"media"|"alta",
+          }
+        }
+      }
+    """
+    dias = max(1, min(int(dias or 30), 90))
+    now = datetime.now()
+    if not refresh and os.path.isfile(_VENTAS_CACHE_PATH):
+        try:
+            with open(_VENTAS_CACHE_PATH, encoding="utf-8") as f:
+                cached = json.load(f)
+            ts = float(cached.get("ts") or 0)
+            if (
+                cached.get("version") == 1
+                and cached.get("dias") == dias
+                and (now.timestamp() - ts) < _VENTAS_CACHE_TTL_S
+                and isinstance(cached.get("por_item"), dict)
+            ):
+                return {
+                    "dias": dias,
+                    "actualizado_en": cached.get("actualizado_en"),
+                    "fuente": "cache",
+                    "ordenes": int(cached.get("ordenes") or 0),
+                    "por_item": cached["por_item"],
+                    "cache_ttl_s": _VENTAS_CACHE_TTL_S,
+                }
+        except Exception:
+            pass
+
+    token = refrescar_token_meli()
+    if not token:
+        raise RuntimeError("Token de Mercado Libre no disponible.")
+
+    headers = {"Authorization": f"Bearer {token}"}
+    me = requests.get(
+        "https://api.mercadolibre.com/users/me", headers=headers, timeout=20
+    ).json()
+    seller_id = me.get("id")
+    if not seller_id:
+        raise RuntimeError("No se pudo obtener seller_id de MeLi.")
+
+    # Colombia UTC-5
+    fecha_desde = (now - timedelta(days=dias)).strftime("%Y-%m-%dT00:00:00.000-05:00")
+    por_item: dict[str, dict[str, Any]] = {}
+    ordenes_contadas = 0
+    offset, limit = 0, 50
+
+    while True:
+        url = (
+            f"https://api.mercadolibre.com/orders/search?seller={seller_id}"
+            f"&order.date_created.from={fecha_desde}"
+            f"&sort=date_desc&limit={limit}&offset={offset}"
+        )
+        r = requests.get(url, headers=headers, timeout=40)
+        if r.status_code >= 400:
+            raise RuntimeError(
+                f"MeLi orders/search HTTP {r.status_code}: {(r.text or '')[:240]}"
+            )
+        data = r.json() or {}
+        results = data.get("results") or []
+        for ord_ in results:
+            status = (ord_.get("status") or "").lower()
+            # Solo ventas cobradas / confirmadas (no canceladas)
+            if status not in ("paid", "partially_paid", "confirmed"):
+                continue
+            ordenes_contadas += 1
+            for oi in ord_.get("order_items") or []:
+                item = oi.get("item") or {}
+                mid = str(item.get("id") or "").strip().upper()
+                if not mid.startswith("MCO"):
+                    continue
+                qty = int(oi.get("quantity") or 0)
+                if qty <= 0:
+                    continue
+                unit = float(
+                    oi.get("full_unit_price")
+                    or oi.get("unit_price")
+                    or 0
+                )
+                slot = por_item.setdefault(
+                    mid,
+                    {"unidades": 0, "ordenes": 0, "monto": 0.0, "_oids": set()},
+                )
+                slot["unidades"] += qty
+                slot["monto"] = round(slot["monto"] + unit * qty, 2)
+                oid = str(ord_.get("id") or "")
+                if oid and oid not in slot["_oids"]:
+                    slot["_oids"].add(oid)
+                    slot["ordenes"] += 1
+
+        paging = data.get("paging") or {}
+        total = int(paging.get("total") or 0)
+        offset += limit
+        if offset >= total or not results:
+            break
+        if offset > 2000:  # safety
+            break
+
+    out_items: dict[str, dict] = {}
+    for mid, slot in por_item.items():
+        uds = int(slot["unidades"])
+        ritmo = round(uds / float(dias), 2)
+        if uds <= 0:
+            nivel = "sin_ventas"
+        elif uds <= 2:
+            nivel = "baja"
+        elif uds <= 10:
+            nivel = "media"
+        else:
+            nivel = "alta"
+        out_items[mid] = {
+            "unidades": uds,
+            "ordenes": int(slot["ordenes"]),
+            "monto": float(slot["monto"]),
+            "ritmo_diario": ritmo,
+            "nivel": nivel,
+        }
+
+    actualizado_en = now.strftime("%Y-%m-%dT%H:%M:%S")
+    try:
+        os.makedirs(os.path.dirname(_VENTAS_CACHE_PATH), exist_ok=True)
+        with open(_VENTAS_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "version": 1,
+                    "ts": now.timestamp(),
+                    "dias": dias,
+                    "actualizado_en": actualizado_en,
+                    "ordenes": ordenes_contadas,
+                    "por_item": out_items,
+                },
+                f,
+                ensure_ascii=False,
+            )
+    except Exception as e:
+        print(f"⚠️ [ventas-30d] No se pudo guardar caché: {e}")
+
+    return {
+        "dias": dias,
+        "actualizado_en": actualizado_en,
+        "fuente": "live",
+        "ordenes": ordenes_contadas,
+        "por_item": out_items,
+        "cache_ttl_s": _VENTAS_CACHE_TTL_S,
+    }
+
+
 def obtener_estado_stock_meli() -> list[dict]:
     """
     Lee Google Sheets (col A=meli_id, B=sku, D=nombre) y consulta el stock EN VIVO
     en Mercado Libre para cada producto. Solo lectura — no escribe en Sheets ni notifica.
     Retorna lista de {meli_id, sku, nombre, stock, fila}. `fila` sirve para escribir de
     vuelta en la Hoja 1 (columna F) si algún llamador lo necesita.
+
+    Omite publicaciones ``closed`` / ``inactive`` (ya no operables en MeLi).
+    Conserva ``paused`` / ``under_review`` (pueden reactivarse).
     """
     token = refrescar_token_meli()
     if not token:
         raise RuntimeError("Token de Mercado Libre no disponible.")
+
+    # Estados que MeLi no deja volver a operar (SKU/stock bloqueados de forma práctica).
+    _NO_OPERABLES = frozenset({"closed", "inactive"})
 
     gc = gspread.service_account(filename=GOOGLE_CREDS_PATH)
     sh = gc.open_by_key(SPREADSHEET_ID)
@@ -871,6 +1046,7 @@ def obtener_estado_stock_meli() -> list[dict]:
 
     headers = {"Authorization": f"Bearer {token}"}
     items = []
+    omitidas_cerradas = 0
     for i in range(0, len(ml_ids), 20):
         lote = ml_ids[i : i + 20]
         res = requests.get(
@@ -882,6 +1058,10 @@ def obtener_estado_stock_meli() -> list[dict]:
                 continue
             item = r["body"]
             ml_id = item.get("id")
+            estado = (item.get("status") or "").strip().lower()
+            if estado in _NO_OPERABLES:
+                omitidas_cerradas += 1
+                continue
             stock = (
                 sum(
                     v.get("available_quantity", 0)
@@ -891,9 +1071,26 @@ def obtener_estado_stock_meli() -> list[dict]:
                 else item.get("available_quantity", 0)
             )
             es_full = (item.get("shipping") or {}).get("logistic_type") == "fulfillment"
+            # SKU vivo en MeLi: SELLER_SKU primero (oficial), luego custom_field / variaciones
+            sku_meli_vivo = ""
+            for a in item.get("attributes") or []:
+                if a.get("id") == "SELLER_SKU":
+                    sku_meli_vivo = (a.get("value_name") or "").strip()
+                    break
+            if not sku_meli_vivo:
+                sku_meli_vivo = (item.get("seller_custom_field") or "").strip()
+            if not sku_meli_vivo:
+                for v in item.get("variations") or []:
+                    for a in v.get("attributes") or []:
+                        if a.get("id") == "SELLER_SKU":
+                            sku_meli_vivo = (a.get("value_name") or "").strip()
+                            break
+                    if sku_meli_vivo:
+                        break
             items.append({
                 "meli_id": ml_id,
-                "sku": sku_map.get(ml_id, ""),
+                # Preferir SKU vivo de MeLi; Sheets solo si MeLi no trae código
+                "sku": (sku_meli_vivo or sku_map.get(ml_id, "")),
                 "nombre": nombre_map.get(ml_id, item.get("title")),
                 "stock": stock,
                 "fila": fila_map.get(ml_id),
@@ -901,7 +1098,14 @@ def obtener_estado_stock_meli() -> list[dict]:
                 "es_full": es_full,
                 "sync_bloqueado": item.get("status") != "active",
                 "permalink": item.get("permalink", ""),
+                "precio": item.get("price"),
+                "moneda": item.get("currency_id") or "COP",
             })
+    if omitidas_cerradas:
+        print(
+            f"ℹ️ [STOCK] Omitidas {omitidas_cerradas} publicaciones closed/inactive "
+            f"(ya no operables en MeLi)."
+        )
     return items
 
 

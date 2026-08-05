@@ -22,7 +22,7 @@ load_dotenv(ROOT / '.env')
 import site_auth
 from app.api_auth import normalize_api_token, bearer_token_from_request
 from app.web_chat_activity import record_interaction
-from app.tools.tema_web import cargar_tema_web
+from app.tools.tema_web import cargar_tema_web, resolver_diseno_css, resolver_layout_ctx
 from app.tools.stock_web import obtener_stock_web, set_stock_web
 
 from app.tools.web_pedidos import (
@@ -2254,6 +2254,9 @@ def _inject_tema_web():
     return {
         "TEMA_ACTIVO": tema_web_activo(),
         "TW": cfg.get("pureza", {}),
+        "DISENO": cfg.get("diseno", {}),
+        "DISENO_CSS": resolver_diseno_css(cfg),
+        "LAYOUT": resolver_layout_ctx(cfg),
         "TEMA_PREVIEW": session.get("vista_tema") or "",
     }
 

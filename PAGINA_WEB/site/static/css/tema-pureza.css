@@ -32,14 +32,14 @@ body.tema-pureza {
   color: var(--pz-tinta);
 }
 
-/* ── Tipografía display (Montserrat, misma familia que el sitio) ─ */
+/* ── Tipografía display (editable desde Studio vía --studio-font-display) ─ */
 body.tema-pureza h1,
 body.tema-pureza h2,
 body.tema-pureza .section-title,
 body.tema-pureza .cat-cta-title,
 body.tema-pureza .shop-header h1,
 body.tema-pureza .page-hero h1 {
-  font-family: var(--font-primary);
+  font-family: var(--studio-font-display, var(--font-primary));
   font-weight: 800;
   letter-spacing: -0.5px;
 }
@@ -69,12 +69,12 @@ body.tema-pureza .site-header.scrolled {
 body.tema-pureza .header-search input {
   background: var(--pz-fondo);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--studio-radio-btn, 999px);
 }
-body.tema-pureza .btn-wa-header { border-radius: 999px; }
+body.tema-pureza .btn-wa-header { border-radius: var(--studio-radio-btn, 999px); }
 
 /* ── Botones ─────────────────────────────────────────────── */
-body.tema-pureza .btn { border-radius: 999px; }
+body.tema-pureza .btn { border-radius: var(--studio-radio-btn, 999px); }
 body.tema-pureza .btn-primary,
 body.tema-pureza .btn-dark {
   background: var(--pz-acento);
@@ -104,7 +104,7 @@ body.tema-pureza .btn-dark:hover {
 body.tema-pureza .shop-card {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--studio-card-radius, 18px);
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(28,43,42,0.05);
   transition: transform .25s, box-shadow .25s;
@@ -117,7 +117,7 @@ body.tema-pureza .shop-card-img { background: #fdfcfa; }
 body.tema-pureza .shop-card-cat-label {
   background: rgba(255,255,255,0.92);
   color: var(--pz-acento);
-  border-radius: 999px;
+  border-radius: var(--studio-radio-btn, 999px);
   border: 1px solid var(--border);
 }
 .pz-card-trust {
@@ -148,7 +148,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
 }
 
 /* Hero */
-.pz-hero { padding: 84px 24px 64px; }
+.pz-hero { padding: var(--studio-hero-pad, 84px 24px 64px); }
 .pz-hero-inner {
   max-width: 1160px;
   margin: 0 auto;
@@ -178,7 +178,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   gap: 6px;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--studio-radio-btn, 999px);
   padding: 7px 14px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -243,7 +243,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
 .pz-metric {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--studio-card-radius, 16px);
   padding: 22px 18px;
   text-align: center;
 }
@@ -264,7 +264,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
 }
 
 /* Secciones */
-.pz-section { max-width: 1160px; margin: 0 auto; padding: 72px 24px; }
+.pz-section { max-width: 1160px; margin: 0 auto; padding: var(--studio-section-y, 72px) 24px; }
 .pz-section-alt {
   max-width: none;
   background: #fff;
@@ -288,7 +288,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   position: relative;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--studio-card-radius, 16px);
   padding: 26px 20px 22px;
 }
 .pz-route-step::after {

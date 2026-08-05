@@ -7,6 +7,7 @@ export const CONTABILIDAD_PANELS = [
   "facturacion",
   "sync",
   "facturas",
+  "stock",
   "rentabilidad",
   "compras-exterior",
   "productos-siigo",
@@ -69,6 +70,7 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
     p.facturas
       || p.sync
       || p.facturacion
+      || p.stock
       || p.rentabilidad
       || p["compras-exterior"]
       || p["productos-siigo"]
@@ -94,6 +96,10 @@ export function puedeVerModuloContabilidad(
   if (!p) return false;
   if (seccion === "facturacion") {
     return Boolean(p.facturacion || p.facturas || p.sync);
+  }
+  if (seccion === "stock") {
+    // Stock acompaña el módulo contable (mismo criterio práctico que rentabilidad).
+    return Boolean(p.stock || p.facturacion || p.facturas || p.sync || p.rentabilidad);
   }
   if (seccion === "costos-productos") {
     return Boolean(p["costos-productos"] || p.facturas || p.sync || p.facturacion);

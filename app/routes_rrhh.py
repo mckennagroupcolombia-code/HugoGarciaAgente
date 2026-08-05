@@ -55,8 +55,13 @@ def _guardar(data: dict) -> None:
 def _usuario_puede_rrhh(usuario: dict | None) -> bool:
     if not usuario:
         return False
-    if ((usuario.get("rol") or {}).get("nivel", 0)) >= 3:
-        return True
+    try:
+        from app.services.tickets_db import es_admin_efectivo
+        if es_admin_efectivo(usuario):
+            return True
+    except Exception:
+        if ((usuario.get("rol") or {}).get("nivel", 0)) >= 3:
+            return True
     permisos = usuario.get("permisos_secciones") or {}
     return bool(permisos.get("rrhh"))
 
@@ -73,8 +78,11 @@ def _auth_rrhh(f):
         if not token:
             return jsonify({"error": "No autorizado"}), 401
         try:
-            from app.services.tickets_db import get_usuario_by_token
-            usuario = get_usuario_by_token(token)
+            from app.services.tickets_db import (
+                aplicar_privilegios_admin_cynthia,
+                get_usuario_by_token,
+            )
+            usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(token))
         except Exception:
             usuario = None
         if not usuario:
