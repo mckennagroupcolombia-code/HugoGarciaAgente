@@ -272,7 +272,9 @@ def _auth(f):
         usuario = get_usuario_by_token(token)
         if not usuario:
             return jsonify({"error": "Sesión inválida o expirada"}), 401
-        request.tickets_usuario = usuario
+        from app.services.tickets_db import aplicar_privilegios_admin_cynthia
+
+        request.tickets_usuario = aplicar_privilegios_admin_cynthia(usuario)
         return f(*args, **kwargs)
     return wrapper
 
@@ -309,6 +311,13 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/auth/login", methods=["POST"])
     def tickets_login():
+        import os as _os
+
+        from app.services.tickets_db import (
+            aplicar_privilegios_admin_cynthia,
+            es_admin_efectivo,
+        )
+
         data = request.get_json(force=True) or {}
         username = (data.get("username") or "").strip()
         password = data.get("password") or ""
@@ -317,6 +326,11 @@ def register_tickets_routes(app):
         result, err = login_usuario(username, password)
         if err:
             return jsonify({"error": err}), 401
+        usuario = aplicar_privilegios_admin_cynthia(result.get("usuario"))
+        if usuario is not None:
+            result = {**result, "usuario": usuario}
+            if es_admin_efectivo(usuario):
+                usuario["api_token"] = _os.environ.get("CHAT_API_TOKEN", "")
         return jsonify(result), 200
 
     # ── Google OAuth ─────────────────────────────────────────────────────────
@@ -461,8 +475,11 @@ def register_tickets_routes(app):
     @_auth
     def tickets_me():
         import os as _os
+
+        from app.services.tickets_db import es_admin_efectivo
+
         u = dict(request.tickets_usuario)
-        if (u.get("rol") or {}).get("nivel", 0) >= 3:
+        if es_admin_efectivo(u):
             u["api_token"] = _os.environ.get("CHAT_API_TOKEN", "")
         return jsonify(u), 200
 

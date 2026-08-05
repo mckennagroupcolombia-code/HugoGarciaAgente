@@ -2356,11 +2356,27 @@ def _responder_con_gemini_primario(
         modelo_gemini = (modelo_id or _gemini_modelo_chat).strip()
         if not modelo_gemini.startswith("gemini-"):
             modelo_gemini = _gemini_modelo_chat
+
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        ok_budget, motivo_budget = permitir_llamada(modelo_gemini, contexto="chat_primario")
+        if not ok_budget:
+            _log_error(f"GeminiBudget usuario={usuario_id}", RuntimeError(motivo_budget))
+            return None
         resp = cliente_gemini.models.generate_content(
             model=modelo_gemini,
             contents=prompt,
         )
         txt = (getattr(resp, "text", "") or "").strip()
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo_gemini,
+            tokens_in=t_in,
+            tokens_out=t_out,
+            contexto="chat_primario",
+            chars_prompt=len(prompt),
+            chars_respuesta=len(txt),
+        )
         return txt or None
     except Exception as e:
         _log_error(f"GeminiError usuario={usuario_id} msg='{(pregunta or '')[:80]}'", e)

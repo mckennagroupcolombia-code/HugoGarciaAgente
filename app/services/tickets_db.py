@@ -5128,6 +5128,31 @@ def es_cynthia_etiquetas(usuario: dict | None) -> bool:
     return email in _CYNTHIA_ETIQUETAS_EMAILS
 
 
+def es_admin_efectivo(usuario: dict | None) -> bool:
+    """Admin real (nivel >= 3) o Cynthia con privilegios de administrador en el panel."""
+    if not usuario:
+        return False
+    if ((usuario.get("rol") or {}).get("nivel", 0)) >= 3:
+        return True
+    return es_cynthia_etiquetas(usuario)
+
+
+def aplicar_privilegios_admin_cynthia(usuario: dict | None) -> dict | None:
+    """Copia del usuario con rol.nivel=3 si es Cynthia (menú/API como administrador)."""
+    if not usuario or not es_cynthia_etiquetas(usuario):
+        return usuario
+    u = dict(usuario)
+    rol = dict(u.get("rol") or {})
+    if int(rol.get("nivel") or 0) < 3:
+        rol["nivel"] = 3
+        if not rol.get("id"):
+            rol["id"] = rol.get("id") or 0
+        if not (rol.get("nombre") or "").strip():
+            rol["nombre"] = "Administrador"
+        u["rol"] = rol
+    return u
+
+
 def puede_ver_studio_visual(usuario: dict | None) -> bool:
     """Alias histórico; misma regla que es_cynthia_etiquetas."""
     return es_cynthia_etiquetas(usuario)

@@ -1716,6 +1716,36 @@
       "pregunta": "Como dice que es natural y sin refinar",
       "timestamp": "2026-08-03T21:18:28.696485",
       "respondida": true
+    },
+    {
+      "question_id": "13634957372",
+      "titulo_producto": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+      "pregunta": "Hola Me puede indicar con cual producto lo puedo disolver ?",
+      "timestamp": "2026-08-04T08:34:55.288161",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro.\n\nNuestro Ácido Láctico es una suspensión acuosa altamente concentrada, por lo que la recomendación es diluirlo con agua u otros ingredientes adecuados antes de aplicarlo en la piel.\n\nEs muy importante que siempre lo diluya, ya que su pureza es del 85%. Le sugerimos iniciar con una concentración baja, entre el 1% y 5%, y realizar siempre una prueba de parche en una zona pequeña para evaluar la sensibilidad de su piel antes de cualquier uso.\n\nQuedo atento a cualquier otra inquietud que tenga. ¡Feliz día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-04"
+    },
+    {
+      "question_id": "13635223470",
+      "titulo_producto": "Cera De Abejas Amarilla Refinada X 1 Kg ",
+      "pregunta": "Buenas tardes esta mañana compré una cera entonces para saber cuándo me llega",
+      "timestamp": "2026-08-04T12:55:41.615663",
+      "respondida": true
+    },
+    {
+      "question_id": "13634394111",
+      "titulo_producto": "Cera De Abejas Amarilla Refinada X 1 Kg ",
+      "pregunta": "Ah bueno gracias, es que no me aparece la compra registrada pero yo la hice esta madrugada y el pedido llega hoy a la dirección?",
+      "timestamp": "2026-08-04T13:00:37.445063",
+      "respondida": true
+    },
+    {
+      "question_id": "13634396367",
+      "titulo_producto": "Cera De Abejas Amarilla Refinada X 1 Kg ",
+      "pregunta": "Sí ya me salió muchas gracias",
+      "timestamp": "2026-08-04T13:03:40.901126",
+      "respondida": true
     }
   ]
 }

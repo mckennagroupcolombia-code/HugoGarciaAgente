@@ -1,13 +1,31 @@
 {
   "tema_activo": "clasico",
-  "actualizado": "2026-07-13T01:20:38",
+  "actualizado": "2026-08-04T12:42:08",
+  "diseno": {
+    "fuente_display": "montserrat",
+    "radio": "sharp",
+    "densidad": "normal",
+    "tagline": "Proveemos a tus ideas"
+  },
+  "layout": {
+    "orden": [
+      "hero",
+      "metricas",
+      "trazabilidad",
+      "pilares",
+      "categorias",
+      "destacados",
+      "cta"
+    ],
+    "nodos": {}
+  },
   "pureza": {
     "colores": {
       "acento": "#0c6069",
       "acento_oscuro": "#04353b",
       "fondo": "#f8f6f1",
       "tinta": "#1c2b2a",
-      "destacado": "#b9862f"
+      "destacado": "#02a2a8"
     },
     "anuncio": "Pureza verificada por lote · COA + ficha técnica en cada despacho · Bogotá, Colombia",
     "hero": {
@@ -20,20 +38,20 @@
     },
     "metricas": [
       {
-        "valor": "+200",
-        "etiqueta": "referencias en stock"
+        "etiqueta": "referencias en stock",
+        "valor": "+200"
       },
       {
-        "valor": "100%",
-        "etiqueta": "lotes con COA"
+        "etiqueta": "lotes con COA",
+        "valor": "100%"
       },
       {
-        "valor": "15",
-        "etiqueta": "años en la industria"
+        "etiqueta": "años en la industria",
+        "valor": "15"
       },
       {
-        "valor": "48 h",
-        "etiqueta": "despacho nacional"
+        "etiqueta": "despacho nacional",
+        "valor": "48 h"
       }
     ],
     "trazabilidad": {
@@ -42,47 +60,47 @@
       "texto": "No vendemos ingredientes anónimos: cada producto conserva su identidad de origen a destino. Esta es la ruta que garantiza pureza y legalidad en cada envase.",
       "pasos": [
         {
-          "titulo": "Origen certificado",
+          "icono": "globe-hemisphere-west",
           "texto": "Fabricantes auditados con estándares farmacéuticos y cosméticos internacionales.",
-          "icono": "globe-hemisphere-west"
+          "titulo": "Origen certificado"
         },
         {
-          "titulo": "Importación legal",
+          "icono": "shield-check",
           "texto": "Ingreso al país con Visto Bueno de Importación (VUCE) e INVIMA. Sin atajos.",
-          "icono": "shield-check"
+          "titulo": "Importación legal"
         },
         {
-          "titulo": "Control de calidad",
+          "icono": "flask",
           "texto": "Certificado de Análisis (COA) de laboratorio por cada lote que entra a bodega.",
-          "icono": "flask"
+          "titulo": "Control de calidad"
         },
         {
-          "titulo": "Reenvase trazable",
+          "icono": "package",
           "texto": "Reenvasado bajo Res. 2674/2013 con etiqueta que conserva lote, CAS y concentración.",
-          "icono": "package"
+          "titulo": "Reenvase trazable"
         },
         {
-          "titulo": "Entrega documentada",
+          "icono": "truck",
           "texto": "Tu pedido viaja con ficha técnica descargable y soporte técnico de formulación.",
-          "icono": "truck"
+          "titulo": "Entrega documentada"
         }
       ]
     },
     "pilares": [
       {
-        "titulo": "Pureza verificada",
+        "icono": "seal-check",
         "texto": "Concentración y número CAS declarados en cada etiqueta, respaldados por el COA del lote.",
-        "icono": "seal-check"
+        "titulo": "Pureza verificada"
       },
       {
-        "titulo": "Trazabilidad total",
+        "icono": "path",
         "texto": "Del fabricante a tu formulación: lote, origen y documentos disponibles en todo momento.",
-        "icono": "path"
+        "titulo": "Trazabilidad total"
       },
       {
-        "titulo": "Acompañamiento técnico",
+        "icono": "chats-circle",
         "texto": "Asesoría real de formulación por WhatsApp, sin costo, antes y después de tu compra.",
-        "icono": "chats-circle"
+        "titulo": "Acompañamiento técnico"
       }
     ],
     "badges_producto": [

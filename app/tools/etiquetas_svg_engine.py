@@ -594,25 +594,29 @@ _PLACEHOLDER_LOTE = "___________"
 def _con_prefijo_lote(val: str) -> str:
     v = (val or "").strip()
     if not v:
-        return _LOTE_PREFIJO + _PLACEHOLDER_LOTE
+        return _LOTE_PREFIJO + " " + _PLACEHOLDER_LOTE
     vu = v.upper()
     if vu.startswith(_LOTE_PREFIJO):
-        return v
-    if vu.startswith("LOT"):
-        return _LOTE_PREFIJO + v[3:].lstrip(". ")
-    return f"{_LOTE_PREFIJO} {v}"
+        resto = v[len(_LOTE_PREFIJO):].lstrip(". ").strip()
+    elif vu.startswith("LOT"):
+        resto = v[3:].lstrip(". ").strip()
+    else:
+        resto = v
+    return f"{_LOTE_PREFIJO} {resto}" if resto else _LOTE_PREFIJO + " " + _PLACEHOLDER_LOTE
 
 
 def _con_prefijo_exp(val: str) -> str:
     v = (val or "").strip()
     if not v:
-        return _EXP_PREFIJO + _PLACEHOLDER_LOTE
+        return _EXP_PREFIJO + " " + _PLACEHOLDER_LOTE
     vu = v.upper()
     if vu.startswith(_EXP_PREFIJO):
-        return v
-    if vu.startswith("EXP"):
-        return _EXP_PREFIJO + v[3:].lstrip(". ")
-    return f"{_EXP_PREFIJO} {v}"
+        resto = v[len(_EXP_PREFIJO):].lstrip(". ").strip()
+    elif vu.startswith("EXP"):
+        resto = v[3:].lstrip(". ").strip()
+    else:
+        resto = v
+    return f"{_EXP_PREFIJO} {resto}" if resto else _EXP_PREFIJO + " " + _PLACEHOLDER_LOTE
 
 
 def _lineas_lote_vencimiento(datos: dict) -> list[str]:

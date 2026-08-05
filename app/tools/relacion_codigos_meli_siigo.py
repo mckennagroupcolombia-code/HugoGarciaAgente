@@ -22,12 +22,21 @@ _CACHE_JSON_WEB = _REPO / "PAGINA_WEB" / "site" / "data" / "cache.json"
 
 
 def _sku_desde_item_meli(body: dict) -> str:
+    """SKU oficial: atributo SELLER_SKU (MeLi), luego custom_field, luego variaciones."""
+    for a in body.get("attributes") or []:
+        if a.get("id") == "SELLER_SKU":
+            val = (a.get("value_name") or "").strip()
+            if val:
+                return val
     sku = (body.get("seller_custom_field") or "").strip()
     if sku:
         return sku
-    for a in body.get("attributes") or []:
-        if a.get("id") == "SELLER_SKU":
-            return (a.get("value_name") or "").strip()
+    for v in body.get("variations") or []:
+        for a in v.get("attributes") or []:
+            if a.get("id") == "SELLER_SKU":
+                val = (a.get("value_name") or "").strip()
+                if val:
+                    return val
     return ""
 
 
@@ -201,7 +210,7 @@ def listar_relacion_codigos_meli_siigo(
 
     if (
         not refresh
-        and cache.get("version") == 1
+        and cache.get("version") == 2
         and (now - float(cache.get("ts") or 0)) < _CACHE_TTL_S
         and isinstance(cache.get("items"), list)
     ):
@@ -281,11 +290,15 @@ def listar_relacion_codigos_meli_siigo(
                     "tiene_override": mid in meli_to_sku_map
                     and _norm_key(meli_to_sku_map.get(mid, ""))
                     != _norm_key(sku_meli),
+                    "estado_meli": m.get("status") or "active",
                 }
             )
 
-        # Siigo con override/cache a un MeLi que no salió en activos (pausados, etc.)
+        # Overrides/cache a un MeLi que no salió en activos (pausados, etc.).
+        # Omitir closed/inactive: ya no se pueden operar en MeLi.
         meli_ids_vistos = {it["meli_id"] for it in items}
+        extras_ids = []
+        extras_meta: dict[str, tuple[str, bool, str, str]] = {}
         for mid, sku in meli_to_sku_map.items():
             mid_n = normalizar_meli_item_id(mid)
             if mid_n in meli_ids_vistos:
@@ -294,10 +307,50 @@ def listar_relacion_codigos_meli_siigo(
             en_siigo = bool(hit)
             nombre_siigo = hit[1] if hit else ""
             codigo_siigo = hit[0] if hit else sku
+            extras_ids.append(mid_n)
+            extras_meta[mid_n] = (codigo_siigo, en_siigo, nombre_siigo, sku)
+
+        estados_extra: dict[str, str] = {}
+        if extras_ids:
+            from app.utils import refrescar_token_meli
+
+            token_ex = refrescar_token_meli()
+            if token_ex:
+                headers_ex = {"Authorization": f"Bearer {token_ex}"}
+                for i in range(0, len(extras_ids), 20):
+                    batch = extras_ids[i : i + 20]
+                    try:
+                        resp = requests.get(
+                            "https://api.mercadolibre.com/items"
+                            f"?ids={','.join(batch)}&attributes=id,status,permalink,title",
+                            headers=headers_ex,
+                            timeout=40,
+                        ).json()
+                    except Exception as e:
+                        print(f"⚠️ [relacion-codigos] extras status: {e}")
+                        continue
+                    for it in resp if isinstance(resp, list) else []:
+                        if it.get("code") != 200:
+                            # 404 u otro: no operable
+                            body = it.get("body") or {}
+                            rid = _norm(str((body.get("id") if isinstance(body, dict) else "") or ""))
+                            if rid:
+                                estados_extra[rid] = "unknown"
+                            continue
+                        body = it.get("body") or {}
+                        rid = normalizar_meli_item_id(_norm(str(body.get("id") or "")))
+                        if rid:
+                            estados_extra[rid] = _norm(str(body.get("status") or "")).lower()
+
+        _NO_OPERABLES = frozenset({"closed", "inactive"})
+        for mid_n, (codigo_siigo, en_siigo, nombre_siigo, _sku) in extras_meta.items():
+            est_m = estados_extra.get(mid_n, "")
+            if est_m in _NO_OPERABLES:
+                continue
             items.append(
                 {
                     "meli_id": mid_n,
-                    "titulo": nombre_siigo or sku,
+                    "titulo": nombre_siigo or _sku,
                     "sku_meli": "",
                     "codigo_siigo": codigo_siigo,
                     "nombre_siigo": nombre_siigo,
@@ -306,6 +359,7 @@ def listar_relacion_codigos_meli_siigo(
                     "estado": "vinculado" if en_siigo else "sin_siigo",
                     "permalink": "",
                     "tiene_override": True,
+                    "estado_meli": est_m or "unknown",
                 }
             )
 
@@ -314,7 +368,7 @@ def listar_relacion_codigos_meli_siigo(
         fuente = "live"
         _save_cache(
             {
-                "version": 1,
+                "version": 2,
                 "ts": now,
                 "actualizado_en": actualizado_en,
                 "items": items,
@@ -415,10 +469,37 @@ def _invalidar_cache_relacion() -> None:
         pass
 
 
+def _resumen_error_meli(resp: requests.Response | None) -> str:
+    """Mensaje corto legible a partir de un error HTTP de MeLi."""
+    if resp is None:
+        return "sin respuesta"
+    try:
+        data = resp.json() if resp.content else {}
+    except Exception:
+        data = {}
+    msg = (data.get("message") or "").strip()
+    causes = data.get("cause") or []
+    codes = []
+    for c in causes if isinstance(causes, list) else []:
+        code = (c.get("code") or "").strip()
+        if code:
+            codes.append(code)
+    bits = [f"HTTP {resp.status_code}"]
+    if msg:
+        bits.append(msg[:160])
+    if codes:
+        bits.append(", ".join(codes[:3]))
+    return " — ".join(bits)
+
+
 def actualizar_sku_meli_item(meli_id: str, sku: str) -> dict:
     """
-    Actualiza el SKU de una publicación MeLi (SELLER_SKU + seller_custom_field).
-    McKenna usa User Products: el atributo SELLER_SKU es la fuente de verdad.
+    Actualiza el SKU de una publicación MeLi y lo refleja en Sheets (col B).
+
+    - Sin variaciones / User Products: primero ``SELLER_SKU``, luego custom_field.
+    - Con variaciones: SELLER_SKU en cada variación (+ custom_field si se puede).
+    - Publicaciones closed/inactive: MeLi no admite PUT; se actualiza Sheets y se
+      indica usar «Vincular a Siigo» / reabrir en MeLi.
     """
     from app.services.publicaciones import normalizar_meli_item_id
     from app.utils import refrescar_token_meli
@@ -440,55 +521,146 @@ def actualizar_sku_meli_item(meli_id: str, sku: str) -> dict:
         "Accept": "application/json",
     }
 
-    # Leer SKU actual
     prev = requests.get(
         f"https://api.mercadolibre.com/items/{mid}"
-        f"?attributes=id,seller_custom_field,attributes",
+        f"?attributes=id,status,sub_status,seller_custom_field,attributes,variations,user_product_id",
         headers=headers,
         timeout=25,
     )
-    sku_antes = ""
-    if prev.status_code == 200:
-        sku_antes = _sku_desde_item_meli(prev.json() or {})
-    elif prev.status_code == 404:
+    if prev.status_code == 404:
         raise ValueError(f"Publicación {mid} no encontrada en MeLi.")
+    if prev.status_code >= 400:
+        raise RuntimeError(
+            f"No se pudo leer la publicación {mid} "
+            f"({_resumen_error_meli(prev)})"
+        )
 
-    payload = {
-        "seller_custom_field": nuevo,
-        "attributes": [{"id": "SELLER_SKU", "value_name": nuevo}],
-    }
-    r = requests.put(
-        f"https://api.mercadolibre.com/items/{mid}",
-        headers=headers,
-        json=payload,
-        timeout=30,
-    )
+    prev_body = prev.json() or {}
+    sku_antes = _sku_desde_item_meli(prev_body)
+    variations = prev_body.get("variations") or []
+    status = _norm(str(prev_body.get("status") or "")).lower()
+    errores: list[str] = []
 
-    # Si seller_custom_field falla en User Products, reintentar solo SELLER_SKU
-    if r.status_code >= 400:
-        r2 = requests.put(
+    # Cerrada / inactiva: MeLi bloquea attributes y seller_custom_field
+    if status in ("closed", "inactive"):
+        sheets_info = _actualizar_sku_en_sheets_por_meli_id(mid, nuevo)
+        sheets_txt = (
+            "Código guardado en Sheets. "
+            if sheets_info.get("ok")
+            else "No se pudo escribir en Sheets. "
+        )
+        raise RuntimeError(
+            f"MeLi no permite editar el SKU: la publicación está «{status}». "
+            f"{sheets_txt}"
+            f"Usa «Vincular a Siigo» para el vínculo local, o reabre la publicación "
+            f"en MeLi (Abrir ↗) y vuelve a cargar el SKU."
+        )
+
+    def _put(payload: dict) -> requests.Response:
+        return requests.put(
             f"https://api.mercadolibre.com/items/{mid}",
             headers=headers,
-            json={"attributes": [{"id": "SELLER_SKU", "value_name": nuevo}]},
+            json=payload,
             timeout=30,
         )
-        if r2.status_code >= 400:
-            detail = (r2.text or r.text or "")[:500]
-            raise RuntimeError(f"MeLi rechazó el SKU ({r2.status_code}): {detail}")
-        r = r2
 
-    body = r.json() if r.content else {}
+    ok = False
+    last: requests.Response | None = None
+
+    if isinstance(variations, list) and variations:
+        var_payload = []
+        for v in variations:
+            vid = v.get("id")
+            if not vid:
+                continue
+            var_payload.append(
+                {
+                    "id": vid,
+                    "attributes": [{"id": "SELLER_SKU", "value_name": nuevo}],
+                }
+            )
+        if var_payload:
+            last = _put({"variations": var_payload})
+            if last.status_code < 400:
+                ok = True
+            else:
+                errores.append(_resumen_error_meli(last))
+        # custom_field opcional (puede fallar sin tumbar el OK de variaciones)
+        r_cf = _put({"seller_custom_field": nuevo})
+        if r_cf.status_code < 400:
+            ok = True
+            last = r_cf
+        elif not ok:
+            errores.append(_resumen_error_meli(r_cf))
+    else:
+        # 1) Solo SELLER_SKU (User Products / ítems activos)
+        last = _put({"attributes": [{"id": "SELLER_SKU", "value_name": nuevo}]})
+        if last.status_code < 400:
+            ok = True
+            # Alinear custom_field si MeLi lo permite (no falla el flujo)
+            _put({"seller_custom_field": nuevo})
+        else:
+            errores.append(_resumen_error_meli(last))
+            # 2) Combo
+            last = _put(
+                {
+                    "seller_custom_field": nuevo,
+                    "attributes": [{"id": "SELLER_SKU", "value_name": nuevo}],
+                }
+            )
+            if last.status_code < 400:
+                ok = True
+            else:
+                errores.append(_resumen_error_meli(last))
+                # 3) Solo custom_field (legado)
+                last = _put({"seller_custom_field": nuevo})
+                if last.status_code < 400:
+                    ok = True
+                else:
+                    errores.append(_resumen_error_meli(last))
+
+    if not ok:
+        # Aun si MeLi falló, intentar Sheets para no perder el código operativo
+        sheets_info = _actualizar_sku_en_sheets_por_meli_id(mid, nuevo)
+        sheets_txt = (
+            " Sheets actualizado igual. "
+            if sheets_info.get("ok")
+            else " "
+        )
+        raise RuntimeError(
+            f"MeLi rechazó el SKU.{sheets_txt}"
+            + " · ".join(errores[:3])
+            + " Usa «Vincular a Siigo» si solo necesitas el vínculo local."
+        )
+
+    body = last.json() if last is not None and last.content else {}
     sku_despues = _sku_desde_item_meli(body) if isinstance(body, dict) else ""
-    if not sku_despues:
-        # Confirmar con GET fresco
+    if not sku_despues or _norm_key(sku_despues) != _norm_key(nuevo):
         conf = requests.get(
             f"https://api.mercadolibre.com/items/{mid}"
-            f"?attributes=id,seller_custom_field,attributes",
+            f"?attributes=id,seller_custom_field,attributes,variations",
             headers=headers,
             timeout=25,
         )
         if conf.status_code == 200:
-            sku_despues = _sku_desde_item_meli(conf.json() or {})
+            conf_body = conf.json() or {}
+            sku_despues = _sku_desde_item_meli(conf_body)
+            if not sku_despues or _norm_key(sku_despues) != _norm_key(nuevo):
+                for v in conf_body.get("variations") or []:
+                    for a in v.get("attributes") or []:
+                        if a.get("id") == "SELLER_SKU" and (a.get("value_name") or "").strip():
+                            sku_despues = (a.get("value_name") or "").strip()
+                            break
+                    if sku_despues:
+                        break
+
+    if sku_despues and _norm_key(sku_despues) != _norm_key(nuevo):
+        raise RuntimeError(
+            f"MeLi aceptó el PUT pero el SKU quedó como '{sku_despues}' "
+            f"(se esperaba '{nuevo}'). Revisa la publicación en MeLi."
+        )
+
+    sheets_info = _actualizar_sku_en_sheets_por_meli_id(mid, nuevo)
 
     _invalidar_cache_relacion()
 
@@ -497,7 +669,63 @@ def actualizar_sku_meli_item(meli_id: str, sku: str) -> dict:
         "meli_id": mid,
         "sku_antes": sku_antes,
         "sku_meli": sku_despues or nuevo,
+        "cargado_en_meli": True,
+        "sheets": sheets_info,
+        "estado_meli": status,
     }
+
+
+def _actualizar_sku_en_sheets_por_meli_id(meli_id: str, sku: str) -> dict:
+    """
+    Escribe el SKU en Google Sheets Hoja 1 col B (misma fuente que el panel Stock).
+    Si el MCO no existe en Sheets, no falla el guardado MeLi — solo reporta.
+    """
+    mid = _norm(meli_id).upper()
+    nuevo = _norm(sku)
+    if not mid or not nuevo:
+        return {"ok": False, "mensaje": "Sin meli_id o sku"}
+
+    try:
+        import os
+
+        import gspread
+
+        spreadsheet_id = os.getenv("SPREADSHEET_ID") or (
+            "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
+        )
+        creds = os.getenv(
+            "GOOGLE_SERVICE_ACCOUNT_PATH",
+            "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json",
+        )
+        gc = gspread.service_account(filename=creds)
+        sh = gc.open_by_key(spreadsheet_id)
+        try:
+            sheet = sh.worksheet("Hoja 1")
+        except gspread.exceptions.WorksheetNotFound:
+            sheet = sh.sheet1
+
+        data = sheet.get_all_values()
+        filas: list[int] = []
+        for i, row in enumerate(data[1:], start=2):
+            if not row:
+                continue
+            cell = str(row[0]).strip().upper()
+            if cell == mid:
+                filas.append(i)
+
+        if not filas:
+            return {
+                "ok": False,
+                "mensaje": f"{mid} no está en Sheets (col A); SKU sí quedó en MeLi",
+                "filas": 0,
+            }
+
+        updates = [{"range": f"B{f}", "values": [[nuevo]]} for f in filas]
+        sheet.batch_update(updates)
+        return {"ok": True, "filas": len(filas), "mensaje": f"Sheets col B: {len(filas)} fila(s)"}
+    except Exception as e:
+        print(f"⚠️ [sku-meli] No se pudo actualizar Sheets para {mid}: {e}")
+        return {"ok": False, "mensaje": f"Sheets: {e}", "filas": 0}
 
 
 def editar_relacion_codigos(
@@ -509,9 +737,9 @@ def editar_relacion_codigos(
     """
     Edita SKU en MeLi y/o vínculo código Siigo → meli_id.
 
-    - Si viene sku_meli: PUT en la publicación MeLi.
-    - Si viene codigo_siigo: guarda override (vincular).
-    - Si solo viene sku_meli y vincular_si_sku=True: también vincula con ese SKU.
+    - Guarda primero el vínculo local (override) para que el panel no pierda el cambio.
+    - Luego intenta escribir el SKU en MeLi (+ Sheets).
+    - Si MeLi falla (pausada/cerrada/API), el vínculo local igual queda guardado.
     """
     mid = _norm(meli_id)
     sku = _norm(sku_meli)
@@ -521,13 +749,33 @@ def editar_relacion_codigos(
     if not sku and not codigo:
         raise ValueError("Indica 'sku_meli' y/o 'codigo_siigo'.")
 
-    out: dict[str, Any] = {"ok": True, "meli_id": mid}
-
-    if sku:
-        out["meli"] = actualizar_sku_meli_item(mid, sku)
+    out: dict[str, Any] = {"ok": True, "meli_id": mid, "guardado": True}
 
     codigo_vincular = codigo or (sku if vincular_si_sku and sku else "")
     if codigo_vincular:
         out["vinculo"] = vincular_meli_con_siigo(codigo_vincular, mid)
+
+    if sku:
+        try:
+            out["meli"] = actualizar_sku_meli_item(mid, sku)
+            try:
+                from app.services.rentabilidad import parchear_sku_en_cobros_cache
+
+                parchear_sku_en_cobros_cache(mid, sku)
+            except Exception:
+                pass
+        except Exception as e:
+            # Vínculo local ya guardado: no tumbar todo el guardado del panel.
+            out["meli"] = {
+                "ok": False,
+                "meli_id": mid,
+                "sku_meli": sku,
+                "cargado_en_meli": False,
+                "error": str(e),
+            }
+            out["aviso"] = str(e)
+            if not out.get("vinculo"):
+                out["ok"] = False
+                raise
 
     return out

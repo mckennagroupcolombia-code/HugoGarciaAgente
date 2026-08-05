@@ -1375,6 +1375,18 @@ def _coincidencias_producto_items(items: list, q_norm: str) -> list:
     return hits
 
 
+# Archivo Gmail/local consultable en el panel (Consultar factura).
+ANIO_CONSULTA_ARCHIVO_MIN = 2022
+
+
+def anios_consulta_archivo(hasta: int | None = None) -> list[int]:
+    """Años con índice de archivo (2022 … año actual inclusive)."""
+    fin = int(hasta if hasta is not None else datetime.now().year)
+    if fin < ANIO_CONSULTA_ARCHIVO_MIN:
+        return []
+    return list(range(ANIO_CONSULTA_ARCHIVO_MIN, fin + 1))
+
+
 def _ruta_indice_consulta_anio(anio: int) -> str:
     return os.path.join(
         os.path.dirname(__file__), "..", "data", f"facturas_consulta_{int(anio)}.json"
@@ -1444,9 +1456,41 @@ def _xml_a_registro_consulta(datos: dict, *, origen: str, fuente: str = "") -> d
     }
 
 
+def construir_indices_consulta_rango(
+    desde: int = ANIO_CONSULTA_ARCHIVO_MIN,
+    hasta: int | None = None,
+    forzar: bool = False,
+) -> dict:
+    """Construye índices de archivo año por año (p. ej. 2022–actual)."""
+    anios = [
+        a
+        for a in anios_consulta_archivo(hasta)
+        if a >= int(desde)
+    ]
+    detalle: list[dict] = []
+    total = 0
+    for a in anios:
+        r = construir_indice_consulta_anio(a, forzar=forzar)
+        detalle.append(r)
+        total += int(r.get("facturas") or 0)
+    return {
+        "ok": True,
+        "desde": int(desde),
+        "hasta": anios[-1] if anios else None,
+        "anios": anios,
+        "facturas": total,
+        "detalle": detalle,
+        "mensaje": (
+            f"Índices {anios[0]}–{anios[-1]}: {total} factura(s)."
+            if anios
+            else "Sin años en el rango solicitado."
+        ),
+    }
+
+
 def construir_indice_consulta_anio(anio: int = 2025, forzar: bool = False) -> dict:
     """
-    Indexa facturas de un año (p. ej. 2025) desde Gmail + ZIPs locales.
+    Indexa facturas de un año (desde 2022) desde Gmail + ZIPs locales.
     Guarda caché en app/data/facturas_consulta_{anio}.json para consultas rápidas.
     """
     anio = int(anio)
@@ -1604,12 +1648,15 @@ def construir_indice_consulta_anio(anio: int = 2025, forzar: bool = False) -> di
 
 def estado_indice_consulta_anio(anio: int = 2025) -> dict:
     cache = _cargar_indice_consulta_anio(anio)
+    n = len(cache.get("facturas") or [])
+    # "listo" = ya se intentó indexar (aunque el año no tenga facturas).
+    listo = bool(cache.get("actualizado")) or n > 0
     return {
         "anio": int(anio),
-        "facturas": len(cache.get("facturas") or []),
+        "facturas": n,
         "actualizado": cache.get("actualizado"),
         "fuente": cache.get("fuente"),
-        "listo": bool(cache.get("facturas")),
+        "listo": listo,
     }
 
 
@@ -1630,8 +1677,8 @@ def consultar_facturas_por_producto(
     Busca facturas de proveedores (pendientes + historial + archivo por año)
     que contengan un producto por nombre o código.
 
-    anio=2025 incluye el índice Gmail/local de ese año (se construye si falta).
-    anio=None busca en todas las fuentes disponibles.
+    anio=2022..actual incluye el índice Gmail/local de ese año (se construye si falta).
+    anio=None busca en todas las fuentes disponibles (archivo desde 2022).
     """
     q_limpia = (q or '').strip()
     q_norm = _normalizar(q_limpia)
@@ -1711,27 +1758,29 @@ def consultar_facturas_por_producto(
             'items_count': enriquecido.get('items_count') or len(enriquecido.get('items_resumen') or []),
         })
 
-    # ── Archivo por año (Gmail/local, p. ej. 2025) ───────────────────────────
+    # ── Archivo por año (Gmail/local, desde 2022) ────────────────────────────
+    anio_hoy = datetime.now().year
     anios_archivo: list[int] = []
     if anio is None:
-        anios_archivo = [2025]
-    elif int(anio) <= 2025:
+        anios_archivo = anios_consulta_archivo(anio_hoy)
+    elif ANIO_CONSULTA_ARCHIVO_MIN <= int(anio) <= anio_hoy:
         anios_archivo = [int(anio)]
 
+    anios_sin_indice: list[int] = []
     for anio_arch in anios_archivo:
         cache = _cargar_indice_consulta_anio(anio_arch)
-        if asegurar_indice_anio and anio == anio_arch and not (cache.get("facturas")):
+        indexado = bool(cache.get("actualizado")) or bool(cache.get("facturas"))
+        if asegurar_indice_anio and anio == anio_arch and not indexado:
             try:
                 build = construir_indice_consulta_anio(anio_arch, forzar=False)
                 if build.get("mensaje"):
                     avisos.append(str(build["mensaje"]))
                 cache = _cargar_indice_consulta_anio(anio_arch)
+                indexado = bool(cache.get("actualizado")) or bool(cache.get("facturas"))
             except Exception as e:
                 avisos.append(f"No se pudo cargar archivo {anio_arch}: {e}")
-        elif anio is None and not (cache.get("facturas")):
-            avisos.append(
-                "Para incluir facturas 2025, elige el filtro 2025 o pulsa «Cargar archivo 2025»."
-            )
+        elif not indexado:
+            anios_sin_indice.append(anio_arch)
         for row in cache.get("facturas") or []:
             fecha = (row.get("fecha") or "")[:10]
             if not _filtro_anio_fecha(fecha, anio):
@@ -1748,6 +1797,19 @@ def consultar_facturas_por_producto(
                 "coincidencias": hits,
             })
 
+    if anios_sin_indice:
+        if len(anios_sin_indice) == 1:
+            avisos.append(
+                f"Aún no hay índice de archivo {anios_sin_indice[0]}. "
+                "Se está indexando o pulsa «Cargar archivo»."
+            )
+        else:
+            rango = f"{anios_sin_indice[0]}–{anios_sin_indice[-1]}"
+            avisos.append(
+                f"Falta indexar archivo {rango}. "
+                f"Pulsa «Cargar archivo» una vez (desde {ANIO_CONSULTA_ARCHIVO_MIN})."
+            )
+
     # Pendientes primero; resto por fecha/timestamp descendente
     pendientes_r = [r for r in resultados if r.get('origen') == 'pendiente']
     otros_r = sorted(
@@ -1759,6 +1821,7 @@ def consultar_facturas_por_producto(
 
     limit = max(1, min(int(limit or 50), 200))
     total = len(resultados)
+    indices_keys = anios_archivo or anios_consulta_archivo(anio_hoy)
     return {
         'ok': True,
         'q': q_limpia,
@@ -1767,8 +1830,9 @@ def consultar_facturas_por_producto(
         'total': total,
         'mostrando': min(total, limit),
         'avisos': avisos,
+        'anio_min': ANIO_CONSULTA_ARCHIVO_MIN,
         'indices': {
-            str(a): estado_indice_consulta_anio(a) for a in (anios_archivo or [2025])
+            str(a): estado_indice_consulta_anio(a) for a in indices_keys
         },
     }
 

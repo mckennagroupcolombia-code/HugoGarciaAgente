@@ -53,6 +53,61 @@ type FiltroRotacion = "todos" | "sin_ventas" | "baja" | "media" | "alta";
 
 type FiltroPublicacion = "todos" | "activas" | "inactivas";
 
+const STOCK_FILTROS_KEY = "mckenna-stock-filtros";
+
+interface StockFiltrosPersistidos {
+  search?: string;
+  filtroStock?: FiltroStock;
+  filtroCodigo?: FiltroCodigo;
+  filtroRotacion?: FiltroRotacion;
+  filtroPublicacion?: FiltroPublicacion;
+}
+
+const FILTRO_STOCK_OK = new Set<FiltroStock>(["todos", "agotados", "criticos", "bajos", "ok", "sin_dato"]);
+const FILTRO_CODIGO_OK = new Set<FiltroCodigo>([
+  "todos",
+  "vinculados",
+  "sin_siigo",
+  "divergentes",
+  "sin_codigo",
+  "sin_c",
+]);
+const FILTRO_ROTACION_OK = new Set<FiltroRotacion>(["todos", "sin_ventas", "baja", "media", "alta"]);
+const FILTRO_PUB_OK = new Set<FiltroPublicacion>(["todos", "activas", "inactivas"]);
+
+function leerFiltrosStock(): StockFiltrosPersistidos {
+  try {
+    const raw = localStorage.getItem(STOCK_FILTROS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as StockFiltrosPersistidos;
+    return {
+      search: typeof parsed.search === "string" ? parsed.search : "",
+      filtroStock: FILTRO_STOCK_OK.has(parsed.filtroStock as FiltroStock)
+        ? (parsed.filtroStock as FiltroStock)
+        : "todos",
+      filtroCodigo: FILTRO_CODIGO_OK.has(parsed.filtroCodigo as FiltroCodigo)
+        ? (parsed.filtroCodigo as FiltroCodigo)
+        : "todos",
+      filtroRotacion: FILTRO_ROTACION_OK.has(parsed.filtroRotacion as FiltroRotacion)
+        ? (parsed.filtroRotacion as FiltroRotacion)
+        : "todos",
+      filtroPublicacion: FILTRO_PUB_OK.has(parsed.filtroPublicacion as FiltroPublicacion)
+        ? (parsed.filtroPublicacion as FiltroPublicacion)
+        : "todos",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function guardarFiltrosStock(f: StockFiltrosPersistidos): void {
+  try {
+    localStorage.setItem(STOCK_FILTROS_KEY, JSON.stringify(f));
+  } catch {
+    /* ignore */
+  }
+}
+
 function nivelRotacion(venta: VentaItem30d | undefined): Exclude<FiltroRotacion, "todos"> {
   const uds = venta?.unidades ?? 0;
   if (!venta || uds <= 0) return "sin_ventas";
@@ -377,18 +432,35 @@ function DialogPrecioVenta({
   fila,
   analisis,
   onClose,
+  onPrecioActualizado,
 }: {
   fila: FilaUnificada;
   analisis: { label: string; detail: string; className: string; uds: number };
   onClose: () => void;
+  onPrecioActualizado?: (precio: number) => void;
 }) {
+  const queryClient = useQueryClient();
+  const [editando, setEditando] = useState(false);
+  const [nuevoPrecio, setNuevoPrecio] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [msgOk, setMsgOk] = useState<string | null>(null);
+  const [msgErr, setMsgErr] = useState<string | null>(null);
+  const [precioLocal, setPrecioLocal] = useState<number | null>(null);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (editando && !guardando) {
+          setEditando(false);
+          setMsgErr(null);
+          return;
+        }
+        onClose();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, editando, guardando]);
 
   const detalleQ = useQuery<DetalleProductoResp>({
     queryKey: ["stock-detalle-producto", fila.meli_id, fila.sku],
@@ -405,15 +477,98 @@ function DialogPrecioVenta({
 
   const d = detalleQ.data;
   const rent = d?.rentabilidad && !d.rentabilidad.error ? d.rentabilidad : null;
-  const precio =
-    d?.precio ?? rent?.precio_venta ?? fila.precio ?? null;
+  const precioBase =
+    precioLocal ?? d?.precio ?? rent?.precio_venta ?? fila.precio ?? null;
   const moneda = d?.moneda || fila.moneda || "COP";
   const pub = badgePublicacion(d?.estado_meli || fila.estado_meli, fila.sync_bloqueado);
   const stock = d?.stock ?? fila.stock;
   const nivel = nivelStock(stock);
   const permalink = d?.permalink || fila.permalink;
-  const margenPct =
+  const codePrecio = (fila.sku || fila.codigo_siigo || "").trim();
+
+  // Recalcular ganancia/margen en vivo si el usuario acaba de cambiar el precio
+  let gananciaShow = rent?.ganancia ?? null;
+  let margenPct =
     rent?.margen_pct != null ? Math.round(Number(rent.margen_pct) * 10000) / 100 : null;
+  if (
+    precioLocal != null &&
+    rent?.costo_real != null &&
+    rent?.cobros_meli != null &&
+    precioBase != null &&
+    precioBase > 0
+  ) {
+    const oldPv = rent.precio_venta ?? d?.precio ?? fila.precio;
+    let cobros = rent.cobros_meli;
+    if (
+      oldPv != null &&
+      oldPv > 0 &&
+      rent.cargo_venta != null &&
+      rent.cargo_envio != null
+    ) {
+      const cargoVenta =
+        Math.round((rent.cargo_venta * (precioLocal / oldPv)) * 100) / 100;
+      cobros = Math.round((cargoVenta + (rent.cargo_envio || 0)) * 100) / 100;
+    }
+    gananciaShow = Math.round((precioLocal - rent.costo_real - cobros) * 100) / 100;
+    margenPct = Math.round((gananciaShow / precioLocal) * 10000) / 100;
+  }
+
+  const abrirEditor = () => {
+    if (precioBase == null || !codePrecio) return;
+    setNuevoPrecio(String(Math.round(Number(precioBase))));
+    setEditando(true);
+    setMsgOk(null);
+    setMsgErr(null);
+  };
+
+  const guardarPrecio = async () => {
+    const precio = parseFloat(nuevoPrecio);
+    if (!codePrecio || Number.isNaN(precio) || precio <= 0) {
+      setMsgErr("Ingresa un precio mayor que 0");
+      return;
+    }
+    setGuardando(true);
+    setMsgErr(null);
+    setMsgOk(null);
+    try {
+      type ActPrecioRes = {
+        ok?: boolean;
+        error?: string;
+        meli?: { ok?: boolean; msg?: string };
+        siigo?: { ok?: boolean; msg?: string };
+      };
+      const res = await api.post<ActPrecioRes>(
+        "/api/rentabilidad/actualizar-precio",
+        {
+          code: codePrecio,
+          nuevo_precio: precio,
+          plataformas: ["meli", "siigo"],
+          nombre: d?.nombre || fila.nombre || "",
+          meli_id: fila.meli_id || "",
+        },
+        { timeoutMs: 60_000 },
+      );
+      const meliOk = Boolean(res.meli?.ok);
+      const siigoOk = Boolean(res.siigo?.ok);
+      if (!meliOk || !siigoOk) {
+        const partes: string[] = [];
+        partes.push(meliOk ? "MeLi" : `MeLi ✗ ${res.meli?.msg || "falló"}`);
+        partes.push(siigoOk ? "Siigo" : `Siigo ✗ ${res.siigo?.msg || "falló"}`);
+        setMsgErr(res.error || `No se pudo actualizar: ${partes.join(" · ")}`);
+        return;
+      }
+      setPrecioLocal(precio);
+      setEditando(false);
+      setMsgOk("MeLi + Siigo OK");
+      onPrecioActualizado?.(precio);
+      void queryClient.invalidateQueries({ queryKey: ["stock-detalle-producto", fila.meli_id, fila.sku] });
+      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+    } catch (e) {
+      setMsgErr((e as Error).message || "No se pudo actualizar el precio");
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   return createPortal(
     <div
@@ -449,20 +604,85 @@ function DialogPrecioVenta({
         <div className="space-y-4 px-4 py-4">
           <div className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-center">
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">MeLi · lista</p>
-            {detalleQ.isLoading ? (
+            {detalleQ.isLoading && !editando ? (
               <p className="mt-2 text-sm text-muted">Cargando precio…</p>
+            ) : editando ? (
+              <div className="mt-2 space-y-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={nuevoPrecio}
+                  onChange={(e) => setNuevoPrecio(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void guardarPrecio();
+                    if (e.key === "Escape" && !guardando) {
+                      setEditando(false);
+                      setMsgErr(null);
+                    }
+                  }}
+                  className="mx-auto w-40 rounded-lg border border-accent bg-surface px-3 py-2 text-center text-xl font-extrabold tabular-nums text-ink outline-none"
+                  autoFocus
+                  disabled={guardando}
+                />
+                <p className="text-[11px] text-muted">{moneda} · actualiza MeLi y Siigo</p>
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    disabled={guardando || !(parseFloat(nuevoPrecio) > 0)}
+                    onClick={() => void guardarPrecio()}
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+                  >
+                    {guardando ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={guardando}
+                    onClick={() => {
+                      setEditando(false);
+                      setMsgErr(null);
+                    }}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-ink"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
-                <p className="mt-1 text-2xl font-extrabold tabular-nums text-ink">
-                  {formatPrecioVenta(precio, moneda)}
-                </p>
-                {precio != null && (
-                  <p className="mt-0.5 text-[11px] text-muted">{moneda}</p>
+                <button
+                  type="button"
+                  disabled={precioBase == null || !codePrecio}
+                  onClick={abrirEditor}
+                  className={`mt-1 text-2xl font-extrabold tabular-nums transition ${
+                    precioBase != null && codePrecio
+                      ? "text-accent hover:underline"
+                      : "cursor-default text-ink"
+                  }`}
+                  title={
+                    precioBase != null && codePrecio
+                      ? "Clic para editar precio (MeLi + Siigo)"
+                      : "Sin SKU o precio para editar"
+                  }
+                >
+                  {formatPrecioVenta(precioBase, moneda)}
+                </button>
+                {precioBase != null && (
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {moneda}
+                    {codePrecio ? " · clic para editar" : ""}
+                  </p>
                 )}
-                {d?.error_meli && precio == null && (
+                {d?.error_meli && precioBase == null && (
                   <p className="mt-1 text-[11px] text-danger">{d.error_meli}</p>
                 )}
               </>
+            )}
+            {msgOk && (
+              <p className="mt-2 text-[11px] font-bold text-emerald-600">{msgOk}</p>
+            )}
+            {msgErr && (
+              <p className="mt-2 text-[11px] font-semibold text-danger">{msgErr}</p>
             )}
           </div>
 
@@ -508,14 +728,14 @@ function DialogPrecioVenta({
                   <dt className="text-[9px] font-bold uppercase text-muted">Ganancia</dt>
                   <dd
                     className={`mt-0.5 text-base font-extrabold tabular-nums ${
-                      rent.ganancia == null
+                      gananciaShow == null
                         ? "text-muted"
-                        : rent.ganancia >= 0
+                        : gananciaShow >= 0
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-danger"
                     }`}
                   >
-                    {formatPrecioVenta(rent.ganancia, "COP")}
+                    {formatPrecioVenta(gananciaShow, "COP")}
                   </dd>
                 </div>
                 <div className="rounded-lg border border-border/70 bg-surface-panel px-2.5 py-2">
@@ -602,11 +822,16 @@ function DialogPrecioVenta({
 }
 
 export default function StockPanel() {
-  const [search, setSearch] = useState("");
-  const [filtroStock, setFiltroStock] = useState<FiltroStock>("todos");
-  const [filtroCodigo, setFiltroCodigo] = useState<FiltroCodigo>("todos");
-  const [filtroRotacion, setFiltroRotacion] = useState<FiltroRotacion>("todos");
-  const [filtroPublicacion, setFiltroPublicacion] = useState<FiltroPublicacion>("todos");
+  const filtrosIniciales = useMemo(() => leerFiltrosStock(), []);
+  const [search, setSearch] = useState(filtrosIniciales.search ?? "");
+  const [filtroStock, setFiltroStock] = useState<FiltroStock>(filtrosIniciales.filtroStock ?? "todos");
+  const [filtroCodigo, setFiltroCodigo] = useState<FiltroCodigo>(filtrosIniciales.filtroCodigo ?? "todos");
+  const [filtroRotacion, setFiltroRotacion] = useState<FiltroRotacion>(
+    filtrosIniciales.filtroRotacion ?? "todos",
+  );
+  const [filtroPublicacion, setFiltroPublicacion] = useState<FiltroPublicacion>(
+    filtrosIniciales.filtroPublicacion ?? "todos",
+  );
   const [detalleProducto, setDetalleProducto] = useState<FilaUnificada | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [rowResult, setRowResult] = useState<Record<string, SincronizarResultado>>({});
@@ -618,6 +843,16 @@ export default function StockPanel() {
   const forceRefreshRelacionRef = useRef(false);
   const forceRefreshVentasRef = useRef(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    guardarFiltrosStock({
+      search,
+      filtroStock,
+      filtroCodigo,
+      filtroRotacion,
+      filtroPublicacion,
+    });
+  }, [search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion]);
 
   const stockQ = useQuery<StockResumen>({
     queryKey: ["stock-resumen"],
@@ -880,14 +1115,25 @@ export default function StockPanel() {
       codigo_siigo: string;
     }) =>
       api.post<{
-        meli?: { sku_meli?: string; sheets?: { ok?: boolean; mensaje?: string } };
         ok?: boolean;
-      }>("/api/stock/relacion-codigos/editar", {
-        meli_id,
-        sku_meli,
-        codigo_siigo: "",
-        vincular_si_sku: false,
-      }),
+        aviso?: string;
+        meli?: {
+          sku_meli?: string;
+          cargado_en_meli?: boolean;
+          error?: string;
+          sheets?: { ok?: boolean; mensaje?: string };
+        };
+        vinculo?: { codigo_siigo?: string; en_siigo?: boolean; nombre_siigo?: string };
+      }>(
+        "/api/stock/relacion-codigos/editar",
+        {
+          meli_id,
+          sku_meli,
+          codigo_siigo: codigo_siigo || sku_meli,
+          vincular_si_sku: true,
+        },
+        { timeoutMs: 90_000 },
+      ),
     onMutate: ({ meli_id }) => {
       setBusyKey(meli_id);
       setSkuMsg((prev) => {
@@ -896,18 +1142,30 @@ export default function StockPanel() {
         return next;
       });
     },
-    onSuccess: (res, { meli_id, sku_meli }) => {
+    onSuccess: (res, { meli_id, sku_meli, codigo_siigo }) => {
       const escrito = res?.meli?.sku_meli || sku_meli;
+      const codigo = res?.vinculo?.codigo_siigo || codigo_siigo || sku_meli;
+      const meliOk = res?.meli?.cargado_en_meli !== false && !res?.meli?.error;
       const sheets = res?.meli?.sheets;
-      const sheetsTxt =
-        sheets?.ok === false
-          ? ` · Sheets: ${sheets.mensaje || "no actualizado"}`
-          : sheets?.ok
-            ? " · Sheets OK"
-            : "";
+      const partes: string[] = [];
+      if (meliOk) partes.push(`MeLi «${escrito}»`);
+      else if (res?.meli?.error || res?.aviso)
+        partes.push(`MeLi no actualizó (${res?.meli?.error || res?.aviso})`);
+      if (res?.vinculo) {
+        partes.push(
+          `vínculo Siigo «${codigo}»${
+            res.vinculo.en_siigo ? " OK" : " (local)"
+          }`,
+        );
+      }
+      if (sheets?.ok) partes.push("Sheets OK");
+      else if (sheets?.ok === false) partes.push(`Sheets: ${sheets.mensaje || "no"}`);
       setSkuMsg((prev) => ({
         ...prev,
-        [meli_id]: { ok: true, text: `SKU «${escrito}» cargado en MeLi.${sheetsTxt}` },
+        [meli_id]: {
+          ok: Boolean(res?.ok !== false && (meliOk || res?.vinculo)),
+          text: partes.join(" · ") || "Guardado",
+        },
       }));
       setEditMeli(null);
       setSkuDraft("");
@@ -916,7 +1174,26 @@ export default function StockPanel() {
         if (!old?.items) return old;
         return {
           ...old,
-          items: old.items.map((it) => (it.meli_id === meli_id ? { ...it, sku: escrito } : it)),
+          items: old.items.map((it) =>
+            it.meli_id === meli_id ? { ...it, sku: escrito } : it,
+          ),
+        };
+      });
+      queryClient.setQueriesData<RelacionResp>({ queryKey: ["relacion-codigos"] }, (old) => {
+        if (!old?.items) return old;
+        return {
+          ...old,
+          items: old.items.map((it) =>
+            it.meli_id === meli_id
+              ? {
+                  ...it,
+                  sku_meli: escrito,
+                  codigo_siigo: codigo,
+                  en_siigo: res?.vinculo?.en_siigo ?? it.en_siigo,
+                  nombre_siigo: res?.vinculo?.nombre_siigo || it.nombre_siigo,
+                }
+              : it,
+          ),
         };
       });
       forceRefreshRelacionRef.current = true;
@@ -989,9 +1266,24 @@ export default function StockPanel() {
 
   const isLoading = stockQ.isLoading || relacionQ.isLoading;
   const isFetching = stockQ.isFetching || relacionQ.isFetching || ventasQ.isFetching;
-  const puedeCargarMeli = Boolean(skuDraft.trim());
-  const puedeVincularSiigo = Boolean(codigoDraft.trim() || skuDraft.trim());
+  const puedeGuardarSku = Boolean(skuDraft.trim() || codigoDraft.trim());
   const mutPendiente = editarMut.isPending || vincularMut.isPending;
+
+  const guardarEdicionSku = (meliId: string, syncBloqueado?: boolean) => {
+    const sku = skuDraft.trim();
+    const codigo = codigoDraft.trim() || sku;
+    if (!sku && !codigo) return;
+    // Publicación bloqueada: igual guarda vínculo local (codigo/sku → meli_id).
+    if (syncBloqueado && !sku) {
+      vincularMut.mutate({ meli_id: meliId, codigo_siigo: codigo });
+      return;
+    }
+    editarMut.mutate({
+      meli_id: meliId,
+      sku_meli: sku || codigo,
+      codigo_siigo: codigo,
+    });
+  };
   const ventasMap = useMemo(() => {
     const raw = ventasQ.data?.por_item ?? {};
     const out: Record<string, VentaItem30d> = {};
@@ -1027,7 +1319,32 @@ export default function StockPanel() {
       </div>
 
       {/* Filtros compactos por categoría */}
-      <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+      <div className="relative z-20 space-y-2 rounded-xl border border-border bg-surface-panel p-3">
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+          />
+          {search.trim() && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
+            >
+              Limpiar texto
+            </button>
+          )}
+        </form>
+
+        <div className="flex flex-wrap items-end gap-2 sm:gap-3">
         <label className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Unidades</span>
           <select
@@ -1094,10 +1411,12 @@ export default function StockPanel() {
         {(filtroStock !== "todos"
           || filtroCodigo !== "todos"
           || filtroRotacion !== "todos"
-          || filtroPublicacion !== "todos") && (
+          || filtroPublicacion !== "todos"
+          || search.trim() !== "") && (
           <button
             type="button"
             onClick={() => {
+              setSearch("");
               setFiltroStock("todos");
               setFiltroCodigo("todos");
               setFiltroRotacion("todos");
@@ -1108,6 +1427,16 @@ export default function StockPanel() {
             Limpiar filtros
           </button>
         )}
+        </div>
+
+        <p className="text-[11px] text-muted">
+          Mostrando <span className="font-bold text-ink">{items.length}</span> de{" "}
+          <span className="font-bold text-ink">{filas.length}</span> publicaciones
+          {search.trim() || filtroStock !== "todos" || filtroCodigo !== "todos"
+            || filtroRotacion !== "todos" || filtroPublicacion !== "todos"
+            ? " (filtros activos)"
+            : ""}
+        </p>
       </div>
 
       {filtroCodigo === "sin_c" && (
@@ -1145,21 +1474,6 @@ export default function StockPanel() {
           Ventas 30 d cargaron vacías (0 productos). Reintenta con actualizar forzado.
         </p>
       )}
-
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-        />
-      </form>
 
       {isLoading && <p className="text-sm text-muted">Cargando inventario y códigos...</p>}
       {(stockQ.isError || relacionQ.isError) && (
@@ -1296,6 +1610,17 @@ export default function StockPanel() {
                             setCodigoDraft(v);
                           }
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            guardarEdicionSku(it.meli_id, it.sync_bloqueado);
+                          }
+                          if (e.key === "Escape") {
+                            setEditMeli(null);
+                            setSkuDraft("");
+                            setCodigoDraft("");
+                          }
+                        }}
                         placeholder="C-…"
                         className="w-full min-w-[6.5rem] rounded border border-border bg-surface-input px-1.5 py-0.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
                       />
@@ -1314,6 +1639,17 @@ export default function StockPanel() {
                       <input
                         value={codigoDraft}
                         onChange={(e) => setCodigoDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            guardarEdicionSku(it.meli_id, it.sync_bloqueado);
+                          }
+                          if (e.key === "Escape") {
+                            setEditMeli(null);
+                            setSkuDraft("");
+                            setCodigoDraft("");
+                          }
+                        }}
                         placeholder="Código Siigo"
                         className="w-full min-w-[6.5rem] rounded border border-border bg-surface-input px-1.5 py-0.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
                       />
@@ -1335,40 +1671,12 @@ export default function StockPanel() {
                       {editing ? (
                         <>
                           <button
-                            disabled={
-                              !puedeCargarMeli ||
-                              busy ||
-                              mutPendiente ||
-                              Boolean(it.sync_bloqueado)
-                            }
-                            title={
-                              it.sync_bloqueado
-                                ? "Publicación cerrada/pausada: MeLi no admite cambiar el SKU."
-                                : "Escribe el SKU en MeLi"
-                            }
-                            onClick={() =>
-                              editarMut.mutate({
-                                meli_id: it.meli_id,
-                                sku_meli: skuDraft.trim(),
-                                codigo_siigo: "",
-                              })
-                            }
+                            disabled={!puedeGuardarSku || busy || mutPendiente}
+                            title="Guarda SKU en MeLi + vínculo Siigo (Enter)"
+                            onClick={() => guardarEdicionSku(it.meli_id, it.sync_bloqueado)}
                             className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white disabled:opacity-40"
                           >
-                            {editarMut.isPending && busy ? "…" : "MeLi"}
-                          </button>
-                          <button
-                            disabled={!puedeVincularSiigo || busy || mutPendiente}
-                            title="Guarda vínculo Siigo ↔ MeLi"
-                            onClick={() =>
-                              vincularMut.mutate({
-                                meli_id: it.meli_id,
-                                codigo_siigo: codigoDraft.trim() || skuDraft.trim(),
-                              })
-                            }
-                            className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white disabled:opacity-40"
-                          >
-                            {vincularMut.isPending && busy ? "…" : "Siigo"}
+                            {editarMut.isPending && busy ? "…" : "Guardar"}
                           </button>
                           <button
                             onClick={() => {
@@ -1537,6 +1845,22 @@ export default function StockPanel() {
             detalleProducto.stock,
           )}
           onClose={() => setDetalleProducto(null)}
+          onPrecioActualizado={(precio) => {
+            setDetalleProducto((prev) => (prev ? { ...prev, precio } : prev));
+            queryClient.setQueriesData<StockResumen>(
+              { queryKey: ["stock-resumen"] },
+              (old) => {
+                if (!old?.items) return old;
+                const mid = (detalleProducto.meli_id || "").toUpperCase();
+                return {
+                  ...old,
+                  items: old.items.map((it) =>
+                    (it.meli_id || "").toUpperCase() === mid ? { ...it, precio } : it,
+                  ),
+                };
+              },
+            );
+          }}
         />
       )}
     </div>

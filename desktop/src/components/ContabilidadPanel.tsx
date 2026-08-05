@@ -18,9 +18,10 @@ const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
 const RRHHPanel = lazy(() => import("./RRHHPanel"));
+const StockPanel = lazy(() => import("./StockPanel"));
 
 /** Subpaneles que se mantienen montados al cambiar de pestaña (edición paralela). */
-const KEEP_ALIVE: ReadonlySet<ContabilidadPanelId> = new Set(["rentabilidad"]);
+const KEEP_ALIVE: ReadonlySet<ContabilidadPanelId> = new Set(["stock", "rentabilidad"]);
 
 function TabCargando() {
   return (
@@ -37,6 +38,8 @@ function renderSubpanel(id: ContabilidadPanelId) {
     case "facturas":
     case "productos-siigo":
       return <FacturacionPanel />;
+    case "stock":
+      return <StockPanel />;
     case "rentabilidad":
       return <RentabilidadPanel />;
     case "compras-exterior":
@@ -65,7 +68,8 @@ function KeepAlivePane({
     <div
       className={`min-h-0 flex-1 flex-col ${scroll} ${active ? "flex" : "hidden"}`}
       aria-hidden={!active}
-      inert={!active ? true : undefined}
+      // Evitar `inert={false}` (algunos navegadores lo tratan como activo).
+      {...(!active ? { inert: true as const } : {})}
     >
       <Suspense fallback={<TabCargando />}>{renderSubpanel(id)}</Suspense>
     </div>
@@ -79,7 +83,10 @@ export default function ContabilidadPanel() {
   const advancedToggle = useUiMode((s) => s.advanced);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   /** Una vez visitados, Stock y Rentabilidad no se desmontan. */
-  const [vivos, setVivos] = useState<Set<ContabilidadPanelId>>(() => new Set());
+  const [vivos, setVivos] = useState<Set<ContabilidadPanelId>>(() => {
+    const n = normalizarPanelContabilidad(useAppStore.getState().panel);
+    return n && KEEP_ALIVE.has(n) ? new Set<ContabilidadPanelId>([n]) : new Set();
+  });
 
   const tabs = useMemo(() => {
     return CONTABILIDAD_PANELS.filter((id) => {
@@ -138,8 +145,16 @@ export default function ContabilidadPanel() {
     );
   }
 
-  const keepAliveIds = (["rentabilidad"] as const).filter(
-    (id) => tabs.includes(id) && vivos.has(id),
+  // Incluye el subpanel keep-alive activo aunque el useEffect aún no haya corrido
+  // (evita primer frame en blanco donde no hay filtros ni tabla).
+  const vivosEfectivos = useMemo(() => {
+    const s = new Set(vivos);
+    if (KEEP_ALIVE.has(subpanelId)) s.add(subpanelId);
+    return s;
+  }, [vivos, subpanelId]);
+
+  const keepAliveIds = (["stock", "rentabilidad"] as const).filter(
+    (id) => tabs.includes(id) && vivosEfectivos.has(id),
   );
   const activoEsKeepAlive = KEEP_ALIVE.has(subpanelId);
 

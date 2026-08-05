@@ -26,9 +26,43 @@ TEMA_WEB_FILE = _ROOT / "PAGINA_WEB" / "site" / "data" / "tema_web.json"
 
 TEMAS_VALIDOS = ("clasico", "pureza")
 
+# Tokens del Studio de diseño (tipografía / radio / densidad / tagline).
+FUENTES_DISPLAY = ("montserrat", "serif")
+RADIOS_UI = ("pill", "soft", "sharp")
+DENSIDADES = ("compacta", "normal", "amplia")
+
+_FUENTE_CSS = {
+    "montserrat": "'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "serif": "Georgia, 'Times New Roman', 'Liberation Serif', serif",
+}
+_RADIO_CSS = {"pill": "999px", "soft": "12px", "sharp": "4px"}
+_DENSIDAD_CSS = {
+    "compacta": {"section_y": "48px", "hero_pad": "56px 24px 40px", "card_radius": "12px"},
+    "normal": {"section_y": "72px", "hero_pad": "84px 24px 64px", "card_radius": "16px"},
+    "amplia": {"section_y": "96px", "hero_pad": "104px 24px 80px", "card_radius": "20px"},
+}
+
 TEMA_WEB_DEFAULTS: dict = {
     "tema_activo": "clasico",
     "actualizado": None,
+    "diseno": {
+        "fuente_display": "montserrat",
+        "radio": "pill",
+        "densidad": "normal",
+        "tagline": "Proveemos a tus ideas",
+    },
+    "layout": {
+        "orden": [
+            "hero",
+            "metricas",
+            "trazabilidad",
+            "pilares",
+            "categorias",
+            "destacados",
+            "cta",
+        ],
+        "nodos": {},
+    },
     "pureza": {
         "colores": {
             "acento": "#0c6069",
@@ -142,6 +176,116 @@ def _deep_merge(base: dict, extra: dict) -> dict:
     return out
 
 
+def _normalizar_layout(layout: dict | None) -> dict:
+    """Orden de secciones + nodos (dx/dy/scale/fontSize/icono/hidden)."""
+    base = copy.deepcopy(TEMA_WEB_DEFAULTS["layout"])
+    if not isinstance(layout, dict):
+        return base
+    orden_in = layout.get("orden")
+    orden: list[str] = []
+    if isinstance(orden_in, list):
+        for x in orden_in:
+            if isinstance(x, str) and x and x not in orden:
+                orden.append(x)
+    for x in base["orden"]:
+        if x not in orden:
+            orden.append(x)
+    nodos_out: dict = {}
+    nodos_in = layout.get("nodos")
+    if isinstance(nodos_in, dict):
+        for kid, raw in nodos_in.items():
+            if not isinstance(kid, str) or not isinstance(raw, dict):
+                continue
+            n: dict = {}
+            for key in ("dx", "dy"):
+                v = raw.get(key)
+                if isinstance(v, (int, float)) and abs(v) < 4000:
+                    n[key] = int(round(v))
+            sc = raw.get("scale")
+            if isinstance(sc, (int, float)) and 0.5 <= float(sc) <= 2.5:
+                n["scale"] = round(float(sc), 2)
+            fs = raw.get("fontSize")
+            if isinstance(fs, (int, float)) and 10 <= float(fs) <= 96:
+                n["fontSize"] = int(round(fs))
+            ic = raw.get("icono")
+            if isinstance(ic, str) and ic.strip():
+                n["icono"] = ic.strip().removeprefix("ph-")[:64]
+            if raw.get("hidden") is True:
+                n["hidden"] = True
+            if n:
+                nodos_out[kid] = n
+    return {"orden": orden, "nodos": nodos_out}
+
+
+def estilo_nodo_layout(nodo: dict | None) -> str:
+    """Inline CSS para un nodo del layout (sitio público)."""
+    if not isinstance(nodo, dict):
+        return ""
+    if nodo.get("hidden") is True:
+        return "display:none"
+    parts: list[str] = []
+    dx = int(nodo.get("dx") or 0)
+    dy = int(nodo.get("dy") or 0)
+    scale = float(nodo.get("scale") or 1)
+    if dx or dy or scale != 1.0:
+        parts.append(f"transform:translate({dx}px,{dy}px) scale({scale})")
+        parts.append("transform-origin:top left")
+        parts.append("display:inline-block")
+    fs = nodo.get("fontSize")
+    if isinstance(fs, (int, float)):
+        parts.append(f"font-size:{int(fs)}px")
+    return ";".join(parts)
+
+
+def resolver_layout_ctx(cfg: dict | None = None) -> dict:
+    """Contexto Jinja: orden, mapa de estilos y nodos crudos."""
+    cfg = cfg or cargar_tema_web()
+    layout = _normalizar_layout(cfg.get("layout") if isinstance(cfg, dict) else None)
+    estilos = {kid: estilo_nodo_layout(n) for kid, n in layout["nodos"].items()}
+    orden_map = {sid: i for i, sid in enumerate(layout["orden"])}
+    return {
+        "orden": layout["orden"],
+        "orden_map": orden_map,
+        "estilos": estilos,
+        "nodos": layout["nodos"],
+    }
+
+
+def _normalizar_diseno(diseno: dict | None) -> dict:
+    """Valida enums del Studio; cae a defaults si llega basura."""
+    base = copy.deepcopy(TEMA_WEB_DEFAULTS["diseno"])
+    if not isinstance(diseno, dict):
+        return base
+    fuente = diseno.get("fuente_display", base["fuente_display"])
+    radio = diseno.get("radio", base["radio"])
+    densidad = diseno.get("densidad", base["densidad"])
+    tagline = diseno.get("tagline", base["tagline"])
+    base["fuente_display"] = fuente if fuente in FUENTES_DISPLAY else base["fuente_display"]
+    base["radio"] = radio if radio in RADIOS_UI else base["radio"]
+    base["densidad"] = densidad if densidad in DENSIDADES else base["densidad"]
+    if isinstance(tagline, str) and tagline.strip():
+        base["tagline"] = tagline.strip()[:120]
+    return base
+
+
+def resolver_diseno_css(cfg: dict | None = None) -> dict:
+    """Variables CSS listas para inyectar en base.html desde el Studio."""
+    cfg = cfg or cargar_tema_web()
+    d = _normalizar_diseno(cfg.get("diseno") if isinstance(cfg, dict) else None)
+    dens = _DENSIDAD_CSS[d["densidad"]]
+    return {
+        "fuente_display": _FUENTE_CSS[d["fuente_display"]],
+        "radio_btn": _RADIO_CSS[d["radio"]],
+        "section_y": dens["section_y"],
+        "hero_pad": dens["hero_pad"],
+        "card_radius": dens["card_radius"],
+        "tagline": d["tagline"],
+        "fuente_id": d["fuente_display"],
+        "radio_id": d["radio"],
+        "densidad_id": d["densidad"],
+    }
+
+
 def cargar_tema_web(force: bool = False) -> dict:
     """Config completa (defaults + archivo). Cache por mtime; segura entre hilos."""
     global _cache, _cache_mtime
@@ -161,6 +305,8 @@ def cargar_tema_web(force: bool = False) -> dict:
         merged = _deep_merge(TEMA_WEB_DEFAULTS, data if isinstance(data, dict) else {})
         if merged.get("tema_activo") not in TEMAS_VALIDOS:
             merged["tema_activo"] = "clasico"
+        merged["diseno"] = _normalizar_diseno(merged.get("diseno"))
+        merged["layout"] = _normalizar_layout(merged.get("layout"))
         _cache = merged
         _cache_mtime = mtime
         return copy.deepcopy(merged)
@@ -173,9 +319,20 @@ def guardar_tema_web(cambios: dict) -> dict:
     tema = cambios.get("tema_activo")
     if tema is not None and tema not in TEMAS_VALIDOS:
         raise ValueError(f"tema_activo inválido: {tema!r} (válidos: {TEMAS_VALIDOS})")
+    if "diseno" in cambios and cambios["diseno"] is not None and not isinstance(cambios["diseno"], dict):
+        raise ValueError("diseno debe ser un objeto JSON")
+    if "layout" in cambios and cambios["layout"] is not None and not isinstance(cambios["layout"], dict):
+        raise ValueError("layout debe ser un objeto JSON")
 
     actual = cargar_tema_web(force=True)
-    nuevo = _deep_merge(actual, cambios)
+    layout_in = cambios["layout"] if "layout" in cambios else None
+    cambios_sin_layout = {k: v for k, v in cambios.items() if k != "layout"}
+    nuevo = _deep_merge(actual, cambios_sin_layout)
+    if layout_in is not None:
+        nuevo["layout"] = _normalizar_layout(layout_in)
+    else:
+        nuevo["layout"] = _normalizar_layout(nuevo.get("layout"))
+    nuevo["diseno"] = _normalizar_diseno(nuevo.get("diseno"))
     nuevo["actualizado"] = datetime.now().isoformat(timespec="seconds")
 
     TEMA_WEB_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -205,3 +362,13 @@ def restaurar_tema_pureza() -> dict:
         json.dumps(actual, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return cargar_tema_web(force=True)
+
+
+def restaurar_diseno() -> dict:
+    """Restaura tipografía / radio / densidad / tagline del Studio a defaults."""
+    return guardar_tema_web({"diseno": copy.deepcopy(TEMA_WEB_DEFAULTS["diseno"])})
+
+
+def restaurar_layout() -> dict:
+    """Restaura orden y nodos del lienzo visual a defaults."""
+    return guardar_tema_web({"layout": copy.deepcopy(TEMA_WEB_DEFAULTS["layout"])})

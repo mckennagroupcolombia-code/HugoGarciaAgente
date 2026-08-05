@@ -73,3 +73,23 @@ def descontar_stock_web(sku: str, cantidad: int) -> None:
         entry["updated_at"] = datetime.now().isoformat()
         data[sku_u] = entry
         _escribir(data)
+
+
+def restaurar_stock_web(sku: str, cantidad: int) -> None:
+    """Suma `cantidad` al anular un pedido. No hace nada si el SKU nunca fue sincronizado."""
+    sku_u = (sku or "").strip().upper()
+    if not sku_u or cantidad <= 0:
+        return
+    with _lock:
+        data = _leer()
+        entry = data.get(sku_u)
+        if not entry:
+            return
+        try:
+            actual = int(entry.get("stock", 0))
+        except (TypeError, ValueError):
+            return
+        entry["stock"] = max(0, actual + int(cantidad))
+        entry["updated_at"] = datetime.now().isoformat()
+        data[sku_u] = entry
+        _escribir(data)

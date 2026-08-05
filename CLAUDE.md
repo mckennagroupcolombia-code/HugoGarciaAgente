@@ -232,7 +232,49 @@ AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. 
 AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
 AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
 AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
+
+# Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
+LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
+LLM_BUDGET_TOPE_USD         # Tope duro diario (default 15.0): se bloquean nuevas llamadas LLM
+LLM_BUDGET_BATCH_LLAMADAS   # Máx llamadas por proceso batch sin autorizar (default 25)
+LLM_BUDGET_BATCH_USD        # Máx USD estimados por proceso batch sin autorizar (default 1.0)
 ```
+
+### ⚠️ REGLA OBLIGATORIA — Presupuesto de gasto LLM
+
+Ninguna tarea, script o cambio puede disparar consumo masivo de tokens por API
+(Gemini, Claude o cualquier proveedor) **sin autorización explícita del usuario**.
+Contexto: la simulación WA del 31-jul-2026 (723 turnos contra gemini-2.5-pro)
+generó un gasto de decenas de dólares sin aviso previo.
+
+- **Todo call-site nuevo de LLM** debe pasar por `app/services/llm_budget.py`:
+  `permitir_llamada(modelo, contexto=...)` antes y `registrar_llamada(...)` después
+  (con `usage_gemini(resp)` / `usage_anthropic(resp)` para tokens reales).
+- **Scripts batch** (simulaciones, generación masiva de contenido, backfills):
+  quedan limitados a ~25 llamadas / US$1 estimado por proceso. Para más, el
+  operador debe pasar un flag explícito (ej. `--autorizar-gasto-usd N`, que llama
+  `autorizar_lote(N)`). **Nunca** hardcodear la autorización ni marcar un script
+  como "servicio" para saltarse el límite.
+- **Antes de proponer o correr cualquier corrida masiva**, estimar el costo
+  (nº llamadas × tokens × tarifa) y pedir confirmación al usuario con esa cifra.
+- Los servicios de producción (`agente_pro.py`, `webhook_meli.py`) están exentos
+  del límite por-proceso pero sujetos al tope diario global (`LLM_BUDGET_TOPE_USD`).
+- Estado del día + historial de 30 días: `app/data/llm_budget.json` (gasto USD,
+  llamadas, por modelo, por canal/contexto).
+- **Defaults calibrados con datos reales** (ago-2026): un día normal de
+  operación (WhatsApp + web + preventa MeLi, ~15-40 llamadas) cuesta
+  US$0,10-0,25. Por eso `LLM_BUDGET_DIARIO_USD=1.0` (alerta) y
+  `LLM_BUDGET_TOPE_USD=3.0` (bloqueo) — ya dan margen de 4-10x sobre lo normal
+  sin permitir que un descontrol tipo la simulación del 31-jul (723 llamadas,
+  ~US$17 en un día) pase inadvertido.
+- **Panel de costos**: `GET /api/costos-ia` (Flask :8081, sin auth, igual que
+  `/api/metricas`) expone hoy/semana/historial 30d. El monitor de
+  `bot-mckenna` (`http://localhost:3000/monitor`) lo muestra en una sección
+  "💸 Costos IA vía API" (proxy `GET /costos-ia` en `server.js`).
+- **Resumen semanal a WhatsApp**: `scripts/resumen_costos_llm_cron.py`
+  (cron lunes 7:45, instalado por `scripts/instalar_cron_mcKenna.sh`) envía al
+  grupo de sistemas el total de la semana, por canal y por modelo.
+  `AGENTE_COSTOS_LLM_SKIP_WA=1` para probarlo sin enviar WhatsApp.
 
 ---
 
@@ -385,6 +427,7 @@ sincronizar_facturas_recientes(dias=1):
 | `/api/consultar/producto` | GET | Bearer | Busca producto en Sheets |
 | `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
+| `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 

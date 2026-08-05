@@ -169,6 +169,9 @@ def migrate_orders_table() -> None:
         ("siigo_invoice_attempted_at", "TEXT"),
         ("siigo_invoice_email_sent_at", "TEXT"),
         ("stock_descontado_at", "TEXT"),
+        ("cancelled_at", "TEXT"),
+        ("cancel_reason", "TEXT"),
+        ("stock_restaurado_at", "TEXT"),
     ]
     for col, decl in additions:
         if col not in existing:
@@ -841,6 +844,8 @@ def _format_whatsapp_pedido(order: dict) -> str:
         f"  _(el número es la guía real; la transportadora al final es opcional)_\n"
         f"• Envío mismo día / mensajero (sin número de guía):\n"
         f"  _envio {suf} flex_\n"
+        f"• Anular venta (devuelve stock web):\n"
+        f"  _anular {suf}_\n"
     )
 
 
@@ -1462,6 +1467,114 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
     if not ok:
         return False, f"No encontré el pedido {ref}."
     return emitir_factura_siigo_pedido_web(ref, force=True)
+
+
+def anular_pedido_web(
+    reference: str,
+    *,
+    reason: str = "",
+    force: bool = False,
+    notify_wa: bool = False,
+) -> tuple[bool, str]:
+    """Anula un pedido de la tienda web y restaura stock local si se había descontado.
+
+    - `pending` / `approved` / `declined` / `no_realizado`: se pueden anular.
+    - Ya `cancelled` / `refunded`: no-op con error.
+    - Enviado (`shipping_status=shipped`): requiere `force=True`.
+    - Si hay factura Siigo, anula igual pero avisa (no emite nota crédito automática).
+    """
+    migrate_orders_table()
+    raw = (reference or "").strip()
+    if not raw:
+        return False, "Falta la referencia del pedido."
+
+    ref, err = resolver_referencia_desde_token(raw)
+    if err or not ref:
+        return False, err or "No encontré el pedido."
+
+    order = get_order_by_reference(ref)
+    if not order:
+        return False, f"No encontré el pedido {ref}."
+
+    status = (order.get("status") or "").strip().lower()
+    if status in ("cancelled", "canceled", "refunded"):
+        return False, f"El pedido *{ref}* ya está anulado ({status})."
+
+    ship = (order.get("shipping_status") or "").strip().lower()
+    if ship == "shipped" and not force:
+        return (
+            False,
+            f"El pedido *{ref}* ya tiene guía/envío. "
+            f"Confirma con *force* (panel) o vuelve a intentar con anulación forzada.",
+        )
+
+    now = datetime.now().isoformat()
+    motivo = (reason or "").strip()[:500]
+    stock_restored = False
+    restored_skus: list[str] = []
+
+    if order.get("stock_descontado_at") and not order.get("stock_restaurado_at"):
+        try:
+            from app.tools.stock_web import restaurar_stock_web
+
+            data, parse_error = _parse_order_items_json(order)
+            if not parse_error:
+                for it in data.get("items") or []:
+                    sku = str(it.get("ref") or "").strip()
+                    qty = _qty_float(it.get("qty", 0))
+                    if sku and qty > 0:
+                        restaurar_stock_web(sku, int(qty))
+                        restored_skus.append(f"{sku}×{int(qty)}")
+                        stock_restored = True
+        except Exception as e:
+            log.warning("Restaurar stock web %s: %s", ref, e)
+            return False, f"No pude restaurar el stock de *{ref}*: {e}"
+
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.execute(
+        """
+        UPDATE orders SET
+            status = 'cancelled',
+            cancelled_at = ?,
+            cancel_reason = ?,
+            stock_restaurado_at = COALESCE(stock_restaurado_at, ?)
+        WHERE upper(reference) = ?
+        """,
+        (now, motivo or None, now if stock_restored else None, ref),
+    )
+    con.commit()
+    con.close()
+
+    parts = [f"✅ Pedido *{ref}* anulado."]
+    if stock_restored:
+        parts.append(f"Stock web restaurado: {', '.join(restored_skus)}.")
+    elif order.get("stock_descontado_at"):
+        parts.append("Stock ya estaba restaurado o no había ítems con SKU.")
+    else:
+        parts.append("No había descuento de stock (pedido sin stock descontado).")
+
+    siigo_num = (order.get("siigo_invoice_number") or "").strip()
+    if siigo_num:
+        parts.append(
+            f"⚠️ Tiene factura Siigo #{siigo_num}: anula o nota crédito manual en Siigo si aplica."
+        )
+    if motivo:
+        parts.append(f"Motivo: {motivo}")
+
+    msg = " ".join(parts)
+
+    if notify_wa:
+        try:
+            from app.utils import enviar_whatsapp_reporte
+
+            enviar_whatsapp_reporte(
+                f"🚫 *Venta web anulada*\n{msg}",
+                numero_destino=GRUPO_PEDIDOS_WEB_WA,
+            )
+        except Exception as e:
+            log.warning("WA anular pedido web %s: %s", ref, e)
+
+    return True, msg
 
 
 def marcar_pedidos_expirados(horas: int = 24) -> int:
