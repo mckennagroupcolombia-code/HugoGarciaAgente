@@ -51,7 +51,7 @@ type FiltroStock = "todos" | "agotados" | "criticos" | "bajos" | "ok" | "sin_dat
 
 type FiltroRotacion = "todos" | "sin_ventas" | "baja" | "media" | "alta";
 
-type FiltroPublicacion = "todos" | "activas" | "inactivas";
+type FiltroPublicacion = "todos" | "activas" | "pausadas";
 
 const STOCK_FILTROS_KEY = "mckenna-stock-filtros";
 
@@ -73,13 +73,16 @@ const FILTRO_CODIGO_OK = new Set<FiltroCodigo>([
   "sin_c",
 ]);
 const FILTRO_ROTACION_OK = new Set<FiltroRotacion>(["todos", "sin_ventas", "baja", "media", "alta"]);
-const FILTRO_PUB_OK = new Set<FiltroPublicacion>(["todos", "activas", "inactivas"]);
+const FILTRO_PUB_OK = new Set<FiltroPublicacion>(["todos", "activas", "pausadas"]);
 
 function leerFiltrosStock(): StockFiltrosPersistidos {
   try {
     const raw = localStorage.getItem(STOCK_FILTROS_KEY);
     if (!raw) return {};
-    const parsed = JSON.parse(raw) as StockFiltrosPersistidos;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    let pub = typeof parsed.filtroPublicacion === "string" ? parsed.filtroPublicacion : "";
+    // Migrar filtro legado "inactivas" → pausadas
+    if (pub === "inactivas") pub = "pausadas";
     return {
       search: typeof parsed.search === "string" ? parsed.search : "",
       filtroStock: FILTRO_STOCK_OK.has(parsed.filtroStock as FiltroStock)
@@ -91,8 +94,8 @@ function leerFiltrosStock(): StockFiltrosPersistidos {
       filtroRotacion: FILTRO_ROTACION_OK.has(parsed.filtroRotacion as FiltroRotacion)
         ? (parsed.filtroRotacion as FiltroRotacion)
         : "todos",
-      filtroPublicacion: FILTRO_PUB_OK.has(parsed.filtroPublicacion as FiltroPublicacion)
-        ? (parsed.filtroPublicacion as FiltroPublicacion)
+      filtroPublicacion: FILTRO_PUB_OK.has(pub as FiltroPublicacion)
+        ? (pub as FiltroPublicacion)
         : "todos",
     };
   } catch {
@@ -121,6 +124,10 @@ function esPublicacionActiva(estado?: string, syncBloqueado?: boolean): boolean 
   if (e === "active") return true;
   if (!e && !syncBloqueado) return true;
   return false;
+}
+
+function esPublicacionPausada(estado?: string): boolean {
+  return (estado || "").toLowerCase() === "paused";
 }
 
 const SELECT_FILTRO =
@@ -971,7 +978,7 @@ export default function StockPanel() {
     let rotMedia = 0;
     let rotAlta = 0;
     let activas = 0;
-    let inactivas = 0;
+    let pausadas = 0;
     const rawVentas = ventasQ.data?.por_item ?? {};
     for (const f of filas) {
       const n = nivelStock(f.stock);
@@ -987,7 +994,7 @@ export default function StockPanel() {
       else if (f.estado_vinculo === "sku_divergente") divergentes += 1;
       else if (f.estado_vinculo === "sin_codigo") sinCodigo += 1;
       if (esPublicacionActiva(f.estado_meli, f.sync_bloqueado)) activas += 1;
-      else inactivas += 1;
+      else if (esPublicacionPausada(f.estado_meli)) pausadas += 1;
       const mid = (f.meli_id || "").toUpperCase();
       const venta = rawVentas[mid] ?? rawVentas[f.meli_id];
       const rot = nivelRotacion(venta);
@@ -1014,7 +1021,7 @@ export default function StockPanel() {
       rotMedia,
       rotAlta,
       activas,
-      inactivas,
+      pausadas,
     };
   }, [filas, ventasQ.data]);
 
@@ -1055,8 +1062,8 @@ export default function StockPanel() {
     }
     if (filtroPublicacion === "activas") {
       list = list.filter((f) => esPublicacionActiva(f.estado_meli, f.sync_bloqueado));
-    } else if (filtroPublicacion === "inactivas") {
-      list = list.filter((f) => !esPublicacionActiva(f.estado_meli, f.sync_bloqueado));
+    } else if (filtroPublicacion === "pausadas") {
+      list = list.filter((f) => esPublicacionPausada(f.estado_meli));
     }
     return [...list].sort((a, b) => {
       // Priorizar sin ventas con stock, luego menos stock
@@ -1384,11 +1391,11 @@ export default function StockPanel() {
             value={filtroPublicacion}
             onChange={(e) => setFiltroPublicacion(e.target.value as FiltroPublicacion)}
             className={SELECT_FILTRO}
-            title="Activa = publicada en MeLi · Inactiva = pausada, cerrada u otra"
+            title="Activa = publicada en MeLi · Pausada = pausada en MeLi"
           >
             <option value="todos">Todas</option>
             <option value="activas">Activas ({counts.activas})</option>
-            <option value="inactivas">Inactivas ({counts.inactivas})</option>
+            <option value="pausadas">Pausadas ({counts.pausadas})</option>
           </select>
         </label>
 

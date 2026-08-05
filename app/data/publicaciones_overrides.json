@@ -58,8 +58,8 @@
     "updated_at": "2026-06-12T01:07:05.002674"
   },
   "C-ACEESENAR5mL": {
-    "meli_item_id": "1278616147",
-    "updated_at": "2026-06-12T01:07:26.706869"
+    "meli_item_id": "MCO1278616147",
+    "updated_at": "2026-08-04T23:52:06.118951"
   },
   "FOR-GLUTAR2PmL": {
     "meli_item_id": "908856272",
@@ -286,7 +286,7 @@
   },
   "C-COCDESHIL250g": {
     "meli_item_id": "MCO4208635856",
-    "updated_at": "2026-08-04T16:04:56.422052"
+    "updated_at": "2026-08-04T23:33:39.331959"
   },
   "C-CERCARNKg": {
     "meli_item_id": "MCO1610626412",
@@ -315,5 +315,37 @@
   "C-TENSCI500g": {
     "meli_item_id": "MCO605852450",
     "updated_at": "2026-08-04T17:47:40.864934"
+  },
+  "C-GELSIL250g": {
+    "meli_item_id": "MCO1726564353",
+    "updated_at": "2026-08-04T23:15:56.160492"
+  },
+  "C-LPRO100g": {
+    "meli_item_id": "MCO1050326587",
+    "updated_at": "2026-08-04T23:38:49.978986"
+  },
+  "C-ACISAL50g": {
+    "meli_item_id": "MCO980071251",
+    "updated_at": "2026-08-04T23:41:27.434964"
+  },
+  "CRABJRFKg]": {
+    "meli_item_id": "MCO560569172",
+    "updated_at": "2026-08-04T23:42:51.019897"
+  },
+  "C-CERABREFKg": {
+    "meli_item_id": "MCO560569172",
+    "updated_at": "2026-08-04T23:43:04.147097"
+  },
+  "C-LISO100g": {
+    "meli_item_id": "MCO1839132084",
+    "updated_at": "2026-08-04T23:47:18.179367"
+  },
+  "C-ACEESEYLA5mL": {
+    "meli_item_id": "MCO1278679199",
+    "updated_at": "2026-08-04T23:48:29.538530"
+  },
+  "ALNT250": {
+    "meli_item_id": "MCO1354834051",
+    "updated_at": "2026-08-04T23:52:54.186039"
   }
 }
