@@ -13,7 +13,6 @@ const Chat = lazy(() => import("./components/Chat"));
 const VozIA = lazy(() => import("./components/VozIA"));
 const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
 const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
-const StockPanel = lazy(() => import("./components/StockPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
@@ -98,9 +97,10 @@ function PanelRouterInner() {
     case "compras-exterior":
     case "productos-siigo":
     case "rrhh":
-      return <ContabilidadPanel />;
+    case "operativos":
+    case "ingresos-egresos":
     case "stock":
-      return <StockPanel />;
+      return <ContabilidadPanel />;
     case "fichas":
       return <FichasTecnicasPanel />;
     case "pedidos":

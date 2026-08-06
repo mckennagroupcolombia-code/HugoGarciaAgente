@@ -2691,23 +2691,8 @@
     "C-ACEARG50ML": {
       "ref": "C-ACEARG50ML",
       "nombre": "Aceite Argan",
-      "lotes": [
-        {
-          "lote_numero": "CQN492",
-          "estado": "nuevo",
-          "fabricante": "",
-          "pais_origen": "",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
-          "fecha_recepcion": "2026-07-19",
-          "codigo_verificacion": "SRN5G2",
-          "ft_webViewLink": "",
-          "coa_webViewLink": "",
-          "vigente": true,
-          "registrado_en": "2026-07-19T06:49:46+00:00"
-        }
-      ],
-      "updated_at": "2026-07-19T06:49:46+00:00"
+      "lotes": [],
+      "updated_at": "2026-08-05T18:42:00+00:00"
     },
     "C-ACEJOJ30ML": {
       "ref": "C-ACEJOJ30ML",

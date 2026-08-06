@@ -185,10 +185,12 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 | `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre), `limit?` | Busca en vivo Siigo + caché; hasta 80 `{codigo,nombre}` |
 | `/api/rentabilidad/trm` | GET | query `fecha=YYYY-MM-DD` | TRM BanRep (datos.gov.co) USD→COP para esa fecha |
 | `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas consolidadas + landed; USD sin TRM → BanRep |
-| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?` | Upsert costos + historial; con `compra_id` actualiza pedido ya registrado; con `borrador_id` usa/elimina borrador |
-| `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` |
-| `/api/rentabilidad/compras-exterior/<id>` | GET/DELETE | - | Detalle o eliminar compra (+ soportes) |
+| `/api/tickets/extraer-lista-compras` | POST | multipart `imagen` o `archivo`, `modo=compra|etiqueta` (auth tickets) | OCR → `{items:[{nombre,cantidad,unidad}]}`; etiquetas: presentación en nombre + `unidad=u` |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?` | Upsert costos + historial; genera PDF cuenta de cobro 5% cuota manejo; con `compra_id` actualiza pedido ya registrado; con `borrador_id` usa/elimina borrador |
+| `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` (incluye `cuota_manejo_cop`, `cuenta_cobro_url`) |
+| `/api/rentabilidad/compras-exterior/<id>` | GET/DELETE | - | Detalle o eliminar compra (+ soportes + PDF cobro) |
 | `/api/rentabilidad/compras-exterior/<id>/soporte` | GET | - | Imagen/PDF del pantallazo |
+| `/api/rentabilidad/compras-exterior/<id>/cuenta-cobro` | GET/POST | POST body `{ accent_rgb }` | GET: PDF aprobado; POST: aprueba y genera PDF con acento del tema del usuario |
 | `/api/rentabilidad/compras-exterior/borradores` | GET | `limit?` | Lista borradores `{borradores[]}` |
 | `/api/rentabilidad/compras-exterior/borrador` | POST | multipart/JSON: `estado`, `moneda`, `trm`, `imagenes?`, `borrador_id?` | Crear/actualizar borrador para retomar |
 | `/api/rentabilidad/compras-exterior/borrador/<id>` | GET/DELETE | - | Detalle o eliminar borrador |

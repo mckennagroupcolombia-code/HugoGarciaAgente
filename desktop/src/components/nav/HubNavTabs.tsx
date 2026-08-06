@@ -11,6 +11,7 @@ import {
 import { PanelIcon } from "../../icons/PanelIcon";
 import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { puedeVerSeccionPanel } from "../../lib/panelAccess";
+import ScrollableTabList from "./ScrollableTabList";
 
 /**
  * Pestañas del hub en el cabezote (misma estética que Contabilidad).
@@ -61,12 +62,7 @@ export default function HubNavTabs({
     <div className="flex min-w-0 flex-1 items-center gap-1">
       {/* Fuera del scroll: herramientas siempre visibles. */}
       {leading ? <div className="shrink-0">{leading}</div> : null}
-      {/* justify-start: Facturación/Stock no se recortan (justify-end + overflow los escondía). */}
-      <div
-        className="flex min-w-0 flex-1 items-center justify-start gap-1 overflow-x-auto"
-        role="tablist"
-        aria-label={`Secciones de ${section?.label ?? sectionId}`}
-      >
+      <ScrollableTabList aria-label={`Secciones de ${section?.label ?? sectionId}`}>
         {tabs.map((item) => {
           const id = item.panel;
           const info = PANEL_INFO[id];
@@ -89,7 +85,7 @@ export default function HubNavTabs({
             </button>
           );
         })}
-      </div>
+      </ScrollableTabList>
     </div>
   );
 }

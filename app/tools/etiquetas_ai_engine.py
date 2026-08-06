@@ -346,6 +346,40 @@ def _recuadro_lote_plantilla_ai(svg: str) -> tuple[re.Match[str], float, float, 
     return m, cx, y_lo, y_hi
 
 
+def _transparentar_recuadro_lote_ai(svg: str) -> str:
+    """Recuadro LOT/EXP: sin relleno ni trazo (solo ancla de posición / área editable)."""
+    rec = _recuadro_lote_plantilla_ai(svg)
+    if not rec:
+        # Plantillas SVG McKenna (g2): quitar trazo aunque ya tengan fill="none".
+        return re.sub(
+            r'(<rect\b[^>]*\bdata-mckenna-grafico="g2"[^>]*?)\bstroke="[^"]*"',
+            r'\1stroke="none"',
+            svg,
+            count=1,
+            flags=re.I,
+        )
+    m_path, *_ = rec
+    tag = m_path.group(0)
+    nuevo = tag
+    if re.search(r"\bstroke\s*:", nuevo, re.I):
+        nuevo = re.sub(r"stroke\s*:\s*[^;'\"]+", "stroke:none", nuevo, count=1, flags=re.I)
+    elif re.search(r'\bstroke\s*=\s*"', nuevo, re.I):
+        nuevo = re.sub(r'\bstroke\s*=\s*"[^"]*"', 'stroke="none"', nuevo, count=1, flags=re.I)
+    else:
+        nuevo = nuevo[:-1] + ' stroke="none"/>' if nuevo.endswith("/>") else nuevo
+    if re.search(r"\bfill\s*:", nuevo, re.I):
+        nuevo = re.sub(r"fill\s*:\s*[^;'\"]+", "fill:none", nuevo, count=1, flags=re.I)
+    elif re.search(r'\bfill\s*=\s*"', nuevo, re.I):
+        nuevo = re.sub(r'\bfill\s*=\s*"[^"]*"', 'fill="none"', nuevo, count=1, flags=re.I)
+    else:
+        nuevo = nuevo.replace("<path", '<path fill="none"', 1)
+    if re.search(r"stroke-width\s*:", nuevo, re.I):
+        nuevo = re.sub(r"stroke-width\s*:\s*[^;'\"]+", "stroke-width:0", nuevo, count=1, flags=re.I)
+    if nuevo == tag:
+        return svg
+    return svg[: m_path.start()] + nuevo + svg[m_path.end() :]
+
+
 def _inyectar_lote_exp_recuadro_ai(svg: str, datos: dict) -> str:
     """LOT/EXP dentro del recuadro naranja que ya trae el .ai (coords derivadas del path)."""
     from app.tools.etiquetas_svg_engine import _escape_xml_text, _lineas_lote_vencimiento
@@ -2914,6 +2948,7 @@ def renderizar_desde_ai(datos: dict, ai_path: Path | None = None, modo: str | No
         legal_inyectado = svg != antes_legal
 
     svg = _aplicar_lote_exp_inplace(svg, datos)
+    svg = _transparentar_recuadro_lote_ai(svg)
     svg = _inyectar_codigo_verificacion_ai(svg, datos, spec)
 
     barcode_reemplazado = False

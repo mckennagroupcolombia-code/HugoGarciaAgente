@@ -145,7 +145,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <PanelTransition>{children}</PanelTransition>
             )}
           </div>
-          {isAdmin && !hubIntegrado && (
+          {isAdmin && !hubIntegrado && panel !== "stock" && (
             <div className="shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm lg:px-8">
               <ActivityLog />
             </div>

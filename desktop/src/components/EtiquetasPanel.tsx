@@ -2213,10 +2213,10 @@ function BloqueLoteExpPreview({
 }) {
   const [dragging, setDragging] = useState(false);
   const arrastrable = Boolean(onPositionChange);
-  const visible = loteText !== undefined || vencText !== undefined;
-  const lineaLote = loteText || LOTE_PREFIJO;
-  const lineaExp = vencText || EXP_PREFIJO;
-  const sinDatos = !loteText && !vencText;
+  /** Solo líneas con dato real — no cabecera «LOTE · EXP» ni «EXP.» vacío (evita info repetida). */
+  const lineaLote = loteText?.trim() || undefined;
+  const lineaExp = vencText?.trim() || undefined;
+  const visible = Boolean(lineaLote || lineaExp);
   const fontMostrar = Math.max(fontPx * 1.35, 16);
 
   const mover = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2240,7 +2240,6 @@ function BloqueLoteExpPreview({
         top: `${yPct}%`,
         transform: "translate(-50%, -50%)",
         zIndex: 10,
-        minWidth: "min(72%, 14rem)",
       }}
       onPointerDown={(e) => {
         if (!arrastrable) return;
@@ -2273,21 +2272,17 @@ function BloqueLoteExpPreview({
           fontWeight: 300,
           fontSize: `${fontMostrar}px`,
           lineHeight: 1.35,
-          color: sinDatos ? "rgba(1,109,130,0.95)" : "#000",
-          background: sinDatos || dragging ? "rgba(232,247,250,0.96)" : "rgba(255,255,255,0.88)",
-          border: `2px dashed rgba(1,109,130,0.9)`,
-          borderRadius: 8,
-          padding: "10px 16px",
-          boxShadow: dragging
-            ? "0 0 0 3px rgba(1,109,130,0.45)"
-            : "0 2px 8px rgba(0,0,0,0.14)",
+          color: "#000",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          boxShadow: "none",
+          outline: dragging ? "1px dashed rgba(1,109,130,0.45)" : "none",
+          outlineOffset: 3,
         }}
       >
-        <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-accent" style={{ fontFamily: "system-ui, sans-serif" }}>
-          Lote · Exp
-        </div>
-        <div className="whitespace-nowrap">{lineaLote}</div>
-        <div className="whitespace-nowrap">{lineaExp}</div>
+        {lineaLote ? <div className="whitespace-nowrap">{lineaLote}</div> : null}
+        {lineaExp ? <div className="whitespace-nowrap">{lineaExp}</div> : null}
       </div>
     </div>
   );
@@ -5124,8 +5119,8 @@ function TabImprimir({
       alto_mm: formato.altoMm,
       contenido_neto: pres.contenido_neto ?? studioDatos.contenido_neto,
       unidad: pres.unidad ?? studioDatos.unidad,
-      lote: incluirLoteExp ? (loteParaEtiqueta(lote) || studioDatos.lote) : "",
-      vencimiento: incluirLoteExp ? (expParaEtiqueta(vencimiento) || studioDatos.vencimiento) : "",
+      lote: incluirLoteExp ? (loteParaEtiqueta(lote) || "") : "",
+      vencimiento: incluirLoteExp ? (expParaEtiqueta(vencimiento) || "") : "",
       mostrar_lote_vencimiento: incluirLoteExp,
     };
   }, [studioDatos, formato, lote, vencimiento, incluirLoteExp]);
@@ -5169,9 +5164,7 @@ function TabImprimir({
     setPdfStudioNombre(precargar.pdf_nombre || "");
     if (precargar.pdf_ruta) {
       setVistaImpresion("documento");
-      if (precargar.lote_defecto || precargar.vencimiento_defecto) {
-        setIncluirLoteExp(true);
-      }
+      // Lote/EXP no se precargan: el operador marca «Lote» y digita a mano.
     }
     if (precargar.tipo_etiqueta) {
       const [anchoMm, altoMm] = mmParaTipoEtiqueta(precargar.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT);
@@ -5192,8 +5185,9 @@ function TabImprimir({
     const pctVenc = vencPctInicial(pct.x, pct.y, precargar.venc_x_pct, precargar.venc_y_pct);
     setVencXPct(pctVenc.x);
     setVencYPct(pctVenc.y);
-    setLote(conPrefijoLote(precargar.lote_defecto));
-    setVencimiento(conPrefijoExp(precargar.vencimiento_defecto));
+    setLote(LOTE_PREFIJO);
+    setVencimiento(EXP_PREFIJO);
+    setIncluirLoteExp(false);
     // Siempre reasignar (no solo cuando vienen datos): si no, quedan overlays
     // de un producto/PDF anterior "pegados" sobre el PDF nuevo (p. ej. el
     // handoff de Studio no manda estos campos y el PDF ya trae todo su
@@ -5286,30 +5280,25 @@ function TabImprimir({
       guardado = null;
     }
 
-    // Lote vigente registrado (Fichas Técnicas / COA) — prioridad sobre el
-    // default legacy de etiquetas_datos.json, que antes era el único que se
-    // leía aquí y por eso el lote registrado no se reflejaba al imprimir.
-    let loteVigenteNum = "";
-    let vencVigente = "";
+    // Match EAN/SKU solo para asociar producto; el lote NO se sugiere —
+    // el operador diligencia LOT. / EXP. a mano en impresión.
+    let tieneLoteRegistrado = false;
     try {
-      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string }> }>(
         `/api/lotes/${encodeURIComponent(fila.sku)}`,
       );
-      loteVigenteNum = rLote.lotes?.[0]?.lote_numero ?? "";
-      vencVigente = rLote.lotes?.[0]?.fecha_vencimiento ?? "";
+      tieneLoteRegistrado = Boolean(rLote.lotes?.[0]?.lote_numero);
     } catch {
-      /* sin lote registrado o error de red: se usa el default legacy */
+      /* sin lote registrado o error de red */
     }
     setMatchEanPng(
-      loteVigenteNum
+      tieneLoteRegistrado
         ? ({ sku: fila.sku, nombre_producto: fila.nombre ?? fila.sku } as CodigoEan)
         : "sin-match",
     );
 
     const base = studioDatosDesdeCatalogo(fila, guardado);
-    const loteFinal = loteVigenteNum || datos.lote_defecto || base.lote;
-    const vencFinal = vencVigente || datos.vencimiento_defecto || base.vencimiento;
-    setStudioDatos({ ...base, lote: loteFinal, vencimiento: vencFinal });
+    setStudioDatos({ ...base, lote: "", vencimiento: "" });
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
     if (tipo) {
@@ -5337,10 +5326,10 @@ function TabImprimir({
       setVencXPct(LOTE_POS_PCT["center"].x);
       setVencYPct(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
     }
-    setLote(conPrefijoLote(loteFinal));
-    setVencimiento(conPrefijoExp(vencFinal));
+    setLote(LOTE_PREFIJO);
+    setVencimiento(EXP_PREFIJO);
     setVistaImpresion("documento");
-    setIncluirLoteExp(Boolean(loteFinal || vencFinal));
+    setIncluirLoteExp(false);
   }
 
   async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
@@ -5371,16 +5360,7 @@ function TabImprimir({
     if (match) {
       setSkuActivoImpresion(match.sku);
       setMatchEanPng(match);
-      try {
-        const r = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
-          `/api/lotes/${encodeURIComponent(match.sku)}`,
-        );
-        const vigente = r.lotes?.[0];
-        if (vigente?.lote_numero) setLote(conPrefijoLote(vigente.lote_numero));
-        if (vigente?.fecha_vencimiento) setVencimiento(conPrefijoExp(vigente.fecha_vencimiento));
-      } catch {
-        /* sin lote registrado o error de red: se deja para llenar a mano */
-      }
+      // No sugerir lote/EXP desde fichas: se diligencia a mano (solo prefijo LOT. / EXP.).
     } else {
       setMatchEanPng("sin-match");
     }
@@ -5666,7 +5646,14 @@ function TabImprimir({
                 type="checkbox"
                 className="h-3 w-3 accent-accent"
                 checked={incluirLoteExp}
-                onChange={(e) => setIncluirLoteExp(e.target.checked)}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setIncluirLoteExp(on);
+                  if (on) {
+                    setLote(LOTE_PREFIJO);
+                    setVencimiento(EXP_PREFIJO);
+                  }
+                }}
                 aria-label="Incluir lote y vencimiento"
               />
               <span>Lote</span>
@@ -5756,8 +5743,8 @@ function TabImprimir({
                 <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
                 <VistaPreviaPngConLote
                   nombre={pngImpresion.nombre}
-                  loteText={incluirLoteExp ? (loteParaEtiqueta(lote) ?? LOTE_PREFIJO) : undefined}
-                  vencText={incluirLoteExp ? (expParaEtiqueta(vencimiento) ?? EXP_PREFIJO) : undefined}
+                  loteText={incluirLoteExp ? loteParaEtiqueta(lote) : undefined}
+                  vencText={incluirLoteExp ? expParaEtiqueta(vencimiento) : undefined}
                   loteFont={loteFont}
                   loteXPct={loteXPct}
                   loteYPct={loteYPct}
@@ -5820,8 +5807,8 @@ function TabImprimir({
                     imagen={pdfStudioPreview?.imagen}
                     mime={pdfStudioPreview?.mime}
                     loading={pdfStudioPreviewLoading}
-                    loteText={incluirLoteExp ? (loteParaEtiqueta(lote) ?? LOTE_PREFIJO) : undefined}
-                    vencText={incluirLoteExp ? (expParaEtiqueta(vencimiento) ?? EXP_PREFIJO) : undefined}
+                    loteText={incluirLoteExp ? loteParaEtiqueta(lote) : undefined}
+                    vencText={incluirLoteExp ? expParaEtiqueta(vencimiento) : undefined}
                     loteFont={loteFont}
                     loteXPct={loteXPct}
                     loteYPct={loteYPct}

@@ -7,11 +7,13 @@ export const CONTABILIDAD_PANELS = [
   "facturacion",
   "sync",
   "facturas",
+  "ingresos-egresos",
   "stock",
   "rentabilidad",
   "compras-exterior",
   "productos-siigo",
   "costos-productos",
+  "operativos",
   "rrhh",
 ] as const satisfies readonly Panel[];
 
@@ -26,11 +28,13 @@ export const CONTABILIDAD_PANEL_OCULTO = "centros-costo" as const;
  * Pestañas ocultas del cabezote:
  * - productos-siigo → FAB
  * - sync / facturas → viven dentro de Facturación
+ * - rrhh → vive dentro de Operativos
  */
 export const CONTABILIDAD_TAB_OCULTAS = new Set<ContabilidadPanelId>([
   "productos-siigo",
   "sync",
   "facturas",
+  "rrhh",
 ]);
 
 /** Subvistas internas de la pestaña Facturación. */
@@ -41,11 +45,21 @@ export const FACTURACION_SUBTABS = [
 
 export type FacturacionSubtabId = (typeof FACTURACION_SUBTABS)[number]["id"];
 
+/** Subvistas internas de la pestaña Operativos. */
+export const OPERATIVOS_SUBTABS = [
+  { id: "rrhh", label: "Recursos humanos" },
+  { id: "impuestos", label: "Pagos de impuestos" },
+  { id: "servicios", label: "Servicios" },
+] as const;
+
+export type OperativosSubtabId = (typeof OPERATIVOS_SUBTABS)[number]["id"];
+
 export type FacturasVistaBoot = "pendientes" | "historial" | "consultar";
 
-/** sync/facturas antiguos → Facturación. */
+/** sync/facturas → Facturación; rrhh → Operativos. */
 export function normalizarPanelContabilidad(panel: string): ContabilidadPanelId | null {
   if (panel === "sync" || panel === "facturas") return "facturacion";
+  if (panel === "rrhh") return "operativos";
   if (esPanelContabilidad(panel)) return panel;
   return null;
 }
@@ -53,6 +67,11 @@ export function normalizarPanelContabilidad(panel: string): ContabilidadPanelId 
 export function subtabDesdePanelLegacy(panel: string): FacturacionSubtabId | null {
   if (panel === "sync") return "sync";
   if (panel === "facturas") return "compra";
+  return null;
+}
+
+export function subtabOperativosDesdeLegacy(panel: string): OperativosSubtabId | null {
+  if (panel === "rrhh") return "rrhh";
   return null;
 }
 
@@ -75,13 +94,16 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p["compras-exterior"]
       || p["productos-siigo"]
       || p["costos-productos"]
-      || p.rrhh,
+      || p.rrhh
+      || p.operativos
+      || p.impuestos
+      || p.servicios,
   );
 }
 
 /**
  * Costos / rentabilidad acompañan facturas o sync.
- * RRHH usa su permiso directo.
+ * RRHH / Operativos: permiso propio o avanzado.
  * Facturación = sync u facturas (o permiso propio).
  */
 export function puedeVerModuloContabilidad(
@@ -89,7 +111,9 @@ export function puedeVerModuloContabilidad(
   seccion: string,
 ): boolean | null {
   if (seccion === CONTABILIDAD_PANEL_OCULTO) return false;
-  if (!esPanelContabilidad(seccion)) return null;
+  if (!esPanelContabilidad(seccion) && seccion !== "impuestos" && seccion !== "servicios") {
+    return null;
+  }
   if (!user) return false;
   if (esAdminPanel(user)) return true;
   const p = user.permisos_secciones;
@@ -98,7 +122,6 @@ export function puedeVerModuloContabilidad(
     return Boolean(p.facturacion || p.facturas || p.sync);
   }
   if (seccion === "stock") {
-    // Stock acompaña el módulo contable (mismo criterio práctico que rentabilidad).
     return Boolean(p.stock || p.facturacion || p.facturas || p.sync || p.rentabilidad);
   }
   if (seccion === "costos-productos") {
@@ -112,14 +135,31 @@ export function puedeVerModuloContabilidad(
   if (seccion === "productos-siigo") {
     return Boolean(p["productos-siigo"] || p.facturas || p.sync || p.facturacion);
   }
+  if (seccion === "operativos") {
+    return Boolean(
+      p.operativos || p.rrhh || p.impuestos || p.servicios || p.rentabilidad || p.facturacion,
+    );
+  }
   if (seccion === "rrhh") {
-    return Boolean(p.rrhh);
+    return Boolean(p.rrhh || p.operativos);
+  }
+  if (seccion === "impuestos") {
+    return Boolean(p.impuestos || p.operativos || p.facturacion || p.facturas);
+  }
+  if (seccion === "servicios") {
+    return Boolean(p.servicios || p.operativos || p.rentabilidad);
+  }
+  if (seccion === "ingresos-egresos") {
+    return Boolean(
+      p["ingresos-egresos"] || p.facturas || p.sync || p.facturacion || p.rentabilidad,
+    );
   }
   return Boolean(p[seccion as keyof typeof p]);
 }
 
 const LAST_KEY = "mckenna-contabilidad-last-panel";
 const FACTURACION_SUB_KEY = "mckenna-facturacion-subtab";
+const OPERATIVOS_SUB_KEY = "mckenna-operativos-subtab";
 
 export function leerUltimoPanelContabilidad(): ContabilidadPanelId | null {
   try {
@@ -156,6 +196,20 @@ export function guardarSubtabFacturacion(id: FacturacionSubtabId): void {
   } catch { /* */ }
 }
 
+export function leerSubtabOperativos(): OperativosSubtabId {
+  try {
+    const v = localStorage.getItem(OPERATIVOS_SUB_KEY) || "";
+    if (v === "rrhh" || v === "impuestos" || v === "servicios") return v;
+  } catch { /* */ }
+  return "rrhh";
+}
+
+export function guardarSubtabOperativos(id: OperativosSubtabId): void {
+  try {
+    localStorage.setItem(OPERATIVOS_SUB_KEY, id);
+  } catch { /* */ }
+}
+
 /** Primer subpanel visible según permisos y modo avanzado. */
 export function primerPanelContabilidad(
   user: TicketsUser | null,
@@ -165,7 +219,10 @@ export function primerPanelContabilidad(
   const visibles = CONTABILIDAD_PANELS.filter((id) => {
     if (CONTABILIDAD_TAB_OCULTAS.has(id)) return false;
     if (!puedeVerModuloContabilidad(user, id)) return false;
-    if (id === "costos-productos" || id === "rrhh") return advanced;
+    if (id === "costos-productos") return advanced;
+    if (id === "operativos") {
+      return advanced || Boolean(puedeVerModuloContabilidad(user, "servicios"));
+    }
     return true;
   });
   const pref = preferido ? normalizarPanelContabilidad(preferido) : null;

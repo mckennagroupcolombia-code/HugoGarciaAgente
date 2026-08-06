@@ -962,6 +962,7 @@ def _encolar_factura(numero_factura: str, datos: dict, xml_content: str,
         'es_nuevo_proveedor': es_nuevo_proveedor,
         'items_count':        len(datos.get('items', [])),
         'total':              round(total, 2),
+        'fecha':              (datos.get('fecha') or '')[:10],
         'estado':             'esperando_clasificacion' if es_nuevo_proveedor else 'esperando_confirmacion',
         'xml_b64':            base64.b64encode(xml_content.encode('utf-8')).decode('ascii'),
         'datos_json':         json.dumps(datos, ensure_ascii=False, default=str),
@@ -969,6 +970,92 @@ def _encolar_factura(numero_factura: str, datos: dict, xml_content: str,
     }
     _guardar_pendientes(state)
     return sufijo
+
+
+def _fecha_pendiente(entrada: dict) -> str:
+    """Fecha de factura YYYY-MM-DD desde campos guardados o XML."""
+    for key in ("fecha", "fecha_factura"):
+        raw = str(entrada.get(key) or "").strip()
+        if len(raw) >= 10 and raw[0:4].isdigit():
+            return raw[:10]
+    try:
+        datos = json.loads(entrada.get("datos_json") or "{}")
+        raw = str(datos.get("fecha") or "").strip()
+        if len(raw) >= 10 and raw[0:4].isdigit():
+            return raw[:10]
+    except Exception:
+        pass
+    xml_b64 = entrada.get("xml_b64") or ""
+    if xml_b64:
+        try:
+            text = base64.b64decode(xml_b64).decode("utf-8", errors="ignore")
+            m = re.search(r"IssueDate[^>]*>\s*(\d{4}-\d{2}-\d{2})", text)
+            if m:
+                return m.group(1)
+        except Exception:
+            pass
+    return ""
+
+
+def listar_pendientes_panel(anio: int | None = None) -> dict:
+    """Pendientes para el panel; por defecto solo año en curso."""
+    anio_filtro = int(anio) if anio is not None else int(datetime.now().year)
+    state = _cargar_pendientes()
+    items = []
+    for sufijo, e in (state.get("pendientes") or {}).items():
+        fecha = _fecha_pendiente(e)
+        if fecha and not fecha.startswith(str(anio_filtro)):
+            continue
+        if not fecha:
+            # Sin fecha confiable: no mostrar en cola del año (evita arrastre viejo)
+            continue
+        items.append({
+            "sufijo": sufijo,
+            "numero_factura": e.get("numero_factura", ""),
+            "proveedor": e.get("proveedor", ""),
+            "nit": e.get("nit", ""),
+            "es_nuevo_proveedor": e.get("es_nuevo_proveedor", False),
+            "items_count": e.get("items_count", 0),
+            "total": e.get("total", 0),
+            "fecha": fecha,
+            "estado": e.get("estado", ""),
+        })
+    items.sort(key=lambda r: r.get("fecha") or "", reverse=True)
+    return {
+        "pendientes": items,
+        "total": len(items),
+        "anio": anio_filtro,
+    }
+
+
+def podar_pendientes_fuera_de_anio(anio: int | None = None) -> dict:
+    """Quita de la cola las facturas cuya fecha no es del año indicado."""
+    anio_filtro = int(anio) if anio is not None else int(datetime.now().year)
+    state = _cargar_pendientes()
+    pendientes = state.get("pendientes") or {}
+    keep = {}
+    quitadas = []
+    for sufijo, e in pendientes.items():
+        fecha = _fecha_pendiente(e)
+        if fecha.startswith(str(anio_filtro)):
+            if not e.get("fecha"):
+                e = dict(e)
+                e["fecha"] = fecha
+            keep[sufijo] = e
+        else:
+            quitadas.append({
+                "sufijo": sufijo,
+                "numero_factura": e.get("numero_factura"),
+                "fecha": fecha or None,
+            })
+    state["pendientes"] = keep
+    _guardar_pendientes(state)
+    return {
+        "anio": anio_filtro,
+        "quedan": len(keep),
+        "quitadas": len(quitadas),
+        "detalle_quitadas": quitadas[:50],
+    }
 
 
 def _buscar_pendiente(sufijo: str):
@@ -1314,20 +1401,48 @@ def _enriquecer_registro_historial(registro: dict, tendencias: dict) -> dict:
     return reg
 
 
+def _anio_de_registro_historial(row: dict) -> int | None:
+    """Año de la factura: fecha_factura → timestamp → id YYYY…"""
+    for key in ("fecha_factura", "timestamp", "fecha"):
+        raw = str(row.get(key) or "").strip()
+        if len(raw) >= 4 and raw[:4].isdigit():
+            try:
+                return int(raw[:4])
+            except ValueError:
+                pass
+    rid = str(row.get("id") or "")
+    if len(rid) >= 4 and rid[:4].isdigit():
+        try:
+            return int(rid[:4])
+        except ValueError:
+            pass
+    return None
+
+
 def listar_historial_facturas(
     limit: int = 100,
     accion: str | None = None,
     q: str | None = None,
+    anio: int | None = None,
 ) -> dict:
-    """Lista facturas ya procesadas (más recientes primero)."""
+    """Lista facturas ya procesadas (más recientes primero).
+
+    Por defecto solo el año en curso (fecha de factura; si falta, timestamp).
+    """
     sincronizar_historial_desde_importaciones()
     historial = _cargar_historial().get('historial', [])
     tendencias = _calcular_tendencias_precio_historial(historial)
     accion_f = (accion or '').strip().lower()
     q_norm = _normalizar(q or '').strip()
+    anio_filtro = int(anio) if anio is not None else int(datetime.now().year)
     filtradas = []
     for row in historial:
         if accion_f and str(row.get('accion', '')).lower() != accion_f:
+            continue
+        anio_row = _anio_de_registro_historial(row)
+        if anio_row is not None and anio_row != anio_filtro:
+            continue
+        if anio_row is None:
             continue
         enriquecido = _enriquecer_registro_historial(row, tendencias)
         if q_norm:
@@ -1350,6 +1465,7 @@ def listar_historial_facturas(
         'historial': filtradas[:limit],
         'total': total,
         'mostrando': min(total, limit),
+        'anio': anio_filtro,
     }
 
 
@@ -2601,16 +2717,24 @@ def buscar_compra_siigo_registrada(datos: dict, compras_siigo: list[dict]) -> di
 #  Orquestador principal — fase 1: escaneo
 # ─────────────────────────────────────────────
 
-def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
+def escanear_facturas_gmail_para_panel(fecha_desde: str | None = None) -> dict:
     """
     Escanea Gmail, encola facturas en facturas_compra_pendientes.json
     y devuelve resultado estructurado para el panel (sin WhatsApp).
+
+    Por defecto solo factura del año en curso (fecha DIAN).
+    Relee adjuntos aunque ya se hayan descargado antes (si no están en cola
+    ni en historial), para no perder facturas del año al podar la cola.
     """
+    anio_actual = datetime.now().year
+    if not fecha_desde:
+        fecha_desde = f"{anio_actual}/01/01"
     from app.tools.sincronizar_facturas_de_compra_siigo import (
         GmailAuthError,
         get_gmail_service,
-        leer_correos_no_descargados,
+        leer_correos_facturas_periodo,
         descargar_y_extraer_zip,
+        extraer_xml_de_zip_local,
         extraer_datos_xml_dian,
     )
 
@@ -2619,13 +2743,19 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
         "correos_revisados": 0,
         "encoladas": [],
         "ya_en_cola": [],
+        "ya_en_historial": [],
         "omitidas": [],
         "errores": [],
         "mensaje": "",
+        "anio": anio_actual,
     }
 
     try:
-        correos = leer_correos_no_descargados(fecha_desde=fecha_desde)
+        # Incluir ZIPs ya bajados: el manifiesto "descargadas" no implica "encoladas".
+        correos = leer_correos_facturas_periodo(
+            fecha_desde=fecha_desde,
+            solo_no_descargados=False,
+        )
     except GmailAuthError as e:
         resultado["mensaje"] = str(e)
         return resultado
@@ -2633,7 +2763,10 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
     resultado["correos_revisados"] = len(correos)
     if not correos:
         resultado["ok"] = True
-        resultado["mensaje"] = "No hay facturas nuevas en Gmail (label: FACTURAS-MCKG)."
+        resultado["mensaje"] = (
+            f"No hay correos con ZIP en FACTURAS-MCKG desde {fecha_desde} "
+            f"(año {anio_actual})."
+        )
         return resultado
 
     try:
@@ -2648,14 +2781,25 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
         (v.get("numero_factura") or "").upper()
         for v in state.get("pendientes", {}).values()
     }
+    sincronizar_historial_desde_importaciones()
+    numeros_historial = {
+        str(r.get("numero_factura") or "").strip().upper()
+        for r in (_cargar_historial().get("historial") or [])
+        if r.get("numero_factura")
+    }
 
     for correo in correos:
         asunto = correo.get("asunto", "Sin asunto")
         for adjunto in correo.get("adjuntos_zip") or []:
             try:
-                xml_content, _pdf, _pdf_name = descargar_y_extraer_zip(
-                    service, correo["id"], adjunto["id"], adjunto["filename"]
-                )
+                xml_content = None
+                zip_local = adjunto.get("zip_path")
+                if zip_local and os.path.isfile(zip_local):
+                    xml_content, _pdf, _pdf_name = extraer_xml_de_zip_local(zip_local)
+                if not xml_content:
+                    xml_content, _pdf, _pdf_name = descargar_y_extraer_zip(
+                        service, correo["id"], adjunto["id"], adjunto["filename"]
+                    )
                 if not xml_content:
                     resultado["errores"].append({
                         "asunto": asunto,
@@ -2676,6 +2820,14 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
                 numero_factura = f"{datos['prefix']}{datos['number']}"
                 proveedor = datos.get("proveedor", "")
                 nit = datos.get("nit_proveedor") or datos.get("nit") or ""
+                fecha_fac = (datos.get("fecha") or "")[:10]
+                if not fecha_fac.startswith(str(anio_actual)):
+                    resultado["omitidas"].append({
+                        "numero_factura": numero_factura,
+                        "proveedor": proveedor,
+                        "motivo": f"Fuera de {anio_actual} (fecha {fecha_fac or 'desconocida'})",
+                    })
+                    continue
                 n_items = len(datos.get("items", []))
                 total = round(sum(
                     item.get("subtotal", 0) + sum(
@@ -2684,10 +2836,19 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
                     for item in datos.get("items", [])
                 ), 2)
 
-                if numero_factura.upper() in numeros_en_cola:
+                num_u = numero_factura.upper()
+                if num_u in numeros_en_cola:
                     resultado["ya_en_cola"].append({
                         "numero_factura": numero_factura,
                         "proveedor": proveedor,
+                    })
+                    continue
+
+                if num_u in numeros_historial:
+                    resultado["ya_en_historial"].append({
+                        "numero_factura": numero_factura,
+                        "proveedor": proveedor,
+                        "fecha": fecha_fac,
                     })
                     continue
 
@@ -2703,7 +2864,7 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
 
                 es_nuevo = not es_proveedor_especial(nit, proveedor)
                 sufijo = _encolar_factura(numero_factura, datos, xml_content, es_nuevo)
-                numeros_en_cola.add(numero_factura.upper())
+                numeros_en_cola.add(num_u)
                 resultado["encoladas"].append({
                     "sufijo": sufijo,
                     "numero_factura": numero_factura,
@@ -2711,6 +2872,7 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
                     "nit": nit,
                     "items_count": n_items,
                     "total": total,
+                    "fecha": fecha_fac,
                     "es_nuevo_proveedor": es_nuevo,
                     "estado": "esperando_clasificacion" if es_nuevo else "esperando_confirmacion",
                 })
@@ -2722,20 +2884,33 @@ def escanear_facturas_gmail_para_panel(fecha_desde: str = "2025/01/01") -> dict:
                 })
 
     n_enc = len(resultado["encoladas"])
+    n_omit = len(resultado["omitidas"])
+    n_hist = len(resultado["ya_en_historial"])
+    n_cola = len(resultado["ya_en_cola"])
     if n_enc:
         resultado["ok"] = True
         resultado["mensaje"] = (
-            f"{n_enc} factura(s) lista(s) para revisión en el panel. "
+            f"{n_enc} factura(s) de {anio_actual} lista(s) para revisión. "
             "Revísalas una a una antes de confirmar."
         )
-    elif resultado["errores"]:
+    elif resultado["errores"] and not (n_omit or n_hist or n_cola):
         resultado["mensaje"] = "Se encontraron correos pero hubo errores al leer los XML."
-    elif resultado["omitidas"] or resultado["ya_en_cola"]:
+    elif n_omit or n_hist or n_cola:
         resultado["ok"] = True
-        resultado["mensaje"] = "No hay facturas nuevas; las detectadas ya están en SIIGO o en cola."
+        partes = []
+        if n_hist:
+            partes.append(f"{n_hist} ya en historial")
+        if n_cola:
+            partes.append(f"{n_cola} ya en cola")
+        if n_omit:
+            partes.append(f"{n_omit} omitida(s)")
+        resultado["mensaje"] = (
+            f"No hay facturas nuevas de {anio_actual} para cargar "
+            f"({'; '.join(partes)})."
+        )
     else:
         resultado["ok"] = True
-        resultado["mensaje"] = "No se encontraron facturas nuevas en Gmail."
+        resultado["mensaje"] = f"No se encontraron facturas de {anio_actual} en Gmail."
 
     return resultado
 

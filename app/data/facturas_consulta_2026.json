@@ -3,6 +3,562 @@
   "facturas": [
     {
       "origen": "archivo-2026",
+      "id": "archivo-2026-FE76661035",
+      "sufijo": "1035",
+      "numero_factura": "FE76661035",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-05",
+      "total": 12500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-05T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201689142",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12500.0,
+          "precio_neto": null,
+          "subtotal": 12500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE76661035.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76557207",
+      "sufijo": "7207",
+      "numero_factura": "FE76557207",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-04",
+      "total": 175400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-04T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201556325",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201556850",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201560574",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 25500.0,
+          "precio_neto": null,
+          "subtotal": 25500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201559862",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 20900.0,
+          "precio_neto": null,
+          "subtotal": 20900.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201562692",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 28600.0,
+          "precio_neto": null,
+          "subtotal": 28600.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201559209",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "CARGA TERRESTRE 700201561360",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 44900.0,
+          "precio_neto": null,
+          "subtotal": 44900.0
+        }
+      ],
+      "items_count": 7,
+      "fuente": "z080025156905426FE76557207.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76426342",
+      "sufijo": "6342",
+      "numero_factura": "FE76426342",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-03",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-03T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201406275",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad080025156905426FE76426342.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76194316",
+      "sufijo": "4316",
+      "numero_factura": "FE76194316",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-07-31",
+      "total": 73300.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-31T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201189579",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201190089",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 26500.0,
+          "precio_neto": null,
+          "subtotal": 26500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201189020",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "ad080025156905426FE76194316.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76077436",
+      "sufijo": "7436",
+      "numero_factura": "FE76077436",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-07-30",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-30T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201068726",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE76077436.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-M0Z431920",
+      "sufijo": "1920",
+      "numero_factura": "M0Z431920",
+      "proveedor": "D1 S A S",
+      "nit": "900276962",
+      "fecha": "2026-07-29",
+      "total": 3400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-29T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "HARINA DE TRIGO QUIC",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 1619.05,
+          "precio_neto": null,
+          "subtotal": 3238.1
+        }
+      ],
+      "items_count": 1,
+      "fuente": "090027696202126M0Z431920.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEE100921",
+      "sufijo": "0921",
+      "numero_factura": "FEE100921",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "fecha": "2026-07-28",
+      "total": 2556227.5,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-28T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "INULINA 90%",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 20000.0,
+          "precio_neto": null,
+          "subtotal": 400000.0
+        },
+        {
+          "nombre": "ALCOHOL CETILICO USP / CETYL ALCOHOL",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 12700.0,
+          "precio_neto": null,
+          "subtotal": 317500.0
+        },
+        {
+          "nombre": "LACTATO DE CALCIO/CALCIUM LACTATE",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 9600.0,
+          "precio_neto": null,
+          "subtotal": 192000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - TEANINA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 142000.0,
+          "precio_neto": null,
+          "subtotal": 284000.0
+        },
+        {
+          "nombre": "PRO-B 80",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 42000.0,
+          "precio_neto": null,
+          "subtotal": 840000.0
+        },
+        {
+          "nombre": "VITAMINA E ATFA 99% USP",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 192000.0,
+          "precio_neto": null,
+          "subtotal": 192000.0
+        }
+      ],
+      "items_count": 6,
+      "fuente": "ad08000778280002600486660.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FA271345",
+      "sufijo": "1345",
+      "numero_factura": "FA271345",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "fecha": "2026-07-28",
+      "total": 2833771.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-28T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "ESTEARATO DE MAGNESIO USP IMP",
+          "codigo": "",
+          "cantidad": 10.0,
+          "unidad": "",
+          "precio_unitario": 23150.0,
+          "precio_neto": null,
+          "subtotal": 231500.0
+        },
+        {
+          "nombre": "CARBONATO DE CALCIO PREC.LIV",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 5800.0,
+          "precio_neto": null,
+          "subtotal": 145000.0
+        },
+        {
+          "nombre": "CERA DE ABEJAS AMARILLA NACION",
+          "codigo": "",
+          "cantidad": 50.4,
+          "unidad": "",
+          "precio_unitario": 18300.0,
+          "precio_neto": null,
+          "subtotal": 922320.0
+        },
+        {
+          "nombre": "SUCRALOSA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 140000.0,
+          "precio_neto": null,
+          "subtotal": 280000.0
+        },
+        {
+          "nombre": "ERITRITOL",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 12500.0,
+          "precio_neto": null,
+          "subtotal": 312500.0
+        },
+        {
+          "nombre": "ALCOHOL BENCILICO GRF X 20 KG",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 16800.0,
+          "precio_neto": null,
+          "subtotal": 336000.0
+        },
+        {
+          "nombre": "TEGOBETAINA-BETAINA GRX20 KG",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 7700.0,
+          "precio_neto": null,
+          "subtotal": 154000.0
+        }
+      ],
+      "items_count": 7,
+      "fuente": "ad08001372240002600271345.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-G0V9333957",
+      "sufijo": "3957",
+      "numero_factura": "G0V9333957",
+      "proveedor": "D1 S A S",
+      "nit": "900276962",
+      "fecha": "2026-07-22",
+      "total": 38950.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-22T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "ACEITE VEGETAL IMATA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 16378.15,
+          "precio_neto": null,
+          "subtotal": 32756.3
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad090027696202126G0V9333957.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FA271020",
+      "sufijo": "1020",
+      "numero_factura": "FA271020",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "fecha": "2026-07-17",
+      "total": 606900.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-17T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "INULINA/LINULINA",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 25500.0,
+          "precio_neto": null,
+          "subtotal": 510000.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad08001372240002600271020.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FA271011",
+      "sufijo": "1011",
+      "numero_factura": "FA271011",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "fecha": "2026-07-16",
+      "total": 6165331.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-07-16T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "DEXTROSA MONOHIDRATADA",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 4600.0,
+          "precio_neto": null,
+          "subtotal": 115000.0
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "",
+          "cantidad": 80.0,
+          "unidad": "",
+          "precio_unitario": 17000.0,
+          "precio_neto": null,
+          "subtotal": 1360000.0
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 9300.0,
+          "precio_neto": null,
+          "subtotal": 232500.0
+        },
+        {
+          "nombre": "ACEITE DE ARBOL DE TE",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 244200.0,
+          "precio_neto": null,
+          "subtotal": 488400.0
+        },
+        {
+          "nombre": "FRAGANCIA LAVANDA",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 106000.0,
+          "precio_neto": null,
+          "subtotal": 106000.0
+        },
+        {
+          "nombre": "ALOE VERA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 79200.0,
+          "precio_neto": null,
+          "subtotal": 158400.0
+        },
+        {
+          "nombre": "CERA DE ABEJAS AMARILLA NACION",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 18300.0,
+          "precio_neto": null,
+          "subtotal": 457500.0
+        },
+        {
+          "nombre": "ELASTINA HIDROLIZADA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 87200.0,
+          "precio_neto": null,
+          "subtotal": 174400.0
+        },
+        {
+          "nombre": "ACEITE DE GIRASOL",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 21500.0,
+          "precio_neto": null,
+          "subtotal": 537500.0
+        },
+        {
+          "nombre": "SUCRALOSA",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 140000.0,
+          "precio_neto": null,
+          "subtotal": 140000.0
+        },
+        {
+          "nombre": "MANTECA DE CACAO",
+          "codigo": "",
+          "cantidad": 40.0,
+          "unidad": "",
+          "precio_unitario": 16600.0,
+          "precio_neto": null,
+          "subtotal": 664000.0
+        },
+        {
+          "nombre": "CITRATO DE ZINC",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 29890.0,
+          "precio_neto": null,
+          "subtotal": 747250.0
+        }
+      ],
+      "items_count": 12,
+      "fuente": "ad08001372240002600271011.xml"
+    },
+    {
+      "origen": "archivo-2026",
       "id": "archivo-2026-A1406",
       "sufijo": "1406",
       "numero_factura": "A1406",
@@ -7574,9 +8130,9 @@
       "fuente": "z080025156905426FE56701926.zip"
     }
   ],
-  "actualizado": "2026-08-04T17:30:48.686407",
+  "actualizado": "2026-08-05T22:21:58.499782",
   "fuente": "local",
   "errores": [
-    "No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py"
+    "gmail: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/token_gmail.json'"
   ]
 }

@@ -104,6 +104,18 @@ def init_db() -> None:
         "ALTER TABLE componente_costos ADD COLUMN iva_incluido INTEGER DEFAULT 0",
         "ALTER TABLE compras_exterior ADD COLUMN fecha_compra TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN trm_fuente TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE compras_exterior ADD COLUMN cuenta_cobro_path TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE compras_exterior ADD COLUMN cuota_manejo_cop REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE compras_exterior ADD COLUMN valor_compra_cop REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE compras_exterior ADD COLUMN cuota_pct REAL NOT NULL DEFAULT 5",
+        "ALTER TABLE compras_exterior ADD COLUMN total_cobro_cop REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE compras_exterior ADD COLUMN flete_cobro_cop REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE compras_exterior ADD COLUMN cuenta_cobro_estado TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE compras_exterior ADD COLUMN cuenta_flete_path TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE compras_exterior ADD COLUMN cuenta_flete_estado TEXT NOT NULL DEFAULT ''",
+
+        "ALTER TABLE servicios ADD COLUMN created_by INTEGER DEFAULT NULL",
+        "ALTER TABLE pagos_servicios ADD COLUMN created_by INTEGER DEFAULT NULL",
         """CREATE TABLE IF NOT EXISTS compras_exterior_borradores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -296,19 +308,44 @@ def resumen_nomina() -> dict:
 
 # ─── Servicios públicos ───────────────────────────────────────────────────────
 
-def listar_servicios() -> list[dict]:
+def listar_servicios(
+    *,
+    usuario_id: int | None = None,
+    ver_todo: bool = True,
+) -> list[dict]:
+    """Lista servicios activos.
+
+    Si ver_todo es False y hay usuario_id, solo servicios y pagos creados por ese usuario.
+    Registros sin created_by (históricos/importados) solo los ven quienes tienen ver_todo.
+    """
     _ensure()
     with _conn() as con:
-        servicios = con.execute(
-            "SELECT * FROM servicios WHERE activo = 1 ORDER BY tipo, empresa"
-        ).fetchall()
+        if ver_todo or not usuario_id:
+            servicios = con.execute(
+                "SELECT * FROM servicios WHERE activo = 1 ORDER BY tipo, empresa"
+            ).fetchall()
+        else:
+            servicios = con.execute(
+                """SELECT * FROM servicios
+                   WHERE activo = 1 AND created_by = ?
+                   ORDER BY tipo, empresa""",
+                (int(usuario_id),),
+            ).fetchall()
         result = []
         for s in servicios:
             sd = dict(s)
-            pagos = con.execute(
-                "SELECT * FROM pagos_servicios WHERE servicio_id = ? ORDER BY fecha DESC LIMIT 3",
-                (s["id"],),
-            ).fetchall()
+            if ver_todo or not usuario_id:
+                pagos = con.execute(
+                    "SELECT * FROM pagos_servicios WHERE servicio_id = ? ORDER BY fecha DESC LIMIT 36",
+                    (s["id"],),
+                ).fetchall()
+            else:
+                pagos = con.execute(
+                    """SELECT * FROM pagos_servicios
+                       WHERE servicio_id = ? AND created_by = ?
+                       ORDER BY fecha DESC LIMIT 36""",
+                    (s["id"], int(usuario_id)),
+                ).fetchall()
             sd["pagos"] = [dict(p) for p in pagos]
             result.append(sd)
     return result
@@ -318,8 +355,15 @@ def upsert_servicio(data: dict) -> dict:
     _ensure()
     srv_id = data.get("id")
     now = datetime.now().isoformat()
+    created_by = data.get("created_by")
+    if created_by is not None:
+        try:
+            created_by = int(created_by)
+        except (TypeError, ValueError):
+            created_by = None
     with _conn() as con:
         if srv_id:
+            # No pisar created_by en updates
             con.execute(
                 """UPDATE servicios SET
                      empresa = ?, tipo = ?, numero_contrato = ?,
@@ -340,8 +384,8 @@ def upsert_servicio(data: dict) -> dict:
         else:
             cur = con.execute(
                 """INSERT INTO servicios (empresa, tipo, numero_contrato, direccion,
-                     activo, dia_vencimiento, notas, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                     activo, dia_vencimiento, notas, created_at, created_by)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     data.get("empresa", ""),
                     data.get("tipo", "otro"),
@@ -351,6 +395,7 @@ def upsert_servicio(data: dict) -> dict:
                     data.get("dia_vencimiento"),
                     data.get("notas", ""),
                     now,
+                    created_by,
                 ),
             )
             row = con.execute(
@@ -359,25 +404,55 @@ def upsert_servicio(data: dict) -> dict:
     return dict(row)
 
 
+def obtener_servicio(srv_id: int) -> dict | None:
+    _ensure()
+    with _conn() as con:
+        row = con.execute("SELECT * FROM servicios WHERE id = ?", (int(srv_id),)).fetchone()
+    return dict(row) if row else None
+
+
 def eliminar_servicio(srv_id: int) -> None:
     _ensure()
     with _conn() as con:
         con.execute("UPDATE servicios SET activo = 0 WHERE id = ?", (srv_id,))
 
 
-def registrar_pago(srv_id: int, fecha: str, monto: float, comprobante: str = "", notas: str = "") -> dict:
+def registrar_pago(
+    srv_id: int,
+    fecha: str,
+    monto: float,
+    comprobante: str = "",
+    notas: str = "",
+    created_by: int | None = None,
+) -> dict:
     _ensure()
     now = datetime.now().isoformat()
+    uid = None
+    if created_by is not None:
+        try:
+            uid = int(created_by)
+        except (TypeError, ValueError):
+            uid = None
     with _conn() as con:
         cur = con.execute(
-            """INSERT INTO pagos_servicios (servicio_id, fecha, monto, comprobante, notas, created_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (srv_id, fecha, monto, comprobante, notas, now),
+            """INSERT INTO pagos_servicios
+               (servicio_id, fecha, monto, comprobante, notas, created_at, created_by)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (srv_id, fecha, monto, comprobante, notas, now, uid),
         )
         row = con.execute(
             "SELECT * FROM pagos_servicios WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
     return dict(row)
+
+
+def obtener_pago(pago_id: int) -> dict | None:
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM pagos_servicios WHERE id = ?", (int(pago_id),)
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def eliminar_pago(pago_id: int) -> None:
@@ -529,7 +604,8 @@ def guardar_compra_exterior(
         row = con.execute(
             "SELECT * FROM compras_exterior WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
-    return _compra_exterior_row(dict(row))
+    out = _compra_exterior_row(dict(row))
+    return _adjuntar_cuenta_cobro_cuota(out["id"]) or out
 
 
 def listar_compras_exterior(limit: int = 50) -> list[dict]:
@@ -576,7 +652,7 @@ def eliminar_compra_exterior(compra_id: int, *, borrar_archivos: bool = True) ->
     _ensure()
     with _conn() as con:
         row = con.execute(
-            "SELECT soporte_path FROM compras_exterior WHERE id = ?",
+            "SELECT soporte_path, cuenta_cobro_path, cuenta_flete_path FROM compras_exterior WHERE id = ?",
             (int(compra_id),),
         ).fetchone()
         if not row:
@@ -589,6 +665,21 @@ def eliminar_compra_exterior(compra_id: int, *, borrar_archivos: bool = True) ->
                         os.remove(full)
                 except OSError:
                     pass
+            try:
+                from app.services.cuenta_cobro_cuota_manejo import carpeta_pdfs
+
+                for key in ("cuenta_cobro_path", "cuenta_flete_path"):
+                    try:
+                        cc = (row[key] or "").strip()
+                    except (KeyError, IndexError, TypeError):
+                        cc = ""
+                    if not cc:
+                        continue
+                    full_cc = cc if os.path.isabs(cc) else os.path.join(carpeta_pdfs(), cc)
+                    if os.path.isfile(full_cc):
+                        os.remove(full_cc)
+            except OSError:
+                pass
         con.execute("DELETE FROM compras_exterior WHERE id = ?", (int(compra_id),))
     return True
 
@@ -790,7 +881,215 @@ def actualizar_compra_exterior(
                 int(compra_id),
             ),
         )
+    return _preparar_cuenta_cobro_pendiente(int(compra_id)) or obtener_compra_exterior(compra_id)
+
+
+def _preparar_cuenta_cobro_pendiente(compra_id: int) -> dict | None:
+    """Calcula montos: mercancía+5% y flete (aparte). Ambas pendientes sin PDF."""
+    import json
+
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM compras_exterior WHERE id = ?",
+            (int(compra_id),),
+        ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        try:
+            lineas = json.loads(d.get("lineas_json") or "[]")
+        except Exception:
+            lineas = []
+
+    from app.services.cuenta_cobro_cuota_manejo import calcular_cuota, carpeta_pdfs
+
+    calc = calcular_cuota(
+        moneda=str(d.get("moneda") or "USD"),
+        trm=float(d.get("trm") or 0),
+        lineas=lineas,
+        flete=float(d.get("flete") or 0),
+        moneda_flete=str(d.get("moneda_flete") or ""),
+    )
+
+    for key in ("cuenta_cobro_path", "cuenta_flete_path"):
+        prev = (d.get(key) or "").strip()
+        if not prev:
+            continue
+        try:
+            full_prev = prev if os.path.isabs(prev) else os.path.join(carpeta_pdfs(), prev)
+            if os.path.isfile(full_prev):
+                os.remove(full_prev)
+        except OSError:
+            pass
+
+    estado_m = "pendiente" if calc["total_cobro_cop"] > 0 else ""
+    estado_f = "pendiente" if calc["flete_cop"] > 0 else ""
+    with _conn() as con:
+        con.execute(
+            """UPDATE compras_exterior SET
+                 cuenta_cobro_path=?, cuota_manejo_cop=?, valor_compra_cop=?, cuota_pct=?,
+                 total_cobro_cop=?, flete_cobro_cop=?, cuenta_cobro_estado=?,
+                 cuenta_flete_path=?, cuenta_flete_estado=?
+               WHERE id=?""",
+            (
+                "",
+                float(calc.get("cuota_manejo_cop") or 0),
+                float(calc.get("valor_compra_cop") or 0),
+                float(calc.get("pct") or 5),
+                float(calc.get("total_cobro_cop") or 0),
+                float(calc.get("flete_cop") or 0),
+                estado_m,
+                "",
+                estado_f,
+                int(compra_id),
+            ),
+        )
     return obtener_compra_exterior(compra_id)
+
+
+def aprobar_cuenta_cobro_compra(
+    compra_id: int,
+    *,
+    accent_rgb: str = "",
+    tipo: str = "mercancia",
+) -> dict | None:
+    """Aprueba cuenta mercancía o flete (tipo=mercancia|flete) y genera PDF con acento."""
+    import json
+
+    tipo_n = (tipo or "mercancia").strip().lower()
+    if tipo_n in ("envio", "shipping", "freight"):
+        tipo_n = "flete"
+    if tipo_n not in ("mercancia", "flete"):
+        tipo_n = "mercancia"
+
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM compras_exterior WHERE id = ?",
+            (int(compra_id),),
+        ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        try:
+            lineas = json.loads(d.get("lineas_json") or "[]")
+        except Exception:
+            lineas = []
+
+    from app.services.cuenta_cobro_cuota_manejo import (
+        carpeta_pdfs,
+        generar_pdf_cuenta_cobro,
+        generar_pdf_cuenta_flete,
+    )
+
+    path_key = "cuenta_flete_path" if tipo_n == "flete" else "cuenta_cobro_path"
+    prev = (d.get(path_key) or "").strip()
+    if prev:
+        try:
+            full_prev = prev if os.path.isabs(prev) else os.path.join(carpeta_pdfs(), prev)
+            if os.path.isfile(full_prev):
+                os.remove(full_prev)
+        except OSError:
+            pass
+
+    if tipo_n == "flete":
+        gen = generar_pdf_cuenta_flete(
+            compra_id=int(compra_id),
+            moneda=str(d.get("moneda") or "USD"),
+            trm=float(d.get("trm") or 0),
+            flete=float(d.get("flete") or 0),
+            moneda_flete=str(d.get("moneda_flete") or ""),
+            proveedor=str(d.get("proveedor") or ""),
+            fecha_compra=str(d.get("fecha_compra") or ""),
+            accent_rgb=accent_rgb,
+        )
+        if gen.get("error") or not gen.get("filename"):
+            return obtener_compra_exterior(compra_id)
+        with _conn() as con:
+            con.execute(
+                """UPDATE compras_exterior SET
+                     cuenta_flete_path=?, flete_cobro_cop=?, cuenta_flete_estado=?
+                   WHERE id=?""",
+                (
+                    gen.get("filename") or "",
+                    float(gen.get("flete_cop") or 0),
+                    "aprobada",
+                    int(compra_id),
+                ),
+            )
+        return obtener_compra_exterior(compra_id)
+
+    gen = generar_pdf_cuenta_cobro(
+        compra_id=int(compra_id),
+        moneda=str(d.get("moneda") or "USD"),
+        trm=float(d.get("trm") or 0),
+        proveedor=str(d.get("proveedor") or ""),
+        fecha_compra=str(d.get("fecha_compra") or ""),
+        lineas=lineas,
+        accent_rgb=accent_rgb,
+    )
+    if gen.get("error") or not gen.get("filename"):
+        return obtener_compra_exterior(compra_id)
+
+    with _conn() as con:
+        con.execute(
+            """UPDATE compras_exterior SET
+                 cuenta_cobro_path=?, cuota_manejo_cop=?, valor_compra_cop=?, cuota_pct=?,
+                 total_cobro_cop=?, cuenta_cobro_estado=?
+               WHERE id=?""",
+            (
+                gen.get("filename") or "",
+                float(gen.get("cuota_manejo_cop") or 0),
+                float(gen.get("valor_compra_cop") or 0),
+                float(gen.get("pct") or 5),
+                float(gen.get("total_cobro_cop") or 0),
+                "aprobada",
+                int(compra_id),
+            ),
+        )
+    return obtener_compra_exterior(compra_id)
+
+
+def regenerar_cuenta_cobro_compra(
+    compra_id: int, *, accent_rgb: str = "", tipo: str = "mercancia"
+) -> dict | None:
+    return aprobar_cuenta_cobro_compra(int(compra_id), accent_rgb=accent_rgb, tipo=tipo)
+
+
+def _adjuntar_cuenta_cobro_cuota(compra_id: int) -> dict | None:
+    """Compat: al guardar compra solo deja pendiente (sin PDF)."""
+    return _preparar_cuenta_cobro_pendiente(compra_id)
+
+
+def ruta_cuenta_cobro_compra(
+    compra_id: int, *, tipo: str = "mercancia"
+) -> tuple[str, str] | None:
+    """PDF aprobado de mercancía o flete."""
+    tipo_n = (tipo or "mercancia").strip().lower()
+    if tipo_n in ("envio", "shipping", "freight"):
+        tipo_n = "flete"
+    col = "cuenta_flete_path" if tipo_n == "flete" else "cuenta_cobro_path"
+    _ensure()
+    with _conn() as con:
+        try:
+            row = con.execute(
+                f"SELECT {col} FROM compras_exterior WHERE id = ?",
+                (int(compra_id),),
+            ).fetchone()
+        except Exception:
+            return None
+    if not row:
+        return None
+    fname = (row[0] or "").strip()
+    if not fname:
+        return None
+    from app.services.cuenta_cobro_cuota_manejo import carpeta_pdfs
+
+    full = fname if os.path.isabs(fname) else os.path.join(carpeta_pdfs(), fname)
+    if not os.path.isfile(full):
+        return None
+    return full, os.path.basename(fname)
 
 
 def _parse_soporte_paths(raw: str | None) -> list[str]:
@@ -848,6 +1147,21 @@ def ruta_soporte_compra_exterior(
 def _compra_exterior_row(d: dict) -> dict:
     paths = _parse_soporte_paths(d.get("soporte_path"))
     cid = d.get("id")
+    cc_path = (d.get("cuenta_cobro_path") or "").strip()
+    cuota = float(d.get("cuota_manejo_cop") or 0)
+    valor_c = float(d.get("valor_compra_cop") or 0)
+    pct = float(d.get("cuota_pct") or 5)
+    flete_c = float(d.get("flete_cobro_cop") or 0)
+    total_c = float(d.get("total_cobro_cop") or 0)
+    if total_c <= 0 and (valor_c > 0 or cuota > 0):
+        total_c = round(valor_c + cuota, 2)
+    estado = (d.get("cuenta_cobro_estado") or "").strip()
+    if not estado and total_c > 0:
+        estado = "aprobada" if cc_path else "pendiente"
+    flete_path = (d.get("cuenta_flete_path") or "").strip()
+    estado_f = (d.get("cuenta_flete_estado") or "").strip()
+    if not estado_f and flete_c > 0:
+        estado_f = "aprobada" if flete_path else "pendiente"
     return {
         "id": cid,
         "created_at": d.get("created_at"),
@@ -871,6 +1185,29 @@ def _compra_exterior_row(d: dict) -> dict:
         ]
         if paths
         else [],
+        "cuenta_cobro_path": cc_path,
+        "cuenta_cobro_estado": estado,
+        "tiene_cuenta_cobro": bool(cc_path) and estado == "aprobada",
+        "cuenta_cobro_pendiente": estado == "pendiente" and total_c > 0,
+        "cuota_manejo_cop": cuota,
+        "valor_compra_cop": valor_c,
+        "flete_cobro_cop": flete_c,
+        "total_cobro_cop": total_c,
+        "cuota_pct": pct,
+        "cuenta_cobro_url": (
+            f"/api/rentabilidad/compras-exterior/{cid}/cuenta-cobro"
+            if cc_path and estado == "aprobada"
+            else None
+        ),
+        "cuenta_flete_path": flete_path,
+        "cuenta_flete_estado": estado_f,
+        "tiene_cuenta_flete": bool(flete_path) and estado_f == "aprobada",
+        "cuenta_flete_pendiente": estado_f == "pendiente" and flete_c > 0,
+        "cuenta_flete_url": (
+            f"/api/rentabilidad/compras-exterior/{cid}/cuenta-cobro?tipo=flete"
+            if flete_path and estado_f == "aprobada"
+            else None
+        ),
     }
 
 

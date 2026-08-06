@@ -101,6 +101,7 @@ interface EscanearResultado {
   ok: boolean;
   mensaje: string;
   correos_revisados: number;
+  anio?: number;
   encoladas: Array<{
     sufijo: string;
     numero_factura: string;
@@ -108,8 +109,10 @@ interface EscanearResultado {
     total: number;
     items_count: number;
     es_nuevo_proveedor: boolean;
+    fecha?: string;
   }>;
   ya_en_cola: Array<{ numero_factura: string; proveedor: string }>;
+  ya_en_historial?: Array<{ numero_factura: string; proveedor: string; fecha?: string }>;
   omitidas: Array<{ numero_factura: string; proveedor: string; motivo: string }>;
   errores: Array<{ asunto: string; archivo?: string; motivo: string }>;
 }
@@ -192,12 +195,6 @@ function cop(n: number) {
   return `$ ${fmt(n)}`;
 }
 
-const STEPS = [
-  { n: 1, label: "Escanear Gmail", hint: "Traer facturas nuevas del correo" },
-  { n: 2, label: "Revisar factura", hint: "Contrastar datos proveedor vs McKenna" },
-  { n: 3, label: "Confirmar", hint: "Inventario, gasto u omitir" },
-];
-
 const ACCION_HISTORIAL: Record<string, { label: string; cls: string }> = {
   inventario: { label: "Inventario", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
   gasto: { label: "Gasto SIIGO", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200" },
@@ -276,10 +273,11 @@ function FacturaCard({
           {f.es_nuevo_proveedor ? "Nuevo prov." : "Conocido"}
         </span>
       </div>
-      <div className="flex gap-4 text-xs text-muted font-mono">
-        <span>{f.items_count} ítem{f.items_count !== 1 ? "s" : ""}</span>
-        <span className="text-ink font-semibold">{cop(f.total)}</span>
+      <div className="flex items-center justify-between gap-2 text-xs font-mono">
+        <span className="text-muted">{f.items_count} ítem{f.items_count !== 1 ? "s" : ""}</span>
+        <span className="font-semibold text-ink">{cop(f.total)}</span>
       </div>
+      <p className="text-[11px] font-bold text-accent">Revisar →</p>
     </button>
   );
 }
@@ -290,10 +288,20 @@ function DetalleFactura({
   sufijo,
   onBack,
   onDone,
+  onSiguiente,
+  onAnterior,
+  haySiguiente,
+  hayAnterior,
+  posicion,
 }: {
   sufijo: string;
   onBack: () => void;
   onDone: (sufijo: string) => void;
+  onSiguiente?: () => void;
+  onAnterior?: () => void;
+  haySiguiente?: boolean;
+  hayAnterior?: boolean;
+  posicion?: string;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [agregarProveedor, setAgregarProveedor] = useState(false);
@@ -422,55 +430,77 @@ function DetalleFactura({
   const nuevosCount = itemsNuevos.length;
 
   return (
-    <div className="space-y-4">
-      {/* Header factura */}
-      <div className="rounded-xl border-2 border-border bg-surface-panel p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <button type="button" onClick={onBack} className="mb-2 text-xs text-muted hover:text-accent">
-              ← Todas las pendientes
-            </button>
-            <h2 className="text-lg font-bold text-ink">{detalle.numero_factura}</h2>
-            <p className="text-sm font-medium text-ink-secondary">{detalle.proveedor}</p>
-            <p className="mt-1 text-xs text-muted font-mono">
+    <div className="space-y-2">
+      {/* Navegación — sticky para que siempre se vea */}
+      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border-2 border-accent/40 bg-surface-panel px-3 py-2 shadow-md">
+        <button
+          type="button"
+          onClick={hayAnterior && onAnterior ? onAnterior : onBack}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-4 py-2 text-sm font-bold text-ink transition hover:border-accent hover:text-accent"
+        >
+          {hayAnterior ? "← Anterior" : "← Pendientes"}
+        </button>
+        {posicion ? (
+          <span className="text-xs font-semibold tabular-nums text-muted">
+            Revisando {posicion}
+          </span>
+        ) : (
+          <span className="text-xs text-muted">Revisión</span>
+        )}
+        <button
+          type="button"
+          disabled={!haySiguiente}
+          onClick={onSiguiente}
+          title={haySiguiente ? "Ir a la siguiente pendiente" : "No hay más facturas pendientes"}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Siguiente →
+        </button>
+      </div>
+
+      {/* Header factura — una sola franja densa */}
+      <div className="rounded-lg border border-border bg-surface-panel px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <h2 className="text-base font-bold text-ink">{detalle.numero_factura}</h2>
+              <span className="text-sm text-ink-secondary truncate">{detalle.proveedor}</span>
+            </div>
+            <p className="text-[11px] text-muted font-mono">
               {detalle.nit && <>NIT {detalle.nit} · </>}
-              {detalle.fecha && <>Fecha {detalle.fecha} · </>}
-              Código #{detalle.sufijo}
+              {detalle.fecha && <>{detalle.fecha} · </>}
+              #{detalle.sufijo}
+              {" · "}
+              Subtotal {cop(detalle.total_bruto)}
+              {" · "}
+              Desc. {cop(detalle.total_descuentos)}
+              {" · "}
+              {detalle.items.length} ítem{detalle.items.length !== 1 ? "s" : ""}
+              {" · "}
+              <span className={detalle.es_nuevo_proveedor ? "text-amber-600 dark:text-amber-300" : "text-emerald-600 dark:text-emerald-300"}>
+                {detalle.es_nuevo_proveedor ? "Proveedor nuevo" : "Proveedor conocido"}
+              </span>
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wide text-muted">Total neto factura</p>
-            <p className="text-2xl font-bold text-ink">{cop(detalle.total_neto)}</p>
+          <div className="text-right shrink-0">
+            <p className="text-[9px] uppercase tracking-wide text-muted">Total neto</p>
+            <p className="text-xl font-bold text-ink leading-tight">{cop(detalle.total_neto)}</p>
           </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[
-            { label: "Subtotal", val: cop(detalle.total_bruto) },
-            { label: "Descuentos", val: cop(detalle.total_descuentos) },
-            { label: "Ítems", val: String(detalle.items.length) },
-            { label: "Estado", val: detalle.es_nuevo_proveedor ? "Proveedor nuevo" : "Proveedor conocido" },
-          ].map(({ label, val }) => (
-            <div key={label} className="rounded-lg border border-border bg-surface px-3 py-2">
-              <p className="text-[10px] text-muted uppercase">{label}</p>
-              <p className="text-sm font-semibold text-ink">{val}</p>
-            </div>
-          ))}
         </div>
       </div>
 
       {facturaYaRegistrada && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4">
-          <p className="text-sm font-bold text-red-300">Ya registrada en SIIGO</p>
-          <p className="mt-1 text-xs text-muted">
-            Documento: <span className="font-mono text-ink">{facturaYaRegistrada.name || facturaYaRegistrada.id}</span>
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
+          <p className="text-xs font-bold text-red-300">
+            Ya registrada en SIIGO:{" "}
+            <span className="font-mono text-ink">{facturaYaRegistrada.name || facturaYaRegistrada.id}</span>
             {facturaYaRegistrada.fecha ? ` · ${facturaYaRegistrada.fecha}` : ""}
           </p>
           <button
             type="button"
             disabled={clasificar.isPending}
             onClick={() => clasificar.mutate("skip")}
-            className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-xs font-bold text-red-200 hover:bg-red-500/30 disabled:opacity-50"
+            className="mt-1.5 rounded-md bg-red-500/20 px-3 py-1 text-[11px] font-bold text-red-200 hover:bg-red-500/30 disabled:opacity-50"
           >
             Omitir de la cola
           </button>
@@ -478,25 +508,20 @@ function DetalleFactura({
       )}
 
       {detalle.es_nuevo_proveedor && !bloqueado && (
-        <label className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 cursor-pointer text-sm text-amber-900 dark:text-amber-200">
+        <label className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 cursor-pointer text-xs text-amber-900 dark:text-amber-200">
           <input
             type="checkbox"
             checked={agregarProveedor}
             onChange={(e) => setAgregarProveedor(e.target.checked)}
             className="accent-amber-500"
           />
-          Agregar <strong>{detalle.proveedor}</strong> a proveedores de materias primas
+          Agregar <strong className="mx-0.5">{detalle.proveedor}</strong> a proveedores de materias primas
         </label>
       )}
 
       {/* Tabla contraste proveedor ↔ McKenna */}
-      <div className="rounded-xl border-2 border-border overflow-hidden">
-        <div className="grid grid-cols-2 border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide">
-          <div className="px-4 py-2 text-muted border-r border-border">Datos del proveedor (XML)</div>
-          <div className="px-4 py-2 text-accent">Propuesta McKenna → SIIGO</div>
-        </div>
-
-        <div className="flex items-center gap-3 border-b border-border bg-surface-panel px-4 py-2">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-panel px-2.5 py-1.5">
           <input
             type="checkbox"
             checked={selCount === detalle.items.length && detalle.items.length > 0}
@@ -504,12 +529,19 @@ function DetalleFactura({
             disabled={bloqueado}
             className="accent-accent"
           />
-          <span className="text-xs text-muted">
-            {selCount} de {detalle.items.length} ítems seleccionados para inventariar
+          <span className="text-[11px] text-muted flex-1">
+            {selCount}/{detalle.items.length} para inventariar
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wide text-muted hidden sm:inline">
+            Proveedor (XML)
+          </span>
+          <span className="text-[9px] text-muted hidden sm:inline">→</span>
+          <span className="text-[9px] font-bold uppercase tracking-wide text-accent hidden sm:inline">
+            McKenna / SIIGO
           </span>
         </div>
 
-        <div className="divide-y divide-border/60 max-h-[min(58vh,520px)] overflow-y-auto">
+        <div className="divide-y divide-border/60 max-h-[min(62vh,640px)] overflow-y-auto">
           {detalle.items.map((item) => (
             <ItemContrasteRow
               key={item.indice}
@@ -529,68 +561,230 @@ function DetalleFactura({
         </div>
       </div>
 
-      {/* Acciones humanas */}
-      <div className="sticky bottom-0 z-10 rounded-xl border-2 border-border bg-surface-panel/95 backdrop-blur p-4 shadow-lg">
-        <p className="mb-3 text-xs text-muted">
-          Revisa línea a línea antes de confirmar. Los <strong className="text-ink">productos nuevos</strong> puedes crearlos en SIIGO desde cada línea o en lote.
-          <strong className="text-ink"> Inventario</strong> genera XML de compra (y Excel solo si quedan productos sin crear).
-          <strong className="text-ink"> Gasto</strong> registra la factura completa como costo. <strong className="text-ink">Omitir</strong> descarta sin registrar.
-        </p>
+      {/* Acciones humanas — botones uniformes y compactos */}
+      <div className="sticky bottom-0 z-10 rounded-lg border border-border bg-surface-panel/95 backdrop-blur px-2.5 py-2 shadow-lg">
         {(crearProductos.error || crearProductos.data?.errores?.length) && (
-          <p className="mb-2 text-xs text-red-400">
+          <p className="mb-1 text-[10px] text-red-400">
             {(crearProductos.error as Error)?.message
               || crearProductos.data?.errores?.map((e) => e.error).join(" · ")}
           </p>
         )}
         {crearProductos.data?.mensaje && crearProductos.isSuccess && (
-          <p className="mb-2 text-xs text-emerald-600 dark:text-emerald-300">
+          <p className="mb-1 text-[10px] text-emerald-600 dark:text-emerald-300">
             {crearProductos.data.mensaje}
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div
+          className={`grid gap-1.5 ${
+            nuevosCount > 0
+              ? "grid-cols-3 sm:grid-cols-6"
+              : "grid-cols-3 sm:grid-cols-5"
+          }`}
+        >
+          <button
+            type="button"
+            onClick={hayAnterior && onAnterior ? onAnterior : onBack}
+            className="h-8 rounded-md border border-border px-1.5 text-[11px] font-bold text-ink hover:border-accent hover:text-accent transition"
+          >
+            ← Atrás
+          </button>
           {nuevosCount > 0 && (
             <button
               type="button"
               disabled={bloqueado || crearProductos.isPending}
               onClick={() => crearProductos.mutate(itemsNuevos.map((i) => i.indice))}
-              className="rounded-xl border-2 border-sky-500/50 bg-sky-500/10 px-4 py-3 text-sm font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-500/20 disabled:opacity-40"
+              className="h-8 rounded-md border border-sky-500/50 bg-sky-500/10 px-1.5 text-[11px] font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-500/20 disabled:opacity-40"
             >
-              {crearProductos.isPending
-                ? "Creando en SIIGO…"
-                : `Crear ${nuevosCount} producto${nuevosCount !== 1 ? "s" : ""} nuevo${nuevosCount !== 1 ? "s" : ""} en SIIGO`}
+              {crearProductos.isPending ? "…" : `SIIGO (${nuevosCount})`}
             </button>
           )}
           <button
             type="button"
             disabled={bloqueado || selCount === 0 || procesar.isPending}
             onClick={() => procesar.mutate()}
-            className="flex-1 min-w-[200px] rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-40 transition"
+            className="h-8 rounded-md bg-emerald-600 px-1.5 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:opacity-40 transition"
           >
-            {procesar.isPending
-              ? "Generando archivos…"
-              : `Confirmar inventario (${selCount} ítem${selCount !== 1 ? "s" : ""})`}
+            {procesar.isPending ? "…" : `Inventario (${selCount})`}
           </button>
           <button
             type="button"
             disabled={bloqueado || clasificar.isPending}
             onClick={() => clasificar.mutate("gasto")}
-            className="rounded-xl border-2 border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 disabled:opacity-40"
+            className="h-8 rounded-md border border-amber-500/50 bg-amber-500/10 px-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 disabled:opacity-40"
           >
-            Registrar como gasto
+            Gasto
           </button>
           <button
             type="button"
             disabled={clasificar.isPending}
             onClick={() => clasificar.mutate("skip")}
-            className="rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-muted hover:text-ink disabled:opacity-40"
+            className="h-8 rounded-md border border-border px-1.5 text-[11px] font-semibold text-muted hover:text-ink disabled:opacity-40"
           >
-            Omitir factura
+            Omitir
+          </button>
+          <button
+            type="button"
+            disabled={!haySiguiente}
+            onClick={onSiguiente}
+            className="h-8 rounded-md border border-accent/50 bg-accent/10 px-1.5 text-[11px] font-bold text-accent hover:bg-accent/20 disabled:opacity-35 disabled:cursor-not-allowed transition"
+          >
+            Siguiente →
           </button>
         </div>
         {(procesar.error || clasificar.error) && (
-          <p className="mt-2 text-xs text-red-400">{(procesar.error as Error)?.message || (clasificar.error as Error)?.message}</p>
+          <p className="mt-1 text-[10px] text-red-400">{(procesar.error as Error)?.message || (clasificar.error as Error)?.message}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+interface SiigoProducto {
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  activo: boolean;
+  type?: string;
+}
+
+interface SiigoBusquedaItem {
+  codigo: string;
+  nombre: string;
+  type?: string;
+}
+
+/** Buscador compacto de productos/combos SIIGO para vincular una línea de factura. */
+function SiigoBuscarPicker({
+  disabled,
+  seedQuery,
+  onSelect,
+}: {
+  disabled?: boolean;
+  seedQuery?: string;
+  onSelect: (item: SiigoBusquedaItem) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<SiigoBusquedaItem[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setAbierto(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [abierto]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const query = q.trim();
+    if (query.length < 1) {
+      setItems([]);
+      return;
+    }
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      setBuscando(true);
+      void api
+        .get<{ items: SiigoBusquedaItem[] }>(
+          `/api/siigo/productos/buscar?q=${encodeURIComponent(query)}&limit=40&excluir_combos=0`,
+        )
+        .then((data) => {
+          if (!cancelled) setItems(data.items ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setBuscando(false);
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [q, abierto]);
+
+  function abrir() {
+    if (disabled) return;
+    setAbierto(true);
+    setQ((seedQuery || "").trim());
+    window.setTimeout(() => inputRef.current?.focus(), 30);
+  }
+
+  function elegir(item: SiigoBusquedaItem) {
+    onSelect(item);
+    setAbierto(false);
+    setQ("");
+    setItems([]);
+  }
+
+  return (
+    <div ref={wrapRef} className="relative shrink-0">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={abrir}
+        className="rounded-md border border-violet-500/50 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-800 dark:text-violet-200 hover:bg-violet-500/20 disabled:opacity-40"
+        title="Buscar producto o combo existente en SIIGO"
+      >
+        Buscar
+      </button>
+      {abierto && (
+        <div className="absolute right-0 z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-panel p-2 shadow-xl">
+          <p className="mb-1.5 text-[10px] font-semibold text-muted">
+            Buscar producto o combo en SIIGO
+          </p>
+          <input
+            ref={inputRef}
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Código o nombre…"
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
+          />
+          <div className="mt-1.5 max-h-48 overflow-y-auto rounded-md border border-border/60">
+            {buscando && (
+              <p className="px-2.5 py-2 text-[11px] text-muted">Buscando…</p>
+            )}
+            {!buscando && q.trim().length >= 1 && items.length === 0 && (
+              <p className="px-2.5 py-2 text-[11px] text-muted">Sin coincidencias</p>
+            )}
+            {!buscando && q.trim().length < 1 && (
+              <p className="px-2.5 py-2 text-[11px] text-muted">Escribe para buscar</p>
+            )}
+            {items.map((s) => {
+              const esCombo = (s.type || "").toLowerCase() === "combo";
+              return (
+                <button
+                  key={s.codigo}
+                  type="button"
+                  className="flex w-full flex-col items-start gap-0.5 border-b border-border/40 px-2.5 py-1.5 text-left last:border-0 hover:bg-accent/10"
+                  onClick={() => elegir(s)}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] font-bold text-ink">{s.codigo}</span>
+                    <span
+                      className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
+                        esCombo
+                          ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
+                          : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
+                      }`}
+                    >
+                      {esCombo ? "Combo" : "Producto"}
+                    </span>
+                  </span>
+                  <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -654,101 +848,117 @@ function ItemContrasteRow({
   const existeEnSiigo = check?.existe_en_siigo ?? check?.duplicado ?? item.existe_en_siigo ?? item.duplicado;
   const crearError = crearEnSiigo.error as Error | undefined;
 
+  function aplicarProductoExistente(sel: SiigoBusquedaItem) {
+    onCodeChange(sel.codigo);
+    onCodeCheck({
+      codigo: sel.codigo,
+      existe_en_siigo: true,
+      duplicado: true,
+      siigo_producto: {
+        codigo: sel.codigo,
+        nombre: sel.nombre,
+        unidad: "",
+        activo: true,
+        type: sel.type,
+      },
+    });
+  }
+
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 ${
+    <div className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-0 ${
       existeEnSiigo ? "bg-emerald-50/40 dark:bg-emerald-900/10" : checked ? "bg-accent/5" : ""
     }`}>
       {/* Columna proveedor */}
-      <div className="flex gap-3 border-b lg:border-b-0 lg:border-r border-border/60 p-4">
+      <div className="flex gap-2 border-b lg:border-b-0 lg:border-r border-border/60 px-2.5 py-2">
         <input
           type="checkbox"
           checked={checked}
           onChange={onToggle}
           disabled={disabled}
-          className="mt-1 shrink-0 accent-accent"
+          className="mt-0.5 shrink-0 accent-accent"
         />
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-semibold text-ink leading-snug">{item.nombre}</p>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] font-mono text-muted">
-            <span>Cant: <span className="text-ink">{item.cantidad_original} {item.unidad_original}</span></span>
-            <span>Subtotal: <span className="text-ink">{cop(item.subtotal)}</span></span>
-            <span>P. proveedor: <span className="text-ink">{cop(item.precio_proveedor)}</span></span>
-            {item.referencia_proveedor && (
-              <span className="col-span-2">Ref. proveedor: <span className="text-ink">{item.referencia_proveedor}</span></span>
-            )}
-            {item.iva > 0 && <span>IVA: <span className="text-ink">{cop(item.iva)}</span></span>}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-ink leading-snug">{item.nombre}</p>
+          <p className="mt-0.5 text-[10px] font-mono text-muted leading-relaxed">
+            Cant <span className="text-ink">{item.cantidad_original} {item.unidad_original}</span>
+            {" · "}P.prov <span className="text-ink">{cop(item.precio_proveedor)}</span>
+            {" · "}Sub <span className="text-ink">{cop(item.subtotal)}</span>
+            {item.iva > 0 && <>{" · "}IVA <span className="text-ink">{cop(item.iva)}</span></>}
+            {item.referencia_proveedor && <>{" · "}Ref <span className="text-ink">{item.referencia_proveedor}</span></>}
             {item.multiplicador > 1 && (
-              <span className="col-span-2 text-violet-600 dark:text-violet-400">× {item.multiplicador} por empaque</span>
+              <span className="text-violet-600 dark:text-violet-400">{" · "}×{item.multiplicador}</span>
             )}
-          </div>
+          </p>
         </div>
       </div>
 
       {/* Columna McKenna */}
-      <div className="p-4 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="px-2.5 py-2 space-y-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {existeEnSiigo ? (
-            <span className="rounded-full bg-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
-              En SIIGO — suma inventario
+            <span className="rounded bg-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
+              En SIIGO
+              {(siigoProducto?.type || "").toLowerCase() === "combo" ? " · Combo" : ""}
             </span>
           ) : (
-            <span className="rounded-full bg-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-900 dark:bg-sky-800 dark:text-sky-100">
+            <span className="rounded bg-sky-200 px-1.5 py-0.5 text-[9px] font-bold text-sky-900 dark:bg-sky-800 dark:text-sky-100">
               Producto nuevo
             </span>
           )}
           {item.codigo_por_referencia && (
-            <span className="rounded-full bg-violet-200 px-2 py-0.5 text-[10px] font-bold text-violet-900 dark:bg-violet-800 dark:text-violet-100">
-              Código por referencia
+            <span className="rounded bg-violet-200 px-1.5 py-0.5 text-[9px] font-bold text-violet-900 dark:bg-violet-800 dark:text-violet-100">
+              Por ref.
             </span>
           )}
+          <span className="text-[10px] font-mono text-muted">
+            Sug. <span className="text-accent">{item.codigo_sugerido || item.codigo}</span>
+            {" · "}{fmtDec(item.cantidad_min)} {item.unidad_min}
+            {" · "}neto <span className="text-ink font-semibold">{cop(item.precio_neto)}</span>
+            {" · "}venta <span className="text-ink">{cop(item.precio_unitario)}</span>
+          </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <input
             type="text"
             value={codigo}
             disabled={disabled}
             onChange={(e) => onCodeChange(e.target.value)}
             onBlur={() => { if (codigo.trim()) checkCodigo.mutate(codigo.trim()); }}
-            className="flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent"
+            className="min-w-[7rem] flex-1 rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink outline-none focus:border-accent"
             placeholder="Código SIIGO"
           />
           <button
             type="button"
             disabled={checkCodigo.isPending || !codigo.trim() || disabled}
             onClick={() => checkCodigo.mutate(codigo.trim())}
-            className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:text-ink disabled:opacity-40"
+            className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:text-ink disabled:opacity-40"
           >
             {checkCodigo.isPending ? "…" : "Verificar"}
           </button>
-        </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] font-mono text-muted">
-          <span>Sugerido: <span className="text-accent">{item.codigo_sugerido || item.codigo}</span></span>
-          <span>Unidad min: <span className="text-ink">{fmtDec(item.cantidad_min)} {item.unidad_min}</span></span>
-          <span>P. neto: <span className="text-ink font-semibold">{cop(item.precio_neto)}</span></span>
-          <span>P. venta: <span className="text-ink">{cop(item.precio_unitario)}</span></span>
-        </div>
-        {siigoProducto && (
-          <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-mono truncate">
-            SIIGO: {siigoProducto.codigo} · {siigoProducto.nombre}
-          </p>
-        )}
-        {!existeEnSiigo && !disabled && (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <SiigoBuscarPicker
+            disabled={disabled}
+            seedQuery={item.nombre || codigo}
+            onSelect={aplicarProductoExistente}
+          />
+          {!existeEnSiigo && !disabled && (
             <button
               type="button"
               disabled={crearEnSiigo.isPending || !codigo.trim()}
               onClick={() => crearEnSiigo.mutate()}
-              className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
+              className="shrink-0 rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
             >
-              {crearEnSiigo.isPending ? "Creando…" : "Crear en SIIGO"}
+              {crearEnSiigo.isPending ? "…" : "Crear SIIGO"}
             </button>
-            <span className="text-[10px] text-muted">
-              Precio venta estimado: {cop(Math.round(item.precio_unitario * 1.3))}
-            </span>
-          </div>
+          )}
+        </div>
+        {siigoProducto && (
+          <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono truncate">
+            SIIGO: {siigoProducto.codigo} · {siigoProducto.nombre}
+            {(siigoProducto.type || "").toLowerCase() === "combo" ? " (combo)" : ""}
+          </p>
         )}
         {crearError && (
-          <p className="text-[11px] text-red-400">{crearError.message}</p>
+          <p className="text-[10px] text-red-400">{crearError.message}</p>
         )}
       </div>
     </div>
@@ -807,12 +1017,13 @@ export default function FacturasCompraPanel() {
   });
 
   const historialQuery = useQuery({
-    queryKey: ["facturas-historial", accionHistorial, filtroHistorial],
+    queryKey: ["facturas-historial", accionHistorial, filtroHistorial, new Date().getFullYear()],
     queryFn: () => {
-      const params = new URLSearchParams({ limit: "100" });
+      const anio = new Date().getFullYear();
+      const params = new URLSearchParams({ limit: "100", anio: String(anio) });
       if (accionHistorial) params.set("accion", accionHistorial);
       if (filtroHistorial.trim()) params.set("q", filtroHistorial.trim());
-      return api.get<{ historial: FacturaHistorial[]; total: number; mostrando: number }>(
+      return api.get<{ historial: FacturaHistorial[]; total: number; mostrando: number; anio?: number }>(
         `/api/facturas/historial?${params.toString()}`,
       );
     },
@@ -823,8 +1034,6 @@ export default function FacturasCompraPanel() {
   const pendientes = data?.pendientes ?? [];
   const total = data?.total ?? 0;
   const historial = historialQuery.data?.historial ?? [];
-  const pasoActual = detalleAbierto ? 2 : total > 0 ? 2 : 1;
-
   const handleDone = useCallback(async (sufijoActual: string) => {
     setDetalleAbierto(null);
     await qc.invalidateQueries({ queryKey: ["facturas-pendientes"] });
@@ -836,50 +1045,85 @@ export default function FacturasCompraPanel() {
     }
   }, [qc, pendientes]);
 
+  const idxDetalle = detalleAbierto
+    ? pendientes.findIndex((p) => p.sufijo === detalleAbierto)
+    : -1;
+  const hayAnterior = idxDetalle > 0;
+  const haySiguiente = idxDetalle >= 0 && idxDetalle < pendientes.length - 1;
+  const posicionDetalle =
+    idxDetalle >= 0 ? `${idxDetalle + 1} de ${pendientes.length}` : undefined;
+
   if (detalleAbierto) {
     return (
-      <div className="space-y-4">
-        <Stepper paso={3} />
-        <DetalleFactura
-          sufijo={detalleAbierto}
-          onBack={() => setDetalleAbierto(null)}
-          onDone={(s) => void handleDone(s)}
-        />
-      </div>
+      <DetalleFactura
+        key={detalleAbierto}
+        sufijo={detalleAbierto}
+        onBack={() => setDetalleAbierto(null)}
+        onDone={(s) => void handleDone(s)}
+        hayAnterior={hayAnterior}
+        haySiguiente={haySiguiente}
+        posicion={posicionDetalle}
+        onAnterior={() => {
+          if (hayAnterior) setDetalleAbierto(pendientes[idxDetalle - 1].sufijo);
+        }}
+        onSiguiente={() => {
+          if (haySiguiente) setDetalleAbierto(pendientes[idxDetalle + 1].sufijo);
+        }}
+      />
     );
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setVista("pendientes");
-            setFacturasBootVista("pendientes");
-          }}
-          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-            vista === "pendientes"
-              ? "bg-accent text-white"
-              : "border border-border bg-surface-panel text-muted hover:text-ink"
-          }`}
-        >
-          Pendientes{total > 0 ? ` (${total})` : ""}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setVista("historial");
-            setFacturasBootVista("historial");
-          }}
-          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-            vista === "historial"
-              ? "bg-accent text-white"
-              : "border border-border bg-surface-panel text-muted hover:text-ink"
-          }`}
-        >
-          Historial
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setVista("pendientes");
+              setFacturasBootVista("pendientes");
+            }}
+            className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+              vista === "pendientes"
+                ? "bg-accent text-white"
+                : "border border-border bg-surface-panel text-muted hover:text-ink"
+            }`}
+          >
+            Pendientes{total > 0 ? ` (${total})` : ""}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setVista("historial");
+              setFacturasBootVista("historial");
+            }}
+            className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+              vista === "historial"
+                ? "bg-accent text-white"
+                : "border border-border bg-surface-panel text-muted hover:text-ink"
+            }`}
+          >
+            Historial
+          </button>
+        </div>
+
+        {vista === "pendientes" && (
+          <button
+            type="button"
+            onClick={() => escanear.mutate()}
+            disabled={escanear.isPending}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {escanear.isPending ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Escaneando…
+              </>
+            ) : (
+              <>Escanear Gmail</>
+            )}
+          </button>
+        )}
       </div>
 
       {vista === "historial" ? (
@@ -898,91 +1142,98 @@ export default function FacturasCompraPanel() {
         />
       ) : (
         <>
-      <Stepper paso={pasoActual} />
-
-      <div className="rounded-xl border-2 border-border bg-surface-panel p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-ink">Facturas de compra</h2>
-            <p className="mt-1 text-sm text-muted max-w-xl">
-              Escanea Gmail, revisa cada factura contrastando los datos del proveedor con la propuesta McKenna,
-              y confirma una a una. No se registra nada en SIIGO sin tu aprobación.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => escanear.mutate()}
-            disabled={escanear.isPending}
-            className="shrink-0 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-          >
-            {escanear.isPending ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Escaneando Gmail…
-              </>
-            ) : (
-              <>Escanear facturas en Gmail</>
-            )}
-          </button>
-        </div>
-
-        {scanResult && (
-          <div className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
-            scanResult.ok ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200" : "border-red-500/30 bg-red-500/10 text-red-300"
-          }`}>
-            <p className="font-medium">{scanResult.mensaje}</p>
-            {(scanResult.encoladas?.length > 0 || scanResult.omitidas?.length > 0) && (
-              <ul className="mt-2 space-y-1 text-xs font-mono opacity-90">
-                {scanResult.encoladas?.map((f) => (
-                  <li key={f.sufijo}>+ {f.numero_factura} — {f.proveedor} ({cop(f.total)})</li>
-                ))}
-                {scanResult.omitidas?.slice(0, 5).map((o) => (
-                  <li key={o.numero_factura}>⏭ {o.numero_factura} — {o.motivo}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-ink">
-          Pendientes de revisión
-          {total > 0 && (
-            <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">
-              {total}
-            </span>
+          {scanResult && (
+            <div
+              className={`rounded-xl border px-4 py-3 text-sm ${
+                scanResult.ok
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200"
+                  : "border-red-500/30 bg-red-500/10 text-red-300"
+              }`}
+            >
+              <p className="font-medium">{scanResult.mensaje}</p>
+              <p className="mt-1 text-[11px] opacity-80">
+                Correos: {scanResult.correos_revisados ?? 0}
+                {" · "}nuevas: {scanResult.encoladas?.length ?? 0}
+                {" · "}historial: {scanResult.ya_en_historial?.length ?? 0}
+                {" · "}cola: {scanResult.ya_en_cola?.length ?? 0}
+                {" · "}omitidas: {scanResult.omitidas?.length ?? 0}
+              </p>
+              {(scanResult.encoladas?.length > 0 || scanResult.omitidas?.length > 0) && (
+                <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto font-mono text-xs opacity-90">
+                  {scanResult.encoladas?.map((f) => (
+                    <li key={f.sufijo}>
+                      + {f.numero_factura} — {f.proveedor} ({cop(f.total)})
+                    </li>
+                  ))}
+                  {scanResult.omitidas?.slice(0, 8).map((o) => (
+                    <li key={o.numero_factura}>
+                      ⏭ {o.numero_factura} — {o.motivo}
+                    </li>
+                  ))}
+                  {(scanResult.omitidas?.length ?? 0) > 8 && (
+                    <li>… y {(scanResult.omitidas?.length ?? 0) - 8} omitida(s) más</li>
+                  )}
+                </ul>
+              )}
+            </div>
           )}
-        </h3>
-        <button type="button" onClick={() => refetch()} className="text-xs text-muted hover:text-accent">
-          Actualizar listado
-        </button>
-      </div>
 
-      {isLoading && (
-        <p className="text-sm text-muted text-center py-12">Cargando cola…</p>
-      )}
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-ink">
+                {total > 0 ? "Por revisar" : "Cola vacía"}
+              </h2>
+              <p className="mt-0.5 text-sm text-muted">
+                {total > 0
+                  ? "Abre una factura, contrasta con SIIGO y confirma inventario, gasto u omitir."
+                  : "Nada se registra en SIIGO sin tu aprobación. Escanea Gmail para traer compras nuevas."}
+              </p>
+            </div>
+            {total > 0 && (
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="shrink-0 text-xs font-semibold text-muted hover:text-accent"
+              >
+                Actualizar
+              </button>
+            )}
+          </div>
 
-      {!isLoading && pendientes.length === 0 && (
-        <div className="rounded-xl border-2 border-dashed border-border p-12 text-center">
-          <p className="text-4xl mb-3">📬</p>
-          <p className="text-base font-semibold text-ink">Sin facturas pendientes</p>
-          <p className="text-sm text-muted mt-2 max-w-md mx-auto">
-            Pulsa <strong>Escanear facturas en Gmail</strong> para traer compras nuevas del label FACTURAS-MCKG.
-          </p>
-        </div>
-      )}
+          {isLoading && (
+            <p className="py-12 text-center text-sm text-muted">Cargando cola…</p>
+          )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {pendientes.map((f) => (
-          <FacturaCard
-            key={f.sufijo}
-            f={f}
-            active={false}
-            onOpen={setDetalleAbierto}
-          />
-        ))}
-      </div>
+          {!isLoading && pendientes.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-surface-panel/50 px-6 py-14 text-center">
+              <p className="text-base font-semibold text-ink">Sin facturas pendientes</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
+                Usa <span className="font-semibold text-ink">Escanear Gmail</span> para encolar
+                facturas del label FACTURAS-MCKG.
+              </p>
+              <button
+                type="button"
+                onClick={() => escanear.mutate()}
+                disabled={escanear.isPending}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/15 disabled:opacity-50"
+              >
+                {escanear.isPending ? "Escaneando…" : "Escanear ahora"}
+              </button>
+            </div>
+          )}
+
+          {pendientes.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {pendientes.map((f) => (
+                <FacturaCard
+                  key={f.sufijo}
+                  f={f}
+                  active={false}
+                  onOpen={setDetalleAbierto}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -1021,7 +1272,7 @@ function HistorialFacturas({
           <div>
             <h2 className="text-lg font-bold text-ink">Historial de facturas</h2>
             <p className="mt-1 text-sm text-muted">
-              Facturas procesadas desde el panel o WhatsApp: inventario, gasto u omitidas.
+              Solo {new Date().getFullYear()}: inventario, gasto u omitidas (fecha de factura).
             </p>
           </div>
           <button type="button" onClick={onRefresh} className="text-xs text-muted hover:text-accent">
@@ -1503,23 +1754,3 @@ export function ConsultarFacturaPorProducto({
   );
 }
 
-function Stepper({ paso }: { paso: number }) {
-  return (
-    <div className="flex flex-wrap gap-2 sm:gap-0 sm:divide-x sm:divide-border rounded-xl border border-border bg-surface-panel overflow-hidden">
-      {STEPS.map((s) => (
-        <div
-          key={s.n}
-          className={`flex-1 min-w-[140px] px-4 py-3 ${
-            paso === s.n ? "bg-accent/10 border-b-2 sm:border-b-0 border-accent" : "opacity-60"
-          }`}
-        >
-          <p className={`text-[10px] font-bold uppercase tracking-wide ${paso === s.n ? "text-accent" : "text-muted"}`}>
-            Paso {s.n}
-          </p>
-          <p className="text-sm font-semibold text-ink">{s.label}</p>
-          <p className="text-[10px] text-muted hidden sm:block">{s.hint}</p>
-        </div>
-      ))}
-    </div>
-  );
-}

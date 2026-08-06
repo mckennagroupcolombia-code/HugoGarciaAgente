@@ -19,7 +19,6 @@ export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
   docs: "file",
   contabilidad: "receipt",
   tienda: "megaphone",
-  logistica: "ship",
   sistemas: "monitor",
 };
 
@@ -33,7 +32,6 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   docs: "Fichas técnicas e información científica de ingredientes.",
   contabilidad: "Facturas, sync MeLi↔Siigo, stock, rentabilidad y más.",
   tienda: "Publicaciones MeLi y herramientas de taller.",
-  logistica: "Importaciones, embarques, aduana y proveedores.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
 };
 

@@ -142,6 +142,34 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5" />
     </>
   ),
+  operativos: (
+    <>
+      <path d="M14.7 6.3a1 1 0 0 0-1.4 0L12 7.6l-1.3-1.3a1 1 0 0 0-1.4 1.4L10.6 9l-4.3 4.3a2 2 0 0 0-.5.9L5 17l2.8-.8a2 2 0 0 0 .9-.5L13 11.4l1.3 1.3a1 1 0 0 0 1.4-1.4L14.4 10l1.3-1.3a1 1 0 0 0 0-1.4z" />
+    </>
+  ),
+  impuestos: (
+    <>
+      <path d="M7 4h10v16l-2-1-2 1-2-1-2 1-2-1V4z" />
+      <path d="M10 9h6M10 13h4" />
+    </>
+  ),
+  servicios: (
+    <>
+      <path d="M9 18h6" />
+      <path d="M10 18v-5a4 4 0 1 1 4 0v5" />
+      <path d="M12 3v2" />
+    </>
+  ),
+  "ingresos-egresos": (
+    <>
+      <path d="M4 19h16" />
+      <path d="M7 16V10" />
+      <path d="M12 16V6" />
+      <path d="M17 16v-4" />
+      <path d="M7 8l2-2 2 2" />
+      <path d="M17 14l-2 2-2-2" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />

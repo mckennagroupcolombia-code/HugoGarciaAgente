@@ -14,10 +14,11 @@ import {
 } from "../lib/contabilidadAccess";
 
 const FacturacionPanel = lazy(() => import("./FacturacionPanel"));
+const OperativosPanel = lazy(() => import("./OperativosPanel"));
+const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
-const RRHHPanel = lazy(() => import("./RRHHPanel"));
 const StockPanel = lazy(() => import("./StockPanel"));
 
 /** Subpaneles que se mantienen montados al cambiar de pestaña (edición paralela). */
@@ -46,8 +47,11 @@ function renderSubpanel(id: ContabilidadPanelId) {
       return <ComprasExteriorPanel />;
     case "costos-productos":
       return <CostosProductosPanel />;
+    case "ingresos-egresos":
+      return <IngresosEgresosPanel />;
+    case "operativos":
     case "rrhh":
-      return <RRHHPanel />;
+      return <OperativosPanel />;
     default:
       return null;
   }
@@ -63,7 +67,11 @@ function KeepAlivePane({
   mounted: boolean;
 }) {
   if (!mounted) return null;
-  const scroll = id === "rentabilidad" ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto pb-6";
+  // Stock y Rentabilidad: el scroll vive dentro del panel (tabla/listas), no en el wrapper.
+  const scroll =
+    id === "rentabilidad" || id === "stock"
+      ? "overflow-hidden"
+      : "overflow-x-hidden overflow-y-auto pb-6";
   return (
     <div
       className={`min-h-0 flex-1 flex-col ${scroll} ${active ? "flex" : "hidden"}`}
@@ -92,7 +100,11 @@ export default function ContabilidadPanel() {
     return CONTABILIDAD_PANELS.filter((id) => {
       if (CONTABILIDAD_TAB_OCULTAS.has(id)) return false;
       if (!puedeVerModuloContabilidad(user, id)) return false;
-      if (id === "costos-productos" || id === "rrhh") return advanced;
+      if (id === "costos-productos") return advanced;
+      // Operativos (p. ej. Servicios) activo con permiso, aunque la sesión no esté en modo avanzado.
+      if (id === "operativos") {
+        return advanced || Boolean(puedeVerModuloContabilidad(user, "servicios"));
+      }
       return true;
     });
   }, [user, advanced]);

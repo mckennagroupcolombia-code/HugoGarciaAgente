@@ -1,9 +1,9 @@
 {
   "anio": 2024,
   "facturas": [],
-  "actualizado": "2026-08-04T17:30:48.080765",
+  "actualizado": "2026-08-05T22:21:55.781246",
   "fuente": "local",
   "errores": [
-    "No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py"
+    "gmail: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/token_gmail.json'"
   ]
 }

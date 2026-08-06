@@ -299,28 +299,216 @@ def actualizar_stock_meli_por_item_id(item_id: str, nuevo_stock: int) -> str:
     return _actualizar_stock_meli_item(item_id, nuevo_stock, headers)
 
 
+def _es_error_transitorio_meli(status_code: int, cuerpo: str = "") -> bool:
+    """502/503/504 y mensajes de proxy (p.ej. Cloudflare/nginx 'no healthy upstream')."""
+    if int(status_code or 0) in (429, 502, 503, 504):
+        return True
+    c = (cuerpo or "").lower()
+    return any(
+        x in c
+        for x in (
+            "no healthy upstream",
+            "temporarily_unavailable",
+            "temporarily unavailable",
+            "service unavailable",
+            "gateway timeout",
+            "too many requests",
+        )
+    )
+
+
+def _request_meli(
+    method: str,
+    url: str,
+    *,
+    headers: dict,
+    json: dict | None = None,
+    timeout: int = 20,
+    intentos: int = 4,
+):
+    """HTTP a MeLi con reintentos ante caídas de proxy / rate limit."""
+    ultimo = None
+    for i in range(max(1, intentos)):
+        try:
+            res = requests.request(
+                method.upper(), url, headers=headers, json=json, timeout=timeout
+            )
+            ultimo = res
+            if res.status_code in (200, 201):
+                return res
+            if _es_error_transitorio_meli(res.status_code, res.text or "") and i < intentos - 1:
+                espera = 0.7 * (i + 1)
+                print(
+                    f"⏳ [MELI-STOCK] {method} {res.status_code} transitorio — "
+                    f"reintento {i + 2}/{intentos} en {espera:.1f}s"
+                )
+                time.sleep(espera)
+                continue
+            return res
+        except requests.RequestException as e:
+            if i >= intentos - 1:
+                raise
+            espera = 0.7 * (i + 1)
+            print(f"⏳ [MELI-STOCK] red {e} — reintento {i + 2}/{intentos} en {espera:.1f}s")
+            time.sleep(espera)
+    return ultimo
+
+
+def _reactivar_item_meli_si_pausada(
+    item_id: str,
+    headers: dict,
+    nuevo_stock: int,
+    *,
+    estaba_pausada: bool | None = None,
+) -> str:
+    """
+    MeLi pausa sola las publicaciones en cero (sub_status out_of_stock). En cuentas
+    multi-bodega el PUT de stock suele aceptar antes de que el ítem refleje
+    available_quantity; hay que esperar la propagación. Con stock > 0 MeLi a veces
+    reactiva sola; si no, se hace PUT status=active.
+    """
+    if int(nuevo_stock) <= 0:
+        return ""
+
+    import time
+
+    vista_pausada = bool(estaba_pausada)
+    ultimo_status = ""
+    ultimo_qty = None
+    ultimo_err = ""
+
+    for intento in range(10):
+        try:
+            res = requests.get(
+                f"https://api.mercadolibre.com/items/{item_id}", headers=headers, timeout=10
+            )
+            if res.status_code != 200:
+                time.sleep(1.2)
+                continue
+            item = res.json() or {}
+            status = str(item.get("status") or "").lower()
+            ultimo_status = status
+            if item.get("variations"):
+                qty = sum(int(v.get("available_quantity") or 0) for v in item["variations"])
+            else:
+                qty = int(item.get("available_quantity") or 0)
+            ultimo_qty = qty
+
+            if status in ("closed", "inactive"):
+                return f" · ⚠️ no reactivable (estado {status})"
+
+            if status != "active":
+                vista_pausada = True
+
+            if status == "active" and qty > 0:
+                if vista_pausada or estaba_pausada:
+                    print(
+                        f"✅ [MELI-STOCK] {item_id} activa con {qty} uds "
+                        f"(tras stock {nuevo_stock}, intento {intento + 1})"
+                    )
+                    return " · reactivada"
+                return ""
+
+            # Stock ya visible en el ítem pero sigue pausada → activar
+            if status == "paused" and qty > 0:
+                put = requests.put(
+                    f"https://api.mercadolibre.com/items/{item_id}",
+                    json={"status": "active"},
+                    headers={**headers, "Content-Type": "application/json"},
+                    timeout=15,
+                )
+                if put.status_code in (200, 201):
+                    print(f"✅ [MELI-STOCK] {item_id} reactivada (stock ítem={qty})")
+                    return " · reactivada"
+                ultimo_err = f"{put.status_code}: {(put.text or '')[:100]}"
+            elif status == "paused" and qty == 0 and intento >= 3:
+                # Aún no propagó: intentar activar por si MeLi ya tiene stock interno
+                put = requests.put(
+                    f"https://api.mercadolibre.com/items/{item_id}",
+                    json={"status": "active"},
+                    headers={**headers, "Content-Type": "application/json"},
+                    timeout=15,
+                )
+                if put.status_code in (200, 201):
+                    print(f"✅ [MELI-STOCK] {item_id} reactivada (antes de reflejar qty)")
+                    return " · reactivada"
+                ultimo_err = f"{put.status_code}: {(put.text or '')[:100]}"
+
+            time.sleep(1.5)
+        except requests.RequestException as e:
+            ultimo_err = str(e)
+            time.sleep(1.2)
+        except Exception as e:
+            ultimo_err = str(e)
+            time.sleep(1.2)
+
+    detalle = ultimo_err or f"status={ultimo_status} qty={ultimo_qty}"
+    return f" · ⚠️ stock enviado; MeLi aún no reactiva ({detalle})"
+
+
 def _actualizar_stock_meli_item(item_id: str, nuevo_stock: int, headers: dict) -> str:
     """
-    PUT de available_quantity sobre un ítem puntual. Si la cuenta usa inventario
-    multi-bodega (MeLi rechaza ese campo con "multi warehouse seller"), reintenta
-    con el endpoint de stock por ubicación (`/user-products/{id}/stock/type/seller_warehouse`).
+    Actualiza stock de un ítem. Si tiene user_product_id (cuenta multi-bodega),
+    escribe directo en seller_warehouse — evita PUT available_quantity que MeLi
+    rechaza o a veces responde 503. Reintenta ante errores de proxy.
     """
+    nuevo_stock = int(nuevo_stock)
     try:
-        res_put = requests.put(
+        res_item = _request_meli(
+            "GET",
             f"https://api.mercadolibre.com/items/{item_id}",
-            json={"available_quantity": int(nuevo_stock)},
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
+        if res_item is not None and res_item.status_code == 200:
+            if (res_item.json() or {}).get("user_product_id"):
+                return _actualizar_stock_meli_multibodega(item_id, nuevo_stock, headers)
+
+        res_put = _request_meli(
+            "PUT",
+            f"https://api.mercadolibre.com/items/{item_id}",
+            headers=headers,
+            json={"available_quantity": nuevo_stock},
+            timeout=15,
+        )
+        if res_put is None:
+            return f"❌ {item_id}: sin respuesta de MeLi al actualizar stock"
         if res_put.status_code in (200, 201):
-            return f"✅ {item_id} → {nuevo_stock} uds"
-        cuerpo = res_put.text
+            base = f"✅ {item_id} → {nuevo_stock} uds"
+            return base + _reactivar_item_meli_si_pausada(item_id, headers, nuevo_stock)
+        cuerpo = res_put.text or ""
         if "multi warehouse" in cuerpo:
             return _actualizar_stock_meli_multibodega(item_id, nuevo_stock, headers)
+        if _es_error_transitorio_meli(res_put.status_code, cuerpo):
+            # Último recurso: multi-bodega por si el GET falló o el ítem sí tiene UP
+            msg_mb = _actualizar_stock_meli_multibodega(item_id, nuevo_stock, headers)
+            if "✅" in msg_mb:
+                return msg_mb
+            return (
+                f"❌ {item_id}: MeLi temporalmente no responde "
+                f"({res_put.status_code}). Reintenta en unos segundos."
+            )
         if "not_modifiable" in cuerpo:
             return (
                 f"⚠️ {item_id}: está en Mercado Envíos Full — MeLi administra el stock según el "
                 "inventario físico enviado a su bodega. No se puede (ni hace falta) fijarlo desde acá."
+            )
+        if "field_not_updatable" in cuerpo and nuevo_stock > 0:
+            msg_mb = _actualizar_stock_meli_multibodega(item_id, nuevo_stock, headers)
+            if "✅" in msg_mb:
+                return msg_mb
+            res_combo = _request_meli(
+                "PUT",
+                f"https://api.mercadolibre.com/items/{item_id}",
+                headers={**headers, "Content-Type": "application/json"},
+                json={"available_quantity": nuevo_stock, "status": "active"},
+                timeout=20,
+            )
+            if res_combo is not None and res_combo.status_code in (200, 201):
+                return f"✅ {item_id} → {nuevo_stock} uds · reactivada"
+            return (
+                f"❌ {item_id}: pausada y no se pudo actualizar/reactivar "
+                f"({res_put.status_code}: {cuerpo[:120]})"
             )
         if "field_not_updatable" in cuerpo:
             return (
@@ -340,24 +528,34 @@ def _actualizar_stock_meli_multibodega(item_id: str, nuevo_stock: int, headers: 
     ítem — el stock real vive en `/user-products/{user_product_id}/stock`, ubicación
     `seller_warehouse`. Requiere leer primero `x-version` (control de concurrencia)
     y el `store_id` de la bodega antes de escribir.
+    Tras cargar stock > 0, reactiva si MeLi la tenía pausada por falta de inventario.
     """
+    nuevo_stock = int(nuevo_stock)
     try:
-        res_item = requests.get(
-            f"https://api.mercadolibre.com/items/{item_id}", headers=headers, timeout=10
+        res_item = _request_meli(
+            "GET",
+            f"https://api.mercadolibre.com/items/{item_id}",
+            headers=headers,
+            timeout=15,
         )
-        if res_item.status_code != 200:
-            return f"❌ {item_id}: no se pudo leer el producto para stock multi-bodega ({res_item.status_code})"
-        user_product_id = res_item.json().get("user_product_id")
+        if res_item is None or res_item.status_code != 200:
+            code = getattr(res_item, "status_code", "?")
+            return f"❌ {item_id}: no se pudo leer el producto para stock multi-bodega ({code})"
+        item_data = res_item.json() or {}
+        user_product_id = item_data.get("user_product_id")
+        estaba_pausada = str(item_data.get("status") or "").lower() == "paused"
         if not user_product_id:
             return f"❌ {item_id}: cuenta multi-bodega pero el ítem no tiene user_product_id asociado."
 
-        res_stock = requests.get(
+        res_stock = _request_meli(
+            "GET",
             f"https://api.mercadolibre.com/user-products/{user_product_id}/stock",
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
-        if res_stock.status_code != 200:
-            return f"❌ {item_id}: no se pudo leer stock multi-bodega ({res_stock.status_code})"
+        if res_stock is None or res_stock.status_code != 200:
+            code = getattr(res_stock, "status_code", "?")
+            return f"❌ {item_id}: no se pudo leer stock multi-bodega ({code})"
         x_version = res_stock.headers.get("x-version", "")
         bodega = next(
             (l for l in res_stock.json().get("locations", []) if l.get("type") == "seller_warehouse"),
@@ -373,19 +571,31 @@ def _actualizar_stock_meli_multibodega(item_id: str, nuevo_stock: int, headers: 
                     "type": "seller_warehouse",
                     "store_id": bodega.get("store_id"),
                     "network_node_id": bodega.get("network_node_id"),
-                    "quantity": int(nuevo_stock),
+                    "quantity": nuevo_stock,
                 }
             ]
         }
-        res_put = requests.put(
+        res_put = _request_meli(
+            "PUT",
             f"https://api.mercadolibre.com/user-products/{user_product_id}/stock/type/seller_warehouse",
             headers=put_headers,
             json=body,
-            timeout=10,
+            timeout=20,
+            intentos=5,
         )
-        if res_put.status_code in (200, 201):
-            return f"✅ {item_id} (multi-bodega) → {nuevo_stock} uds"
-        return f"❌ {item_id} (multi-bodega): {res_put.status_code} - {res_put.text[:150]}"
+        if res_put is not None and res_put.status_code in (200, 201):
+            base = f"✅ {item_id} (multi-bodega) → {nuevo_stock} uds"
+            return base + _reactivar_item_meli_si_pausada(
+                item_id, headers, nuevo_stock, estaba_pausada=estaba_pausada
+            )
+        code = getattr(res_put, "status_code", "?")
+        text = (getattr(res_put, "text", None) or "")[:150]
+        if _es_error_transitorio_meli(int(code) if str(code).isdigit() else 0, text):
+            return (
+                f"❌ {item_id}: MeLi temporalmente no responde ({code}). "
+                "Espera unos segundos y vuelve a Guardar."
+            )
+        return f"❌ {item_id} (multi-bodega): {code} - {text}"
     except requests.RequestException as e:
         return f"⚠️ Error de red actualizando stock multi-bodega en MeLi (item: {item_id}): {e}"
     except Exception as e:

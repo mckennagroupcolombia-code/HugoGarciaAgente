@@ -176,8 +176,15 @@ def _deep_merge(base: dict, extra: dict) -> dict:
     return out
 
 
+_SHADOW_CSS = {
+    "sm": "0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08)",
+    "md": "0 6px 16px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08)",
+    "lg": "0 16px 40px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.1)",
+}
+
+
 def _normalizar_layout(layout: dict | None) -> dict:
-    """Orden de secciones + nodos (dx/dy/scale/fontSize/icono/hidden)."""
+    """Orden de secciones + nodos (posición, tamaño, efectos)."""
     base = copy.deepcopy(TEMA_WEB_DEFAULTS["layout"])
     if not isinstance(layout, dict):
         return base
@@ -207,6 +214,24 @@ def _normalizar_layout(layout: dict | None) -> dict:
             fs = raw.get("fontSize")
             if isinstance(fs, (int, float)) and 10 <= float(fs) <= 96:
                 n["fontSize"] = int(round(fs))
+            w = raw.get("width")
+            if isinstance(w, (int, float)) and 24 <= float(w) <= 1200:
+                n["width"] = int(round(w))
+            h = raw.get("height")
+            if isinstance(h, (int, float)) and 16 <= float(h) <= 800:
+                n["height"] = int(round(h))
+            rot = raw.get("rotate")
+            if isinstance(rot, (int, float)) and -45 <= float(rot) <= 45:
+                n["rotate"] = round(float(rot), 1)
+            op = raw.get("opacity")
+            if isinstance(op, (int, float)) and 0.05 <= float(op) <= 1:
+                n["opacity"] = round(float(op), 2)
+            br = raw.get("borderRadius")
+            if isinstance(br, (int, float)) and 0 <= float(br) <= 999:
+                n["borderRadius"] = int(round(br))
+            sh = raw.get("shadow")
+            if sh in _SHADOW_CSS:
+                n["shadow"] = sh
             ic = raw.get("icono")
             if isinstance(ic, str) and ic.strip():
                 n["icono"] = ic.strip().removeprefix("ph-")[:64]
@@ -227,13 +252,39 @@ def estilo_nodo_layout(nodo: dict | None) -> str:
     dx = int(nodo.get("dx") or 0)
     dy = int(nodo.get("dy") or 0)
     scale = float(nodo.get("scale") or 1)
-    if dx or dy or scale != 1.0:
-        parts.append(f"transform:translate({dx}px,{dy}px) scale({scale})")
+    rotate = float(nodo.get("rotate") or 0)
+    transforms: list[str] = []
+    if dx or dy:
+        transforms.append(f"translate({dx}px,{dy}px)")
+    if rotate:
+        transforms.append(f"rotate({rotate}deg)")
+    if scale != 1.0:
+        transforms.append(f"scale({scale})")
+    if transforms:
+        parts.append(f"transform:{' '.join(transforms)}")
         parts.append("transform-origin:top left")
         parts.append("display:inline-block")
     fs = nodo.get("fontSize")
     if isinstance(fs, (int, float)):
         parts.append(f"font-size:{int(fs)}px")
+    w = nodo.get("width")
+    if isinstance(w, (int, float)):
+        parts.append(f"width:{int(w)}px")
+        parts.append("max-width:100%")
+        parts.append("box-sizing:border-box")
+    h = nodo.get("height")
+    if isinstance(h, (int, float)):
+        parts.append(f"height:{int(h)}px")
+        parts.append("box-sizing:border-box")
+    op = nodo.get("opacity")
+    if isinstance(op, (int, float)) and float(op) < 1:
+        parts.append(f"opacity:{round(float(op), 2)}")
+    br = nodo.get("borderRadius")
+    if isinstance(br, (int, float)):
+        parts.append(f"border-radius:{int(br)}px")
+    sh = nodo.get("shadow")
+    if sh in _SHADOW_CSS:
+        parts.append(f"box-shadow:{_SHADOW_CSS[sh]}")
     return ";".join(parts)
 
 

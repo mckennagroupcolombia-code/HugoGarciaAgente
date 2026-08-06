@@ -1,0 +1,13 @@
+{
+ "fecha": "2026-08-05",
+ "gasto_usd": 0.187105,
+ "llamadas": 9,
+ "por_modelo": {
+  "gemini-2.5-pro": 0.187105
+ },
+ "por_contexto": {
+  "cliente_chat": 0.187105
+ },
+ "alerta_enviada": false,
+ "historial": []
+}

@@ -1401,7 +1401,7 @@ function ServicioCard({ srv, onRefresh }: { srv: Servicio; onRefresh: () => void
   );
 }
 
-function TabServicios() {
+export function TabServicios() {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
