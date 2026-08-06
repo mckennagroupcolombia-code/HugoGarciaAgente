@@ -162,3 +162,40 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=13 activas=11 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel e00f9fe] Auto-commit: actualizacion diaria 2026-08-05 23:00
+ 96 files changed, 36063 insertions(+), 1856 deletions(-)
+ rename app/data/compras_exterior_soportes/{20260803_211532_21f1edee_imagen.png => 20260805_211829_69bd44dc_20260803_211532_21f1edee_imagen.png.png} (100%)
+ create mode 100644 app/data/cuentas_cobro_correo.json
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/CC-CE-00011.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/CC-CE-00012.pdf
+ create mode 100644 app/data/impuestos_pagos.json
+ create mode 100644 app/data/llm_budget.json
+ create mode 100644 app/data/llm_budget.json.lock
+ create mode 100644 app/services/contabilidad_ledger.py
+ create mode 100644 app/services/cuenta_cobro_cuota_manejo.py
+ create mode 100644 app/services/cuentas_cobro_correo.py
+ create mode 100644 app/services/impuestos.py
+ create mode 100644 app/services/meli_promotions.py
+ create mode 100644 app/services/stock_reportes.py
+ create mode 100644 desktop/src/components/CuentaCobroAprobacion.tsx
+ create mode 100644 desktop/src/components/ImpuestosPanel.tsx
+ create mode 100644 desktop/src/components/IngresosEgresosPanel.tsx
+ create mode 100644 desktop/src/components/OperativosPanel.tsx
+ create mode 100644 desktop/src/components/cuentaCobroLabels.ts
+ create mode 100644 desktop/src/components/nav/ScrollableTabList.tsx
+ create mode 100644 importaciones_productos/FA271011 codigos siigo.xml
+ create mode 100644 importaciones_productos/FA271011 registro productos.xlsx
+ create mode 100644 importaciones_productos/FA271020 codigos siigo.xml
+ create mode 100644 importaciones_productos/FA271345 codigos siigo.xml
+ create mode 100644 importaciones_productos/FEE100921 codigos siigo.xml
+ create mode 100644 importaciones_productos/FEE98450 codigos siigo.xml
+ create mode 100644 importaciones_productos/G0V9333957 codigos siigo.xml
+ create mode 100644 tmp_reportes/reporte_inventario_semanal_20260805_145538.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-05 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
