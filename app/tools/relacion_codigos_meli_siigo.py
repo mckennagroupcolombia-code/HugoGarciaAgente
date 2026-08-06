@@ -85,7 +85,11 @@ def _get_siigo_skus() -> dict[str, str]:
 
 
 def _get_meli_items() -> list[dict]:
-    """Lista publicaciones activas: meli_id, sku_meli, titulo, permalink, status."""
+    """Lista publicaciones activas y pausadas: meli_id, sku_meli, titulo, permalink, status.
+
+    Incluye pausadas (p.ej. out_of_stock): si no, códigos como C-CITCAL500g en una
+    publicación pausada no aparecen en el panel Stock / relación de códigos.
+    """
     from app.utils import refrescar_token_meli
 
     token = refrescar_token_meli()
@@ -100,21 +104,27 @@ def _get_meli_items() -> list[dict]:
         raise RuntimeError("No se pudo obtener el seller_id de MeLi.")
 
     item_ids: list[str] = []
-    offset = 0
-    while True:
-        r = requests.get(
-            f"https://api.mercadolibre.com/users/{seller_id}/items/search"
-            f"?status=active&limit=100&offset={offset}",
-            headers=headers,
-            timeout=30,
-        ).json()
-        ids = r.get("results") or []
-        if not ids:
-            break
-        item_ids.extend(ids)
-        offset += len(ids)
-        if offset >= (r.get("paging") or {}).get("total", 0):
-            break
+    seen: set[str] = set()
+    for status in ("active", "paused"):
+        offset = 0
+        while True:
+            r = requests.get(
+                f"https://api.mercadolibre.com/users/{seller_id}/items/search"
+                f"?status={status}&limit=100&offset={offset}",
+                headers=headers,
+                timeout=30,
+            ).json()
+            ids = r.get("results") or []
+            if not ids:
+                break
+            for iid in ids:
+                sid = str(iid).strip()
+                if sid and sid not in seen:
+                    seen.add(sid)
+                    item_ids.append(sid)
+            offset += len(ids)
+            if offset >= (r.get("paging") or {}).get("total", 0):
+                break
 
     out: list[dict] = []
     for i in range(0, len(item_ids), 20):
@@ -210,7 +220,7 @@ def listar_relacion_codigos_meli_siigo(
 
     if (
         not refresh
-        and cache.get("version") == 2
+        and cache.get("version") == 3
         and (now - float(cache.get("ts") or 0)) < _CACHE_TTL_S
         and isinstance(cache.get("items"), list)
     ):
@@ -368,7 +378,7 @@ def listar_relacion_codigos_meli_siigo(
         fuente = "live"
         _save_cache(
             {
-                "version": 2,
+                "version": 3,
                 "ts": now,
                 "actualizado_en": actualizado_en,
                 "items": items,
@@ -389,7 +399,12 @@ def listar_relacion_codigos_meli_siigo(
                 it.get("nombre_siigo") or "",
             ]
         ).lower()
-        return q in blob
+        if q in blob:
+            return True
+        # Búsqueda tolerante: ignora guiones/espacios (C-CITCAL500g ≈ CITCAL500)
+        q_compact = "".join(ch for ch in q if ch.isalnum())
+        blob_compact = "".join(ch for ch in blob if ch.isalnum())
+        return bool(q_compact) and q_compact in blob_compact
 
     filtrados = [it for it in items if _match_q(it)]
     if filtro_n == "vinculados":

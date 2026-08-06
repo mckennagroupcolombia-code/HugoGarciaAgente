@@ -615,6 +615,7 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
 def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: str = None, numero_destino: str = None):
     """
     Envía un archivo (PDF, Imagen, etc.) al grupo de WhatsApp designado para reportes.
+    Reintenta ante 503 del bridge (WhatsApp sincronizando) igual que enviar_whatsapp_reporte.
     """
     destino = _normalizar_destino_wa(
         numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
@@ -623,20 +624,43 @@ def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: 
         "numero": destino,
         "mensaje": texto_mensaje,
         "filePath": file_path,
-        "fileName": file_name
+        "fileName": file_name,
     }
-
     try:
-        res = requests.post(URL_API_WHATSAPP_ARCHIVO, json=payload, timeout=60)
-        if res.status_code == 200:
-            print(f"✅ Archivo {file_path} enviado a WhatsApp con éxito.")
-            return True
-        else:
-            print(f"❌ Error al enviar archivo a WhatsApp. Código: {res.status_code}, Respuesta: {res.text}")
+        max_intentos = max(1, min(12, int(os.getenv("WHATSAPP_REPORTE_MAX_INTENTOS", "5"))))
+    except ValueError:
+        max_intentos = 5
+
+    for i in range(max_intentos):
+        try:
+            res = requests.post(URL_API_WHATSAPP_ARCHIVO, json=payload, timeout=60)
+            if res.status_code == 200:
+                print(f"✅ Archivo {file_path} enviado a WhatsApp con éxito.")
+                return True
+            if res.status_code == 503 and i < max_intentos - 1:
+                espera = min(30, 5 * (i + 1))
+                print(
+                    f"⚠️ WhatsApp bridge 503 al enviar archivo "
+                    f"(intento {i + 1}/{max_intentos}), reintentando en {espera}s…"
+                )
+                time.sleep(espera)
+                continue
+            print(
+                f"❌ Error al enviar archivo a WhatsApp. Código: {res.status_code}, "
+                f"Respuesta: {res.text}"
+            )
             return False
-    except requests.RequestException as e:
-        print(f"❌ Error de conexión al enviar archivo por WhatsApp: {e}")
-        return False
+        except requests.RequestException as e:
+            if i < max_intentos - 1:
+                print(
+                    f"⚠️ Conexión al bridge al enviar archivo falló ({e}), "
+                    f"reintento {i + 1}/{max_intentos} en 3s…"
+                )
+                time.sleep(3)
+                continue
+            print(f"❌ Error de conexión al enviar archivo por WhatsApp: {e}")
+            return False
+    return False
 
 
 _meli_cred_whatsapp_ultimo_ts = 0.0

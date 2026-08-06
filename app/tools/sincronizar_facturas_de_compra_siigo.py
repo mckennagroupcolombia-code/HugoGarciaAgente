@@ -535,6 +535,29 @@ def descargar_y_extraer_zip(gmail_service, msg_id, att_id, zip_filename):
         print(f"Error procesando ZIP {zip_filename}: {e}")
         return None, None, None
 
+
+def extraer_xml_de_zip_local(zip_path: str):
+    """Lee XML DIAN desde un ZIP ya guardado en disco (sin tocar Gmail)."""
+    try:
+        if not zip_path or not os.path.isfile(zip_path):
+            return None, None, None
+        xml_content = None
+        pdf_content = None
+        pdf_filename = None
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            for name in zf.namelist():
+                if name.lower().endswith(".xml") and xml_content is None:
+                    with zf.open(name) as fxml:
+                        xml_content = fxml.read().decode("utf-8", errors="ignore")
+                elif name.lower().endswith(".pdf") and pdf_content is None:
+                    with zf.open(name) as fpdf:
+                        pdf_content = fpdf.read()
+                        pdf_filename = name
+        return xml_content, pdf_content, pdf_filename
+    except Exception as e:
+        print(f"Error leyendo ZIP local {zip_path}: {e}")
+        return None, None, None
+
 from app.utils import enviar_whatsapp_reporte
 
 GRUPO_COMPRAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")

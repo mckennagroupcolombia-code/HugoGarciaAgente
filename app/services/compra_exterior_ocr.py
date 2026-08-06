@@ -525,6 +525,240 @@ def calcular_landed(
     return result
 
 
+PROMPT_LISTA_COMPRAS = """\
+Eres asistente de compras de McKenna Group S.A.S. Analiza esta imagen
+(pantallazo, nota, chat WhatsApp, lista manuscrita, cotización o factura)
+y extrae SOLO los productos/materiales a comprar.
+
+Responde SOLO JSON válido con este esquema:
+{
+  "items": [
+    {"nombre": "Urea cosmética", "cantidad": 500, "unidad": "g"}
+  ]
+}
+
+Reglas:
+- nombre: producto o material claro, sin precios ni totales.
+- cantidad: número positivo. Si no aparece, usa 1.
+- unidad: una de g | ml | und | kg | L (normaliza sinónimos:
+  gramos/gr → g; mililitros → ml; unidades/u/pcs/piezas → und;
+  kilos → kg; litros/lts → L).
+- Si ves "1 kg" o "500g" en el nombre, sepáralo: cantidad + unidad y deja
+  el nombre limpio (ej. "Urea 500g" → nombre "Urea", cantidad 500, unidad "g").
+- Omite precios, impuestos, flete, descuentos y totales.
+- Si hay varias líneas, incluye todas. Sin duplicar la misma línea.
+- Sin markdown. Solo JSON.
+"""
+
+PROMPT_LISTA_ETIQUETAS = """\
+Eres asistente de producción de McKenna Group S.A.S. Analiza esta imagen
+(pantallazo, nota, chat WhatsApp, lista manuscrita o pedido)
+y extrae SOLO las etiquetas a imprimir.
+
+Responde SOLO JSON válido con este esquema:
+{
+  "items": [
+    {"nombre": "Elastina 30 ml", "cantidad": 50}
+  ]
+}
+
+Reglas CRÍTICAS:
+- nombre: producto + presentación/tipo de etiqueta juntos
+  (ej. "Elastina 30 ml", "Vitamina C 30 ml", "Urea 125 g", "Circular 70", "Lactato").
+- cantidad: cuántas ETIQUETAS hay que imprimir (×50 u, 30 und, "50 etiquetas").
+  Si no aparece cantidad de impresión, usa 1.
+- NUNCA uses la presentación como cantidad:
+  "Elastina 30 ml × 50" → nombre "Elastina 30 ml", cantidad 50
+  "Urea 125g" sin cantidad de impresión → nombre "Urea 125 g", cantidad 1
+- Presentaciones típicas: 30 mL, 5 mL, 125 g, 250 g, 100 g, 5 g, 1 Lt, Circular, Circular 70, Lactato, 54mm.
+- Omite saludos, precios y texto de relleno.
+- Si hay varias líneas, incluye todas. Sin duplicar.
+- Sin markdown. Solo JSON.
+"""
+
+
+def normalizar_unidad_lista_compras(unidad: Any) -> str:
+    """Normaliza unidad libre a g|ml|und|kg|L para solicitudes de compra."""
+    s = str(unidad or "").strip().lower()
+    aliases = {
+        "un": "und",
+        "u": "und",
+        "und": "und",
+        "unidad": "und",
+        "unidades": "und",
+        "pcs": "und",
+        "pc": "und",
+        "pieza": "und",
+        "piezas": "und",
+        "g": "g",
+        "gr": "g",
+        "grs": "g",
+        "gramo": "g",
+        "gramos": "g",
+        "kg": "kg",
+        "kilo": "kg",
+        "kilos": "kg",
+        "kilogramo": "kg",
+        "kilogramos": "kg",
+        "ml": "ml",
+        "mililitro": "ml",
+        "mililitros": "ml",
+        "l": "L",
+        "lt": "L",
+        "lts": "L",
+        "litro": "L",
+        "litros": "L",
+    }
+    return aliases.get(s, (str(unidad or "").strip() or "und"))
+
+
+def normalizar_items_lista_compras(raw_items: list | None) -> list[dict[str, Any]]:
+    """Limpia items OCR → [{nombre, cantidad, unidad}] para checklist de compra."""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for it in raw_items or []:
+        if not isinstance(it, dict):
+            continue
+        nombre = str(it.get("nombre") or it.get("n") or it.get("producto") or "").strip()
+        if not nombre:
+            continue
+        cant = _num(it.get("cantidad") if it.get("cantidad") is not None else it.get("c"), 1.0)
+        if cant <= 0:
+            cant = 1.0
+        unidad = normalizar_unidad_lista_compras(it.get("unidad") or it.get("u") or "und")
+        key = nombre.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"nombre": nombre, "cantidad": cant, "unidad": unidad})
+    return out
+
+
+def normalizar_items_lista_etiquetas(raw_items: list | None) -> list[dict[str, Any]]:
+    """Limpia items OCR → [{nombre, cantidad, unidad:'u'}] para pedido de etiquetas."""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for it in raw_items or []:
+        if not isinstance(it, dict):
+            continue
+        nombre = str(
+            it.get("nombre") or it.get("n") or it.get("producto") or it.get("label") or ""
+        ).strip()
+        if not nombre:
+            continue
+        cant = _num(it.get("cantidad") if it.get("cantidad") is not None else it.get("c"), 1.0)
+        if cant <= 0:
+            cant = 1.0
+        cant_i = max(1, int(round(cant)))
+        key = nombre.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"nombre": nombre, "cantidad": float(cant_i), "unidad": "u"})
+    return out
+
+
+def extraer_lista_compras_desde_imagen(
+    data: bytes,
+    *,
+    modo: str = "compra",
+    timeout_s: float = 60.0,
+) -> dict[str, Any]:
+    """OCR ligero: pantallazo/nota → items de lista (compra o etiquetas)."""
+    api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        return {"error": "GOOGLE_API_KEY no configurada"}
+    if not data:
+        return {"error": "Imagen vacía"}
+
+    modo_norm = (modo or "compra").strip().lower()
+    es_etiqueta = modo_norm in ("etiqueta", "etiquetas", "label", "labels")
+    prompt = PROMPT_LISTA_ETIQUETAS if es_etiqueta else PROMPT_LISTA_COMPRAS
+    contexto_budget = (
+        "solicitud_lista_etiquetas_ocr" if es_etiqueta else "solicitud_lista_compras_ocr"
+    )
+    vacio_msg = (
+        "No se detectaron etiquetas en la imagen"
+        if es_etiqueta
+        else "No se detectaron productos en la imagen"
+    )
+
+    model_name = (
+        os.getenv("GEMINI_VISION_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+    )
+    registrar_llamada = None
+    usage_gemini = None
+    try:
+        from app.services.llm_budget import (
+            permitir_llamada as _permitir,
+            registrar_llamada as _registrar,
+            usage_gemini as _usage,
+        )
+
+        ok_budget, motivo_budget = _permitir(model_name, contexto=contexto_budget)
+        if not ok_budget:
+            return {"error": f"Presupuesto IA agotado: {motivo_budget}"}
+        registrar_llamada = _registrar
+        usage_gemini = _usage
+    except Exception:
+        pass
+
+    try:
+        from google import genai
+        from google.genai import types as gtypes
+    except ImportError:
+        return {"error": "google-genai no instalado"}
+
+    parts = [
+        gtypes.Part.from_bytes(data=data, mime_type=_mime_from_bytes(data)),
+        prompt,
+    ]
+
+    def _llamar():
+        client = genai.Client(api_key=api_key)
+        return client.models.generate_content(model=model_name, contents=parts)
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(_llamar)
+            response = fut.result(timeout=max(float(timeout_s), 30.0))
+    except FutureTimeout:
+        return {"error": "Gemini tardó demasiado — intente con una imagen más pequeña"}
+    except Exception as e:
+        log.exception("lista_%s_ocr Gemini falló", "etiquetas" if es_etiqueta else "compras")
+        return {"error": str(e)}
+
+    if registrar_llamada and usage_gemini:
+        try:
+            t_in, t_out = usage_gemini(response)
+            registrar_llamada(
+                model_name,
+                tokens_in=t_in,
+                tokens_out=t_out,
+                contexto=contexto_budget,
+            )
+        except Exception:
+            pass
+
+    parsed = _extraer_json(getattr(response, "text", None) or "")
+    if not parsed:
+        return {
+            "error": "No se pudo interpretar la respuesta de Gemini",
+            "raw": getattr(response, "text", ""),
+        }
+    raw_items = parsed.get("items") if isinstance(parsed.get("items"), list) else []
+    if not raw_items and isinstance(parsed.get("lineas"), list):
+        raw_items = parsed["lineas"]
+    items = (
+        normalizar_items_lista_etiquetas(raw_items)
+        if es_etiqueta
+        else normalizar_items_lista_compras(raw_items)
+    )
+    if not items:
+        return {"error": vacio_msg, "items": []}
+    return {"items": items, "imagenes_procesadas": 1, "modo": "etiqueta" if es_etiqueta else "compra"}
+
+
 def extraer_compra_desde_imagen(
     data: bytes,
     *,

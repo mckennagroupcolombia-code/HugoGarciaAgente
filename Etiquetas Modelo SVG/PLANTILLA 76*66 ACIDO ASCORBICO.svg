@@ -31,10 +31,10 @@
   <line data-mckenna-grafico="g1"
         x1="3.5" y1="14" x2="72.5" y2="14"
         stroke="#016d82" stroke-width="0.35"/>
-  <!-- g2: recuadro lote/vencimiento (pie izquierdo) -->
+  <!-- g2: recuadro lote/vencimiento (pie izquierdo) — transparente, sin relleno ni trazo -->
   <rect data-mckenna-grafico="g2"
         x="4" y="52.5" width="34" height="7.5"
-        fill="none" stroke="#016d82" stroke-width="0.35"/>
+        fill="none" stroke="none"/>
   <!-- g3: línea horizontal inf. cuerpo -->
   <line data-mckenna-grafico="g3"
         x1="3.5" y1="52" x2="72.5" y2="52"

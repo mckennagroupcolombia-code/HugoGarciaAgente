@@ -15,6 +15,7 @@ import {
   moverSeccion,
   nodoOf,
   type LayoutNodo,
+  type ShadowPreset,
   type WebLayout,
 } from "../../lib/webLayoutStudio";
 
@@ -42,7 +43,7 @@ export interface PurezaCanvas {
   secciones: Record<string, boolean>;
 }
 
-type DragMode = "move" | "scale";
+type DragMode = "move" | "scale" | "resize-e" | "resize-s" | "resize-se";
 
 interface DragState {
   id: string;
@@ -52,6 +53,8 @@ interface DragState {
   origDx: number;
   origDy: number;
   origScale: number;
+  origW: number;
+  origH: number;
 }
 
 const SECTION_LABEL: Record<string, string> = {
@@ -64,23 +67,63 @@ const SECTION_LABEL: Record<string, string> = {
   cta: "CTA final",
 };
 
+const HANDLE =
+  "absolute z-30 h-3 w-3 rounded-sm border-2 border-white bg-sky-500 shadow touch-none";
+
 function IconPh({ name, className }: { name: string; className?: string }) {
   return <i className={`ph ph-${name} ${className || ""}`} aria-hidden />;
 }
 
 function SelectionChrome({
-  onScalePointerDown,
+  onHandle,
 }: {
-  onScalePointerDown: (e: ReactPointerEvent) => void;
+  onHandle: (mode: DragMode, e: ReactPointerEvent) => void;
 }) {
+  const mk = (mode: DragMode) => (e: ReactPointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onHandle(mode, e);
+  };
+
   return (
     <>
       <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-400 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]" />
       <button
         type="button"
-        title="Agrandar / reducir"
-        className="absolute -bottom-1.5 -right-1.5 z-20 h-3.5 w-3.5 cursor-nwse-resize rounded-sm border-2 border-white bg-sky-500 shadow"
-        onPointerDown={onScalePointerDown}
+        data-studio-handle="move"
+        title="Arrastrar"
+        className="absolute -top-3 left-1/2 z-30 flex h-5 -translate-x-1/2 cursor-grab items-center gap-0.5 rounded-full border border-sky-400 bg-sky-500 px-2 text-[9px] font-bold uppercase tracking-wide text-white shadow active:cursor-grabbing touch-none"
+        onPointerDown={mk("move")}
+      >
+        <span aria-hidden>⠿</span> mover
+      </button>
+      <button
+        type="button"
+        data-studio-handle="resize-e"
+        title="Ancho"
+        className={`${HANDLE} -right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize`}
+        onPointerDown={mk("resize-e")}
+      />
+      <button
+        type="button"
+        data-studio-handle="resize-s"
+        title="Alto"
+        className={`${HANDLE} -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`}
+        onPointerDown={mk("resize-s")}
+      />
+      <button
+        type="button"
+        data-studio-handle="resize-se"
+        title="Redimensionar"
+        className={`${HANDLE} -bottom-1.5 -right-1.5 cursor-nwse-resize`}
+        onPointerDown={mk("resize-se")}
+      />
+      <button
+        type="button"
+        data-studio-handle="scale"
+        title="Escala uniforme"
+        className="absolute -bottom-1.5 -left-1.5 z-30 h-3 w-3 cursor-nesw-resize rounded-full border-2 border-white bg-amber-400 shadow touch-none"
+        onPointerDown={mk("scale")}
       />
     </>
   );
@@ -101,7 +144,7 @@ function EditableNode({
   selected: boolean;
   layout: WebLayout;
   onSelect: (id: string) => void;
-  onDragStart: (id: string, mode: DragMode, e: ReactPointerEvent) => void;
+  onDragStart: (id: string, mode: DragMode, e: ReactPointerEvent, el?: HTMLElement) => void;
   style?: CSSProperties;
   className?: string;
   children: ReactNode;
@@ -109,30 +152,31 @@ function EditableNode({
 }) {
   const n = nodoOf(layout, id);
   const merged = { ...estiloNodo(n), ...style };
-  return (
-    <Tag
-      data-node={id}
-      className={`relative ${selected ? "z-10" : ""} ${className || ""}`}
-      style={merged}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        onSelect(id);
-        if ((e.target as HTMLElement).closest("[data-scale-handle]")) return;
-        onDragStart(id, "move", e);
-      }}
-    >
-      {children}
-      {selected && (
-        <SelectionChrome
-          onScalePointerDown={(e) => {
-            e.stopPropagation();
-            (e.currentTarget as HTMLElement).dataset.scaleHandle = "1";
-            onDragStart(id, "scale", e);
-          }}
-        />
-      )}
-    </Tag>
-  );
+  const common = {
+    "data-node": id,
+    className: `relative select-none ${selected ? "z-10" : ""} ${className || ""}`,
+    style: merged,
+    onPointerDown: (e: ReactPointerEvent) => {
+      if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
+      e.stopPropagation();
+      onSelect(id);
+      onDragStart(id, "move", e, e.currentTarget as HTMLElement);
+    },
+    children: (
+      <>
+        {children}
+        {selected && (
+          <SelectionChrome
+            onHandle={(mode, e) => onDragStart(id, mode, e, e.currentTarget as HTMLElement)}
+          />
+        )}
+      </>
+    ),
+  };
+  if (Tag === "button") {
+    return <button type="button" {...common} />;
+  }
+  return <Tag {...common} />;
 }
 
 export default function WebLayoutCanvas({
@@ -159,6 +203,7 @@ export default function WebLayoutCanvas({
   layoutRef.current = layout;
   onLayoutChangeRef.current = onLayoutChange;
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const colores = pureza.colores;
   const acento = colores.acento || "#0c6069";
   const fondo = colores.fondo || "#f8f6f1";
@@ -166,10 +211,18 @@ export default function WebLayoutCanvas({
   const oro = colores.destacado || "#b9862f";
 
   const beginDrag = useCallback(
-    (id: string, mode: DragMode, e: ReactPointerEvent) => {
+    (id: string, mode: DragMode, e: ReactPointerEvent, el?: HTMLElement) => {
       if (editingId) return;
       e.preventDefault();
-      const n = nodoOf(layout, id);
+      e.stopPropagation();
+      const n = nodoOf(layoutRef.current, id);
+      const nodeEl =
+        (stageRef.current?.querySelector(`[data-node="${CSS.escape(id)}"]`) as HTMLElement | null) ||
+        null;
+      const rect = nodeEl?.getBoundingClientRect();
+      const inv = 1 / zoom;
+      const measuredW = rect ? rect.width * inv / (n.scale ?? 1) : 120;
+      const measuredH = rect ? rect.height * inv / (n.scale ?? 1) : 40;
       dragRef.current = {
         id,
         mode,
@@ -178,16 +231,24 @@ export default function WebLayoutCanvas({
         origDx: n.dx ?? 0,
         origDy: n.dy ?? 0,
         origScale: n.scale ?? 1,
+        origW: n.width ?? Math.round(measuredW),
+        origH: n.height ?? Math.round(measuredH),
       };
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      setDragging(true);
+      try {
+        (el || (e.currentTarget as HTMLElement)).setPointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     },
-    [editingId, layout],
+    [editingId, zoom],
   );
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
+      e.preventDefault();
       const inv = 1 / zoom;
       const dx = (e.clientX - d.startX) * inv;
       const dy = (e.clientY - d.startY) * inv;
@@ -199,23 +260,43 @@ export default function WebLayoutCanvas({
             dy: Math.round(d.origDy + dy),
           }),
         );
-      } else {
+      } else if (d.mode === "scale") {
         const delta = (dx + dy) / 120;
         onLayoutChangeRef.current(
           mergeNodo(cur, d.id, {
             scale: Math.min(2.5, Math.max(0.5, d.origScale + delta)),
           }),
         );
+      } else if (d.mode === "resize-e") {
+        onLayoutChangeRef.current(
+          mergeNodo(cur, d.id, { width: Math.round(Math.max(24, d.origW + dx)) }),
+        );
+      } else if (d.mode === "resize-s") {
+        onLayoutChangeRef.current(
+          mergeNodo(cur, d.id, { height: Math.round(Math.max(16, d.origH + dy)) }),
+        );
+      } else if (d.mode === "resize-se") {
+        onLayoutChangeRef.current(
+          mergeNodo(cur, d.id, {
+            width: Math.round(Math.max(24, d.origW + dx)),
+            height: Math.round(Math.max(16, d.origH + dy)),
+          }),
+        );
       }
     };
     const onUp = () => {
-      dragRef.current = null;
+      if (dragRef.current) {
+        dragRef.current = null;
+        setDragging(false);
+      }
     };
-    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [zoom]);
 
@@ -301,7 +382,7 @@ export default function WebLayoutCanvas({
         layout={layout}
         onSelect={onSelect}
         onDragStart={beginDrag}
-        className={`inline-flex cursor-grab items-center justify-center text-[${acento}] active:cursor-grabbing ${sizeClass}`}
+        className={`inline-flex cursor-grab items-center justify-center active:cursor-grabbing ${sizeClass}`}
         style={{ color: acento }}
       >
         <IconPh name={icon} />
@@ -317,19 +398,18 @@ export default function WebLayoutCanvas({
       <section
         key={id}
         data-node={id}
-        className={`relative mb-3 rounded-lg border ${selected ? "border-sky-400" : "border-transparent hover:border-black/10"} ${extraClass}`}
+        className={`relative mb-3 rounded-lg border select-none ${
+          selected ? "border-sky-400" : "border-transparent hover:border-black/10"
+        } ${extraClass}`}
         style={estiloNodo(n)}
         onPointerDown={(e) => {
-          if ((e.target as HTMLElement).closest("[data-node]") !== e.currentTarget
-            && (e.target as HTMLElement).closest("[data-node]")?.getAttribute("data-node") !== id) {
-            return;
-          }
-          // Solo selecciona sección si el click es en el fondo de la sección
-          if ((e.target as HTMLElement).closest("[data-node]")?.getAttribute("data-node") === id
-            || e.target === e.currentTarget) {
-            onSelect(id);
-            beginDrag(id, "move", e);
-          }
+          if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
+          const closest = (e.target as HTMLElement).closest("[data-node]");
+          const closestId = closest?.getAttribute("data-node");
+          // Solo arrastra la sección si el clic es en el fondo (no en un hijo editable)
+          if (closestId && closestId !== id) return;
+          onSelect(id);
+          beginDrag(id, "move", e, e.currentTarget);
         }}
       >
         <div className="pointer-events-none absolute left-2 top-2 z-20 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -338,10 +418,7 @@ export default function WebLayoutCanvas({
         {children}
         {selected && (
           <SelectionChrome
-            onScalePointerDown={(e) => {
-              e.stopPropagation();
-              beginDrag(id, "scale", e);
-            }}
+            onHandle={(mode, e) => beginDrag(id, mode, e, e.currentTarget as HTMLElement)}
           />
         )}
       </section>
@@ -493,7 +570,6 @@ export default function WebLayoutCanvas({
     }
   };
 
-  // Aplica color a CTAs del hero vía CSS vars en el stage
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -505,7 +581,7 @@ export default function WebLayoutCanvas({
 
   return (
     <div
-      className="h-full overflow-auto"
+      className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
       style={{ background: "#505050" }}
       onPointerDown={() => {
         onSelect(null);
@@ -545,11 +621,19 @@ export function WebLayoutInspector({
     return (
       <div className="space-y-2 p-4 text-xs text-muted">
         <p className="font-semibold text-ink">Lienzo visual</p>
-        <ul className="list-disc space-y-1 pl-4">
-          <li>Clic para seleccionar texto, icono o sección</li>
-          <li>Arrastra para mover</li>
-          <li>Esquina azul para agrandar / reducir</li>
-          <li>Doble clic en un texto para editarlo</li>
+        <ul className="list-disc space-y-1.5 pl-4">
+          <li>Clic en texto, botón, icono o sección para seleccionar</li>
+          <li>
+            Arrastra el elemento o usa la barra <strong className="text-ink">mover</strong>
+          </li>
+          <li>
+            Asas azules: <strong className="text-ink">ancho / alto / esquina</strong>
+          </li>
+          <li>
+            Asa ámbar: <strong className="text-ink">escala</strong> uniforme
+          </li>
+          <li>Doble clic en texto para editarlo</li>
+          <li>Efectos (sombra, opacidad, giro) en este panel</li>
         </ul>
       </div>
     );
@@ -574,7 +658,6 @@ export function WebLayoutInspector({
         d.pilares[path.index].icono = icon;
       });
     }
-    // nodos tipo trazabilidad.paso.N.icono
     const mPaso = /^trazabilidad\.paso\.(\d+)\.icono$/.exec(selectedId);
     if (mPaso) {
       onPurezaPatch((d) => {
@@ -588,6 +671,8 @@ export function WebLayoutInspector({
       });
     }
   };
+
+  const shadowVal: ShadowPreset = n.shadow || "none";
 
   return (
     <div className="space-y-4 overflow-y-auto p-4 text-sm">
@@ -619,26 +704,59 @@ export function WebLayoutInspector({
         </div>
       )}
 
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold text-muted">X</span>
+          <input
+            type="number"
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            value={n.dx ?? 0}
+            onChange={(e) => patch({ dx: +e.target.value })}
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Y</span>
+          <input
+            type="number"
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            value={n.dy ?? 0}
+            onChange={(e) => patch({ dy: +e.target.value })}
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Ancho px</span>
+          <input
+            type="number"
+            min={24}
+            max={1200}
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            value={n.width ?? ""}
+            placeholder="auto"
+            onChange={(e) =>
+              patch({ width: e.target.value === "" ? undefined : +e.target.value })
+            }
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Alto px</span>
+          <input
+            type="number"
+            min={16}
+            max={800}
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            value={n.height ?? ""}
+            placeholder="auto"
+            onChange={(e) =>
+              patch({ height: e.target.value === "" ? undefined : +e.target.value })
+            }
+          />
+        </label>
+      </div>
+
       <label className="block text-xs">
-        <span className="mb-1 block font-semibold text-muted">Desplazamiento X</span>
-        <input
-          type="number"
-          className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-          value={n.dx ?? 0}
-          onChange={(e) => patch({ dx: +e.target.value })}
-        />
-      </label>
-      <label className="block text-xs">
-        <span className="mb-1 block font-semibold text-muted">Desplazamiento Y</span>
-        <input
-          type="number"
-          className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-          value={n.dy ?? 0}
-          onChange={(e) => patch({ dy: +e.target.value })}
-        />
-      </label>
-      <label className="block text-xs">
-        <span className="mb-1 block font-semibold text-muted">Escala ({((n.scale ?? 1) * 100).toFixed(0)}%)</span>
+        <span className="mb-1 block font-semibold text-muted">
+          Escala ({((n.scale ?? 1) * 100).toFixed(0)}%)
+        </span>
         <input
           type="range"
           min={50}
@@ -648,6 +766,7 @@ export function WebLayoutInspector({
           className="w-full"
         />
       </label>
+
       {!isIcon && !isSection && (
         <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Tamaño de letra (px)</span>
@@ -664,6 +783,67 @@ export function WebLayoutInspector({
           />
         </label>
       )}
+
+      <div className="border-t border-border pt-3">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Efectos</div>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">
+            Opacidad ({Math.round((n.opacity ?? 1) * 100)}%)
+          </span>
+          <input
+            type="range"
+            min={5}
+            max={100}
+            value={Math.round((n.opacity ?? 1) * 100)}
+            onChange={(e) => patch({ opacity: +e.target.value / 100 })}
+            className="w-full"
+          />
+        </label>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">
+            Rotación ({(n.rotate ?? 0).toFixed(0)}°)
+          </span>
+          <input
+            type="range"
+            min={-45}
+            max={45}
+            value={n.rotate ?? 0}
+            onChange={(e) => patch({ rotate: +e.target.value })}
+            className="w-full"
+          />
+        </label>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Radio de borde (px)</span>
+          <input
+            type="number"
+            min={0}
+            max={999}
+            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            value={n.borderRadius ?? ""}
+            placeholder="auto"
+            onChange={(e) =>
+              patch({ borderRadius: e.target.value === "" ? undefined : +e.target.value })
+            }
+          />
+        </label>
+        <div className="text-xs">
+          <span className="mb-1 block font-semibold text-muted">Sombra</span>
+          <div className="grid grid-cols-4 gap-1">
+            {(["none", "sm", "md", "lg"] as ShadowPreset[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => patch({ shadow: s === "none" ? undefined : s })}
+                className={`rounded-md border px-1 py-1.5 text-[10px] font-semibold uppercase ${
+                  shadowVal === s ? "border-accent bg-accent/10 text-ink" : "border-border text-muted"
+                }`}
+              >
+                {s === "none" ? "—" : s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {isIcon && (
         <div>
@@ -704,7 +884,7 @@ export function WebLayoutInspector({
           onLayoutChange({ ...ordenKeep(layout), nodos });
         }}
       >
-        Reset posición / escala
+        Reset posición / tamaño / efectos
       </button>
     </div>
   );

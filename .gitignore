@@ -118,3 +118,5 @@ app/data/plantillas_visuales.json
 app/data/facturas_compra_pendientes.json
 app/data/wa_alertas_intencion.json
 PAGINA_WEB/site/data/cache.json
+
+tmp_reportes_stock/

@@ -171,5 +171,7 @@ if __name__ == "__main__":
     # Se ejecuta en el puerto 8081 y es accesible desde la red local.
     # El `debug=False` es importante para producción, pero puede ser útil 
     # activarlo (`debug=True`) durante el desarrollo.
-    app.run(host=host, port=port, debug=False)
+    # threaded=True: el panel (p. ej. libro ingresos/egresos con Siigo) no bloquea
+    # el resto de /api mientras una petición remota larga está en curso.
+    app.run(host=host, port=port, debug=False, threaded=True)
 

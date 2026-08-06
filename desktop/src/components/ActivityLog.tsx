@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { usePanelLogs, useClearPanelLogs } from "../hooks/usePanelLogs";
 
-export default function ActivityLog() {
+type Props = {
+  /** Barra compacta en una sola fila (sin márgenes extra). */
+  compact?: boolean;
+};
+
+export default function ActivityLog({ compact = false }: Props) {
   const [open, setOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data, isFetching, isError, error } = usePanelLogs(open);
@@ -14,32 +19,43 @@ export default function ActivityLog() {
   }, [data?.lines, open]);
 
   return (
-    <div className="mt-4 border-t border-border pt-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div className={compact ? "min-w-0" : "mt-4 border-t border-border pt-3"}>
+      <div className={`flex items-center gap-2 ${compact ? "" : "mb-2 justify-between"}`}>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="text-sm font-medium text-accent hover:underline"
+          className={
+            compact
+              ? "whitespace-nowrap text-[11px] font-semibold text-accent hover:underline"
+              : "text-sm font-medium text-accent hover:underline"
+          }
         >
-          {open ? "Ocultar" : "Mostrar"} actividad del servidor
+          {open ? "Ocultar" : "Mostrar"} actividad
+          {!compact && " del servidor"}
         </button>
-        <div className="flex items-center gap-2">
-          {isFetching && open && (
-            <span className="text-xs text-muted">actualizando…</span>
-          )}
-          <button
-            type="button"
-            disabled={clear.isPending}
-            onClick={() => clear.mutate()}
-            className="rounded border border-border px-2 py-1 text-xs text-muted hover:text-danger"
-          >
-            Limpiar log
-          </button>
-        </div>
+        {isFetching && open && (
+          <span className="text-[10px] text-muted">actualizando…</span>
+        )}
+        <button
+          type="button"
+          disabled={clear.isPending}
+          onClick={() => clear.mutate()}
+          className={
+            compact
+              ? "rounded border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:text-danger"
+              : "rounded border border-border px-2 py-1 text-xs text-muted hover:text-danger"
+          }
+        >
+          Limpiar log
+        </button>
       </div>
 
       {open && (
-        <div className="max-h-44 overflow-y-auto rounded-paper border border-border-strong bg-surface-panel p-3 font-mono text-[11px] leading-relaxed text-ink-secondary shadow-paper-sm">
+        <div
+          className={`overflow-y-auto rounded-paper border border-border-strong bg-surface-panel p-3 font-mono text-[11px] leading-relaxed text-ink-secondary shadow-paper-sm ${
+            compact ? "absolute bottom-full left-0 right-0 z-30 mb-1 max-h-40" : "max-h-44"
+          }`}
+        >
           {isError && (
             <p className="text-danger">
               No se pudo leer el log: {(error as Error)?.message}

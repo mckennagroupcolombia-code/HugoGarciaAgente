@@ -2075,6 +2075,38 @@ def register_tickets_routes(app):
             return jsonify([]), 200
         return jsonify(buscar_productos_para_compra(q)), 200
 
+    @app.route("/api/tickets/extraer-lista-compras", methods=["POST"])
+    @app.route("/app/api/tickets/extraer-lista-compras", methods=["POST"])
+    @_auth
+    def tickets_extraer_lista_compras():
+        """OCR de pantallazo/foto → items para solicitud de compra o etiquetas.
+
+        Form: imagen|archivo, modo=compra|etiqueta (default compra).
+        """
+        archivo = (
+            request.files.get("imagen")
+            or request.files.get("archivo")
+            or (request.files.getlist("imagenes") or [None])[0]
+        )
+        if not archivo or not getattr(archivo, "filename", None):
+            return jsonify({"error": "Envíe una imagen en «imagen» o «archivo»"}), 400
+        blob = archivo.read()
+        if not blob:
+            return jsonify({"error": "Imagen vacía"}), 400
+        modo = (request.form.get("modo") or request.args.get("modo") or "compra").strip()
+        from app.services.compra_exterior_ocr import extraer_lista_compras_desde_imagen
+
+        result = extraer_lista_compras_desde_imagen(blob, modo=modo)
+        if result.get("error") and not result.get("items"):
+            err = str(result["error"])
+            code = 504 if "tardó" in err.lower() else 502
+            if "GOOGLE_API_KEY" in err:
+                code = 500
+            elif "Presupuesto" in err:
+                code = 429
+            return jsonify(result), code
+        return jsonify(result), 200
+
     # ── PROTOCOLOS ────────────────────────────────────────────────────────────
 
     @app.route("/api/tickets/protocolos", methods=["GET"])
@@ -2100,10 +2132,10 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/acciones/historial", methods=["GET"])
     @_auth
     def tickets_acciones_historial():
-        from app.services.tickets_db import listar_acciones_historial
+        from app.services.tickets_db import es_admin_vista_equipo, listar_acciones_historial
         uid = request.tickets_usuario["id"]
-        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 0)
-        todos = nivel >= 3
+        # Cynthia elevada a admin: historial personal, no el del equipo/administrador
+        todos = es_admin_vista_equipo(request.tickets_usuario)
         return jsonify(listar_acciones_historial(uid, todos=todos)), 200
 
     @app.route("/api/tickets/acciones/repetir", methods=["POST"])

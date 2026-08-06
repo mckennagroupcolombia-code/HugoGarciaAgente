@@ -715,12 +715,21 @@ app.post('/enviar-archivo', async (req, res) => {
         }
         const { MessageMedia } = require('whatsapp-web.js');
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
+        if (!filePath || !fs.existsSync(filePath)) {
+            return res.status(400).json({ status: "error", error: `Archivo no encontrado: ${filePath}` });
+        }
         const fileData = fs.readFileSync(filePath);
-        const mimeType = filePath.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
+        const lower = String(filePath).toLowerCase();
+        let mimeType = 'application/octet-stream';
+        if (lower.endsWith('.pdf')) mimeType = 'application/pdf';
+        else if (lower.endsWith('.png')) mimeType = 'image/png';
+        else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+        else if (lower.endsWith('.gif')) mimeType = 'image/gif';
         const resolvedName = fileName || path.basename(filePath);
         const media = new MessageMedia(mimeType, fileData.toString('base64'), resolvedName);
         await client.sendMessage(chatId, media, { caption: mensaje || '' });
-        console.log(`📎 Archivo enviado a: ${chatId} — ${filePath}`);
+        console.log(`📎 Archivo enviado a: ${chatId} — ${filePath} (${mimeType})`);
         res.status(200).json({ status: "success" });
     } catch (error) {
         console.error("❌ Error enviando archivo:", error.message);

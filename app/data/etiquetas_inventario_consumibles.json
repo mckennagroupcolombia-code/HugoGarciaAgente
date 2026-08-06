@@ -11,15 +11,15 @@
       "alto_pulg": 2.283,
       "unidades_por_rollo": 480,
       "rollos": 4.0,
-      "etiquetas_sueltas": 200,
+      "etiquetas_sueltas": 199,
       "minimo_rollos": 1.0,
       "minimo": 1.0,
       "formato_etiqueta": "Pastillero",
       "notas": "",
       "cantidad": 4.0,
       "unidad": "rollos",
-      "total_etiquetas": 2120,
-      "updated_at": "2026-06-14T22:11:32"
+      "total_etiquetas": 2119,
+      "updated_at": "2026-08-05T13:59:36"
     },
     {
       "id": "bf772952901b",
@@ -53,15 +53,15 @@
       "alto_pulg": 2.008,
       "unidades_por_rollo": 540,
       "rollos": 2.0,
-      "etiquetas_sueltas": 418,
+      "etiquetas_sueltas": 416,
       "minimo_rollos": 1.0,
       "minimo": 1.0,
       "formato_etiqueta": "100 g",
       "notas": "",
       "cantidad": 2.0,
       "unidad": "rollos",
-      "total_etiquetas": 1498,
-      "updated_at": "2026-08-03T14:07:25"
+      "total_etiquetas": 1496,
+      "updated_at": "2026-08-05T14:12:31"
     },
     {
       "id": "79e33a0235d5",
@@ -137,15 +137,15 @@
       "alto_pulg": 1.614,
       "unidades_por_rollo": 690,
       "rollos": 9.0,
-      "etiquetas_sueltas": 107,
+      "etiquetas_sueltas": 99,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "5 g",
       "notas": "",
       "cantidad": 9.0,
       "unidad": "rollos",
-      "total_etiquetas": 6317,
-      "updated_at": "2026-07-31T09:49:52"
+      "total_etiquetas": 6309,
+      "updated_at": "2026-08-05T14:04:05"
     },
     {
       "id": "2299337d5a1e",
@@ -179,15 +179,15 @@
       "alto_pulg": 2.598,
       "unidades_por_rollo": 410,
       "rollos": 9.0,
-      "etiquetas_sueltas": 168,
+      "etiquetas_sueltas": 89,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "250 g",
       "notas": "",
       "cantidad": 9.0,
       "unidad": "rollos",
-      "total_etiquetas": 3858,
-      "updated_at": "2026-07-30T12:52:09"
+      "total_etiquetas": 3779,
+      "updated_at": "2026-08-05T12:55:32"
     },
     {
       "id": "1c1159488549",

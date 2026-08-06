@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent 
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
+import CuentaCobroAprobacion from "./CuentaCobroAprobacion";
 
 type LineaEditable = {
   id: string;
@@ -322,6 +323,19 @@ type CompraHistorial = {
     ok?: boolean;
   }>;
   total_guardados: number;
+  tiene_cuenta_cobro?: boolean;
+  cuenta_cobro_pendiente?: boolean;
+  cuenta_cobro_estado?: string;
+  cuota_manejo_cop?: number;
+  valor_compra_cop?: number;
+  flete_cobro_cop?: number;
+  total_cobro_cop?: number;
+  cuota_pct?: number;
+  cuenta_cobro_url?: string | null;
+  cuenta_flete_estado?: string;
+  tiene_cuenta_flete?: boolean;
+  cuenta_flete_pendiente?: boolean;
+  cuenta_flete_url?: string | null;
 };
 
 type BorradorCompra = {
@@ -368,6 +382,48 @@ async function fetchAuthBlobUrl(apiPath: string): Promise<string | null> {
 
 async function fetchSoporteBlobUrl(compraId: number): Promise<string | null> {
   return fetchAuthBlobUrl(`/api/rentabilidad/compras-exterior/${compraId}/soporte`);
+}
+
+const CUOTA_MANEJO_PCT = 5;
+
+/** Valor mercancía neta en COP (sin flete) — base de la cuota de manejo. */
+function valorMercanciaCopPreview(
+  lineas: LineaEditable[],
+  moneda: string,
+  trm: number,
+): number {
+  const mon = moneda.toUpperCase();
+  const tasa = mon === "COP" ? 1 : Math.max(trm, 0);
+  if (tasa <= 0) return 0;
+  let sub = 0;
+  for (const l of lineas) {
+    if (!l.seleccionada) continue;
+    let s = l.subtotal || l.cantidad * l.precio_unit;
+    s = Math.max(s - Math.max(l.descuento || 0, 0), 0);
+    sub += s;
+  }
+  return Math.round(sub * tasa * 100) / 100;
+}
+
+async function descargarCuentaCobro(
+  compraId: number,
+  tipo: "mercancia" | "flete" = "mercancia",
+): Promise<void> {
+  const q = tipo === "flete" ? "?tipo=flete" : "";
+  const blobUrl = await fetchAuthBlobUrl(
+    `/api/rentabilidad/compras-exterior/${compraId}/cuenta-cobro${q}`,
+  );
+  if (!blobUrl) throw new Error("No se pudo descargar la cuenta de cobro");
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download =
+    tipo === "flete"
+      ? `cuenta-cobro-CE-${compraId}-flete.pdf`
+      : `cuenta-cobro-CE-${compraId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
 }
 
 type GaleriaItem = {
@@ -674,6 +730,7 @@ export default function ComprasExteriorPanel() {
   const [guardandoBorrador, setGuardandoBorrador] = useState(false);
   const [detalleId, setDetalleId] = useState<number | null>(null);
   const [soporteThumbs, setSoporteThumbs] = useState<Record<number, string>>({});
+  const [cuentaCobroId, setCuentaCobroId] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const zonaRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -863,6 +920,13 @@ export default function ComprasExteriorPanel() {
       return neto / packs;
     });
   }, [lineas, descuentoPedidoNum, descuentoPctNum]);
+
+  const cuotaManejoPreview = useMemo(() => {
+    const valor = valorMercanciaCopPreview(lineas, moneda, trmNum);
+    const cuota = Math.round(valor * (CUOTA_MANEJO_PCT / 100));
+    const total = Math.round((valor + cuota) * 100) / 100;
+    return { valor, cuota, total, pct: CUOTA_MANEJO_PCT };
+  }, [lineas, moneda, trmNum]);
 
   // Al cambiar flete / TRM / cantidades, forzar costo unitario desde la fórmula
   useEffect(() => {
@@ -1447,13 +1511,22 @@ export default function ComprasExteriorPanel() {
         );
       } else {
         const verbo = res.editado || compraIdEditando ? "Actualizados" : "Guardados";
+        const cuotaMsg =
+          res.historial?.cuenta_cobro_pendiente || res.historial?.total_cobro_cop
+            ? ` Cuentas listas para aprobar: mercancía+${res.historial.cuota_pct ?? 5}%${
+                (res.historial.flete_cobro_cop ?? 0) > 0
+                  ? ` y flete ${fmtCop(res.historial.flete_cobro_cop ?? 0)}`
+                  : ""
+              }.`
+            : "";
         setOkMsg(
           `${verbo} ${res.total} costos` +
             (res.historial?.tiene_soporte
               ? ` y ${galeria.length || res.historial.soportes_count || 1} soporte(s) en el historial.`
               : galeria.length
                 ? "."
-                : " (sin pantallazo: vuelve a pegarlo antes de guardar para adjuntar soporte)."),
+                : " (sin pantallazo: vuelve a pegarlo antes de guardar para adjuntar soporte).") +
+            cuotaMsg,
         );
         setBorradorId(null);
         setCompraIdEditando(null);
@@ -1464,7 +1537,12 @@ export default function ComprasExteriorPanel() {
         setLineas([]);
       }
       await cargarHistorial();
-      if (res.historial?.id) setDetalleId(res.historial.id);
+      if (res.historial?.id) {
+        setDetalleId(res.historial.id);
+        if (res.historial.total_cobro_cop && res.historial.total_cobro_cop > 0) {
+          setCuentaCobroId(res.historial.id);
+        }
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -2050,12 +2128,26 @@ export default function ComprasExteriorPanel() {
 
       {(lineas.length > 0 || galeria.length > 0 || borradorId || compraIdEditando) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] text-muted">
-            Costo / ud = (P. pack neto × TRM + flete repartido por unidades) ÷ Contenido.
-            El flete se reparte según packs × contenido de cada línea. Puedes{" "}
-            <strong>guardar borrador</strong> y retomar después; al confirmar costos se archiva.
-            {compraIdEditando ? " Estás editando una compra ya registrada." : ""}
-          </p>
+          <div className="space-y-1">
+            <p className="text-[11px] text-muted">
+              Costo / ud = (P. pack neto × TRM + flete repartido por unidades) ÷ Contenido.
+              El flete se reparte según packs × contenido de cada línea. Puedes{" "}
+              <strong>guardar borrador</strong> y retomar después; al confirmar costos se archiva.
+              {compraIdEditando ? " Estás editando una compra ya registrada." : ""}
+            </p>
+            {cuotaManejoPreview.total > 0 && (
+              <p className="text-[11px] text-ink rounded-lg border border-accent/30 bg-accent/5 px-2 py-1.5">
+                Al confirmar se abre formato de <strong>cuenta de cobro</strong> para aprobar:
+                mercancía <strong className="font-mono">{fmtCop(cuotaManejoPreview.valor)}</strong>
+                {" + "}
+                {cuotaManejoPreview.pct}%{" "}
+                <strong className="font-mono">{fmtCop(cuotaManejoPreview.cuota)}</strong>
+                {" = "}
+                <strong className="font-mono text-accent">{fmtCop(cuotaManejoPreview.total)}</strong>
+                . El PDF se genera al aprobar, con el color de tu tema.
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             {!compraIdEditando && (
               <button
@@ -2152,13 +2244,67 @@ export default function ComprasExteriorPanel() {
         </section>
       )}
 
+      {cuentaCobroId != null && (() => {
+        const c = historial.find((h) => h.id === cuentaCobroId);
+        if (!c || !(c.total_cobro_cop && c.total_cobro_cop > 0)) return null;
+        return (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-ink">Cuentas de cobro · compra #{c.id}</h3>
+              <button
+                type="button"
+                onClick={() => setCuentaCobroId(null)}
+                className="text-[11px] text-muted hover:text-ink"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+            <CuentaCobroAprobacion
+              compra={c}
+              tipo="mercancia"
+              onAprobada={(h) => {
+                setHistorial((prev) =>
+                  prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
+                );
+                setOkMsg(`Cuenta mercancía #${h.id} aprobada. PDF con tu acento de tema.`);
+              }}
+              onDescargar={() => {
+                void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
+                  setError(e instanceof Error ? e.message : String(e)),
+                );
+              }}
+            />
+            {(c.flete_cobro_cop ?? 0) > 0 && (
+              <CuentaCobroAprobacion
+                compra={c}
+                tipo="flete"
+                onAprobada={(h) => {
+                  setHistorial((prev) =>
+                    prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
+                  );
+                  setOkMsg(`Cuenta flete #${h.id} aprobada. PDF con tu acento de tema.`);
+                }}
+                onDescargar={() => {
+                  void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
+                    setError(e instanceof Error ? e.message : String(e)),
+                  );
+                }}
+              />
+            )}
+            </div>
+          </section>
+        );
+      })()}
+
       <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
             <p className="text-[11px] text-muted">
-              Cada confirmación conserva el pantallazo. Usa <strong>Editar</strong> para corregir
-              una compra ya registrada.
+              Cada confirmación conserva el pantallazo. Hay{" "}
+              <strong>dos cuentas</strong> si hay flete: mercancía + 5%, y flete aparte. Se
+              aprueban en pantalla; el PDF usa el acento de tu tema.
             </p>
           </div>
           <button
@@ -2219,6 +2365,16 @@ export default function ComprasExteriorPanel() {
                         {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
                         {" · "}
                         {c.total_guardados} costo(s)
+                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
+                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
+                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
+                          : ""}
+                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0
+                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
+                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
+                          : ""}
                       </p>
                       <p className="truncate text-[10px] text-muted">
                         {(c.lineas || [])
@@ -2235,6 +2391,45 @@ export default function ComprasExteriorPanel() {
                   >
                     Editar
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCuentaCobroId(c.id);
+                      setDetalleId(c.id);
+                    }}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                    title="Ver / aprobar cuenta de cobro"
+                  >
+                    {c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada"
+                      ? "Ver cobro"
+                      : "Aprobar cobro"}
+                  </button>
+                  {(c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF merc.
+                    </button>
+                  )}
+                  {(c.tiene_cuenta_flete || c.cuenta_flete_estado === "aprobada") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF flete
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => void eliminarCompra(c.id)}

@@ -2,6 +2,7 @@ import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useAppStore, type EtiquetasTab } from "../../stores/app";
 import { tabsEtiquetasVisibles } from "../../lib/studioVisualAccess";
 import { Icon, type UiIconName } from "../../icons";
+import ScrollableTabList from "./ScrollableTabList";
 
 const TABS: { id: EtiquetasTab; label: string; shortLabel: string; icon: UiIconName }[] = [
   { id: "imprimir", label: "Imprimir", shortLabel: "Imprimir", icon: "printer" },
@@ -30,11 +31,7 @@ export default function DisenoNavTabs() {
   }
 
   return (
-    <div
-      className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto"
-      role="tablist"
-      aria-label="Secciones de Diseño"
-    >
+    <ScrollableTabList aria-label="Secciones de Diseño" justify="end">
       {tabs.map((t) => {
         const selected = activo === t.id;
         return (
@@ -56,6 +53,6 @@ export default function DisenoNavTabs() {
           </button>
         );
       })}
-    </div>
+    </ScrollableTabList>
   );
 }

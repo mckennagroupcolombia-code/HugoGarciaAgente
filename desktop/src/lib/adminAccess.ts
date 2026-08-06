@@ -9,8 +9,19 @@ export function esAdminPanel(user: TicketsUser | null | undefined): boolean {
 }
 
 /**
+ * Vista de equipo (métricas, acciones de todos, historial global).
+ * Admin real sí; Cynthia elevada NO — su Agenda/Acciones siguen siendo personales.
+ */
+export function esAdminVistaEquipo(user: TicketsUser | null | undefined): boolean {
+  if (!user) return false;
+  if (esCynthiaEtiquetas(user)) return false;
+  return (user.rol?.nivel ?? 0) >= 3;
+}
+
+/**
  * Eleva nivel a 3 para Cynthia en el cliente (menú/botones como admin).
  * El backend también aplica esto en /auth/me y en la sesión.
+ * La Agenda personal no usa esta elevación (ver esAdminVistaEquipo).
  */
 export function conPrivilegiosAdminCynthia(user: TicketsUser): TicketsUser {
   if (!esCynthiaEtiquetas(user)) return user;

@@ -107,6 +107,17 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--mck-border-strong));
   }
+
+  /* Pestañas del cabezote: scroll sin barra visible (flechas en ScrollableTabList). */
+  .mck-scroll-tabs {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .mck-scroll-tabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 @layer components {

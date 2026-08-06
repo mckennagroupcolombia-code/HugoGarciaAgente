@@ -1,7 +1,6 @@
 import type { Panel } from "../stores/app";
 import type { PanelTier } from "./panelInfo";
 import { CONTABILIDAD_PANELS, CONTABILIDAD_TAB_OCULTAS } from "./contabilidadAccess";
-import { LOGISTICA_PANELS } from "./logisticaAccess";
 
 /**
  * Categorías del sidebar.
@@ -17,7 +16,6 @@ export type NavCategory =
   | "docs"
   | "contabilidad"
   | "tienda"
-  | "logistica"
   | "sistemas";
 
 export interface NavItemDef {
@@ -92,7 +90,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       (panel) => ({
         panel,
         tier:
-          panel === "costos-productos" || panel === "rrhh"
+          panel === "costos-productos" || panel === "rrhh" || panel === "operativos"
             ? ("advanced" as PanelTier)
             : ("standard" as PanelTier),
       }),
@@ -107,13 +105,6 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "publicaciones", tier: "standard" },
       { panel: "placas-concreto", tier: "standard" },
     ],
-  },
-  {
-    id: "logistica",
-    label: "Logística",
-    hub: true,
-    advancedOnly: true,
-    items: LOGISTICA_PANELS.map((panel) => ({ panel, tier: "advanced" as PanelTier })),
   },
   {
     id: "sistemas",
@@ -144,7 +135,6 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   docs: "Docs técnicos",
   contabilidad: "Contabilidad",
   tienda: "Tienda y taller",
-  logistica: "Logística",
   sistemas: "Sistemas",
 };
 

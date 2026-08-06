@@ -347,5 +347,33 @@
   "ALNT250": {
     "meli_item_id": "MCO1354834051",
     "updated_at": "2026-08-04T23:52:54.186039"
+  },
+  "C-MANCACNAT500g": {
+    "meli_item_id": "MCO577142200",
+    "updated_at": "2026-08-05T10:54:58.752267"
+  },
+  "C-JABPOTLt": {
+    "meli_item_id": "MCO3793586824",
+    "updated_at": "2026-08-05T10:55:22.482536"
+  },
+  "C-ACEESEARBTE": {
+    "meli_item_id": "MCO1338939263",
+    "updated_at": "2026-08-05T10:55:53.588317"
+  },
+  "C-CERABENAT500g": {
+    "meli_item_id": "MCO592231288",
+    "updated_at": "2026-08-05T10:56:13.194247"
+  },
+  "C-ACIKOJDPAL30mL": {
+    "meli_item_id": "MCO2876880906",
+    "updated_at": "2026-08-05T10:56:40.096451"
+  },
+  "C-CARACTPEL800g": {
+    "meli_item_id": "MCO1551166807",
+    "updated_at": "2026-08-05T10:57:10.017867"
+  },
+  "C-ACENEE60mL": {
+    "meli_item_id": "MCO577630387",
+    "updated_at": "2026-08-05T10:58:01.142117"
   }
 }

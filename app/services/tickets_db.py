@@ -3407,12 +3407,15 @@ def usuario_tiene_accion_en_proceso(usuario_id: int) -> bool:
 def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
     filtros = filtros or {}
     with _conn() as db:
-        nivel = (usuario.get("rol") or {}).get("nivel", 1)
         conds, params = [], []
         tipo_filtro = filtros.get("tipo")
         vista_equipo = bool(filtros.get("vista_equipo"))
         equipo_tipos = tipo_filtro in ("solicitud", "accion")
-        if nivel < 3 and not (vista_equipo and equipo_tipos):
+        # Cynthia con nivel elevado: solo su agenda personal (no la del administrador)
+        if es_cynthia_etiquetas(usuario):
+            vista_equipo = False
+        ver_todo_equipo = es_admin_vista_equipo(usuario)
+        if not ver_todo_equipo and not (vista_equipo and equipo_tipos):
             conds.append("(t.creado_por=? OR t.asignado_a=? OR EXISTS("
                          "SELECT 1 FROM ticket_participantes tp "
                          "WHERE tp.ticket_id=t.id AND tp.usuario_id=?))")
@@ -5137,8 +5140,24 @@ def es_admin_efectivo(usuario: dict | None) -> bool:
     return es_cynthia_etiquetas(usuario)
 
 
+def es_admin_vista_equipo(usuario: dict | None) -> bool:
+    """Métricas/acciones/historial de todo el equipo: solo admin real.
+
+    Cynthia puede tener nivel 3 elevado para menú/API, pero su Agenda y Acciones
+    siguen siendo personales (no ve la agenda del administrador).
+    """
+    if not usuario:
+        return False
+    if es_cynthia_etiquetas(usuario):
+        return False
+    return int((usuario.get("rol") or {}).get("nivel") or 0) >= 3
+
+
 def aplicar_privilegios_admin_cynthia(usuario: dict | None) -> dict | None:
-    """Copia del usuario con rol.nivel=3 si es Cynthia (menú/API como administrador)."""
+    """Copia del usuario con rol.nivel=3 si es Cynthia (menú/API como administrador).
+
+    No implica vista de equipo: usar es_admin_vista_equipo para Agenda/Acciones.
+    """
     if not usuario or not es_cynthia_etiquetas(usuario):
         return usuario
     u = dict(usuario)

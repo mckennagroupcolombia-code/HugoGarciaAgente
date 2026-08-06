@@ -2,6 +2,9 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import ActivityLog from "./ActivityLog";
+import { esAdminPanel } from "../lib/adminAccess";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 interface StockItem {
   meli_id: string;
   sku: string;
@@ -131,7 +134,7 @@ function esPublicacionPausada(estado?: string): boolean {
 }
 
 const SELECT_FILTRO =
-  "min-w-[10.5rem] rounded-lg border border-border bg-surface-input px-2.5 py-2 text-xs font-semibold text-ink outline-none focus:border-accent";
+  "min-w-[8.5rem] max-w-[11rem] rounded-lg border border-border bg-surface-input px-2 py-2 text-xs font-semibold text-ink outline-none focus:border-accent";
 
 interface RelacionItem {
   meli_id: string;
@@ -382,12 +385,27 @@ function nivelStock(stock: number | null | undefined): {
   };
 }
 
+function normalizeSearchToken(s: string): string {
+  return (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function filaCoincideBusqueda(f: FilaUnificada, q: string): boolean {
+  if (!q) return true;
+  const fields = [f.nombre, f.sku, f.codigo_siigo, f.meli_id, f.nombre_siigo];
+  const qLow = q.toLowerCase();
+  if (fields.some((x) => (x || "").toLowerCase().includes(qLow))) return true;
+  const qCompact = normalizeSearchToken(q);
+  if (!qCompact) return false;
+  return fields.some((x) => normalizeSearchToken(x).includes(qCompact));
+}
+
 function tienePrefijoC(sku: string, codigoSiigo: string): boolean {
   const compact = (s: string) => (s || "").replace(/\s+/g, "").toUpperCase();
   return compact(sku).startsWith("C-") || compact(codigoSiigo).startsWith("C-");
 }
 
 function CanalResultMini({ resultado }: { resultado: SincronizarResultado }) {
+  const reactivada = /reactivada/i.test(resultado.meli?.mensaje || "");
   const detalle = `MeLi ${resultado.meli.ok ? "✓" : "✗"} · Web ${resultado.web.ok ? "✓" : "✗"} · Siigo ref.`;
   return (
     <div className="mt-0.5 truncate text-[9px] leading-tight text-muted" title={detalle}>
@@ -406,6 +424,9 @@ function CanalResultMini({ resultado }: { resultado: SincronizarResultado }) {
         </span>
       )}
       <span>{detalle}</span>
+      {reactivada && (
+        <span className="font-semibold text-emerald-700 dark:text-emerald-400"> · publicada</span>
+      )}
     </div>
   );
 }
@@ -435,6 +456,239 @@ interface DetalleProductoResp {
   } | null;
 }
 
+interface PromoItem {
+  id?: string | null;
+  type: string;
+  status: string;
+  name?: string | null;
+  price?: number | null;
+  original_price?: number | null;
+  meli_percentage?: number | null;
+  seller_percentage?: number | null;
+  descuento_pct?: number | null;
+  ref_id?: string | null;
+  min_discounted_price?: number | null;
+  max_discounted_price?: number | null;
+  suggested_discounted_price?: number | null;
+  precio_sugerido?: number | null;
+  modo_optin?: "offer_id" | "deal_price" | string;
+  start_date?: string | null;
+  finish_date?: string | null;
+  deadline_date?: string | null;
+}
+
+interface PromoItemResp {
+  meli_id: string;
+  candidatas: PromoItem[];
+  activas: PromoItem[];
+  total_candidatas: number;
+  total_activas: number;
+  error?: string;
+}
+
+function labelTipoPromo(tipo: string): string {
+  const map: Record<string, string> = {
+    SMART: "Smart",
+    DEAL: "Deal",
+    MARKETPLACE_CAMPAIGN: "Co-fondeada",
+    PRICE_MATCHING: "Precio competitivo",
+    LIGHTNING: "Relámpago",
+    DOD: "Oferta del día",
+    VOLUME: "Volumen",
+    PRE_NEGOTIATED: "Pre-acordada",
+    UNHEALTHY_STOCK: "Liquidación Full",
+    SELLER_CAMPAIGN: "Campaña vendedor",
+    PRICE_DISCOUNT: "Descuento individual",
+  };
+  return map[tipo] || tipo;
+}
+
+function formatFechaPromo(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function textoVigenciaPromo(p: PromoItem): string {
+  if (p.type === "PRICE_DISCOUNT" && !p.start_date && !p.finish_date) {
+    return "Tú defines las fechas (máx. 14 días)";
+  }
+  const ini = formatFechaPromo(p.start_date);
+  const fin = formatFechaPromo(p.finish_date);
+  if (ini && fin) return `${ini} → ${fin}`;
+  if (fin) return `Hasta ${fin}`;
+  if (ini) return `Desde ${ini}`;
+  return "Sin fechas de vigencia";
+}
+
+function pctDesdePrecios(original?: number | null, promo?: number | null): number | null {
+  if (original == null || promo == null) return null;
+  const o = Number(original);
+  const pr = Number(promo);
+  if (!(o > 0) || !(pr > 0) || pr >= o) return null;
+  return Math.round((1 - pr / o) * 1000) / 10;
+}
+
+function textoDescuentoPromo(p: PromoItem, moneda: string, precioOverride?: number | null): string {
+  const partes: string[] = [];
+  const sugerido =
+    precioOverride ??
+    p.precio_sugerido ??
+    (p.price && p.price > 0 ? p.price : null);
+  const pctLive = pctDesdePrecios(p.original_price, sugerido);
+  const pct = pctLive ?? p.descuento_pct;
+  if (pct != null) {
+    partes.push(`−${pct}%`);
+  }
+  if (p.meli_percentage != null || p.seller_percentage != null) {
+    partes.push(
+      `MeLi ${p.meli_percentage ?? 0}% / tú ${p.seller_percentage ?? 0}%`,
+    );
+  }
+  if (sugerido != null && p.original_price != null) {
+    partes.push(
+      `${formatPrecioVenta(sugerido, moneda)} (lista ${formatPrecioVenta(p.original_price, moneda)})`,
+    );
+  } else if (sugerido != null) {
+    partes.push(`sugerido ${formatPrecioVenta(sugerido, moneda)}`);
+  }
+  return partes.join(" · ") || "Sin % de descuento";
+}
+
+type ReporteTipo = "rotacion" | "estadistica" | "inventario";
+type ReportePeriodo = "semanal" | "quincenal" | "mensual";
+
+const REPORTE_TIPOS: { id: ReporteTipo; label: string; detalle: string }[] = [
+  {
+    id: "rotacion",
+    label: "Baja rotación / sin ventas",
+    detalle: "Publicaciones sin movimiento o con ≤2 uds en el periodo",
+  },
+  {
+    id: "estadistica",
+    label: "Estadística de ventas",
+    detalle: "Totales, publicaciones con/sin venta y top ventas",
+  },
+  {
+    id: "inventario",
+    label: "Sin inventario / pronto a agotar",
+    detalle: "Agotados, última unidad, stock bajo y cobertura por ritmo",
+  },
+];
+
+const REPORTE_PERIODOS: { id: ReportePeriodo; label: string }[] = [
+  { id: "semanal", label: "Semanal" },
+  { id: "quincenal", label: "Quincenal" },
+  { id: "mensual", label: "Mensual" },
+];
+
+function MenuReportesStock() {
+  const [abierto, setAbierto] = useState(false);
+  const [periodo, setPeriodo] = useState<ReportePeriodo>("mensual");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const mut = useMutation({
+    mutationFn: (body: { tipo: ReporteTipo; periodo: ReportePeriodo }) =>
+      api.post<{ ok?: boolean; mensaje?: string; error?: string; status?: string }>(
+        "/api/stock/reportes",
+        body,
+        { timeoutMs: 30_000 },
+      ),
+    onSuccess: (res) => {
+      setMsg({
+        ok: true,
+        text: res.mensaje || "Reporte iniciado. Revisa Actividad / WhatsApp Inventario.",
+      });
+      setAbierto(false);
+    },
+    onError: (e) => {
+      setMsg({
+        ok: false,
+        text: (e as Error).message || "No se pudo iniciar el reporte",
+      });
+    },
+  });
+
+  return (
+    <div className="relative w-auto">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={mut.isPending}
+          onClick={() => {
+            setMsg(null);
+            setAbierto((v) => !v);
+          }}
+          className="rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-accent-hover disabled:opacity-40"
+        >
+          {mut.isPending ? "Generando…" : abierto ? "Cerrar ▴" : "Generar reporte ▾"}
+        </button>
+        {msg && (
+          <span
+            className={`max-w-[14rem] truncate text-[10px] font-semibold ${
+              msg.ok ? "text-emerald-600" : "text-danger"
+            }`}
+            title={msg.text}
+          >
+            {msg.text}
+          </span>
+        )}
+      </div>
+
+      {abierto && (
+        <div
+          className="absolute bottom-full left-0 z-40 mb-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-border bg-surface p-3 shadow-lg"
+          role="menu"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Periodo</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {REPORTE_PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPeriodo(p.id)}
+                className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
+                  periodo === p.id
+                    ? "bg-accent text-white"
+                    : "border border-border text-muted hover:text-ink"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-muted">
+            Tipo de reporte
+          </p>
+          <ul className="mt-1.5 grid gap-1.5">
+            {REPORTE_TIPOS.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  disabled={mut.isPending}
+                  onClick={() => mut.mutate({ tipo: t.id, periodo })}
+                  className="h-full w-full rounded-lg border border-border bg-surface-panel px-3 py-2 text-left transition hover:border-accent/50 hover:bg-surface-hover disabled:opacity-40"
+                >
+                  <span className="block text-xs font-bold text-ink">{t.label}</span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-muted">
+                    {t.detalle}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DialogPrecioVenta({
   fila,
   analisis,
@@ -453,6 +707,12 @@ function DialogPrecioVenta({
   const [msgOk, setMsgOk] = useState<string | null>(null);
   const [msgErr, setMsgErr] = useState<string | null>(null);
   const [precioLocal, setPrecioLocal] = useState<number | null>(null);
+  const [dealDraft, setDealDraft] = useState<Record<string, string>>({});
+  const [promoFechas, setPromoFechas] = useState<
+    Record<string, { start: string; finish: string }>
+  >({});
+  const [promoBusy, setPromoBusy] = useState<string | null>(null);
+  const [promoMsg, setPromoMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -481,6 +741,105 @@ function DialogPrecioVenta({
     },
     staleTime: 60_000,
   });
+
+  const promosQ = useQuery<PromoItemResp>({
+    queryKey: ["stock-promociones-item", fila.meli_id],
+    queryFn: () =>
+      api.get<PromoItemResp>(
+        `/api/stock/promociones/item?meli_id=${encodeURIComponent(fila.meli_id)}`,
+        { timeoutMs: 60_000 },
+      ),
+    enabled: Boolean(fila.meli_id),
+    staleTime: 30_000,
+  });
+
+  const promoKey = (p: PromoItem) => `${p.type}:${p.id || "nod"}:${p.ref_id || ""}`;
+
+  const agregarPromo = async (p: PromoItem) => {
+    if (!fila.meli_id) return;
+    if (!p.id && p.type !== "PRICE_DISCOUNT") return;
+    const key = promoKey(p);
+    setPromoBusy(key);
+    setPromoMsg(null);
+    try {
+      const body: Record<string, unknown> = {
+        meli_id: fila.meli_id,
+        promotion_id: p.id || "",
+        promotion_type: p.type,
+      };
+      if (p.modo_optin === "deal_price") {
+        const raw =
+          dealDraft[key] ??
+          (p.precio_sugerido != null ? String(Math.round(Number(p.precio_sugerido))) : "");
+        const precio = parseFloat(raw);
+        if (!(precio > 0)) {
+          setPromoMsg({ ok: false, text: "Ingresa un precio promocional > 0" });
+          return;
+        }
+        body.deal_price = precio;
+        if (p.type === "PRICE_DISCOUNT") {
+          const hoy = new Date();
+          const hoyStr = hoy.toISOString().slice(0, 10);
+          const en14 = new Date(hoy.getTime() + 13 * 86400000)
+            .toISOString()
+            .slice(0, 10);
+          const fechas = promoFechas[key] ?? { start: hoyStr, finish: en14 };
+          if (!fechas.start || !fechas.finish) {
+            setPromoMsg({
+              ok: false,
+              text: "Define fecha inicio y fin (máx. 14 días)",
+            });
+            return;
+          }
+          body.start_date = `${fechas.start}T00:00:00`;
+          body.finish_date = `${fechas.finish}T23:59:59`;
+        }
+      } else if (p.ref_id) {
+        body.offer_id = p.ref_id;
+      }
+      await api.post("/api/stock/promociones/agregar", body, { timeoutMs: 60_000 });
+      setPromoMsg({
+        ok: true,
+        text: `Agregada a «${p.name || labelTipoPromo(p.type)}»`,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["stock-promociones-item", fila.meli_id] });
+    } catch (e) {
+      setPromoMsg({
+        ok: false,
+        text: (e as Error).message || "No se pudo agregar a la promoción",
+      });
+    } finally {
+      setPromoBusy(null);
+    }
+  };
+
+  const quitarPromo = async (p: PromoItem) => {
+    if (!fila.meli_id || !p.id) return;
+    const key = promoKey(p);
+    setPromoBusy(key);
+    setPromoMsg(null);
+    try {
+      await api.post(
+        "/api/stock/promociones/quitar",
+        {
+          meli_id: fila.meli_id,
+          promotion_id: p.id,
+          promotion_type: p.type,
+          offer_id: p.ref_id || undefined,
+        },
+        { timeoutMs: 60_000 },
+      );
+      setPromoMsg({ ok: true, text: `Quitada de «${p.name || p.id}»` });
+      void queryClient.invalidateQueries({ queryKey: ["stock-promociones-item", fila.meli_id] });
+    } catch (e) {
+      setPromoMsg({
+        ok: false,
+        text: (e as Error).message || "No se pudo quitar de la promoción",
+      });
+    } finally {
+      setPromoBusy(null);
+    }
+  };
 
   const d = detalleQ.data;
   const rent = d?.rentabilidad && !d.rentabilidad.error ? d.rentabilidad : null;
@@ -587,7 +946,7 @@ function DialogPrecioVenta({
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-precio-titulo"
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-surface-panel shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto overflow-x-hidden rounded-2xl border border-border bg-surface-panel shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface-panel px-4 py-3">
@@ -811,12 +1170,232 @@ function DialogPrecioVenta({
             </p>
           )}
 
+          <div className="rounded-xl border border-border bg-surface px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                Promociones MeLi
+              </p>
+              <button
+                type="button"
+                disabled={promosQ.isFetching}
+                onClick={() => void promosQ.refetch()}
+                className="text-[10px] font-semibold text-accent hover:underline disabled:opacity-40"
+              >
+                {promosQ.isFetching ? "Actualizando…" : "Actualizar"}
+              </button>
+            </div>
+
+            {promoMsg && (
+              <p
+                className={`mt-2 text-[11px] font-semibold ${
+                  promoMsg.ok ? "text-emerald-600" : "text-danger"
+                }`}
+              >
+                {promoMsg.text}
+              </p>
+            )}
+
+            {promosQ.isLoading ? (
+              <p className="mt-2 text-xs text-muted">Cargando campañas…</p>
+            ) : promosQ.isError ? (
+              <p className="mt-2 text-xs text-danger">
+                {promosQ.error instanceof Error
+                  ? promosQ.error.message
+                  : "No se pudieron cargar promociones"}
+              </p>
+            ) : (
+              <div className="mt-2 space-y-3">
+                {(promosQ.data?.activas?.length ?? 0) > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase text-muted">
+                      Ya participa ({promosQ.data!.activas.length})
+                    </p>
+                    <ul className="space-y-1.5">
+                      {promosQ.data!.activas.map((p) => {
+                        const key = promoKey(p);
+                        return (
+                          <li
+                            key={`act-${key}`}
+                            className="flex items-start justify-between gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold text-ink">
+                                {p.name || p.id}
+                              </p>
+                              <p className="mt-0.5 text-[10px] text-muted">
+                                {labelTipoPromo(p.type)}
+                                {p.status ? ` · ${p.status}` : ""}
+                              </p>
+                              <p className="mt-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                {textoDescuentoPromo(p, moneda)}
+                              </p>
+                              <p className="mt-0.5 text-[10px] text-muted">
+                                Vigencia: {textoVigenciaPromo(p)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={promoBusy === key}
+                              onClick={() => void quitarPromo(p)}
+                              className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-bold text-muted hover:border-danger/40 hover:text-danger disabled:opacity-40"
+                            >
+                              {promoBusy === key ? "…" : "Quitar"}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {(promosQ.data?.candidatas?.length ?? 0) > 0 ? (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase text-muted">
+                      Candidatas ({promosQ.data!.candidatas.length})
+                    </p>
+                    <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
+                      {promosQ.data!.candidatas.map((p) => {
+                        const key = promoKey(p);
+                        const needsDeal = p.modo_optin === "deal_price";
+                        const sugerido =
+                          p.precio_sugerido != null
+                            ? Math.round(Number(p.precio_sugerido))
+                            : null;
+                        const precioDraftRaw =
+                          dealDraft[key] ?? (sugerido != null ? String(sugerido) : "");
+                        const precioDraftNum = parseFloat(precioDraftRaw);
+                        const precioParaPct =
+                          needsDeal && precioDraftNum > 0 ? precioDraftNum : null;
+                        const hoy = new Date();
+                        const hoyStr = hoy.toISOString().slice(0, 10);
+                        const en14 = new Date(hoy.getTime() + 13 * 86400000)
+                          .toISOString()
+                          .slice(0, 10);
+                        const fechas =
+                          promoFechas[key] ?? { start: hoyStr, finish: en14 };
+                        return (
+                          <li
+                            key={`cand-${key}`}
+                            className="rounded-lg border border-border/80 bg-surface-panel px-2.5 py-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-bold text-ink">
+                                  {p.name || labelTipoPromo(p.type)}
+                                </p>
+                                <p className="mt-0.5 text-[10px] text-muted">
+                                  {labelTipoPromo(p.type)}
+                                </p>
+                                <p className="mt-0.5 text-[10px] font-semibold text-accent">
+                                  {textoDescuentoPromo(p, moneda, precioParaPct)}
+                                </p>
+                                <p className="mt-0.5 text-[10px] text-muted">
+                                  Vigencia:{" "}
+                                  {p.type === "PRICE_DISCOUNT"
+                                    ? `${formatFechaPromo(fechas.start + "T00:00:00") || fechas.start} → ${formatFechaPromo(fechas.finish + "T00:00:00") || fechas.finish}`
+                                    : textoVigenciaPromo(p)}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={
+                                  promoBusy === key ||
+                                  (needsDeal && !p.id && p.type !== "PRICE_DISCOUNT") ||
+                                  (!needsDeal && !p.ref_id && !p.id)
+                                }
+                                onClick={() => void agregarPromo(p)}
+                                className="shrink-0 rounded-md bg-accent px-2 py-1 text-[10px] font-bold text-white hover:bg-accent-hover disabled:opacity-40"
+                              >
+                                {promoBusy === key ? "…" : "Agregar"}
+                              </button>
+                            </div>
+                            {needsDeal && (
+                              <div className="mt-1.5 space-y-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <label className="text-[10px] text-muted">Precio promo</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    disabled={promoBusy === key}
+                                    value={precioDraftRaw}
+                                    onChange={(e) =>
+                                      setDealDraft((prev) => ({
+                                        ...prev,
+                                        [key]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-28 rounded-md border border-border bg-surface px-2 py-1 text-xs font-bold tabular-nums text-ink outline-none focus:border-accent"
+                                    placeholder="COP"
+                                  />
+                                  {(p.min_discounted_price != null ||
+                                    p.max_discounted_price != null) && (
+                                    <span className="text-[9px] text-muted">
+                                      {p.min_discounted_price != null
+                                        ? `min ${formatPrecioVenta(p.min_discounted_price, moneda)}`
+                                        : ""}
+                                      {p.max_discounted_price != null
+                                        ? ` · max ${formatPrecioVenta(p.max_discounted_price, moneda)}`
+                                        : ""}
+                                    </span>
+                                  )}
+                                </div>
+                                {p.type === "PRICE_DISCOUNT" && (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <label className="text-[10px] text-muted">Desde</label>
+                                    <input
+                                      type="date"
+                                      disabled={promoBusy === key}
+                                      value={fechas.start}
+                                      onChange={(e) =>
+                                        setPromoFechas((prev) => ({
+                                          ...prev,
+                                          [key]: { ...fechas, start: e.target.value },
+                                        }))
+                                      }
+                                      className="rounded-md border border-border bg-surface px-2 py-1 text-[11px] text-ink outline-none focus:border-accent"
+                                    />
+                                    <label className="text-[10px] text-muted">Hasta</label>
+                                    <input
+                                      type="date"
+                                      disabled={promoBusy === key}
+                                      value={fechas.finish}
+                                      onChange={(e) =>
+                                        setPromoFechas((prev) => ({
+                                          ...prev,
+                                          [key]: { ...fechas, finish: e.target.value },
+                                        }))
+                                      }
+                                      className="rounded-md border border-border bg-surface px-2 py-1 text-[11px] text-ink outline-none focus:border-accent"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : (
+                  !promosQ.isLoading && (
+                    <p className="text-xs text-muted">
+                      {(promosQ.data?.activas?.length ?? 0) > 0
+                        ? "No hay más campañas candidatas para esta publicación."
+                        : "Esta publicación no tiene campañas candidatas ahora."}
+                    </p>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
           {permalink && (
             <a
               href={permalink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center rounded-xl bg-accent px-3 py-2.5 text-xs font-bold text-white transition hover:bg-accent-hover"
+              className="flex w-full items-center justify-center rounded-xl border border-border px-3 py-2.5 text-xs font-bold text-ink transition hover:bg-surface-hover"
             >
               Abrir publicación en MeLi ↗
             </a>
@@ -847,9 +1426,13 @@ export default function StockPanel() {
   const [skuDraft, setSkuDraft] = useState("");
   const [codigoDraft, setCodigoDraft] = useState("");
   const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
+  const [stockDraft, setStockDraft] = useState<Record<string, string>>({});
   const forceRefreshRelacionRef = useRef(false);
   const forceRefreshVentasRef = useRef(false);
+  const tablaScrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const esAdmin = esAdminPanel(ticketsUser);
 
   useEffect(() => {
     guardarFiltrosStock({
@@ -859,6 +1442,12 @@ export default function StockPanel() {
       filtroRotacion,
       filtroPublicacion,
     });
+  }, [search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion]);
+
+  // Tras filtrar, el scrollTop viejo puede dejar la tabla en blanco (contenido más corto).
+  useEffect(() => {
+    const el = tablaScrollRef.current;
+    if (el) el.scrollTop = 0;
   }, [search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion]);
 
   const stockQ = useQuery<StockResumen>({
@@ -961,56 +1550,120 @@ export default function StockPanel() {
     return Array.from(byId.values());
   }, [stockQ.data, relacionQ.data]);
 
+  const ventaDeFila = (
+    f: FilaUnificada,
+    rawVentas: Record<string, VentaItem30d>,
+  ): VentaItem30d | undefined => {
+    const mid = (f.meli_id || "").toUpperCase();
+    return rawVentas[mid] ?? rawVentas[f.meli_id];
+  };
+
+  /** Base filtrada por búsqueda + todos los filtros salvo `omit` (para conteos facetados). */
+  const baseParaConteo = (
+    omit: "stock" | "codigo" | "rotacion" | "publicacion" | null,
+    rawVentas: Record<string, VentaItem30d>,
+  ): FilaUnificada[] => {
+    const q = search.trim().toLowerCase();
+    let list = filas;
+    if (q) {
+      list = list.filter((f) => filaCoincideBusqueda(f, q));
+    }
+    if (omit !== "stock" && filtroStock !== "todos") {
+      list = list.filter((f) => nivelStock(f.stock).key === filtroStock);
+    }
+    if (omit !== "codigo" && filtroCodigo !== "todos") {
+      if (filtroCodigo === "vinculados") {
+        list = list.filter((f) => f.estado_vinculo === "vinculado");
+      } else if (filtroCodigo === "sin_siigo") {
+        list = list.filter((f) => f.estado_vinculo === "sin_siigo");
+      } else if (filtroCodigo === "divergentes") {
+        list = list.filter((f) => f.estado_vinculo === "sku_divergente");
+      } else if (filtroCodigo === "sin_codigo") {
+        list = list.filter((f) => f.estado_vinculo === "sin_codigo");
+      } else if (filtroCodigo === "sin_c") {
+        list = list.filter((f) => !tienePrefijoC(f.sku, f.codigo_siigo));
+      }
+    }
+    if (omit !== "rotacion" && filtroRotacion !== "todos") {
+      list = list.filter(
+        (f) => nivelRotacion(ventaDeFila(f, rawVentas)) === filtroRotacion,
+      );
+    }
+    if (omit !== "publicacion" && filtroPublicacion !== "todos") {
+      if (filtroPublicacion === "activas") {
+        list = list.filter((f) => esPublicacionActiva(f.estado_meli, f.sync_bloqueado));
+      } else if (filtroPublicacion === "pausadas") {
+        list = list.filter((f) => esPublicacionPausada(f.estado_meli));
+      }
+    }
+    return list;
+  };
+
   const counts = useMemo(() => {
+    const rawVentas = ventasQ.data?.por_item ?? {};
+    // Cada dimensión se cuenta sobre el resto de filtros (números = lo que verías al elegir esa opción).
+    const porStock = baseParaConteo("stock", rawVentas);
+    const porCodigo = baseParaConteo("codigo", rawVentas);
+    const porRot = baseParaConteo("rotacion", rawVentas);
+    const porPub = baseParaConteo("publicacion", rawVentas);
+
     let agotados = 0;
     let criticos = 0;
     let bajos = 0;
     let ok = 0;
     let sinDato = 0;
-    let sinSku = 0;
-    let sinC = 0;
-    let vinculados = 0;
-    let sinSiigo = 0;
-    let divergentes = 0;
-    let sinCodigo = 0;
-    let sinVentas = 0;
-    let rotBaja = 0;
-    let rotMedia = 0;
-    let rotAlta = 0;
-    let activas = 0;
-    let pausadas = 0;
-    const rawVentas = ventasQ.data?.por_item ?? {};
-    for (const f of filas) {
+    for (const f of porStock) {
       const n = nivelStock(f.stock);
       if (n.key === "agotados") agotados += 1;
       else if (n.key === "criticos") criticos += 1;
       else if (n.key === "bajos") bajos += 1;
       else if (n.key === "ok") ok += 1;
       else sinDato += 1;
-      if (!f.sku.trim()) sinSku += 1;
+    }
+
+    let sinC = 0;
+    let vinculados = 0;
+    let sinSiigo = 0;
+    let divergentes = 0;
+    let sinCodigo = 0;
+    for (const f of porCodigo) {
       if (!tienePrefijoC(f.sku, f.codigo_siigo)) sinC += 1;
       if (f.estado_vinculo === "vinculado") vinculados += 1;
       else if (f.estado_vinculo === "sin_siigo") sinSiigo += 1;
       else if (f.estado_vinculo === "sku_divergente") divergentes += 1;
       else if (f.estado_vinculo === "sin_codigo") sinCodigo += 1;
-      if (esPublicacionActiva(f.estado_meli, f.sync_bloqueado)) activas += 1;
-      else if (esPublicacionPausada(f.estado_meli)) pausadas += 1;
-      const mid = (f.meli_id || "").toUpperCase();
-      const venta = rawVentas[mid] ?? rawVentas[f.meli_id];
-      const rot = nivelRotacion(venta);
+    }
+
+    let sinVentas = 0;
+    let rotBaja = 0;
+    let rotMedia = 0;
+    let rotAlta = 0;
+    for (const f of porRot) {
+      const rot = nivelRotacion(ventaDeFila(f, rawVentas));
       if (rot === "sin_ventas") sinVentas += 1;
       else if (rot === "baja") rotBaja += 1;
       else if (rot === "media") rotMedia += 1;
       else rotAlta += 1;
     }
+
+    let activas = 0;
+    let pausadas = 0;
+    for (const f of porPub) {
+      if (esPublicacionActiva(f.estado_meli, f.sync_bloqueado)) activas += 1;
+      else if (esPublicacionPausada(f.estado_meli)) pausadas += 1;
+    }
+
     return {
       total: filas.length,
+      totalStock: porStock.length,
+      totalCodigo: porCodigo.length,
+      totalRotacion: porRot.length,
+      totalPublicacion: porPub.length,
       agotados,
       criticos,
       bajos,
       ok,
       sinDato,
-      sinSku,
       sinC,
       vinculados,
       sinSiigo,
@@ -1023,54 +1676,22 @@ export default function StockPanel() {
       activas,
       pausadas,
     };
-  }, [filas, ventasQ.data]);
+  }, [
+    filas,
+    search,
+    filtroStock,
+    filtroCodigo,
+    filtroRotacion,
+    filtroPublicacion,
+    ventasQ.data,
+  ]);
 
   const items = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = filas;
-    if (q) {
-      list = list.filter(
-        (f) =>
-          f.nombre.toLowerCase().includes(q) ||
-          f.sku.toLowerCase().includes(q) ||
-          f.codigo_siigo.toLowerCase().includes(q) ||
-          f.meli_id.toLowerCase().includes(q) ||
-          f.nombre_siigo.toLowerCase().includes(q),
-      );
-    }
-    if (filtroStock !== "todos") {
-      list = list.filter((f) => nivelStock(f.stock).key === filtroStock);
-    }
-    if (filtroCodigo === "vinculados") {
-      list = list.filter((f) => f.estado_vinculo === "vinculado");
-    } else if (filtroCodigo === "sin_siigo") {
-      list = list.filter((f) => f.estado_vinculo === "sin_siigo");
-    } else if (filtroCodigo === "divergentes") {
-      list = list.filter((f) => f.estado_vinculo === "sku_divergente");
-    } else if (filtroCodigo === "sin_codigo") {
-      list = list.filter((f) => f.estado_vinculo === "sin_codigo");
-    } else if (filtroCodigo === "sin_c") {
-      list = list.filter((f) => !tienePrefijoC(f.sku, f.codigo_siigo));
-    }
     const rawVentas = ventasQ.data?.por_item ?? {};
-    if (filtroRotacion !== "todos") {
-      list = list.filter((f) => {
-        const mid = (f.meli_id || "").toUpperCase();
-        const venta = rawVentas[mid] ?? rawVentas[f.meli_id];
-        return nivelRotacion(venta) === filtroRotacion;
-      });
-    }
-    if (filtroPublicacion === "activas") {
-      list = list.filter((f) => esPublicacionActiva(f.estado_meli, f.sync_bloqueado));
-    } else if (filtroPublicacion === "pausadas") {
-      list = list.filter((f) => esPublicacionPausada(f.estado_meli));
-    }
+    const list = baseParaConteo(null, rawVentas);
     return [...list].sort((a, b) => {
-      // Priorizar sin ventas con stock, luego menos stock
-      const ka = (a.meli_id || "").toUpperCase();
-      const kb = (b.meli_id || "").toUpperCase();
-      const va = (rawVentas[ka] ?? rawVentas[a.meli_id])?.unidades ?? 0;
-      const vb = (rawVentas[kb] ?? rawVentas[b.meli_id])?.unidades ?? 0;
+      const va = ventaDeFila(a, rawVentas)?.unidades ?? 0;
+      const vb = ventaDeFila(b, rawVentas)?.unidades ?? 0;
       if (va === 0 && vb > 0) return -1;
       if (vb === 0 && va > 0) return 1;
       const sa = a.stock ?? 999999;
@@ -1088,28 +1709,134 @@ export default function StockPanel() {
     siigo: { stock: null, mensaje: "—" },
   });
 
+  const aplicarStockEnCache = (
+    meli_id: string,
+    res: SincronizarResultado,
+    stockAntes: number | null | undefined,
+  ) => {
+    const reactivada = /reactivada/i.test(res.meli?.mensaje || "");
+    const objetivo =
+      typeof res.stock_objetivo === "number" ? res.stock_objetivo : undefined;
+    const meliOk = Boolean(res.meli?.ok);
+    const saliaDeCero = (stockAntes ?? 0) <= 0 && objetivo != null && objetivo > 0;
+    queryClient.setQueryData<StockResumen>(["stock-resumen"], (old) => {
+      if (!old?.items) return old;
+      return {
+        ...old,
+        items: old.items.map((it) => {
+          if (it.meli_id !== meli_id) return it;
+          let nextEstado = it.estado_meli;
+          if (objetivo === 0) nextEstado = "paused";
+          else if (objetivo != null && objetivo > 0 && meliOk && (reactivada || saliaDeCero)) {
+            nextEstado = "active";
+          }
+          return {
+            ...it,
+            stock: objetivo ?? it.stock,
+            estado_meli: nextEstado,
+            sync_bloqueado: nextEstado !== "active",
+          };
+        }),
+      };
+    });
+    queryClient.setQueriesData<RelacionResp>({ queryKey: ["relacion-codigos"] }, (old) => {
+      if (!old?.items) return old;
+      return {
+        ...old,
+        items: old.items.map((it) => {
+          if (it.meli_id !== meli_id) return it;
+          if (!(objetivo != null && objetivo > 0 && meliOk && (reactivada || saliaDeCero))) {
+            return it;
+          }
+          return { ...it, estado_meli: "active" };
+        }),
+      };
+    });
+  };
+
   const ajustarMut = useMutation({
     mutationFn: ({ sku, meli_id, delta }: { sku: string; meli_id: string; delta: number }) =>
-      api.post<SincronizarResultado>("/api/stock/ajustar", { sku, meli_id, delta }),
+      api.post<SincronizarResultado>(
+        "/api/stock/ajustar",
+        { sku: sku || meli_id, meli_id, delta },
+        { timeoutMs: 90_000 },
+      ),
     onMutate: ({ meli_id }) => setBusyKey(meli_id),
     onSuccess: (res, { meli_id }) => {
       setRowResult((prev) => ({ ...prev, [meli_id]: res }));
-      queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+      setQtyDraft((prev) => ({ ...prev, [meli_id]: "" }));
+      aplicarStockEnCache(meli_id, res, res.stock_anterior);
+      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
     },
     onError: (err, { sku, meli_id }) =>
       setRowResult((prev) => ({ ...prev, [meli_id]: errorResultado(sku, err.message) })),
     onSettled: () => setBusyKey(null),
   });
 
+  const lanzarAjuste = (it: FilaUnificada, signo: 1 | -1) => {
+    const escrito = Math.max(0, parseInt(qtyDraft[it.meli_id] || "", 10) || 0);
+    const qty = escrito > 0 ? escrito : 1;
+    const sku = (it.sku || "").trim() || it.meli_id;
+    setRowResult((prev) => {
+      const next = { ...prev };
+      delete next[it.meli_id];
+      return next;
+    });
+    ajustarMut.mutate({ sku, meli_id: it.meli_id, delta: signo * qty });
+  };
+
   const sincronizarUnoMut = useMutation({
-    mutationFn: ({ sku, stock, meli_id }: { sku: string; stock: number; meli_id: string }) =>
-      api.post<SincronizarResultado>("/api/stock/sincronizar", { sku, stock, meli_id }),
+    mutationFn: ({
+      sku,
+      stock,
+      meli_id,
+    }: {
+      sku: string;
+      stock: number;
+      meli_id: string;
+      stockAntes?: number | null;
+    }) =>
+      api.post<SincronizarResultado>(
+        "/api/stock/sincronizar",
+        { sku: sku || meli_id, stock, meli_id },
+        { timeoutMs: 90_000 },
+      ),
     onMutate: ({ meli_id }) => setBusyKey(meli_id),
-    onSuccess: (res, { meli_id }) => setRowResult((prev) => ({ ...prev, [meli_id]: res })),
+    onSuccess: (res, { meli_id, stockAntes }) => {
+      setRowResult((prev) => ({ ...prev, [meli_id]: res }));
+      setStockDraft((prev) => {
+        const next = { ...prev };
+        delete next[meli_id];
+        return next;
+      });
+      aplicarStockEnCache(meli_id, res, stockAntes);
+      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+    },
     onError: (err, { sku, meli_id }) =>
       setRowResult((prev) => ({ ...prev, [meli_id]: errorResultado(sku, err.message) })),
     onSettled: () => setBusyKey(null),
   });
+
+  const guardarStockAbsoluto = (it: FilaUnificada) => {
+    const raw = stockDraft[it.meli_id];
+    const valor =
+      raw !== undefined && raw !== ""
+        ? Math.max(0, parseInt(raw, 10) || 0)
+        : it.stock;
+    if (valor == null || Number.isNaN(valor)) return;
+    const sku = (it.sku || "").trim() || it.meli_id;
+    setRowResult((prev) => {
+      const next = { ...prev };
+      delete next[it.meli_id];
+      return next;
+    });
+    sincronizarUnoMut.mutate({
+      sku,
+      stock: valor,
+      meli_id: it.meli_id,
+      stockAntes: it.stock,
+    });
+  };
 
   const editarMut = useMutation({
     mutationFn: ({
@@ -1267,10 +1994,6 @@ export default function StockPanel() {
     mutationFn: () => api.post("/api/stock/sincronizar-todo"),
   });
 
-  const reporteMut = useMutation({
-    mutationFn: () => api.post<{ mensaje?: string }>("/api/sync/stock"),
-  });
-
   const isLoading = stockQ.isLoading || relacionQ.isLoading;
   const isFetching = stockQ.isFetching || relacionQ.isFetching || ventasQ.isFetching;
   const puedeGuardarSku = Boolean(skuDraft.trim() || codigoDraft.trim());
@@ -1301,8 +2024,8 @@ export default function StockPanel() {
   }, [ventasQ.data]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         <button
           onClick={() => {
             forceRefreshRelacionRef.current = true;
@@ -1325,118 +2048,118 @@ export default function StockPanel() {
         </button>
       </div>
 
-      {/* Filtros compactos por categoría */}
-      <div className="relative z-20 space-y-2 rounded-xl border border-border bg-surface-panel p-3">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
-            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-          />
-          {search.trim() && (
+      {/* Buscador + filtros en una sola fila */}
+      <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-3">
+        <div className="flex flex-wrap items-end gap-2 xl:flex-nowrap">
+          <form
+            className="flex min-w-[14rem] flex-1 basis-[16rem] gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+          >
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
+              className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+            />
+            {search.trim() && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
+              >
+                Limpiar texto
+              </button>
+            )}
+          </form>
+
+          <label className="flex shrink-0 flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Unidades</span>
+            <select
+              value={filtroStock}
+              onChange={(e) => setFiltroStock(e.target.value as FiltroStock)}
+              title="Agotado=0 · Última=1 · Bajo=2–5 · OK≥6"
+              className={SELECT_FILTRO}
+            >
+              <option value="todos">Todos ({counts.totalStock})</option>
+              <option value="agotados">Sin unidades ({counts.agotados})</option>
+              <option value="criticos">Última ud. ({counts.criticos})</option>
+              <option value="bajos">Bajos 2–5 ({counts.bajos})</option>
+              <option value="ok">OK ≥ 6 ({counts.ok})</option>
+              <option value="sin_dato">Sin dato ({counts.sinDato})</option>
+            </select>
+          </label>
+
+          <label className="flex shrink-0 flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Códigos</span>
+            <select
+              value={filtroCodigo}
+              onChange={(e) => setFiltroCodigo(e.target.value as FiltroCodigo)}
+              className={SELECT_FILTRO}
+            >
+              <option value="todos">Todos ({counts.totalCodigo})</option>
+              <option value="sin_c">Sin C- ({counts.sinC})</option>
+              <option value="vinculados">Vinculados ({counts.vinculados})</option>
+              <option value="sin_siigo">Sin Siigo ({counts.sinSiigo})</option>
+              <option value="divergentes">SKU distinto ({counts.divergentes})</option>
+              <option value="sin_codigo">Sin código ({counts.sinCodigo})</option>
+            </select>
+          </label>
+
+          <label className="flex shrink-0 flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Publicación</span>
+            <select
+              value={filtroPublicacion}
+              onChange={(e) => setFiltroPublicacion(e.target.value as FiltroPublicacion)}
+              className={SELECT_FILTRO}
+              title="Activa = publicada en MeLi · Pausada = pausada en MeLi"
+            >
+              <option value="todos">Todas ({counts.totalPublicacion})</option>
+              <option value="activas">Activas ({counts.activas})</option>
+              <option value="pausadas">Pausadas ({counts.pausadas})</option>
+            </select>
+          </label>
+
+          <label className="flex shrink-0 flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Rotación 30 d</span>
+            <select
+              value={filtroRotacion}
+              onChange={(e) => setFiltroRotacion(e.target.value as FiltroRotacion)}
+              className={SELECT_FILTRO}
+              disabled={ventasQ.isLoading && !ventasQ.data}
+            >
+              <option value="todos">Todas ({counts.totalRotacion})</option>
+              <option value="sin_ventas">Sin ventas ({counts.sinVentas})</option>
+              <option value="baja">Baja rotación ({counts.rotBaja})</option>
+              <option value="media">Media ({counts.rotMedia})</option>
+              <option value="alta">Alta ({counts.rotAlta})</option>
+            </select>
+          </label>
+
+          {(filtroStock !== "todos"
+            || filtroCodigo !== "todos"
+            || filtroRotacion !== "todos"
+            || filtroPublicacion !== "todos"
+            || search.trim() !== "") && (
             <button
               type="button"
-              onClick={() => setSearch("")}
-              className="rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
+              onClick={() => {
+                setSearch("");
+                setFiltroStock("todos");
+                setFiltroCodigo("todos");
+                setFiltroRotacion("todos");
+                setFiltroPublicacion("todos");
+              }}
+              className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
             >
-              Limpiar texto
+              Limpiar filtros
             </button>
           )}
-        </form>
-
-        <div className="flex flex-wrap items-end gap-2 sm:gap-3">
-        <label className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Unidades</span>
-          <select
-            value={filtroStock}
-            onChange={(e) => setFiltroStock(e.target.value as FiltroStock)}
-            title="Agotado=0 · Última=1 · Bajo=2–5 · OK≥6"
-            className={SELECT_FILTRO}
-          >
-            <option value="todos">Todos ({counts.total})</option>
-            <option value="agotados">Sin unidades ({counts.agotados})</option>
-            <option value="criticos">Última ud. ({counts.criticos})</option>
-            <option value="bajos">Bajos 2–5 ({counts.bajos})</option>
-            <option value="ok">OK ≥ 6 ({counts.ok})</option>
-            <option value="sin_dato">Sin dato ({counts.sinDato})</option>
-          </select>
-        </label>
-
-        <label className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Códigos</span>
-          <select
-            value={filtroCodigo}
-            onChange={(e) => setFiltroCodigo(e.target.value as FiltroCodigo)}
-            className={SELECT_FILTRO}
-          >
-            <option value="todos">Todos</option>
-            <option value="sin_c">Sin C- ({counts.sinC})</option>
-            <option value="vinculados">Vinculados ({counts.vinculados})</option>
-            <option value="sin_siigo">Sin Siigo ({counts.sinSiigo})</option>
-            <option value="divergentes">SKU distinto ({counts.divergentes})</option>
-            <option value="sin_codigo">Sin código ({counts.sinCodigo})</option>
-          </select>
-        </label>
-
-        <label className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Publicación</span>
-          <select
-            value={filtroPublicacion}
-            onChange={(e) => setFiltroPublicacion(e.target.value as FiltroPublicacion)}
-            className={SELECT_FILTRO}
-            title="Activa = publicada en MeLi · Pausada = pausada en MeLi"
-          >
-            <option value="todos">Todas</option>
-            <option value="activas">Activas ({counts.activas})</option>
-            <option value="pausadas">Pausadas ({counts.pausadas})</option>
-          </select>
-        </label>
-
-        <label className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Rotación 30 d</span>
-          <select
-            value={filtroRotacion}
-            onChange={(e) => setFiltroRotacion(e.target.value as FiltroRotacion)}
-            className={SELECT_FILTRO}
-            disabled={ventasQ.isLoading && !ventasQ.data}
-          >
-            <option value="todos">Todas</option>
-            <option value="sin_ventas">Sin ventas ({counts.sinVentas})</option>
-            <option value="baja">Baja rotación ({counts.rotBaja})</option>
-            <option value="media">Media ({counts.rotMedia})</option>
-            <option value="alta">Alta ({counts.rotAlta})</option>
-          </select>
-        </label>
-
-        {(filtroStock !== "todos"
-          || filtroCodigo !== "todos"
-          || filtroRotacion !== "todos"
-          || filtroPublicacion !== "todos"
-          || search.trim() !== "") && (
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setFiltroStock("todos");
-              setFiltroCodigo("todos");
-              setFiltroRotacion("todos");
-              setFiltroPublicacion("todos");
-            }}
-            className="rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
-          >
-            Limpiar filtros
-          </button>
-        )}
         </div>
 
-        <p className="text-[11px] text-muted">
+        <p className="mt-2 text-[11px] text-muted">
           Mostrando <span className="font-bold text-ink">{items.length}</span> de{" "}
           <span className="font-bold text-ink">{filas.length}</span> publicaciones
           {search.trim() || filtroStock !== "todos" || filtroCodigo !== "todos"
@@ -1446,6 +2169,7 @@ export default function StockPanel() {
         </p>
       </div>
 
+      <div className="shrink-0 space-y-2">
       {filtroCodigo === "sin_c" && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
           Sin prefijo <span className="font-mono font-bold">C-</span>: edita el SKU, cárgalo a MeLi y
@@ -1462,7 +2186,7 @@ export default function StockPanel() {
         <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
       )}
       {ventasQ.data?.actualizado_en && (
-        <p className="text-[11px] text-muted -mt-2">
+        <p className="text-[11px] text-muted">
           Ventas 30 d: {ventasQ.data.actualizado_en}
           {ventasQ.data.fuente === "cache" ? " (caché)" : ""} ·{" "}
           {ventasQ.data.ordenes ?? 0} órdenes analizadas ·{" "}
@@ -1498,20 +2222,26 @@ export default function StockPanel() {
       {!isLoading && items.length === 0 && (
         <p className="text-sm text-muted">No hay filas para este filtro.</p>
       )}
+      </div>
 
-      <div className="max-h-[min(72vh,46rem)] overflow-auto rounded-xl border border-border">
+      <div
+        ref={tablaScrollRef}
+        className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border"
+      >
         <table className="min-w-full text-left text-[11px]">
           <thead className="sticky top-0 z-10 border-b border-border bg-surface text-[9px] uppercase tracking-wide text-muted shadow-sm [&_th]:bg-surface">
             <tr>
               <th className="px-2 py-1.5 font-bold">Producto</th>
               <th className="px-2 py-1.5 font-bold">Pub.</th>
-              <th className="px-2 py-1.5 font-bold">Stock</th>
+              <th className="px-2 py-1.5 font-bold" title="Edita el stock y pulsa Guardar (Enter)">
+                Stock
+              </th>
               <th className="px-2 py-1.5 font-bold">Ventas 30d</th>
               <th className="px-2 py-1.5 font-bold">SKU</th>
               <th className="px-2 py-1.5 font-bold">Siigo</th>
               <th className="px-2 py-1.5 font-bold">Vínculo</th>
-              <th className="px-2 py-1.5 font-bold" title="Sumar o restar unidades y enviar a MeLi / web">
-                ± Sync
+              <th className="px-2 py-1.5 font-bold" title="Ajuste rápido ±1 o N">
+                ±
               </th>
             </tr>
           </thead>
@@ -1577,13 +2307,77 @@ export default function StockPanel() {
                   </td>
 
                   <td className="px-2 py-1 whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      <span className={`tabular-nums ${nivel.stockClass}`}>
-                        {it.stock == null ? "—" : it.stock}
-                      </span>
-                      <span className={`rounded-full px-1.5 py-px text-[9px] font-bold ${nivel.badgeClass}`}>
-                        {nivel.label}
-                      </span>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          inputMode="numeric"
+                          value={
+                            stockDraft[it.meli_id] !== undefined
+                              ? stockDraft[it.meli_id]
+                              : it.stock == null
+                                ? ""
+                                : String(it.stock)
+                          }
+                          onChange={(e) =>
+                            setStockDraft((prev) => ({
+                              ...prev,
+                              [it.meli_id]: e.target.value,
+                            }))
+                          }
+                          onFocus={() => {
+                            if (stockDraft[it.meli_id] === undefined && it.stock != null) {
+                              setStockDraft((prev) => ({
+                                ...prev,
+                                [it.meli_id]: String(it.stock),
+                              }));
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              guardarStockAbsoluto(it);
+                            }
+                            if (e.key === "Escape") {
+                              setStockDraft((prev) => {
+                                const next = { ...prev };
+                                delete next[it.meli_id];
+                                return next;
+                              });
+                            }
+                          }}
+                          disabled={busy}
+                          title="Escribe el stock final y Guardar / Enter. Si estaba en 0, se reactiva en MeLi."
+                          className={`w-14 rounded border border-border bg-surface-input px-1 py-0.5 text-[11px] tabular-nums outline-none focus:border-accent disabled:opacity-40 ${nivel.stockClass}`}
+                        />
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Guardar stock en MeLi y web"
+                          onClick={() => guardarStockAbsoluto(it)}
+                          className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent disabled:opacity-40"
+                        >
+                          {busy && sincronizarUnoMut.isPending ? "…" : "Guardar"}
+                        </button>
+                        <span className={`rounded-full px-1.5 py-px text-[9px] font-bold ${nivel.badgeClass}`}>
+                          {nivel.label}
+                        </span>
+                      </div>
+                      {resultado && <CanalResultMini resultado={resultado} />}
+                      {resultado && /reactivada/i.test(resultado.meli?.mensaje || "") && (
+                        <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
+                          Publicación activada en MeLi
+                        </p>
+                      )}
+                      {resultado && resultado.meli && resultado.meli.ok === false && (
+                        <p
+                          className="max-w-[14rem] truncate text-[9px] text-danger"
+                          title={resultado.meli.mensaje}
+                        >
+                          {resultado.meli.mensaje}
+                        </p>
+                      )}
                     </div>
                   </td>
 
@@ -1755,65 +2549,35 @@ export default function StockPanel() {
                         onChange={(e) =>
                           setQtyDraft((prev) => ({ ...prev, [it.meli_id]: e.target.value }))
                         }
-                        placeholder="N"
-                        title="Cantidad a sumar o restar"
-                        disabled={!skuListo || busy || it.stock == null}
-                        className="w-12 rounded border border-border bg-surface-input px-1 py-0.5 text-[11px] text-ink outline-none focus:border-accent disabled:opacity-40"
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" || busy) return;
+                          e.preventDefault();
+                          lanzarAjuste(it, 1);
+                        }}
+                        placeholder="±"
+                        title="Cantidad a sumar/restar (vacío = 1)"
+                        disabled={busy}
+                        className="w-10 rounded border border-border bg-surface-input px-1 py-0.5 text-[11px] text-ink outline-none focus:border-accent disabled:opacity-40"
                       />
                       <button
-                        disabled={!skuListo || busy || !qty || it.stock == null}
-                        title={`Sumar ${qty || "N"} uds`}
-                        onClick={() => {
-                          setRowResult((prev) => {
-                            const next = { ...prev };
-                            delete next[it.meli_id];
-                            return next;
-                          });
-                          ajustarMut.mutate({ sku: it.sku, meli_id: it.meli_id, delta: qty });
-                          setQtyDraft((prev) => ({ ...prev, [it.meli_id]: "" }));
-                        }}
+                        type="button"
+                        disabled={busy}
+                        title={`Sumar ${qty || 1}`}
+                        onClick={() => lanzarAjuste(it, 1)}
                         className="rounded bg-emerald-600/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 disabled:opacity-40"
                       >
                         +
                       </button>
                       <button
-                        disabled={!skuListo || busy || !qty || it.stock == null}
-                        title={`Restar ${qty || "N"} uds`}
-                        onClick={() => {
-                          setRowResult((prev) => {
-                            const next = { ...prev };
-                            delete next[it.meli_id];
-                            return next;
-                          });
-                          ajustarMut.mutate({ sku: it.sku, meli_id: it.meli_id, delta: -qty });
-                          setQtyDraft((prev) => ({ ...prev, [it.meli_id]: "" }));
-                        }}
+                        type="button"
+                        disabled={busy || (it.stock != null && it.stock <= 0 && !qty)}
+                        title={`Restar ${qty || 1}`}
+                        onClick={() => lanzarAjuste(it, -1)}
                         className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-bold text-danger disabled:opacity-40"
                       >
                         −
                       </button>
-                      <button
-                        disabled={!skuListo || busy || it.stock == null}
-                        title="Reenviar stock actual a MeLi y web"
-                        onClick={() => {
-                          if (it.stock == null) return;
-                          setRowResult((prev) => {
-                            const next = { ...prev };
-                            delete next[it.meli_id];
-                            return next;
-                          });
-                          sincronizarUnoMut.mutate({
-                            sku: it.sku,
-                            stock: it.stock,
-                            meli_id: it.meli_id,
-                          });
-                        }}
-                        className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted hover:border-accent/50 hover:text-accent disabled:opacity-40"
-                      >
-                        Sync
-                      </button>
                     </div>
-                    {resultado && <CanalResultMini resultado={resultado} />}
                   </td>
                 </tr>
               );
@@ -1822,26 +2586,19 @@ export default function StockPanel() {
         </table>
       </div>
 
-      <section className="rounded-xl border border-border bg-surface-panel p-5">
-        <p className="text-sm font-medium text-ink">Reporte de Stock por WhatsApp</p>
-        <p className="mt-1 text-xs text-muted">
-          {reporteMut.isPending
-            ? "Generando..."
-            : reporteMut.isSuccess
-              ? "Reporte enviado al grupo de Inventario"
-              : "Envía el resumen de agotados y últimas unidades al grupo de Inventario"}
-        </p>
-        {reporteMut.isError && <p className="mt-1 text-xs text-danger">{reporteMut.error.message}</p>}
-        <button
-          onClick={() => {
-            reporteMut.mutate();
-            queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
-          }}
-          disabled={reporteMut.isPending}
-          className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+      <section className="relative z-20 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border bg-surface-panel/80 px-1 py-1.5">
+        <span
+          className="text-[10px] font-bold uppercase tracking-wide text-muted"
+          title="Se envía una imagen (KPIs + barras + top) al grupo Inventario"
         >
-          Generar reporte
-        </button>
+          Reportes WA
+        </span>
+        <MenuReportesStock />
+        {esAdmin && (
+          <div className="relative ml-auto flex min-w-0 items-center">
+            <ActivityLog compact />
+          </div>
+        )}
       </section>
 
       {detalleProducto && (

@@ -492,15 +492,36 @@ def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
 
 
 def _stock_meli_actual(meli_id: str, token: str) -> int:
-    """Lee el available_quantity vigente de un ítem puntual (maneja variaciones)."""
+    """Lee el stock vigente: en multi-bodega usa seller_warehouse; si no, available_quantity."""
     headers = {"Authorization": f"Bearer {token}"}
     res = requests.get(
         f"https://api.mercadolibre.com/items/{meli_id}", headers=headers, timeout=10
     )
     res.raise_for_status()
     item = res.json()
+    user_product_id = item.get("user_product_id")
+    if user_product_id:
+        try:
+            rs = requests.get(
+                f"https://api.mercadolibre.com/user-products/{user_product_id}/stock",
+                headers=headers,
+                timeout=10,
+            )
+            if rs.status_code == 200:
+                bodega = next(
+                    (
+                        l
+                        for l in (rs.json().get("locations") or [])
+                        if l.get("type") == "seller_warehouse"
+                    ),
+                    None,
+                )
+                if bodega is not None:
+                    return int(bodega.get("quantity") or 0)
+        except Exception:
+            pass
     if item.get("variations"):
-        return sum(v.get("available_quantity", 0) for v in item["variations"])
+        return sum(int(v.get("available_quantity") or 0) for v in item["variations"])
     return int(item.get("available_quantity", 0) or 0)
 
 
@@ -1106,6 +1127,89 @@ def obtener_estado_stock_meli() -> list[dict]:
             f"ℹ️ [STOCK] Omitidas {omitidas_cerradas} publicaciones closed/inactive "
             f"(ya no operables en MeLi)."
         )
+
+    # Incluir pausadas de MeLi que no están en Sheets — p.ej. mismo SKU C-CITCAL500g
+    # en una publicación pausada distinta a la fila del Sheet.
+    try:
+        me = requests.get(
+            "https://api.mercadolibre.com/users/me", headers=headers, timeout=15
+        ).json()
+        seller_id = me.get("id")
+        ids_extra: list[str] = []
+        seen_ids = {str(it.get("meli_id") or "").upper() for it in items}
+        if seller_id:
+            offset = 0
+            while True:
+                r = requests.get(
+                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                    params={"status": "paused", "limit": 100, "offset": offset},
+                    headers=headers,
+                    timeout=30,
+                ).json()
+                batch_ids = r.get("results") or []
+                if not batch_ids:
+                    break
+                for iid in batch_ids:
+                    su = str(iid).strip().upper()
+                    if su and su not in seen_ids:
+                        seen_ids.add(su)
+                        ids_extra.append(str(iid).strip())
+                offset += len(batch_ids)
+                if offset >= (r.get("paging") or {}).get("total", 0):
+                    break
+
+        for i in range(0, len(ids_extra), 20):
+            lote = ids_extra[i : i + 20]
+            res = requests.get(
+                f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+                headers=headers,
+                timeout=40,
+            ).json()
+            for r in res:
+                if r.get("code") != 200:
+                    continue
+                item = r["body"]
+                ml_id = item.get("id")
+                estado = (item.get("status") or "").strip().lower()
+                if estado in _NO_OPERABLES:
+                    continue
+                stock = (
+                    sum(v.get("available_quantity", 0) for v in item.get("variations", []))
+                    if item.get("variations")
+                    else item.get("available_quantity", 0)
+                )
+                sku_meli_vivo = ""
+                for a in item.get("attributes") or []:
+                    if a.get("id") == "SELLER_SKU":
+                        sku_meli_vivo = (a.get("value_name") or "").strip()
+                        break
+                if not sku_meli_vivo:
+                    sku_meli_vivo = (item.get("seller_custom_field") or "").strip()
+                es_full = (item.get("shipping") or {}).get("logistic_type") == "fulfillment"
+                items.append(
+                    {
+                        "meli_id": ml_id,
+                        "sku": sku_meli_vivo,
+                        "nombre": item.get("title") or "Sin nombre",
+                        "stock": stock,
+                        "fila": None,
+                        "estado_meli": item.get("status", ""),
+                        "es_full": es_full,
+                        "sync_bloqueado": item.get("status") != "active",
+                        "permalink": item.get("permalink", ""),
+                        "precio": item.get("price"),
+                        "moneda": item.get("currency_id") or "COP",
+                        "solo_meli": True,
+                    }
+                )
+        if ids_extra:
+            print(
+                f"ℹ️ [STOCK] +{len(ids_extra)} publicaciones pausadas MeLi "
+                f"no listadas en Sheets añadidas al resumen."
+            )
+    except Exception as e:
+        print(f"⚠️ [STOCK] No se pudieron añadir ítems MeLi fuera de Sheets: {e}")
+
     return items
 
 

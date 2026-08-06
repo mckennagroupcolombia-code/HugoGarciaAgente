@@ -65,6 +65,8 @@ import {
   resumenContrato,
   tituloDesdeContrato,
 } from "../lib/contratoPrestacionServicios";
+import { api } from "../api/client";
+import { esAdminVistaEquipo } from "../lib/adminAccess";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -6282,7 +6284,12 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "facturas",      label: "Facturas de compra" },
                     { id: "sync",          label: "Sincronización" },
                     { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
+                    { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
                     { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
+                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios" },
+                    { id: "rrhh",          label: "RRHH · Compensaciones" },
+                    { id: "impuestos",     label: "Pagos de impuestos" },
+                    { id: "servicios",     label: "Servicios" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;
@@ -17541,6 +17548,57 @@ interface CompraDraftSolicitud {
   unidad: string;
 }
 
+interface ListaComprasOcrItem {
+  nombre?: string;
+  cantidad?: number | string;
+  unidad?: string;
+}
+
+function mapUnidadOcrSolicitud(unidad?: string): string {
+  const u = (unidad || "").trim().toLowerCase();
+  if (!u) return "und";
+  if (["un", "u", "pcs", "pc", "pieza", "piezas", "unidad", "unidades"].includes(u)) return "und";
+  if (["gr", "grs", "gramo", "gramos"].includes(u)) return "g";
+  if (["mililitro", "mililitros"].includes(u)) return "ml";
+  if (["l", "lt", "lts", "litro", "litros"].includes(u)) return "L";
+  if (["kilo", "kilos", "kilogramo", "kilogramos"].includes(u)) return "kg";
+  return unidad!.trim() || "und";
+}
+
+function itemsDesdeOcrListaCompras(
+  items: ListaComprasOcrItem[],
+  modo: "compra" | "etiqueta" = "compra",
+): CompraDraftSolicitud[] {
+  const out: CompraDraftSolicitud[] = [];
+  const seen = new Set<string>();
+  for (const it of items) {
+    const nombre = (it.nombre || "").trim();
+    if (!nombre) continue;
+    const key = nombre.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const cantRaw = it.cantidad;
+    const cantNum = typeof cantRaw === "number"
+      ? cantRaw
+      : parseFloat(String(cantRaw ?? "1").replace(",", "."));
+    const cantOk = Number.isFinite(cantNum) && cantNum > 0 ? cantNum : 1;
+    if (modo === "etiqueta") {
+      out.push({
+        nombre,
+        cantidad: String(Math.max(1, Math.round(cantOk))),
+        unidad: "u",
+      });
+    } else {
+      out.push({
+        nombre,
+        cantidad: String(cantOk),
+        unidad: mapUnidadOcrSolicitud(it.unidad),
+      });
+    }
+  }
+  return out;
+}
+
 function esBootEtiquetas(tituloInicial: string, descripcionInicial: string): boolean {
   if (/etiqueta/i.test(tituloInicial)) return true;
   return descripcionInicial.trim().length > 0 && /•|producto|presentaci/i.test(descripcionInicial);
@@ -17595,7 +17653,10 @@ function NuevaSolicitudWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [adjuntoFile, setAdjuntoFile] = useState<File | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState("");
   const comprasZoneRef = useRef<HTMLDivElement>(null);
+  const ocrAbortRef = useRef(0);
 
   const otrosUsuarios = usuarios.filter((u) => u.id !== user.id && u.activo);
   const protDisp = protocolos.filter((p) => p.alcance === "global" || !p.alcance || p.alcance === "seleccionado");
@@ -17628,6 +17689,9 @@ function NuevaSolicitudWizard({
     setVariante(v);
     setProtocoloId(null);
     setAdjuntoFile(null);
+    setOcrMsg("");
+    setOcrLoading(false);
+    ocrAbortRef.current += 1;
     if (v === "nueva") {
       setTitulo("");
       setDescripcion("");
@@ -17671,13 +17735,66 @@ function NuevaSolicitudWizard({
 
   function handlePasteAdjunto(e: React.ClipboardEvent) {
     const file = clipboardPastedImageFile(e);
-    if (file) setAdjuntoFile(file);
+    if (!file) return;
+    if (fase === "compras" && (variante === "compra" || variante === "etiqueta")) {
+      void recibirAdjuntoLista(file);
+      return;
+    }
+    setAdjuntoFile(normalizarImagenPegada(file));
+  }
+
+  async function recibirAdjuntoLista(file: File) {
+    const modoOcr: "compra" | "etiqueta" = variante === "etiqueta" ? "etiqueta" : "compra";
+    const norm = normalizarImagenPegada(file);
+    setAdjuntoFile(norm);
+    setOcrMsg("");
+    const esImagen =
+      norm.type.startsWith("image/")
+      || /\.(png|jpe?g|gif|webp|bmp)$/i.test(norm.name)
+      || norm.type === "application/pdf"
+      || /\.pdf$/i.test(norm.name);
+    if (!esImagen) return;
+
+    const gen = ++ocrAbortRef.current;
+    setOcrLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("imagen", norm);
+      fd.append("modo", modoOcr);
+      const json = await api.upload<{
+        items?: ListaComprasOcrItem[];
+        error?: string;
+      }>("/api/tickets/extraer-lista-compras", fd);
+      if (gen !== ocrAbortRef.current) return;
+      const nuevos = itemsDesdeOcrListaCompras(json.items || [], modoOcr);
+      if (!nuevos.length) {
+        setOcrMsg(
+          json.error
+            || (modoOcr === "etiqueta"
+              ? "No se detectaron etiquetas. Agrégalas a mano."
+              : "No se detectaron productos. Agrégalos a mano."),
+        );
+        return;
+      }
+      setListaComprasDraft((prev) => {
+        const existing = new Set(prev.map((p) => p.nombre.trim().toLowerCase()));
+        const add = nuevos.filter((n) => !existing.has(n.nombre.trim().toLowerCase()));
+        return [...prev, ...add];
+      });
+      const noun = modoOcr === "etiqueta" ? "etiqueta(s)" : "producto(s)";
+      setOcrMsg(`Se extrajeron ${nuevos.length} ${noun}. Revisa la lista antes de continuar.`);
+    } catch (e: unknown) {
+      if (gen !== ocrAbortRef.current) return;
+      setOcrMsg(e instanceof Error ? e.message : "No se pudo leer la imagen");
+    } finally {
+      if (gen === ocrAbortRef.current) setOcrLoading(false);
+    }
   }
 
   usePegarCapturaEnZona(
-    fase === "compras" && variante === "compra",
+    fase === "compras" && (variante === "compra" || variante === "etiqueta"),
     comprasZoneRef,
-    setAdjuntoFile,
+    (file) => { void recibirAdjuntoLista(file); },
   );
 
   async function crear() {
@@ -17706,6 +17823,7 @@ function NuevaSolicitudWizard({
         }).join("\n")
       : desc;
     const subtipo = esEtiquetaVar ? "etiqueta" : esCompra ? "compra" : undefined;
+    if (ocrLoading) return;
     setLoading(true);
     setError("");
     try {
@@ -17953,7 +18071,7 @@ function NuevaSolicitudWizard({
           key="sol-p2c"
           ref={comprasZoneRef}
           className={`space-y-6 ${slide}`}
-          onPasteCapture={variante === "compra" ? handlePasteAdjunto : undefined}
+          onPasteCapture={(variante === "compra" || variante === "etiqueta") ? handlePasteAdjunto : undefined}
         >
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
@@ -17966,10 +18084,66 @@ function NuevaSolicitudWizard({
             </h2>
             <p className="mt-2 text-sm text-muted">
               {variante === "etiqueta"
-                ? "Producto, presentación y cuántas etiquetas imprimir."
-                : "Agrega los productos o materiales de la lista."}
+                ? "Agrega a mano o pega/sube un pantallazo — la IA arma producto, presentación y unidades."
+                : "Agrega productos a mano o pega/sube un pantallazo para extraer la lista."}
             </p>
           </div>
+          {(variante === "compra" || variante === "etiqueta") && (
+            <div className="space-y-2">
+              <label className={`flex flex-col gap-2 rounded-2xl border-2 cursor-pointer px-4 py-4 transition
+                ${ocrLoading
+                  ? "border-accent/50 bg-accent/5"
+                  : adjuntoFile
+                    ? "border-accent bg-accent/8"
+                    : "border-dashed border-border hover:border-accent/60"}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{ocrLoading ? "⏳" : adjuntoFile ? "📎" : "📷"}</span>
+                  <span className="min-w-0 flex-1 text-sm font-semibold text-muted">
+                    {ocrLoading
+                      ? (variante === "etiqueta"
+                        ? "Extrayendo etiquetas del pantallazo…"
+                        : "Extrayendo productos del pantallazo…")
+                      : adjuntoFile
+                        ? adjuntoFile.name
+                        : (variante === "etiqueta"
+                          ? "Pegar (Ctrl+V) o subir foto/pantallazo — la IA arma el pedido"
+                          : "Pegar (Ctrl+V) o subir foto/pantallazo — la IA arma la lista")}
+                  </span>
+                  {adjuntoFile && !ocrLoading && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        ocrAbortRef.current += 1;
+                        setAdjuntoFile(null);
+                        setOcrMsg("");
+                        setOcrLoading(false);
+                      }}
+                      className="text-xs text-danger hover:underline shrink-0"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                  className="sr-only"
+                  disabled={ocrLoading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void recibirAdjuntoLista(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {ocrMsg && (
+                <p className={`text-xs font-semibold ${ocrMsg.startsWith("Se extrajeron") ? "text-accent" : "text-danger"}`}>
+                  {ocrMsg}
+                </p>
+              )}
+            </div>
+          )}
           {listaComprasDraft.length > 0 && (
             <ul className="space-y-2 rounded-2xl border-2 border-border bg-surface px-4 py-3">
               {listaComprasDraft.map((item, idx) => (
@@ -18065,33 +18239,9 @@ function NuevaSolicitudWizard({
               <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem con las unidades indicadas</p>
             )}
           </div>
-          {variante === "compra" && (
-            <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
-              ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
-              <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
-              <span className="text-sm font-semibold text-muted truncate">
-                {adjuntoFile ? adjuntoFile.name : "Adjuntar captura o referencia (opcional) — Ctrl+V"}
-              </span>
-              {adjuntoFile && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); setAdjuntoFile(null); }}
-                  className="ml-auto text-xs text-danger hover:underline shrink-0"
-                >
-                  Quitar
-                </button>
-              )}
-              <input
-                type="file"
-                accept="image/*,.pdf,application/pdf"
-                className="sr-only"
-                onChange={(e) => setAdjuntoFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-          )}
           <button
             type="button"
-            disabled={listaComprasDraft.length === 0}
+            disabled={listaComprasDraft.length === 0 || ocrLoading}
             onClick={() => {
               if (variante === "compra") {
                 const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
@@ -23107,7 +23257,7 @@ function AccionesView({
   abrirFormPendientes?: boolean;
   abrirFormProcedimiento?: boolean;
 }) {
-  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
+  const isAdmin = esAdminVistaEquipo(user);
   // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
   const { apiToken: chatApiToken } = useTicketsAuth();
   const [acciones, setAcciones] = useState<Ticket[]>([]);
@@ -24019,7 +24169,7 @@ function AccionesView({
             abrirFormInicial={false}
             abrirFormSignal={crearRecordatorioSignal}
             onRecargar={() => void cargarRecordatorios()}
-            usuarios={usuarios}
+            usuarios={isAdmin ? usuarios : []}
             usuarioActualId={user.id}
           />
         </div>

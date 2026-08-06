@@ -738,7 +738,11 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "compras-exterior", label: "Compras exterior / pantallazo (incl. con Facturas, Sync o Rentabilidad)" },
   { id: "productos-siigo", label: "Crear en Siigo — botón flotante (incl. con Facturas o Sync)" },
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
-  { id: "rrhh",          label: "RRHH · Compensaciones (datos salariales — solo confianza)" },
+  { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
+  { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios (avanzado)" },
+  { id: "rrhh",          label: "RRHH · Compensaciones (también vía Operativos)" },
+  { id: "impuestos",     label: "Pagos de impuestos (vía Operativos)" },
+  { id: "servicios",     label: "Servicios públicos (vía Operativos o Rentabilidad)" },
 ];
 
 // Sub-tabs within Centro de Mando (solo los que tienen pVer gating en TicketsPanel)
