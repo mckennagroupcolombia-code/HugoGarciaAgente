@@ -240,3 +240,28 @@ PermissionError: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/t
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=13 activas=11 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel 8e951da] Auto-commit: actualizacion diaria 2026-08-06 23:00
+ 100 files changed, 10888 insertions(+), 2160 deletions(-)
+ create mode 100644 app/data/compras_exterior_soportes/20260806_111559_cfd459f6_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260806_111927_3bbefbfc_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260806_112555_5ce97d37_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260806_113057_859a6504_imagen.png.png
+ delete mode 100644 app/data/cuentas_cobro_cuota_manejo/CC-CE-00011.pdf
+ delete mode 100644 app/data/cuentas_cobro_cuota_manejo/CC-CE-00012.pdf
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/empaque_evidencia.py
+ create mode 100644 app/services/extracto_bancario.py
+ create mode 100644 app/services/servicios_gmail.py
+ create mode 100644 desktop/src/components/EmpaquePanel.tsx
+ create mode 100644 desktop/src/components/studio-web/ClasicoLayoutCanvas.tsx
+ create mode 100644 uploads/tickets/2fa1f2ccb9c64990a477b1b3dbca1a72.docx
+ create mode 100644 uploads/tickets/f4da2858acf34ec698ad02d0474917f6.docx
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-06 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
