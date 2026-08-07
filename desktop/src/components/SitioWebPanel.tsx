@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
+import ClasicoLayoutCanvas, {
+  WebLayoutInspector,
+  type ClasicoCanvas,
+  SECTION_LABEL_CLASICO,
+} from "./studio-web/ClasicoLayoutCanvas";
 import WebLayoutCanvas, {
   usePhosphorIcons,
-  WebLayoutInspector,
   type PurezaCanvas,
 } from "./studio-web/WebLayoutCanvas";
-import { ensureLayout, layoutDefault, type WebLayout } from "../lib/webLayoutStudio";
+import {
+  ensureLayout,
+  ensureLayoutClasico,
+  layoutClasicoDefault,
+  layoutDefault,
+  type WebLayout,
+} from "../lib/webLayoutStudio";
 
 /**
  * Studio web — lienzo visual + tokens + contenido de mckennagroup.co
@@ -14,7 +24,7 @@ import { ensureLayout, layoutDefault, type WebLayout } from "../lib/webLayoutStu
 
 type TemaId = "clasico" | "pureza";
 type StudioTab = "lienzo" | "diseno" | "contenido" | "publicar";
-type FuenteDisplay = "montserrat" | "serif";
+type FuenteDisplay = "montserrat";
 type RadioUi = "pill" | "soft" | "sharp";
 type Densidad = "compacta" | "normal" | "amplia";
 
@@ -36,11 +46,55 @@ interface DisenoTokens {
   tagline: string;
 }
 
+interface KitItem {
+  titulo: string;
+  texto: string;
+  valor: string;
+  icono?: string;
+}
+
 interface TemaWebConfig {
   tema_activo: TemaId;
   actualizado?: string | null;
   diseno: DisenoTokens;
   layout: WebLayout;
+  layout_clasico: WebLayout;
+  clasico: {
+    anuncio: string;
+    hero: {
+      badge: string;
+      titulo_l1: string;
+      titulo_em: string;
+      titulo_l2: string;
+      subtitulo: string;
+      cta_principal: string;
+      cta_secundario: string;
+      kit_label: string;
+      kit: KitItem[];
+    };
+    features: { titulo: string; texto: string; icono?: string }[];
+    categorias: {
+      eyebrow: string;
+      titulo: string;
+      titulo_em: string;
+      texto: string;
+    };
+    destacados: {
+      eyebrow: string;
+      titulo: string;
+      titulo_em: string;
+      texto: string;
+    };
+    cta: {
+      eyebrow: string;
+      titulo: string;
+      titulo_em: string;
+      texto: string;
+      boton_wa: string;
+      boton_contacto: string;
+    };
+    secciones: Record<string, boolean>;
+  };
   pureza: {
     colores: Record<string, string>;
     anuncio: string;
@@ -74,6 +128,13 @@ interface TemaResponse {
   mensaje?: string;
 }
 
+const SECCION_LABEL_CLASICO: Record<string, string> = {
+  features: "Franja de features",
+  categorias: "Categorías del catálogo",
+  destacados: "Productos destacados",
+  cta: "Llamado a la acción final",
+};
+
 const SECCION_LABEL: Record<string, string> = {
   metricas: "Métricas de confianza",
   trazabilidad: "Ruta de trazabilidad",
@@ -90,11 +151,6 @@ const COLOR_LABEL: Record<string, string> = {
   tinta: "Texto / footer",
   destacado: "Detalle destacado (dorado)",
 };
-
-const FUENTE_OPTS: { id: FuenteDisplay; label: string; sample: string }[] = [
-  { id: "montserrat", label: "Montserrat", sample: "sans-serif" },
-  { id: "serif", label: "Serif editorial", sample: "Georgia, serif" },
-];
 
 const RADIO_OPTS: { id: RadioUi; label: string; hint: string }[] = [
   { id: "pill", label: "Píldora", hint: "Botones redondos" },
@@ -122,7 +178,156 @@ function ensureDiseno(cfg: TemaWebConfig): TemaWebConfig {
     };
   }
   cfg.layout = ensureLayout(cfg.layout);
+  cfg.layout_clasico = ensureLayoutClasico(cfg.layout_clasico);
+  cfg.clasico = ensureClasicoContent(cfg.clasico);
   return cfg;
+}
+
+/** Defaults del home Clásico (mismo copy que el sitio publicado). */
+const CLASICO_DEFAULTS: TemaWebConfig["clasico"] = {
+  anuncio:
+    "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
+  hero: {
+    badge: "Materias Primas Certificadas · Colombia",
+    titulo_l1: "Materias primas",
+    titulo_em: "certificadas",
+    titulo_l2: "para tu industria",
+    subtitulo:
+      "Farmacéuticas, cosméticas y nutracéuticas. Importadas con visto bueno INVIMA, COA y ficha técnica por lote. Despachos a todo Colombia.",
+    cta_principal: "Comprar ahora",
+    cta_secundario: "Pedir cotización",
+    kit_label: "Por qué elegirnos",
+    kit: [
+      {
+        titulo: "Importación 100% Legal",
+        texto: "Visto Bueno de Importación (VUCE) + COA de laboratorio + Ficha Técnica por lote",
+        valor: "COA/TDS",
+        icono: "certificate",
+      },
+      {
+        titulo: "Despacho Nacional",
+        texto: "Envíos a todo Colombia con trazabilidad",
+        valor: "48h",
+        icono: "package",
+      },
+      {
+        titulo: "Portafolio Completo",
+        texto: "+80 referencias disponibles en stock",
+        valor: "+200",
+        icono: "flask",
+      },
+      {
+        titulo: "Asesoría Técnica",
+        texto: "Equipo especializado en formulación",
+        valor: "B2B",
+        icono: "headset",
+      },
+    ],
+  },
+  features: [
+    {
+      titulo: "Importación 100% Legal",
+      texto: "VUCE + COA de laboratorio + Ficha Técnica",
+      icono: "certificate",
+    },
+    { titulo: "Despacho Nacional", texto: "A todo Colombia", icono: "package" },
+    { titulo: "Asesoría Técnica", texto: "Equipo especializado", icono: "headset" },
+    { titulo: "Stock Permanente", texto: "Disponibilidad inmediata", icono: "clock" },
+  ],
+  categorias: {
+    eyebrow: "Nuestro Portafolio",
+    titulo: "Explora por",
+    titulo_em: "Categoría",
+    texto:
+      "Materias primas para la industria farmacéutica, cosmética y alimentaria. Todo con calidad certificada y stock permanente.",
+  },
+  destacados: {
+    eyebrow: "Productos",
+    titulo: "Selección",
+    titulo_em: "Destacada",
+    texto: "Una muestra de nuestro portafolio con 10% de descuento frente al precio de catálogo.",
+  },
+  cta: {
+    eyebrow: "Atención Personalizada",
+    titulo: "¿Necesitas una",
+    titulo_em: "cotización",
+    texto:
+      "Nuestro equipo técnico está listo para asesorarte en la selección de materias primas para tu formulación específica.",
+    boton_wa: "Cotizar por WhatsApp",
+    boton_contacto: "Formulario de Contacto",
+  },
+  secciones: {
+    features: true,
+    categorias: true,
+    destacados: true,
+    cta: true,
+  },
+};
+
+function ensureClasicoContent(raw: TemaWebConfig["clasico"] | undefined): TemaWebConfig["clasico"] {
+  const base = clone(CLASICO_DEFAULTS);
+  if (!raw || typeof raw !== "object") return base;
+  const out = clone(base);
+  if (typeof raw.anuncio === "string" && raw.anuncio.trim()) out.anuncio = raw.anuncio;
+  if (raw.hero && typeof raw.hero === "object") {
+    for (const k of [
+      "badge",
+      "titulo_l1",
+      "titulo_em",
+      "titulo_l2",
+      "subtitulo",
+      "cta_principal",
+      "cta_secundario",
+      "kit_label",
+    ] as const) {
+      const v = raw.hero[k];
+      if (typeof v === "string" && v.trim()) out.hero[k] = v;
+    }
+    if (Array.isArray(raw.hero.kit) && raw.hero.kit.length > 0) {
+      out.hero.kit = raw.hero.kit.map((item, i) => ({
+        titulo: item?.titulo || base.hero.kit[i]?.titulo || "",
+        texto: item?.texto || base.hero.kit[i]?.texto || "",
+        valor: item?.valor || base.hero.kit[i]?.valor || "",
+        icono: item?.icono || base.hero.kit[i]?.icono,
+      }));
+    }
+  }
+  if (Array.isArray(raw.features) && raw.features.length > 0) {
+    out.features = raw.features.map((f, i) => ({
+      titulo: f?.titulo || base.features[i]?.titulo || "",
+      texto: f?.texto || base.features[i]?.texto || "",
+      icono: f?.icono || base.features[i]?.icono,
+    }));
+  }
+  if (raw.categorias && typeof raw.categorias === "object") {
+    for (const k of ["eyebrow", "titulo", "titulo_em", "texto"] as const) {
+      const v = raw.categorias[k];
+      if (typeof v === "string" && v.trim()) out.categorias[k] = v;
+    }
+  }
+  if (raw.destacados && typeof raw.destacados === "object") {
+    for (const k of ["eyebrow", "titulo", "titulo_em", "texto"] as const) {
+      const v = raw.destacados[k];
+      if (typeof v === "string" && v.trim()) out.destacados[k] = v;
+    }
+  }
+  if (raw.cta && typeof raw.cta === "object") {
+    for (const k of [
+      "eyebrow",
+      "titulo",
+      "titulo_em",
+      "texto",
+      "boton_wa",
+      "boton_contacto",
+    ] as const) {
+      const v = raw.cta[k];
+      if (typeof v === "string" && v.trim()) out.cta[k] = v;
+    }
+  }
+  if (raw.secciones && typeof raw.secciones === "object") {
+    out.secciones = { ...base.secciones, ...raw.secciones };
+  }
+  return out;
 }
 
 function ChoiceGroup<T extends string>({
@@ -211,8 +416,7 @@ function LiveSwatch({ colores, diseno }: { colores: Record<string, string>; dise
   const fondo = colores.fondo || "#f8f6f1";
   const tinta = colores.tinta || "#1c2b2a";
   const oro = colores.destacado || "#b9862f";
-  const font =
-    diseno.fuente_display === "serif" ? "Georgia, 'Times New Roman', serif" : "Montserrat, system-ui, sans-serif";
+  const font = "Montserrat, system-ui, sans-serif";
   const radius = diseno.radio === "pill" ? 999 : diseno.radio === "soft" ? 12 : 4;
   const pad = diseno.densidad === "compacta" ? 10 : diseno.densidad === "amplia" ? 22 : 16;
 
@@ -261,7 +465,8 @@ export default function SitioWebPanel() {
   const [previewBase, setPreviewBase] = useState("http://127.0.0.1:8083");
   const [useLocalPreview, setUseLocalPreview] = useState(true);
   const [tab, setTab] = useState<StudioTab>("lienzo");
-  const [previewTema, setPreviewTema] = useState<TemaId>("pureza");
+  const [editTema, setEditTema] = useState<TemaId>("clasico");
+  const [previewTema, setPreviewTema] = useState<TemaId>("clasico");
   const [previewKey, setPreviewKey] = useState(0);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [zoom, setZoom] = useState(0.72);
@@ -278,7 +483,8 @@ export default function SitioWebPanel() {
       const cfg = ensureDiseno(res.config);
       setConfig(cfg);
       setOriginal(JSON.stringify(cfg));
-      setPreviewTema(cfg.tema_activo === "pureza" ? "pureza" : "clasico");
+      setEditTema(cfg.tema_activo);
+      setPreviewTema(cfg.tema_activo);
       if (res.site_url) setSiteUrl(res.site_url);
       if (res.preview_url) setPreviewBase(res.preview_url.replace(/\/$/, ""));
     } catch (e) {
@@ -344,6 +550,7 @@ export default function SitioWebPanel() {
       const draft = clone(config);
       draft.tema_activo = tema;
       setConfig(draft);
+      setEditTema(tema);
       setPreviewTema(tema);
       void guardar(draft);
     },
@@ -351,11 +558,17 @@ export default function SitioWebPanel() {
   );
 
   const restaurarContenido = useCallback(async () => {
-    if (!window.confirm("¿Restaurar textos y colores Pureza a los valores recomendados?")) return;
+    const esClasico = editTema === "clasico";
+    const msg = esClasico
+      ? "¿Restaurar textos del tema Clásico a los valores recomendados?"
+      : "¿Restaurar textos y colores Pureza a los valores recomendados?";
+    if (!window.confirm(msg)) return;
     setGuardando(true);
     setError("");
     try {
-      const res = await api.put<TemaResponse>("/api/web/tema", { accion: "restaurar" });
+      const res = await api.put<TemaResponse>("/api/web/tema", {
+        accion: esClasico ? "restaurar_clasico" : "restaurar",
+      });
       const next = ensureDiseno(res.config);
       setConfig(next);
       setOriginal(JSON.stringify(next));
@@ -367,7 +580,7 @@ export default function SitioWebPanel() {
     } finally {
       setGuardando(false);
     }
-  }, []);
+  }, [editTema]);
 
   const restaurarDiseno = useCallback(async () => {
     if (!window.confirm("¿Restaurar tipografía, radio, densidad y tagline a los valores por defecto?")) return;
@@ -393,7 +606,9 @@ export default function SitioWebPanel() {
     setGuardando(true);
     setError("");
     try {
-      const res = await api.put<TemaResponse>("/api/web/tema", { accion: "restaurar_layout" });
+      const res = await api.put<TemaResponse>("/api/web/tema", {
+        accion: editTema === "clasico" ? "restaurar_layout_clasico" : "restaurar_layout",
+      });
       const next = ensureDiseno(res.config);
       setConfig(next);
       setOriginal(JSON.stringify(next));
@@ -405,11 +620,17 @@ export default function SitioWebPanel() {
     } finally {
       setGuardando(false);
     }
-  }, []);
+  }, [editTema]);
 
   const patchPureza = useCallback((mutator: (draft: PurezaCanvas) => void) => {
     mutar((d) => {
       mutator(d.pureza as PurezaCanvas);
+    });
+  }, [mutar]);
+
+  const patchClasico = useCallback((mutator: (draft: ClasicoCanvas) => void) => {
+    mutar((d) => {
+      mutator(d.clasico as ClasicoCanvas);
     });
   }, [mutar]);
 
@@ -438,7 +659,9 @@ export default function SitioWebPanel() {
   }
 
   const pz = config.pureza;
+  const cl = config.clasico;
   const diseno = config.diseno;
+  const layoutActivo = editTema === "clasico" ? config.layout_clasico : config.layout;
 
   const tabs: { id: StudioTab; label: string }[] = [
     { id: "lienzo", label: "Lienzo" },
@@ -472,6 +695,24 @@ export default function SitioWebPanel() {
                   }`}
                 >
                   {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex rounded-full border border-border bg-surface p-0.5 text-[11px]">
+              {(["clasico", "pureza"] as TemaId[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setEditTema(t);
+                    setPreviewTema(t);
+                    setSelectedNode(null);
+                  }}
+                  className={`rounded-full px-2.5 py-1 font-semibold transition ${
+                    editTema === t ? "bg-ink text-white" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {t === "clasico" ? "Clásico" : "Pureza"}
                 </button>
               ))}
             </div>
@@ -516,34 +757,71 @@ export default function SitioWebPanel() {
             ✓ {aviso}
           </div>
         )}
+        <div className="mt-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-ink">
+          {editTema === config.tema_activo ? (
+            <>
+              Editando tema publicado:{" "}
+              <strong>{editTema === "clasico" ? "Clásico" : "Pureza"}</strong>
+            </>
+          ) : (
+            <>
+              Editando borrador:{" "}
+              <strong>{editTema === "clasico" ? "Clásico" : "Pureza"}</strong>
+              <span className="ml-2 text-muted">
+                · publicado: {config.tema_activo === "clasico" ? "Clásico" : "Pureza"}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {tab === "lienzo" ? (
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <WebLayoutCanvas
-            pureza={pz as PurezaCanvas}
-            layout={config.layout || layoutDefault()}
-            selectedId={selectedNode}
-            onSelect={setSelectedNode}
-            onLayoutChange={(next) =>
-              mutar((d) => {
-                d.layout = next;
-              })
-            }
-            onPurezaPatch={patchPureza}
-            zoom={zoom}
-          />
-          <div className="min-h-0 overflow-y-auto border-l border-border bg-surface-panel">
-            <WebLayoutInspector
+          {editTema === "clasico" ? (
+            <ClasicoLayoutCanvas
+              clasico={cl as ClasicoCanvas}
+              layout={layoutActivo || layoutClasicoDefault()}
               selectedId={selectedNode}
-              layout={config.layout || layoutDefault()}
+              onSelect={setSelectedNode}
+              onLayoutChange={(next) =>
+                mutar((d) => {
+                  d.layout_clasico = next;
+                })
+              }
+              onClasicoPatch={patchClasico}
+              zoom={zoom}
+            />
+          ) : (
+            <WebLayoutCanvas
               pureza={pz as PurezaCanvas}
+              layout={layoutActivo || layoutDefault()}
+              selectedId={selectedNode}
+              onSelect={setSelectedNode}
               onLayoutChange={(next) =>
                 mutar((d) => {
                   d.layout = next;
                 })
               }
               onPurezaPatch={patchPureza}
+              zoom={zoom}
+            />
+          )}
+          <div className="min-h-0 overflow-y-auto border-l border-border bg-surface-panel">
+            <WebLayoutInspector
+              selectedId={selectedNode}
+              layout={layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())}
+              onLayoutChange={(next) =>
+                mutar((d) => {
+                  if (editTema === "clasico") d.layout_clasico = next;
+                  else d.layout = next;
+                })
+              }
+              onContentPatch={
+                editTema === "clasico"
+                  ? (fn) => patchClasico((d) => fn(d as unknown as Record<string, unknown>))
+                  : (fn) => patchPureza((d) => fn(d as unknown as Record<string, unknown>))
+              }
+              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : undefined}
             />
           </div>
         </div>
@@ -587,16 +865,47 @@ export default function SitioWebPanel() {
                 </div>
               </Seccion>
 
-              <Seccion titulo="Tipografía display" hint="títulos del home" defaultOpen>
-                <ChoiceGroup
-                  options={FUENTE_OPTS}
-                  value={diseno.fuente_display}
-                  onChange={(v) =>
-                    mutar((d) => {
-                      d.diseno.fuente_display = v;
-                    })
-                  }
-                />
+              <Seccion titulo="Tipografía" hint="Montserrat (única)" defaultOpen>
+                <div className="space-y-3">
+                  <div
+                    className="rounded-lg border border-border bg-surface px-4 py-3"
+                    style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
+                  >
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted">
+                      Familia de marca
+                    </div>
+                    <div className="mt-1 text-lg font-extrabold text-ink">Montserrat</div>
+                    <p className="mt-1 text-xs text-muted">
+                      La tipografía del sitio es solo Montserrat. El peso y la cursiva se
+                      ajustan por elemento en el Lienzo (Light → Black + itálicas).
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                    {[
+                      { label: "Light", w: 300 },
+                      { label: "Regular", w: 400 },
+                      { label: "Medium", w: 500 },
+                      { label: "SemiBold", w: 600 },
+                      { label: "Bold", w: 700 },
+                      { label: "ExtraBold", w: 800 },
+                      { label: "Black", w: 900 },
+                      { label: "Italic", w: 400, italic: true },
+                    ].map((v) => (
+                      <div
+                        key={v.label}
+                        className="rounded-md border border-border px-2 py-2 text-center text-[11px] text-ink"
+                        style={{
+                          fontFamily: "'Montserrat', system-ui, sans-serif",
+                          fontWeight: v.w,
+                          fontStyle: v.italic ? "italic" : "normal",
+                        }}
+                      >
+                        {v.label}
+                        <div className="text-[9px] text-muted">{v.w}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </Seccion>
 
               <Seccion titulo="Forma de botones" defaultOpen>
@@ -640,7 +949,9 @@ export default function SitioWebPanel() {
           {tab === "contenido" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between pb-1">
-                <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Contenido Pureza</h2>
+                <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
+                  Contenido {editTema === "clasico" ? "Clásico" : "Pureza"}
+                </h2>
                 <button
                   type="button"
                   onClick={() => void restaurarContenido()}
@@ -651,6 +962,338 @@ export default function SitioWebPanel() {
                 </button>
               </div>
 
+              {editTema === "clasico" ? (
+                <>
+                  <Seccion titulo="Barra de anuncio" defaultOpen>
+                    <Campo
+                      label="Texto del anuncio"
+                      value={cl.anuncio}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.anuncio = v;
+                        })
+                      }
+                    />
+                  </Seccion>
+
+                  <Seccion titulo="Hero del home" defaultOpen>
+                    <Campo
+                      label="Badge"
+                      value={cl.hero.badge}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.hero.badge = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Campo
+                        label="Título línea 1"
+                        value={cl.hero.titulo_l1}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.hero.titulo_l1 = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Palabra destacada"
+                        value={cl.hero.titulo_em}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.hero.titulo_em = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Título línea 2"
+                        value={cl.hero.titulo_l2}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.hero.titulo_l2 = v;
+                          })
+                        }
+                      />
+                    </div>
+                    <Campo
+                      label="Subtítulo"
+                      textarea
+                      value={cl.hero.subtitulo}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.hero.subtitulo = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Campo
+                        label="Botón principal"
+                        value={cl.hero.cta_principal}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.hero.cta_principal = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Botón secundario"
+                        value={cl.hero.cta_secundario}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.hero.cta_secundario = v;
+                          })
+                        }
+                      />
+                    </div>
+                    <Campo
+                      label="Etiqueta panel derecho"
+                      value={cl.hero.kit_label}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.hero.kit_label = v;
+                        })
+                      }
+                    />
+                    {cl.hero.kit.map((item, i) => (
+                      <div key={i} className="rounded-lg border border-border bg-surface p-3">
+                        <div className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+                          Kit {i + 1}
+                        </div>
+                        <div className="space-y-3">
+                          <Campo
+                            label="Título"
+                            value={item.titulo}
+                            onChange={(v) =>
+                              mutar((d) => {
+                                d.clasico.hero.kit[i].titulo = v;
+                              })
+                            }
+                          />
+                          <Campo
+                            label="Descripción"
+                            textarea
+                            value={item.texto}
+                            onChange={(v) =>
+                              mutar((d) => {
+                                d.clasico.hero.kit[i].texto = v;
+                              })
+                            }
+                          />
+                          <Campo
+                            label="Valor"
+                            value={item.valor}
+                            onChange={(v) =>
+                              mutar((d) => {
+                                d.clasico.hero.kit[i].valor = v;
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </Seccion>
+
+                  <Seccion titulo="Features">
+                    {cl.features.map((f, i) => (
+                      <div key={i} className="rounded-lg border border-border bg-surface p-3">
+                        <div className="mb-2 text-xs font-bold uppercase tracking-wide text-accent">
+                          Feature {i + 1}
+                        </div>
+                        <div className="space-y-3">
+                          <Campo
+                            label="Título"
+                            value={f.titulo}
+                            onChange={(v) =>
+                              mutar((d) => {
+                                d.clasico.features[i].titulo = v;
+                              })
+                            }
+                          />
+                          <Campo
+                            label="Texto"
+                            value={f.texto}
+                            onChange={(v) =>
+                              mutar((d) => {
+                                d.clasico.features[i].texto = v;
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </Seccion>
+
+                  <Seccion titulo="Categorías">
+                    <Campo
+                      label="Eyebrow"
+                      value={cl.categorias.eyebrow}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.categorias.eyebrow = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Campo
+                        label="Título"
+                        value={cl.categorias.titulo}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.categorias.titulo = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Palabra destacada"
+                        value={cl.categorias.titulo_em}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.categorias.titulo_em = v;
+                          })
+                        }
+                      />
+                    </div>
+                    <Campo
+                      label="Texto"
+                      textarea
+                      value={cl.categorias.texto}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.categorias.texto = v;
+                        })
+                      }
+                    />
+                  </Seccion>
+
+                  <Seccion titulo="Destacados">
+                    <Campo
+                      label="Eyebrow"
+                      value={cl.destacados.eyebrow}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.destacados.eyebrow = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Campo
+                        label="Título"
+                        value={cl.destacados.titulo}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.destacados.titulo = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Palabra destacada"
+                        value={cl.destacados.titulo_em}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.destacados.titulo_em = v;
+                          })
+                        }
+                      />
+                    </div>
+                    <Campo
+                      label="Texto"
+                      textarea
+                      value={cl.destacados.texto}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.destacados.texto = v;
+                        })
+                      }
+                    />
+                  </Seccion>
+
+                  <Seccion titulo="CTA final">
+                    <Campo
+                      label="Eyebrow"
+                      value={cl.cta.eyebrow}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.cta.eyebrow = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Campo
+                        label="Título"
+                        value={cl.cta.titulo}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.cta.titulo = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Palabra destacada"
+                        value={cl.cta.titulo_em}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.cta.titulo_em = v;
+                          })
+                        }
+                      />
+                    </div>
+                    <Campo
+                      label="Texto"
+                      textarea
+                      value={cl.cta.texto}
+                      onChange={(v) =>
+                        mutar((d) => {
+                          d.clasico.cta.texto = v;
+                        })
+                      }
+                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Campo
+                        label="Botón WhatsApp"
+                        value={cl.cta.boton_wa}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.cta.boton_wa = v;
+                          })
+                        }
+                      />
+                      <Campo
+                        label="Botón contacto"
+                        value={cl.cta.boton_contacto}
+                        onChange={(v) =>
+                          mutar((d) => {
+                            d.clasico.cta.boton_contacto = v;
+                          })
+                        }
+                      />
+                    </div>
+                  </Seccion>
+
+                  <Seccion titulo="Secciones visibles">
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {Object.entries(SECCION_LABEL_CLASICO).map(([key, label]) => (
+                        <label
+                          key={key}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={cl.secciones[key] !== false}
+                            onChange={(e) =>
+                              mutar((d) => {
+                                d.clasico.secciones[key] = e.target.checked;
+                              })
+                            }
+                            className="accent-current"
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </Seccion>
+                </>
+              ) : (
+                <>
               <Seccion titulo="Barra de anuncio" defaultOpen>
                 <Campo
                   label="Texto del anuncio"
@@ -901,6 +1544,8 @@ export default function SitioWebPanel() {
                   ))}
                 </div>
               </Seccion>
+                </>
+              )}
             </div>
           )}
 
@@ -972,7 +1617,7 @@ export default function SitioWebPanel() {
                     setPreviewKey((k) => k + 1);
                   }}
                   className={`rounded-full px-2.5 py-1 font-semibold ${
-                    previewTema === t ? "bg-white text-ink" : "text-white/60"
+                    previewTema === t ? "bg-white text-[#022D33]" : "text-white/60"
                   }`}
                 >
                   {t === "pureza" ? "Pureza" : "Clásico"}
@@ -1011,7 +1656,7 @@ export default function SitioWebPanel() {
             key={previewKey}
             title="Vista previa sitio"
             src={iframeSrc}
-            className="min-h-[420px] w-full flex-1 bg-white"
+            className="min-h-[420px] w-full flex-1 bg-white mck-paper-white"
           />
           <p className="px-3 py-1.5 text-[10px] text-white/40">
             Guarda para ver colores/tipografía/espaciado en el iframe. El swatch de la izquierda refleja borradores al

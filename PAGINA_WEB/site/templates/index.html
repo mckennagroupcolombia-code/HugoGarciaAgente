@@ -1,134 +1,111 @@
 {% extends "base.html" %}
 {% block title %}McKenna Group — Materias Primas Farmacéuticas y Cosméticas{% endblock %}
 
-{% block content %}
+{% macro nodo_style(nid) -%}
+{{ LAYOUT_CLASICO.estilos.get(nid, '') }}
+{%- endmacro %}
 
+{% macro icono_nodo(nid, fallback) -%}
+{%- set n = LAYOUT_CLASICO.nodos.get(nid, {}) -%}
+{{- n.icono if n.icono else fallback -}}
+{%- endmacro %}
+
+{% block content %}
+{% set H = TC.hero if TC else {} %}
+{% set Kit = H.kit if H.kit else [] %}
+{% set Feat = TC.features if TC and TC.features else [] %}
+{% set Cat = TC.categorias if TC else {} %}
+{% set Dest = TC.destacados if TC else {} %}
+{% set Cta = TC.cta if TC else {} %}
+{% set Sec = TC.secciones if TC and TC.secciones else {} %}
+
+<div class="pz-home-stack" style="display:flex;flex-direction:column;">
+
+{% for sec in LAYOUT_CLASICO.orden %}
+
+{% if sec == 'hero' %}
 <!-- ════════════════════════════════════════════════════════
      HERO — split layout
 ════════════════════════════════════════════════════════ -->
-<section class="hero">
+<section class="hero" style="order:{{ LAYOUT_CLASICO.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
 
-  <!-- Panel izquierdo oscuro -->
   <div class="hero-left">
-    <span class="hero-badge">🌿 Materias Primas Certificadas · Colombia</span>
+    <span class="hero-badge" style="{{ nodo_style('hero.badge') }}">🌿 {{ H.badge or 'Materias Primas Certificadas · Colombia' }}</span>
 
     <h1 class="hero-title">
-      Materias primas<br>
-      <em>certificadas</em><br>
-      para tu industria
+      <span style="{{ nodo_style('hero.titulo_l1') }}">{{ H.titulo_l1 or 'Materias primas' }}</span><br>
+      <em style="{{ nodo_style('hero.titulo_em') }}">{{ H.titulo_em or 'certificadas' }}</em><br>
+      <span style="{{ nodo_style('hero.titulo_l2') }}">{{ H.titulo_l2 or 'para tu industria' }}</span>
     </h1>
 
-    <p class="hero-subtitle">
-      Farmacéuticas, cosméticas y nutracéuticas. Importadas con visto bueno INVIMA,
-      COA y ficha técnica por lote. Despachos a todo Colombia.
+    <p class="hero-subtitle" style="{{ nodo_style('hero.subtitulo') }}">
+      {{ H.subtitulo or 'Farmacéuticas, cosméticas y nutracéuticas.' }}
     </p>
 
     <div class="hero-cta">
-      <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg">
+      <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg" style="{{ nodo_style('hero.cta_principal') }}">
         <i class="ph ph-storefront"></i>
-        Comprar ahora
+        {{ H.cta_principal or 'Comprar ahora' }}
       </a>
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización"
-         target="_blank" rel="noopener" class="btn btn-ghost btn-lg">
+         target="_blank" rel="noopener" class="btn btn-ghost btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
         <i class="ph ph-whatsapp-logo"></i>
-        Pedir cotización
+        {{ H.cta_secundario or 'Pedir cotización' }}
       </a>
     </div>
   </div>
 
-  <!-- Panel derecho blanco -->
   <div class="hero-right">
-    <div class="hero-right-label">Por qué elegirnos</div>
+    <div class="hero-right-label" style="{{ nodo_style('hero.kit_label') }}">{{ H.kit_label or 'Por qué elegirnos' }}</div>
     <div class="kit-items">
-      <div class="kit-item">
-        <div class="kit-dot dot-1"><i class="ph ph-certificate"></i></div>
+      {% for item in Kit %}
+      <div class="kit-item" style="{{ nodo_style('hero.kit.' ~ loop.index0) }}">
+        <div class="kit-dot dot-{{ loop.index }}"><i class="ph ph-{{ icono_nodo('hero.kit.' ~ loop.index0 ~ '.icono', item.icono or 'circle') }}"></i></div>
         <div class="kit-info">
-          <h3>Importación 100% Legal</h3>
-          <p>Visto Bueno de Importación (VUCE) + COA de laboratorio + Ficha Técnica por lote</p>
+          <h3 style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.titulo') }}">{{ item.titulo }}</h3>
+          <p style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.texto') }}">{{ item.texto }}</p>
         </div>
-        <span class="kit-val">COA/TDS</span>
+        <span class="kit-val" style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.valor') }}">{{ item.valor }}</span>
       </div>
-      <div class="kit-item">
-        <div class="kit-dot dot-2"><i class="ph ph-package"></i></div>
-        <div class="kit-info">
-          <h3>Despacho Nacional</h3>
-          <p>Envíos a todo Colombia con trazabilidad</p>
-        </div>
-        <span class="kit-val">48h</span>
-      </div>
-      <div class="kit-item">
-        <div class="kit-dot dot-3"><i class="ph ph-flask"></i></div>
-        <div class="kit-info">
-          <h3>Portafolio Completo</h3>
-          <p>+{{ featured|length * 10 }} referencias disponibles en stock</p>
-        </div>
-        <span class="kit-val">+200</span>
-      </div>
-      <div class="kit-item">
-        <div class="kit-dot dot-4"><i class="ph ph-headset"></i></div>
-        <div class="kit-info">
-          <h3>Asesoría Técnica</h3>
-          <p>Equipo especializado en formulación</p>
-        </div>
-        <span class="kit-val">B2B</span>
-      </div>
+      {% endfor %}
     </div>
   </div>
 
 </section>
+{% endif %}
 
-<!-- ════════════════════════════════════════════════════════
-     FEATURES STRIP
-════════════════════════════════════════════════════════ -->
-<div class="features-strip" style="padding: 0;">
+{% if sec == 'features' and Sec.features != false %}
+<!-- FEATURES STRIP -->
+<div class="features-strip" style="padding: 0;order:{{ LAYOUT_CLASICO.orden_map.features | default(1) }};{{ nodo_style('features') }}">
   <div class="features-grid">
-    <div class="feature-item reveal">
-      <div class="feature-icon"><i class="ph ph-certificate"></i></div>
+    {% for f in Feat %}
+    <div class="feature-item reveal reveal-delay-{{ loop.index0 % 4 }}" style="{{ nodo_style('features.' ~ loop.index0) }}">
+      <div class="feature-icon"><i class="ph ph-{{ icono_nodo('features.' ~ loop.index0 ~ '.icono', f.icono or 'circle') }}"></i></div>
       <div class="feature-text">
-        <strong>Importación 100% Legal</strong>
-        <span>VUCE + COA de laboratorio + Ficha Técnica</span>
+        <strong style="{{ nodo_style('features.' ~ loop.index0 ~ '.titulo') }}">{{ f.titulo }}</strong>
+        <span style="{{ nodo_style('features.' ~ loop.index0 ~ '.texto') }}">{{ f.texto }}</span>
       </div>
     </div>
-    <div class="feature-item reveal reveal-delay-1">
-      <div class="feature-icon"><i class="ph ph-package"></i></div>
-      <div class="feature-text">
-        <strong>Despacho Nacional</strong>
-        <span>A todo Colombia</span>
-      </div>
-    </div>
-    <div class="feature-item reveal reveal-delay-2">
-      <div class="feature-icon"><i class="ph ph-headset"></i></div>
-      <div class="feature-text">
-        <strong>Asesoría Técnica</strong>
-        <span>Equipo especializado</span>
-      </div>
-    </div>
-    <div class="feature-item reveal reveal-delay-3">
-      <div class="feature-icon"><i class="ph ph-clock"></i></div>
-      <div class="feature-text">
-        <strong>Stock Permanente</strong>
-        <span>Disponibilidad inmediata</span>
-      </div>
-    </div>
+    {% endfor %}
   </div>
 </div>
+{% endif %}
 
-<!-- ════════════════════════════════════════════════════════
-     CATEGORÍAS (fondo oscuro, combo-card style)
-════════════════════════════════════════════════════════ -->
-<div class="cats-section">
+{% if sec == 'categorias' and Sec.categorias != false %}
+<!-- CATEGORÍAS -->
+<div class="cats-section" style="order:{{ LAYOUT_CLASICO.orden_map.categorias | default(2) }};{{ nodo_style('categorias') }}">
   <div class="cats-inner">
     <div class="section reveal" style="padding: 0; max-width: none;">
       <div class="section-header reveal">
         <div class="section-number">01</div>
         <div>
-          <span class="section-eyebrow">Nuestro Portafolio</span>
+          <span class="section-eyebrow" style="{{ nodo_style('categorias.eyebrow') }}">{{ Cat.eyebrow or 'Nuestro Portafolio' }}</span>
           <h2 class="section-title" style="color:#fff;">
-            Explora por <em>Categoría</em>
+            <span style="{{ nodo_style('categorias.titulo') }}">{{ Cat.titulo or 'Explora por' }}</span>
+            <em style="{{ nodo_style('categorias.titulo_em') }}">{{ Cat.titulo_em or 'Categoría' }}</em>
           </h2>
-          <p class="section-lead" style="color:rgba(255,255,255,0.65);">
-            Materias primas para la industria farmacéutica, cosmética y alimentaria.
-            Todo con calidad certificada y stock permanente.
+          <p class="section-lead" style="color:rgba(255,255,255,0.65);{{ nodo_style('categorias.texto') }}">
+            {{ Cat.texto or '' }}
           </p>
         </div>
       </div>
@@ -152,21 +129,22 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-<!-- ════════════════════════════════════════════════════════
-     PRODUCTOS DESTACADOS
-════════════════════════════════════════════════════════ -->
-<div style="background: var(--green-ultra);">
+{% if sec == 'destacados' and Sec.destacados != false %}
+<!-- PRODUCTOS DESTACADOS -->
+<div style="background: var(--green-ultra);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
   <div class="section">
     <div class="section-header reveal">
       <div class="section-number">02</div>
       <div>
-        <span class="section-eyebrow">Productos</span>
+        <span class="section-eyebrow" style="{{ nodo_style('destacados.eyebrow') }}">{{ Dest.eyebrow or 'Productos' }}</span>
         <h2 class="section-title">
-          Selección <em>Destacada</em>
+          <span style="{{ nodo_style('destacados.titulo') }}">{{ Dest.titulo or 'Selección' }}</span>
+          <em style="{{ nodo_style('destacados.titulo_em') }}">{{ Dest.titulo_em or 'Destacada' }}</em>
         </h2>
-        <p class="section-lead">
-          Una muestra de nuestro portafolio con 10% de descuento frente al precio de catálogo.
+        <p class="section-lead" style="{{ nodo_style('destacados.texto') }}">
+          {{ Dest.texto or '' }}
         </p>
       </div>
     </div>
@@ -186,16 +164,27 @@
         </a>
         <div class="shop-card-body">
           <div class="shop-card-name">{{ p.name }}</div>
-          <div class="shop-card-ref">Ref: {{ p.ref }}</div>
+          <div class="shop-card-ref">
+            {% if p.get('is_family') and p.n_presentaciones %}
+            {{ p.n_presentaciones }} presentaciones
+            {% else %}
+            Ref: {{ p.ref }}
+            {% endif %}
+          </div>
           <div class="shop-card-price-row">
             <span class="shop-card-price">{{ p.precio }}</span>
-            {% if not p.solo_vitrina %}
+            {% if not p.solo_vitrina and not p.get('is_family') %}
             <span class="shop-card-price-old">{{ p.precio_meli }}</span>
             <span class="shop-card-saving">{{ p.ahorro }}</span>
             {% endif %}
           </div>
           <div class="shop-card-actions">
-            {% if p.solo_vitrina %}
+            {% if p.get('is_family') %}
+            <a href="{{ url_for('producto', slug=p.slug) }}"
+               class="btn btn-primary btn-sm shop-card-btn-sole">
+              <i class="ph ph-squares-four"></i> Ver presentaciones
+            </a>
+            {% elif p.solo_vitrina %}
             <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
                class="btn btn-primary btn-sm shop-card-btn-sole">
               <i class="ph ph-list"></i> Ver referencias
@@ -226,36 +215,40 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-<!-- ════════════════════════════════════════════════════════
-     BANNER CTA
-════════════════════════════════════════════════════════ -->
-<div class="banner-dark">
+{% if sec == 'cta' and Sec.cta != false %}
+<!-- BANNER CTA -->
+<div class="banner-dark" style="order:{{ LAYOUT_CLASICO.orden_map.cta | default(4) }};{{ nodo_style('cta') }}">
   <div class="banner-dark-inner">
     <div class="section-header reveal" style="margin-bottom:48px;">
       <div class="section-number" style="color:rgba(255,255,255,0.08);">03</div>
       <div>
-        <span class="section-eyebrow" style="color:var(--green-light);">Atención Personalizada</span>
+        <span class="section-eyebrow" style="color:var(--green-light);{{ nodo_style('cta.eyebrow') }}">{{ Cta.eyebrow or 'Atención Personalizada' }}</span>
         <h2 class="section-title" style="color:#fff;">
-          ¿Necesitas una <em>cotización</em>?
+          <span style="{{ nodo_style('cta.titulo') }}">{{ Cta.titulo or '¿Necesitas una' }}</span>
+          <em style="{{ nodo_style('cta.titulo_em') }}">{{ Cta.titulo_em or 'cotización' }}</em>?
         </h2>
-        <p class="section-lead" style="color:rgba(255,255,255,0.65);">
-          Nuestro equipo técnico está listo para asesorarte en la selección
-          de materias primas para tu formulación específica.
+        <p class="section-lead" style="color:rgba(255,255,255,0.65);{{ nodo_style('cta.texto') }}">
+          {{ Cta.texto or '' }}
         </p>
       </div>
     </div>
     <div class="hero-cta">
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
-         target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+         target="_blank" rel="noopener" class="btn btn-wa btn-lg" style="{{ nodo_style('cta.boton_wa') }}">
         <i class="ph ph-whatsapp-logo"></i>
-        Cotizar por WhatsApp
+        {{ Cta.boton_wa or 'Cotizar por WhatsApp' }}
       </a>
-      <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg">
-        Formulario de Contacto
+      <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg" style="{{ nodo_style('cta.boton_contacto') }}">
+        {{ Cta.boton_contacto or 'Formulario de Contacto' }}
       </a>
     </div>
   </div>
+</div>
+{% endif %}
+
+{% endfor %}
 </div>
 
 {% endblock %}

@@ -20,7 +20,17 @@ import { HUB_SECTION_ICON } from "../lib/hubNav";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({
+  children,
+  onBackToMobileHub,
+  onExitForceDesktop,
+}: {
+  children: ReactNode;
+  /** Vuelve al hub móvil simplificado (sin forzar escritorio). */
+  onBackToMobileHub?: () => void;
+  /** Sale del modo “vista escritorio” forzada en el teléfono. */
+  onExitForceDesktop?: () => void;
+}) {
   usePanelSession();
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
@@ -52,14 +62,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
   const contentScrollClass = isCentroMando
     ? hubIntegrado
-      ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
-      : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
+      ? "flex min-h-0 flex-col overflow-hidden px-3 pt-3 sm:px-5 sm:pt-4 lg:px-10 lg:pt-5"
+      : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-10 lg:py-6"
     : isHub
-    ? "flex min-h-0 flex-col overflow-hidden px-4 pt-3 lg:px-10 lg:pt-4"
-    : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8";
+    ? "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
+    : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8";
+
+  const showHubTabs = isHub && sectionId;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-surface">
+    <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm transition-opacity duration-200 lg:hidden"
@@ -70,69 +82,90 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <Sidebar />
 
-      <main className="flex flex-1 flex-col overflow-hidden bg-transparent">
-        <header className="mck-header-glass z-30 flex shrink-0 items-center gap-2 border-b border-border/80 px-3 py-2.5 shadow-paper-sm sm:gap-3 sm:px-4 sm:py-3">
-          <button
-            type="button"
-            onClick={toggle}
-            className="mck-press rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
-            aria-label="Abrir menú"
-          >
-            <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
-          </button>
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <header
+          className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm sm:gap-2.5 sm:px-4 sm:py-2.5"
+          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
+        >
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            {onBackToMobileHub && (
+              <button
+                type="button"
+                onClick={onBackToMobileHub}
+                className="mck-press rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
+                aria-label="Volver al inicio móvil"
+                title="Inicio móvil"
+              >
+                <Icon name="caretDown" size={22} weight="bold" className="rotate-90" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={toggle}
+              className="mck-press rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
+              aria-label="Abrir menú"
+            >
+              <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
+            </button>
 
-          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
-            {isHub && sectionId ? (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                <Icon name={HUB_SECTION_ICON[sectionId]} size={20} weight="duotone" />
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+              {isHub && sectionId ? (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon name={HUB_SECTION_ICON[sectionId]} size={20} weight="duotone" />
+                </span>
+              ) : panel === "perfil" || panel === "settings" ? (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
+                </span>
+              ) : null}
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
+                  {headerTitle}
+                </h1>
+                {headerSubtitle && (
+                  <p className="hidden truncate text-[10px] leading-snug text-muted lg:block">
+                    {headerSubtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {!isHub && advanced && (
+              <span className="hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent sm:inline">
+                Avanzado
               </span>
-            ) : panel === "perfil" || panel === "settings" ? (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
-              </span>
-            ) : null}
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
-                {headerTitle}
-              </h1>
-              {headerSubtitle && (
-                <p className="hidden truncate text-[10px] leading-snug text-muted lg:block">
-                  {headerSubtitle}
-                </p>
+            )}
+
+            {onExitForceDesktop && (
+              <button
+                type="button"
+                onClick={onExitForceDesktop}
+                className="mck-press hidden shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted hover:bg-surface-hover hover:text-ink sm:inline lg:hidden"
+              >
+                Vista móvil
+              </button>
+            )}
+
+            <div className="shrink-0">
+              <ThemeModeToggle />
+            </div>
+          </div>
+
+          {showHubTabs && (
+            <div className="min-w-0 w-full">
+              {sectionId === "contabilidad" && <ContabilidadNavTabs />}
+              {sectionId === "diseno" && <DisenoNavTabs />}
+              {sectionId !== "contabilidad" && sectionId !== "diseno" && (
+                <HubNavTabs sectionId={sectionId} />
               )}
             </div>
-          </div>
-
-          {isHub && sectionId === "contabilidad" && (
-            <div className="min-w-0 flex-1">
-              <ContabilidadNavTabs />
-            </div>
           )}
-          {isHub && sectionId === "diseno" && (
-            <div className="min-w-0 flex-1">
-              <DisenoNavTabs />
-            </div>
-          )}
-          {isHub && sectionId && sectionId !== "contabilidad" && sectionId !== "diseno" && (
-            <div className="min-w-0 flex-1">
-              <HubNavTabs sectionId={sectionId} />
-            </div>
-          )}
-          {!isHub && advanced && (
-            <span className="ml-auto hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent lg:inline">
-              Avanzado
-            </span>
-          )}
-
-          <div className={`shrink-0 ${isHub || advanced ? "ml-2" : "ml-auto"}`}>
-            <ThemeModeToggle />
-          </div>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className={`min-h-0 min-w-0 flex-1 ${contentScrollClass}`}>
+          <div className={`mck-panel-scroll min-h-0 min-w-0 flex-1 ${contentScrollClass}`}>
             {isHub && !isCentroMando ? (
-              sectionId === "contabilidad" ? (
+              sectionId === "contabilidad" || sectionId === "publicaciones" ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>
                 </div>
@@ -146,7 +179,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </div>
           {isAdmin && !hubIntegrado && panel !== "stock" && (
-            <div className="shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm lg:px-8">
+            <div className="hidden shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm md:block lg:px-8">
               <ActivityLog />
             </div>
           )}

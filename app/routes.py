@@ -3981,6 +3981,8 @@ def register_routes(app):
             guardar_tema_web,
             restaurar_diseno,
             restaurar_layout,
+            restaurar_layout_clasico,
+            restaurar_tema_clasico,
             restaurar_tema_pureza,
         )
 
@@ -3998,6 +4000,11 @@ def register_routes(app):
                 "config": restaurar_tema_pureza(),
                 "mensaje": "Contenido del tema Pureza restaurado a los valores por defecto",
             })
+        if body.get("accion") == "restaurar_clasico":
+            return jsonify({
+                "config": restaurar_tema_clasico(),
+                "mensaje": "Contenido del tema Clásico restaurado a los valores por defecto",
+            })
         if body.get("accion") == "restaurar_diseno":
             return jsonify({
                 "config": restaurar_diseno(),
@@ -4007,6 +4014,11 @@ def register_routes(app):
             return jsonify({
                 "config": restaurar_layout(),
                 "mensaje": "Lienzo visual restaurado (posición y escala)",
+            })
+        if body.get("accion") == "restaurar_layout_clasico":
+            return jsonify({
+                "config": restaurar_layout_clasico(),
+                "mensaje": "Lienzo Clásico restaurado (posición y escala)",
             })
         try:
             nuevo = guardar_tema_web(body.get("config") or {})
@@ -5613,6 +5625,15 @@ def register_routes(app):
                 descuento_pct = float(request.form.get("descuento_pct") or 0)
             except (TypeError, ValueError):
                 return jsonify({"error": "trm/flete/descuento inválidos"}), 400
+            cuota_pct = None
+            raw_cuota = (request.form.get("cuota_pct") or "").strip()
+            if raw_cuota:
+                try:
+                    cuota_pct = float(raw_cuota.replace(",", "."))
+                    if cuota_pct <= 0 or cuota_pct > 100:
+                        return jsonify({"error": "cuota_pct debe estar entre 0 y 100"}), 400
+                except (TypeError, ValueError):
+                    return jsonify({"error": "cuota_pct inválido"}), 400
             soportes_multi = []
             for key in ("imagenes", "imagen", "soporte", "archivo", "files[]"):
                 for f in request.files.getlist(key):
@@ -5879,6 +5900,7 @@ def register_routes(app):
                     trm_fuente=trm_fuente,
                     replace_soportes=replace,
                     append_soportes=False,
+                    cuota_pct=cuota_pct,
                 )
                 if not historial:
                     return jsonify({"error": f"Compra #{compra_id_edit} no encontrada"}), 404
@@ -5898,6 +5920,7 @@ def register_routes(app):
                     notas=notas,
                     fecha_compra=fecha_compra,
                     trm_fuente=trm_fuente,
+                    cuota_pct=cuota_pct,
                 )
             # Al confirmar, eliminar borrador asociado (archivos ya copiados a historial)
             if borrador_id_raw:
@@ -5974,28 +5997,70 @@ def register_routes(app):
             return jsonify({"error": "Soporte no encontrado"}), 404
         return send_file(path, mimetype=mime or "application/octet-stream", download_name=nombre or "soporte", as_attachment=False)
 
-    @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro", methods=["GET", "POST"])
-    @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro", methods=["GET", "POST"])
+    @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro", methods=["GET", "POST", "DELETE"])
+    @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro", methods=["GET", "POST", "DELETE"])
     def api_compras_exterior_cuenta_cobro(compra_id: int):
         """
         GET: descarga PDF aprobado.
         POST: aprobar y generar PDF con accent_rgb del tema del usuario
-              body JSON: { accent_rgb?: "12 96 105" } o { regenerar: true }.
+              body JSON: { accent_rgb?: "12 96 105", tipo?: "mercancia"|"flete",
+                           cuota_pct?: number } o { regenerar: true }.
+        DELETE: limpia cuenta(s) de cobro de esta compra (PDF + estados).
         """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.contabilidad_db import (
             aprobar_cuenta_cobro_compra,
             obtener_compra_exterior,
+            resetear_cuentas_cobro_compras_exterior,
             ruta_cuenta_cobro_compra,
         )
         from flask import send_file
+
+        if request.method == "DELETE":
+            out = resetear_cuentas_cobro_compras_exterior(compra_ids=[int(compra_id)])
+            row = obtener_compra_exterior(compra_id)
+            return jsonify({"ok": True, **out, "historial": row})
 
         if request.method == "POST":
             body = request.get_json(silent=True) or {}
             accent = str(body.get("accent_rgb") or body.get("accent") or "").strip()
             tipo = str(body.get("tipo") or "mercancia").strip().lower()
-            row = aprobar_cuenta_cobro_compra(compra_id, accent_rgb=accent, tipo=tipo)
+            cuota_pct = None
+            if body.get("cuota_pct") is not None and str(body.get("cuota_pct")).strip() != "":
+                try:
+                    cuota_pct = float(str(body.get("cuota_pct")).replace(",", "."))
+                    if cuota_pct <= 0 or cuota_pct > 100:
+                        return jsonify({"error": "cuota_pct debe estar entre 0 y 100"}), 400
+                except (TypeError, ValueError):
+                    return jsonify({"error": "cuota_pct inválido"}), 400
+            emisor_perfil = _panel_tickets_usuario()
+            if emisor_perfil is None:
+                # Admins suelen enviar CHAT_API_TOKEN; el cliente manda emisor_usuario_id.
+                uid_raw = body.get("emisor_usuario_id") or body.get("usuario_id")
+                if uid_raw not in (None, "", 0, "0"):
+                    try:
+                        from app.services.tickets_db import get_usuario_by_id
+
+                        emisor_perfil = get_usuario_by_id(int(uid_raw))
+                    except (TypeError, ValueError):
+                        emisor_perfil = None
+            if emisor_perfil is not None:
+                doc = (emisor_perfil.get("documento_identidad") or "").strip()
+                if not doc:
+                    return jsonify({
+                        "error": (
+                            "Completa tu documento de identidad en Mi perfil "
+                            "antes de generar la cuenta de cobro"
+                        ),
+                    }), 400
+            row = aprobar_cuenta_cobro_compra(
+                compra_id,
+                accent_rgb=accent,
+                tipo=tipo,
+                cuota_pct=cuota_pct,
+                emisor_perfil=emisor_perfil,
+            )
             if not row:
                 return jsonify({"error": "Compra no encontrada"}), 404
             ok = (
@@ -6029,12 +6094,36 @@ def register_routes(app):
                 }), 409
             return jsonify({"error": "Sin PDF de cuenta de cobro", "tipo": tipo}), 404
         path, nombre = path_info
+        from app.services.cuenta_cobro_cuota_manejo import nombre_archivo_cuenta_cobro
+
+        dl = nombre_archivo_cuenta_cobro(
+            compra_id,
+            flete=tipo in ("flete", "envio", "shipping", "freight"),
+        )
         return send_file(
             path,
             mimetype="application/pdf",
-            download_name=nombre or f"cuenta-cobro-{compra_id}.pdf",
+            download_name=dl or nombre or f"cuenta-cobro-{compra_id}.pdf",
             as_attachment=True,
         )
+
+    @app.route("/app/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
+    @app.route("/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
+    def api_compras_exterior_cuentas_cobro_reset():
+        """Borra todas (o ids) las cuentas de cobro de compras exterior."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import resetear_cuentas_cobro_compras_exterior
+
+        body = request.get_json(silent=True) or {}
+        ids = body.get("compra_ids") or body.get("ids")
+        compra_ids = None
+        if ids is not None:
+            try:
+                compra_ids = [int(x) for x in ids]
+            except (TypeError, ValueError):
+                return jsonify({"error": "compra_ids inválidos"}), 400
+        return jsonify(resetear_cuentas_cobro_compras_exterior(compra_ids=compra_ids))
 
     @app.route("/app/api/rentabilidad/compras-exterior/borradores", methods=["GET"])
     @app.route("/api/rentabilidad/compras-exterior/borradores", methods=["GET"])
@@ -6590,6 +6679,223 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # ── Extractos bancarios (vínculo con ingresos/egresos) ─────────────────────
+
+    @app.route("/api/contabilidad/extractos", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos", methods=["GET"])
+    def api_contabilidad_extractos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.extracto_bancario import listar_extractos
+
+            return jsonify({"extractos": listar_extractos()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/consultar", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/consultar", methods=["GET"])
+    def api_contabilidad_extractos_consultar():
+        """Consulta líneas del extracto por concepto y suma débitos/créditos."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        concepto = (request.args.get("concepto") or request.args.get("q") or "").strip()
+        extracto_id = None
+        raw_ex = (request.args.get("extracto_id") or "").strip()
+        if raw_ex:
+            try:
+                extracto_id = int(raw_ex)
+            except ValueError:
+                return jsonify({"error": "extracto_id inválido"}), 400
+        try:
+            limit = int(request.args.get("limit") or 500)
+        except ValueError:
+            limit = 500
+        try:
+            from app.services.extracto_bancario import consultar_por_concepto
+
+            return jsonify(consultar_por_concepto(
+                concepto, extracto_id=extracto_id, limit=limit
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos", methods=["POST"])
+    def api_contabilidad_extractos_upload():
+        """Sube CSV/Excel/PDF de extracto bancario y persiste las líneas."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("archivo") or request.files.get("file")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe CSV/Excel/PDF en multipart «archivo»"}), 400
+        nombre = archivo.filename
+        ext = (nombre.rsplit(".", 1)[-1] if "." in nombre else "").lower()
+        if ext not in {"csv", "xlsx", "xlsm", "txt", "tsv", "pdf"}:
+            return jsonify({"error": "Formatos: .csv, .xlsx, .txt, .tsv, .pdf"}), 400
+        contenido = archivo.read()
+        if not contenido:
+            return jsonify({"error": "Archivo vacío"}), 400
+        # PDF de extracto suele ser más pesado que CSV
+        max_bytes = 15 * 1024 * 1024 if ext == "pdf" else 8 * 1024 * 1024
+        if len(contenido) > max_bytes:
+            return jsonify({
+                "error": f"Archivo demasiado grande (máx {max_bytes // (1024 * 1024)} MB)",
+            }), 400
+        banco = (request.form.get("banco") or "").strip()
+        cuenta = (request.form.get("cuenta") or "").strip()
+        notas = (request.form.get("notas") or "").strip()
+        nombre_extracto = (
+            request.form.get("nombre")
+            or request.form.get("nombre_extracto")
+            or request.form.get("titulo")
+            or ""
+        ).strip()
+        try:
+            from app.services.contabilidad_ledger import invalidar_cache_libro
+            from app.services.extracto_bancario import importar_extracto
+
+            extracto = importar_extracto(
+                contenido,
+                nombre,
+                banco=banco,
+                cuenta=cuenta,
+                notas=notas,
+                nombre=nombre_extracto,
+            )
+            invalidar_cache_libro()
+            return jsonify({"ok": True, "extracto": extracto})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/<int:extracto_id>/nombre", methods=["PATCH", "POST"])
+    @app.route("/app/api/contabilidad/extractos/<int:extracto_id>/nombre", methods=["PATCH", "POST"])
+    def api_contabilidad_extractos_renombrar(extracto_id: int):
+        """Guarda/actualiza el nombre del extracto en la base de datos."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or request.form.get("nombre") or "").strip()
+        try:
+            from app.services.extracto_bancario import renombrar_extracto
+
+            row = renombrar_extracto(extracto_id, nombre)
+            if not row:
+                return jsonify({"error": "Extracto no encontrado"}), 404
+            return jsonify({"ok": True, "extracto": row})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/<int:extracto_id>", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/<int:extracto_id>", methods=["GET"])
+    def api_contabilidad_extractos_get(extracto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        solo = (request.args.get("solo_sin_vincular") or "").strip() in ("1", "true", "yes")
+        try:
+            from app.services.extracto_bancario import obtener_extracto
+
+            data = obtener_extracto(extracto_id, solo_sin_vincular=solo)
+            if not data:
+                return jsonify({"error": "No encontrado"}), 404
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/<int:extracto_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/extractos/<int:extracto_id>", methods=["DELETE"])
+    def api_contabilidad_extractos_delete(extracto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_ledger import invalidar_cache_libro
+            from app.services.extracto_bancario import eliminar_extracto
+
+            ok = eliminar_extracto(extracto_id)
+            if not ok:
+                return jsonify({"error": "No encontrado"}), 404
+            invalidar_cache_libro()
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/vincular", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos/vincular", methods=["POST"])
+    def api_contabilidad_extractos_vincular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.contabilidad_ledger import invalidar_cache_libro
+            from app.services.extracto_bancario import vincular
+
+            vinculo = vincular(
+                int(data.get("extracto_mov_id") or 0),
+                str(data.get("movimiento_id") or ""),
+                notas=str(data.get("notas") or ""),
+            )
+            invalidar_cache_libro()
+            return jsonify({"ok": True, "vinculo": vinculo})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/desvincular", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos/desvincular", methods=["POST"])
+    def api_contabilidad_extractos_desvincular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.contabilidad_ledger import invalidar_cache_libro
+            from app.services.extracto_bancario import desvincular
+
+            vid = data.get("vinculo_id")
+            ok = desvincular(
+                vinculo_id=int(vid) if vid is not None else None,
+                movimiento_id=str(data.get("movimiento_id") or "") or None,
+            )
+            if not ok:
+                return jsonify({"error": "Vínculo no encontrado"}), 404
+            invalidar_cache_libro()
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/candidatos", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/candidatos", methods=["GET"])
+    def api_contabilidad_extractos_candidatos():
+        """Candidatos de extracto para un movimiento del libro (fecha/monto/tipo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        fecha = (request.args.get("fecha") or "").strip()
+        tipo = (request.args.get("tipo") or "").strip()
+        try:
+            monto = float(request.args.get("monto") or 0)
+        except ValueError:
+            return jsonify({"error": "monto inválido"}), 400
+        if not fecha or tipo not in ("ingreso", "egreso"):
+            return jsonify({"error": "Parámetros: fecha, tipo (ingreso|egreso), monto"}), 400
+        try:
+            from app.services.extracto_bancario import candidatos_para_movimiento
+
+            return jsonify(
+                {
+                    "candidatos": candidatos_para_movimiento(
+                        fecha=fecha, monto=monto, tipo_libro=tipo
+                    )
+                }
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/cuentas-cobro/sincronizar", methods=["POST"])
     @app.route("/app/api/contabilidad/cuentas-cobro/sincronizar", methods=["POST"])
     def api_contabilidad_cuentas_cobro_sync():
@@ -6625,6 +6931,24 @@ def register_routes(app):
         u, ver_todo = _servicios_actor()
         uid = int(u["id"]) if u else None
         return jsonify({"servicios": listar_servicios(usuario_id=uid, ver_todo=ver_todo)})
+
+    @app.route("/api/servicios/sync-gmail", methods=["POST"])
+    @app.route("/app/api/servicios/sync-gmail", methods=["POST"])
+    def api_servicios_sync_gmail():
+        """Escanea Gmail McKenna por recibos de suscripción y carga Operativos→Servicios."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u, ver_todo = _servicios_actor()
+        if not ver_todo:
+            return jsonify({"error": "Solo admin puede sincronizar suscripciones desde Gmail"}), 403
+        try:
+            from app.services.servicios_gmail import sincronizar_suscripciones_gmail
+
+            body = request.get_json(silent=True) or {}
+            newer = (body.get("newer_than") or "3y").strip() or "3y"
+            return jsonify(sincronizar_suscripciones_gmail(newer_than=newer))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/servicios", methods=["POST"])
     def api_servicios_save():
@@ -7254,6 +7578,136 @@ def register_routes(app):
             return jsonify({"total": total, "by_status": by_status, "by_shipping": by_ship})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    # ── Empaque / evidencia fotográfica (Jenifer, Víctor, Stella) ───────────
+
+    def _empaque_usuario_actor() -> tuple[str, int | None]:
+        """Nombre + id del operador (JWT tickets) o 'panel' si solo hay CHAT token."""
+        u = _panel_tickets_usuario()
+        if u and u.get("id"):
+            return str(u.get("nombre") or u.get("username") or "operador"), int(u["id"])
+        if chat_api_token_matches_request():
+            return "panel", None
+        return "desconocido", None
+
+    @app.route("/api/empaque/ventas")
+    @app.route("/app/api/empaque/ventas")
+    def api_empaque_ventas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.empaque_evidencia import listar_ventas
+
+            dias = request.args.get("dias", 7)
+            canal = (request.args.get("canal") or "").strip() or None
+            q = (request.args.get("q") or "").strip()
+            solo = (request.args.get("solo_sin_evidencia") or "").lower() in ("1", "true", "yes")
+            data = listar_ventas(canal=canal, dias=int(dias or 7), q=q, solo_sin_evidencia=solo)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e), "ventas": [], "total": 0}), 500
+
+    @app.route("/api/empaque/ventas/<canal>/<path:venta_id>/evidencias", methods=["GET"])
+    @app.route("/app/api/empaque/ventas/<canal>/<path:venta_id>/evidencias", methods=["GET"])
+    def api_empaque_listar_evidencias(canal, venta_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.empaque_evidencia import listar_evidencias
+
+        return jsonify({"evidencias": listar_evidencias(canal, venta_id)})
+
+    @app.route("/api/empaque/ventas/<canal>/<path:venta_id>/evidencias", methods=["POST"])
+    @app.route("/app/api/empaque/ventas/<canal>/<path:venta_id>/evidencias", methods=["POST"])
+    def api_empaque_subir_evidencia(canal, venta_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        f = request.files.get("foto") or request.files.get("file") or request.files.get("imagen")
+        if not f or not getattr(f, "filename", None):
+            return jsonify({"error": "Adjunta una foto (campo foto)."}), 400
+        nota = (request.form.get("nota") or request.form.get("comentario") or "").strip()
+        try:
+            from app.services.empaque_evidencia import guardar_archivo_upload, registrar_evidencia
+
+            archivo = guardar_archivo_upload(f)
+            actor, actor_id = _empaque_usuario_actor()
+            ev = registrar_evidencia(
+                canal,
+                venta_id,
+                archivo,
+                nota=nota,
+                subido_por=actor,
+                subido_por_id=actor_id,
+            )
+            return jsonify({"ok": True, "evidencia": ev}), 201
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/empaque/evidencias/<int:evidencia_id>", methods=["DELETE"])
+    @app.route("/app/api/empaque/evidencias/<int:evidencia_id>", methods=["DELETE"])
+    def api_empaque_borrar_evidencia(evidencia_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.empaque_evidencia import eliminar_evidencia
+
+        ok, msg = eliminar_evidencia(evidencia_id)
+        return jsonify({"ok": ok, "message": msg}), (200 if ok else 404)
+
+    @app.route("/api/empaque/whatsapp", methods=["POST"])
+    @app.route("/app/api/empaque/whatsapp", methods=["POST"])
+    def api_empaque_crear_wa():
+        """Registra un pedido WhatsApp manual para subir evidencia de empaque."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        try:
+            from app.services.empaque_evidencia import crear_venta_wa
+
+            actor, actor_id = _empaque_usuario_actor()
+            venta = crear_venta_wa(
+                cliente=str(body.get("cliente") or body.get("nombre") or ""),
+                telefono=str(body.get("telefono") or body.get("wa") or ""),
+                productos=body.get("productos") or body.get("items") or body.get("detalle") or "",
+                total=body.get("total"),
+                notas=str(body.get("notas") or ""),
+                creado_por=actor,
+                creado_por_id=actor_id,
+            )
+            return jsonify({"ok": True, "venta": venta}), 201
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/empaque/uploads/<path:filename>")
+    @app.route("/app/api/empaque/uploads/<path:filename>")
+    def api_empaque_serve_upload(filename):
+        autorizado = _api_token_valido()
+        if not autorizado:
+            tok = (request.args.get("token") or "").strip()
+            if tok:
+                try:
+                    from app.services.tickets_db import get_usuario_by_token as _gut
+                    from app.api_auth import normalize_api_token, chat_api_token_expected
+                    import hmac as _hmac
+
+                    nt = normalize_api_token(tok)
+                    expected = chat_api_token_expected()
+                    if expected and _hmac.compare_digest(nt, expected):
+                        autorizado = True
+                    elif _gut(nt) is not None:
+                        autorizado = True
+                except Exception:
+                    autorizado = False
+        if not autorizado:
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.empaque_evidencia import UPLOADS_DIR, ruta_upload_segura
+
+        safe = ruta_upload_segura(filename)
+        if not safe:
+            return jsonify({"error": "Archivo no encontrado"}), 404
+        return send_from_directory(UPLOADS_DIR, os.path.basename(safe))
 
     # ── Sistema: servicios y repositorio ───────────────────────────────────
 

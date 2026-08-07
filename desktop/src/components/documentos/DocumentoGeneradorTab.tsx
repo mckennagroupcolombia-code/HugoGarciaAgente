@@ -618,7 +618,7 @@ export default function DocumentoGeneradorTab({
                         <span className="text-[10px] font-medium">Sin cabezote</span>
                       </div>
                     ) : (
-                      <div className="relative h-16 w-full bg-white">
+                      <div className="relative h-16 w-full bg-white mck-paper-white">
                         <img
                           src={imgSrc}
                           alt={c.nombre}
@@ -688,7 +688,7 @@ export default function DocumentoGeneradorTab({
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(null); }}
-                            className="rounded-md border border-border bg-white px-2.5 py-1 text-[10px] text-ink hover:border-accent"
+                            className="rounded-md border border-border bg-surface-input px-2.5 py-1 text-[10px] text-ink hover:border-accent"
                           >
                             Cancelar
                           </button>
@@ -747,7 +747,7 @@ export default function DocumentoGeneradorTab({
             tabIndex={-1}
           >
             <div
-              className="relative max-w-[85vw] rounded-2xl bg-white p-6 shadow-2xl"
+              className="relative max-w-[85vw] rounded-2xl bg-white mck-paper-white p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted">
@@ -936,7 +936,7 @@ export default function DocumentoGeneradorTab({
             <iframe
               title="Vista previa PDF"
               src={`${previewUrl}#toolbar=1&navpanes=0`}
-              className="flex-1 w-full border-0 bg-white"
+              className="flex-1 w-full border-0 bg-white mck-paper-white"
             />
           </div>
         </div>

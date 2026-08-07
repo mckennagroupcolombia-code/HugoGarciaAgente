@@ -138,7 +138,7 @@ export function EtiquetaTextoToolbar({
           disabled={disabled}
           value={color}
           onChange={(e) => onPatch({ color: e.target.value })}
-          className="h-7 w-8 cursor-pointer rounded border border-border bg-white p-0 disabled:cursor-not-allowed"
+          className="h-7 w-8 cursor-pointer rounded border border-border bg-surface-input p-0 disabled:cursor-not-allowed"
         />
       </label>
 
@@ -170,7 +170,7 @@ export function EtiquetaTextoToolbar({
             const v = parseFloat(e.target.value);
             if (Number.isFinite(v)) onPatch({ interlineado: Math.max(0.6, Math.min(2.2, v)) });
           }}
-          className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+          className="w-14 rounded border border-border bg-surface-input px-1 py-0.5 font-mono text-[10px] text-ink"
         />
       </label>
 
@@ -187,7 +187,7 @@ export function EtiquetaTextoToolbar({
             const v = parseFloat(e.target.value);
             if (Number.isFinite(v)) onPatch({ interletrado: Math.max(-1.5, Math.min(8, v)) });
           }}
-          className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+          className="w-14 rounded border border-border bg-surface-input px-1 py-0.5 font-mono text-[10px] text-ink"
         />
       </label>
 
@@ -267,7 +267,7 @@ export function EtiquetaTextoToolbar({
                 const x = parseFloat(e.target.value);
                 if (Number.isFinite(x)) onPatch({ x });
               }}
-              className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+              className="w-14 rounded border border-border bg-surface-input px-1 py-0.5 font-mono text-[10px] text-ink"
             />
           </label>
           <label className="flex items-center gap-1 text-[10px]">
@@ -281,7 +281,7 @@ export function EtiquetaTextoToolbar({
                 const y = parseFloat(e.target.value);
                 if (Number.isFinite(y)) onPatch({ y });
               }}
-              className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+              className="w-14 rounded border border-border bg-surface-input px-1 py-0.5 font-mono text-[10px] text-ink"
             />
           </label>
         </>

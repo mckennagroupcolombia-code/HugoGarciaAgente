@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { api } from "../api/client";
 import { usePanelTheme } from "../stores/panelTheme";
-import { datos_emisor_label } from "./cuentaCobroLabels";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { datos_emisor_documento, datos_emisor_label } from "./cuentaCobroLabels";
 
 export type CuentaCobroTipo = "mercancia" | "flete";
 
@@ -85,7 +86,7 @@ type Props = {
 
 /**
  * Formato en pantalla de cuenta de cobro para aprobar.
- * Concepto / liquidación por producto adquirido + cuota 5% (o flete aparte).
+ * Concepto / liquidación por producto adquirido + cuota % editable (o flete aparte).
  */
 export default function CuentaCobroAprobacion({
   compra,
@@ -95,20 +96,35 @@ export default function CuentaCobroAprobacion({
   compact,
 }: Props) {
   const accentRgb = usePanelTheme((s) => s.accentRgb);
+  const emisorUser = useTicketsAuth((s) => s.user);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [pctEdit, setPctEdit] = useState(() =>
+    String(compra.cuota_pct != null && compra.cuota_pct > 0 ? compra.cuota_pct : 5),
+  );
 
   const esFlete = tipo === "flete";
-  const pct = compra.cuota_pct ?? 5;
-  const valor = compra.valor_compra_cop ?? 0;
-  const cuota = compra.cuota_manejo_cop ?? 0;
-  const fleteCop = compra.flete_cobro_cop ?? 0;
-  const total = esFlete ? fleteCop : (compra.total_cobro_cop ?? valor + cuota);
+  const emisorNombre = (emisorUser?.nombre || "").trim() || datos_emisor_label();
+  const emisorDoc =
+    (emisorUser?.documento_identidad || "").trim() || datos_emisor_documento();
+  const pctNum = useMemo(() => {
+    const v = Number(String(pctEdit).replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) return compra.cuota_pct ?? 5;
+    return Math.min(v, 100);
+  }, [pctEdit, compra.cuota_pct]);
 
   const productos = useMemo(
     () => productosConValorCop(compra.lineas, compra.moneda, compra.trm),
     [compra.lineas, compra.moneda, compra.trm],
   );
+
+  const valor =
+    compra.valor_compra_cop && compra.valor_compra_cop > 0
+      ? compra.valor_compra_cop
+      : productos.reduce((a, p) => a + p.valorCop, 0);
+  const cuota = esFlete ? 0 : Math.round(valor * (pctNum / 100));
+  const fleteCop = compra.flete_cobro_cop ?? 0;
+  const total = esFlete ? fleteCop : Math.round((valor + cuota) * 100) / 100;
 
   const pendiente = esFlete
     ? compra.cuenta_flete_pendiente ||
@@ -127,12 +143,22 @@ export default function CuentaCobroAprobacion({
     : `CC-CE-${String(compra.id).padStart(5, "0")}`;
 
   const aprobar = async () => {
+    if (!emisorDoc) {
+      setErr("Completa tu documento de identidad en Mi perfil antes de aprobar.");
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
+      const body: Record<string, string | number> = {
+        accent_rgb: accentRgb,
+        tipo,
+      };
+      if (!esFlete) body.cuota_pct = pctNum;
+      if (emisorUser?.id) body.emisor_usuario_id = emisorUser.id;
       const res = await api.post<{ ok: boolean; historial: CuentaCobroDatos }>(
         `/api/rentabilidad/compras-exterior/${compra.id}/cuenta-cobro`,
-        { accent_rgb: accentRgb, tipo },
+        body,
       );
       onAprobada?.(res.historial);
     } catch (e: unknown) {
@@ -165,7 +191,10 @@ export default function CuentaCobroAprobacion({
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Emisor</p>
-            <p className="font-semibold">{datos_emisor_label()}</p>
+            <p className="font-semibold">{emisorNombre}</p>
+            <p className="text-[11px] text-muted font-mono">
+              {emisorDoc ? `CC/NIT ${emisorDoc}` : "Sin documento en perfil"}
+            </p>
           </div>
           <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Dirigida a</p>
@@ -178,20 +207,8 @@ export default function CuentaCobroAprobacion({
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Concepto</p>
             <p className="text-[12px] leading-relaxed text-ink-secondary">
-              Reembolso del flete / envío
-              {compra.proveedor ? (
-                <>
-                  {" "}
-                  (<span className="font-medium text-ink">{compra.proveedor}</span>)
-                </>
-              ) : null}
-              {compra.flete
-                ? ` · ${compra.flete} ${compra.moneda_flete || compra.moneda || ""}`
-                : ""}
-              {compra.trm && (compra.moneda_flete || compra.moneda || "").toUpperCase() !== "COP"
-                ? ` · TRM ${compra.trm}`
-                : ""}
-              . Cuenta aparte de los productos.
+              Reembolso de flete / envío de la compra exterior
+              {compra.proveedor ? ` · ${compra.proveedor}` : ""}.
             </p>
           </div>
         ) : (
@@ -205,7 +222,7 @@ export default function CuentaCobroAprobacion({
                     {productos.map((p) => p.etiqueta).join("; ")}
                   </span>
                   . Incluye cuota de manejo del{" "}
-                  <span className="font-semibold text-accent">{pct}%</span> sobre el valor de los
+                  <span className="font-semibold text-accent">{pctNum}%</span> sobre el valor de los
                   productos
                   {compra.proveedor ? ` · ${compra.proveedor}` : ""}
                   {compra.moneda ? ` · ${compra.moneda}` : ""}
@@ -217,10 +234,30 @@ export default function CuentaCobroAprobacion({
               ) : (
                 <>
                   Adquisición de productos y cuota de manejo del{" "}
-                  <span className="font-semibold text-accent">{pct}%</span>.
+                  <span className="font-semibold text-accent">{pctNum}%</span>.
                 </>
               )}
             </p>
+            {(pendiente || aprobada) && (
+              <label className="mt-2 flex items-center gap-2 text-[11px]">
+                <span className="font-bold text-muted">Cuota manejo %</span>
+                <input
+                  type="number"
+                  min={0.01}
+                  max={100}
+                  step="0.1"
+                  value={pctEdit}
+                  disabled={busy}
+                  onChange={(e) => setPctEdit(e.target.value)}
+                  onBlur={() => {
+                    const v = Number(String(pctEdit).replace(",", "."));
+                    if (!Number.isFinite(v) || v <= 0) setPctEdit("5");
+                    else if (v > 100) setPctEdit("100");
+                  }}
+                  className="w-20 rounded-lg border border-border bg-surface-input px-2 py-1 font-mono text-xs"
+                />
+              </label>
+            )}
           </div>
         )}
 
@@ -263,7 +300,7 @@ export default function CuentaCobroAprobacion({
                   )}
                   <tr className="border-t border-border/70">
                     <td className="px-3 py-2">
-                      Cuota de manejo (<span className="text-accent">{pct}%</span>)
+                      Cuota de manejo (<span className="text-accent">{pctNum}%</span>)
                     </td>
                     <td className="px-3 py-2 text-right font-mono font-semibold">
                       {fmtCop(cuota)}
@@ -282,12 +319,17 @@ export default function CuentaCobroAprobacion({
         </div>
 
         {err && <p className="text-[11px] text-danger">{err}</p>}
+        {pendiente && !emisorDoc && (
+          <p className="text-[11px] text-amber-700 dark:text-amber-300">
+            Ve a Mi perfil y guarda tu documento de identidad para poder generar la cuenta de cobro.
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {pendiente && (
             <button
               type="button"
-              disabled={busy || total <= 0}
+              disabled={busy || total <= 0 || !emisorDoc}
               onClick={() => void aprobar()}
               className="rounded-lg border-2 border-accent px-4 py-2 text-xs font-bold text-accent hover:bg-surface-hover disabled:opacity-40"
             >
@@ -310,12 +352,12 @@ export default function CuentaCobroAprobacion({
               )}
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !emisorDoc}
                 onClick={() => void aprobar()}
                 className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted hover:text-ink"
-                title="Vuelve a generar el PDF con el acento actual del tema"
+                title="Vuelve a generar el PDF con el % y el acento actuales"
               >
-                {busy ? "…" : "Regenerar con tema actual"}
+                {busy ? "…" : "Regenerar PDF"}
               </button>
             </>
           )}

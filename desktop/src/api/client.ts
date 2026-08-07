@@ -199,22 +199,52 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 
   /** Envía FormData (multipart). No pone Content-Type; el browser lo añade con el boundary correcto. */
-  upload: async <T>(path: string, form: FormData): Promise<T> => {
+  upload: async <T>(
+    path: string,
+    form: FormData,
+    options?: { timeoutMs?: number },
+  ): Promise<T> => {
     const token = panelBearerToken();
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     let url = resolvePanelApiUrl(path, "POST");
     const headers: Record<string, string> = token
       ? { Authorization: `Bearer ${token}` }
       : {};
-    let res = await fetch(url, { method: "POST", headers, body: form });
-    // SPA/proxy puede devolver 404/405 en /app/api; reintentar el otro prefijo
-    if (
-      (res.status === 404 || res.status === 405) &&
-      origin &&
-      path.startsWith("/api/")
-    ) {
-      const alt = alternateMutatingApiUrl(url, path, "POST", origin);
-      if (alt) res = await fetch(alt, { method: "POST", headers, body: form });
+    const ms = options?.timeoutMs;
+    const ctrl = ms && ms > 0 ? new AbortController() : null;
+    const tid =
+      ctrl && ms ? window.setTimeout(() => ctrl.abort(), ms) : null;
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: form,
+        signal: ctrl?.signal,
+      });
+      // SPA/proxy puede devolver 404/405 en /app/api; reintentar el otro prefijo
+      if (
+        (res.status === 404 || res.status === 405) &&
+        origin &&
+        path.startsWith("/api/")
+      ) {
+        const alt = alternateMutatingApiUrl(url, path, "POST", origin);
+        if (alt) {
+          res = await fetch(alt, {
+            method: "POST",
+            headers,
+            body: form,
+            signal: ctrl?.signal,
+          });
+        }
+      }
+    } catch (e) {
+      if (ctrl?.signal.aborted) {
+        throw new Error("La solicitud tardó demasiado (timeout). Intente de nuevo.");
+      }
+      throw e;
+    } finally {
+      if (tid != null) window.clearTimeout(tid);
     }
     if (res.status === 401) throw new Error("No autorizado");
     if (!res.ok) {

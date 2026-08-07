@@ -21,6 +21,9 @@ export interface TicketsUser {
   nombre: string;
   username: string;
   email?: string | null;
+  telefono?: string | null;
+  /** CC/NIT para cuentas de cobro (emisor). */
+  documento_identidad?: string | null;
   activo: number;
   foto?: string | null;
   rol: TicketsRol | null;

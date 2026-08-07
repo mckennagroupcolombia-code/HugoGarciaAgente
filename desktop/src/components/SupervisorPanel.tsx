@@ -241,7 +241,7 @@ function TabCuenta() {
               <img
                 src={status.qr_data_url}
                 alt="QR para vincular WhatsApp supervisor"
-                className="rounded-xl border border-border bg-white p-3 max-w-[280px] w-full"
+                className="rounded-xl border border-border bg-surface-input p-3 max-w-[280px] w-full"
               />
               <p className="text-[11px] text-muted text-center">
                 El código se actualiza solo. Esta vista se refresca cada 2.5 segundos.

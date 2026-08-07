@@ -2390,7 +2390,7 @@ export default function VisualCanvasEditor({
                               onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                             >
                               <span
-                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white mck-paper-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
                                 style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
                               />
                             </button>
@@ -2408,7 +2408,7 @@ export default function VisualCanvasEditor({
                               onPointerDown={(e) => onPointerDownEl(e, el, "resize-line-end")}
                             >
                               <span
-                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+                                className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white mck-paper-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
                                 style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
                               />
                             </button>

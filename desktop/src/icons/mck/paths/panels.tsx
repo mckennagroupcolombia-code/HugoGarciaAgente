@@ -89,6 +89,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M3 5h2l2 9h10l2-6H7" />
     </>
   ),
+  empaque: (
+    <>
+      <path d="M4 8l8-4 8 4v8l-8 4-8-4V8z" />
+      <path d="M12 4v16M4 8l8 4 8-4" />
+      <circle cx="15" cy="11" r="1.5" />
+    </>
+  ),
   facturas: (
     <>
       <path d="M7 4h10v16l-2-1-2 1-2-1-2 1-2-1V4z" />

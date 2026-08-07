@@ -752,6 +752,13 @@ def _migrate_usuario_telefono():
         db.commit()
 
 
+def _migrate_usuario_documento_identidad():
+    """CC/NIT del operador para cuentas de cobro (emisor en PDF)."""
+    with _conn() as db:
+        _add_col(db, "usuarios", "documento_identidad", "TEXT")
+        db.commit()
+
+
 def _migrate_pendientes():
     """Tabla de pendientes personales con recordatorio opcional."""
     with _conn() as db:
@@ -927,6 +934,7 @@ def init_db():
     _safe_migrate(_migrate_usuario_preferencias_ui)
     _safe_migrate(_migrate_usuario_departamentos)
     _safe_migrate(_migrate_usuario_telefono)
+    _safe_migrate(_migrate_usuario_documento_identidad)
     _safe_migrate(_migrate_ticket_protocolo_id)
     _safe_migrate(_migrate_protocolos_alcance)
     _safe_migrate(_migrate_ticket_subtipo)
@@ -1350,7 +1358,8 @@ def eliminar_nota(nota_id: int, usuario_id: int) -> bool:
 def _usuario_full(db, user_id: int) -> dict | None:
     import json as _json
     row = db.execute("""
-        SELECT u.id, u.nombre, u.username, u.email, u.telefono, u.activo, u.creado_en, u.foto,
+        SELECT u.id, u.nombre, u.username, u.email, u.telefono, u.documento_identidad,
+               u.activo, u.creado_en, u.foto,
                u.permisos_secciones, u.preferencias_ui,
                r.id as rol_id, r.nombre as rol_nombre, r.nivel as rol_nivel,
                d.id as dept_id, d.nombre as dept_nombre, d.color as dept_color
@@ -1391,6 +1400,7 @@ def _usuario_full(db, user_id: int) -> dict | None:
         "username": row["username"],
         "email":    row["email"],
         "telefono": row["telefono"],
+        "documento_identidad": row["documento_identidad"],
         "activo":   row["activo"],
         "creado_en": row["creado_en"],
         "foto":     row["foto"],
@@ -1474,6 +1484,11 @@ def get_usuario_by_token(token: str) -> dict | None:
             db.commit()
             return None
         return _usuario_full(db, row["usuario_id"])
+
+
+def get_usuario_by_id(user_id: int) -> dict | None:
+    with _conn() as db:
+        return _usuario_full(db, int(user_id))
 
 
 def logout_usuario(token: str):
@@ -1817,11 +1832,15 @@ def actualizar_usuario(user_id: int, data: dict) -> tuple:
     import json as _json
     campos = {k: v for k, v in data.items()
               if k in ("nombre", "username", "rol_id", "departamento_id", "activo", "email",
-                       "telefono", "permisos_secciones")}
+                       "telefono", "documento_identidad", "permisos_secciones")}
     if "telefono" in campos:
         from app.services.tickets_notificaciones import normalizar_telefono_wa
         raw = campos.get("telefono")
         campos["telefono"] = normalizar_telefono_wa(str(raw or "")) or None
+    if "documento_identidad" in campos:
+        raw_doc = str(campos.get("documento_identidad") or "").strip()
+        doc = "".join(raw_doc.split())
+        campos["documento_identidad"] = doc or None
     if "email" in campos and campos["email"]:
         campos["email"] = campos["email"].strip().lower()
     if "permisos_secciones" in campos:

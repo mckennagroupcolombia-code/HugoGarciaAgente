@@ -293,7 +293,7 @@ function AsaRedimension({
       onPointerDown={onPointerDown}
     >
       <span
-        className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
+        className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white mck-paper-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
         style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
       />
     </button>
@@ -1148,7 +1148,7 @@ export function EtiquetaDiagramacionWorkspace({
       <div className={panelExterno ? "flex min-h-full w-full items-center justify-center" : "flex min-h-full items-center justify-center"}>
         <div
           ref={containerRef}
-          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-paper-sm ${FUENTE_ETIQUETA} ${
+          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white mck-paper-white shadow-paper-sm ${FUENTE_ETIQUETA} ${
             variant === "inline" ? "" : "mx-auto max-w-[920px]"
           }`}
           style={{
@@ -1441,14 +1441,14 @@ export function EtiquetaDiagramacionWorkspace({
             value={editorTexto.getTexto(datos)}
             onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
             rows={editorTexto.filas ?? 3}
-            className="mt-1 w-full resize-y rounded border border-border bg-white p-2 text-xs leading-snug"
+            className="mt-1 w-full resize-y rounded border border-border bg-surface-input p-2 text-xs leading-snug text-ink"
           />
         ) : (
           <input
             type="text"
             value={editorTexto.getTexto(datos)}
             onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
-            className="mt-1 w-full rounded border border-border bg-white px-2 py-1.5 text-xs"
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
           />
         )}
         {seleccionado.id === "codigo_verificacion" && datos.sku && (
@@ -1619,7 +1619,7 @@ export function EtiquetaDiagramacionWorkspace({
                     patchDiagramacion(diagramacion, seleccionado.id, { color: e.target.value }),
                   )
                 }
-                className="h-7 w-10 shrink-0 cursor-pointer rounded border border-border bg-white p-0"
+                className="h-7 w-10 shrink-0 cursor-pointer rounded border border-border bg-surface-input p-0"
               />
               <input
                 type="text"
@@ -1632,7 +1632,7 @@ export function EtiquetaDiagramacionWorkspace({
                     );
                   }
                 }}
-                className="min-w-0 flex-1 rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                className="min-w-0 flex-1 rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
               />
             </label>
 
@@ -1654,7 +1654,7 @@ export function EtiquetaDiagramacionWorkspace({
                       }),
                     );
                   }}
-                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                  className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                 />
               </label>
               {seleccionado.id === "b1" && (
@@ -1675,7 +1675,7 @@ export function EtiquetaDiagramacionWorkspace({
                       );
                       onPatchDatos?.({ b1_ancho_pct: pct });
                     }}
-                    className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                    className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                   />
                 </label>
               )}
@@ -1696,7 +1696,7 @@ export function EtiquetaDiagramacionWorkspace({
                       onPatchDatos(editorTexto.patchTexto(e.target.value, datos))
                     }
                     rows={editorTexto.filas ?? 3}
-                    className="mt-0.5 w-full resize-y rounded border border-border bg-white p-1.5 text-[10px] leading-snug"
+                    className="mt-0.5 w-full resize-y rounded border border-border bg-surface-input p-1.5 text-[10px] leading-snug text-ink"
                   />
                 ) : (
                   <input
@@ -1705,7 +1705,7 @@ export function EtiquetaDiagramacionWorkspace({
                     onChange={(e) =>
                       onPatchDatos(editorTexto.patchTexto(e.target.value, datos))
                     }
-                    className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 text-[10px]"
+                    className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 text-[10px] text-ink"
                   />
                 )}
               </label>
@@ -1725,7 +1725,7 @@ export function EtiquetaDiagramacionWorkspace({
                       patchDiagramacion(diagramacion, seleccionado.id, { x }),
                     );
                   }}
-                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                  className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                 />
               </label>
               <label className="block">
@@ -1741,7 +1741,7 @@ export function EtiquetaDiagramacionWorkspace({
                       patchDiagramacion(diagramacion, seleccionado.id, { y }),
                     );
                   }}
-                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                  className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                 />
               </label>
             </div>
@@ -1792,7 +1792,7 @@ export function EtiquetaDiagramacionWorkspace({
                       patchDiagramacionGraficos(diagramacionGraficos, graficoSel.id, { x }),
                     );
                   }}
-                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                  className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                 />
               </label>
               <label className="block">
@@ -1808,7 +1808,7 @@ export function EtiquetaDiagramacionWorkspace({
                       patchDiagramacionGraficos(diagramacionGraficos, graficoSel.id, { y }),
                     );
                   }}
-                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                  className="mt-0.5 w-full rounded border border-border bg-surface-input px-1.5 py-1 font-mono text-[10px] text-ink"
                 />
               </label>
             </div>

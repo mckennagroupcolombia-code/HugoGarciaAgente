@@ -187,7 +187,7 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
         )}
 
         {/* Preview barcode */}
-        <div className="flex min-h-[56px] items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2 dark:bg-zinc-50">
+        <div className="flex min-h-[56px] items-center justify-center overflow-hidden rounded-xl border border-border bg-white mck-paper-white p-2 dark:bg-zinc-50">
           {esValido && resultado ? (
             <div
               draggable

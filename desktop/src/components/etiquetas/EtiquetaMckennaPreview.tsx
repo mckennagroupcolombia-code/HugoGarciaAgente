@@ -207,7 +207,7 @@ export function EtiquetaMckennaPreview({
 
   const marcoFormatoNode = (content: ReactNode) => (
     <div
-      className="mx-auto shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-md"
+      className="mx-auto shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white mck-paper-white shadow-md"
       style={{ width: canvas.width, height: canvas.height }}
     >
       {content}

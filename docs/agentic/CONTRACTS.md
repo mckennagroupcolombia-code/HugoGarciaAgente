@@ -168,6 +168,22 @@ Endpoints usados por React:
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/stock/relacion-codigos/editar` | POST | `meli_id`, `sku_meli?`, `codigo_siigo?`, `vincular_si_sku?` | Actualiza SKU en MeLi (`SELLER_SKU`) y/o vínculo Siigo; al menos un campo de código |
+
+## Empaque / evidencia fotográfica (panel Atención)
+
+Auth: Bearer `CHAT_API_TOKEN` **o** JWT de tickets (operarios con permiso `empaque`).
+
+| Ruta | Método | Entrada | Salida |
+| --- | --- | --- | --- |
+| `/api/empaque/ventas` | GET | `dias?`, `canal?` (`meli`\|`web`\|`whatsapp`), `q?`, `solo_sin_evidencia?` | `ventas[]` unificadas + `resumen` + `errores` |
+| `/api/empaque/ventas/<canal>/<id>/evidencias` | GET | — | `{ evidencias: [...] }` |
+| `/api/empaque/ventas/<canal>/<id>/evidencias` | POST | multipart `foto` (+ `nota?`) | `{ ok, evidencia }` |
+| `/api/empaque/evidencias/<id>` | DELETE | — | `{ ok, message }` |
+| `/api/empaque/whatsapp` | POST | JSON `cliente`, `telefono?`, `productos?`, `total?` | `{ ok, venta }` |
+| `/api/empaque/uploads/<archivo>` | GET | Bearer o `?token=` | imagen |
+
+Persistencia: `app/data/empaque_evidencia.db` + fotos en `app/data/empaque_uploads/`.
+Panel React: id `empaque` (hub Atención). Permiso `permisos_secciones.empaque`.
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
 | `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea Product inventariable; `{ok, mensaje\|error, siigo_producto?}` |
 | `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Siigo + caché; `{items[{codigo,nombre,type}], total}` |
@@ -202,6 +218,22 @@ Unidad base obligatoria por línea: `ml` | `g` | `un` (detectada del texto: 500m
 El costo guardado es por esa unidad mínima (COP/ml, COP/g o COP/un).
 USD→COP: TRM = tasa representativa BanRep vigente en `fecha_compra` (fuente `banrep`); override manual opcional.
 Descuentos: `descuento_detectado` / `descuento_pct` (pedido) y `descuento` / `descuento_pct` por línea; el costo usa el neto tras descuentos.
+
+## Contabilidad — Ingresos/Egresos + extracto bancario
+
+Prefijos: `/api/contabilidad/*` y `/app/api/contabilidad/*`.
+
+| Endpoint | Método | Auth | Notas |
+| --- | --- | --- | --- |
+| `/api/contabilidad/ingresos-egresos` | GET | Bearer | Query `desde`, `hasta?`, `meli`, `siigo`. Cada movimiento incluye `id` estable y `extracto` (vínculo o null). Totales: `vinculados_extracto`. |
+| `/api/contabilidad/extractos` | GET | Bearer | Lista extractos subidos `{extractos[]}`. |
+| `/api/contabilidad/extractos` | POST | Bearer | Multipart `archivo` (csv/xlsx), opcional `banco`, `cuenta`, `notas`. |
+| `/api/contabilidad/extractos/<id>` | GET/DELETE | Bearer | Detalle con líneas; query `solo_sin_vincular=1`. DELETE elimina archivo + vínculos. |
+| `/api/contabilidad/extractos/vincular` | POST | Bearer | JSON `{extracto_mov_id, movimiento_id, notas?}`. 1:1. |
+| `/api/contabilidad/extractos/desvincular` | POST | Bearer | JSON `{vinculo_id?}` o `{movimiento_id?}`. |
+| `/api/contabilidad/extractos/candidatos` | GET | Bearer | Query `fecha`, `tipo` (ingreso\|egreso), `monto` → líneas sin vincular cercanas. |
+
+Persistencia: tablas `extractos_bancarios`, `extracto_movimientos`, `extracto_vinculos` en `app/data/contabilidad.db`. Archivos en `app/data/extractos_bancarios/`.
 
 ## 5S Panel
 

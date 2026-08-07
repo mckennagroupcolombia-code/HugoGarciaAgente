@@ -1776,7 +1776,48 @@
       "titulo_producto": "Kit Reparador #3 Cosmético  Todo Tipo De Piel",
       "pregunta": "Contienen alcohol?",
       "timestamp": "2026-08-05T23:07:40.836583",
-      "respondida": false
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-08-06"
+    },
+    {
+      "question_id": "13635788827",
+      "titulo_producto": "Ácido Glicólico 50%  30 Ml Todas",
+      "pregunta": "En polvo ?",
+      "timestamp": "2026-08-06T09:57:22.215750",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nNo, nuestro Ácido Glicólico al 50% no viene en presentación de polvo. Se trata de una solución líquida, lista para ser aplicada directamente sobre la piel.\n\nEsta presentación permite que se aplique de manera sencilla con una bola de algodón, como se indica en las recomendaciones de uso, para facilitar la exfoliación de la piel.",
+      "nota": "Auto-marcada respondida por supervisor 2026-08-06"
+    },
+    {
+      "question_id": "13635789595",
+      "titulo_producto": "Ácido Glicólico 50%  30 Ml Todas",
+      "pregunta": "Existe como materia prima en polvo o solo serum ?",
+      "timestamp": "2026-08-06T09:58:43.786819",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nNuestro Ácido Glicólico al 50% se presenta como una solución líquida, no como materia prima en polvo. Está formulado para ser un producto listo para usar directamente sobre la piel.\n\nEsta presentación como solución permite que se aplique de manera sencilla con una bola de algodón, como se indica en el modo de uso, facilitando así el proceso de exfoliación y renovación de la piel.",
+      "nota": "Auto-marcada respondida por supervisor 2026-08-06"
+    },
+    {
+      "question_id": "13635822775",
+      "titulo_producto": "Alginato De Sodio + Cloruro De Calcio 100g C/u",
+      "pregunta": "Necesito únicamente el cloruro de calcio para uso alimenticio. Cómo puedo comprarlo con ustedes?",
+      "timestamp": "2026-08-06T11:26:43.981538",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-08-06"
+    },
+    {
+      "question_id": "13636885926",
+      "titulo_producto": "Maní Tostado Natural 500 G",
+      "pregunta": "Hola. Le agregan aceite vegetal para tostarlo?",
+      "timestamp": "2026-08-06T15:13:43.172537",
+      "respondida": true
+    },
+    {
+      "question_id": "13636890712",
+      "titulo_producto": "Maní Tostado Natural 500 G",
+      "pregunta": "Ok. Muchas gracias. Cuando tienen más unidades ya que dice que solo queda 1?",
+      "timestamp": "2026-08-06T15:19:28.140178",
+      "respondida": true
     }
   ]
 }

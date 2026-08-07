@@ -101,6 +101,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "atencion",
   },
+  empaque: {
+    emoji: "📷",
+    label: "Empaque",
+    description:
+      "Ventas de Mercado Libre, página web y WhatsApp con subida de fotos del paquete listo, para respaldar el despacho ante reclamos por faltantes.",
+    tips: [
+      "Abre la venta, revisa los productos y sube foto del contenido antes de cerrar la caja.",
+      "Filtro 'Solo sin foto' muestra lo que aún falta evidenciar.",
+      "Pedidos WhatsApp que no aparezcan se pueden registrar con '+ Pedido WhatsApp'.",
+    ],
+    tier: "core",
+    category: "atencion",
+  },
 
   // ── Inventario ────────────────────────────────────────────────────────────────
   stock: {
@@ -114,7 +127,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Siigo solo lectura — no recibe stock desde el panel.",
     ],
     tier: "core",
-    category: "tienda",
+    category: "contabilidad",
   },
   etiquetas: {
     emoji: "🏷️",
@@ -140,17 +153,17 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "docs",
   },
 
-  // ── Tienda y taller ───────────────────────────────────────────────────────────
+  // ── Publicaciones (botón individual en el menú) ───────────────────────────────
   publicaciones: {
     emoji: "📢",
     label: "Publicaciones",
-    description: "Contenido publicado en la tienda web y redes sociales. Recetas de formulación, guías de uso y artículos científicos generados por IA.",
+    description: "Catálogo MeLi y tienda web: fotos, textos, sync y republicar publicaciones.",
     tips: [
-      "Las publicaciones se generan automáticamente con IA a partir de ingredientes del catálogo.",
-      "Puedes editar el contenido antes de publicar.",
+      "Edita fichas, fotos y vínculo MeLi desde el catálogo.",
+      "Usa Republicar MeLi / Crear desde cero para altas por política.",
     ],
     tier: "standard",
-    category: "tienda",
+    category: "publicaciones",
   },
 
   sitioweb: {
@@ -288,10 +301,11 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "📒",
     label: "Ingresos / Egresos",
     description:
-      "Tabla contable por fecha: ventas Siigo, MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos y servicios operativos.",
+      "Tabla contable por fecha: ventas Siigo, MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos y servicios operativos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
     tips: [
       "Filtra por rango de fechas y por fuente (MeLi, Siigo, web, compras, cuentas de cobro, operativos).",
       "Mismo concepto el mismo día → una casilla con sumatoria; clic para desplegar el detalle.",
+      "Sube el extracto (CSV/Excel con Fecha + Débito/Crédito) y usa «Vincular» en cada fila; sugiere por monto y fecha.",
       "Las ventas web son pedidos con estado approved en la tienda.",
       "Las cuentas de cobro del correo (p. ej. William) aparecen como egreso aparte.",
     ],
@@ -355,7 +369,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "canales",
   },
 
-  // ── Tienda y taller ───────────────────────────────────────────────────────────
+  // ── Placas (botón individual en el menú) ──────────────────────────────────────
   "placas-concreto": {
     emoji: "🧱",
     label: "Placas de Concreto",
@@ -366,7 +380,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Los resultados en gramos y mililitros quedan listos para pesar directo en la báscula del taller.",
     ],
     tier: "standard",
-    category: "tienda",
+    category: "placas",
   },
 
   // ── Config ────────────────────────────────────────────────────────────────────

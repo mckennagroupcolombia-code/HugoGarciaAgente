@@ -185,6 +185,16 @@ export function handleAppBack(): boolean {
     return true;
   }
 
+  // En celular, desde paneles completos → volver al hub (no salir de la app).
+  if (
+    app.mobileShell === "app"
+    && typeof window !== "undefined"
+    && window.matchMedia("(max-width: 767px)").matches
+  ) {
+    useAppStore.setState({ mobileShell: "hub", panel: "hugo", sidebarOpen: false });
+    return true;
+  }
+
   return false;
 }
 

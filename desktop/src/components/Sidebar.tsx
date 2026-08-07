@@ -193,10 +193,11 @@ export default function Sidebar() {
   return (
     <aside
       className={`
-        mck-sidebar fixed inset-y-0 left-0 z-50 flex w-52 transform flex-col border-r border-border/80 bg-surface-panel/95 backdrop-blur-md
-        transition-transform duration-300 ease-out lg:static lg:translate-x-0
+        mck-sidebar fixed inset-y-0 left-0 z-50 flex w-[min(16.5rem,88vw)] transform flex-col border-r border-border/80 bg-surface-panel/95 backdrop-blur-md
+        transition-transform duration-300 ease-out lg:static lg:w-52 lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="shrink-0 border-b border-border px-3 pb-3 pt-4">
         {user && token ? (

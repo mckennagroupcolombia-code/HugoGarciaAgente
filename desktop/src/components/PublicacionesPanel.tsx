@@ -825,7 +825,7 @@ export function EditorPanel({
             href={data.meli_compliance_reemplazo.url_meli}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg border border-teal-400 bg-white px-3 py-1.5 text-xs font-bold text-teal-900 hover:bg-teal-100"
+            className="inline-flex items-center gap-1 rounded-lg border border-teal-400 bg-surface-input px-3 py-1.5 text-xs font-bold text-teal-900 hover:bg-teal-100 dark:text-teal-200 dark:hover:bg-teal-950/40"
           >
             ↗ Abrir en MeLi y verificar que siga activa
           </a>

@@ -198,7 +198,7 @@ function IaChips({
               className={`rounded border px-2 py-0.5 text-[11px] transition-colors ${
                 activa
                   ? "border-accent bg-accent text-white"
-                  : "border-accent/40 bg-white/50 text-ink hover:border-accent hover:bg-accent/10"
+                  : "border-accent/40 bg-surface-input/50 text-ink hover:border-accent hover:bg-accent/10"
               }`}
             >
               {chip}

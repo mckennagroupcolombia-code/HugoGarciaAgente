@@ -83,3 +83,6 @@
 {"tipo": "revision_diaria", "revisadas": 13, "alertas": 0, "activas": 10, "problemas": 2, "ts": "2026-08-03T08:30:21"}
 {"tipo": "revision_diaria", "revisadas": 13, "alertas": 0, "activas": 11, "problemas": 2, "ts": "2026-08-04T08:30:22"}
 {"tipo": "revision_diaria", "revisadas": 13, "alertas": 0, "activas": 11, "problemas": 2, "ts": "2026-08-05T08:30:30"}
+{"tipo": "revision_diaria", "revisadas": 13, "alertas": 0, "activas": 11, "problemas": 2, "ts": "2026-08-06T08:30:25"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4280551154", "sku": "C-SEMGIR250g", "origen": "desde_cero", "ts": "2026-08-06T13:32:04"}
+{"tipo": "publicacion_nueva", "item_id": "MCO4280551154", "sku": "C-SEMGIR250g", "origen": "", "ts": "2026-08-06T13:32:06"}

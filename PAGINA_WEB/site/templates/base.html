@@ -40,7 +40,7 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260804">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260806a">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260804">
 {% endif %}
@@ -86,6 +86,8 @@ fbq('track','PageView');
 <div class="announcement-bar">
   {% if TEMA_ACTIVO == 'pureza' and TW.anuncio %}
   🌿 {{ TW.anuncio }}
+  {% elif TEMA_ACTIVO == 'clasico' and TC.anuncio %}
+  🌿 {{ TC.anuncio }}
   {% else %}
   🌿 Materias primas farmacéuticas y cosméticas certificadas &nbsp;|&nbsp;
   <strong>Bogotá, Colombia</strong> &nbsp;·&nbsp; Lun–Vie 8:00–17:30

@@ -29,6 +29,11 @@ _CACHE_TTL_S = 90.0
 _libro_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
+def invalidar_cache_libro() -> None:
+    """Limpia caché del libro (tras vincular extracto, sync cobros, etc.)."""
+    _libro_cache.clear()
+
+
 def _segundos_restantes(deadline: float, *, tope: float = 15.0) -> float:
     return max(3.0, min(tope, deadline - time.monotonic()))
 
@@ -715,14 +720,35 @@ def armar_libro(
         reverse=True,
     )
 
+    # Id estable + vínculo a extracto bancario (si existe)
+    try:
+        from app.services.extracto_bancario import (
+            id_movimiento_ledger,
+            mapa_vinculos_por_movimiento,
+        )
+
+        for r in movimientos:
+            r["id"] = id_movimiento_ledger(r)
+        vinculos = mapa_vinculos_por_movimiento([r["id"] for r in movimientos])
+        for r in movimientos:
+            r["extracto"] = vinculos.get(r["id"])
+    except Exception as e:
+        avisos.append(f"Extracto bancario: {e}")
+        for r in movimientos:
+            r.setdefault("id", "")
+            r.setdefault("extracto", None)
+
     total_ing = sum(r["monto"] for r in movimientos if r["tipo"] == "ingreso")
     total_egr = sum(r["monto"] for r in movimientos if r["tipo"] == "egreso")
     por_fuente: dict[str, dict[str, float]] = {}
+    vinculados = 0
     for r in movimientos:
         f = r["fuente"]
         if f not in por_fuente:
             por_fuente[f] = {"ingreso": 0.0, "egreso": 0.0}
         por_fuente[f][r["tipo"]] = round(por_fuente[f][r["tipo"]] + r["monto"], 2)
+        if r.get("extracto"):
+            vinculados += 1
 
     out = {
         "desde": desde,
@@ -733,6 +759,7 @@ def armar_libro(
             "egresos": round(total_egr, 2),
             "neto": round(total_ing - total_egr, 2),
             "cantidad": len(movimientos),
+            "vinculados_extracto": vinculados,
         },
         "por_fuente": por_fuente,
         "avisos": avisos,

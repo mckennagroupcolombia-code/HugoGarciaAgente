@@ -18,20 +18,22 @@ export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
   "studio-web": "palette",
   docs: "file",
   contabilidad: "receipt",
-  tienda: "megaphone",
+  publicaciones: "megaphone",
+  placas: "package",
   sistemas: "monitor",
 };
 
 /** Tooltip al pasar el mouse sobre el botón del hub. */
 export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   inicio: "Agenda del equipo y métricas del día.",
-  atencion: "Preventa MeLi, postventa y pedidos de la tienda web.",
+  atencion: "Preventa MeLi, postventa, pedidos web y evidencia de empaque.",
   canales: "Chat IA, WhatsApp y chat de la página web.",
   diseno: "Etiquetas, plantillas Studio e impresión.",
   "studio-web": "Ajustes visuales de mckennagroup.co desde la app (no desde la página pública).",
   docs: "Fichas técnicas e información científica de ingredientes.",
   contabilidad: "Facturas, sync MeLi↔Siigo, stock, rentabilidad y más.",
-  tienda: "Publicaciones MeLi y herramientas de taller.",
+  publicaciones: "Catálogo MeLi / web: fotos, textos, sync y republicar.",
+  placas: "Calculadora de dosificación para placas de concreto pulido.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
 };
 
@@ -59,11 +61,15 @@ export function itemsVisiblesHub(
   user: TicketsUser | null,
   advanced: boolean,
   puedeVer: (user: TicketsUser | null, seccion: string) => boolean,
+  sectionId?: NavCategory,
 ): NavItemDef[] {
   return items.filter((item) => {
     if (CONTABILIDAD_TAB_OCULTAS.has(item.panel as never)) return false;
     if (!puedeVer(user, item.panel)) return false;
     if (item.tier === "advanced" && !advanced) return false;
+    // Si un panel aparece en dos hubs, navSectionForPanel elige el primero:
+    // no listarlo en el hub “prestado” (evita abrir Contabilidad al entrar a Tienda).
+    if (sectionId && navSectionForPanel(item.panel) !== sectionId) return false;
     return true;
   });
 }
@@ -78,7 +84,7 @@ export function primerPanelHub(
 ): Panel | null {
   const section = NAV_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return null;
-  const visibles = itemsVisiblesHub(section.items, user, advanced, puedeVer);
+  const visibles = itemsVisiblesHub(section.items, user, advanced, puedeVer, sectionId);
   if (!visibles.length) return null;
   if (preferido && visibles.some((i) => i.panel === preferido)) return preferido;
   const last = leerUltimoPanelHub(sectionId);

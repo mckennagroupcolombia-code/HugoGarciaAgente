@@ -682,7 +682,7 @@ function TabCuentaWa() {
               <img
                 src={ses.qr_data_url}
                 alt="Código QR para vincular WhatsApp"
-                className="rounded-xl border border-border bg-white p-3 max-w-[280px] w-full"
+                className="rounded-xl border border-border bg-surface-input p-3 max-w-[280px] w-full"
               />
               <p className="text-[11px] text-muted text-center">
                 El código se actualiza solo. Esta vista se refresca cada pocos segundos.
