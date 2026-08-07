@@ -1,9 +1,9 @@
 {
   "tema_activo": "clasico",
-  "actualizado": "2026-08-04T12:42:08",
+  "actualizado": "2026-08-06T12:40:42",
   "diseno": {
     "fuente_display": "montserrat",
-    "radio": "sharp",
+    "radio": "pill",
     "densidad": "normal",
     "tagline": "Proveemos a tus ideas"
   },
@@ -19,13 +19,120 @@
     ],
     "nodos": {}
   },
+  "layout_clasico": {
+    "orden": [
+      "hero",
+      "features",
+      "categorias",
+      "destacados",
+      "cta"
+    ],
+    "nodos": {
+      "hero.titulo_l1": {
+        "dx": 2,
+        "dy": -4,
+        "scale": 0.8,
+        "height": 16
+      },
+      "hero.titulo_em": {
+        "height": 27
+      }
+    }
+  },
+  "clasico": {
+    "anuncio": "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
+    "hero": {
+      "badge": "Materias Primas Certificadas · Colombia",
+      "titulo_l1": "Materias primas",
+      "titulo_em": "certificadas",
+      "titulo_l2": "para tu industria",
+      "subtitulo": "Farmacéuticas, cosméticas y nutracéuticas. Importadas con visto bueno INVIMA, COA y ficha técnica por lote. Despachos a todo Colombia.",
+      "cta_principal": "Comprar ahora",
+      "cta_secundario": "Pedir cotización",
+      "kit_label": "Por qué elegirnos",
+      "kit": [
+        {
+          "titulo": "Importación 100% Legal",
+          "texto": "Visto Bueno de Importación (VUCE) + COA de laboratorio + Ficha Técnica por lote",
+          "valor": "COA/TDS",
+          "icono": "certificate"
+        },
+        {
+          "titulo": "Despacho Nacional",
+          "texto": "Envíos a todo Colombia con trazabilidad",
+          "valor": "48h",
+          "icono": "package"
+        },
+        {
+          "titulo": "Portafolio Completo",
+          "texto": "+80 referencias disponibles en stock",
+          "valor": "+200",
+          "icono": "flask"
+        },
+        {
+          "titulo": "Asesoría Técnica",
+          "texto": "Equipo especializado en formulación",
+          "valor": "B2B",
+          "icono": "headset"
+        }
+      ]
+    },
+    "features": [
+      {
+        "titulo": "Importación 100% Legal",
+        "texto": "VUCE + COA de laboratorio + Ficha Técnica",
+        "icono": "certificate"
+      },
+      {
+        "titulo": "Despacho Nacional",
+        "texto": "A todo Colombia",
+        "icono": "package"
+      },
+      {
+        "titulo": "Asesoría Técnica",
+        "texto": "Equipo especializado",
+        "icono": "headset"
+      },
+      {
+        "titulo": "Stock Permanente",
+        "texto": "Disponibilidad inmediata",
+        "icono": "clock"
+      }
+    ],
+    "categorias": {
+      "eyebrow": "Nuestro Portafolio",
+      "titulo": "Explora por",
+      "titulo_em": "Categoría",
+      "texto": "Materias primas para la industria farmacéutica, cosmética y alimentaria. Todo con calidad certificada y stock permanente."
+    },
+    "destacados": {
+      "eyebrow": "Productos",
+      "titulo": "Selección",
+      "titulo_em": "Destacada",
+      "texto": "Una muestra de nuestro portafolio con 10% de descuento frente al precio de catálogo."
+    },
+    "cta": {
+      "eyebrow": "Atención Personalizada",
+      "titulo": "¿Necesitas una",
+      "titulo_em": "cotización",
+      "texto": "Nuestro equipo técnico está listo para asesorarte en la selección de materias primas para tu formulación específica.",
+      "boton_wa": "Cotizar por WhatsApp",
+      "boton_contacto": "Formulario de Contacto"
+    },
+    "secciones": {
+      "features": true,
+      "categorias": true,
+      "destacados": true,
+      "cta": true
+    }
+  },
   "pureza": {
     "colores": {
       "acento": "#0c6069",
       "acento_oscuro": "#04353b",
       "fondo": "#f8f6f1",
       "tinta": "#1c2b2a",
-      "destacado": "#02a2a8"
+      "destacado": "#b9862f"
     },
     "anuncio": "Pureza verificada por lote · COA + ficha técnica en cada despacho · Bogotá, Colombia",
     "hero": {

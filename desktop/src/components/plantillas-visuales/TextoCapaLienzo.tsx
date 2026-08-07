@@ -190,7 +190,7 @@ export default function TextoCapaLienzo({
               e.stopPropagation();
               onIniciarEdicion();
             }}
-            className="absolute -right-1 -top-7 z-[10001] rounded border border-[#016d82] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#016d82] shadow"
+            className="absolute -right-1 -top-7 z-[10001] rounded border border-accent bg-surface-panel px-2 py-0.5 text-[10px] font-semibold text-accent shadow"
           >
             Editar
           </button>
@@ -208,7 +208,7 @@ export default function TextoCapaLienzo({
               width: Math.min(flotante.width, window.innerWidth - 24),
               zIndex: 200000,
             }}
-            className="rounded-md border-2 border-[#016d82] bg-white p-2 shadow-2xl"
+            className="rounded-md border-2 border-accent bg-surface-panel p-2 shadow-2xl text-ink"
             onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}

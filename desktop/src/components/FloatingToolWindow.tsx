@@ -15,6 +15,16 @@ const STORAGE_PREFIX = "mckenna.contabilidad.float.";
 function clampRect(r: FloatRect, minW: number, minH: number): FloatRect {
   const maxW = typeof window !== "undefined" ? window.innerWidth : 1200;
   const maxH = typeof window !== "undefined" ? window.innerHeight : 800;
+  // En celular: casi pantalla completa (las ventanas flotantes no caben como en desktop).
+  if (maxW < 768) {
+    const pad = 8;
+    return {
+      x: pad,
+      y: pad,
+      w: Math.max(minW, maxW - pad * 2),
+      h: Math.max(minH, maxH - pad * 2),
+    };
+  }
   const w = Math.min(Math.max(r.w, minW), maxW - 16);
   const h = Math.min(Math.max(r.h, minH), maxH - 16);
   const x = Math.min(Math.max(r.x, 0), Math.max(0, maxW - w));
@@ -213,7 +223,7 @@ export default function FloatingToolWindow({
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
 
       <div
-        className="absolute bottom-0 right-0 z-10 h-4 w-4 cursor-se-resize"
+        className="absolute bottom-0 right-0 z-10 hidden h-4 w-4 cursor-se-resize sm:block"
         onPointerDown={startResize}
         title="Redimensionar"
         aria-label="Redimensionar ventana"

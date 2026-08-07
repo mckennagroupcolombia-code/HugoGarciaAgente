@@ -178,6 +178,7 @@ const TIPO_SERVICIO_LABELS: Record<string, string> = {
   telefono: "Teléfono",
   internet: "Internet",
   gas: "Gas",
+  saas: "Suscripción / SaaS",
   otro: "Otro",
 };
 
@@ -1405,6 +1406,8 @@ export function TabServicios() {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [syncingGmail, setSyncingGmail] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -1426,6 +1429,41 @@ export function TabServicios() {
     void cargar();
   };
 
+  const syncGmail = async () => {
+    setSyncingGmail(true);
+    setSyncMsg(null);
+    try {
+      const r = await api.post<{
+        ok?: boolean;
+        error?: string;
+        email?: string;
+        servicios_creados?: number;
+        pagos_nuevos?: number;
+        pagos_omitidos?: number;
+        sin_monto?: number;
+        proveedores_con_hits?: Array<{ empresa: string; encontrados: number; pagos_nuevos: number }>;
+      }>("/api/servicios/sync-gmail", {});
+      if (r.error) {
+        setSyncMsg(r.error);
+        return;
+      }
+      const hits = (r.proveedores_con_hits ?? [])
+        .map((p) => `${p.empresa} (${p.pagos_nuevos}/${p.encontrados})`)
+        .join(", ");
+      setSyncMsg(
+        `Gmail ${r.email ?? ""}: +${r.servicios_creados ?? 0} servicios, +${r.pagos_nuevos ?? 0} pagos`
+          + (r.pagos_omitidos ? `, ${r.pagos_omitidos} ya existían` : "")
+          + (r.sin_monto ? `, ${r.sin_monto} sin monto parseable` : "")
+          + (hits ? `. Hits: ${hits}` : "."),
+      );
+      void cargar();
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : "Error al sincronizar Gmail");
+    } finally {
+      setSyncingGmail(false);
+    }
+  };
+
   const grupos = useMemo(() => {
     const g: Record<string, Servicio[]> = {};
     for (const s of servicios) {
@@ -1437,13 +1475,32 @@ export function TabServicios() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">Contratos de servicios públicos y pagos recurrentes.</p>
-        <button type="button" onClick={() => setShowForm((v) => !v)}
-          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
-          {showForm ? "Cancelar" : "+ Agregar servicio"}
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted">
+          Servicios públicos, suscripciones SaaS y pagos recurrentes (Gmail McKenna).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void syncGmail()}
+            disabled={syncingGmail}
+            className="rounded-paper border-2 border-border bg-surface px-4 py-2 text-sm font-bold text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+            title="Lee recibos de Starlink, Cursor, OpenAI, Google, Cloudflare, etc."
+          >
+            {syncingGmail ? "Escaneando Gmail…" : "↻ Sync Gmail suscripciones"}
+          </button>
+          <button type="button" onClick={() => setShowForm((v) => !v)}
+            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
+            {showForm ? "Cancelar" : "+ Agregar servicio"}
+          </button>
+        </div>
       </div>
+
+      {syncMsg && (
+        <p className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs text-ink-secondary">
+          {syncMsg}
+        </p>
+      )}
 
       {showForm && <FormServicio onGuardar={guardarServicio} onCancelar={() => setShowForm(false)} />}
       {loading && <p className="text-sm text-muted">Cargando…</p>}

@@ -91,7 +91,7 @@ function SelectorMarcoGHS({
           <div className={`flex items-center gap-1 rounded-lg border-2 px-2 py-1.5 transition ${
             noMode
               ? "border-border bg-surface-hover opacity-40"
-              : "border-red-300 bg-white dark:border-red-700 dark:bg-zinc-900"
+              : "border-red-300 bg-surface-input dark:border-red-700"
           }`}>
             <span className={`select-none font-black ${noMode ? "text-muted" : "text-red-700 dark:text-red-400"}`} style={{ fontSize: compact ? 12 : 14 }}>
               GHS

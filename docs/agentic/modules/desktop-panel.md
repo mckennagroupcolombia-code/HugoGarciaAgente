@@ -19,6 +19,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Mutaciones pueden usar `/app/api/...` para evitar proxies que devuelven HTML.
 - Auth usa Bearer `CHAT_API_TOKEN`.
 - Cambios en endpoint deben reflejarse en hook/tipo UI.
+- Panel `empaque` (Atención): ventas MeLi/web/WA + fotos en `/api/empaque/*`; permiso `permisos_secciones.empaque`.
 
 ## Riesgos
 

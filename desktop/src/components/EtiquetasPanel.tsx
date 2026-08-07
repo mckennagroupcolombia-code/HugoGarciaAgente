@@ -1679,7 +1679,7 @@ function MarcoRedimensionable({
           onMouseDown={(e) => onRedimensionar(e, a.id)}
         >
           <span
-            className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
+            className="pointer-events-none block shrink-0 rounded-[0.5px] border border-[#016d82]/90 bg-white mck-paper-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.9)]"
             style={estiloNodoVisualAsa(a.id)}
           />
         </button>
@@ -3521,7 +3521,7 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
                     value={span.texto_editado}
                     onChange={(e) => updateSpan(span.id, e.target.value)}
                     rows={span.texto_editado.split("\n").length}
-                    className="w-full rounded border border-border bg-white px-2 py-1 text-xs text-ink outline-none focus:border-accent resize-none font-mono leading-relaxed"
+                    className="w-full rounded border border-border bg-surface-input px-2 py-1 text-xs text-ink outline-none focus:border-accent resize-none font-mono leading-relaxed"
                     style={{ minHeight: "28px" }}
                   />
                   {modificado && (

@@ -657,7 +657,13 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
 
 // ── PerfilTab ──────────────────────────────────────────────────────────────────
 
-function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => void; onNavigateTo: (p: Panel) => void }) {
+function PerfilTab({
+  onSwitchDesktop,
+  onNavigateTo,
+}: {
+  onSwitchDesktop: () => void;
+  onNavigateTo: (p: Panel) => void;
+}) {
   const { user, token } = useTicketsAuth();
 
   return (
@@ -686,7 +692,12 @@ function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => v
         {[
           { icon: "nut" as UiIconName, label: "Ajustes y preferencias", action: () => onNavigateTo("settings") },
           { icon: "user" as UiIconName, label: "Mi perfil", action: () => onNavigateTo("perfil") },
-          { icon: "monitor" as UiIconName, label: "Cambiar a vista escritorio", action: onSwitchDesktop },
+          {
+            icon: "monitor" as UiIconName,
+            label: "Abrir todos los paneles",
+            action: () => onNavigateTo("dashboard"),
+          },
+          { icon: "monitor" as UiIconName, label: "Forzar vista escritorio", action: onSwitchDesktop },
         ].map((item, i) => (
           <button
             key={i}
@@ -765,7 +776,14 @@ function FAB({ onClick }: { onClick: () => void }) {
 
 // ── MobileHub ──────────────────────────────────────────────────────────────────
 
-export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
+export default function MobileHub({
+  onSwitchDesktop,
+  onOpenPanel,
+}: {
+  onSwitchDesktop: () => void;
+  /** Abre Layout responsive (paneles completos) sin forzar modo escritorio. */
+  onOpenPanel?: () => void;
+}) {
   const { user, token, apiToken } = useTicketsAuth();
   const setPanel = useAppStore((s) => s.setPanel);
   const tab = useAppStore((s) => s.mobileTab);
@@ -779,9 +797,9 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
     if (p === "hugo" || p === "tickets") {
       setTab("chat");
     } else {
-      onSwitchDesktop();
+      onOpenPanel?.();
     }
-  }, [setPanel, onSwitchDesktop, setTab]);
+  }, [setPanel, onOpenPanel, setTab]);
 
   function openSheet(cat = "") {
     setSheetCat(cat);
@@ -825,7 +843,12 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
         )}
         {tab === "chat" && <ChatTab />}
         {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} user={user} onNavigateTo={navigateTo} />}
-        {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
+        {tab === "yo" && (
+          <PerfilTab
+            onSwitchDesktop={onSwitchDesktop}
+            onNavigateTo={navigateTo}
+          />
+        )}
       </div>
 
       {/* FAB — only on home & acciones */}

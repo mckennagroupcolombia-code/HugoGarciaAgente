@@ -35,8 +35,8 @@ export default function HubNavTabs({
   const section = NAV_SECTIONS.find((s) => s.id === sectionId);
   const tabs = useMemo(() => {
     if (!section) return [];
-    return itemsVisiblesHub(section.items, user, advanced, puedeVerSeccionPanel);
-  }, [section, user, advanced]);
+    return itemsVisiblesHub(section.items, user, advanced, puedeVerSeccionPanel, sectionId);
+  }, [section, sectionId, user, advanced]);
 
   const activo = tabs.find((t) => t.panel === panel || (t.panel === "hugo" && panel === "tickets"));
   const subpanelId = activo?.panel ?? tabs[0]?.panel;
@@ -56,6 +56,11 @@ export default function HubNavTabs({
 
   if (!tabs.length) {
     return leading ? <div className="flex min-w-0 flex-1 items-center">{leading}</div> : null;
+  }
+
+  // Secciones individuales (1 panel): el botón del menú basta; no mostrar pestaña duplicada.
+  if (tabs.length === 1 && !leading) {
+    return null;
   }
 
   return (

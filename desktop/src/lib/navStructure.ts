@@ -15,7 +15,8 @@ export type NavCategory =
   | "studio-web"
   | "docs"
   | "contabilidad"
-  | "tienda"
+  | "publicaciones"
+  | "placas"
   | "sistemas";
 
 export interface NavItemDef {
@@ -52,6 +53,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "preventa", tier: "core" },
       { panel: "postventa", tier: "core" },
       { panel: "pedidos", tier: "core" },
+      { panel: "empaque", tier: "core" },
     ],
   },
   {
@@ -97,14 +99,17 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     ),
   },
   {
-    id: "tienda",
-    label: "Tienda y taller",
+    // Individual (como Diseño / Docs): no agrupado en "Tienda y taller".
+    id: "publicaciones",
+    label: "Publicaciones",
     hub: true,
-    items: [
-      { panel: "stock", tier: "core" },
-      { panel: "publicaciones", tier: "standard" },
-      { panel: "placas-concreto", tier: "standard" },
-    ],
+    items: [{ panel: "publicaciones", tier: "standard" }],
+  },
+  {
+    id: "placas",
+    label: "Placas",
+    hub: true,
+    items: [{ panel: "placas-concreto", tier: "standard" }],
   },
   {
     id: "sistemas",
@@ -134,7 +139,8 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   "studio-web": "Studio web",
   docs: "Docs técnicos",
   contabilidad: "Contabilidad",
-  tienda: "Tienda y taller",
+  publicaciones: "Publicaciones",
+  placas: "Placas",
   sistemas: "Sistemas",
 };
 

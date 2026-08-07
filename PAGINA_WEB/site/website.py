@@ -66,7 +66,7 @@ FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 7       # v7 = evita cruces cuando falta foto SIIGO propia
+CATALOG_CACHE_VERSION = 8       # v8 = agrupa mismo título / distintas presentaciones
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -1351,6 +1351,253 @@ _DEPRIORITIZE_REP_SKU = frozenset(
 _DEPRIORITIZE_REP_PREFIXES = ("ACDHLR",)
 
 
+# Cola de peso/volumen en el nombre SIIGO (presentación comprable).
+_RX_PRESENTATION_TAIL = re.compile(
+    r"(?i)\s*"
+    r"(?:"
+    r"\d+[.,]?\d*\s*(?:ml|mls|cc|g|gr|gramos?|kg|kilos?|l|lt|lts|litros?|lb|lbs|oz|onzas?|gl|gal[oó]n(?:es)?)"
+    r"|"
+    r"(?:kg|lt|lb|gl)\b"
+    r")"
+    r"(?:\s*\+.*)?"
+    r"\s*$"
+)
+_RX_PRESENTATION_LABEL = re.compile(
+    r"(?i)(\d+[.,]?\d*\s*(?:ml|mls|cc|g|gr|gramos?|kg|kilos?|l|lt|lts|litros?|lb|lbs|oz|onzas?|gl|gal[oó]n(?:es)?)"
+    r"|(?:kg|lt|lb|gl)\b)"
+    r"(.*)$"
+)
+_RX_PRESENTATION_SKU = re.compile(
+    r"(?i)(\d+[.,]?\d*)\s*(ml|g|gr|kg|l|lt|lb|oz)\s*$"
+)
+
+
+def _presentation_family_key(nombre: str) -> str:
+    """
+    Clave de agrupación: mismo título sin el tamaño/volumen final.
+    Conserva concentración (%), color y forma (amarilla, refinada, etc.).
+    """
+    n = (nombre or "").strip()
+    n = _RX_PRESENTATION_TAIL.sub("", n).strip()
+    n = n.lower()
+    for a, b in [
+        ("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ü", "u"), ("ñ", "n"),
+    ]:
+        n = n.replace(a, b)
+    n = re.sub(r"[^a-z0-9%\s/+]", " ", n)
+    n = re.sub(r"\s+", " ", n).strip()
+    return n
+
+
+def _presentation_label(nombre: str, sku: str = "") -> str:
+    """Etiqueta corta para el botón: '250mL', '100g', 'Kg', '250mL + pH'."""
+    n = (nombre or "").strip()
+    m = _RX_PRESENTATION_LABEL.search(n)
+    if m:
+        qty = re.sub(r"\s+", "", m.group(1))
+        extra = (m.group(2) or "").strip()
+        # Normaliza unidades frecuentes
+        qty = re.sub(r"(?i)mls?\b", "mL", qty)
+        qty = re.sub(r"(?i)gramos?\b", "g", qty)
+        qty = re.sub(r"(?i)^(\d+[.,]?\d*)gr$", r"\1g", qty)
+        qty = re.sub(r"(?i)litros?\b", "L", qty)
+        qty = re.sub(r"(?i)^(\d+[.,]?\d*)lts?$", r"\1L", qty)
+        if extra:
+            extra = re.sub(r"\s+", " ", extra).strip(" -–+|")
+            return f"{qty} {extra}".strip() if extra else qty
+        return qty
+    ms = _RX_PRESENTATION_SKU.search((sku or "").strip())
+    if ms:
+        unit = ms.group(2).lower()
+        unit = {"ml": "mL", "gr": "g", "lt": "L", "l": "L"}.get(unit, unit)
+        return f"{ms.group(1)}{unit}"
+    return (sku or nombre or "Única").strip()
+
+
+def _presentation_sort_key(combo: dict) -> tuple:
+    """Ordena presentaciones de menor a mayor tamaño; desempate por etiqueta."""
+    label = (combo.get("presentacion_label") or combo.get("name") or "").lower()
+    m = re.search(r"(\d+[.,]?\d*)", label)
+    qty = float(m.group(1).replace(",", ".")) if m else 0.0
+    unit = 0
+    if re.search(r"\b(ml|cc)\b", label):
+        unit = 1
+    elif re.search(r"\b(g|gr)\b", label):
+        unit = 2
+    elif re.search(r"\bkg\b", label):
+        unit = 3
+        qty *= 1000
+    elif re.search(r"\b(l|lt)\b", label):
+        unit = 1
+        qty *= 1000
+    return (unit, qty, label)
+
+
+def _pick_family_rep(combos: list[dict], stem: str | None) -> dict:
+    """Elige la presentación representativa (foto/precio guía) de la familia."""
+    if len(combos) == 1:
+        return combos[0]
+    preferred = (_PREFERRED_REP_SKU.get(stem or "") or "").upper()
+    if preferred:
+        for c in combos:
+            if (c.get("ref") or "").upper() == preferred:
+                return c
+    ranked = []
+    for c in combos:
+        ref_u = (c.get("ref") or "").upper()
+        score = 0
+        if c.get("photo"):
+            score += 50
+        if c.get("buyable", True):
+            score += 20
+        if ref_u in _DEPRIORITIZE_REP_SKU:
+            score -= 40
+        if any(ref_u.startswith(p) for p in _DEPRIORITIZE_REP_PREFIXES):
+            score -= 30
+        # Prefiere tamaños medios (evita 10mL y envases industriales como guía)
+        lab = (c.get("presentacion_label") or "").lower()
+        m = re.search(r"(\d+[.,]?\d*)", lab)
+        if m:
+            q = float(m.group(1).replace(",", "."))
+            if 50 <= q <= 500:
+                score += 10
+        ranked.append((score, c))
+    ranked.sort(key=lambda x: -x[0])
+    return ranked[0][1]
+
+
+def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
+    """Una ficha de catálogo con N presentaciones comprables (botones en detalle)."""
+    for c in combos:
+        c["presentacion_label"] = _presentation_label(c.get("name", ""), c.get("ref", ""))
+    annotated = sorted(combos, key=_presentation_sort_key)
+
+    stem = _family_stem(annotated[0].get("ref", ""), annotated[0].get("name", ""))
+    rep = _pick_family_rep(annotated, stem)
+    prices = [float(c.get("precio_num") or 0) for c in annotated if float(c.get("precio_num") or 0) > 0]
+    min_price = min(prices) if prices else float(rep.get("precio_num") or 0)
+    max_price = max(prices) if prices else min_price
+
+    fam_key = _presentation_family_key(rep.get("name", ""))
+    canon = _canonical_family_slug(stem) if stem else None
+    base_slug = canon or _slug_from_key(fam_key) or rep.get("slug") or "producto"
+    slug = base_slug
+    n = 0
+    while slug in used_slugs:
+        n += 1
+        slug = f"{base_slug}-{n}"
+    used_slugs.add(slug)
+
+    display_name = _display_family_name(rep.get("name", ""), stem)
+    if not display_name or display_name == rep.get("name"):
+        # Título limpio sin tamaño
+        cleaned = _RX_PRESENTATION_TAIL.sub("", rep.get("name", "")).strip()
+        display_name = _finalize_catalog_name(cleaned) or display_name
+
+    combo_summaries = []
+    label_counts: dict[str, int] = {}
+    for c in annotated:
+        lab = c.get("presentacion_label") or c.get("ref") or ""
+        label_counts[lab] = label_counts.get(lab, 0) + 1
+    for c in annotated:
+        lab = c.get("presentacion_label") or c.get("ref") or ""
+        if label_counts.get(lab, 0) > 1:
+            # Misma presentación aparente, distinto SKU (variantes SIIGO)
+            c["presentacion_label"] = f"{lab} · {c.get('ref', '')}"
+        c["family_slug"] = slug
+        c["has_siblings"] = True
+        combo_summaries.append({
+            "name": c.get("name", ""),
+            "ref": c.get("ref", ""),
+            "slug": c.get("slug", ""),
+            "precio": c.get("precio", "—"),
+            "precio_meli": c.get("precio_meli", "—"),
+            "precio_num": c.get("precio_num", 0),
+            "lista_num": c.get("lista_num", 0),
+            "ahorro": c.get("ahorro", "—"),
+            "ahorro_num": c.get("ahorro_num", 0),
+            "stock": c.get("stock"),
+            "buyable": c.get("buyable", True),
+            "presentacion_label": c.get("presentacion_label", ""),
+            "photo": c.get("photo", ""),
+            "meli_id": c.get("meli_id", ""),
+        })
+
+    any_buyable = any(c.get("buyable", True) for c in annotated)
+    family = {
+        "name": display_name,
+        "ref": rep.get("ref", ""),
+        "rep_sku": rep.get("ref", ""),
+        "slug": slug,
+        "family_slug": slug,
+        "precio": (
+            f"Desde {_fmt_precio(min_price)}" if len(annotated) > 1 and min_price > 0
+            else rep.get("precio", "—")
+        ),
+        "precio_meli": rep.get("precio_meli", "—"),
+        "precio_num": round(min_price, 2),
+        "lista_num": rep.get("lista_num", 0),
+        "precio_meli_num": rep.get("precio_meli_num", rep.get("lista_num", 0)),
+        "ahorro": rep.get("ahorro", "—"),
+        "ahorro_num": rep.get("ahorro_num", 0),
+        "envio_gratis_web": True,
+        "envio_referencia": rep.get("envio_referencia"),
+        "precio_canal_label": "Directo web",
+        "photo": rep.get("photo", "") or next((c.get("photo") for c in annotated if c.get("photo")), ""),
+        "meli_id": rep.get("meli_id", ""),
+        "cat": rep.get("cat", "Otros"),
+        "cat_color": rep.get("cat_color", CAT_COLORS.get("Otros", "#2E8B7A")),
+        "desc": rep.get("desc", ""),
+        "ficha": rep.get("ficha") or next((c.get("ficha") for c in annotated if c.get("ficha")), None),
+        "solo_vitrina": False,
+        "stock": rep.get("stock"),
+        "buyable": any_buyable,
+        "is_combo": False,
+        "is_family": True,
+        "n_presentaciones": len(annotated),
+        "precio_max_num": round(max_price, 2),
+        "combos": combo_summaries,
+        "photo_match_type": rep.get("photo_match_type", ""),
+        "photo_match_score": rep.get("photo_match_score", 0),
+    }
+    return family
+
+
+def _agrupar_combos_por_presentacion(
+    combo_flat: list[dict], used_slugs: set[str]
+) -> list[dict]:
+    """
+    Agrupa combos SIIGO con el mismo título (distinto tamaño) en una ficha.
+    Combos únicos quedan como tarjeta is_combo individual.
+    """
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for c in combo_flat:
+        key = _presentation_family_key(c.get("name", ""))
+        if not key or len(key) < 3:
+            key = f"sku:{(c.get('ref') or '').lower()}"
+        groups[key].append(c)
+
+    cards: list[dict] = []
+    for key, items in groups.items():
+        # Deduplicar por ref por si SIIGO devolvió duplicados
+        by_ref: dict[str, dict] = {}
+        for it in items:
+            by_ref[(it.get("ref") or "").upper()] = it
+        unique = list(by_ref.values())
+        if len(unique) >= 2:
+            cards.append(_build_family_card(unique, used_slugs))
+        else:
+            only = unique[0]
+            only["family_slug"] = only.get("slug", "")
+            only["has_siblings"] = False
+            only["presentacion_label"] = _presentation_label(
+                only.get("name", ""), only.get("ref", "")
+            )
+            only["is_family"] = False
+            cards.append(only)
+    return cards
+
+
 def _display_family_name(nombre: str, sku_stem: str | None = None) -> str:
     if sku_stem and sku_stem in _CANONICAL_FAMILY_TITLE:
         return _CANONICAL_FAMILY_TITLE[sku_stem]
@@ -1758,7 +2005,11 @@ def leer_catalogo() -> tuple[list, list]:
         used_slugs.add(slug)
         combo["slug"] = slug
         combo["family_slug"] = slug
-        families_by_cat[combo["cat"]].append(combo)
+
+    # Agrupa mismo título / distintas presentaciones → una ficha + botones
+    catalog_cards = _agrupar_combos_por_presentacion(combo_flat, used_slugs)
+    for card in catalog_cards:
+        families_by_cat[card.get("cat") or "Otros"].append(card)
 
     orden = [cat for _, cat in CATEGORY_MAP] + ["Saborizantes", "Otros"]
     seen_ord, orden_final = set(), []
@@ -1777,7 +2028,11 @@ def leer_catalogo() -> tuple[list, list]:
             result.append({"name": cat, "products": sorted(prods, key=lambda p: p["name"].lower())})
 
     total_f = sum(len(s["products"]) for s in result)
-    log.info(f"Catálogo listo: {len(result)} categorías, {total_f} combos SIIGO publicados")
+    n_fam = sum(1 for s in result for p in s["products"] if p.get("is_family"))
+    log.info(
+        "Catálogo listo: %s categorías, %s fichas (%s con varias presentaciones), %s combos SIIGO",
+        len(result), total_f, n_fam, len(combo_flat),
+    )
     return result, combo_flat
 
 
@@ -1795,7 +2050,12 @@ def _rebuild_product_index(data: list, combo_flat: list) -> None:
         for p in s["products"]:
             _product_index[p["slug"].lower()] = p
     for c in combo_flat:
-        _product_index[c["slug"].lower()] = c
+        # Los combos individuales siguen resolubles (carrito / enlaces viejos),
+        # pero no pisan la ficha de familia si comparten slug.
+        sl = c["slug"].lower()
+        if sl not in _product_index:
+            _product_index[sl] = c
+        # Índice por family_slug ya apunta a la ficha agrupada.
 
 
 def get_catalog(force=False) -> list:
@@ -2254,9 +2514,11 @@ def _inject_tema_web():
     return {
         "TEMA_ACTIVO": tema_web_activo(),
         "TW": cfg.get("pureza", {}),
+        "TC": cfg.get("clasico", {}),
         "DISENO": cfg.get("diseno", {}),
         "DISENO_CSS": resolver_diseno_css(cfg),
         "LAYOUT": resolver_layout_ctx(cfg),
+        "LAYOUT_CLASICO": resolver_layout_ctx(cfg, key="layout_clasico"),
         "TEMA_PREVIEW": session.get("vista_tema") or "",
     }
 
@@ -2347,13 +2609,58 @@ def producto(slug):
     p = find_product(slug)
     if not p:
         abort(404)
+
+    # Si entraron por un combo hermano, redirigir a la ficha de familia con ?pres=
+    if (
+        p.get("is_combo")
+        and p.get("has_siblings")
+        and p.get("family_slug")
+        and p["family_slug"] != p.get("slug")
+    ):
+        fam = _product_index.get(str(p["family_slug"]).lower())
+        if fam and fam.get("is_family") and len(fam.get("combos") or []) > 1:
+            return redirect(
+                url_for("producto", slug=fam["slug"], pres=p.get("slug", "")),
+                code=302,
+            )
+
+    # Familia: aplicar presentación seleccionada (?pres=slug-combo)
+    selected = None
+    if p.get("is_family") and p.get("combos"):
+        pres = (request.args.get("pres") or "").strip().lower()
+        if pres:
+            selected = next(
+                (c for c in p["combos"] if (c.get("slug") or "").lower() == pres),
+                None,
+            )
+        if not selected:
+            # Primera comprable, o la primera
+            selected = next(
+                (c for c in p["combos"] if c.get("buyable", True)),
+                p["combos"][0],
+            )
+        p = dict(p)
+        p["selected_combo"] = selected
+        p["ref"] = selected.get("ref") or p.get("ref")
+        p["precio"] = selected.get("precio") or p.get("precio")
+        p["precio_meli"] = selected.get("precio_meli") or p.get("precio_meli")
+        p["precio_num"] = selected.get("precio_num", p.get("precio_num"))
+        p["ahorro"] = selected.get("ahorro") or p.get("ahorro")
+        p["stock"] = selected.get("stock")
+        p["buyable"] = selected.get("buyable", True)
+        if selected.get("photo"):
+            p["photo"] = selected["photo"]
+        if selected.get("meli_id"):
+            p["meli_id"] = selected["meli_id"]
+
     catalog = get_catalog()
     cat_name = p.get("cat") or ""
     my_slug = p.get("slug", "")
+    my_family = p.get("family_slug") or my_slug
     relacionados = [
         x for s in catalog if s["name"] == cat_name
         for x in s["products"]
-        if x.get("slug") != my_slug
+        if x.get("slug") != my_slug and x.get("family_slug", x.get("slug")) != my_family
     ][:4]
     fotos = _fotos_de_producto(p)
     return render_template("producto.html",
@@ -2677,6 +2984,9 @@ def carrito_agregar():
     p = find_product(slug)
     if not p:
         abort(404)
+    if p.get("is_family"):
+        flash("Elija una presentación en la ficha del producto.", "error")
+        return redirect(url_for("producto", slug=p.get("slug", slug)))
     if not p.get("buyable"):
         log.warning("Carrito: SKU no comprable (agotado o solo vitrina): %s", slug)
         flash(f"{p.get('name', 'Ese producto')} está agotado temporalmente.", "error")

@@ -733,7 +733,7 @@ export function EtiquetasStudioCatalogo({
             return (
               <div
                 key={nombre}
-                className={`group relative flex flex-col overflow-hidden rounded-lg border bg-white ${
+                className={`group relative flex flex-col overflow-hidden rounded-lg border bg-surface-panel ${
                   activo ? "border-accent ring-2 ring-accent/40" : "border-accent-plum/30"
                 }`}
               >

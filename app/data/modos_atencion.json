@@ -7,7 +7,11 @@
     "573104578432@c.us",
     "174869778043120@lid",
     "573053106833@c.us",
-    "112000482979882@lid"
+    "112000482979882@lid",
+    "573176789726@c.us",
+    "161366233059508@lid",
+    "28166664024064@lid",
+    "573013633487@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -18,48 +22,72 @@
     "573104578432@c.us": 1785864435.0379915,
     "174869778043120@lid": 1785864435.0379915,
     "573053106833@c.us": 1785968225.364691,
-    "112000482979882@lid": 1785968225.364691
+    "112000482979882@lid": 1785968225.364691,
+    "573176789726@c.us": 1786028319.2275686,
+    "161366233059508@lid": 1786028319.2275686,
+    "28166664024064@lid": 1786049717.1288345,
+    "573013633487@c.us": 1786049717.1288345
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1785763204.6081574,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "web-93bf8bf2-9c0d-4b3e-a005-df7282b00629": {
       "timestamp": 1785792216.2140527,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "83679015608440@lid": {
       "timestamp": 1785793922.457864,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "573197731558@c.us": {
       "timestamp": 1785793922.457864,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "573104578432@c.us": {
       "timestamp": 1785864435.0379915,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "174869778043120@lid": {
       "timestamp": 1785864435.0379915,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "573053106833@c.us": {
       "timestamp": 1785968225.364691,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
     },
     "112000482979882@lid": {
       "timestamp": 1785968225.364691,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Bogot\u00e1"
+      "ultimo_mensaje": "y los otros?"
+    },
+    "573176789726@c.us": {
+      "timestamp": 1786028319.2275686,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "y los otros?"
+    },
+    "161366233059508@lid": {
+      "timestamp": 1786028319.2275686,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "y los otros?"
+    },
+    "28166664024064@lid": {
+      "timestamp": 1786049717.1288345,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "y los otros?"
+    },
+    "573013633487@c.us": {
+      "timestamp": 1786049717.1288345,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "y los otros?"
     }
   },
   "bot_global_activo": false,

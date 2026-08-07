@@ -886,6 +886,7 @@ interface UserInfo {
   username: string;
   email?: string | null;
   telefono?: string | null;
+  documento_identidad?: string | null;
   activo: number;
   foto?: string | null;
   rol: { id: number; nombre: string; nivel: number } | null;
@@ -5421,7 +5422,7 @@ function NotaAccionInline({
         }}
         placeholder="Anota ideas, pendientes, observaciones…"
         rows={4}
-        className="w-full resize-none rounded-xl border border-accent/50  bg-white/70  px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-accent/50  transition-colors"
+        className="w-full resize-none rounded-xl border border-accent/50 bg-surface-input/70 px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-accent/50  transition-colors"
       />
     </div>
   );
@@ -5800,6 +5801,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       departamentos_ids: form.departamentos_ids || [],
       permisos_secciones: form.permisos_secciones || null,
       telefono: (form.telefono || "").trim() || null,
+      documento_identidad: (form.documento_identidad || "").replace(/\s+/g, "").trim() || null,
     };
     try {
       if (editItem) {
@@ -6229,6 +6231,16 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   </p>
                 </div>
                 <div>
+                  <Field
+                    label="Documento identidad (cuentas de cobro) *"
+                    value={form.documento_identidad || ""}
+                    onChange={(v) => setForm({ ...form, documento_identidad: v })}
+                  />
+                  <p className="mt-0.5 text-[10px] text-muted">
+                    CC o NIT sin espacios — se imprime en cuentas de cobro del perfil
+                  </p>
+                </div>
+                <div>
                   <label className="mb-1 block text-xs font-bold text-muted">Rol *</label>
                   <select value={form.rol_id || ""} onChange={(e) => setForm({ ...form, rol_id: parseInt(e.target.value) })}
                     className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent">
@@ -6276,6 +6288,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "fichas",    label: "Fichas técnicas" },
                     { id: "publicaciones", label: "Publicaciones" },
                     { id: "pedidos",   label: "Pedidos Web" },
+                    { id: "empaque",   label: "Empaque · Evidencia" },
                     { id: "logistica-internacional", label: "Logística Internacional" },
                     { id: "etiquetas", label: "Impresora · Etiquetas" },
                     { id: "tickets",   label: "Agenda" },
@@ -6341,7 +6354,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                         Escribe el nombre <span className="font-mono">"{editItem.nombre}"</span> para confirmar
                       </label>
                       <input
-                        className="w-full rounded-paper border-2 border-red-300 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-red-500"
+                        className="w-full rounded-paper border-2 border-red-300 bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-red-500"
                         placeholder="Nombre del usuario…"
                         value={deleteUserConfirm}
                         onChange={(e) => setDeleteUserConfirm(e.target.value)}
@@ -6602,7 +6615,7 @@ function PasoNotaPostit({
             readOnly={readonly}
             rows={4}
             autoFocus={!readonly}
-            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
+            className="w-full resize-y rounded border border-accent/80 bg-surface-input/80 px-2 py-1.5 text-xs text-ink placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
             placeholder="Detalle, tips o contexto del paso…"
             value={noteDraft}
             onChange={(e) => onNoteDraftChange(e.target.value)}
@@ -6612,7 +6625,7 @@ function PasoNotaPostit({
               <button
                 type="button"
                 onClick={onToggle}
-                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5"
+                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent"
               >
                 Cancelar
               </button>
@@ -6620,7 +6633,7 @@ function PasoNotaPostit({
                 type="button"
                 onClick={onSave}
                 disabled={saving}
-                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50  dark:bg-accent"
+                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-white hover:bg-accent disabled:opacity-50 dark:bg-accent"
               >
                 {saving ? "..." : "Guardar"}
               </button>
@@ -7963,7 +7976,7 @@ function MaterialesSection({
                             readOnly={readonly}
                             rows={4}
                             autoFocus={!readonly}
-                            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
+                            className="w-full resize-y rounded border border-accent/80 bg-surface-input/80 px-2 py-1.5 text-xs text-ink placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent   dark:placeholder:text-accent/30"
                             placeholder="Observación sobre este material en la etapa..."
                             value={noteDraft}
                             onChange={(e) => setNoteDraft(e.target.value)}
@@ -7973,7 +7986,7 @@ function MaterialesSection({
                               <button
                                 type="button"
                                 onClick={() => toggleMaterialNote(it)}
-                                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5"
+                                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent"
                               >
                                 Cancelar
                               </button>
@@ -7981,7 +7994,7 @@ function MaterialesSection({
                                 type="button"
                                 onClick={() => saveMaterialNote(it.id)}
                                 disabled={saving}
-                                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50  dark:bg-accent"
+                                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-white hover:bg-accent disabled:opacity-50 dark:bg-accent"
                               >
                                 {saving ? "..." : "Guardar"}
                               </button>
@@ -10880,7 +10893,7 @@ function MisionDetailView({
             </div>
 
             {prod ? (
-              <div className="flex items-center gap-3 rounded-paper border border-accent/30 bg-white px-4 py-3  dark:bg-surface-input">
+              <div className="flex items-center gap-3 rounded-paper border border-accent/30 bg-surface-input px-4 py-3">
                 <div className="flex-1">
                   <p className="font-bold text-sm text-ink">{prod.nombre}</p>
                   <p className="text-xs text-muted">Stock actual: <span className="font-bold text-accent">{prod.stock_actual} {prod.unidad}</span></p>
@@ -23187,7 +23200,7 @@ function BolsilloSeguro({ token }: { token: string }) {
           <div className="space-y-2">
             {notas.map((n) => (
               <button key={n.id} type="button" onClick={() => abrirNota(n)}
-                className="w-full text-left rounded-xl border border-accent/20  bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-accent/40 active:scale-[0.98]">
+                className="w-full text-left rounded-xl border border-accent/20 bg-surface-input px-3 py-2.5 space-y-0.5 transition hover:border-accent/40 active:scale-[0.98]">
                 <p className="text-sm font-bold text-ink truncate">{n.titulo || <span className="text-muted italic">Sin título</span>}</p>
                 {n.contenido && (
                   <p className="text-xs text-muted line-clamp-2 font-mono">{n.contenido}</p>
@@ -23227,14 +23240,14 @@ function BolsilloSeguro({ token }: { token: string }) {
             placeholder="Título de la nota"
             value={notaActiva.titulo}
             onChange={(e) => onCambioNota("titulo", e.target.value)}
-            className="w-full rounded-xl border-2 border-accent/20  bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-accent/40 focus:outline-none"
+            className="w-full rounded-xl border-2 border-accent/20 bg-surface-input px-3 py-2 text-sm font-bold text-ink focus:border-accent/40 focus:outline-none"
           />
           <textarea
             rows={10}
             placeholder="Contenido confidencial…"
             value={notaActiva.contenido}
             onChange={(e) => onCambioNota("contenido", e.target.value)}
-            className="w-full resize-none rounded-xl border-2 border-accent/20  bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-accent/40 focus:outline-none font-mono leading-relaxed"
+            className="w-full resize-none rounded-xl border-2 border-accent/20 bg-surface-input px-3 py-2.5 text-sm text-ink focus:border-accent/40 focus:outline-none font-mono leading-relaxed"
           />
         </div>
       )}
@@ -25115,7 +25128,7 @@ function PanelComprasEjecucion({
           </div>
         )}
         {activos.map(item => (
-          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-accent/50  opacity-70" : "border-gray-200 dark:border-white/10"}`}>
+          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-surface-input transition ${item.comprado ? "border-accent/50  opacity-70" : "border-gray-200 dark:border-white/10"}`}>
             <button type="button" onClick={() => void toggleComprado(item)}
               className={`shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${item.comprado ? "bg-accent/50 border-accent/50 text-white" : "border-gray-300 dark:border-white/20"}`}>
               {item.comprado && <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -25134,7 +25147,7 @@ function PanelComprasEjecucion({
       </div>
 
       {/* Formulario agregar + factura */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe px-4 pt-3 pb-3 space-y-2">
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-surface-panel pb-safe px-4 pt-3 pb-3 space-y-2">
         {/* Fila producto */}
         <div className="flex gap-2">
           <input value={inputNombre} onChange={e => setInputNombre(e.target.value)}
@@ -25540,7 +25553,7 @@ function EjecucionAccionChat({
       </div>
 
       {/* Pie: terminar + input + micrófono */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-surface-panel pb-safe">
       <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
           className="w-full rounded-2xl bg-accent/50 hover:bg-accent/40 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
@@ -25756,7 +25769,7 @@ function RevisionSolicitudView({
       </div>
 
       {/* Pie: confirmar / pedir ajustes */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-4 py-3 pb-safe space-y-2">
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-surface-panel px-4 py-3 pb-safe space-y-2">
         {showRechazo ? (
           <div className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-muted">¿Qué necesita ajustar?</p>
@@ -26295,7 +26308,7 @@ function ResolverActividadChat({
 
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
-        <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-4 py-3 pb-safe">
+        <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-surface-panel px-4 py-3 pb-safe">
           <button type="button" onClick={crearIntervencion}
             disabled={creandoInter || !canSubmit}
             className={`w-full rounded-2xl py-3.5 text-base font-extrabold text-white disabled:opacity-50 transition active:scale-[0.98] ${
@@ -26540,7 +26553,7 @@ function ResolverActividadChat({
       </div>
 
       {/* Pie: terminar + input + micrófono */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-surface-panel pb-safe">
       <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar}
           disabled={terminando || notas.some(n => n.guardando) || !!bloqueadoPorNumero}

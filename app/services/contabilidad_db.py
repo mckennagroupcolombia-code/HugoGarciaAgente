@@ -525,6 +525,7 @@ def guardar_compra_exterior(
     notas: str = "",
     fecha_compra: str = "",
     trm_fuente: str = "",
+    cuota_pct: float | None = None,
 ) -> dict:
     """Persiste historial de compra exterior y opcionalmente pantallazo(s) de soporte."""
     import json
@@ -605,7 +606,7 @@ def guardar_compra_exterior(
             "SELECT * FROM compras_exterior WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
     out = _compra_exterior_row(dict(row))
-    return _adjuntar_cuenta_cobro_cuota(out["id"]) or out
+    return _adjuntar_cuenta_cobro_cuota(out["id"], cuota_pct=cuota_pct) or out
 
 
 def listar_compras_exterior(limit: int = 50) -> list[dict]:
@@ -809,6 +810,7 @@ def actualizar_compra_exterior(
     trm_fuente: str = "",
     replace_soportes: bool = False,
     append_soportes: bool = False,
+    cuota_pct: float | None = None,
 ) -> dict | None:
     """Actualiza una compra exterior ya registrada (metadatos, líneas y soportes)."""
     import json
@@ -881,11 +883,88 @@ def actualizar_compra_exterior(
                 int(compra_id),
             ),
         )
-    return _preparar_cuenta_cobro_pendiente(int(compra_id)) or obtener_compra_exterior(compra_id)
+    return (
+        _preparar_cuenta_cobro_pendiente(int(compra_id), cuota_pct=cuota_pct)
+        or obtener_compra_exterior(compra_id)
+    )
 
 
-def _preparar_cuenta_cobro_pendiente(compra_id: int) -> dict | None:
-    """Calcula montos: mercancía+5% y flete (aparte). Ambas pendientes sin PDF."""
+def resetear_cuentas_cobro_compras_exterior(
+    *,
+    compra_ids: list[int] | None = None,
+) -> dict:
+    """
+    Borra PDFs y limpia campos de cuenta de cobro (mercancía + flete) en compras exterior.
+    Si compra_ids es None, limpia todas las que tengan cobro generado/pendiente.
+    """
+    from app.services.cuenta_cobro_cuota_manejo import carpeta_pdfs
+
+    _ensure()
+    with _conn() as con:
+        if compra_ids:
+            placeholders = ",".join("?" * len(compra_ids))
+            rows = con.execute(
+                f"""SELECT id, cuenta_cobro_path, cuenta_flete_path
+                    FROM compras_exterior WHERE id IN ({placeholders})""",
+                [int(x) for x in compra_ids],
+            ).fetchall()
+        else:
+            rows = con.execute(
+                """SELECT id, cuenta_cobro_path, cuenta_flete_path
+                   FROM compras_exterior
+                   WHERE COALESCE(total_cobro_cop,0)>0
+                      OR COALESCE(flete_cobro_cop,0)>0
+                      OR TRIM(COALESCE(cuenta_cobro_estado,''))!=''
+                      OR TRIM(COALESCE(cuenta_flete_estado,''))!=''
+                      OR TRIM(COALESCE(cuenta_cobro_path,''))!=''
+                      OR TRIM(COALESCE(cuenta_flete_path,''))!=''"""
+            ).fetchall()
+
+    borrados_pdf = 0
+    ids: list[int] = []
+    base = carpeta_pdfs()
+    for row in rows:
+        d = dict(row)
+        ids.append(int(d["id"]))
+        for key in ("cuenta_cobro_path", "cuenta_flete_path"):
+            prev = (d.get(key) or "").strip()
+            if not prev:
+                continue
+            full = prev if os.path.isabs(prev) else os.path.join(base, prev)
+            try:
+                if os.path.isfile(full):
+                    os.remove(full)
+                    borrados_pdf += 1
+            except OSError:
+                pass
+
+    if ids:
+        with _conn() as con:
+            placeholders = ",".join("?" * len(ids))
+            con.execute(
+                f"""UPDATE compras_exterior SET
+                       cuenta_cobro_path='', cuenta_flete_path='',
+                       cuota_manejo_cop=0, valor_compra_cop=0, cuota_pct=5,
+                       total_cobro_cop=0, flete_cobro_cop=0,
+                       cuenta_cobro_estado='', cuenta_flete_estado=''
+                     WHERE id IN ({placeholders})""",
+                ids,
+            )
+
+    return {
+        "ok": True,
+        "compras_limpiadas": len(ids),
+        "ids": ids,
+        "pdfs_eliminados": borrados_pdf,
+    }
+
+
+def _preparar_cuenta_cobro_pendiente(
+    compra_id: int,
+    *,
+    cuota_pct: float | None = None,
+) -> dict | None:
+    """Calcula montos: mercancía+% y flete (aparte). Ambas pendientes sin PDF."""
     import json
 
     _ensure()
@@ -904,10 +983,19 @@ def _preparar_cuenta_cobro_pendiente(compra_id: int) -> dict | None:
 
     from app.services.cuenta_cobro_cuota_manejo import calcular_cuota, carpeta_pdfs
 
+    pct_eff = cuota_pct
+    if pct_eff is None:
+        try:
+            stored = float(d.get("cuota_pct") or 0)
+            pct_eff = stored if stored > 0 else None
+        except (TypeError, ValueError):
+            pct_eff = None
+
     calc = calcular_cuota(
         moneda=str(d.get("moneda") or "USD"),
         trm=float(d.get("trm") or 0),
         lineas=lineas,
+        pct=pct_eff,
         flete=float(d.get("flete") or 0),
         moneda_flete=str(d.get("moneda_flete") or ""),
     )
@@ -953,6 +1041,8 @@ def aprobar_cuenta_cobro_compra(
     *,
     accent_rgb: str = "",
     tipo: str = "mercancia",
+    cuota_pct: float | None = None,
+    emisor_perfil: dict | None = None,
 ) -> dict | None:
     """Aprueba cuenta mercancía o flete (tipo=mercancia|flete) y genera PDF con acento."""
     import json
@@ -1003,6 +1093,7 @@ def aprobar_cuenta_cobro_compra(
             proveedor=str(d.get("proveedor") or ""),
             fecha_compra=str(d.get("fecha_compra") or ""),
             accent_rgb=accent_rgb,
+            emisor_perfil=emisor_perfil,
         )
         if gen.get("error") or not gen.get("filename"):
             return obtener_compra_exterior(compra_id)
@@ -1020,6 +1111,14 @@ def aprobar_cuenta_cobro_compra(
             )
         return obtener_compra_exterior(compra_id)
 
+    pct_eff = cuota_pct
+    if pct_eff is None:
+        try:
+            stored = float(d.get("cuota_pct") or 0)
+            pct_eff = stored if stored > 0 else None
+        except (TypeError, ValueError):
+            pct_eff = None
+
     gen = generar_pdf_cuenta_cobro(
         compra_id=int(compra_id),
         moneda=str(d.get("moneda") or "USD"),
@@ -1027,7 +1126,9 @@ def aprobar_cuenta_cobro_compra(
         proveedor=str(d.get("proveedor") or ""),
         fecha_compra=str(d.get("fecha_compra") or ""),
         lineas=lineas,
+        pct=pct_eff,
         accent_rgb=accent_rgb,
+        emisor_perfil=emisor_perfil,
     )
     if gen.get("error") or not gen.get("filename"):
         return obtener_compra_exterior(compra_id)
@@ -1052,14 +1153,27 @@ def aprobar_cuenta_cobro_compra(
 
 
 def regenerar_cuenta_cobro_compra(
-    compra_id: int, *, accent_rgb: str = "", tipo: str = "mercancia"
+    compra_id: int,
+    *,
+    accent_rgb: str = "",
+    tipo: str = "mercancia",
+    cuota_pct: float | None = None,
+    emisor_perfil: dict | None = None,
 ) -> dict | None:
-    return aprobar_cuenta_cobro_compra(int(compra_id), accent_rgb=accent_rgb, tipo=tipo)
+    return aprobar_cuenta_cobro_compra(
+        int(compra_id),
+        accent_rgb=accent_rgb,
+        tipo=tipo,
+        cuota_pct=cuota_pct,
+        emisor_perfil=emisor_perfil,
+    )
 
 
-def _adjuntar_cuenta_cobro_cuota(compra_id: int) -> dict | None:
+def _adjuntar_cuenta_cobro_cuota(
+    compra_id: int, *, cuota_pct: float | None = None
+) -> dict | None:
     """Compat: al guardar compra solo deja pendiente (sin PDF)."""
-    return _preparar_cuenta_cobro_pendiente(compra_id)
+    return _preparar_cuenta_cobro_pendiente(compra_id, cuota_pct=cuota_pct)
 
 
 def ruta_cuenta_cobro_compra(

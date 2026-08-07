@@ -15,7 +15,8 @@ const SECTION_ICON: Partial<Record<NavCategory, UiIconName>> = {
   "studio-web": "palette",
   docs: "file",
   contabilidad: "receipt",
-  tienda: "megaphone",
+  publicaciones: "megaphone",
+  placas: "package",
   sistemas: "monitor",
 };
 

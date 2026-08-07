@@ -194,7 +194,7 @@ export default function SugerenciasTextoMagico({
                           return next;
                         });
                       }}
-                      className="min-h-[160px] w-full resize-y rounded border border-border bg-white px-2.5 py-2 text-sm leading-relaxed text-ink"
+                      className="min-h-[160px] w-full resize-y rounded border border-border bg-surface-input px-2.5 py-2 text-sm leading-relaxed text-ink"
                       spellCheck
                     />
                     <div className="mt-2 flex flex-wrap gap-2">

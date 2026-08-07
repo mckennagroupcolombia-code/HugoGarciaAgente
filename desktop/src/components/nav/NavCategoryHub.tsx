@@ -36,7 +36,7 @@ export default function NavCategoryHub({
 }) {
   const advancedToggle = useUiMode((s) => s.advanced);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
-  const visible = itemsVisiblesHub(items, user, advanced, puedeVer);
+  const visible = itemsVisiblesHub(items, user, advanced, puedeVer, sectionId);
   const active = visible.some((i) => i.panel === panel || (i.panel === "hugo" && panel === "tickets"));
   const [hovered, setHovered] = useState(false);
 

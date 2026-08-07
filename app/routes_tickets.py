@@ -495,8 +495,17 @@ def register_tickets_routes(app):
         password = data.get("password") or ""
         if password:
             payload["password"] = password
+        if "documento_identidad" in data:
+            doc = "".join(str(data.get("documento_identidad") or "").split())
+            if not doc:
+                return jsonify({
+                    "error": "El documento de identidad es obligatorio para generar cuentas de cobro",
+                }), 400
+            if len(doc) < 5 or not any(c.isdigit() for c in doc):
+                return jsonify({"error": "Documento de identidad inválido"}), 400
+            payload["documento_identidad"] = doc
         if not payload:
-            return jsonify({"error": "Indica nombre o nueva contraseña"}), 400
+            return jsonify({"error": "Indica nombre, documento o nueva contraseña"}), 400
         ok, err = actualizar_usuario(uid, payload)
         if not ok:
             return jsonify({"error": err or "No se pudo actualizar"}), 400
@@ -851,6 +860,19 @@ def register_tickets_routes(app):
         )
         if err:
             return jsonify({"error": err}), 409
+        extras = {}
+        if "telefono" in data:
+            extras["telefono"] = data.get("telefono")
+        if "documento_identidad" in data:
+            extras["documento_identidad"] = data.get("documento_identidad")
+        if "permisos_secciones" in data:
+            extras["permisos_secciones"] = data.get("permisos_secciones")
+        if extras and usuario:
+            actualizar_usuario(usuario["id"], extras)
+            from app.services.tickets_db import get_usuario_by_id
+            refreshed = get_usuario_by_id(usuario["id"])
+            if refreshed:
+                usuario = refreshed
         return jsonify(usuario), 201
 
     @app.route("/api/tickets/usuarios/<int:user_id>", methods=["PUT"])

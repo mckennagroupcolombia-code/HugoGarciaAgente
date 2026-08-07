@@ -85,10 +85,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <IllustrationIcon name="chartBar" size={40} tone="sky" className="mck-illus-icon--hoverable" />
-          <h2 className="text-xl font-extrabold text-ink">Métricas del día</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <IllustrationIcon name="chartBar" size={40} tone="sky" className="mck-illus-icon--hoverable hidden sm:block" />
+          <h2 className="text-lg font-extrabold text-ink sm:text-xl">Métricas del día</h2>
         </div>
         {m?.fecha && (
           <span className="mck-card shrink-0 px-3 py-1 text-xs font-semibold text-muted">{m.fecha}</span>

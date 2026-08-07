@@ -142,7 +142,7 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
               >
                 <div className="mb-2 flex min-h-[96px] items-center justify-center rounded bg-[#525659] p-2">
                   <div
-                    className="rounded-sm bg-white shadow-md ring-1 ring-black/20 transition group-hover:ring-accent/40"
+                    className="rounded-sm bg-white mck-paper-white shadow-md ring-1 ring-black/20 transition group-hover:ring-accent/40"
                     style={{ width: thumb.width, height: thumb.height }}
                   />
                 </div>

@@ -40,6 +40,9 @@ htmlcov/
 app/data/webhook_meli_incidents.jsonl
 # Audio alertas 5S (subidas .wav)
 app/data/5s_audio/
+# Fotos evidencia de empaque (runtime)
+app/data/empaque_uploads/
+app/data/empaque_evidencia.db
 
 # Bases de datos y cache
 mckenna_business.db
@@ -117,6 +120,7 @@ app/data/facturas_gmail_descargadas.json
 app/data/plantillas_visuales.json
 app/data/facturas_compra_pendientes.json
 app/data/wa_alertas_intencion.json
+app/data/extractos_bancarios/
 PAGINA_WEB/site/data/cache.json
 
 tmp_reportes_stock/

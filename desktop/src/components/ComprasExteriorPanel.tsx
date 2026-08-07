@@ -384,7 +384,7 @@ async function fetchSoporteBlobUrl(compraId: number): Promise<string | null> {
   return fetchAuthBlobUrl(`/api/rentabilidad/compras-exterior/${compraId}/soporte`);
 }
 
-const CUOTA_MANEJO_PCT = 5;
+const CUOTA_MANEJO_PCT_DEFAULT = 5;
 
 /** Valor mercancía neta en COP (sin flete) — base de la cuota de manejo. */
 function valorMercanciaCopPreview(
@@ -418,8 +418,8 @@ async function descargarCuentaCobro(
   a.href = blobUrl;
   a.download =
     tipo === "flete"
-      ? `cuenta-cobro-CE-${compraId}-flete.pdf`
-      : `cuenta-cobro-CE-${compraId}.pdf`;
+      ? `Cuenta de cobro numero ${String(compraId).padStart(5, "0")} flete compra en el exterior.pdf`
+      : `Cuenta de cobro numero ${String(compraId).padStart(5, "0")} compra en el exterior.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -718,6 +718,7 @@ export default function ComprasExteriorPanel() {
   const [flete, setFlete] = useState("");
   const [descuentoPedido, setDescuentoPedido] = useState("");
   const [descuentoPct, setDescuentoPct] = useState("");
+  const [cuotaManejoPct, setCuotaManejoPct] = useState(String(CUOTA_MANEJO_PCT_DEFAULT));
   const [monedaFlete, setMonedaFlete] = useState("USD");
   const [proveedor, setProveedor] = useState("");
   const [lineas, setLineas] = useState<LineaEditable[]>([]);
@@ -921,12 +922,18 @@ export default function ComprasExteriorPanel() {
     });
   }, [lineas, descuentoPedidoNum, descuentoPctNum]);
 
+  const cuotaManejoPctNum = useMemo(() => {
+    const v = n(cuotaManejoPct);
+    if (!Number.isFinite(v) || v <= 0) return CUOTA_MANEJO_PCT_DEFAULT;
+    return Math.min(v, 100);
+  }, [cuotaManejoPct]);
+
   const cuotaManejoPreview = useMemo(() => {
     const valor = valorMercanciaCopPreview(lineas, moneda, trmNum);
-    const cuota = Math.round(valor * (CUOTA_MANEJO_PCT / 100));
+    const cuota = Math.round(valor * (cuotaManejoPctNum / 100));
     const total = Math.round((valor + cuota) * 100) / 100;
-    return { valor, cuota, total, pct: CUOTA_MANEJO_PCT };
-  }, [lineas, moneda, trmNum]);
+    return { valor, cuota, total, pct: cuotaManejoPctNum };
+  }, [lineas, moneda, trmNum, cuotaManejoPctNum]);
 
   // Al cambiar flete / TRM / cantidades, forzar costo unitario desde la fórmula
   useEffect(() => {
@@ -1359,6 +1366,11 @@ export default function ComprasExteriorPanel() {
       setFlete(c.flete != null && Number(c.flete) !== 0 ? String(c.flete) : c.flete === 0 ? "0" : "");
       setMonedaFlete((c.moneda_flete || c.moneda || "USD").toUpperCase());
       setProveedor(c.proveedor || "");
+      setCuotaManejoPct(
+        c.cuota_pct != null && Number(c.cuota_pct) > 0
+          ? String(c.cuota_pct)
+          : String(CUOTA_MANEJO_PCT_DEFAULT),
+      );
       setDescuentoPedido("");
       setDescuentoPct("");
       setLineas(
@@ -1478,6 +1490,7 @@ export default function ComprasExteriorPanel() {
       fd.append("moneda_flete", monedaFlete || moneda);
       fd.append("descuento_pedido", String(descuentoPedidoNum || 0));
       fd.append("descuento_pct", String(descuentoPctNum || 0));
+      fd.append("cuota_pct", String(cuotaManejoPctNum));
       fd.append("proveedor", proveedor);
       if (borradorId) fd.append("borrador_id", String(borradorId));
       if (compraIdEditando) fd.append("compra_id", String(compraIdEditando));
@@ -1553,7 +1566,10 @@ export default function ComprasExteriorPanel() {
   const esValido = (f: File) => f.type.startsWith("image/") || f.type === "application/pdf" || esImagenPortapapeles(f);
 
   return (
-    <div ref={panelRef} className="space-y-4">
+    <div ref={panelRef} className="space-y-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+        {/* Captura + casillas a un lado */}
+        <aside className="flex w-full shrink-0 flex-col gap-2 xl:w-[20rem] xl:max-w-[22rem]">
       <div
         ref={zonaRef}
         tabIndex={0}
@@ -1563,7 +1579,7 @@ export default function ComprasExteriorPanel() {
         onBlur={() => setZonaActiva(false)}
         onClick={() => zonaRef.current?.focus()}
         onPaste={manejarPasteZona}
-        className={`rounded-xl border border-dashed bg-accent/5 p-4 space-y-2 outline-none transition ${
+        className={`rounded-xl border border-dashed bg-accent/5 p-2.5 space-y-1.5 outline-none transition ${
           zonaActiva ? "border-accent ring-2 ring-accent/30" : "border-accent/50"
         }`}
         onDrop={(e) => {
@@ -1573,15 +1589,14 @@ export default function ComprasExteriorPanel() {
         }}
         onDragOver={(e) => e.preventDefault()}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-accent">Pegar / adjuntar pantallazos</p>
-            <p className="text-xs text-muted">
-              Puedes pegar varias veces o seleccionar múltiples. Arrastra para reordenar;
-              ✕ para quitar.
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-accent">Pegar / adjuntar</p>
+            <p className="text-[10px] leading-snug text-muted">
+              Ctrl+V o Adjuntar… · arrastra para ordenar
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               type="button"
               onClick={(e) => {
@@ -1589,9 +1604,9 @@ export default function ComprasExteriorPanel() {
                 fileRef.current?.click();
               }}
               disabled={scanning}
-              className="rounded border border-accent/40 px-3 py-1 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
+              className="rounded border border-accent/40 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
             >
-              {scanning ? "Extrayendo…" : "Adjuntar…"}
+              {scanning ? "…" : "Adjuntar…"}
             </button>
             {(galeria.length > 0 || lineas.length > 0 || borradorId || compraIdEditando) && (
               <button
@@ -1600,7 +1615,7 @@ export default function ComprasExteriorPanel() {
                   e.stopPropagation();
                   limpiar();
                 }}
-                className="rounded border border-border px-2 py-1 text-xs text-muted hover:text-danger hover:border-danger"
+                className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted hover:text-danger hover:border-danger"
               >
                 Limpiar
               </button>
@@ -1620,7 +1635,7 @@ export default function ComprasExteriorPanel() {
           />
         </div>
         {galeria.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
             {galeria.map((g, idx) => (
               <div
                 key={g.id}
@@ -1644,7 +1659,7 @@ export default function ComprasExteriorPanel() {
                   setDragId(null);
                 }}
                 onDragEnd={() => setDragId(null)}
-                className={`relative w-28 cursor-grab active:cursor-grabbing rounded border bg-surface overflow-hidden ${
+                className={`relative w-[4.5rem] cursor-grab active:cursor-grabbing rounded border bg-surface overflow-hidden ${
                   dragId === g.id
                     ? "border-accent opacity-60 ring-2 ring-accent/40"
                     : g.serverIndex != null
@@ -1657,18 +1672,18 @@ export default function ComprasExteriorPanel() {
                   <img
                     src={g.preview}
                     alt={g.name}
-                    className="h-20 w-full object-contain bg-surface-input pointer-events-none"
+                    className="h-12 w-full object-contain bg-surface-input pointer-events-none"
                     draggable={false}
                   />
                 ) : (
-                  <div className="flex h-20 items-center justify-center px-1 text-[10px] text-muted truncate pointer-events-none">
+                  <div className="flex h-12 items-center justify-center px-1 text-[9px] text-muted truncate pointer-events-none">
                     {g.name}
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-1 px-1 py-0.5 text-[10px]">
+                <div className="flex items-center justify-between gap-0.5 px-0.5 py-px text-[9px]">
                   <span className="truncate text-muted">
                     #{idx + 1}
-                    {g.serverIndex != null ? " · guardada" : " · nueva"}
+                    {g.serverIndex != null ? " · ok" : ""}
                   </span>
                   <button
                     type="button"
@@ -1677,7 +1692,7 @@ export default function ComprasExteriorPanel() {
                       e.stopPropagation();
                       quitarDeGaleria(g.id);
                     }}
-                    className="rounded px-1 font-bold text-danger hover:bg-danger/10"
+                    className="rounded px-0.5 font-bold text-danger hover:bg-danger/10"
                   >
                     ✕
                   </button>
@@ -1687,29 +1702,29 @@ export default function ComprasExteriorPanel() {
           </div>
         )}
         {scanning && (
-          <p className="text-xs text-accent animate-pulse">
-            Analizando {galeria.filter((g) => g.file).length || galeria.length || "…"} imagen(es) con IA…
+          <p className="text-[10px] text-accent animate-pulse">
+            Analizando con IA…
           </p>
         )}
         {!galeria.length && !scanning && (
-          <p className="py-6 text-center text-sm font-medium text-muted">
-            Ctrl+V varias veces o Adjuntar… (múltiples)
+          <p className="py-3 text-center text-[11px] font-medium text-muted">
+            Ctrl+V o Adjuntar…
           </p>
         )}
         {borradorId && (
-          <p className="text-[11px] text-accent">
-            Editando borrador #{borradorId}. Guarda de nuevo para actualizar, o confirma costos cuando esté listo.
+          <p className="text-[10px] text-accent">
+            Borrador #{borradorId} en edición.
           </p>
         )}
         {compraIdEditando && (
-          <p className="text-[11px] text-accent">
-            Editando compra registrada #{compraIdEditando}. Al guardar se actualiza el historial y los costos.
+          <p className="text-[10px] text-accent">
+            Compra #{compraIdEditando} en edición.
           </p>
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <label className="block text-xs">
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-[10px]">
           <span className="font-bold text-muted">Fecha compra</span>
           <input
             type="date"
@@ -1718,18 +1733,18 @@ export default function ComprasExteriorPanel() {
               trmManualRef.current = false;
               setFechaCompra(e.target.value);
             }}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
-        <label className="block text-xs">
+        <label className="block text-[10px]">
           <span className="font-bold text-muted">Moneda factura</span>
           <input
             value={moneda}
             onChange={(e) => setMoneda(e.target.value.toUpperCase())}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
-        <label className="block text-xs sm:col-span-2 lg:col-span-1">
+        <label className="col-span-2 block text-[10px]">
           <span className="font-bold text-muted">
             TRM{" "}
             {moneda.toUpperCase() === "USD"
@@ -1738,7 +1753,7 @@ export default function ComprasExteriorPanel() {
                 ? "(obligatoria)"
                 : "(N/A si COP)"}
           </span>
-          <div className="mt-1 flex gap-1">
+          <div className="mt-0.5 flex gap-1">
             <input
               type="number"
               min={0}
@@ -1752,7 +1767,7 @@ export default function ComprasExteriorPanel() {
                 setTrm(e.target.value);
               }}
               placeholder={necesitaTrm ? "Auto BanRep" : "1"}
-              className="w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono disabled:opacity-40"
+              className="w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono disabled:opacity-40"
             />
             {moneda.toUpperCase() === "USD" && (
               <button
@@ -1770,14 +1785,14 @@ export default function ComprasExteriorPanel() {
             )}
           </div>
           {necesitaTrm && trmDetalle && (
-            <span className="mt-0.5 block text-[10px] text-muted truncate" title={trmDetalle}>
+            <span className="mt-0.5 block truncate text-[9px] text-muted" title={trmDetalle}>
               {trmFuente === "banrep" ? "BanRep · " : ""}
               {trmDetalle}
             </span>
           )}
         </label>
-        <label className="block text-xs">
-          <span className="font-bold text-muted">Flete (se reparte por unidades)</span>
+        <label className="block text-[10px]">
+          <span className="font-bold text-muted">Flete</span>
           <input
             type="number"
             min={0}
@@ -1785,18 +1800,43 @@ export default function ComprasExteriorPanel() {
             value={flete}
             onChange={(e) => setFlete(e.target.value)}
             onBlur={() => {
-              // Normaliza y dispara recálculo si quedó basura
               if (flete.trim() !== "" && !Number.isFinite(n(flete))) setFlete("");
             }}
             placeholder="0"
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
-          <span className="mt-0.5 block text-[10px] text-muted">
-            Al cambiar este valor se recalcula el costo / ud de todas las líneas.
-          </span>
         </label>
-        <label className="block text-xs">
-          <span className="font-bold text-muted">Descuento pedido</span>
+        <label className="block text-[10px]">
+          <span className="font-bold text-muted">Moneda flete</span>
+          <input
+            value={monedaFlete}
+            onChange={(e) => setMonedaFlete(e.target.value.toUpperCase())}
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
+          />
+        </label>
+        <label className="block text-[10px]">
+          <span className="font-bold text-muted">Cuota manejo %</span>
+          <input
+            type="number"
+            min={0.01}
+            max={100}
+            step="0.1"
+            value={cuotaManejoPct}
+            onChange={(e) => setCuotaManejoPct(e.target.value)}
+            onBlur={() => {
+              const v = n(cuotaManejoPct);
+              if (!Number.isFinite(v) || v <= 0) {
+                setCuotaManejoPct(String(CUOTA_MANEJO_PCT_DEFAULT));
+              } else if (v > 100) {
+                setCuotaManejoPct("100");
+              }
+            }}
+            title="Porcentaje de cuota de manejo sobre la mercancía (editable)"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
+          />
+        </label>
+        <label className="block text-[10px]">
+          <span className="font-bold text-muted">Desc. $ pedido</span>
           <input
             type="number"
             min={0}
@@ -1807,10 +1847,10 @@ export default function ComprasExteriorPanel() {
               if (e.target.value) setDescuentoPct("");
             }}
             placeholder="Cupón $"
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
-        <label className="block text-xs">
+        <label className="block text-[10px]">
           <span className="font-bold text-muted">Desc. % pedido</span>
           <input
             type="number"
@@ -1823,22 +1863,14 @@ export default function ComprasExteriorPanel() {
               if (e.target.value) setDescuentoPedido("");
             }}
             placeholder="ej. 10"
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
-          />
-        </label>
-        <label className="block text-xs">
-          <span className="font-bold text-muted">Moneda flete</span>
-          <input
-            value={monedaFlete}
-            onChange={(e) => setMonedaFlete(e.target.value.toUpperCase())}
-            className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm font-mono"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
       </div>
 
       {moneda.toUpperCase() === "USD" && (
         <div
-          className={`rounded-lg border px-3 py-2 text-xs ${
+          className={`rounded-lg border px-2 py-1.5 text-[10px] leading-snug ${
             trmNum > 0
               ? "border-emerald-500/40 bg-emerald-500/5 text-ink"
               : "border-amber-500/40 bg-amber-500/5 text-amber-800 dark:text-amber-300"
@@ -1848,22 +1880,19 @@ export default function ComprasExteriorPanel() {
             <span>Consultando TRM BanRep…</span>
           ) : trmNum > 0 ? (
             <span>
-              Conversión activa: <strong className="font-mono">1 USD = {trmNum.toLocaleString("es-CO", { maximumFractionDigits: 2 })} COP</strong>
-              {fechaCompra ? ` · fecha compra ${fechaCompra}` : ""}
+              <strong className="font-mono">1 USD = {trmNum.toLocaleString("es-CO", { maximumFractionDigits: 2 })} COP</strong>
               {trmFuente === "banrep" ? " · BanRep" : trmFuente === "manual" ? " · manual" : ""}
-              {trmDetalle ? ` · ${trmDetalle}` : ""}
             </span>
           ) : (
             <span>
-              Sin TRM: no se puede convertir a COP. Elige fecha de compra y pulsa ↻, o escribe la tasa.
-              {trmDetalle ? ` (${trmDetalle})` : ""}
+              Sin TRM: elige fecha y ↻, o escribe la tasa.
             </span>
           )}
         </div>
       )}
 
       {fleteNum > 0 && lineas.length > 0 && (
-        <div className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs text-ink">
+        <div className="rounded-lg border border-accent/40 bg-accent/5 px-2 py-1.5 text-[10px] text-ink">
           Flete{" "}
           <strong className="font-mono">
             {fleteNum.toLocaleString("en-US", { maximumFractionDigits: 2 })}{" "}
@@ -1873,7 +1902,6 @@ export default function ComprasExteriorPanel() {
             <>
               {" "}
               → <strong className="font-mono">{fmtCop(fleteTotalCop)}</strong>
-              {trmNum > 0 ? ` (× TRM ${trmNum})` : " (falta TRM)"}
             </>
           ) : (
             <>
@@ -1881,49 +1909,293 @@ export default function ComprasExteriorPanel() {
               = <strong className="font-mono">{fmtCop(fleteTotalCop)}</strong>
             </>
           )}
-          . Repartido por packs × contenido en cada línea; el costo / ud se actualiza al instante.
         </div>
       )}
 
       {(descuentoPedidoNum > 0 || descuentoPctNum > 0 || lineas.some((l) => l.descuento > 0)) && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-ink">
-          Descuento aplicado al costo:{" "}
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[10px] text-ink">
+          Desc. aplicado
           {descuentoPedidoNum > 0 && (
-            <strong className="font-mono">pedido −{descuentoPedidoNum}</strong>
+            <strong className="font-mono"> −{descuentoPedidoNum}</strong>
           )}
           {descuentoPctNum > 0 && (
-            <strong className="font-mono">
-              {descuentoPedidoNum > 0 ? " · " : ""}pedido −{descuentoPctNum}%
-            </strong>
-          )}
-          {lineas.some((l) => l.descuento > 0) && (
-            <span>
-              {(descuentoPedidoNum > 0 || descuentoPctNum > 0) ? " · " : ""}
-              líneas −
-              {lineas.reduce((a, l) => a + (l.descuento || 0), 0).toLocaleString("en-US", {
-                maximumFractionDigits: 2,
-              })}
-            </span>
+            <strong className="font-mono"> −{descuentoPctNum}%</strong>
           )}
         </div>
       )}
 
       {proveedor && (
-        <p className="text-xs text-muted">
-          Proveedor detectado: <span className="font-semibold text-ink">{proveedor}</span>
+        <p className="text-[10px] text-muted">
+          Proveedor: <span className="font-semibold text-ink">{proveedor}</span>
         </p>
       )}
 
       {error && (
-        <div className="rounded-lg border border-danger/40 bg-danger/5 px-3 py-2 text-xs text-danger">
+        <div className="rounded-lg border border-danger/40 bg-danger/5 px-2 py-1.5 text-[10px] text-danger">
           {error}
         </div>
       )}
       {okMsg && (
-        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-2 py-1.5 text-[10px] text-emerald-700 dark:text-emerald-400">
           {okMsg}
         </div>
       )}
+        </aside>
+
+        {/* Listado amplio */}
+        <div className="min-w-0 flex-1 space-y-3">
+      {borradores.length > 0 && (
+        <section className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Borradores pendientes</h3>
+              <p className="text-[11px] text-muted">
+                Compras a medias: retoma, edita y confirma cuando esté listo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void cargarHistorial()}
+              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+            >
+              Actualizar
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {borradores.map((b) => {
+              const fecha = b.updated_at
+                ? new Date(b.updated_at).toLocaleString("es-CO")
+                : "";
+              const activo = borradorId === b.id;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-2 ${
+                    activo ? "border-accent bg-accent/10" : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-ink">
+                      #{b.id} · {b.titulo || b.proveedor || "Sin título"}
+                      {activo ? " · en edición" : ""}
+                    </p>
+                    <p className="text-[10px] text-muted">
+                      {fecha}
+                      {b.moneda ? ` · ${b.moneda}` : ""}
+                      {b.lineas_count != null ? ` · ${b.lineas_count} líneas` : ""}
+                      {b.soportes_count ? ` · ${b.soportes_count} foto(s)` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void retomarBorrador(b.id)}
+                    className="rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Retomar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void eliminarBorrador(b.id)}
+                    className="rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
+            <p className="text-[11px] text-muted">
+              Cada confirmación conserva el pantallazo. Hay{" "}
+              <strong>dos cuentas</strong> si hay flete: mercancía + 5%, y flete aparte.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void cargarHistorial()}
+            className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+          >
+            {historialLoading ? "Cargando…" : "Actualizar"}
+          </button>
+        </div>
+
+        {historial.length === 0 && !historialLoading && (
+          <p className="text-xs text-muted py-4 text-center">
+            Aún no hay compras confirmadas. Usa «Guardar para después» si quieres retomar más tarde.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {historial.map((c) => {
+            const abierto = detalleId === c.id;
+            const thumb = soporteThumbs[c.id];
+            const fecha = c.created_at ? new Date(c.created_at).toLocaleString("es-CO") : "";
+            const editando = compraIdEditando === c.id;
+            return (
+              <li
+                key={c.id}
+                className={`rounded-lg border bg-surface overflow-hidden ${
+                  editando ? "border-accent ring-1 ring-accent/30" : "border-border"
+                }`}
+              >
+                <div className="flex items-start gap-2 p-2">
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
+                    onClick={() => setDetalleId(abierto ? null : c.id)}
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
+                      {thumb ? (
+                        <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[9px] text-muted">
+                          {c.tiene_soporte ? "…" : "sin foto"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-ink">
+                        #{c.id} · {fecha}
+                        {c.proveedor ? ` · ${c.proveedor}` : ""}
+                        {editando ? " · en edición" : ""}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        {c.moneda}
+                        {c.fecha_compra ? ` · compra ${c.fecha_compra}` : ""}
+                        {c.trm
+                          ? ` · TRM ${c.trm}${c.trm_fuente === "banrep" ? " BanRep" : ""}`
+                          : ""}
+                        {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
+                        {" · "}
+                        {c.total_guardados} costo(s)
+                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
+                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
+                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
+                          : ""}
+                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0
+                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
+                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
+                          : ""}
+                      </p>
+                      <p className="truncate text-[10px] text-muted">
+                        {(c.lineas || [])
+                          .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
+                          .join(" · ") || "Sin líneas"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void editarCompra(c.id)}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCuentaCobroId(c.id);
+                      setDetalleId(c.id);
+                    }}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                    title="Ver / aprobar cuenta de cobro"
+                  >
+                    {c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada"
+                      ? "Ver cobro"
+                      : "Aprobar cobro"}
+                  </button>
+                  {(c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF merc.
+                    </button>
+                  )}
+                  {(c.tiene_cuenta_flete || c.cuenta_flete_estado === "aprobada") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF flete
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void eliminarCompra(c.id)}
+                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+                {abierto && (
+                  <div className="border-t border-border bg-surface-input/40 p-2 space-y-2">
+                    {thumb && (
+                      <a href={thumb} target="_blank" rel="noreferrer" className="block">
+                        <img
+                          src={thumb}
+                          alt="Soporte de compra"
+                          className="max-h-56 w-full rounded border border-border object-contain bg-surface"
+                        />
+                      </a>
+                    )}
+                    <table className="min-w-full text-left text-[10px]">
+                      <thead className="text-muted uppercase">
+                        <tr>
+                          <th className="px-1 py-1">SKU</th>
+                          <th className="px-1 py-1">Producto</th>
+                          <th className="px-1 py-1">Total</th>
+                          <th className="px-1 py-1">Costo/ud</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(c.lineas || []).map((l, i) => {
+                          const ud = etiquetaUnidad(l.unidad || "un").toLowerCase();
+                          return (
+                          <tr key={i} className="border-t border-border/60">
+                            <td className="px-1 py-1 font-mono text-accent">{l.codigo || "—"}</td>
+                            <td className="px-1 py-1">{l.nombre}</td>
+                            <td className="px-1 py-1 font-mono">
+                              {l.unidades_totales ?? l.cantidad ?? "—"} {ud}
+                            </td>
+                            <td className="px-1 py-1 font-mono">
+                              {l.costo_unitario != null
+                                ? `${fmtCop(Number(l.costo_unitario))}/${ud}`
+                                : "—"}
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+        </div>
+      </div>
 
       {lineas.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border">
@@ -2140,11 +2412,11 @@ export default function ComprasExteriorPanel() {
                 Al confirmar se abre formato de <strong>cuenta de cobro</strong> para aprobar:
                 mercancía <strong className="font-mono">{fmtCop(cuotaManejoPreview.valor)}</strong>
                 {" + "}
-                {cuotaManejoPreview.pct}%{" "}
+                <strong className="font-mono">{cuotaManejoPreview.pct}%</strong> cuota{" "}
                 <strong className="font-mono">{fmtCop(cuotaManejoPreview.cuota)}</strong>
                 {" = "}
                 <strong className="font-mono text-accent">{fmtCop(cuotaManejoPreview.total)}</strong>
-                . El PDF se genera al aprobar, con el color de tu tema.
+                . Ajusta el % arriba antes de confirmar; el PDF se genera al aprobar.
               </p>
             )}
           </div>
@@ -2179,69 +2451,6 @@ export default function ComprasExteriorPanel() {
             )}
           </div>
         </div>
-      )}
-
-      {borradores.length > 0 && (
-        <section className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">Borradores pendientes</h3>
-              <p className="text-[11px] text-muted">
-                Compras a medias: retoma, edita y confirma cuando esté listo.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void cargarHistorial()}
-              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
-            >
-              Actualizar
-            </button>
-          </div>
-          <ul className="space-y-1.5">
-            {borradores.map((b) => {
-              const fecha = b.updated_at
-                ? new Date(b.updated_at).toLocaleString("es-CO")
-                : "";
-              const activo = borradorId === b.id;
-              return (
-                <li
-                  key={b.id}
-                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-2 ${
-                    activo ? "border-accent bg-accent/10" : "border-border bg-surface"
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-ink">
-                      #{b.id} · {b.titulo || b.proveedor || "Sin título"}
-                      {activo ? " · en edición" : ""}
-                    </p>
-                    <p className="text-[10px] text-muted">
-                      {fecha}
-                      {b.moneda ? ` · ${b.moneda}` : ""}
-                      {b.lineas_count != null ? ` · ${b.lineas_count} líneas` : ""}
-                      {b.soportes_count ? ` · ${b.soportes_count} foto(s)` : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void retomarBorrador(b.id)}
-                    className="rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                  >
-                    Retomar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void eliminarBorrador(b.id)}
-                    className="rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
-                  >
-                    Eliminar
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
       )}
 
       {cuentaCobroId != null && (() => {
@@ -2297,194 +2506,7 @@ export default function ComprasExteriorPanel() {
         );
       })()}
 
-      <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
-            <p className="text-[11px] text-muted">
-              Cada confirmación conserva el pantallazo. Hay{" "}
-              <strong>dos cuentas</strong> si hay flete: mercancía + 5%, y flete aparte. Se
-              aprueban en pantalla; el PDF usa el acento de tu tema.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void cargarHistorial()}
-            className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
-          >
-            {historialLoading ? "Cargando…" : "Actualizar"}
-          </button>
-        </div>
 
-        {historial.length === 0 && !historialLoading && (
-          <p className="text-xs text-muted py-4 text-center">
-            Aún no hay compras confirmadas. Usa «Guardar para después» si quieres retomar más tarde.
-          </p>
-        )}
-
-        <ul className="space-y-2">
-          {historial.map((c) => {
-            const abierto = detalleId === c.id;
-            const thumb = soporteThumbs[c.id];
-            const fecha = c.created_at ? new Date(c.created_at).toLocaleString("es-CO") : "";
-            const editando = compraIdEditando === c.id;
-            return (
-              <li
-                key={c.id}
-                className={`rounded-lg border bg-surface overflow-hidden ${
-                  editando ? "border-accent ring-1 ring-accent/30" : "border-border"
-                }`}
-              >
-                <div className="flex items-start gap-2 p-2">
-                  <button
-                    type="button"
-                    className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
-                    onClick={() => setDetalleId(abierto ? null : c.id)}
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
-                      {thumb ? (
-                        <img src={thumb} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-[9px] text-muted">
-                          {c.tiene_soporte ? "…" : "sin foto"}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-ink">
-                        #{c.id} · {fecha}
-                        {c.proveedor ? ` · ${c.proveedor}` : ""}
-                        {editando ? " · en edición" : ""}
-                      </p>
-                      <p className="text-[10px] text-muted">
-                        {c.moneda}
-                        {c.fecha_compra ? ` · compra ${c.fecha_compra}` : ""}
-                        {c.trm
-                          ? ` · TRM ${c.trm}${c.trm_fuente === "banrep" ? " BanRep" : ""}`
-                          : ""}
-                        {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
-                        {" · "}
-                        {c.total_guardados} costo(s)
-                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
-                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
-                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
-                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
-                          : ""}
-                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0
-                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
-                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
-                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
-                          : ""}
-                      </p>
-                      <p className="truncate text-[10px] text-muted">
-                        {(c.lineas || [])
-                          .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
-                          .join(" · ") || "Sin líneas"}
-                      </p>
-                    </div>
-                    <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void editarCompra(c.id)}
-                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCuentaCobroId(c.id);
-                      setDetalleId(c.id);
-                    }}
-                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                    title="Ver / aprobar cuenta de cobro"
-                  >
-                    {c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada"
-                      ? "Ver cobro"
-                      : "Aprobar cobro"}
-                  </button>
-                  {(c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
-                          setError(e instanceof Error ? e.message : String(e)),
-                        );
-                      }}
-                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    >
-                      PDF merc.
-                    </button>
-                  )}
-                  {(c.tiene_cuenta_flete || c.cuenta_flete_estado === "aprobada") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
-                          setError(e instanceof Error ? e.message : String(e)),
-                        );
-                      }}
-                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    >
-                      PDF flete
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void eliminarCompra(c.id)}
-                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-                {abierto && (
-                  <div className="border-t border-border bg-surface-input/40 p-2 space-y-2">
-                    {thumb && (
-                      <a href={thumb} target="_blank" rel="noreferrer" className="block">
-                        <img
-                          src={thumb}
-                          alt="Soporte de compra"
-                          className="max-h-56 w-full rounded border border-border object-contain bg-surface"
-                        />
-                      </a>
-                    )}
-                    <table className="min-w-full text-left text-[10px]">
-                      <thead className="text-muted uppercase">
-                        <tr>
-                          <th className="px-1 py-1">SKU</th>
-                          <th className="px-1 py-1">Producto</th>
-                          <th className="px-1 py-1">Total</th>
-                          <th className="px-1 py-1">Costo/ud</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(c.lineas || []).map((l, i) => {
-                          const ud = etiquetaUnidad(l.unidad || "un").toLowerCase();
-                          return (
-                          <tr key={i} className="border-t border-border/60">
-                            <td className="px-1 py-1 font-mono text-accent">{l.codigo || "—"}</td>
-                            <td className="px-1 py-1">{l.nombre}</td>
-                            <td className="px-1 py-1 font-mono">
-                              {l.unidades_totales ?? l.cantidad ?? "—"} {ud}
-                            </td>
-                            <td className="px-1 py-1 font-mono">
-                              {l.costo_unitario != null
-                                ? `${fmtCop(Number(l.costo_unitario))}/${ud}`
-                                : "—"}
-                            </td>
-                          </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
     </div>
   );
 }

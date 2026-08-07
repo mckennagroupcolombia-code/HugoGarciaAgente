@@ -15,6 +15,7 @@ const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
 const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
+const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
@@ -105,6 +106,8 @@ function PanelRouterInner() {
       return <FichasTecnicasPanel />;
     case "pedidos":
       return <PedidosWebPanel />;
+    case "empaque":
+      return <EmpaquePanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -229,6 +232,7 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   const contab = puedeVerModuloContabilidad(user, panel);
   if (contab !== null) return contab;
   if (panel === "etiquetas") return true;
+  if (panel === "empaque") return true;
   if (panel === "hugo" || panel === "tickets") {
     if (esAdminPanel(user)) return true;
     const p = user.permisos_secciones;
@@ -278,12 +282,15 @@ export default function App() {
   const hasHydrated = useAppStore((s) => s._hasHydrated);
   const lastAppliedPrefs = useRef<string | null>(null);
   const isMobile = useMobileLayout();
+  const mobileShell = useAppStore((s) => s.mobileShell);
+  const setMobileShell = useAppStore((s) => s.setMobileShell);
   const [forceDesktop, setForceDesktop] = useState(
     () =>
       (typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1") ||
       isMcKennaAndroidApp()
   );
-  const showMobile = isMobile && !forceDesktop;
+  // Hub simplificado solo en móvil; al abrir paneles → Layout responsive (mobileShell=app).
+  const showMobile = isMobile && !forceDesktop && mobileShell === "hub";
 
   useEffect(() => {
     document.documentElement.classList.remove("mck-apk");
@@ -395,13 +402,33 @@ export default function App() {
         onSwitchDesktop={() => {
           localStorage.setItem("mck-force-desktop", "1");
           setForceDesktop(true);
+          setMobileShell("app");
         }}
+        onOpenPanel={() => setMobileShell("app")}
       />
     );
   }
 
   return (
-    <Layout>
+    <Layout
+      onBackToMobileHub={
+        isMobile && !forceDesktop
+          ? () => {
+              setMobileShell("hub");
+              setPanel("hugo");
+            }
+          : undefined
+      }
+      onExitForceDesktop={
+        forceDesktop && isMobile && !isMcKennaAndroidApp()
+          ? () => {
+              localStorage.removeItem("mck-force-desktop");
+              setForceDesktop(false);
+              setMobileShell("hub");
+            }
+          : undefined
+      }
+    >
       <PanelRouter />
     </Layout>
   );

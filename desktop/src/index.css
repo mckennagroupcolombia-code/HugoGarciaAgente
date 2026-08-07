@@ -79,6 +79,16 @@
   * {
     box-sizing: border-box;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     margin: 0;
     font-family: var(--mck-font-sans);
@@ -86,6 +96,29 @@
       radial-gradient(ellipse 100% 70% at 0% -10%, rgb(var(--mck-accent) / 0.05), transparent 50%),
       radial-gradient(ellipse 80% 50% at 100% 100%, rgb(var(--mck-accent-sky) / 0.04), transparent 45%),
       rgb(var(--mck-surface));
+  }
+
+  /* Shell + paneles: evita scroll horizontal de página en celular */
+  .mck-app-shell,
+  .mck-panel-scroll {
+    max-width: 100%;
+  }
+  .mck-panel-scroll {
+    overscroll-behavior-x: contain;
+  }
+
+  /* Tablas anchas: scroll interno, no empujan el layout */
+  .mck-table-wrap {
+    @apply w-full max-w-full overflow-x-auto overscroll-x-contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    select,
+    textarea {
+      font-size: 16px; /* evita zoom iOS al enfocar */
+    }
   }
 
   .rounded-paper {
@@ -1106,6 +1139,36 @@
 
 /* Hugo / chat fullscreen — safe areas en WebView Android e iOS */
 @layer utilities {
+  /*
+   * Dark mode: Tailwind `bg-white` used as UI chrome (cards/inputs) keeps a white
+   * fill while `text-ink` / inherited ink become light → invisible text.
+   * Remap solid white chrome to surface-input. Keep real paper/previews with
+   * `.mck-paper-white`; knobs (`.rounded-full`) and dark-ink editors stay as-is.
+   */
+  .dark :where(#root) :where(.bg-white):not(.mck-paper-white):not(.rounded-full):not(
+      :where(.mck-paper-white *)
+    ):not(
+      .text-neutral-900,
+      .text-neutral-800,
+      .text-neutral-700,
+      .text-black,
+      .text-\[\#022D33\],
+      .text-\[\#016d82\]
+    ) {
+    background-color: rgb(var(--mck-surface-input)) !important;
+  }
+  .dark :where(#root) :where(.mck-paper-white),
+  .dark :where(#root) :where(.mck-paper-white) :where(.bg-white) {
+    background-color: #fff !important;
+  }
+
+  /* Native controls without explicit bg still inherit light ink on white UA chrome */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.mck-paper-white),
+  .dark textarea:not(.mck-paper-white),
+  .dark select:not(.mck-paper-white) {
+    color: rgb(var(--mck-ink));
+  }
+
   .pb-safe {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
   }

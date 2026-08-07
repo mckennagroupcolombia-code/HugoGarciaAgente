@@ -19,6 +19,7 @@ export type Panel =
   | "stock"
   | "fichas"
   | "pedidos"
+  | "empaque"
   | "publicaciones"
   | "sitioweb"
   | "facturacion"
@@ -125,6 +126,9 @@ interface AppState {
   setTicketsSelectedMisionId: (id: number | null) => void;
   mobileTab: MobileHubTab;
   setMobileTab: (t: MobileHubTab) => void;
+  /** En viewport móvil: hub simplificado vs paneles completos (Layout). */
+  mobileShell: "hub" | "app";
+  setMobileShell: (s: "hub" | "app") => void;
   ticketsBootView: TicketsBootView;
   setTicketsBootView: (v: TicketsBootView) => void;
   solicitudBoot: SolicitudBoot | null;
@@ -175,6 +179,8 @@ export const useAppStore = create<AppState>()(
       ticketsSelectedId: null,
       ticketsSelectedMisionId: null,
       mobileTab: "home",
+      mobileShell: "hub",
+      setMobileShell: (mobileShell) => set({ mobileShell }),
       _hasHydrated: false,
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
       setCentroMandoView: (centroMandoView) => {
@@ -197,7 +203,12 @@ export const useAppStore = create<AppState>()(
         const next = normalizePanel(panel);
         const cur = get();
         if (cur.panel === next && !cur.sidebarOpen) return;
-        set({ panel: next, sidebarOpen: false });
+        // Al abrir un panel operativo desde el hub, pasar al Layout responsive.
+        const shell =
+          cur.mobileShell === "hub" && next !== "hugo" && next !== "tickets"
+            ? ("app" as const)
+            : cur.mobileShell;
+        set({ panel: next, sidebarOpen: false, mobileShell: shell });
         queueMicrotask(() => notifyNavChange());
       },
       ticketsBootView: null,
@@ -241,6 +252,7 @@ export const useAppStore = create<AppState>()(
         ticketsSelectedId: s.ticketsSelectedId,
         ticketsSelectedMisionId: s.ticketsSelectedMisionId,
         mobileTab: s.mobileTab,
+        mobileShell: s.mobileShell,
         etiquetasTab: s.etiquetasTab,
       }),
       migrate: (persisted, version) => {
@@ -253,9 +265,12 @@ export const useAppStore = create<AppState>()(
           if (!s.mobileTab) s.mobileTab = "home";
           if (!s.etiquetasTab) s.etiquetasTab = "imprimir";
         }
+        if (version < 3) {
+          if (!s.mobileShell) s.mobileShell = "hub";
+        }
         return s as unknown as AppState;
       },
-      version: 2,
+      version: 3,
       onRehydrateStorage: () => (state) => {
         const hash = readNavHash();
         if (hash?.panel && state) {

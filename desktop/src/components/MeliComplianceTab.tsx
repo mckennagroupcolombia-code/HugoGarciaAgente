@@ -379,7 +379,7 @@ function HistorialCrearDesdeCero({
             return (
               <div
                 key={key}
-                className="rounded-xl border border-border bg-white px-3 py-2.5 space-y-1.5"
+                className="rounded-xl border border-border bg-surface-input px-3 py-2.5 space-y-1.5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -406,7 +406,7 @@ function HistorialCrearDesdeCero({
                       type="button"
                       disabled={Boolean(duplicandoId) || eliminarMut.isPending}
                       onClick={() => onDuplicar(p)}
-                      className="inline-flex items-center rounded-lg border border-teal-300 bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-40"
+                      className="inline-flex items-center rounded-lg border border-teal-300 bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-900 hover:bg-teal-100 dark:bg-teal-950/40 dark:text-teal-200 dark:hover:bg-teal-950/60 disabled:opacity-40"
                     >
                       {cargando ? "Duplicando…" : "⎘ Duplicar"}
                     </button>
@@ -420,7 +420,7 @@ function HistorialCrearDesdeCero({
                       );
                       if (ok) eliminarMut.mutate(p);
                     }}
-                    className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-40"
+                    className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-800 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60 disabled:opacity-40"
                   >
                     {eliminando ? "Eliminando…" : "Eliminar"}
                   </button>
@@ -444,9 +444,9 @@ const PERFILES = [
 
 function RiskBadge({ nivel, score }: { nivel: string; score: number }) {
   const cfg = {
-    bajo:  { bg: "bg-green-100 border-green-300",  text: "text-green-800",  dot: "bg-green-500",  label: "Bajo" },
-    medio: { bg: "bg-yellow-100 border-yellow-300", text: "text-yellow-800", dot: "bg-yellow-500", label: "Medio" },
-    alto:  { bg: "bg-red-100 border-red-300",       text: "text-red-800",    dot: "bg-red-500",    label: "Alto" },
+    bajo:  { bg: "bg-green-100 border-green-300 dark:bg-green-950/50 dark:border-green-700",  text: "text-green-800 dark:text-green-300",  dot: "bg-green-500",  label: "Bajo" },
+    medio: { bg: "bg-yellow-100 border-yellow-300 dark:bg-yellow-950/45 dark:border-yellow-700", text: "text-yellow-800 dark:text-yellow-200", dot: "bg-yellow-500", label: "Medio" },
+    alto:  { bg: "bg-red-100 border-red-300 dark:bg-red-950/50 dark:border-red-700",       text: "text-red-800 dark:text-red-300",    dot: "bg-red-500",    label: "Alto" },
   }[nivel] ?? { bg: "bg-gray-100 border-gray-300", text: "text-gray-700", dot: "bg-gray-400", label: nivel };
 
   return (
@@ -482,7 +482,7 @@ function ChecklistGrid({ checklist }: { checklist: Record<string, boolean> }) {
       </p>
       <div className="grid grid-cols-2 gap-1">
         {entries.map(([k, v]) => (
-          <div key={k} className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${v ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+          <div key={k} className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${v ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"}`}>
             <span>{v ? "✓" : "✗"}</span>
             <span className="truncate">{labels[k] ?? k}</span>
           </div>
@@ -532,7 +532,7 @@ function ItemBadges({ item, compact = false }: { item: ItemPausado; compact?: bo
         {statusLabel[item.status] ?? item.status}
       </span>
       {item.categoria_catalogo && (
-        <span className={`rounded-full bg-teal-50 font-semibold text-teal-800 ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]"}`}>
+        <span className={`rounded-full bg-teal-50 font-semibold text-teal-800 dark:bg-teal-950/45 dark:text-teal-200 ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]"}`}>
           {item.categoria_catalogo}
         </span>
       )}
@@ -911,7 +911,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
           {diag.advertencias_taxonomia.length > 0 && (
             <div className="space-y-1">
               {diag.advertencias_taxonomia.map((a, i) => (
-                <p key={i} className="rounded-lg bg-orange-50 px-3 py-1.5 text-[11px] text-orange-800">
+                <p key={i} className="rounded-lg bg-orange-50 px-3 py-1.5 text-[11px] text-orange-800 dark:text-orange-300">
                   ⚠ {a}
                 </p>
               ))}
@@ -933,7 +933,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
 
       {/* Aviso publicación bloqueada (prohibida o en revisión) */}
       {requierePublicacionNueva(item) && step !== "done" && step !== "done_nueva" && (
-        <div className="rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 space-y-1.5">
+        <div className="rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 space-y-1.5 dark:border-orange-700 dark:bg-orange-950/35">
           <p className="text-xs font-bold text-orange-900">
             {esEnRevision(item)
               ? "Publicación en revisión — MeLi bloquea ediciones por API"
@@ -1062,7 +1062,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                   ))}
                 </select>
                 {fichaAutoOk && (
-                  <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800">
+                  <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800 dark:bg-green-950/40 dark:text-green-300">
                     ✓ Datos cargados desde la biblioteca
                     {archivoFicha ? ` · ${tituloDesdeArchivoBiblioteca(archivoFicha)}` : ""}
                   </p>
@@ -1164,7 +1164,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
             </div>
 
             {errorFotos && (
-              <p className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] text-red-700">{errorFotos}</p>
+              <p className="rounded-lg bg-red-50 px-3 py-1.5 text-[11px] text-red-700 dark:bg-red-950/40 dark:text-red-300">{errorFotos}</p>
             )}
 
             {fotosNuevas.length > 0 && (
@@ -1277,12 +1277,12 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
           </button>
 
           {generarMut.isError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {generarMut.error instanceof Error ? generarMut.error.message : "Error al generar"}
             </p>
           )}
           {generarMut.data?.error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {generarMut.data.error}
             </p>
           )}
@@ -1291,8 +1291,8 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
 
       {/* Contenido generado — editable */}
       {(step === "listo" || step === "publicando" || step === "creando_nueva") && generarMut.data && !generarMut.data.error && (
-        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50/50 p-4">
-          <p className="text-xs font-bold text-green-800">Contenido generado — revisa antes de publicar</p>
+        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50/50 p-4 dark:border-green-800/60 dark:bg-green-950/35">
+          <p className="text-xs font-bold text-green-800 dark:text-green-300">Contenido generado — revisa antes de publicar</p>
 
           {/* Título */}
           <div>
@@ -1301,7 +1301,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               value={tituloEditado}
               onChange={(e) => setTituloEditado(e.target.value)}
               maxLength={80}
-              className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
+              className="w-full rounded-lg border border-green-300 dark:border-green-700 bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
             />
             <p className={`mt-0.5 text-right text-[11px] ${tituloEditado.length > 60 ? "text-warning font-semibold" : "text-muted"}`}>
               {tituloEditado.length}/60 caracteres
@@ -1315,7 +1315,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               value={descEditada}
               onChange={(e) => setDescEditada(e.target.value)}
               rows={8}
-              className="w-full resize-y rounded-lg border border-green-300 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+              className="w-full resize-y rounded-lg border border-green-300 dark:border-green-700 bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent"
             />
           </div>
 
@@ -1323,7 +1323,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
           {generarMut.data.atributos && (
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               {Object.entries(generarMut.data.atributos).map(([k, v]) => (
-                <div key={k} className="rounded-lg border border-green-200 bg-white px-2.5 py-1.5">
+                <div key={k} className="rounded-lg border border-green-200 dark:border-green-800/50 bg-surface-input px-2.5 py-1.5">
                   <span className="font-bold text-muted">{k}: </span>
                   <span className="text-ink">{v as string}</span>
                 </div>
@@ -1338,7 +1338,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
 
           {/* Bloque etiqueta */}
           {generarMut.data.bloque_etiqueta && (
-            <details className="rounded-xl border border-green-200 bg-white">
+            <details className="rounded-xl border border-green-200 dark:border-green-800/50 bg-surface-input">
               <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-ink">
                 Ver texto de etiqueta alternativa →
               </summary>
@@ -1373,13 +1373,13 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
           </button>
 
           {republicarMut.isError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {republicarMut.error instanceof Error ? republicarMut.error.message : "Error al republicar"}
             </p>
           )}
 
           {/* Crear publicación nueva (recomendado si prohibida) */}
-          <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/60 p-3 space-y-2">
+          <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/60 p-3 space-y-2 dark:border-teal-700 dark:bg-teal-950/30">
             <p className="text-xs font-bold text-teal-900">
               Publicación nueva desde cero
             </p>
@@ -1409,12 +1409,12 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               )}
             </button>
             {crearNuevaMut.isError && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
                 {crearNuevaMut.error instanceof Error ? crearNuevaMut.error.message : "Error al crear"}
               </p>
             )}
             {crearNuevaMut.data?.paso_fallido && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
                 {crearNuevaMut.data.paso_fallido}
               </p>
             )}
@@ -1426,10 +1426,10 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
       {step === "done" && resultado && (
         <div className={`rounded-xl border p-4 space-y-3 ${
           resultado.republicacion?.ok && !resultado.republicacion?.parcial
-            ? "border-green-300 bg-green-50"
+            ? "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950/35"
             : resultado.republicacion?.ok && resultado.republicacion?.parcial
-              ? "border-yellow-300 bg-yellow-50"
-              : "border-red-300 bg-red-50"
+              ? "border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-950/35"
+              : "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/35"
         }`}>
           {resultado.republicacion?.ok ? (
             <>
@@ -1449,7 +1449,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                 </p>
               )}
               {(resultado.republicacion.acciones_manuales?.length ?? 0) > 0 && (
-                <ul className="space-y-1.5 rounded-lg border border-yellow-200 bg-white px-3 py-2">
+                <ul className="space-y-1.5 rounded-lg border border-yellow-200 dark:border-yellow-800/50 bg-surface-input px-3 py-2">
                   {resultado.republicacion.acciones_manuales?.map((a, i) => (
                     <li key={i} className="text-[11px] leading-relaxed text-yellow-900">
                       → {a}
@@ -1458,7 +1458,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                 </ul>
               )}
               {resultado.republicacion.descripcion_para_pegar && (
-                <details className="rounded-xl border border-yellow-200 bg-white" open>
+                <details className="rounded-xl border border-yellow-200 dark:border-yellow-800/50 bg-surface-input" open>
                   <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-ink">
                     Descripción para pegar en MeLi →
                   </summary>
@@ -1477,7 +1477,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               )}
               <button
                 onClick={onDone}
-                className="mt-2 w-full rounded-lg border border-border bg-white py-2 text-sm font-semibold text-ink transition hover:bg-surface-hover"
+                className="mt-2 w-full rounded-lg border border-border bg-surface-input py-2 text-sm font-semibold text-ink transition hover:bg-surface-hover"
               >
                 Volver a la lista
               </button>
@@ -1489,9 +1489,9 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                 {resultado.paso_fallido ?? resultado.republicacion?.error ?? "Error desconocido"}
               </p>
               {(resultado.republicacion?.acciones_manuales?.length ?? 0) > 0 && (
-                <ul className="space-y-1 rounded-lg bg-orange-50 px-3 py-2">
+                <ul className="space-y-1 rounded-lg bg-orange-50 px-3 py-2 dark:bg-orange-950/35">
                   {resultado.republicacion!.acciones_manuales!.map((a, i) => (
-                    <li key={i} className="text-[11px] text-orange-900">→ {a}</li>
+                    <li key={i} className="text-[11px] text-orange-900 dark:text-orange-200">→ {a}</li>
                   ))}
                 </ul>
               )}
@@ -1502,7 +1502,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               )}
               <button
                 onClick={() => setStep("listo")}
-                className="w-full rounded-lg border border-red-300 bg-white py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100"
+                className="w-full rounded-lg border border-red-300 dark:border-red-800/50 bg-surface-input py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 Volver al contenido generado
               </button>
@@ -1514,12 +1514,12 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
       {/* Publicación nueva creada */}
       {step === "done_nueva" && resultadoNueva && (
         <div className={`rounded-xl border p-4 space-y-3 ${
-          resultadoNueva.publicacion?.ok ? "border-teal-300 bg-teal-50" : "border-red-300 bg-red-50"
+          resultadoNueva.publicacion?.ok ? "border-teal-300 bg-teal-50 dark:border-teal-700 dark:bg-teal-950/35" : "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/35"
         }`}>
           {resultadoNueva.publicacion?.ok ? (
             <>
-              <p className="text-sm font-bold text-teal-900">✅ Publicación nueva creada en MeLi</p>
-              <p className="text-xs text-teal-800">
+              <p className="text-sm font-bold text-teal-900 dark:text-teal-200">✅ Publicación nueva creada en MeLi</p>
+              <p className="text-xs text-teal-800 dark:text-teal-300">
                 Item ID: <span className="font-mono">{resultadoNueva.publicacion.item_id}</span>
               </p>
               {resultadoNueva.publicacion.permalink && (
@@ -1532,24 +1532,24 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                   ↗ Abrir publicación en MeLi para verificar
                 </a>
               )}
-              <p className="text-[11px] text-teal-800">
+              <p className="text-[11px] text-teal-800 dark:text-teal-300">
                 Estado inicial: {resultadoNueva.revision_inicial?.revision?.status ?? resultadoNueva.publicacion.status ?? "—"}
                 {resultadoNueva.revision_inicial?.revision?.nivel_riesgo && (
                   <> · Riesgo {resultadoNueva.revision_inicial.revision.nivel_riesgo}</>
                 )}
               </p>
-              <p className="text-[11px] leading-relaxed text-teal-900">
+              <p className="text-[11px] leading-relaxed text-teal-900 dark:text-teal-100">
                 Quedó en <strong>seguimiento diario</strong> (cron 8:30 + alerta WhatsApp si MeLi la bloquea).
                 Sube la <strong>foto de etiqueta alternativa</strong> en MeLi lo antes posible.
               </p>
               {(resultadoNueva.advertencias ?? []).length > 0 && (
-                <ul className="space-y-1 text-[11px] text-orange-800">
+                <ul className="space-y-1 text-[11px] text-orange-800 dark:text-orange-300">
                   {(resultadoNueva.advertencias ?? []).map((a, i) => (
                     <li key={i}>⚠ {a}</li>
                   ))}
                 </ul>
               )}
-              <button onClick={onDone} className="w-full rounded-lg border border-teal-400 bg-white py-2 text-sm font-semibold text-teal-900 hover:bg-teal-100">
+              <button onClick={onDone} className="w-full rounded-lg border border-teal-400 dark:border-teal-700 bg-surface-input py-2 text-sm font-semibold text-teal-900 hover:bg-teal-100 dark:text-teal-200 dark:hover:bg-teal-950/40">
                 Volver a la lista
               </button>
             </>
@@ -1559,7 +1559,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
               <p className="text-xs text-red-700">
                 {resultadoNueva.paso_fallido ?? resultadoNueva.publicacion?.error ?? "Error desconocido"}
               </p>
-              <button onClick={() => setStep("listo")} className="w-full rounded-lg border border-red-300 bg-white py-2 text-sm font-semibold text-red-800">
+              <button onClick={() => setStep("listo")} className="w-full rounded-lg border border-red-300 dark:border-red-800/50 bg-surface-input py-2 text-sm font-semibold text-red-800 dark:text-red-300">
                 Reintentar
               </button>
             </>
@@ -1602,7 +1602,7 @@ function ComplianceWatchlist() {
   }
 
   return (
-    <div className="shrink-0 rounded-xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
+    <div className="shrink-0 rounded-xl border border-teal-200 bg-teal-50/50 p-4 space-y-3 dark:border-teal-800/50 dark:bg-teal-950/30">
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-bold text-teal-900">
@@ -1630,7 +1630,7 @@ function ComplianceWatchlist() {
           return (
             <div
               key={p.id}
-              className="rounded-xl border border-teal-200 bg-white px-3 py-2.5 space-y-2"
+              className="rounded-xl border border-teal-200 dark:border-teal-800/50 bg-surface-input px-3 py-2.5 space-y-2"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -2155,7 +2155,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
     const ok = pub?.ok && !resultado.paso_fallido;
     return (
       <div className="space-y-4">
-        <div className={`rounded-xl border p-4 space-y-2 ${ok ? "border-teal-200 bg-teal-50" : "border-red-200 bg-red-50"}`}>
+        <div className={`rounded-xl border p-4 space-y-2 ${ok ? "border-teal-200 bg-teal-50 dark:border-teal-700 dark:bg-teal-950/35" : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/35"}`}>
           <p className={`text-sm font-bold ${ok ? "text-teal-900" : "text-red-800"}`}>
             {ok ? "✅ Publicación creada en MeLi" : "No se pudo crear la publicación"}
           </p>
@@ -2195,7 +2195,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
           {(resultado.advertencias?.length ?? 0) > 0 && (
             <ul className="space-y-1">
               {resultado.advertencias!.map((a, i) => (
-                <li key={i} className="text-[11px] text-orange-800">⚠ {a}</li>
+                <li key={i} className="text-[11px] text-orange-800 dark:text-orange-300">⚠ {a}</li>
               ))}
             </ul>
           )}
@@ -2216,7 +2216,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
             generarMut.reset();
             crearMut.reset();
           }}
-          className="w-full rounded-lg border border-border bg-white py-2 text-sm font-semibold text-ink hover:bg-surface-hover"
+          className="w-full rounded-lg border border-border bg-surface-input py-2 text-sm font-semibold text-ink hover:bg-surface-hover"
         >
           Crear otra
         </button>
@@ -2255,7 +2255,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
       </div>
 
       {avisoDuplicado && (
-        <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-[11px] text-teal-900">
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-[11px] text-teal-900 dark:border-teal-700 dark:bg-teal-950/35 dark:text-teal-100">
           {avisoDuplicado}
           <button
             type="button"
@@ -2267,7 +2267,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
         </div>
       )}
       {errorDuplicar && (
-        <p className="rounded-lg bg-orange-50 px-3 py-2 text-[11px] text-orange-800">{errorDuplicar}</p>
+        <p className="rounded-lg bg-orange-50 px-3 py-2 text-[11px] text-orange-800 dark:bg-orange-950/35 dark:text-orange-300">{errorDuplicar}</p>
       )}
 
       <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
@@ -2322,7 +2322,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
           </div>
         </div>
         {eanSeleccionado && (
-          <p className="rounded-lg bg-teal-50 px-3 py-1.5 text-[11px] text-teal-800">
+          <p className="rounded-lg bg-teal-50 px-3 py-1.5 text-[11px] text-teal-800 dark:bg-teal-950/35 dark:text-teal-300">
             Producto EAN #{eanSeleccionado.numero_producto} · código{" "}
             <span className="font-mono font-semibold">{eanSeleccionado.codigo}</span>
           </p>
@@ -2348,7 +2348,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
             ))}
           </div>
           {categoryId || taxonomiaItemId ? (
-            <p className="mt-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-1.5 text-[10px] text-teal-900">
+            <p className="mt-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-1.5 text-[10px] text-teal-900 dark:border-teal-700 dark:bg-teal-950/40 dark:text-teal-100">
               Categoría MeLi (desde referencia
               {taxonomiaItemId ? ` ${taxonomiaItemId}` : ""}):{" "}
               <span className="font-mono font-semibold">{categoryId || "se leerá al publicar"}</span>
@@ -2421,7 +2421,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
                 ))}
               </select>
               {fichaAutoOk && (
-                <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800">
+                <p className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] text-green-800 dark:bg-green-950/40 dark:text-green-300">
                   ✓ Datos cargados desde la biblioteca
                 </p>
               )}
@@ -2553,25 +2553,25 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
           <p className="text-[10px] text-muted">Escribe el nombre del producto (mín. 3 caracteres).</p>
         )}
         {generarMut.isError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
             {generarMut.error instanceof Error ? generarMut.error.message : "Error"}
           </p>
         )}
         {generarMut.data?.error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{generarMut.data.error}</p>
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">{generarMut.data.error}</p>
         )}
       </div>
 
       {(step === "listo" || step === "creando") && generarMut.data && !generarMut.data.error && (
-        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50/50 p-4">
-          <p className="text-xs font-bold text-green-800">Contenido generado — revisa antes de publicar</p>
+        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50/50 p-4 dark:border-green-800/60 dark:bg-green-950/35">
+          <p className="text-xs font-bold text-green-800 dark:text-green-300">Contenido generado — revisa antes de publicar</p>
           <div>
             <label className="mb-1 block text-[11px] font-semibold text-muted">Título MeLi</label>
             <input
               value={tituloEditado}
               onChange={(e) => setTituloEditado(e.target.value)}
               maxLength={80}
-              className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
+              className="w-full rounded-lg border border-green-300 dark:border-green-700 bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
             />
           </div>
           <div>
@@ -2580,7 +2580,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
               value={descEditada}
               onChange={(e) => setDescEditada(e.target.value)}
               rows={8}
-              className="w-full resize-y rounded-lg border border-green-300 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+              className="w-full resize-y rounded-lg border border-green-300 dark:border-green-700 bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent"
             />
           </div>
           <button
@@ -2601,7 +2601,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
                   : "✦ Crear publicación en MeLi + seguimiento"}
           </button>
           {crearMut.isError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {crearMut.error instanceof Error ? crearMut.error.message : "Error"}
             </p>
           )}
@@ -2790,25 +2790,25 @@ export default function MeliComplianceTab() {
       {/* Stats */}
       {data && data.ok && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center dark:border-red-800 dark:bg-red-950/35">
             <p className="text-xl font-black text-red-700">
               {conteos?.forbidden ?? data.items.filter((i) => esProhibida(i)).length}
             </p>
             <p className="text-[11px] font-semibold text-red-600">Prohibidas</p>
           </div>
-          <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center">
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center dark:border-teal-700 dark:bg-teal-950/35">
             <p className="text-xl font-black text-teal-700">
               {conteos?.sales_minerales ?? data.items.filter((i) => i.categoria_catalogo === "Sales Minerales").length}
             </p>
             <p className="text-[11px] font-semibold text-teal-600">Sales Minerales</p>
           </div>
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-center">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-center dark:border-yellow-700 dark:bg-yellow-950/35">
             <p className="text-xl font-black text-yellow-700">
               {conteos?.paused ?? data.items.filter((i) => i.status === "paused").length}
             </p>
             <p className="text-[11px] font-semibold text-yellow-600">Pausadas</p>
           </div>
-          <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-center">
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-center dark:border-orange-700 dark:bg-orange-950/35">
             <p className="text-xl font-black text-orange-700">
               {conteos?.under_review ?? data.items.filter((i) => i.status === "under_review").length}
             </p>
@@ -2865,7 +2865,7 @@ export default function MeliComplianceTab() {
       )}
 
       {data && !data.ok && (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950/35 dark:text-yellow-200">
           {data.error ?? "No se pudo conectar con MeLi. Verifica que el token esté activo."}
         </div>
       )}

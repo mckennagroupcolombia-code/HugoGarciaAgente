@@ -10,10 +10,16 @@ import {
 import {
   contentPathForNode,
   estiloNodo,
+  applyContentPath,
+  ANIM_OPTS,
   ICONOS_STUDIO,
   mergeNodo,
+  MONTSERRAT_VARIANTES,
   moverSeccion,
   nodoOf,
+  STUDIO_ANIM_CSS,
+  varianteIdDesdeNodo,
+  type AnimPreset,
   type LayoutNodo,
   type ShadowPreset,
   type WebLayout,
@@ -463,7 +469,7 @@ export default function WebLayoutCanvas({
                 )}
               </div>
             </div>
-            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-black/10 bg-white mck-paper-white p-4 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 {iconNode("hero.doc.icon", "flask", "text-3xl")}
                 <div>
@@ -486,7 +492,7 @@ export default function WebLayoutCanvas({
           id,
           <div className="grid grid-cols-2 gap-3 p-6 md:grid-cols-4" style={{ background: fondo }}>
             {pureza.metricas.map((m, i) => (
-              <div key={i} className="rounded-xl border border-black/10 bg-white p-4 text-center">
+              <div key={i} className="rounded-xl border border-black/10 bg-white mck-paper-white p-4 text-center">
                 {textBlock(`metricas.${i}.valor`, m.valor, "text-2xl font-extrabold", "div")}
                 {textBlock(`metricas.${i}.etiqueta`, m.etiqueta, "mt-1 text-[11px] text-black/50", "div")}
               </div>
@@ -503,7 +509,7 @@ export default function WebLayoutCanvas({
             {textBlock("trazabilidad.texto", pureza.trazabilidad.texto, "max-w-2xl text-sm opacity-75", "p")}
             <div className="grid gap-3 md:grid-cols-5">
               {pureza.trazabilidad.pasos.map((paso, i) => (
-                <div key={i} className="rounded-xl border border-black/10 bg-white p-3">
+                <div key={i} className="rounded-xl border border-black/10 bg-white mck-paper-white p-3">
                   {iconNode(`trazabilidad.paso.${i}.icono`, paso.icono || "circle", "text-xl")}
                   {textBlock(`trazabilidad.paso.${i}.titulo`, paso.titulo, "mt-2 text-sm font-bold", "h3")}
                   {textBlock(`trazabilidad.paso.${i}.texto`, paso.texto, "mt-1 text-[11px] leading-snug opacity-70", "p")}
@@ -534,7 +540,7 @@ export default function WebLayoutCanvas({
             <div className="mb-4 text-2xl font-extrabold">Explora por categoría</div>
             <div className="grid gap-2 md:grid-cols-3">
               {["Cosmética", "Farmacéutica", "Nutrición", "Perfumería", "Hogar", "Laboratorio"].map((c) => (
-                <div key={c} className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold">
+                <div key={c} className="rounded-xl border border-black/10 bg-white mck-paper-white px-4 py-3 text-sm font-semibold">
                   {c}
                 </div>
               ))}
@@ -594,7 +600,7 @@ export default function WebLayoutCanvas({
       >
         <div
           ref={stageRef}
-          className="overflow-hidden rounded-xl bg-white shadow-2xl"
+          className="overflow-hidden rounded-xl bg-white mck-paper-white shadow-2xl"
           onPointerDown={(e) => e.stopPropagation()}
         >
           {layout.orden.map((sid) => renderSection(sid))}
@@ -604,19 +610,26 @@ export default function WebLayoutCanvas({
   );
 }
 
-/** Panel derecho: propiedades del nodo seleccionado */
 export function WebLayoutInspector({
   selectedId,
   layout,
   onLayoutChange,
   onPurezaPatch,
+  onContentPatch,
+  sectionLabels = SECTION_LABEL,
 }: {
   selectedId: string | null;
   layout: WebLayout;
-  pureza: PurezaCanvas;
+  pureza?: PurezaCanvas;
   onLayoutChange: (next: WebLayout) => void;
-  onPurezaPatch: (mutator: (draft: PurezaCanvas) => void) => void;
+  onPurezaPatch?: (mutator: (draft: PurezaCanvas) => void) => void;
+  onContentPatch?: (mutator: (draft: Record<string, unknown>) => void) => void;
+  sectionLabels?: Record<string, string>;
 }) {
+  const contentPatch = onContentPatch ?? (onPurezaPatch
+    ? (fn: (draft: Record<string, unknown>) => void) =>
+        onPurezaPatch((d) => fn(d as unknown as Record<string, unknown>))
+    : undefined);
   if (!selectedId) {
     return (
       <div className="space-y-2 p-4 text-xs text-muted">
@@ -633,6 +646,7 @@ export function WebLayoutInspector({
             Asa ámbar: <strong className="text-ink">escala</strong> uniforme
           </li>
           <li>Doble clic en texto para editarlo</li>
+          <li>Tipografía, color, trazo, relleno y animaciones en este panel</li>
           <li>Efectos (sombra, opacidad, giro) en este panel</li>
         </ul>
       </div>
@@ -647,38 +661,21 @@ export function WebLayoutInspector({
 
   const setIconContent = (icon: string) => {
     patch({ icono: icon });
+    if (!contentPatch) return;
     const path = contentPathForNode(selectedId);
-    if (path?.type === "paso" && path.field === "icono") {
-      onPurezaPatch((d) => {
-        d.trazabilidad.pasos[path.index].icono = icon;
-      });
-    }
-    if (path?.type === "pilar" && path.field === "icono") {
-      onPurezaPatch((d) => {
-        d.pilares[path.index].icono = icon;
-      });
-    }
-    const mPaso = /^trazabilidad\.paso\.(\d+)\.icono$/.exec(selectedId);
-    if (mPaso) {
-      onPurezaPatch((d) => {
-        d.trazabilidad.pasos[+mPaso[1]].icono = icon;
-      });
-    }
-    const mPilar = /^pilares\.(\d+)\.icono$/.exec(selectedId);
-    if (mPilar) {
-      onPurezaPatch((d) => {
-        d.pilares[+mPilar[1]].icono = icon;
-      });
+    if (path) {
+      contentPatch((d) => applyContentPath(d, path, icon));
     }
   };
 
   const shadowVal: ShadowPreset = n.shadow || "none";
+  const animVal: AnimPreset = n.animation || "none";
 
   return (
     <div className="space-y-4 overflow-y-auto p-4 text-sm">
       <div>
         <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Seleccionado</div>
-        <div className="font-semibold text-ink">{SECTION_LABEL[selectedId] || selectedId}</div>
+        <div className="font-semibold text-ink">{sectionLabels[selectedId] || selectedId}</div>
       </div>
 
       {isSection && (
@@ -767,22 +764,280 @@ export function WebLayoutInspector({
         />
       </label>
 
-      {!isIcon && !isSection && (
-        <label className="block text-xs">
-          <span className="mb-1 block font-semibold text-muted">Tamaño de letra (px)</span>
+      {!isIcon && (
+        <div className="border-t border-border pt-3">
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
+            Tipografía
+          </div>
+          <div className="mb-2 rounded-md border border-border bg-surface px-2.5 py-2 text-xs">
+            <span className="font-semibold text-muted">Familia</span>
+            <div
+              className="mt-0.5 text-sm font-bold text-ink"
+              style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
+            >
+              Montserrat
+            </div>
+            <p className="mt-0.5 text-[10px] text-muted">Única fuente de marca McKenna</p>
+          </div>
+          <div className="mb-2 text-xs">
+            <span className="mb-1.5 block font-semibold text-muted">Variante</span>
+            <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto pr-0.5">
+              {MONTSERRAT_VARIANTES.map((v) => {
+                const on = varianteIdDesdeNodo(n) === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() =>
+                      patch({
+                        fontWeight: v.weight,
+                        fontItalic: v.italic ? true : undefined,
+                      })
+                    }
+                    className={`rounded-md border px-2 py-1.5 text-left text-[11px] transition ${
+                      on
+                        ? "border-accent bg-accent/10 text-ink"
+                        : "border-border text-muted hover:border-accent/40"
+                    }`}
+                    style={{
+                      fontFamily: "'Montserrat', system-ui, sans-serif",
+                      fontWeight: v.weight,
+                      fontStyle: v.italic ? "italic" : "normal",
+                    }}
+                  >
+                    {v.label}
+                    <span className="ml-1 text-[9px] opacity-60">{v.weight}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {!isSection && (
+            <label className="mb-2 block text-xs">
+              <span className="mb-1 block font-semibold text-muted">Tamaño de letra (px)</span>
+              <input
+                type="number"
+                min={10}
+                max={96}
+                className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+                value={n.fontSize ?? ""}
+                placeholder="auto"
+                onChange={(e) =>
+                  patch({ fontSize: e.target.value === "" ? undefined : +e.target.value })
+                }
+              />
+            </label>
+          )}
+          <label className="mb-1 block text-xs">
+            <span className="mb-1 block font-semibold text-muted">Color de texto</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+                value={n.color || "#ffffff"}
+                onChange={(e) => patch({ color: e.target.value })}
+              />
+              <input
+                type="text"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px]"
+                value={n.color || ""}
+                placeholder="auto"
+                onChange={(e) =>
+                  patch({ color: e.target.value.trim() === "" ? undefined : e.target.value })
+                }
+              />
+              {n.color && (
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold text-muted underline"
+                  onClick={() => patch({ color: undefined })}
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+          </label>
+        </div>
+      )}
+
+      <div className="border-t border-border pt-3">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
+          Caja · relleno y trazo
+        </div>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Relleno</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+              value={n.background || "#0c6069"}
+              onChange={(e) => patch({ background: e.target.value })}
+            />
+            <input
+              type="text"
+              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px]"
+              value={n.background || ""}
+              placeholder="ninguno"
+              onChange={(e) =>
+                patch({
+                  background: e.target.value.trim() === "" ? undefined : e.target.value,
+                })
+              }
+            />
+            {n.background && (
+              <button
+                type="button"
+                className="text-[10px] font-semibold text-muted underline"
+                onClick={() => patch({ background: undefined })}
+              >
+                Quitar
+              </button>
+            )}
+          </div>
+        </label>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Trazo (color)</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+              value={n.borderColor || "#ffffff"}
+              onChange={(e) =>
+                patch({
+                  borderColor: e.target.value,
+                  borderWidth: n.borderWidth && n.borderWidth > 0 ? n.borderWidth : 1,
+                })
+              }
+            />
+            <input
+              type="text"
+              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px]"
+              value={n.borderColor || ""}
+              placeholder="ninguno"
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                if (!v) patch({ borderColor: undefined, borderWidth: undefined });
+                else
+                  patch({
+                    borderColor: v,
+                    borderWidth: n.borderWidth && n.borderWidth > 0 ? n.borderWidth : 1,
+                  });
+              }}
+            />
+            {n.borderColor && (
+              <button
+                type="button"
+                className="text-[10px] font-semibold text-muted underline"
+                onClick={() => patch({ borderColor: undefined, borderWidth: undefined })}
+              >
+                Quitar
+              </button>
+            )}
+          </div>
+        </label>
+        <label className="mb-2 block text-xs">
+          <span className="mb-1 block font-semibold text-muted">Grosor del trazo (px)</span>
           <input
             type="number"
-            min={10}
-            max={96}
+            min={0}
+            max={24}
             className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-            value={n.fontSize ?? ""}
-            placeholder="auto"
-            onChange={(e) =>
-              patch({ fontSize: e.target.value === "" ? undefined : +e.target.value })
-            }
+            value={n.borderWidth ?? ""}
+            placeholder="0"
+            onChange={(e) => {
+              if (e.target.value === "") {
+                patch({ borderWidth: undefined });
+                return;
+              }
+              const w = +e.target.value;
+              patch({
+                borderWidth: w,
+                borderColor: w > 0 ? n.borderColor || "#ffffff" : n.borderColor,
+              });
+            }}
           />
         </label>
-      )}
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
+          Animaciones
+        </div>
+        <div className="mb-2 grid grid-cols-3 gap-1">
+          {ANIM_OPTS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              title={opt.loop ? `${opt.label} (bucle)` : opt.label}
+              onClick={() =>
+                patch({
+                  animation: opt.id === "none" ? undefined : opt.id,
+                  ...(opt.id === "none"
+                    ? { animDuration: undefined, animDelay: undefined }
+                    : {}),
+                })
+              }
+              className={`rounded-md border px-1 py-1.5 text-[10px] font-semibold ${
+                animVal === opt.id
+                  ? "border-accent bg-accent/10 text-ink"
+                  : "border-border text-muted hover:border-accent/40"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {animVal !== "none" && (
+          <>
+            <label className="mb-2 block text-xs">
+              <span className="mb-1 block font-semibold text-muted">
+                Duración ({(n.animDuration ?? (animVal === "pulse" || animVal === "float" ? 2.2 : 0.7)).toFixed(1)}s)
+              </span>
+              <input
+                type="range"
+                min={20}
+                max={300}
+                value={Math.round(
+                  (n.animDuration ?? (animVal === "pulse" || animVal === "float" ? 2.2 : 0.7)) * 100,
+                )}
+                onChange={(e) => patch({ animDuration: +e.target.value / 100 })}
+                className="w-full"
+              />
+            </label>
+            <label className="mb-2 block text-xs">
+              <span className="mb-1 block font-semibold text-muted">
+                Retraso ({(n.animDelay ?? 0).toFixed(1)}s)
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                value={Math.round((n.animDelay ?? 0) * 100)}
+                onChange={(e) => patch({ animDelay: +e.target.value / 100 })}
+                className="w-full"
+              />
+            </label>
+            <button
+              type="button"
+              className="mb-1 w-full rounded-md border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent"
+              onClick={() => {
+                // Re-trigger preview: clear then re-apply
+                const cur = { ...n };
+                patch({ animation: undefined });
+                window.setTimeout(() => {
+                  patch({
+                    animation: cur.animation,
+                    animDuration: cur.animDuration,
+                    animDelay: cur.animDelay,
+                  });
+                }, 30);
+              }}
+            >
+              ▶ Reproducir de nuevo
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="border-t border-border pt-3">
         <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Efectos</div>
@@ -881,7 +1136,7 @@ export function WebLayoutInspector({
         onClick={() => {
           const nodos = { ...layout.nodos };
           delete nodos[selectedId];
-          onLayoutChange({ ...ordenKeep(layout), nodos });
+          onLayoutChange({ orden: layout.orden, nodos });
         }}
       >
         Reset posición / tamaño / efectos
@@ -890,19 +1145,23 @@ export function WebLayoutInspector({
   );
 }
 
-function ordenKeep(layout: WebLayout): WebLayout {
-  return { orden: layout.orden, nodos: layout.nodos };
-}
-
-/** Carga Phosphor en el panel (CDN) una sola vez */
+/** Carga Phosphor + keyframes de animación del Studio (una sola vez) */
 export function usePhosphorIcons() {
   useEffect(() => {
     const id = "phosphor-studio-web";
-    if (document.getElementById(id)) return;
-    const link = document.createElement("link");
-    link.id = id;
-    link.rel = "stylesheet";
-    link.href = "https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css";
-    document.head.appendChild(link);
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css";
+      document.head.appendChild(link);
+    }
+    const animId = "mck-studio-anim-css";
+    if (!document.getElementById(animId)) {
+      const style = document.createElement("style");
+      style.id = animId;
+      style.textContent = STUDIO_ANIM_CSS;
+      document.head.appendChild(style);
+    }
   }, []);
 }

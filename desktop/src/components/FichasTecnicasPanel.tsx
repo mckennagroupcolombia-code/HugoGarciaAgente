@@ -346,7 +346,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
           <iframe
             title="Vista previa PDF"
             src={`${previewUrl}#toolbar=1&navpanes=0`}
-            className="flex-1 w-full border-0 bg-white"
+            className="flex-1 w-full border-0 bg-white mck-paper-white"
           />
         </div>
       )}
@@ -1752,7 +1752,7 @@ function DocumentoCompletoTabContent({
                         <span className="text-[10px] font-medium">Sin cabezote</span>
                       </div>
                     ) : (
-                      <div className="relative h-14 w-full bg-white">
+                      <div className="relative h-14 w-full bg-white mck-paper-white">
                         <img src={imgSrc} alt={c.nombre} className="h-full w-full object-contain p-1.5" />
                         <button
                           type="button"
@@ -1785,7 +1785,7 @@ function DocumentoCompletoTabContent({
                         <p className="text-[10px] font-semibold text-ink">¿Eliminar?</p>
                         <div className="flex gap-1.5">
                           <button type="button" onClick={(e) => { e.stopPropagation(); void handleCabezoteDelete(c.id); }} className="rounded bg-danger px-2.5 py-1 text-[10px] font-bold text-white hover:opacity-85">Sí</button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(null); }} className="rounded border border-border bg-white px-2 py-1 text-[10px] text-ink">No</button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(null); }} className="rounded border border-border bg-surface-input px-2 py-1 text-[10px] text-ink">No</button>
                         </div>
                       </div>
                     )}
@@ -1801,7 +1801,7 @@ function DocumentoCompletoTabContent({
             {cabezoteDeleteError && <p className="text-xs text-danger">{cabezoteDeleteError}</p>}
             {cabezotePreview && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setCabezotePreview(null)}>
-                <div className="relative max-w-xl rounded-xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <div className="relative max-w-xl rounded-xl bg-white mck-paper-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
                   <img src={cabezotePreview.src} alt={cabezotePreview.nombre} className="max-h-64 w-full object-contain" />
                   <p className="mt-2 text-center text-xs text-muted">{cabezotePreview.nombre}</p>
                   <button type="button" onClick={() => setCabezotePreview(null)} className="absolute right-2 top-2 rounded bg-surface-input px-2 py-1 text-xs text-ink hover:bg-border">✕ Cerrar</button>
@@ -1951,7 +1951,7 @@ function DocumentoCompletoTabContent({
             <iframe
               title="Vista previa PDF"
               src={`${previewUrl}#toolbar=1&navpanes=0`}
-              className="flex-1 w-full border-0 bg-white"
+              className="flex-1 w-full border-0 bg-white mck-paper-white"
             />
           </div>
         </div>

@@ -79,8 +79,13 @@ def _env(key: str, default: str = "") -> str:
     return (os.getenv(key) or default).strip()
 
 
-def datos_emisor() -> dict[str, str]:
-    return {
+def datos_emisor(perfil: dict | None = None) -> dict[str, str]:
+    """
+    Datos del emisor en la cuenta de cobro.
+    Si se pasa ``perfil`` (usuario del panel), nombre/documento/email/tel
+    del perfil tienen prioridad sobre las variables de entorno.
+    """
+    out = {
         "nombre": _env("CUOTA_MANEJO_EMISOR_NOMBRE", "Cynthia Ruiz"),
         "documento": _env("CUOTA_MANEJO_EMISOR_DOC", ""),
         "ciudad": _env("CUOTA_MANEJO_EMISOR_CIUDAD", "Bogotá D.C."),
@@ -90,6 +95,25 @@ def datos_emisor() -> dict[str, str]:
         "email": _env("CUOTA_MANEJO_EMISOR_EMAIL", ""),
         "telefono": _env("CUOTA_MANEJO_EMISOR_TELEFONO", ""),
     }
+    if not perfil:
+        return out
+    nombre = str(perfil.get("nombre") or "").strip()
+    if nombre:
+        out["nombre"] = nombre
+    doc = str(
+        perfil.get("documento_identidad")
+        or perfil.get("documento")
+        or ""
+    ).strip()
+    if doc:
+        out["documento"] = doc
+    email = str(perfil.get("email") or "").strip()
+    if email:
+        out["email"] = email
+    tel = str(perfil.get("telefono") or "").strip()
+    if tel:
+        out["telefono"] = tel
+    return out
 
 
 def datos_pagador() -> dict[str, str]:
@@ -262,6 +286,29 @@ def _fmt_fecha(iso: str) -> str:
     return datetime.now().strftime("%d/%m/%Y")
 
 
+def numero_cuenta_cobro(compra_id: int, *, flete: bool = False) -> str:
+    """Número interno mostrado en el PDF (p. ej. CC-CE-00009)."""
+    base = f"CC-CE-{int(compra_id):05d}"
+    return f"{base}-FLETE" if flete else base
+
+
+def nombre_archivo_cuenta_cobro(compra_id: int, *, flete: bool = False) -> str:
+    """
+    Nombre de descarga/archivo:
+    'Cuenta de cobro numero 00009 compra en el exterior.pdf'
+    (flete: '… numero 00009 flete compra en el exterior.pdf')
+    """
+    n = f"{int(compra_id):05d}"
+    if flete:
+        raw = f"Cuenta de cobro numero {n} flete compra en el exterior.pdf"
+    else:
+        raw = f"Cuenta de cobro numero {n} compra en el exterior.pdf"
+    # Caracteres seguros para filesystem / Content-Disposition
+    safe = re.sub(r'[\\/:*?"<>|]+', " ", raw)
+    safe = re.sub(r"\s+", " ", safe).strip()
+    return safe or f"cuenta-cobro-{n}.pdf"
+
+
 def generar_pdf_cuenta_cobro(
     *,
     compra_id: int,
@@ -275,6 +322,7 @@ def generar_pdf_cuenta_cobro(
     moneda_flete: str = "",
     numero: str | None = None,
     accent_rgb: str | None = None,
+    emisor_perfil: dict | None = None,
 ) -> dict[str, Any]:
     """
     Genera PDF (solo tras aprobación). Colores del encabezado = acento del tema.
@@ -304,11 +352,19 @@ def generar_pdf_cuenta_cobro(
         accent_hex = "#0c6069"
 
     _asegurar_carpeta_pdfs()
-    num = numero or f"CC-CE-{int(compra_id):05d}"
-    filename = f"{num}.pdf"
+    num = numero or numero_cuenta_cobro(int(compra_id), flete=False)
+    filename = nombre_archivo_cuenta_cobro(int(compra_id), flete=False)
     full = os.path.join(_CARPETA, filename)
 
-    emisor = datos_emisor()
+    emisor = datos_emisor(emisor_perfil)
+    if emisor_perfil is not None and not (emisor.get("documento") or "").strip():
+        return {
+            **calc,
+            "numero": "",
+            "path": "",
+            "filename": "",
+            "error": "Falta documento de identidad del emisor en el perfil",
+        }
     pagador = datos_pagador()
     fecha_doc = _fmt_fecha(fecha_compra) if fecha_compra else datetime.now().strftime("%d/%m/%Y")
     mon_u = (moneda or "USD").strip().upper()
@@ -560,6 +616,7 @@ def generar_pdf_cuenta_flete(
     fecha_compra: str = "",
     numero: str | None = None,
     accent_rgb: str | None = None,
+    emisor_perfil: dict | None = None,
 ) -> dict[str, Any]:
     """PDF cuenta de cobro aparte solo por el flete/envío."""
     flete_c = flete_en_cop(
@@ -582,11 +639,19 @@ def generar_pdf_cuenta_flete(
         accent_hex = "#0c6069"
 
     _asegurar_carpeta_pdfs()
-    num = numero or f"CC-CE-{int(compra_id):05d}-FLETE"
-    filename = f"{num}.pdf"
+    num = numero or numero_cuenta_cobro(int(compra_id), flete=True)
+    filename = nombre_archivo_cuenta_cobro(int(compra_id), flete=True)
     full = os.path.join(_CARPETA, filename)
 
-    emisor = datos_emisor()
+    emisor = datos_emisor(emisor_perfil)
+    if emisor_perfil is not None and not (emisor.get("documento") or "").strip():
+        return {
+            "flete_cop": flete_c,
+            "numero": "",
+            "path": "",
+            "filename": "",
+            "error": "Falta documento de identidad del emisor en el perfil",
+        }
     pagador = datos_pagador()
     fecha_doc = _fmt_fecha(fecha_compra) if fecha_compra else datetime.now().strftime("%d/%m/%Y")
     mon_u = (moneda or "USD").strip().upper()

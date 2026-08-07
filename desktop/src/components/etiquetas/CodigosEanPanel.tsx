@@ -323,7 +323,7 @@ export function CodigosEanPanel() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
-          <div className="flex min-h-[70px] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-2">
+          <div className="flex min-h-[70px] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-lg border border-border bg-white mck-paper-white p-2">
             {preview ? (
               <div
                 className="w-full [&>svg]:h-auto [&>svg]:w-full"

@@ -107,7 +107,13 @@
       <!-- Cuerpo -->
       <div class="shop-card-body">
         <div class="shop-card-name">{{ p.name }}</div>
-        <div class="shop-card-ref">Ref: {{ p.ref }}</div>
+        <div class="shop-card-ref">
+          {% if p.get('is_family') and p.n_presentaciones %}
+          {{ p.n_presentaciones }} presentaciones
+          {% else %}
+          Ref: {{ p.ref }}
+          {% endif %}
+        </div>
         {% if TEMA_ACTIVO == 'pureza' %}
         <div class="pz-card-trust">
           {% for b in TW.badges_producto[:2] %}
@@ -119,7 +125,7 @@
         <!-- Precio -->
         <div class="shop-card-price-row">
           <span class="shop-card-price">{{ p.precio }}</span>
-          {% if not p.solo_vitrina %}
+          {% if not p.solo_vitrina and not p.get('is_family') %}
           <span class="shop-card-price-old">{{ p.precio_meli }}</span>
           <span class="shop-card-saving">{{ p.ahorro }}</span>
           {% endif %}
@@ -127,7 +133,12 @@
 
         <!-- CTAs -->
         <div class="shop-card-actions">
-          {% if p.solo_vitrina %}
+          {% if p.get('is_family') %}
+          <a href="{{ url_for('producto', slug=p.slug) }}"
+             class="btn btn-primary btn-sm shop-card-btn-sole">
+            <i class="ph ph-squares-four"></i> Ver presentaciones
+          </a>
+          {% elif p.solo_vitrina %}
           <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
              class="btn btn-primary btn-sm shop-card-btn-sole">
             <i class="ph ph-list"></i> Ver referencias

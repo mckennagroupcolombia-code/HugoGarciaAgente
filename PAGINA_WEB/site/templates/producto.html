@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ p.name }} — McKenna Group{% endblock %}
-{% block description %}{% if p.get('is_combo') %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}.{% else %}Ficha y referencias de {{ p.name }}. Stock y compra por presentación (combo SIIGO).{% endif %} Despacho a todo Colombia.{% endblock %}
+{% block description %}{% if p.get('is_family') %}{{ p.name }} en {{ p.n_presentaciones }} presentaciones desde {{ p.precio }}.{% elif p.get('is_combo') %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}.{% else %}Ficha y referencias de {{ p.name }}. Stock y compra por presentación (combo SIIGO).{% endif %} Despacho a todo Colombia.{% endblock %}
 
 {% block content %}
 
@@ -9,7 +9,15 @@
   <div class="inner">
     <span class="hero-badge">{{ p.cat }}</span>
     <h1>{{ p.name }}</h1>
-    {% if p.get('is_combo') %}
+    {% if p.get('is_family') %}
+    <p>
+      {% if p.n_presentaciones %}{{ p.n_presentaciones }} presentaciones · {% endif %}
+      <strong style="color:var(--green-light)" id="hero-precio">{{ p.precio }}</strong>
+      {% if p.selected_combo %}
+      · Ref: <span id="hero-ref">{{ p.selected_combo.ref }}</span>
+      {% endif %}
+    </p>
+    {% elif p.get('is_combo') %}
     <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
     {% elif p.solo_vitrina %}
     <p>Catálogo informativo · <strong style="color:var(--green-light)">{{ p.precio }}</strong> · Compra en presentaciones combo abajo</p>
@@ -28,7 +36,183 @@
 </div>
 {% endif %}
 
-{% if p.get('is_combo') %}
+{% if p.get('is_family') and p.combos %}
+<!-- ═══ Familia: una ficha + botones de presentación ═══ -->
+{% set sel = p.selected_combo or p.combos[0] %}
+<div class="section">
+  <div class="producto-detail-grid">
+
+    {% set gid = p.slug | replace(' ','') | replace('-','') %}
+    <div>
+      <div class="prod-gallery" id="gallery-{{ gid }}">
+        {% if fotos %}
+        <div class="prod-gallery-track">
+          {% for foto in fotos %}
+          <div class="prod-slide{% if loop.first %} active{% endif %}">
+            <img src="{{ foto }}" alt="{{ p.name }}"
+                 loading="{% if loop.first %}eager{% else %}lazy{% endif %}">
+          </div>
+          {% endfor %}
+        </div>
+        {% if fotos | length > 1 %}
+        <button class="prod-arrow prod-arrow-prev" onclick="prodSlide('{{ gid }}',-1)" aria-label="Anterior">&#8249;</button>
+        <button class="prod-arrow prod-arrow-next" onclick="prodSlide('{{ gid }}', 1)" aria-label="Siguiente">&#8250;</button>
+        <div class="prod-dots">
+          {% for _ in fotos %}
+          <button class="prod-dot{% if loop.first %} active{% endif %}"
+                  onclick="prodSlideTo('{{ gid }}', {{ loop.index0 }})" aria-label="Foto {{ loop.index }}"></button>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="prod-gallery-placeholder"><i class="ph ph-package"></i></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <div class="presentacion-block" id="presentacion-picker">
+        <div class="presentacion-label">Presentación</div>
+        <div class="presentacion-btns" role="group" aria-label="Elegir presentación">
+          {% for c in p.combos %}
+          <button type="button"
+                  class="presentacion-btn{% if c.slug == sel.slug %} is-active{% endif %}{% if not c.get('buyable', True) %} is-agotado{% endif %}"
+                  data-slug="{{ c.slug }}"
+                  data-ref="{{ c.ref }}"
+                  data-precio="{{ c.precio }}"
+                  data-precio-meli="{{ c.precio_meli }}"
+                  data-ahorro="{{ c.ahorro }}"
+                  data-buyable="{{ '1' if c.get('buyable', True) else '0' }}"
+                  data-stock="{{ c.stock if c.stock is not none else '' }}"
+                  {% if not c.get('buyable', True) %}title="Agotado"{% endif %}>
+            {{ c.presentacion_label or c.ref }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="producto-specs-grid">
+        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia</div>
+          <div id="spec-ref" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.ref }}</div>
+        </div>
+        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio web</div>
+          <div id="spec-precio" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.precio }}</div>
+        </div>
+        <div style="background:var(--green);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Lista</div>
+          <div id="spec-lista" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.precio_meli }}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:36px;padding:28px 32px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Precio catálogo web</div>
+        <div style="font-size:3rem;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;">
+          <span id="big-precio">{{ sel.precio }}</span>
+          <span id="big-lista" style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">{{ sel.precio_meli }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;align-items:center;" id="buy-actions">
+        <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;" id="form-agregar">
+          <input type="hidden" name="slug" id="cart-slug" value="{{ sel.slug }}">
+          <input type="hidden" name="qty" value="1">
+          <button type="submit" class="btn btn-primary btn-lg" id="btn-agregar"
+                  {% if not sel.get('buyable', True) %}disabled style="display:none"{% endif %}>
+            <i class="ph ph-shopping-cart"></i>
+            Agregar al carrito
+          </button>
+        </form>
+        <a href="{{ url_for('checkout') }}" class="btn btn-dark btn-lg" id="btn-comprar"
+           {% if not sel.get('buyable', True) %}style="display:none"{% endif %}>
+          <i class="ph ph-lock"></i>
+          Comprar ahora
+        </a>
+        <span class="btn btn-lg badge-agotado" id="btn-agotado"
+              {% if sel.get('buyable', True) %}style="display:none"{% endif %}>
+          <i class="ph ph-x-circle"></i>
+          Agotado temporalmente
+        </span>
+        <span class="stock-bajo-nota" id="stock-nota" style="margin:0;{% if not (sel.stock is not none and sel.stock <= 3 and sel.get('buyable', True)) %}display:none{% endif %}">
+          Quedan <span id="stock-num">{{ sel.stock }}</span> unidades
+        </span>
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+          <i class="ph ph-whatsapp-logo"></i>
+          WhatsApp
+        </a>
+      </div>
+
+      {% if p.desc %}
+      <p class="acid-body-text" style="margin-bottom:24px;">{{ p.desc }}</p>
+      {% endif %}
+
+      <div class="protocol-grid">
+        <div class="protocol-box">
+          <h4><i class="ph ph-package"></i> &nbsp;Envío</h4>
+          <p>Despachos a todo Colombia. Interrapidísimo y transportadoras aliadas.</p>
+        </div>
+        <div class="protocol-box">
+          <h4><i class="ph ph-certificate"></i> &nbsp;Calidad</h4>
+          <p>Materia prima pura con Visto Bueno de Importación (VUCE), COA de laboratorio y Ficha Técnica por lote. 100% legal y trazable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('presentacion-picker');
+  if (!root) return;
+  var btns = root.querySelectorAll('.presentacion-btn');
+  function apply(btn) {
+    btns.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+    var slug = btn.getAttribute('data-slug') || '';
+    var ref = btn.getAttribute('data-ref') || '';
+    var precio = btn.getAttribute('data-precio') || '';
+    var lista = btn.getAttribute('data-precio-meli') || '';
+    var buyable = btn.getAttribute('data-buyable') === '1';
+    var stock = btn.getAttribute('data-stock');
+    var el;
+    el = document.getElementById('cart-slug'); if (el) el.value = slug;
+    el = document.getElementById('spec-ref'); if (el) el.textContent = ref;
+    el = document.getElementById('spec-precio'); if (el) el.textContent = precio;
+    el = document.getElementById('spec-lista'); if (el) el.textContent = lista;
+    el = document.getElementById('big-precio'); if (el) el.textContent = precio;
+    el = document.getElementById('big-lista'); if (el) el.textContent = lista;
+    el = document.getElementById('hero-precio'); if (el) el.textContent = precio;
+    el = document.getElementById('hero-ref'); if (el) el.textContent = ref;
+    var add = document.getElementById('btn-agregar');
+    var buy = document.getElementById('btn-comprar');
+    var ago = document.getElementById('btn-agotado');
+    if (add) { add.style.display = buyable ? '' : 'none'; add.disabled = !buyable; }
+    if (buy) buy.style.display = buyable ? '' : 'none';
+    if (ago) ago.style.display = buyable ? 'none' : '';
+    var nota = document.getElementById('stock-nota');
+    var sn = document.getElementById('stock-num');
+    if (nota && sn) {
+      var n = stock === '' || stock == null ? null : parseInt(stock, 10);
+      if (buyable && n != null && n <= 3) {
+        sn.textContent = String(n);
+        nota.style.display = '';
+      } else {
+        nota.style.display = 'none';
+      }
+    }
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('pres', slug);
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {}
+  }
+  btns.forEach(function (btn) {
+    btn.addEventListener('click', function () { apply(btn); });
+  });
+})();
+</script>
+
+{% elif p.get('is_combo') %}
 <!-- ═══ Página de producto COMBO (comprable directo) ═══ -->
 <div class="section">
   <div class="producto-detail-grid">
@@ -133,7 +317,7 @@
 </div>
 
 {% else %}
-<!-- ═══ VITRINA (familia): foto, descripción, ficha; compra solo combos ═══ -->
+<!-- ═══ VITRINA (familia legacy): foto, descripción, ficha; compra solo combos ═══ -->
 <div class="section">
   <div class="producto-detail-grid">
 
