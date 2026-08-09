@@ -10,11 +10,14 @@ import {
 import {
   applyContentPath,
   contentPathForNode,
+  estiloFitTexto,
   estiloNodo,
   mergeNodo,
   nodoOf,
   type WebLayout,
 } from "../../lib/webLayoutStudio";
+import type { StudioSelectOpts } from "../../lib/studioSelectSimilar";
+import { LINEAS_CATALOGO } from "../../lib/lineasCatalogo";
 
 export interface ClasicoCanvas {
   anuncio: string;
@@ -55,16 +58,21 @@ export interface ClasicoCanvas {
 
 type DragMode = "move" | "scale" | "resize-e" | "resize-s" | "resize-se";
 
+interface DragOrig {
+  dx: number;
+  dy: number;
+  scale: number;
+  w: number;
+  h: number;
+}
+
 interface DragState {
   id: string;
+  ids: string[];
   mode: DragMode;
   startX: number;
   startY: number;
-  origDx: number;
-  origDy: number;
-  origScale: number;
-  origW: number;
-  origH: number;
+  orig: Record<string, DragOrig>;
 }
 
 const TEAL = "#0c6069";
@@ -147,6 +155,7 @@ function SelectionChrome({
 function EditableNode({
   id,
   selected,
+  primary,
   layout,
   onSelect,
   onDragStart,
@@ -154,19 +163,24 @@ function EditableNode({
   className,
   children,
   as: Tag = "div",
+  fitText = false,
 }: {
   id: string;
   selected: boolean;
+  primary?: boolean;
   layout: WebLayout;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: StudioSelectOpts) => void;
   onDragStart: (id: string, mode: DragMode, e: ReactPointerEvent, el?: HTMLElement) => void;
   style?: CSSProperties;
   className?: string;
   children: ReactNode;
   as?: "div" | "span" | "h1" | "h2" | "h3" | "p" | "button";
+  /** Ajusta la caja al texto (títulos/párrafos). No usar en tarjetas ni iconos. */
+  fitText?: boolean;
 }) {
   const n = nodoOf(layout, id);
-  const merged = { ...estiloNodo(n), ...style };
+  const merged = { ...estiloFitTexto(n, { className, enabled: fitText }), ...style };
+  const showHandles = selected && (primary ?? selected);
   const common = {
     "data-node": id,
     className: `relative select-none ${selected ? "z-10" : ""} ${className || ""}`,
@@ -174,13 +188,18 @@ function EditableNode({
     onPointerDown: (e: ReactPointerEvent) => {
       if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
       e.stopPropagation();
-      onSelect(id);
+      const additive = e.ctrlKey || e.metaKey || e.shiftKey;
+      onSelect(id, { additive });
+      if (additive) return;
       onDragStart(id, "move", e, e.currentTarget as HTMLElement);
     },
     children: (
       <>
         {children}
-        {selected && (
+        {selected && !showHandles && (
+          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
+        )}
+        {showHandles && (
           <SelectionChrome
             onHandle={(mode, e) => onDragStart(id, mode, e, e.currentTarget as HTMLElement)}
           />
@@ -199,7 +218,7 @@ export { WebLayoutInspector } from "./WebLayoutCanvas";
 export default function ClasicoLayoutCanvas({
   clasico,
   layout,
-  selectedId,
+  selectedIds,
   onSelect,
   onLayoutChange,
   onClasicoPatch,
@@ -207,8 +226,8 @@ export default function ClasicoLayoutCanvas({
 }: {
   clasico: ClasicoCanvas;
   layout: WebLayout;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedIds: string[];
+  onSelect: (id: string | null, opts?: StudioSelectOpts) => void;
   onLayoutChange: (next: WebLayout) => void;
   onClasicoPatch: (mutator: (draft: ClasicoCanvas) => void) => void;
   zoom: number;
@@ -217,8 +236,11 @@ export default function ClasicoLayoutCanvas({
   const dragRef = useRef<DragState | null>(null);
   const layoutRef = useRef(layout);
   const onLayoutChangeRef = useRef(onLayoutChange);
+  const selectedIdsRef = useRef(selectedIds);
   layoutRef.current = layout;
   onLayoutChangeRef.current = onLayoutChange;
+  selectedIdsRef.current = selectedIds;
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -227,24 +249,33 @@ export default function ClasicoLayoutCanvas({
       if (editingId) return;
       e.preventDefault();
       e.stopPropagation();
-      const n = nodoOf(layoutRef.current, id);
-      const nodeEl =
-        (stageRef.current?.querySelector(`[data-node="${CSS.escape(id)}"]`) as HTMLElement | null) ||
-        null;
-      const rect = nodeEl?.getBoundingClientRect();
+      const curSel = selectedIdsRef.current;
+      const ids = curSel.includes(id) && curSel.length > 1 ? [...curSel] : [id];
       const inv = 1 / zoom;
-      const measuredW = rect ? (rect.width * inv) / (n.scale ?? 1) : 120;
-      const measuredH = rect ? (rect.height * inv) / (n.scale ?? 1) : 40;
+      const orig: Record<string, DragOrig> = {};
+      for (const nid of ids) {
+        const n = nodoOf(layoutRef.current, nid);
+        const nodeEl =
+          (stageRef.current?.querySelector(`[data-node="${CSS.escape(nid)}"]`) as HTMLElement | null) ||
+          null;
+        const rect = nodeEl?.getBoundingClientRect();
+        const measuredW = rect ? (rect.width * inv) / (n.scale ?? 1) : 120;
+        const measuredH = rect ? (rect.height * inv) / (n.scale ?? 1) : 40;
+        orig[nid] = {
+          dx: n.dx ?? 0,
+          dy: n.dy ?? 0,
+          scale: n.scale ?? 1,
+          w: n.width ?? Math.round(measuredW),
+          h: n.height ?? Math.round(measuredH),
+        };
+      }
       dragRef.current = {
         id,
+        ids,
         mode,
         startX: e.clientX,
         startY: e.clientY,
-        origDx: n.dx ?? 0,
-        origDy: n.dy ?? 0,
-        origScale: n.scale ?? 1,
-        origW: n.width ?? Math.round(measuredW),
-        origH: n.height ?? Math.round(measuredH),
+        orig,
       };
       setDragging(true);
       try {
@@ -264,37 +295,32 @@ export default function ClasicoLayoutCanvas({
       const inv = 1 / zoom;
       const dx = (e.clientX - d.startX) * inv;
       const dy = (e.clientY - d.startY) * inv;
-      const cur = layoutRef.current;
-      if (d.mode === "move") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            dx: Math.round(d.origDx + dx),
-            dy: Math.round(d.origDy + dy),
-          }),
-        );
-      } else if (d.mode === "scale") {
-        const delta = (dx + dy) / 120;
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            scale: Math.min(2.5, Math.max(0.5, d.origScale + delta)),
-          }),
-        );
-      } else if (d.mode === "resize-e") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, { width: Math.round(Math.max(24, d.origW + dx)) }),
-        );
-      } else if (d.mode === "resize-s") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, { height: Math.round(Math.max(16, d.origH + dy)) }),
-        );
-      } else if (d.mode === "resize-se") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            width: Math.round(Math.max(24, d.origW + dx)),
-            height: Math.round(Math.max(16, d.origH + dy)),
-          }),
-        );
+      let next = layoutRef.current;
+      for (const nid of d.ids) {
+        const o = d.orig[nid];
+        if (!o) continue;
+        if (d.mode === "move") {
+          next = mergeNodo(next, nid, {
+            dx: Math.round(o.dx + dx),
+            dy: Math.round(o.dy + dy),
+          });
+        } else if (d.mode === "scale") {
+          const delta = (dx + dy) / 120;
+          next = mergeNodo(next, nid, {
+            scale: Math.min(2.5, Math.max(0.5, o.scale + delta)),
+          });
+        } else if (d.mode === "resize-e") {
+          next = mergeNodo(next, nid, { width: Math.round(Math.max(24, o.w + dx)) });
+        } else if (d.mode === "resize-s") {
+          next = mergeNodo(next, nid, { height: Math.round(Math.max(16, o.h + dy)) });
+        } else if (d.mode === "resize-se") {
+          next = mergeNodo(next, nid, {
+            width: Math.round(Math.max(24, o.w + dx)),
+            height: Math.round(Math.max(16, o.h + dy)),
+          });
+        }
       }
+      onLayoutChangeRef.current(next);
     };
     const onUp = () => {
       if (dragRef.current) {
@@ -328,17 +354,19 @@ export default function ClasicoLayoutCanvas({
   ) => (
     <EditableNode
       id={id}
-      selected={selectedId === id}
+      selected={selectedIds.includes(id)}
+      primary={selectedId === id}
       layout={layout}
       onSelect={onSelect}
       onDragStart={beginDrag}
       className={`${className} cursor-grab active:cursor-grabbing`}
       as={tag}
+      fitText
     >
       {editingId === id ? (
         <textarea
           autoFocus
-          className="w-full resize-none rounded border border-sky-400 bg-white/95 p-1 text-inherit outline-none"
+          className="min-w-[10rem] w-full resize-none rounded border border-sky-400 bg-white/95 p-1 text-inherit outline-none"
           rows={Math.min(6, Math.max(1, value.split("\n").length))}
           defaultValue={value}
           onBlur={(e) => {
@@ -374,7 +402,8 @@ export default function ClasicoLayoutCanvas({
     return (
       <EditableNode
         id={id}
-        selected={selectedId === id}
+        selected={selectedIds.includes(id)}
+        primary={selectedId === id}
         layout={layout}
         onSelect={onSelect}
         onDragStart={beginDrag}
@@ -394,7 +423,8 @@ export default function ClasicoLayoutCanvas({
   const sectionShell = (id: string, children: ReactNode, extraClass = "") => {
     const n = nodoOf(layout, id);
     if (n.hidden) return null;
-    const selected = selectedId === id;
+    const selected = selectedIds.includes(id);
+    const primary = selectedId === id;
     return (
       <section
         key={id}
@@ -408,7 +438,9 @@ export default function ClasicoLayoutCanvas({
           const closest = (e.target as HTMLElement).closest("[data-node]");
           const closestId = closest?.getAttribute("data-node");
           if (closestId && closestId !== id) return;
-          onSelect(id);
+          const additive = e.ctrlKey || e.metaKey || e.shiftKey;
+          onSelect(id, { additive });
+          if (additive) return;
           beginDrag(id, "move", e, e.currentTarget);
         }}
       >
@@ -416,7 +448,10 @@ export default function ClasicoLayoutCanvas({
           {SECTION_LABEL_CLASICO[id] || id}
         </div>
         {children}
-        {selected && (
+        {selected && !primary && (
+          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
+        )}
+        {primary && (
           <SelectionChrome
             onHandle={(mode, e) => beginDrag(id, mode, e, e.currentTarget as HTMLElement)}
           />
@@ -471,13 +506,13 @@ export default function ClasicoLayoutCanvas({
                 "div",
               )}
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight">
-                {textBlock("hero.titulo_l1", H.titulo_l1, "block", "span")}
+                {textBlock("hero.titulo_l1", H.titulo_l1, "", "span")}
                 <br />
                 <em className="font-light italic text-[#6aacb3]">
-                  {textBlock("hero.titulo_em", H.titulo_em, "inline not-italic", "span")}
+                  {textBlock("hero.titulo_em", H.titulo_em, "not-italic", "span")}
                 </em>
                 <br />
-                {textBlock("hero.titulo_l2", H.titulo_l2, "block", "span")}
+                {textBlock("hero.titulo_l2", H.titulo_l2, "", "span")}
               </h1>
               {textBlock(
                 "hero.subtitulo",
@@ -516,7 +551,8 @@ export default function ClasicoLayoutCanvas({
                   >
                     <EditableNode
                       id={`hero.kit.${i}`}
-                      selected={selectedId === `hero.kit.${i}`}
+                      selected={selectedIds.includes(`hero.kit.${i}`)}
+                      primary={selectedId === `hero.kit.${i}`}
                       layout={layout}
                       onSelect={onSelect}
                       onDragStart={beginDrag}
@@ -565,7 +601,8 @@ export default function ClasicoLayoutCanvas({
                 <EditableNode
                   key={i}
                   id={`features.${i}`}
-                  selected={selectedId === `features.${i}`}
+                  selected={selectedIds.includes(`features.${i}`)}
+                  primary={selectedId === `features.${i}`}
                   layout={layout}
                   onSelect={onSelect}
                   onDragStart={beginDrag}
@@ -604,16 +641,15 @@ export default function ClasicoLayoutCanvas({
           <div className="p-8" style={{ background: TEAL_DEEP, color: "#fff" }}>
             {sectionHeader("categorias", clasico.categorias, true)}
             <div className="grid gap-2 md:grid-cols-3">
-              {["Cosmética", "Farmacéutica", "Nutrición", "Perfumería", "Hogar", "Laboratorio"].map(
-                (c) => (
-                  <div
-                    key={c}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold"
-                  >
-                    {c}
-                  </div>
-                ),
-              )}
+              {LINEAS_CATALOGO.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold"
+                  style={{ borderLeft: `3px solid ${c.color}`, color: c.color }}
+                >
+                  {c.name}
+                </div>
+              ))}
             </div>
           </div>,
         );
@@ -695,6 +731,7 @@ export default function ClasicoLayoutCanvas({
       >
         <div
           ref={stageRef}
+          data-studio-stage="clasico"
           className="overflow-hidden rounded-xl bg-white mck-paper-white shadow-2xl"
           onPointerDown={(e) => e.stopPropagation()}
         >

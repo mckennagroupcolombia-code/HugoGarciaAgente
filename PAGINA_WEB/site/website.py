@@ -22,7 +22,13 @@ load_dotenv(ROOT / '.env')
 import site_auth
 from app.api_auth import normalize_api_token, bearer_token_from_request
 from app.web_chat_activity import record_interaction
-from app.tools.tema_web import cargar_tema_web, resolver_diseno_css, resolver_layout_ctx
+from app.tools.tema_web import (
+    cargar_tema_preview,
+    cargar_tema_web,
+    host_permite_studio_preview,
+    resolver_diseno_css,
+    resolver_layout_ctx,
+)
 from app.tools.stock_web import obtener_stock_web, set_stock_web
 
 from app.tools.web_pedidos import (
@@ -66,7 +72,7 @@ FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 8       # v8 = agrupa mismo título / distintas presentaciones
+CATALOG_CACHE_VERSION = 10      # v10 = agrupa título/sinónimo + dedupe presentación (C- vs sin C-)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -261,29 +267,116 @@ CATEGORY_MAP = [
     (["as-44","as-86","as-38","collar","mascot"],                  "Mascotas"),
 ]
 
-CAT_COLORS = {
-    "Ácidos":                     "#143D36",
-    "Aceites Esenciales":         "#1E5C51",
-    "Aceites":                    "#2E8B7A",
-    "Ceras y Mantecas":           "#3A9E8C",
-    "Emulsionantes y Surfactantes":"#1E5C51",
-    "Humectantes":                "#4DB3A0",
-    "Arcillas":                   "#6B8F71",
-    "Sales Minerales":            "#2E8B7A",
-    "Minerales":                  "#143D36",
-    "Vitaminas":                  "#1E5C51",
-    "Suplementarios":             "#2E8B7A",
-    "Excipientes":                "#3A9E8C",
-    "Conservantes":               "#143D36",
-    "Edulcorantes":               "#4DB3A0",
-    "Principios Activos":         "#1E5C51",
-    "Kits":                       "#2E8B7A",
-    "Equipos y Materiales":       "#143D36",
-    "Herramientas":               "#1E5C51",
-    "Agrícola":                   "#6B8F71",
-    "Mascotas":                   "#2E8B7A",
-    "Otros":                      "#888888",
+# Seis líneas comerciales oficiales (acento en textos cortos y líneas).
+# Industria: gris (sin hex de marca) → slate #5C6570, legible sobre crema y oscuro.
+LINEAS_OFICIALES: tuple[tuple[str, str, str], ...] = (
+    ("cosmetica", "Cosmética", "#990099"),
+    ("aceites-ceras-grasas", "Aceites, ceras y grasas", "#FFA500"),
+    ("alimentario", "Alimentario", "#1F91DC"),
+    ("industria", "Industria", "#5C6570"),
+    ("laboratorio", "Laboratorio", "#10173C"),
+    ("agro", "Agro", "#359441"),
+)
+CAT_COLOR_DEFAULT = "#5C6570"  # Industria / fallback
+
+LINEA_COLOR: dict[str, str] = {nombre: hex_c for _, nombre, hex_c in LINEAS_OFICIALES}
+LINEA_ID_A_NOMBRE: dict[str, str] = {lid: nombre for lid, nombre, _ in LINEAS_OFICIALES}
+
+# Subcategoría de ficha → línea comercial (color).
+CAT_A_LINEA: dict[str, str] = {
+    "Ácidos": "Cosmética",
+    "Emulsionantes y Surfactantes": "Cosmética",
+    "Humectantes": "Cosmética",
+    "Arcillas": "Cosmética",
+    "Vitaminas": "Cosmética",
+    "Principios Activos": "Cosmética",
+    "Aceites Esenciales": "Aceites, ceras y grasas",
+    "Aceites": "Aceites, ceras y grasas",
+    "Ceras y Mantecas": "Aceites, ceras y grasas",
+    "Sales Minerales": "Alimentario",
+    "Suplementarios": "Alimentario",
+    "Excipientes": "Alimentario",
+    "Edulcorantes": "Alimentario",
+    "Saborizantes": "Alimentario",
+    "Minerales": "Industria",
+    "Conservantes": "Industria",
+    "Antisépticos": "Industria",
+    "Otros": "Industria",
+    "Kits": "Laboratorio",
+    "Equipos y Materiales": "Laboratorio",
+    "Herramientas": "Laboratorio",
+    "Agrícola": "Agro",
+    "Mascotas": "Agro",
 }
+
+_LINEA_ALIAS: dict[str, str] = {
+    "cosmetica": "Cosmética",
+    "cosmética": "Cosmética",
+    "aceites ceras y grasas": "Aceites, ceras y grasas",
+    "aceites, ceras y grasas": "Aceites, ceras y grasas",
+    "alimentario": "Alimentario",
+    "industria": "Industria",
+    "laboratorio": "Laboratorio",
+    "agro": "Agro",
+    "agrícola": "Agro",
+    "agricola": "Agro",
+}
+
+
+def _norm_cat_key(nombre: str) -> str:
+    s = " ".join((nombre or "").strip().lower().replace(",", " ").split())
+    return s.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+
+def linea_de_categoria(cat: str | None) -> str:
+    """Nombre de línea comercial a partir de subcategoría, id o alias."""
+    if not cat:
+        return "Industria"
+    raw = cat.strip()
+    if raw in LINEA_COLOR:
+        return raw
+    if raw in CAT_A_LINEA:
+        return CAT_A_LINEA[raw]
+    if raw in LINEA_ID_A_NOMBRE:
+        return LINEA_ID_A_NOMBRE[raw]
+    alias = _LINEA_ALIAS.get(_norm_cat_key(raw))
+    if alias:
+        return alias
+    return CAT_A_LINEA.get(raw, "Industria")
+
+
+def color_categoria(cat: str | None) -> str:
+    """Hex oficial de la línea (textos cortos y líneas)."""
+    return LINEA_COLOR.get(linea_de_categoria(cat), CAT_COLOR_DEFAULT)
+
+
+def linea_id_de_categoria(cat: str | None) -> str:
+    nombre = linea_de_categoria(cat)
+    for lid, n, _hex in LINEAS_OFICIALES:
+        if n == nombre:
+            return lid
+    return "industria"
+
+
+def lineas_desde_catalogo(catalog: list) -> list[dict]:
+    """Las 6 líneas con conteo de fichas (para home y nav de tienda)."""
+    counts: dict[str, int] = {nombre: 0 for _, nombre, _ in LINEAS_OFICIALES}
+    for sec in catalog or []:
+        nombre_linea = linea_de_categoria(sec.get("name"))
+        counts[nombre_linea] = counts.get(nombre_linea, 0) + len(sec.get("products") or [])
+    out = []
+    for lid, nombre, hex_c in LINEAS_OFICIALES:
+        out.append({
+            "id": lid,
+            "name": nombre,
+            "color": hex_c,
+            "n_productos": counts.get(nombre, 0),
+        })
+    return out
+
+
+# Compat: hex por subcategoría (misma paleta de línea).
+CAT_COLORS = {cat: LINEA_COLOR[linea] for cat, linea in CAT_A_LINEA.items()}
 
 
 def categorize(sku: str) -> str:
@@ -1386,6 +1479,11 @@ def _presentation_family_key(nombre: str) -> str:
         n = n.replace(a, b)
     n = re.sub(r"[^a-z0-9%\s/+]", " ", n)
     n = re.sub(r"\s+", " ", n).strip()
+    # Misma materia prima, distinto wording SIIGO (no tocar color ni % extra).
+    if re.search(r"asc[oó]rb|vitamina\s*c", n) and "kojic" not in n and "kojico" not in n:
+        if not re.search(r"citrat|magnesio", n):
+            pct = re.search(r"(\d+[.,]?\d*\s*%)", n)
+            n = "acido ascorbico" + (f" {re.sub(r'\s+', '', pct.group(1))}" if pct else "")
     return n
 
 
@@ -1412,6 +1510,68 @@ def _presentation_label(nombre: str, sku: str = "") -> str:
         unit = {"ml": "mL", "gr": "g", "lt": "L", "l": "L"}.get(unit, unit)
         return f"{ms.group(1)}{unit}"
     return (sku or nombre or "Única").strip()
+
+
+def _presentation_dedupe_key(nombre: str, sku: str = "") -> str:
+    """Misma presentación comprable (250g / 250 g / 250gr → una sola)."""
+    lab = _presentation_label(nombre, sku)
+    k = re.sub(r"\s+", "", (lab or "").lower())
+    k = re.sub(r"mls?\b", "ml", k)
+    k = re.sub(r"gramos?\b", "g", k)
+    k = re.sub(r"(?<=\d)gr\b", "g", k)
+    k = re.sub(r"litros?\b", "l", k)
+    k = re.sub(r"(?<=\d)lts?\b", "l", k)
+    k = re.sub(r"kilos?\b", "kg", k)
+    return k or (sku or nombre or "").strip().lower()
+
+
+def _combo_preference_score(combo: dict) -> int:
+    """Prefiere SKU combo SIIGO (C-/FOR-) para facturación web."""
+    ref = (combo.get("ref") or "").upper()
+    score = 0
+    if ref.startswith("C-") or ref.startswith("FOR-"):
+        score += 100
+    if combo.get("buyable", True):
+        score += 20
+    if combo.get("photo"):
+        score += 10
+    stock = combo.get("stock")
+    if isinstance(stock, (int, float)) and stock > 0:
+        score += min(int(stock), 10)
+    return score
+
+
+def _dedupe_by_presentation(items: list[dict]) -> tuple[list[dict], dict[str, dict]]:
+    """
+    Una entrada por tamaño/volumen. Si existen C-CREMON100g y CREMON100g, queda el C-.
+    Retorna (únicos, ref_original → combo canónico).
+    """
+    best: dict[str, dict] = {}
+    for it in items:
+        dk = _presentation_dedupe_key(it.get("name", ""), it.get("ref", ""))
+        prev = best.get(dk)
+        if prev is None or _combo_preference_score(it) > _combo_preference_score(prev):
+            best[dk] = it
+    alias_to_kept: dict[str, dict] = {}
+    for it in items:
+        dk = _presentation_dedupe_key(it.get("name", ""), it.get("ref", ""))
+        kept = best[dk]
+        alias_to_kept[(it.get("ref") or "").upper()] = kept
+    ordered = sorted(best.values(), key=_presentation_sort_key)
+    return ordered, alias_to_kept
+
+
+def _title_catalog_es(nombre: str) -> str:
+    small = {"de", "del", "la", "el", "los", "las", "y", "en", "con", "para", "o", "a"}
+    parts = (nombre or "").strip().split()
+    out = []
+    for i, w in enumerate(parts):
+        low = w.lower()
+        if i > 0 and low in small:
+            out.append(low)
+        else:
+            out.append(low[:1].upper() + low[1:] if low else w)
+    return " ".join(out)
 
 
 def _presentation_sort_key(combo: dict) -> tuple:
@@ -1493,6 +1653,13 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
         # Título limpio sin tamaño
         cleaned = _RX_PRESENTATION_TAIL.sub("", rep.get("name", "")).strip()
         display_name = _finalize_catalog_name(cleaned) or display_name
+    # Pretty-name canónico no debe borrar variante (amarilla/blanca, concentración %).
+    extra = set(fam_key.split()) - set(_presentation_family_key(display_name).split())
+    if extra & {"amarilla", "blanca", "refinada", "natural"} or any("%" in t for t in extra):
+        cleaned = _RX_PRESENTATION_TAIL.sub("", rep.get("name", "")).strip()
+        display_name = _finalize_catalog_name(cleaned) or display_name
+    if display_name and display_name == display_name.upper() and len(display_name) > 3:
+        display_name = _title_catalog_es(display_name)
 
     combo_summaries = []
     label_counts: dict[str, int] = {}
@@ -1546,7 +1713,7 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
         "photo": rep.get("photo", "") or next((c.get("photo") for c in annotated if c.get("photo")), ""),
         "meli_id": rep.get("meli_id", ""),
         "cat": rep.get("cat", "Otros"),
-        "cat_color": rep.get("cat_color", CAT_COLORS.get("Otros", "#2E8B7A")),
+        "cat_color": color_categoria(rep.get("cat")),
         "desc": rep.get("desc", ""),
         "ficha": rep.get("ficha") or next((c.get("ficha") for c in annotated if c.get("ficha")), None),
         "solo_vitrina": False,
@@ -1561,6 +1728,12 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
         "photo_match_score": rep.get("photo_match_score", 0),
     }
     return family
+
+
+def _mark_combo_family_meta(combo: dict, *, family_slug: str, has_siblings: bool, canonical_slug: str) -> None:
+    combo["family_slug"] = family_slug
+    combo["has_siblings"] = has_siblings
+    combo["canonical_pres_slug"] = canonical_slug
 
 
 def _agrupar_combos_por_presentacion(
@@ -1583,17 +1756,32 @@ def _agrupar_combos_por_presentacion(
         by_ref: dict[str, dict] = {}
         for it in items:
             by_ref[(it.get("ref") or "").upper()] = it
-        unique = list(by_ref.values())
+        unique_refs = list(by_ref.values())
+        unique, alias_to_kept = _dedupe_by_presentation(unique_refs)
         if len(unique) >= 2:
-            cards.append(_build_family_card(unique, used_slugs))
+            card = _build_family_card(unique, used_slugs)
+            for orig in unique_refs:
+                kept = alias_to_kept.get((orig.get("ref") or "").upper()) or unique[0]
+                _mark_combo_family_meta(
+                    orig,
+                    family_slug=card["slug"],
+                    has_siblings=True,
+                    canonical_slug=kept.get("slug", ""),
+                )
+            cards.append(card)
         else:
             only = unique[0]
-            only["family_slug"] = only.get("slug", "")
-            only["has_siblings"] = False
             only["presentacion_label"] = _presentation_label(
                 only.get("name", ""), only.get("ref", "")
             )
             only["is_family"] = False
+            for orig in unique_refs:
+                _mark_combo_family_meta(
+                    orig,
+                    family_slug=only.get("slug", ""),
+                    has_siblings=False,
+                    canonical_slug=only.get("slug", ""),
+                )
             cards.append(only)
     return cards
 
@@ -1731,7 +1919,7 @@ def _sheet_row_to_line(
         "photo": None,
         "meli_id": meli_id if meli_id.startswith("MCO") else "",
         "cat": cat,
-        "cat_color": CAT_COLORS.get(cat, "#2E8B7A"),
+        "cat_color": color_categoria(cat),
         "desc": desc_raw[:450] if desc_raw else "",
         "ficha": buscar_ficha(nombre_original or nombre) or buscar_ficha(nombre),
         "solo_referencia": True,
@@ -1937,7 +2125,7 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "photo": "",
         "meli_id": "",
         "cat": cat,
-        "cat_color": CAT_COLORS.get(cat, CAT_COLORS.get("Kits", "#2E8B7A")),
+        "cat_color": color_categoria(cat),
         "desc": (raw.get("description") or "")[:450],
         "ficha": buscar_ficha(nombre),
         "solo_vitrina": False,
@@ -1967,7 +2155,6 @@ def leer_catalogo() -> tuple[list, list]:
     ]
     meli_id_by_sku = _meli_ids_por_skus(token, skus_siigo_foto)
 
-    families_by_cat: dict[str, list] = defaultdict(list)
     used_slugs: set[str] = set()
     for combo in sorted(combo_flat, key=lambda p: (p.get("cat", ""), p.get("name", ""))):
         code_u = combo["ref"].upper()
@@ -2006,8 +2193,15 @@ def leer_catalogo() -> tuple[list, list]:
         combo["slug"] = slug
         combo["family_slug"] = slug
 
-    # Agrupa mismo título / distintas presentaciones → una ficha + botones
+    result = _catalog_sections_from_combos(combo_flat)
+    return result, combo_flat
+
+
+def _catalog_sections_from_combos(combo_flat: list[dict]) -> list[dict]:
+    """Arma secciones de tienda agrupando mismo título / distintas presentaciones."""
+    used_slugs = {str(c.get("slug") or "") for c in combo_flat if c.get("slug")}
     catalog_cards = _agrupar_combos_por_presentacion(combo_flat, used_slugs)
+    families_by_cat: dict[str, list] = defaultdict(list)
     for card in catalog_cards:
         families_by_cat[card.get("cat") or "Otros"].append(card)
 
@@ -2022,10 +2216,14 @@ def leer_catalogo() -> tuple[list, list]:
     for cat in orden_final:
         if cat in families_by_cat and families_by_cat[cat]:
             prods = sorted(families_by_cat[cat], key=lambda p: p["name"].lower())
-            result.append({"name": cat, "products": prods})
+            result.append({"name": cat, "color": color_categoria(cat), "products": prods})
     for cat, prods in families_by_cat.items():
         if cat not in seen_ord and prods:
-            result.append({"name": cat, "products": sorted(prods, key=lambda p: p["name"].lower())})
+            result.append({
+                "name": cat,
+                "color": color_categoria(cat),
+                "products": sorted(prods, key=lambda p: p["name"].lower()),
+            })
 
     total_f = sum(len(s["products"]) for s in result)
     n_fam = sum(1 for s in result for p in s["products"] if p.get("is_family"))
@@ -2033,7 +2231,22 @@ def leer_catalogo() -> tuple[list, list]:
         "Catálogo listo: %s categorías, %s fichas (%s con varias presentaciones), %s combos SIIGO",
         len(result), total_f, n_fam, len(combo_flat),
     )
-    return result, combo_flat
+    return result
+
+
+def _try_regroup_cached_combos(raw: dict) -> list | None:
+    """Reagrupa fichas desde combos ya cacheados (sin llamar SIIGO/MeLi)."""
+    combos = raw.get("combos")
+    if not isinstance(combos, list) or not combos:
+        return None
+    data = _catalog_sections_from_combos(combos)
+    try:
+        payload = {"sections": data, "combos": combos, "version": CATALOG_CACHE_VERSION}
+        CACHE_FILE.parent.mkdir(exist_ok=True)
+        CACHE_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+    except Exception as e:
+        log.warning("No se pudo reescribir cache agrupado: %s", e)
+    return data
 
 
 # ══════════════════════════════════════════════════════════
@@ -2065,24 +2278,36 @@ def get_catalog(force=False) -> list:
         return _catalog_cache["data"]
 
     if not force and CACHE_FILE.exists():
-        age = now - CACHE_FILE.stat().st_mtime
-        if age < CACHE_TTL:
-            try:
-                raw = json.loads(CACHE_FILE.read_text())
-                if isinstance(raw, dict) and "sections" in raw:
-                    if raw.get("version") != CATALOG_CACHE_VERSION:
-                        raise ValueError("cache de catálogo obsoleto")
+        try:
+            raw = json.loads(CACHE_FILE.read_text())
+            age = now - CACHE_FILE.stat().st_mtime
+            if isinstance(raw, dict) and "sections" in raw:
+                if raw.get("version") != CATALOG_CACHE_VERSION:
+                    data = _try_regroup_cached_combos(raw)
+                    if data is not None:
+                        combos = raw.get("combos", [])
+                        _rebuild_product_index(data, combos)
+                        _catalog_cache.update({"data": data, "ts": now})
+                        log.info(
+                            "Catálogo reagrupado desde combos en cache (v%s→v%s)",
+                            raw.get("version"),
+                            CATALOG_CACHE_VERSION,
+                        )
+                        return data
+                elif age < CACHE_TTL:
                     data = raw["sections"]
                     combos = raw.get("combos", [])
-                else:
-                    data = raw
-                    combos = []
-                _rebuild_product_index(data, combos)
-                _catalog_cache.update({"data": data, "ts": now})
+                    _rebuild_product_index(data, combos)
+                    _catalog_cache.update({"data": data, "ts": now})
+                    log.info(f"Catálogo cargado desde cache ({int(age/60)} min)")
+                    return data
+            elif isinstance(raw, list) and age < CACHE_TTL:
+                _rebuild_product_index(raw, [])
+                _catalog_cache.update({"data": raw, "ts": now})
                 log.info(f"Catálogo cargado desde cache ({int(age/60)} min)")
-                return data
-            except Exception:
-                pass
+                return raw
+        except Exception:
+            pass
 
     try:
         data, combo_flat = leer_catalogo()
@@ -2102,7 +2327,11 @@ def get_catalog(force=False) -> list:
                 raw = json.loads(CACHE_FILE.read_text())
                 if isinstance(raw, dict) and "sections" in raw:
                     if raw.get("version") != CATALOG_CACHE_VERSION:
-                        raise ValueError("cache de catálogo obsoleto")
+                        data = _try_regroup_cached_combos(raw)
+                        if data is None:
+                            raise ValueError("cache de catálogo obsoleto")
+                        _rebuild_product_index(data, raw.get("combos", []))
+                        return data
                     _rebuild_product_index(raw["sections"], raw.get("combos", []))
                     return raw["sections"]
                 if isinstance(raw, list):
@@ -2468,6 +2697,9 @@ app.jinja_env.globals.update(
     guide_for_product=guide_for_product,
     META_PIXEL_ID=META_PIXEL_ID,
     SITE_URL=SITE_URL,
+    color_categoria=color_categoria,
+    linea_de_categoria=linea_de_categoria,
+    linea_id_de_categoria=linea_id_de_categoria,
 )
 
 
@@ -2486,18 +2718,36 @@ def _inject_site_auth():
 # Editable desde el Panel de Operaciones (/app → Sitio Web); config compartida
 # en data/tema_web.json vía app/tools/tema_web.py.
 
+def _cfg_tema_request() -> dict:
+    """Tema publicado, o borrador del Studio si el iframe local lo pide."""
+    if session.get("studio_preview") and host_permite_studio_preview(request.host):
+        return cargar_tema_preview()
+    return cargar_tema_web()
+
+
 def tema_web_activo() -> str:
     override = session.get("vista_tema")
     if override in ("clasico", "pureza"):
         return override
-    return cargar_tema_web().get("tema_activo", "clasico")
+    return _cfg_tema_request().get("tema_activo", "clasico")
 
 
 @app.before_request
 def _tema_preview_override():
     """?vista_tema=pureza|clasico permite previsualizar un tema solo en esta
     sesión de navegador sin cambiar el tema activo para el público.
-    ?vista_tema=auto vuelve al tema configurado."""
+    ?vista_tema=auto vuelve al tema configurado.
+    ?studio_preview=1 (solo localhost) aplica el borrador del Studio.
+    ?_studio=… marca el embed del panel para live-tokens vía postMessage."""
+    local = host_permite_studio_preview(request.host)
+    if request.args.get("_studio") is not None and local:
+        session["studio_embed"] = True
+    sp = request.args.get("studio_preview")
+    if sp is not None and local:
+        if str(sp).strip() == "1":
+            session["studio_preview"] = True
+        elif str(sp).strip().lower() in ("0", "off", "auto", ""):
+            session.pop("studio_preview", None)
     v = request.args.get("vista_tema")
     if v is None:
         return
@@ -2510,7 +2760,10 @@ def _tema_preview_override():
 
 @app.context_processor
 def _inject_tema_web():
-    cfg = cargar_tema_web()
+    cfg = _cfg_tema_request()
+    local = host_permite_studio_preview(request.host)
+    studio_preview = bool(session.get("studio_preview") and local)
+    studio_live = bool(local and (session.get("studio_embed") or studio_preview or session.get("vista_tema")))
     return {
         "TEMA_ACTIVO": tema_web_activo(),
         "TW": cfg.get("pureza", {}),
@@ -2520,6 +2773,8 @@ def _inject_tema_web():
         "LAYOUT": resolver_layout_ctx(cfg),
         "LAYOUT_CLASICO": resolver_layout_ctx(cfg, key="layout_clasico"),
         "TEMA_PREVIEW": session.get("vista_tema") or "",
+        "STUDIO_PREVIEW": studio_preview,
+        "STUDIO_LIVE": studio_live,
     }
 
 
@@ -2541,6 +2796,7 @@ def index():
     return render_template(plantilla,
         catalog=catalog,
         cats=cats,
+        lineas=lineas_desde_catalogo(catalog),
         featured=featured[:8])
 
 
@@ -2555,12 +2811,18 @@ def tienda():
 @app.route("/catalogo/")
 def catalogo():
     cat_filter = request.args.get("cat", "").strip()
+    linea_filter = request.args.get("linea", "").strip()
     q_filter   = request.args.get("q", "").strip()
     catalog    = get_catalog()
 
-    # Filtrar por categoría
+    # Filtrar por subcategoría (legado) o por línea comercial
     if cat_filter:
         sections = [s for s in catalog if s["name"].lower() == cat_filter.lower()]
+        if not sections:
+            return redirect(url_for("catalogo"))
+    elif linea_filter:
+        nombre_linea = linea_de_categoria(linea_filter)
+        sections = [s for s in catalog if linea_de_categoria(s.get("name")) == nombre_linea]
         if not sections:
             return redirect(url_for("catalogo"))
     else:
@@ -2582,10 +2844,13 @@ def catalogo():
         sections = filtered
 
     cats = [s["name"] for s in catalog]
+    lineas = lineas_desde_catalogo(catalog)
     return render_template("tienda.html",
         sections=sections,
         cats=cats,
+        lineas=lineas,
         cat_filter=cat_filter,
+        linea_filter=linea_filter,
         q_filter=q_filter)
 
 
@@ -2610,19 +2875,24 @@ def producto(slug):
     if not p:
         abort(404)
 
-    # Si entraron por un combo hermano, redirigir a la ficha de familia con ?pres=
+    # Combo hermano o alias SKU → ficha de familia / presentación canónica
+    canon_pres = p.get("canonical_pres_slug") or p.get("slug") or ""
+    fam_slug = p.get("family_slug") or ""
     if (
         p.get("is_combo")
-        and p.get("has_siblings")
-        and p.get("family_slug")
-        and p["family_slug"] != p.get("slug")
+        and fam_slug
+        and fam_slug != p.get("slug")
     ):
-        fam = _product_index.get(str(p["family_slug"]).lower())
+        fam = _product_index.get(str(fam_slug).lower())
         if fam and fam.get("is_family") and len(fam.get("combos") or []) > 1:
             return redirect(
-                url_for("producto", slug=fam["slug"], pres=p.get("slug", "")),
+                url_for("producto", slug=fam["slug"], pres=canon_pres),
                 code=302,
             )
+    if p.get("is_combo") and canon_pres and canon_pres != p.get("slug"):
+        dest = _product_index.get(str(canon_pres).lower())
+        if dest and dest.get("slug") != p.get("slug"):
+            return redirect(url_for("producto", slug=dest["slug"]), code=302)
 
     # Familia: aplicar presentación seleccionada (?pres=slug-combo)
     selected = None

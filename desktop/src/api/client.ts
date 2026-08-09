@@ -67,6 +67,12 @@ function panelBearerToken(): string | null {
   return tickets.apiToken || tickets.token || useAuthStore.getState().token || null;
 }
 
+/** JWT de tickets para identificar a la persona cuando el Bearer es CHAT_API_TOKEN. */
+export function ticketsSessionHeaders(): Record<string, string> {
+  const tok = useTicketsAuth.getState().token;
+  return tok ? { "X-Tickets-Token": tok } : {};
+}
+
 async function request<T>(
   path: string,
   opts: RequestInit = {},
@@ -75,6 +81,7 @@ async function request<T>(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...ticketsSessionHeaders(),
     ...(opts.headers as Record<string, string> ?? {}),
   };
 
@@ -207,9 +214,10 @@ export const api = {
     const token = panelBearerToken();
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     let url = resolvePanelApiUrl(path, "POST");
-    const headers: Record<string, string> = token
-      ? { Authorization: `Bearer ${token}` }
-      : {};
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...ticketsSessionHeaders(),
+    };
     const ms = options?.timeoutMs;
     const ctrl = ms && ms > 0 ? new AbortController() : null;
     const tid =

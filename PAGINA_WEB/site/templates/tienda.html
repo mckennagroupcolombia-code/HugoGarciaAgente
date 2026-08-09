@@ -49,11 +49,12 @@
 {% if not q_filter %}
 <nav class="cat-sticky-nav" id="cat-nav">
   <a href="{{ url_for('catalogo') }}"
-     class="nav-item {% if not cat_filter %}active{% endif %}">Todos</a>
-  {% for cat in cats %}
-  <a href="{{ url_for('catalogo', cat=cat) }}"
-     class="nav-item {% if cat_filter == cat %}active{% endif %}"
-     data-cat="{{ cat }}">{{ cat }}</a>
+     class="nav-item {% if not cat_filter and not linea_filter %}active{% endif %}">Todos</a>
+  {% for L in lineas %}
+  <a href="{{ url_for('catalogo', linea=L.id) }}"
+     class="nav-item {% if linea_filter == L.id or linea_filter == L.name %}active{% endif %}"
+     style="--cat-accent: {{ L.color }}"
+     data-cat="{{ L.id }}">{{ L.name }}</a>
   {% endfor %}
 </nav>
 {% endif %}
@@ -79,7 +80,9 @@
 ════════════════════════════════════════════════════════ -->
 {% for section in sections %}
 <div id="cat-{{ section.name|lower|replace(' ','-')|replace('/','-') }}"
-     class="shop-section">
+     class="shop-section"
+     data-linea="{{ linea_id_de_categoria(section.name) }}"
+     style="--cat-accent: {{ color_categoria(section.name) }}">
 
   <div class="shop-section-header">
     <h2>{{ section.name }}</h2>
@@ -90,80 +93,9 @@
 
   <div class="shop-grid">
     {% for p in section.products %}
-    <div class="shop-card reveal reveal-delay-{{ loop.index0 % 3 }}">
-
-      <!-- Imagen — clic lleva a detalle -->
-      <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-img-link">
-        <div class="shop-card-img">
-          {% if p.photo %}
-          <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
-          {% else %}
-          <div class="shop-card-img-ph"><i class="ph ph-flask"></i></div>
-          {% endif %}
-        </div>
-        <span class="shop-card-cat-label">{{ p.cat }}</span>
-      </a>
-
-      <!-- Cuerpo -->
-      <div class="shop-card-body">
-        <div class="shop-card-name">{{ p.name }}</div>
-        <div class="shop-card-ref">
-          {% if p.get('is_family') and p.n_presentaciones %}
-          {{ p.n_presentaciones }} presentaciones
-          {% else %}
-          Ref: {{ p.ref }}
-          {% endif %}
-        </div>
-        {% if TEMA_ACTIVO == 'pureza' %}
-        <div class="pz-card-trust">
-          {% for b in TW.badges_producto[:2] %}
-          <span><i class="ph ph-seal-check"></i> {{ b }}</span>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Precio -->
-        <div class="shop-card-price-row">
-          <span class="shop-card-price">{{ p.precio }}</span>
-          {% if not p.solo_vitrina and not p.get('is_family') %}
-          <span class="shop-card-price-old">{{ p.precio_meli }}</span>
-          <span class="shop-card-saving">{{ p.ahorro }}</span>
-          {% endif %}
-        </div>
-
-        <!-- CTAs -->
-        <div class="shop-card-actions">
-          {% if p.get('is_family') %}
-          <a href="{{ url_for('producto', slug=p.slug) }}"
-             class="btn btn-primary btn-sm shop-card-btn-sole">
-            <i class="ph ph-squares-four"></i> Ver presentaciones
-          </a>
-          {% elif p.solo_vitrina %}
-          <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
-             class="btn btn-primary btn-sm shop-card-btn-sole">
-            <i class="ph ph-list"></i> Ver referencias
-          </a>
-          {% elif not p.get('buyable', True) %}
-          <span class="btn btn-sm badge-agotado" style="flex:1;justify-content:center;">
-            <i class="ph ph-x-circle"></i> Agotado
-          </span>
-          {% else %}
-          <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:flex;">
-            <input type="hidden" name="slug" value="{{ p.slug }}">
-            <input type="hidden" name="qty" value="1">
-            <input type="hidden" name="next" value="{{ request.url }}">
-            <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
-              <i class="ph ph-shopping-cart"></i> Agregar
-            </button>
-          </form>
-          {% endif %}
-          <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-link" title="Ver detalle">
-            Ver <i class="ph ph-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-
-    </div>
+    {% with show_trust_tema=true, check_buyable=true, card_delay=(loop.index0 % 4) %}
+    {% include "_shop_card.html" %}
+    {% endwith %}
     {% endfor %}
   </div>
 
@@ -210,10 +142,9 @@
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
-        const id = e.target.id.replace('cat-','');
+        const linea = e.target.getAttribute('data-linea') || '';
         links.forEach(l => {
-          const lc = (l.dataset.cat || '').toLowerCase().replace(/[ \/]/g,'-');
-          l.classList.toggle('active', lc === id);
+          l.classList.toggle('active', (l.dataset.cat || '') === linea);
         });
       }
     });

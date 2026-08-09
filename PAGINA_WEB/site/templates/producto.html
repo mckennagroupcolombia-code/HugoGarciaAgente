@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- Hero producto -->
-<div class="page-hero">
+<div class="page-hero" style="--cat-accent: {{ color_categoria(p.cat) }}">
   <div class="inner">
     <span class="hero-badge">{{ p.cat }}</span>
     <h1>{{ p.name }}</h1>
@@ -602,7 +602,7 @@
     <div class="products-grid-mini">
       {% for r in relacionados %}
       <a href="{{ url_for('producto', slug=r.slug) }}" class="product-card-mini reveal reveal-delay-{{ loop.index0 }}">
-        <div class="product-card-mini-img" style="border-top:3px solid {{ r.cat_color }};">
+        <div class="product-card-mini-img" style="--cat-accent: {{ color_categoria(r.cat or p.cat) }}">
           {% if r.photo %}
           <img src="{{ r.photo }}" alt="{{ r.name }}" loading="lazy">
           {% else %}

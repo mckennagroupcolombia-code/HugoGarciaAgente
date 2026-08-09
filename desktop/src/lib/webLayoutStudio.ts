@@ -353,6 +353,14 @@ export function nodoOf(layout: WebLayout, id: string): LayoutNodo {
   return layout.nodos[id] || {};
 }
 
+export function mergeNodos(layout: WebLayout, ids: string[], patch: LayoutNodo): WebLayout {
+  let next = layout;
+  for (const id of ids) {
+    next = mergeNodo(next, id, patch);
+  }
+  return next;
+}
+
 export function mergeNodo(layout: WebLayout, id: string, patch: LayoutNodo): WebLayout {
   const prev = layout.nodos[id] || {};
   const merged: LayoutNodo = { ...prev, ...patch };
@@ -428,6 +436,30 @@ export function estiloNodo(n: LayoutNodo): CSSProperties {
   const anim = animacionCss(n);
   if (anim) style.animation = anim;
   return style;
+}
+
+/**
+ * Caja de texto del lienzo: se ajusta al glifo (no estira a todo el flex/grid).
+ * Si el nodo ya tiene ancho guardado (resize manual), se respeta.
+ */
+export function estiloFitTexto(
+  n: LayoutNodo,
+  opts?: { className?: string; enabled?: boolean },
+): CSSProperties {
+  const core = estiloNodo(n);
+  if (opts?.enabled === false || n.hidden) return core;
+  if (n.width) return core;
+  const hasMax = /\bmax-w-/.test(opts?.className || "");
+  return {
+    display: "inline-block",
+    width: "fit-content",
+    maxWidth: hasMax ? undefined : "100%",
+    height: n.height ? core.height : "fit-content",
+    alignSelf: "flex-start",
+    justifySelf: "start",
+    verticalAlign: "top",
+    ...core,
+  };
 }
 
 export type ContentPath =
@@ -526,6 +558,61 @@ export function applyContentPath(draft: Record<string, unknown>, path: ContentPa
   } else if (path.type === "cta_clasico") {
     (draft.cta as Record<string, string>)[path.field] = value;
   }
+}
+
+/** Tokens CSS que el iframe aplica al instante vía postMessage (sin publicar). */
+export const RADIO_CSS_VARS: Record<string, string> = {
+  pill: "999px",
+  soft: "12px",
+  sharp: "4px",
+};
+
+export const DENSIDAD_CSS_VARS: Record<
+  string,
+  { section_y: string; hero_pad: string; card_radius: string }
+> = {
+  compacta: { section_y: "48px", hero_pad: "56px 24px 40px", card_radius: "12px" },
+  normal: { section_y: "72px", hero_pad: "84px 24px 64px", card_radius: "16px" },
+  amplia: { section_y: "96px", hero_pad: "104px 24px 80px", card_radius: "20px" },
+};
+
+export function studioLivePayload(
+  diseno: { radio: string; densidad: string; tagline: string },
+  colores: Record<string, string>,
+) {
+  const dens = DENSIDAD_CSS_VARS[diseno.densidad] || DENSIDAD_CSS_VARS.normal;
+  return {
+    type: "mck-studio-live" as const,
+    css: {
+      "--studio-font-display": STUDIO_FONT_FAMILY,
+      "--studio-radio-btn": RADIO_CSS_VARS[diseno.radio] || RADIO_CSS_VARS.pill,
+      "--studio-section-y": dens.section_y,
+      "--studio-hero-pad": dens.hero_pad,
+      "--studio-card-radius": dens.card_radius,
+      "--pz-acento": colores.acento || "#0c6069",
+      "--pz-acento-oscuro": colores.acento_oscuro || "#04353b",
+      "--pz-fondo": colores.fondo || "#f8f6f1",
+      "--pz-tinta": colores.tinta || "#1c2b2a",
+      "--pz-destacado": colores.destacado || "#b9862f",
+    },
+    tagline: diseno.tagline || "Proveemos a tus ideas",
+  };
+}
+
+/** Firma de lo que exige recargar el iframe (textos/lienzo). Tokens van por postMessage. */
+export function estructuraPreviewKey(cfg: {
+  clasico: unknown;
+  layout: unknown;
+  layout_clasico: unknown;
+  pureza: { colores?: unknown };
+}): string {
+  const { colores: _colores, ...purezaSinColor } = cfg.pureza;
+  return JSON.stringify({
+    clasico: cfg.clasico,
+    layout: cfg.layout,
+    layout_clasico: cfg.layout_clasico,
+    pureza: purezaSinColor,
+  });
 }
 
 export function moverSeccion(orden: string[], id: string, dir: -1 | 1): string[] {

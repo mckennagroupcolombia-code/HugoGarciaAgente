@@ -112,12 +112,13 @@
     </div>
 
     <div class="cats-grid">
-      {% for section in catalog %}
-      <a href="{{ url_for('catalogo', cat=section.name) }}"
-         class="cat-card reveal reveal-delay-{{ loop.index0 % 4 }}">
+      {% for L in lineas %}
+      <a href="{{ url_for('catalogo', linea=L.id) }}"
+         class="cat-card reveal reveal-delay-{{ loop.index0 % 4 }}"
+         style="--cat-accent: {{ L.color }}">
         <div class="cat-card-dot"></div>
-        <h3>{{ section.name }}</h3>
-        <p>{{ section.products|length }} producto{% if section.products|length != 1 %}s{% endif %}</p>
+        <h3>{{ L.name }}</h3>
+        <p>{{ L.n_productos }} producto{% if L.n_productos != 1 %}s{% endif %}</p>
       </a>
       {% endfor %}
     </div>
@@ -151,60 +152,9 @@
 
     <div class="shop-grid shop-grid-4 reveal">
       {% for p in featured %}
-      <div class="shop-card reveal reveal-delay-{{ loop.index0 % 4 }}">
-        <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-img-link">
-          <div class="shop-card-img">
-            {% if p.photo %}
-            <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
-            {% else %}
-            <div class="shop-card-img-ph"><i class="ph ph-flask"></i></div>
-            {% endif %}
-          </div>
-          <span class="shop-card-cat-label">{{ p.cat }}</span>
-        </a>
-        <div class="shop-card-body">
-          <div class="shop-card-name">{{ p.name }}</div>
-          <div class="shop-card-ref">
-            {% if p.get('is_family') and p.n_presentaciones %}
-            {{ p.n_presentaciones }} presentaciones
-            {% else %}
-            Ref: {{ p.ref }}
-            {% endif %}
-          </div>
-          <div class="shop-card-price-row">
-            <span class="shop-card-price">{{ p.precio }}</span>
-            {% if not p.solo_vitrina and not p.get('is_family') %}
-            <span class="shop-card-price-old">{{ p.precio_meli }}</span>
-            <span class="shop-card-saving">{{ p.ahorro }}</span>
-            {% endif %}
-          </div>
-          <div class="shop-card-actions">
-            {% if p.get('is_family') %}
-            <a href="{{ url_for('producto', slug=p.slug) }}"
-               class="btn btn-primary btn-sm shop-card-btn-sole">
-              <i class="ph ph-squares-four"></i> Ver presentaciones
-            </a>
-            {% elif p.solo_vitrina %}
-            <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
-               class="btn btn-primary btn-sm shop-card-btn-sole">
-              <i class="ph ph-list"></i> Ver referencias
-            </a>
-            {% else %}
-            <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:flex;">
-              <input type="hidden" name="slug" value="{{ p.slug }}">
-              <input type="hidden" name="qty" value="1">
-              <input type="hidden" name="next" value="{{ request.url }}">
-              <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
-                <i class="ph ph-shopping-cart"></i> Agregar
-              </button>
-            </form>
-            {% endif %}
-            <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-link" title="Ver detalle">
-              Ver <i class="ph ph-arrow-right"></i>
-            </a>
-          </div>
-        </div>
-      </div>
+      {% with show_trust_tema=false, check_buyable=false, card_delay=(loop.index0 % 4) %}
+      {% include "_shop_card.html" %}
+      {% endwith %}
       {% endfor %}
     </div>
 

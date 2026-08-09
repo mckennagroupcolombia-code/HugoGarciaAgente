@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, resolvePanelApiUrl } from "../api/client";
+import { api, resolvePanelApiUrl, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAppStore, type EtiquetasHandoff, type EtiquetasTab, type EtiquetasSolicitudActiva } from "../stores/app";
@@ -1741,7 +1741,12 @@ function ImgRecursoPng({
     const url = resolvePanelApiUrl(
       `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(nombre)}`,
     );
-    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(url, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...ticketsSessionHeaders(),
+      },
+    })
       .then((r) => (r.ok ? r.blob() : null))
       .then((blob) => {
         if (!alive || !blob) return;
@@ -6549,7 +6554,7 @@ function TabInventarioPapelTinta() {
   const [errorInventario, setErrorInventario] = useState("");
   const [okInventario, setOkInventario] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["etiquetas-inventario-consumibles"],
     queryFn: async () => {
       const res = await api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles");
@@ -6633,15 +6638,21 @@ function TabInventarioPapelTinta() {
       )}
 
       {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
+      {isError && (
+        <Banner tone="danger" className="text-xs font-semibold">
+          No se pudo cargar el inventario: {(error as Error)?.message || "error de red o sesión"}.
+          Cierra sesión y vuelve a entrar si el mensaje habla de autorización.
+        </Banner>
+      )}
 
       <div className="rounded-xl border border-border bg-surface-panel p-4">
         <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink">
           <Icon name="file" size={16} className="text-accent" />
           Papel / etiquetas
         </p>
-        {papeles.length === 0 ? (
+        {!isLoading && !isError && papeles.length === 0 ? (
           <p className="mb-3 text-xs text-muted">Sin rollos registrados.</p>
-        ) : (
+        ) : papeles.length === 0 ? null : (
           <div className="space-y-2">
             {papeles.map((p) => {
               const v = inventarioPapelCompleto(p);

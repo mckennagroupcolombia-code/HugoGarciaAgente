@@ -3099,13 +3099,28 @@ def register_routes(app):
         return False
 
     def _panel_tickets_usuario():
-        """Usuario de tickets asociado al Bearer (None si solo CHAT_API_TOKEN)."""
-        if chat_api_token_matches_request():
-            return None
+        """Usuario de tickets de la sesión.
+
+        Cynthia (y otros admins) mandan CHAT_API_TOKEN como Bearer; eso no identifica
+        a la persona. La identidad va en X-Tickets-Token (JWT de tickets) o, si el
+        Bearer no es el token de sistema, en el propio Authorization.
+        """
         try:
             from app.services.tickets_db import get_usuario_by_token as _gut
             from app.api_auth import bearer_token_from_request as _btr
 
+            xt = (
+                (request.headers.get("X-Tickets-Token") or "").strip()
+                or (request.headers.get("X-Tickets-Authorization") or "")
+                .replace("Bearer ", "", 1)
+                .strip()
+            )
+            if xt:
+                usuario = _gut(xt)
+                if usuario:
+                    return usuario
+            if chat_api_token_matches_request():
+                return None
             tok = _btr()
             if tok:
                 return _gut(tok)
@@ -4025,6 +4040,27 @@ def register_routes(app):
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         return jsonify({"config": nuevo, "mensaje": "Tema del sitio guardado"})
+
+    @app.route("/app/api/web/tema/preview", methods=["PUT", "DELETE"])
+    @app.route("/api/web/tema/preview", methods=["PUT", "DELETE"])
+    def api_web_tema_preview():
+        """Borrador del iframe del Studio. No publica el sitio."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.tema_web import (
+            borrar_tema_preview,
+            guardar_tema_preview,
+        )
+
+        if request.method == "DELETE":
+            borrar_tema_preview()
+            return jsonify({"ok": True, "mensaje": "Borrador de vista previa eliminado"})
+        body = request.get_json(silent=True) or {}
+        try:
+            draft = guardar_tema_preview(body.get("config") or {})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True, "config": draft, "mensaje": "Vista previa actualizada"})
 
     def _titulo_documento_datos(datos: dict | None) -> str:
         if not isinstance(datos, dict):
@@ -15093,11 +15129,16 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.tickets_db import es_cynthia_etiquetas
 
-        if not es_cynthia_etiquetas(_panel_tickets_usuario()):
-            return jsonify({
-                "error": "Esta sección de Etiquetas solo está disponible para Cynthia",
-            }), 403
-        return None
+        usuario = _panel_tickets_usuario()
+        if es_cynthia_etiquetas(usuario):
+            return None
+        # Cynthia elevada a admin envía CHAT_API_TOKEN y el front antiguo no
+        # mandaba X-Tickets-Token: sin esto el inventario aparece vacío.
+        if usuario is None and chat_api_token_matches_request():
+            return None
+        return jsonify({
+            "error": "Esta sección de Etiquetas solo está disponible para Cynthia",
+        }), 403
 
     def _require_cynthia_etiquetas():
         return _require_studio_visual()

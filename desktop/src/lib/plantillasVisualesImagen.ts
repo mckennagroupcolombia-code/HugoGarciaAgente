@@ -1,4 +1,4 @@
-import { resolvePanelApiUrl } from "../api/client";
+import { resolvePanelApiUrl, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 
@@ -34,7 +34,10 @@ export async function resolverUrlImagenCanvas(src: string): Promise<string> {
   const token = panelBearerToken();
   const url = resolvePanelApiUrl(raw);
   const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...ticketsSessionHeaders(),
+    },
   });
   if (!res.ok) throw new Error(`Imagen no disponible (${res.status})`);
 

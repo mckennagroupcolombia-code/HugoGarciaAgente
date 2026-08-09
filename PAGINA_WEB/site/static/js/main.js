@@ -86,6 +86,43 @@
     }, 3500);
   };
 
+  /* ── Presentaciones en tarjetas de catálogo ─────────── */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-pres-picker] .presentacion-btn');
+    if (!btn) return;
+    e.preventDefault();
+    var root = btn.closest('[data-pres-picker]');
+    if (!root) return;
+    root.querySelectorAll('.presentacion-btn').forEach(function (b) {
+      b.classList.toggle('is-active', b === btn);
+    });
+    var slug = btn.getAttribute('data-slug') || '';
+    var precio = btn.getAttribute('data-precio') || '';
+    var lista = btn.getAttribute('data-precio-meli') || '';
+    var ahorro = btn.getAttribute('data-ahorro') || '';
+    var href = btn.getAttribute('data-href') || '';
+    var photo = btn.getAttribute('data-photo') || '';
+    var buyable = btn.getAttribute('data-buyable') === '1';
+    var el;
+    el = root.querySelector('[data-pres-slug]'); if (el) el.value = slug;
+    el = root.querySelector('[data-pres-precio]'); if (el) el.textContent = precio;
+    el = root.querySelector('[data-pres-lista]');
+    if (el) { el.textContent = lista; el.style.display = buyable ? '' : 'none'; }
+    el = root.querySelector('[data-pres-ahorro]');
+    if (el) { el.textContent = ahorro; el.style.display = buyable ? '' : 'none'; }
+    el = root.querySelector('[data-pres-ref]');
+    if (el && btn.getAttribute('data-ref')) el.textContent = 'Ref: ' + btn.getAttribute('data-ref');
+    root.querySelectorAll('[data-pres-detail]').forEach(function (a) {
+      if (href) a.setAttribute('href', href);
+    });
+    var img = root.querySelector('[data-pres-photo]');
+    if (img && photo) img.setAttribute('src', photo);
+    var form = root.querySelector('[data-pres-form]');
+    var ago = root.querySelector('[data-pres-agotado]');
+    if (form) form.style.display = buyable ? 'flex' : 'none';
+    if (ago) ago.style.display = buyable ? 'none' : 'flex';
+  });
+
   /* ── Smooth anchors ─────────────────────────────────── */
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -96,5 +133,35 @@
       }
     });
   });
+
+  /* ── Studio web: tokens en vivo desde el iframe del panel ─ */
+  if (document.body.getAttribute('data-studio-live') === '1') {
+    function origenStudioOk(origin) {
+      try {
+        var host = new URL(origin).hostname.toLowerCase();
+        return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
+      } catch (err) {
+        return false;
+      }
+    }
+    window.addEventListener('message', function (ev) {
+      var data = ev.data;
+      if (!data || data.type !== 'mck-studio-live') return;
+      if (!origenStudioOk(ev.origin)) return;
+      var css = data.css || {};
+      var root = document.documentElement;
+      var body = document.body;
+      Object.keys(css).forEach(function (k) {
+        if (typeof css[k] !== 'string') return;
+        root.style.setProperty(k, css[k]);
+        body.style.setProperty(k, css[k]);
+      });
+      if (typeof data.tagline === 'string') {
+        document.querySelectorAll('.brand-text span').forEach(function (el) {
+          el.textContent = data.tagline;
+        });
+      }
+    });
+  }
 
 })();

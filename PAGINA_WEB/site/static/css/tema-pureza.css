@@ -370,12 +370,14 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   gap: 4px;
   background: #fff;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--cat-line, var(--pz-acento));
   border-radius: 14px;
   padding: 20px 44px 20px 20px;
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
 .pz-cat:hover {
   border-color: var(--pz-acento);
+  border-left-color: var(--cat-line, var(--pz-acento));
   transform: translateY(-2px);
   box-shadow: 0 10px 26px rgba(28,43,42,0.08);
 }
@@ -386,7 +388,7 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--pz-destacado);
+  color: color-mix(in srgb, var(--cat-accent, var(--pz-acento)) 45%, var(--pz-acento));
 }
 
 /* CTA final */

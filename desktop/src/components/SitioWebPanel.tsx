@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import ClasicoLayoutCanvas, {
   WebLayoutInspector,
@@ -6,16 +6,27 @@ import ClasicoLayoutCanvas, {
   SECTION_LABEL_CLASICO,
 } from "./studio-web/ClasicoLayoutCanvas";
 import WebLayoutCanvas, {
+  SECTION_LABEL,
   usePhosphorIcons,
   type PurezaCanvas,
 } from "./studio-web/WebLayoutCanvas";
+import { LienzoToolbar } from "./studio-web/StudioDesplegables";
 import {
   ensureLayout,
   ensureLayoutClasico,
+  estructuraPreviewKey,
   layoutClasicoDefault,
   layoutDefault,
+  studioLivePayload,
   type WebLayout,
 } from "../lib/webLayoutStudio";
+import {
+  aplicarSeleccionNodo,
+  medirNodosEnRaiz,
+  seleccionarSimilaresPorTamanoYForma,
+  type StudioSelectOpts,
+} from "../lib/studioSelectSimilar";
+import { useUndoStack } from "../lib/studioUndo";
 
 /**
  * Studio web — lienzo visual + tokens + contenido de mckennagroup.co
@@ -468,12 +479,16 @@ export default function SitioWebPanel() {
   const [editTema, setEditTema] = useState<TemaId>("clasico");
   const [previewTema, setPreviewTema] = useState<TemaId>("clasico");
   const [previewKey, setPreviewKey] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [previewDraftOk, setPreviewDraftOk] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const lastEstructura = useRef("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [zoom, setZoom] = useState(0.72);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  const historial = useUndoStack<TemaWebConfig>({ max: 80, coalesceMs: 450 });
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -483,6 +498,7 @@ export default function SitioWebPanel() {
       const cfg = ensureDiseno(res.config);
       setConfig(cfg);
       setOriginal(JSON.stringify(cfg));
+      historial.reset();
       setEditTema(cfg.tema_activo);
       setPreviewTema(cfg.tema_activo);
       if (res.site_url) setSiteUrl(res.site_url);
@@ -492,7 +508,7 @@ export default function SitioWebPanel() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [historial.reset]);
 
   useEffect(() => {
     void cargar();
@@ -508,11 +524,26 @@ export default function SitioWebPanel() {
   const mutar = useCallback((fn: (draft: TemaWebConfig) => void) => {
     setConfig((prev) => {
       if (!prev) return prev;
+      historial.remember(prev);
       const draft = clone(prev);
       fn(draft);
       return draft;
     });
-  }, []);
+  }, [historial.remember]);
+
+  const deshacer = useCallback(() => {
+    if (!config) return;
+    const prev = historial.undo(config);
+    if (!prev) return;
+    setConfig(ensureDiseno(prev));
+  }, [config, historial.undo]);
+
+  const rehacer = useCallback(() => {
+    if (!config) return;
+    const next = historial.redo(config);
+    if (!next) return;
+    setConfig(ensureDiseno(next));
+  }, [config, historial.redo]);
 
   const guardar = useCallback(
     async (cfg?: TemaWebConfig) => {
@@ -547,6 +578,7 @@ export default function SitioWebPanel() {
           : "¿Volver al tema CLÁSICO para todos los visitantes del sitio?",
       );
       if (!seguro) return;
+      historial.remember(config);
       const draft = clone(config);
       draft.tema_activo = tema;
       setConfig(draft);
@@ -554,7 +586,7 @@ export default function SitioWebPanel() {
       setPreviewTema(tema);
       void guardar(draft);
     },
-    [config, guardar],
+    [config, guardar, historial],
   );
 
   const restaurarContenido = useCallback(async () => {
@@ -570,6 +602,7 @@ export default function SitioWebPanel() {
         accion: esClasico ? "restaurar_clasico" : "restaurar",
       });
       const next = ensureDiseno(res.config);
+      if (config) historial.remember(config);
       setConfig(next);
       setOriginal(JSON.stringify(next));
       setAviso(res.mensaje || "Contenido restaurado.");
@@ -580,7 +613,7 @@ export default function SitioWebPanel() {
     } finally {
       setGuardando(false);
     }
-  }, [editTema]);
+  }, [editTema, config, historial]);
 
   const restaurarDiseno = useCallback(async () => {
     if (!window.confirm("¿Restaurar tipografía, radio, densidad y tagline a los valores por defecto?")) return;
@@ -589,6 +622,7 @@ export default function SitioWebPanel() {
     try {
       const res = await api.put<TemaResponse>("/api/web/tema", { accion: "restaurar_diseno" });
       const next = ensureDiseno(res.config);
+      if (config) historial.remember(config);
       setConfig(next);
       setOriginal(JSON.stringify(next));
       setAviso(res.mensaje || "Diseño restaurado.");
@@ -599,7 +633,7 @@ export default function SitioWebPanel() {
     } finally {
       setGuardando(false);
     }
-  }, []);
+  }, [config, historial]);
 
   const restaurarLayout = useCallback(async () => {
     if (!window.confirm("¿Restaurar el lienzo (posiciones, escalas y orden de secciones)?")) return;
@@ -610,9 +644,10 @@ export default function SitioWebPanel() {
         accion: editTema === "clasico" ? "restaurar_layout_clasico" : "restaurar_layout",
       });
       const next = ensureDiseno(res.config);
+      if (config) historial.remember(config);
       setConfig(next);
       setOriginal(JSON.stringify(next));
-      setSelectedNode(null);
+      setSelectedIds([]);
       setAviso(res.mensaje || "Lienzo restaurado.");
       window.setTimeout(() => setAviso(""), 4000);
     } catch (e) {
@@ -620,7 +655,7 @@ export default function SitioWebPanel() {
     } finally {
       setGuardando(false);
     }
-  }, [editTema]);
+  }, [editTema, config, historial]);
 
   const patchPureza = useCallback((mutator: (draft: PurezaCanvas) => void) => {
     mutar((d) => {
@@ -634,8 +669,108 @@ export default function SitioWebPanel() {
     });
   }, [mutar]);
 
+  const handleSelect = useCallback((id: string | null, opts?: StudioSelectOpts) => {
+    setSelectedIds((prev) => aplicarSeleccionNodo(prev, id, opts));
+  }, []);
+
+  const seleccionarSimilares = useCallback(() => {
+    setSelectedIds((prev) => {
+      const seed = prev[prev.length - 1];
+      if (!seed) {
+        setAviso("Selecciona un objeto primero.");
+        window.setTimeout(() => setAviso(""), 2500);
+        return prev;
+      }
+      const root = document.querySelector("[data-studio-stage]");
+      if (!root) return prev;
+      const next = seleccionarSimilaresPorTamanoYForma(seed, medirNodosEnRaiz(root));
+      if (next.length <= 1) {
+        setAviso("No hay otros objetos con tamaño y forma similares.");
+      } else {
+        setAviso(`${next.length} objetos similares seleccionados.`);
+      }
+      window.setTimeout(() => setAviso(""), 3000);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const inField = !!t?.closest("input, textarea, select, [contenteditable=true]");
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === "z" || e.key === "Z")) {
+        if (inField && !e.shiftKey) return;
+        e.preventDefault();
+        if (e.shiftKey) rehacer();
+        else deshacer();
+        return;
+      }
+      if (mod && (e.key === "y" || e.key === "Y")) {
+        if (inField) return;
+        e.preventDefault();
+        rehacer();
+        return;
+      }
+      if (tab !== "lienzo" || inField) return;
+      if (mod && e.shiftKey && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        seleccionarSimilares();
+      }
+      if (e.key === "Escape") setSelectedIds([]);
+    };
+    const onPointerUp = () => historial.breakCoalesce();
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [tab, seleccionarSimilares, deshacer, rehacer, historial.breakCoalesce]);
+
   const basePreview = useLocalPreview ? previewBase : siteUrl;
-  const iframeSrc = `${basePreview}/?vista_tema=${previewTema}&_studio=${previewKey}`;
+  const iframeSrc = `${basePreview}/?vista_tema=${previewTema}&_studio=${previewKey}&studio_preview=${previewDraftOk ? "1" : "0"}`;
+
+  const pushLiveTokens = useCallback(() => {
+    if (!config) return;
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    let origin = "*";
+    try {
+      origin = new URL(basePreview).origin;
+    } catch {
+      origin = "*";
+    }
+    win.postMessage(studioLivePayload(config.diseno, config.pureza.colores || {}), origin);
+  }, [config, basePreview]);
+
+  useEffect(() => {
+    pushLiveTokens();
+  }, [pushLiveTokens]);
+
+  useEffect(() => {
+    if (!config || cargando) return;
+    if (!dirty) {
+      setPreviewDraftOk(false);
+      lastEstructura.current = estructuraPreviewKey(config);
+      return;
+    }
+    const est = estructuraPreviewKey(config);
+    const estructuraCambio = est !== lastEstructura.current;
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await api.put("/api/web/tema/preview", { config });
+          lastEstructura.current = est;
+          setPreviewDraftOk(true);
+          if (estructuraCambio) setPreviewKey((k) => k + 1);
+        } catch {
+          /* tokens siguen por postMessage aunque falle el borrador */
+        }
+      })();
+    }, 280);
+    return () => window.clearTimeout(t);
+  }, [config, dirty, cargando]);
 
   if (cargando) {
     return (
@@ -706,7 +841,7 @@ export default function SitioWebPanel() {
                   onClick={() => {
                     setEditTema(t);
                     setPreviewTema(t);
-                    setSelectedNode(null);
+                    setSelectedIds([]);
                   }}
                   className={`rounded-full px-2.5 py-1 font-semibold transition ${
                     editTema === t ? "bg-ink text-white" : "text-muted hover:text-ink"
@@ -716,29 +851,24 @@ export default function SitioWebPanel() {
                 </button>
               ))}
             </div>
-            {tab === "lienzo" && (
-              <>
-                <label className="flex items-center gap-1.5 text-xs text-muted">
-                  Zoom
-                  <input
-                    type="range"
-                    min={40}
-                    max={100}
-                    value={Math.round(zoom * 100)}
-                    onChange={(e) => setZoom(+e.target.value / 100)}
-                    className="w-20"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => void restaurarLayout()}
-                  disabled={guardando}
-                  className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-accent"
-                >
-                  Reset lienzo
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              disabled={!historial.canUndo}
+              onClick={deshacer}
+              title="Deshacer (Ctrl+Z)"
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Deshacer
+            </button>
+            <button
+              type="button"
+              disabled={!historial.canRedo}
+              onClick={rehacer}
+              title="Rehacer (Ctrl+Shift+Z)"
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Rehacer
+            </button>
             <button
               type="button"
               disabled={!dirty || guardando}
@@ -777,38 +907,55 @@ export default function SitioWebPanel() {
 
       {tab === "lienzo" ? (
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
-          {editTema === "clasico" ? (
-            <ClasicoLayoutCanvas
-              clasico={cl as ClasicoCanvas}
-              layout={layoutActivo || layoutClasicoDefault()}
-              selectedId={selectedNode}
-              onSelect={setSelectedNode}
-              onLayoutChange={(next) =>
-                mutar((d) => {
-                  d.layout_clasico = next;
-                })
-              }
-              onClasicoPatch={patchClasico}
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <LienzoToolbar
               zoom={zoom}
+              onZoom={setZoom}
+              sectionIds={(layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())).orden}
+              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
+              selectedIds={selectedIds}
+              onSelect={(id) => handleSelect(id)}
+              onSeleccionarSimilares={seleccionarSimilares}
+              onResetLayout={() => void restaurarLayout()}
+              guardando={guardando}
             />
-          ) : (
-            <WebLayoutCanvas
-              pureza={pz as PurezaCanvas}
-              layout={layoutActivo || layoutDefault()}
-              selectedId={selectedNode}
-              onSelect={setSelectedNode}
-              onLayoutChange={(next) =>
-                mutar((d) => {
-                  d.layout = next;
-                })
-              }
-              onPurezaPatch={patchPureza}
-              zoom={zoom}
-            />
-          )}
+            <div className="min-h-0 flex-1">
+            {editTema === "clasico" ? (
+              <ClasicoLayoutCanvas
+                clasico={cl as ClasicoCanvas}
+                layout={layoutActivo || layoutClasicoDefault()}
+                selectedIds={selectedIds}
+                onSelect={handleSelect}
+                onLayoutChange={(next) =>
+                  mutar((d) => {
+                    d.layout_clasico = next;
+                  })
+                }
+                onClasicoPatch={patchClasico}
+                zoom={zoom}
+              />
+            ) : (
+              <WebLayoutCanvas
+                pureza={pz as PurezaCanvas}
+                layout={layoutActivo || layoutDefault()}
+                selectedIds={selectedIds}
+                onSelect={handleSelect}
+                onLayoutChange={(next) =>
+                  mutar((d) => {
+                    d.layout = next;
+                  })
+                }
+                onPurezaPatch={patchPureza}
+                zoom={zoom}
+              />
+            )}
+            </div>
+          </div>
           <div className="min-h-0 overflow-y-auto border-l border-border bg-surface-panel">
             <WebLayoutInspector
-              selectedId={selectedNode}
+              selectedIds={selectedIds}
+              onSeleccionarSimilares={seleccionarSimilares}
+              onSelect={(id) => handleSelect(id)}
               layout={layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())}
               onLayoutChange={(next) =>
                 mutar((d) => {
@@ -821,7 +968,7 @@ export default function SitioWebPanel() {
                   ? (fn) => patchClasico((d) => fn(d as unknown as Record<string, unknown>))
                   : (fn) => patchPureza((d) => fn(d as unknown as Record<string, unknown>))
               }
-              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : undefined}
+              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
             />
           </div>
         </div>
@@ -1653,14 +1800,16 @@ export default function SitioWebPanel() {
             </a>
           </div>
           <iframe
+            ref={iframeRef}
             key={previewKey}
             title="Vista previa sitio"
             src={iframeSrc}
+            onLoad={pushLiveTokens}
             className="min-h-[420px] w-full flex-1 bg-white mck-paper-white"
           />
           <p className="px-3 py-1.5 text-[10px] text-white/40">
-            Guarda para ver colores/tipografía/espaciado en el iframe. El swatch de la izquierda refleja borradores al
-            instante.
+            Colores, botones y densidad se ven al instante. Textos y lienzo, en ~0,3 s (borrador local, no publica).
+            {useLocalPreview ? " Usa Local :8083." : " Marca Local :8083 para el borrador en vivo."}
           </p>
         </div>
       </div>

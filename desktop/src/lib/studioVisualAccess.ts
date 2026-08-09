@@ -21,7 +21,8 @@ export type EtiquetasTabSoloCynthia = (typeof ETIQUETAS_TABS_SOLO_CYNTHIA)[numbe
  */
 export function esCynthiaEtiquetas(user: TicketsUser | null | undefined): boolean {
   if (!user) return false;
-  if (typeof user.id === "number" && CYNTHIA_USER_IDS.has(user.id)) return true;
+  const uid = Number(user.id);
+  if (Number.isFinite(uid) && CYNTHIA_USER_IDS.has(uid)) return true;
   const username = (user.username || "").trim().toLowerCase().replace(/^@+/, "");
   if (username === "cynthia") return true;
   const email = (user.email || "").trim().toLowerCase();

@@ -172,9 +172,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description:
       "Botón del menú lateral: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos Pureza y tema publicado). La página pública no tiene editor.",
     tips: [
-      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos, agranda con la esquina azul y edita con doble clic.",
+      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos, agranda con la esquina azul y edita con doble clic. Ctrl+Z deshace, Ctrl+Shift+Z rehace.",
       "Tokens = colores/tipografía; Contenido = formularios; Publicar = tema que ven los clientes.",
-      "Guarda en la app para aplicar el lienzo en el sitio. La página pública no tiene editor.",
+      "La vista previa local (:8083) muestra colores y densidad al instante; Guardar publica a los visitantes.",
     ],
     tier: "standard",
     category: "studio-web",
