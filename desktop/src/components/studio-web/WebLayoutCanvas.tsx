@@ -9,11 +9,13 @@ import {
 } from "react";
 import {
   contentPathForNode,
+  estiloFitTexto,
   estiloNodo,
   applyContentPath,
   ANIM_OPTS,
   ICONOS_STUDIO,
   mergeNodo,
+  mergeNodos,
   MONTSERRAT_VARIANTES,
   moverSeccion,
   nodoOf,
@@ -24,6 +26,13 @@ import {
   type ShadowPreset,
   type WebLayout,
 } from "../../lib/webLayoutStudio";
+import type { StudioSelectOpts } from "../../lib/studioSelectSimilar";
+import { LINEAS_CATALOGO } from "../../lib/lineasCatalogo";
+import {
+  InspectorFold,
+  SHADOW_OPTS,
+  StudioSelect,
+} from "./StudioDesplegables";
 
 /** Subconjunto de pureza que el lienzo necesita. */
 export interface PurezaCanvas {
@@ -51,19 +60,24 @@ export interface PurezaCanvas {
 
 type DragMode = "move" | "scale" | "resize-e" | "resize-s" | "resize-se";
 
+interface DragOrig {
+  dx: number;
+  dy: number;
+  scale: number;
+  w: number;
+  h: number;
+}
+
 interface DragState {
   id: string;
+  ids: string[];
   mode: DragMode;
   startX: number;
   startY: number;
-  origDx: number;
-  origDy: number;
-  origScale: number;
-  origW: number;
-  origH: number;
+  orig: Record<string, DragOrig>;
 }
 
-const SECTION_LABEL: Record<string, string> = {
+export const SECTION_LABEL: Record<string, string> = {
   hero: "Hero",
   metricas: "Métricas",
   trazabilidad: "Trazabilidad",
@@ -138,6 +152,7 @@ function SelectionChrome({
 function EditableNode({
   id,
   selected,
+  primary,
   layout,
   onSelect,
   onDragStart,
@@ -145,19 +160,23 @@ function EditableNode({
   className,
   children,
   as: Tag = "div",
+  fitText = false,
 }: {
   id: string;
   selected: boolean;
+  primary?: boolean;
   layout: WebLayout;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: StudioSelectOpts) => void;
   onDragStart: (id: string, mode: DragMode, e: ReactPointerEvent, el?: HTMLElement) => void;
   style?: CSSProperties;
   className?: string;
   children: ReactNode;
   as?: "div" | "span" | "h1" | "h2" | "h3" | "p" | "button";
+  fitText?: boolean;
 }) {
   const n = nodoOf(layout, id);
-  const merged = { ...estiloNodo(n), ...style };
+  const merged = { ...estiloFitTexto(n, { className, enabled: fitText }), ...style };
+  const showHandles = selected && (primary ?? selected);
   const common = {
     "data-node": id,
     className: `relative select-none ${selected ? "z-10" : ""} ${className || ""}`,
@@ -165,13 +184,18 @@ function EditableNode({
     onPointerDown: (e: ReactPointerEvent) => {
       if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
       e.stopPropagation();
-      onSelect(id);
+      const additive = e.ctrlKey || e.metaKey || e.shiftKey;
+      onSelect(id, { additive });
+      if (additive) return;
       onDragStart(id, "move", e, e.currentTarget as HTMLElement);
     },
     children: (
       <>
         {children}
-        {selected && (
+        {selected && !showHandles && (
+          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
+        )}
+        {showHandles && (
           <SelectionChrome
             onHandle={(mode, e) => onDragStart(id, mode, e, e.currentTarget as HTMLElement)}
           />
@@ -188,7 +212,7 @@ function EditableNode({
 export default function WebLayoutCanvas({
   pureza,
   layout,
-  selectedId,
+  selectedIds,
   onSelect,
   onLayoutChange,
   onPurezaPatch,
@@ -196,8 +220,8 @@ export default function WebLayoutCanvas({
 }: {
   pureza: PurezaCanvas;
   layout: WebLayout;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedIds: string[];
+  onSelect: (id: string | null, opts?: StudioSelectOpts) => void;
   onLayoutChange: (next: WebLayout) => void;
   onPurezaPatch: (mutator: (draft: PurezaCanvas) => void) => void;
   zoom: number;
@@ -206,8 +230,11 @@ export default function WebLayoutCanvas({
   const dragRef = useRef<DragState | null>(null);
   const layoutRef = useRef(layout);
   const onLayoutChangeRef = useRef(onLayoutChange);
+  const selectedIdsRef = useRef(selectedIds);
   layoutRef.current = layout;
   onLayoutChangeRef.current = onLayoutChange;
+  selectedIdsRef.current = selectedIds;
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const colores = pureza.colores;
@@ -221,24 +248,33 @@ export default function WebLayoutCanvas({
       if (editingId) return;
       e.preventDefault();
       e.stopPropagation();
-      const n = nodoOf(layoutRef.current, id);
-      const nodeEl =
-        (stageRef.current?.querySelector(`[data-node="${CSS.escape(id)}"]`) as HTMLElement | null) ||
-        null;
-      const rect = nodeEl?.getBoundingClientRect();
+      const curSel = selectedIdsRef.current;
+      const ids = curSel.includes(id) && curSel.length > 1 ? [...curSel] : [id];
       const inv = 1 / zoom;
-      const measuredW = rect ? rect.width * inv / (n.scale ?? 1) : 120;
-      const measuredH = rect ? rect.height * inv / (n.scale ?? 1) : 40;
+      const orig: Record<string, DragOrig> = {};
+      for (const nid of ids) {
+        const n = nodoOf(layoutRef.current, nid);
+        const nodeEl =
+          (stageRef.current?.querySelector(`[data-node="${CSS.escape(nid)}"]`) as HTMLElement | null) ||
+          null;
+        const rect = nodeEl?.getBoundingClientRect();
+        const measuredW = rect ? (rect.width * inv) / (n.scale ?? 1) : 120;
+        const measuredH = rect ? (rect.height * inv) / (n.scale ?? 1) : 40;
+        orig[nid] = {
+          dx: n.dx ?? 0,
+          dy: n.dy ?? 0,
+          scale: n.scale ?? 1,
+          w: n.width ?? Math.round(measuredW),
+          h: n.height ?? Math.round(measuredH),
+        };
+      }
       dragRef.current = {
         id,
+        ids,
         mode,
         startX: e.clientX,
         startY: e.clientY,
-        origDx: n.dx ?? 0,
-        origDy: n.dy ?? 0,
-        origScale: n.scale ?? 1,
-        origW: n.width ?? Math.round(measuredW),
-        origH: n.height ?? Math.round(measuredH),
+        orig,
       };
       setDragging(true);
       try {
@@ -258,37 +294,32 @@ export default function WebLayoutCanvas({
       const inv = 1 / zoom;
       const dx = (e.clientX - d.startX) * inv;
       const dy = (e.clientY - d.startY) * inv;
-      const cur = layoutRef.current;
-      if (d.mode === "move") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            dx: Math.round(d.origDx + dx),
-            dy: Math.round(d.origDy + dy),
-          }),
-        );
-      } else if (d.mode === "scale") {
-        const delta = (dx + dy) / 120;
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            scale: Math.min(2.5, Math.max(0.5, d.origScale + delta)),
-          }),
-        );
-      } else if (d.mode === "resize-e") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, { width: Math.round(Math.max(24, d.origW + dx)) }),
-        );
-      } else if (d.mode === "resize-s") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, { height: Math.round(Math.max(16, d.origH + dy)) }),
-        );
-      } else if (d.mode === "resize-se") {
-        onLayoutChangeRef.current(
-          mergeNodo(cur, d.id, {
-            width: Math.round(Math.max(24, d.origW + dx)),
-            height: Math.round(Math.max(16, d.origH + dy)),
-          }),
-        );
+      let next = layoutRef.current;
+      for (const nid of d.ids) {
+        const o = d.orig[nid];
+        if (!o) continue;
+        if (d.mode === "move") {
+          next = mergeNodo(next, nid, {
+            dx: Math.round(o.dx + dx),
+            dy: Math.round(o.dy + dy),
+          });
+        } else if (d.mode === "scale") {
+          const delta = (dx + dy) / 120;
+          next = mergeNodo(next, nid, {
+            scale: Math.min(2.5, Math.max(0.5, o.scale + delta)),
+          });
+        } else if (d.mode === "resize-e") {
+          next = mergeNodo(next, nid, { width: Math.round(Math.max(24, o.w + dx)) });
+        } else if (d.mode === "resize-s") {
+          next = mergeNodo(next, nid, { height: Math.round(Math.max(16, o.h + dy)) });
+        } else if (d.mode === "resize-se") {
+          next = mergeNodo(next, nid, {
+            width: Math.round(Math.max(24, o.w + dx)),
+            height: Math.round(Math.max(16, o.h + dy)),
+          });
+        }
       }
+      onLayoutChangeRef.current(next);
     };
     const onUp = () => {
       if (dragRef.current) {
@@ -338,17 +369,19 @@ export default function WebLayoutCanvas({
   ) => (
     <EditableNode
       id={id}
-      selected={selectedId === id}
+      selected={selectedIds.includes(id)}
+      primary={selectedId === id}
       layout={layout}
       onSelect={onSelect}
       onDragStart={beginDrag}
       className={`${className} cursor-grab active:cursor-grabbing`}
       as={tag}
+      fitText
     >
       {editingId === id ? (
         <textarea
           autoFocus
-          className="w-full resize-none rounded border border-sky-400 bg-white/95 p-1 text-inherit outline-none"
+          className="min-w-[10rem] w-full resize-none rounded border border-sky-400 bg-white/95 p-1 text-inherit outline-none"
           rows={Math.min(6, Math.max(1, value.split("\n").length))}
           defaultValue={value}
           onBlur={(e) => {
@@ -384,7 +417,8 @@ export default function WebLayoutCanvas({
     return (
       <EditableNode
         id={id}
-        selected={selectedId === id}
+        selected={selectedIds.includes(id)}
+        primary={selectedId === id}
         layout={layout}
         onSelect={onSelect}
         onDragStart={beginDrag}
@@ -399,7 +433,8 @@ export default function WebLayoutCanvas({
   const sectionShell = (id: string, children: ReactNode, extraClass = "") => {
     const n = nodoOf(layout, id);
     if (n.hidden) return null;
-    const selected = selectedId === id;
+    const selected = selectedIds.includes(id);
+    const primary = selectedId === id;
     return (
       <section
         key={id}
@@ -414,7 +449,9 @@ export default function WebLayoutCanvas({
           const closestId = closest?.getAttribute("data-node");
           // Solo arrastra la sección si el clic es en el fondo (no en un hijo editable)
           if (closestId && closestId !== id) return;
-          onSelect(id);
+          const additive = e.ctrlKey || e.metaKey || e.shiftKey;
+          onSelect(id, { additive });
+          if (additive) return;
           beginDrag(id, "move", e, e.currentTarget);
         }}
       >
@@ -422,7 +459,10 @@ export default function WebLayoutCanvas({
           {SECTION_LABEL[id] || id}
         </div>
         {children}
-        {selected && (
+        {selected && !primary && (
+          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
+        )}
+        {primary && (
           <SelectionChrome
             onHandle={(mode, e) => beginDrag(id, mode, e, e.currentTarget as HTMLElement)}
           />
@@ -539,9 +579,13 @@ export default function WebLayoutCanvas({
           <div className="p-8" style={{ background: fondo, color: tinta }}>
             <div className="mb-4 text-2xl font-extrabold">Explora por categoría</div>
             <div className="grid gap-2 md:grid-cols-3">
-              {["Cosmética", "Farmacéutica", "Nutrición", "Perfumería", "Hogar", "Laboratorio"].map((c) => (
-                <div key={c} className="rounded-xl border border-black/10 bg-white mck-paper-white px-4 py-3 text-sm font-semibold">
-                  {c}
+              {LINEAS_CATALOGO.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded-xl border border-black/10 bg-white mck-paper-white px-4 py-3 text-sm font-semibold"
+                  style={{ borderLeft: `3px solid ${c.color}`, color: c.color }}
+                >
+                  {c.name}
                 </div>
               ))}
             </div>
@@ -600,6 +644,7 @@ export default function WebLayoutCanvas({
       >
         <div
           ref={stageRef}
+          data-studio-stage="pureza"
           className="overflow-hidden rounded-xl bg-white mck-paper-white shadow-2xl"
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -612,164 +657,242 @@ export default function WebLayoutCanvas({
 
 export function WebLayoutInspector({
   selectedId,
+  selectedIds,
   layout,
   onLayoutChange,
   onPurezaPatch,
   onContentPatch,
+  onSeleccionarSimilares,
+  onSelect,
   sectionLabels = SECTION_LABEL,
 }: {
-  selectedId: string | null;
+  selectedId?: string | null;
+  selectedIds?: string[];
   layout: WebLayout;
   pureza?: PurezaCanvas;
   onLayoutChange: (next: WebLayout) => void;
   onPurezaPatch?: (mutator: (draft: PurezaCanvas) => void) => void;
   onContentPatch?: (mutator: (draft: Record<string, unknown>) => void) => void;
+  onSeleccionarSimilares?: () => void;
+  onSelect?: (id: string | null) => void;
   sectionLabels?: Record<string, string>;
 }) {
+  const ids = selectedIds?.length ? selectedIds : selectedId ? [selectedId] : [];
+  const primaryId = ids[ids.length - 1] ?? null;
+  const multi = ids.length > 1;
   const contentPatch = onContentPatch ?? (onPurezaPatch
     ? (fn: (draft: Record<string, unknown>) => void) =>
         onPurezaPatch((d) => fn(d as unknown as Record<string, unknown>))
     : undefined);
-  if (!selectedId) {
+  if (!primaryId) {
     return (
-      <div className="space-y-2 p-4 text-xs text-muted">
-        <p className="font-semibold text-ink">Lienzo visual</p>
-        <ul className="list-disc space-y-1.5 pl-4">
-          <li>Clic en texto, botón, icono o sección para seleccionar</li>
-          <li>
-            Arrastra el elemento o usa la barra <strong className="text-ink">mover</strong>
-          </li>
-          <li>
-            Asas azules: <strong className="text-ink">ancho / alto / esquina</strong>
-          </li>
-          <li>
-            Asa ámbar: <strong className="text-ink">escala</strong> uniforme
-          </li>
-          <li>Doble clic en texto para editarlo</li>
-          <li>Tipografía, color, trazo, relleno y animaciones en este panel</li>
-          <li>Efectos (sombra, opacidad, giro) en este panel</li>
-        </ul>
+      <div className="space-y-3 p-3 text-xs text-muted">
+        <p className="px-0.5 font-semibold text-ink">Lienzo visual</p>
+        <InspectorFold titulo="Capas" hint="secciones" defaultOpen>
+          <div className="space-y-1">
+            {layout.orden.map((sid) => (
+              <button
+                key={sid}
+                type="button"
+                onClick={() => onSelect?.(sid)}
+                className="flex w-full items-center justify-between rounded-md border border-border px-2 py-1.5 text-left text-[11px] font-semibold text-ink hover:border-accent/50"
+              >
+                {sectionLabels[sid] || sid}
+                <span className="text-[10px] font-normal text-muted">ir</span>
+              </button>
+            ))}
+          </div>
+        </InspectorFold>
+        <InspectorFold titulo="Ayuda">
+          <ul className="list-disc space-y-1.5 pl-4">
+            <li>Clic en texto, botón, icono o sección para seleccionar</li>
+            <li>
+              <strong className="text-ink">Ctrl/⌘+clic</strong> o Shift+clic: sumar a la selección
+            </li>
+            <li>
+              Menú <strong className="text-ink">Selección → similares</strong> (Ctrl+Shift+L)
+            </li>
+            <li>
+              Arrastra el elemento o usa la barra <strong className="text-ink">mover</strong>
+            </li>
+            <li>
+              Asas azules: <strong className="text-ink">ancho / alto / esquina</strong>
+            </li>
+            <li>
+              Asa ámbar: <strong className="text-ink">escala</strong> uniforme
+            </li>
+            <li>Doble clic en texto para editarlo</li>
+            <li>Propiedades del objeto en los desplegables de este panel</li>
+          </ul>
+        </InspectorFold>
       </div>
     );
   }
 
-  const n = nodoOf(layout, selectedId);
-  const isSection = !selectedId.includes(".");
-  const isIcon = selectedId.includes("icono") || selectedId.endsWith(".icon") || selectedId === "hero.doc.icon";
+  const selectedIdSafe = primaryId;
+  const n = nodoOf(layout, selectedIdSafe);
+  const isSection = !selectedIdSafe.includes(".") && !multi;
+  const isIcon =
+    ids.every(
+      (id) => id.includes("icono") || id.endsWith(".icon") || id === "hero.doc.icon",
+    );
 
-  const patch = (p: LayoutNodo) => onLayoutChange(mergeNodo(layout, selectedId, p));
+  const patch = (p: LayoutNodo) => onLayoutChange(mergeNodos(layout, ids, p));
 
   const setIconContent = (icon: string) => {
     patch({ icono: icon });
     if (!contentPatch) return;
-    const path = contentPathForNode(selectedId);
-    if (path) {
-      contentPatch((d) => applyContentPath(d, path, icon));
-    }
+    contentPatch((d) => {
+      for (const id of ids) {
+        const path = contentPathForNode(id);
+        if (path) applyContentPath(d, path, icon);
+      }
+    });
   };
 
   const shadowVal: ShadowPreset = n.shadow || "none";
   const animVal: AnimPreset = n.animation || "none";
+  const field =
+    "w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent/50";
 
   return (
-    <div className="space-y-4 overflow-y-auto p-4 text-sm">
+    <div className="space-y-2.5 overflow-y-auto p-3 text-sm">
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Seleccionado</div>
-        <div className="font-semibold text-ink">{sectionLabels[selectedId] || selectedId}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-muted">
+          {multi ? `${ids.length} seleccionados` : "Seleccionado"}
+        </div>
+        <div className="font-semibold text-ink">
+          {multi
+            ? `${ids.length} objetos · ancla ${sectionLabels[selectedIdSafe] || selectedIdSafe}`
+            : sectionLabels[selectedIdSafe] || selectedIdSafe}
+        </div>
+        {onSeleccionarSimilares && (
+          <button
+            type="button"
+            onClick={onSeleccionarSimilares}
+            className="mt-1 text-[11px] font-semibold text-accent hover:underline"
+            title="Ctrl+Shift+L"
+          >
+            Seleccionar similares
+          </button>
+        )}
       </div>
+
+      <InspectorFold titulo="Capas" hint="ir a sección">
+        <div className="space-y-1">
+          {layout.orden.map((sid) => (
+            <button
+              key={sid}
+              type="button"
+              onClick={() => onSelect?.(sid)}
+              className={`flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-left text-[11px] font-semibold ${
+                (!selectedIdSafe.includes(".") ? selectedIdSafe : selectedIdSafe.split(".")[0]) === sid
+                  ? "border-accent bg-accent/10 text-ink"
+                  : "border-border text-ink hover:border-accent/50"
+              }`}
+            >
+              {sectionLabels[sid] || sid}
+            </button>
+          ))}
+        </div>
+      </InspectorFold>
 
       {isSection && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:border-accent"
-            onClick={() =>
-              onLayoutChange({ ...layout, orden: moverSeccion(layout.orden, selectedId, -1) })
-            }
-          >
-            ↑ Subir sección
-          </button>
-          <button
-            type="button"
-            className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:border-accent"
-            onClick={() =>
-              onLayoutChange({ ...layout, orden: moverSeccion(layout.orden, selectedId, 1) })
-            }
-          >
-            ↓ Bajar sección
-          </button>
-        </div>
+        <InspectorFold titulo="Orden de sección" defaultOpen>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:border-accent"
+              onClick={() =>
+                onLayoutChange({ ...layout, orden: moverSeccion(layout.orden, selectedIdSafe, -1) })
+              }
+            >
+              ↑ Subir
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:border-accent"
+              onClick={() =>
+                onLayoutChange({ ...layout, orden: moverSeccion(layout.orden, selectedIdSafe, 1) })
+              }
+            >
+              ↓ Bajar
+            </button>
+          </div>
+        </InspectorFold>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <InspectorFold titulo="Posición y tamaño" defaultOpen>
+        <div className="grid grid-cols-2 gap-2">
+          {!multi && (
+            <>
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold text-muted">X</span>
+                <input
+                  type="number"
+                  className={field}
+                  value={n.dx ?? 0}
+                  onChange={(e) => patch({ dx: +e.target.value })}
+                />
+              </label>
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold text-muted">Y</span>
+                <input
+                  type="number"
+                  className={field}
+                  value={n.dy ?? 0}
+                  onChange={(e) => patch({ dy: +e.target.value })}
+                />
+              </label>
+            </>
+          )}
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold text-muted">Ancho px</span>
+            <input
+              type="number"
+              min={24}
+              max={1200}
+              className={field}
+              value={n.width ?? ""}
+              placeholder="auto"
+              onChange={(e) =>
+                patch({ width: e.target.value === "" ? undefined : +e.target.value })
+              }
+            />
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold text-muted">Alto px</span>
+            <input
+              type="number"
+              min={16}
+              max={800}
+              className={field}
+              value={n.height ?? ""}
+              placeholder="auto"
+              onChange={(e) =>
+                patch({ height: e.target.value === "" ? undefined : +e.target.value })
+              }
+            />
+          </label>
+        </div>
         <label className="block text-xs">
-          <span className="mb-1 block font-semibold text-muted">X</span>
+          <span className="mb-1 block font-semibold text-muted">
+            Escala ({((n.scale ?? 1) * 100).toFixed(0)}%)
+          </span>
           <input
-            type="number"
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-            value={n.dx ?? 0}
-            onChange={(e) => patch({ dx: +e.target.value })}
+            type="range"
+            min={50}
+            max={250}
+            value={Math.round((n.scale ?? 1) * 100)}
+            onChange={(e) => patch({ scale: +e.target.value / 100 })}
+            className="w-full accent-accent"
           />
         </label>
-        <label className="block text-xs">
-          <span className="mb-1 block font-semibold text-muted">Y</span>
-          <input
-            type="number"
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-            value={n.dy ?? 0}
-            onChange={(e) => patch({ dy: +e.target.value })}
-          />
-        </label>
-        <label className="block text-xs">
-          <span className="mb-1 block font-semibold text-muted">Ancho px</span>
-          <input
-            type="number"
-            min={24}
-            max={1200}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-            value={n.width ?? ""}
-            placeholder="auto"
-            onChange={(e) =>
-              patch({ width: e.target.value === "" ? undefined : +e.target.value })
-            }
-          />
-        </label>
-        <label className="block text-xs">
-          <span className="mb-1 block font-semibold text-muted">Alto px</span>
-          <input
-            type="number"
-            min={16}
-            max={800}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
-            value={n.height ?? ""}
-            placeholder="auto"
-            onChange={(e) =>
-              patch({ height: e.target.value === "" ? undefined : +e.target.value })
-            }
-          />
-        </label>
-      </div>
-
-      <label className="block text-xs">
-        <span className="mb-1 block font-semibold text-muted">
-          Escala ({((n.scale ?? 1) * 100).toFixed(0)}%)
-        </span>
-        <input
-          type="range"
-          min={50}
-          max={250}
-          value={Math.round((n.scale ?? 1) * 100)}
-          onChange={(e) => patch({ scale: +e.target.value / 100 })}
-          className="w-full"
-        />
-      </label>
+      </InspectorFold>
 
       {!isIcon && (
-        <div className="border-t border-border pt-3">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
-            Tipografía
-          </div>
-          <div className="mb-2 rounded-md border border-border bg-surface px-2.5 py-2 text-xs">
+        <InspectorFold titulo="Tipografía" defaultOpen>
+          <div className="rounded-md border border-border bg-surface px-2.5 py-2 text-xs">
             <span className="font-semibold text-muted">Familia</span>
             <div
               className="mt-0.5 text-sm font-bold text-ink"
@@ -779,47 +902,30 @@ export function WebLayoutInspector({
             </div>
             <p className="mt-0.5 text-[10px] text-muted">Única fuente de marca McKenna</p>
           </div>
-          <div className="mb-2 text-xs">
-            <span className="mb-1.5 block font-semibold text-muted">Variante</span>
-            <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto pr-0.5">
-              {MONTSERRAT_VARIANTES.map((v) => {
-                const on = varianteIdDesdeNodo(n) === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() =>
-                      patch({
-                        fontWeight: v.weight,
-                        fontItalic: v.italic ? true : undefined,
-                      })
-                    }
-                    className={`rounded-md border px-2 py-1.5 text-left text-[11px] transition ${
-                      on
-                        ? "border-accent bg-accent/10 text-ink"
-                        : "border-border text-muted hover:border-accent/40"
-                    }`}
-                    style={{
-                      fontFamily: "'Montserrat', system-ui, sans-serif",
-                      fontWeight: v.weight,
-                      fontStyle: v.italic ? "italic" : "normal",
-                    }}
-                  >
-                    {v.label}
-                    <span className="ml-1 text-[9px] opacity-60">{v.weight}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <StudioSelect
+            label="Variante"
+            value={varianteIdDesdeNodo(n)}
+            options={MONTSERRAT_VARIANTES.map((v) => ({
+              id: v.id,
+              label: `${v.label} · ${v.weight}`,
+            }))}
+            onChange={(id) => {
+              const v = MONTSERRAT_VARIANTES.find((x) => x.id === id);
+              if (!v) return;
+              patch({
+                fontWeight: v.weight,
+                fontItalic: v.italic ? true : undefined,
+              });
+            }}
+          />
           {!isSection && (
-            <label className="mb-2 block text-xs">
+            <label className="block text-xs">
               <span className="mb-1 block font-semibold text-muted">Tamaño de letra (px)</span>
               <input
                 type="number"
                 min={10}
                 max={96}
-                className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+                className={field}
                 value={n.fontSize ?? ""}
                 placeholder="auto"
                 onChange={(e) =>
@@ -828,7 +934,7 @@ export function WebLayoutInspector({
               />
             </label>
           )}
-          <label className="mb-1 block text-xs">
+          <label className="block text-xs">
             <span className="mb-1 block font-semibold text-muted">Color de texto</span>
             <div className="flex items-center gap-2">
               <input
@@ -857,14 +963,11 @@ export function WebLayoutInspector({
               )}
             </div>
           </label>
-        </div>
+        </InspectorFold>
       )}
 
-      <div className="border-t border-border pt-3">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
-          Caja · relleno y trazo
-        </div>
-        <label className="mb-2 block text-xs">
+      <InspectorFold titulo="Caja · relleno y trazo">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Relleno</span>
           <div className="flex items-center gap-2">
             <input
@@ -895,7 +998,7 @@ export function WebLayoutInspector({
             )}
           </div>
         </label>
-        <label className="mb-2 block text-xs">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Trazo (color)</span>
           <div className="flex items-center gap-2">
             <input
@@ -935,13 +1038,13 @@ export function WebLayoutInspector({
             )}
           </div>
         </label>
-        <label className="mb-2 block text-xs">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Grosor del trazo (px)</span>
           <input
             type="number"
             min={0}
             max={24}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            className={field}
             value={n.borderWidth ?? ""}
             placeholder="0"
             onChange={(e) => {
@@ -957,41 +1060,33 @@ export function WebLayoutInspector({
             }}
           />
         </label>
-      </div>
+      </InspectorFold>
 
-      <div className="border-t border-border pt-3">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
-          Animaciones
-        </div>
-        <div className="mb-2 grid grid-cols-3 gap-1">
-          {ANIM_OPTS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              title={opt.loop ? `${opt.label} (bucle)` : opt.label}
-              onClick={() =>
-                patch({
-                  animation: opt.id === "none" ? undefined : opt.id,
-                  ...(opt.id === "none"
-                    ? { animDuration: undefined, animDelay: undefined }
-                    : {}),
-                })
-              }
-              className={`rounded-md border px-1 py-1.5 text-[10px] font-semibold ${
-                animVal === opt.id
-                  ? "border-accent bg-accent/10 text-ink"
-                  : "border-border text-muted hover:border-accent/40"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+      <InspectorFold
+        titulo="Animación"
+        hint={ANIM_OPTS.find((o) => o.id === animVal)?.label}
+      >
+        <StudioSelect
+          label="Tipo"
+          value={animVal}
+          options={ANIM_OPTS.map((o) => ({
+            id: o.id,
+            label: o.loop ? `${o.label} (bucle)` : o.label,
+          }))}
+          onChange={(id) =>
+            patch({
+              animation: id === "none" ? undefined : id,
+              ...(id === "none" ? { animDuration: undefined, animDelay: undefined } : {}),
+            })
+          }
+        />
         {animVal !== "none" && (
           <>
-            <label className="mb-2 block text-xs">
+            <label className="block text-xs">
               <span className="mb-1 block font-semibold text-muted">
-                Duración ({(n.animDuration ?? (animVal === "pulse" || animVal === "float" ? 2.2 : 0.7)).toFixed(1)}s)
+                Duración (
+                {(n.animDuration ?? (animVal === "pulse" || animVal === "float" ? 2.2 : 0.7)).toFixed(1)}
+                s)
               </span>
               <input
                 type="range"
@@ -1001,10 +1096,10 @@ export function WebLayoutInspector({
                   (n.animDuration ?? (animVal === "pulse" || animVal === "float" ? 2.2 : 0.7)) * 100,
                 )}
                 onChange={(e) => patch({ animDuration: +e.target.value / 100 })}
-                className="w-full"
+                className="w-full accent-accent"
               />
             </label>
-            <label className="mb-2 block text-xs">
+            <label className="block text-xs">
               <span className="mb-1 block font-semibold text-muted">
                 Retraso ({(n.animDelay ?? 0).toFixed(1)}s)
               </span>
@@ -1014,14 +1109,13 @@ export function WebLayoutInspector({
                 max={200}
                 value={Math.round((n.animDelay ?? 0) * 100)}
                 onChange={(e) => patch({ animDelay: +e.target.value / 100 })}
-                className="w-full"
+                className="w-full accent-accent"
               />
             </label>
             <button
               type="button"
-              className="mb-1 w-full rounded-md border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent"
+              className="w-full rounded-md border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent"
               onClick={() => {
-                // Re-trigger preview: clear then re-apply
                 const cur = { ...n };
                 patch({ animation: undefined });
                 window.setTimeout(() => {
@@ -1037,11 +1131,10 @@ export function WebLayoutInspector({
             </button>
           </>
         )}
-      </div>
+      </InspectorFold>
 
-      <div className="border-t border-border pt-3">
-        <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Efectos</div>
-        <label className="mb-2 block text-xs">
+      <InspectorFold titulo="Efectos">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">
             Opacidad ({Math.round((n.opacity ?? 1) * 100)}%)
           </span>
@@ -1051,10 +1144,10 @@ export function WebLayoutInspector({
             max={100}
             value={Math.round((n.opacity ?? 1) * 100)}
             onChange={(e) => patch({ opacity: +e.target.value / 100 })}
-            className="w-full"
+            className="w-full accent-accent"
           />
         </label>
-        <label className="mb-2 block text-xs">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">
             Rotación ({(n.rotate ?? 0).toFixed(0)}°)
           </span>
@@ -1064,16 +1157,16 @@ export function WebLayoutInspector({
             max={45}
             value={n.rotate ?? 0}
             onChange={(e) => patch({ rotate: +e.target.value })}
-            className="w-full"
+            className="w-full accent-accent"
           />
         </label>
-        <label className="mb-2 block text-xs">
+        <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Radio de borde (px)</span>
           <input
             type="number"
             min={0}
             max={999}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+            className={field}
             value={n.borderRadius ?? ""}
             placeholder="auto"
             onChange={(e) =>
@@ -1081,28 +1174,16 @@ export function WebLayoutInspector({
             }
           />
         </label>
-        <div className="text-xs">
-          <span className="mb-1 block font-semibold text-muted">Sombra</span>
-          <div className="grid grid-cols-4 gap-1">
-            {(["none", "sm", "md", "lg"] as ShadowPreset[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => patch({ shadow: s === "none" ? undefined : s })}
-                className={`rounded-md border px-1 py-1.5 text-[10px] font-semibold uppercase ${
-                  shadowVal === s ? "border-accent bg-accent/10 text-ink" : "border-border text-muted"
-                }`}
-              >
-                {s === "none" ? "—" : s}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        <StudioSelect
+          label="Sombra"
+          value={shadowVal}
+          options={SHADOW_OPTS}
+          onChange={(s) => patch({ shadow: s === "none" ? undefined : s })}
+        />
+      </InspectorFold>
 
       {isIcon && (
-        <div>
-          <div className="mb-2 text-xs font-semibold text-muted">Icono</div>
+        <InspectorFold titulo="Icono" defaultOpen>
           <div className="grid grid-cols-4 gap-1.5">
             {ICONOS_STUDIO.map((ic) => (
               <button
@@ -1118,29 +1199,30 @@ export function WebLayoutInspector({
               </button>
             ))}
           </div>
-        </div>
+        </InspectorFold>
       )}
 
-      <label className="flex items-center gap-2 text-xs font-semibold text-ink">
-        <input
-          type="checkbox"
-          checked={n.hidden === true}
-          onChange={(e) => patch({ hidden: e.target.checked || undefined })}
-        />
-        Ocultar elemento
-      </label>
-
-      <button
-        type="button"
-        className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted hover:border-red-300 hover:text-red-600"
-        onClick={() => {
-          const nodos = { ...layout.nodos };
-          delete nodos[selectedId];
-          onLayoutChange({ orden: layout.orden, nodos });
-        }}
-      >
-        Reset posición / tamaño / efectos
-      </button>
+      <InspectorFold titulo="Visibilidad">
+        <label className="flex items-center gap-2 text-xs font-semibold text-ink">
+          <input
+            type="checkbox"
+            checked={n.hidden === true}
+            onChange={(e) => patch({ hidden: e.target.checked || undefined })}
+          />
+          Ocultar elemento
+        </label>
+        <button
+          type="button"
+          className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted hover:border-red-300 hover:text-red-600"
+          onClick={() => {
+            const nodos = { ...layout.nodos };
+            for (const id of ids) delete nodos[id];
+            onLayoutChange({ orden: layout.orden, nodos });
+          }}
+        >
+          Reset posición / tamaño / efectos
+        </button>
+      </InspectorFold>
     </div>
   );
 }

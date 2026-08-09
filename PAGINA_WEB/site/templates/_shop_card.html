@@ -1,0 +1,119 @@
+{# Tarjeta de catálogo. Flags opcionales: show_trust_tema, show_trust_pz, check_buyable #}
+{% set show_trust_tema = show_trust_tema | default(false) %}
+{% set show_trust_pz = show_trust_pz | default(false) %}
+{% set check_buyable = check_buyable | default(true) %}
+{% set fam = p.get('is_family') and p.combos %}
+{% set sel = namespace(c=none) %}
+{% if fam %}
+  {% for c in p.combos %}
+    {% if sel.c is none and c.get('buyable', True) %}{% set sel.c = c %}{% endif %}
+  {% endfor %}
+  {% if sel.c is none %}{% set sel.c = p.combos[0] %}{% endif %}
+{% endif %}
+<div class="shop-card reveal reveal-delay-{{ card_delay | default(0) }}"
+     style="--cat-accent: {{ color_categoria(p.cat) }}"{% if fam %} data-pres-picker{% endif %}>
+  <a href="{{ url_for('producto', slug=p.slug, pres=sel.c.slug) if fam else url_for('producto', slug=p.slug) }}"
+     class="shop-card-img-link"{% if fam %} data-pres-detail{% endif %}>
+    <div class="shop-card-img">
+      {% if p.photo %}
+      <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy"{% if fam %} data-pres-photo{% endif %}>
+      {% else %}
+      <div class="shop-card-img-ph"><i class="ph ph-flask"></i></div>
+      {% endif %}
+    </div>
+    <span class="shop-card-cat-label">{{ p.cat }}</span>
+  </a>
+  <div class="shop-card-body">
+    <div class="shop-card-name">{{ p.name }}</div>
+    <div class="shop-card-ref"{% if fam %} data-pres-ref{% endif %}>
+      {% if fam %}
+      {{ p.n_presentaciones }} presentaciones
+      {% else %}
+      Ref: {{ p.ref }}
+      {% endif %}
+    </div>
+    {% if show_trust_tema and TEMA_ACTIVO == 'pureza' %}
+    <div class="pz-card-trust">
+      {% for b in TW.badges_producto[:2] %}
+      <span><i class="ph ph-seal-check"></i> {{ b }}</span>
+      {% endfor %}
+    </div>
+    {% elif show_trust_pz %}
+    <div class="pz-card-trust">
+      <span><i class="ph ph-seal-check"></i> COA</span>
+      <span><i class="ph ph-file-text"></i> Ficha técnica</span>
+    </div>
+    {% endif %}
+
+    {% if fam %}
+    <div class="presentacion-btns presentacion-btns--card" role="group" aria-label="Presentaciones de {{ p.name }}">
+      {% for c in p.combos %}
+      <button type="button"
+              class="presentacion-btn presentacion-btn--sm{% if sel.c and c.slug == sel.c.slug %} is-active{% endif %}{% if not c.get('buyable', True) %} is-agotado{% endif %}"
+              data-slug="{{ c.slug }}"
+              data-ref="{{ c.ref }}"
+              data-precio="{{ c.precio }}"
+              data-precio-meli="{{ c.precio_meli }}"
+              data-ahorro="{{ c.ahorro }}"
+              data-buyable="{{ '1' if c.get('buyable', True) else '0' }}"
+              data-photo="{{ c.photo or '' }}"
+              data-href="{{ url_for('producto', slug=p.slug, pres=c.slug) }}"
+              {% if not c.get('buyable', True) %}title="Agotado"{% endif %}>
+        {{ c.presentacion_label or c.ref }}
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="shop-card-price-row">
+      <span class="shop-card-price"{% if fam %} data-pres-precio{% endif %}>{{ sel.c.precio if fam else p.precio }}</span>
+      {% if not p.solo_vitrina %}
+      <span class="shop-card-price-old"{% if fam %} data-pres-lista{% endif %}{% if fam and not sel.c.get('buyable', True) %} style="display:none"{% endif %}>{{ sel.c.precio_meli if fam else p.precio_meli }}</span>
+      <span class="shop-card-saving"{% if fam %} data-pres-ahorro{% endif %}{% if fam and not sel.c.get('buyable', True) %} style="display:none"{% endif %}>{{ sel.c.ahorro if fam else p.ahorro }}</span>
+      {% endif %}
+    </div>
+
+    <div class="shop-card-actions">
+      {% if p.solo_vitrina and not fam %}
+      <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
+         class="btn btn-primary btn-sm shop-card-btn-sole">
+        <i class="ph ph-list"></i> Ver referencias
+      </a>
+      {% elif check_buyable and not fam and not p.get('buyable', True) %}
+      <span class="btn btn-sm badge-agotado" style="flex:1;justify-content:center;">
+        <i class="ph ph-x-circle"></i> Agotado
+      </span>
+      {% elif fam and not sel.c.get('buyable', True) %}
+      <span class="btn btn-sm badge-agotado" style="flex:1;justify-content:center;" data-pres-agotado>
+        <i class="ph ph-x-circle"></i> Agotado
+      </span>
+      <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:none;" data-pres-form>
+        <input type="hidden" name="slug" value="{{ sel.c.slug }}" data-pres-slug>
+        <input type="hidden" name="qty" value="1">
+        <input type="hidden" name="next" value="{{ request.url }}">
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
+          <i class="ph ph-shopping-cart"></i> Agregar
+        </button>
+      </form>
+      {% else %}
+      <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:flex;"{% if fam %} data-pres-form{% endif %}>
+        <input type="hidden" name="slug" value="{{ sel.c.slug if fam else p.slug }}"{% if fam %} data-pres-slug{% endif %}>
+        <input type="hidden" name="qty" value="1">
+        <input type="hidden" name="next" value="{{ request.url }}">
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
+          <i class="ph ph-shopping-cart"></i> Agregar
+        </button>
+      </form>
+      {% if fam %}
+      <span class="btn btn-sm badge-agotado" style="flex:1;justify-content:center;display:none;" data-pres-agotado>
+        <i class="ph ph-x-circle"></i> Agotado
+      </span>
+      {% endif %}
+      {% endif %}
+      <a href="{{ url_for('producto', slug=p.slug, pres=sel.c.slug) if fam else url_for('producto', slug=p.slug) }}"
+         class="shop-card-link" title="Ver detalle"{% if fam %} data-pres-detail{% endif %}>
+        Ver <i class="ph ph-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>

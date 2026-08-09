@@ -21,9 +21,12 @@ import tempfile
 import threading
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 _ROOT = Path(__file__).resolve().parent.parent.parent  # /home/mckg/mi-agente
 TEMA_WEB_FILE = _ROOT / "PAGINA_WEB" / "site" / "data" / "tema_web.json"
+# Borrador del Studio: solo lo lee el iframe local (?studio_preview=1). No es el sitio público.
+TEMA_WEB_PREVIEW_FILE = _ROOT / "PAGINA_WEB" / "site" / "data" / "tema_web_preview.json"
 
 TEMAS_VALIDOS = ("clasico", "pureza")
 
@@ -275,6 +278,8 @@ TEMA_WEB_DEFAULTS: dict = {
 _lock = threading.Lock()
 _cache: dict = {}
 _cache_mtime: float | None = None
+_preview_cache: dict | None = None
+_preview_mtime: float | None = None
 
 
 def _deep_merge(base: dict, extra: dict) -> dict:
@@ -568,8 +573,20 @@ def cargar_tema_web(force: bool = False) -> dict:
         return copy.deepcopy(merged)
 
 
-def guardar_tema_web(cambios: dict) -> dict:
-    """Aplica cambios sobre la config actual y persiste (escritura atómica)."""
+def _atomic_write_json(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def _aplicar_cambios(actual: dict, cambios: dict) -> dict:
+    """Merge + normalización. No escribe disco ni toca `actualizado`."""
     if not isinstance(cambios, dict):
         raise ValueError("La configuración del tema debe ser un objeto JSON")
     tema = cambios.get("tema_activo")
@@ -584,7 +601,6 @@ def guardar_tema_web(cambios: dict) -> dict:
     ):
         raise ValueError("layout_clasico debe ser un objeto JSON")
 
-    actual = cargar_tema_web(force=True)
     layout_in = cambios["layout"] if "layout" in cambios else None
     layout_clasico_in = cambios["layout_clasico"] if "layout_clasico" in cambios else None
     cambios_sin_layout = {
@@ -602,17 +618,89 @@ def guardar_tema_web(cambios: dict) -> dict:
             nuevo.get("layout_clasico"), _ORDEN_CLASICO
         )
     nuevo["diseno"] = _normalizar_diseno(nuevo.get("diseno"))
-    nuevo["actualizado"] = datetime.now().isoformat(timespec="seconds")
+    if not isinstance(nuevo.get("clasico"), dict):
+        nuevo["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+    return nuevo
 
-    TEMA_WEB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=str(TEMA_WEB_FILE.parent), suffix=".tmp")
+
+def host_permite_studio_preview(host: str | None) -> bool:
+    """El borrador del Studio solo aplica en localhost (nunca en mckennagroup.co)."""
+    raw = (host or "").strip()
+    if not raw:
+        return False
+    if "://" not in raw:
+        raw = f"http://{raw}"
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(nuevo, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, TEMA_WEB_FILE)
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
+        hostname = (urlsplit(raw).hostname or "").lower()
+    except ValueError:
+        return False
+    return hostname in {"127.0.0.1", "localhost", "::1"}
+
+
+def cargar_tema_preview(force: bool = False) -> dict:
+    """Borrador del Studio si existe; si no, el tema publicado."""
+    global _preview_cache, _preview_mtime
+    with _lock:
+        try:
+            mtime = TEMA_WEB_PREVIEW_FILE.stat().st_mtime
+        except OSError:
+            mtime = None
+        if mtime is None:
+            _preview_cache = None
+            _preview_mtime = None
+        elif not force and _preview_cache is not None and mtime == _preview_mtime:
+            return copy.deepcopy(_preview_cache)
+        if mtime is not None:
+            try:
+                data = json.loads(TEMA_WEB_PREVIEW_FILE.read_text(encoding="utf-8"))
+            except Exception:
+                data = {}
+            if isinstance(data, dict) and data:
+                merged = _deep_merge(TEMA_WEB_DEFAULTS, data)
+                if merged.get("tema_activo") not in TEMAS_VALIDOS:
+                    merged["tema_activo"] = "clasico"
+                merged["diseno"] = _normalizar_diseno(merged.get("diseno"))
+                merged["layout"] = _normalizar_layout(merged.get("layout"), _ORDEN_PUREZA)
+                merged["layout_clasico"] = _normalizar_layout(
+                    merged.get("layout_clasico"), _ORDEN_CLASICO
+                )
+                if not isinstance(merged.get("clasico"), dict):
+                    merged["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+                _preview_cache = merged
+                _preview_mtime = mtime
+                return copy.deepcopy(merged)
+    return cargar_tema_web()
+
+
+def guardar_tema_preview(cambios: dict) -> dict:
+    """Persiste el borrador del iframe. No toca tema_web.json (sitio público)."""
+    actual = cargar_tema_web()
+    nuevo = _aplicar_cambios(actual, cambios)
+    _atomic_write_json(TEMA_WEB_PREVIEW_FILE, nuevo)
+    global _preview_cache, _preview_mtime
+    with _lock:
+        _preview_cache = nuevo
+        try:
+            _preview_mtime = TEMA_WEB_PREVIEW_FILE.stat().st_mtime
+        except OSError:
+            _preview_mtime = None
+    return copy.deepcopy(nuevo)
+
+
+def borrar_tema_preview() -> None:
+    global _preview_cache, _preview_mtime
+    TEMA_WEB_PREVIEW_FILE.unlink(missing_ok=True)
+    with _lock:
+        _preview_cache = None
+        _preview_mtime = None
+
+
+def guardar_tema_web(cambios: dict) -> dict:
+    """Aplica cambios sobre la config actual y persiste (escritura atómica)."""
+    actual = cargar_tema_web(force=True)
+    nuevo = _aplicar_cambios(actual, cambios)
+    nuevo["actualizado"] = datetime.now().isoformat(timespec="seconds")
+    _atomic_write_json(TEMA_WEB_FILE, nuevo)
 
     global _cache, _cache_mtime
     with _lock:

@@ -27,6 +27,95 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 
 ---
 
+### 2026-08-08 22:40 - Studio web: desplegables en el lienzo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Barra sobre el lienzo con menús Capas, Zoom, Selección y Acciones (deja de ser un muro de botones en el encabezado).
+  - Inspector del objeto en acordeones: posición, tipografía, caja, animación, efectos e icono. Variante Montserrat, animación y sombra pasan a `<select>`.
+  - Desde Capas se salta a cualquier sección del home (Clásico o Pureza).
+- **Archivos Modificados:**
+  - `desktop/src/components/studio-web/StudioDesplegables.tsx` (nuevo)
+  - `desktop/src/components/studio-web/WebLayoutCanvas.tsx`
+  - `desktop/src/components/SitioWebPanel.tsx`
+
+### 2026-08-08 22:15 - Web: 6 líneas comerciales con color oficial
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Paleta oficial: Cosmética #990099, Aceites/ceras/grasas #FFA500, Alimentario #1F91DC, Industria gris #5C6570, Laboratorio #10173C, Agro #359441.
+  - Home y nav del catálogo muestran esas 6 líneas; las subcategorías (Ácidos, Aceites, etc.) heredan el color de su línea en textos cortos y filetes.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py`, templates index/tienda, CSS
+  - `desktop/src/lib/lineasCatalogo.ts` + lienzos Studio
+  - `tests/test_colores_categoria_web.py`
+
+### 2026-08-08 22:10 - Web: acentos de categoría equilibrados con la base
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Cada categoría del catálogo tiene un acento (textos cortos y líneas) dentro de la familia teal McKenna, mezclado con `--green` / tinta para que el home y la tienda no se vean como un circo.
+  - Títulos, precios y fondos siguen en colores base. El acento solo marca punto, filete, nav activo, conteo y etiqueta de tarjeta.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py` (`CAT_COLORS`, `color_categoria`)
+  - `PAGINA_WEB/site/static/css/main.css`, `tema-pureza.css`
+  - templates tienda, home, producto, `_shop_card.html`
+  - `tests/test_colores_categoria_web.py`
+
+### 2026-08-08 22:02 - Studio web: Ctrl+Z deshacer / rehacer
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Studio web, Ctrl+Z deshace (Ctrl+Shift+Z / Ctrl+Y rehace). Un arrastre o un barrido de color cuenta como un solo paso.
+  - Botones Deshacer / Rehacer junto a Guardar.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioUndo.ts`
+  - `desktop/src/components/SitioWebPanel.tsx`
+
+### 2026-08-08 21:58 - Studio web: cajas de texto ajustadas al contenido
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Las cajas de selección de títulos y párrafos ya no se estiran a todo el ancho de la columna flex/grid; quedan ajustadas al texto (`fit-content` + `align-self: start`).
+- **Archivos Modificados:**
+  - `desktop/src/lib/webLayoutStudio.ts` (`estiloFitTexto`)
+  - `desktop/src/components/studio-web/ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+
+### 2026-08-08 21:55 - Studio web: vista previa inmediata de apariencia
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Studio web, colores, radio de botones, densidad y tagline se ven al instante en el iframe (postMessage), sin pulsar Guardar ni publicar el sitio.
+  - Textos y lienzo se reflejan en ~0,3 s vía un borrador local (`tema_web_preview.json`) que solo aplica en localhost con `?studio_preview=1`.
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `app/routes.py` (`/api/web/tema/preview`)
+  - `PAGINA_WEB/site/website.py`, `templates/base.html`, `static/js/main.js`
+  - `desktop/src/components/SitioWebPanel.tsx`, `desktop/src/lib/webLayoutStudio.ts`
+  - `tests/test_tema_web_preview.py`
+
+### 2026-08-08 21:50 - Studio web: seleccionar objetos similares (tamaño y forma)
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En el lienzo del Studio web se pueden seleccionar varios objetos a la vez (Ctrl/⌘+clic o Shift+clic).
+  - Comando **Seleccionar similares** (botón en barra/inspector y atajo Ctrl+Shift+L): marca todos los nodos con la misma silueta y tamaño parecido al ancla (p. ej. todas las métricas, todos los botones CTA, todas las tarjetas feature).
+  - Estilos del inspector y arrastre/escala se aplican al grupo; Escape limpia la selección.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioSelectSimilar.ts`, `desktop/src/lib/webLayoutStudio.ts`
+  - `desktop/src/components/studio-web/WebLayoutCanvas.tsx`, `ClasicoLayoutCanvas.tsx`
+  - `desktop/src/components/SitioWebPanel.tsx`
+
+### 2026-08-08 18:40 - Fix: inventario de papel de etiquetas parecía vacío
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El JSON de rollos seguía al día (10 referencias, última carga 5 ago). El tab «Papel y tinta» llamaba la API con CHAT_API_TOKEN (Cynthia elevada a admin) y el backend devolvía 403 porque no la reconocía; la UI mostraba «Sin rollos registrados» sin el error.
+  - Ahora la sesión de tickets viaja en `X-Tickets-Token` y, si solo hay token de sistema, no se bloquea la lectura/escritura. El panel muestra el error real si falla la carga.
+- **Archivos Modificados:**
+  - `app/routes.py` (`_panel_tickets_usuario`, `_require_studio_visual`)
+  - `desktop/src/api/client.ts`, `EtiquetasPanel.tsx`, `studioVisualAccess.ts`, `plantillasVisualesImagen.ts`
+  - `tests/test_etiquetas_inventario_papel.py`
+
 ### 2026-08-03 08:32 - Fix: "hugo dale ok <código>" no disparaba desde el grupo POSTVENTA
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección

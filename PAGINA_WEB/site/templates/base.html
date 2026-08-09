@@ -40,9 +40,9 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260806a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260809b">
 {% if TEMA_ACTIVO == 'pureza' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260804">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809b">
 {% endif %}
 <style>
   :root {
@@ -70,12 +70,16 @@ fbq('track','PageView');
 </script>
 {% endblock %}
 </head>
-<body class="tema-{{ TEMA_ACTIVO | default('clasico') }}">
+<body class="tema-{{ TEMA_ACTIVO | default('clasico') }}"{% if STUDIO_LIVE %} data-studio-live="1"{% endif %}>
 {% set account_nav_href = url_for('cuenta_entrar') if (google_oauth_ready and not customer_logged_in) else url_for('mis_pedidos') %}
 {% set account_nav_label = 'Iniciar sesión' if (google_oauth_ready and not customer_logged_in) else 'Mis pedidos' %}
 {% set show_admin_pedidos_link = admin_panel_enabled and admin_orders_session_ok %}
 
-{% if TEMA_PREVIEW %}
+{% if STUDIO_PREVIEW %}
+<div style="background:#0c6069;color:#f5e9d0;text-align:center;padding:6px 16px;font-size:0.72rem;letter-spacing:1px;">
+  👁 Borrador del Studio (no publicado) · los visitantes siguen viendo el tema guardado
+</div>
+{% elif TEMA_PREVIEW %}
 <div style="background:#1c2b2a;color:#f5e9d0;text-align:center;padding:6px 16px;font-size:0.72rem;letter-spacing:1px;">
   👁 Vista previa del tema <strong style="text-transform:uppercase;">{{ TEMA_PREVIEW }}</strong> (solo tú la ves) ·
   <a href="?vista_tema=auto" style="color:#fff;text-decoration:underline;">volver al tema publicado</a>
@@ -306,7 +310,7 @@ fbq('track','PageView');
   <i class="ph ph-arrow-up"></i>
 </a>
 
-<script src="{{ url_for('static', filename='js/main.js') }}?v=20260403"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}?v=20260808c"></script>
 {% block scripts %}{% endblock %}
 
 {% if META_PIXEL_ID %}

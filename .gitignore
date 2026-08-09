@@ -122,5 +122,6 @@ app/data/facturas_compra_pendientes.json
 app/data/wa_alertas_intencion.json
 app/data/extractos_bancarios/
 PAGINA_WEB/site/data/cache.json
+PAGINA_WEB/site/data/tema_web_preview.json
 
 tmp_reportes_stock/

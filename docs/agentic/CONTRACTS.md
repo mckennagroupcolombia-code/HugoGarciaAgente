@@ -163,6 +163,8 @@ Endpoints usados por React:
 | `/api/sync/aprendizaje` | POST | - | `status: iniciado` |
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
+| `/api/web/tema` | GET/PUT | PUT `{ config }` o `{ accion }` | Tema publicado (`tema_web.json`). PUT publica el sitio |
+| `/api/web/tema/preview` | PUT/DELETE | PUT `{ config }` | Borrador del iframe Studio (`tema_web_preview.json`). No publica. Solo localhost + `?studio_preview=1` |
 | `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo; omite closed/inactive) |
 | `/api/stock/ventas-30d` | GET | `dias?` (default 30), `refresh?` | `por_item[meli_id]{unidades,ordenes,monto,ritmo_diario,nivel}`, `ordenes`, caché ~30 min |
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
