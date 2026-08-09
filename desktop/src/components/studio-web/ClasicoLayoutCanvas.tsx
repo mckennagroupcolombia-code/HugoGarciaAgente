@@ -18,6 +18,7 @@ import {
 } from "../../lib/webLayoutStudio";
 import type { StudioSelectOpts } from "../../lib/studioSelectSimilar";
 import { LINEAS_CATALOGO } from "../../lib/lineasCatalogo";
+import { FolioHoja, MarcoCapitulo, useScrollHojaActiva } from "./HojasCapitulo";
 
 export interface ClasicoCanvas {
   anuncio: string;
@@ -429,7 +430,7 @@ export default function ClasicoLayoutCanvas({
       <section
         key={id}
         data-node={id}
-        className={`relative mb-3 rounded-lg border select-none ${
+        className={`relative border select-none ${
           selected ? "border-sky-400" : "border-transparent hover:border-black/10"
         } ${extraClass}`}
         style={estiloNodo(n)}
@@ -716,6 +717,9 @@ export default function ClasicoLayoutCanvas({
     }
   };
 
+  useScrollHojaActiva(stageRef, selectedIds);
+  const hojasVisibles = layout.orden.filter((sid) => nodoOf(layout, sid).hidden !== true);
+
   return (
     <div
       className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
@@ -725,19 +729,30 @@ export default function ClasicoLayoutCanvas({
         setEditingId(null);
       }}
     >
-      <div
-        className="mx-auto origin-top py-6"
-        style={{ width: 960, transform: `scale(${zoom})`, marginBottom: `${(zoom - 1) * 800}px` }}
+      <MarcoCapitulo
+        titulo="Clásico"
+        zoom={zoom}
+        hojasCount={hojasVisibles.length}
+        stageId="clasico"
+        stageRef={stageRef}
       >
-        <div
-          ref={stageRef}
-          data-studio-stage="clasico"
-          className="overflow-hidden rounded-xl bg-white mck-paper-white shadow-2xl"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {layout.orden.map((sid) => renderSection(sid))}
-        </div>
-      </div>
+        {hojasVisibles.map((sid, i) => {
+          const rendered = renderSection(sid);
+          if (!rendered) return null;
+          return (
+            <FolioHoja
+              key={sid}
+              index={i}
+              total={hojasVisibles.length}
+              label={SECTION_LABEL_CLASICO[sid] || sid}
+              sectionId={sid}
+              onActivate={() => onSelect(sid)}
+            >
+              {rendered}
+            </FolioHoja>
+          );
+        })}
+      </MarcoCapitulo>
     </div>
   );
 }

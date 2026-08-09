@@ -197,6 +197,7 @@ export function LienzoToolbar({
   onSeleccionarSimilares,
   onResetLayout,
   guardando,
+  capitulo,
 }: {
   zoom: number;
   onZoom: (z: number) => void;
@@ -207,33 +208,41 @@ export function LienzoToolbar({
   onSeleccionarSimilares: () => void;
   onResetLayout: () => void;
   guardando?: boolean;
+  capitulo: string;
 }) {
   const zoomPct = Math.round(zoom * 100);
   const zoomValue = String(zoomPct);
   const primary = selectedIds[selectedIds.length - 1] ?? "";
   const seccionActiva = primary.includes(".") ? primary.split(".")[0] : primary;
+  const hojaActiva = seccionActiva
+    ? sectionIds.findIndex((s) => s === seccionActiva) + 1
+    : 0;
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface-panel px-3 py-2">
+      <span className="mr-1 hidden text-[10px] font-bold uppercase tracking-wider text-muted sm:inline">
+        Capítulo {capitulo}
+      </span>
       <StudioMenu
         label={
           <>
-            Capas
-            {seccionActiva ? (
-              <span className="max-w-[7rem] truncate font-normal text-muted">
-                · {sectionLabels[seccionActiva] || seccionActiva}
+            Hojas
+            {hojaActiva > 0 ? (
+              <span className="max-w-[8rem] truncate font-normal text-muted">
+                · {hojaActiva}. {sectionLabels[seccionActiva] || seccionActiva}
               </span>
             ) : null}
           </>
         }
       >
-        {sectionIds.map((sid) => (
+        {sectionIds.map((sid, i) => (
           <StudioMenuItem
             key={sid}
             active={seccionActiva === sid}
             onClick={() => onSelect(sid)}
+            hint={`${i + 1}/${sectionIds.length}`}
           >
-            {sectionLabels[sid] || sid}
+            Hoja {i + 1} · {sectionLabels[sid] || sid}
           </StudioMenuItem>
         ))}
       </StudioMenu>
