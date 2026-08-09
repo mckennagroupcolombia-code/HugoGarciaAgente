@@ -1840,6 +1840,15 @@
       "pregunta": "Viene con la cuchara medidora? Y de cuantos gramos es?",
       "timestamp": "2026-08-08T13:21:15.139418",
       "respondida": true
+    },
+    {
+      "question_id": "13638300938",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "Buenas. Es orgánico y prensado en frío?",
+      "timestamp": "2026-08-09T00:21:44.178889",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro con su duda.\n\nNuestro aceite es de origen vegetal, obtenido a partir de las semillas de la planta Ricinus communis.\n\nEste producto se obtiene mediante el proceso de prensado en frío, lo que significa que las semillas se prensan a baja temperatura para evitar la degradación de los nutrientes y mantener así la integridad del aceite.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-09"
     }
   ]
 }

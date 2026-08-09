@@ -27,6 +27,17 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 
 ---
 
+### 2026-08-09 00:05 - Studio web: lienzo por hojas del capítulo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - El lienzo ya no es una sola tira continua: cada sección del home es una hoja de papel del capítulo (Clásico o Pureza), con folio 1/N y título.
+  - El menú **Hojas** y el inspector saltan a esa página; al seleccionar un objeto el scroll lleva a su hoja.
+- **Archivos Modificados:**
+  - `desktop/src/components/studio-web/HojasCapitulo.tsx`
+  - `desktop/src/components/studio-web/WebLayoutCanvas.tsx`, `ClasicoLayoutCanvas.tsx`
+  - `desktop/src/components/studio-web/StudioDesplegables.tsx`, `SitioWebPanel.tsx`
+
 ### 2026-08-08 22:40 - Studio web: desplegables en el lienzo
 - **Autor:** Cynthia Ruiz
 - **Tipo de Cambio:** Mejora técnica

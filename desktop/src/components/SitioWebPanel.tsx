@@ -918,6 +918,7 @@ export default function SitioWebPanel() {
               onSeleccionarSimilares={seleccionarSimilares}
               onResetLayout={() => void restaurarLayout()}
               guardando={guardando}
+              capitulo={editTema === "clasico" ? "Clásico" : "Pureza"}
             />
             <div className="min-h-0 flex-1">
             {editTema === "clasico" ? (

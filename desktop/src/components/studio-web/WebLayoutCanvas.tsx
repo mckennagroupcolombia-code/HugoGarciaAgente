@@ -33,6 +33,7 @@ import {
   SHADOW_OPTS,
   StudioSelect,
 } from "./StudioDesplegables";
+import { FolioHoja, MarcoCapitulo, useScrollHojaActiva } from "./HojasCapitulo";
 
 /** Subconjunto de pureza que el lienzo necesita. */
 export interface PurezaCanvas {
@@ -439,7 +440,7 @@ export default function WebLayoutCanvas({
       <section
         key={id}
         data-node={id}
-        className={`relative mb-3 rounded-lg border select-none ${
+        className={`relative border select-none ${
           selected ? "border-sky-400" : "border-transparent hover:border-black/10"
         } ${extraClass}`}
         style={estiloNodo(n)}
@@ -629,6 +630,9 @@ export default function WebLayoutCanvas({
     if (em) em.style.color = oro;
   });
 
+  useScrollHojaActiva(stageRef, selectedIds);
+  const hojasVisibles = layout.orden.filter((sid) => nodoOf(layout, sid).hidden !== true);
+
   return (
     <div
       className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
@@ -638,19 +642,30 @@ export default function WebLayoutCanvas({
         setEditingId(null);
       }}
     >
-      <div
-        className="mx-auto origin-top py-6"
-        style={{ width: 960, transform: `scale(${zoom})`, marginBottom: `${(zoom - 1) * 800}px` }}
+      <MarcoCapitulo
+        titulo="Pureza"
+        zoom={zoom}
+        hojasCount={hojasVisibles.length}
+        stageId="pureza"
+        stageRef={stageRef}
       >
-        <div
-          ref={stageRef}
-          data-studio-stage="pureza"
-          className="overflow-hidden rounded-xl bg-white mck-paper-white shadow-2xl"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {layout.orden.map((sid) => renderSection(sid))}
-        </div>
-      </div>
+        {hojasVisibles.map((sid, i) => {
+          const rendered = renderSection(sid);
+          if (!rendered) return null;
+          return (
+            <FolioHoja
+              key={sid}
+              index={i}
+              total={hojasVisibles.length}
+              label={SECTION_LABEL[sid] || sid}
+              sectionId={sid}
+              onActivate={() => onSelect(sid)}
+            >
+              {rendered}
+            </FolioHoja>
+          );
+        })}
+      </MarcoCapitulo>
     </div>
   );
 }
@@ -688,16 +703,19 @@ export function WebLayoutInspector({
     return (
       <div className="space-y-3 p-3 text-xs text-muted">
         <p className="px-0.5 font-semibold text-ink">Lienzo visual</p>
-        <InspectorFold titulo="Capas" hint="secciones" defaultOpen>
+        <InspectorFold titulo="Hojas del capítulo" hint="secciones" defaultOpen>
           <div className="space-y-1">
-            {layout.orden.map((sid) => (
+            {layout.orden.map((sid, i) => (
               <button
                 key={sid}
                 type="button"
                 onClick={() => onSelect?.(sid)}
                 className="flex w-full items-center justify-between rounded-md border border-border px-2 py-1.5 text-left text-[11px] font-semibold text-ink hover:border-accent/50"
               >
-                {sectionLabels[sid] || sid}
+                <span>
+                  <span className="mr-1.5 text-muted">{i + 1}.</span>
+                  {sectionLabels[sid] || sid}
+                </span>
                 <span className="text-[10px] font-normal text-muted">ir</span>
               </button>
             ))}
@@ -778,9 +796,9 @@ export function WebLayoutInspector({
         )}
       </div>
 
-      <InspectorFold titulo="Capas" hint="ir a sección">
+      <InspectorFold titulo="Hojas del capítulo" hint="ir a hoja">
         <div className="space-y-1">
-          {layout.orden.map((sid) => (
+          {layout.orden.map((sid, i) => (
             <button
               key={sid}
               type="button"
@@ -791,7 +809,10 @@ export function WebLayoutInspector({
                   : "border-border text-ink hover:border-accent/50"
               }`}
             >
-              {sectionLabels[sid] || sid}
+              <span>
+                <span className="mr-1.5 text-muted">{i + 1}.</span>
+                {sectionLabels[sid] || sid}
+              </span>
             </button>
           ))}
         </div>

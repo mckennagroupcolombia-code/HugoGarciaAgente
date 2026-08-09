@@ -1,12 +1,12 @@
 {
- "fecha": "2026-08-08",
- "gasto_usd": 0.230777,
- "llamadas": 10,
+ "fecha": "2026-08-09",
+ "gasto_usd": 0.017474,
+ "llamadas": 1,
  "por_modelo": {
-  "gemini-2.5-pro": 0.230777
+  "gemini-2.5-pro": 0.017474
  },
  "por_contexto": {
-  "cliente_chat": 0.230777
+  "meli_preventa": 0.017474
  },
  "alerta_enviada": false,
  "historial": [
@@ -30,6 +30,17 @@
    },
    "por_contexto": {
     "cliente_chat": 0.042789
+   }
+  },
+  {
+   "fecha": "2026-08-08",
+   "gasto_usd": 0.230777,
+   "llamadas": 10,
+   "por_modelo": {
+    "gemini-2.5-pro": 0.230777
+   },
+   "por_contexto": {
+    "cliente_chat": 0.230777
    }
   }
  ]
