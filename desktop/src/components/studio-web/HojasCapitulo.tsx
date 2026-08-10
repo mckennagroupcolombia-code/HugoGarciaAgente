@@ -7,6 +7,7 @@ export function MarcoCapitulo({
   hojasCount,
   stageId,
   stageRef,
+  pageWidth = 960,
   children,
 }: {
   titulo: string;
@@ -14,6 +15,7 @@ export function MarcoCapitulo({
   hojasCount: number;
   stageId: string;
   stageRef: RefObject<HTMLDivElement | null>;
+  pageWidth?: number;
   children: ReactNode;
 }) {
   const slack = Math.max(1000, hojasCount * 680);
@@ -23,7 +25,7 @@ export function MarcoCapitulo({
       data-studio-stage={stageId}
       className="mx-auto origin-top space-y-10 py-8"
       style={{
-        width: 960,
+        width: pageWidth,
         transform: `scale(${zoom})`,
         marginBottom: `${(zoom - 1) * slack}px`,
       }}
@@ -47,6 +49,7 @@ export function FolioHoja({
   label,
   sectionId,
   onActivate,
+  overlay,
   children,
 }: {
   index: number;
@@ -54,6 +57,7 @@ export function FolioHoja({
   label: string;
   sectionId: string;
   onActivate?: () => void;
+  overlay?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -75,10 +79,12 @@ export function FolioHoja({
         </span>
       </button>
       <div
-        className="overflow-hidden rounded-[2px] bg-white mck-paper-white shadow-[0_18px_50px_rgba(0,0,0,.35),0_2px_8px_rgba(0,0,0,.18)] ring-1 ring-black/15"
+        data-studio-paper={sectionId}
+        className="relative overflow-visible rounded-[2px] bg-white mck-paper-white shadow-[0_18px_50px_rgba(0,0,0,.35),0_2px_8px_rgba(0,0,0,.18)] ring-1 ring-black/15"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {children}
+        {overlay}
       </div>
     </div>
   );

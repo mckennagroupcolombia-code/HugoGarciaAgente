@@ -1562,3 +1562,12 @@ p.text-sm.text-ink-secondary {
   font-size: 9px;
   line-height: 1.35;
 }
+
+/* Studio web: hover de botones del header (tokens --studio-hover-* / --studio-tr). */
+.studio-hover-target {
+  transition: color var(--studio-tr, 0.25s), background var(--studio-tr, 0.25s);
+}
+.studio-hover-target:hover {
+  color: var(--studio-hover-color, inherit);
+  background: var(--studio-hover-bg, transparent);
+}

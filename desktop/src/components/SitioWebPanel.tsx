@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
 import ClasicoLayoutCanvas, {
   WebLayoutInspector,
@@ -12,11 +13,17 @@ import WebLayoutCanvas, {
 } from "./studio-web/WebLayoutCanvas";
 import { LienzoToolbar } from "./studio-web/StudioDesplegables";
 import {
+  COLORES_CLASICO_DEFAULT,
+  COLORES_PUREZA_DEFAULT,
   ensureLayout,
   ensureLayoutClasico,
   estructuraPreviewKey,
   layoutClasicoDefault,
   layoutDefault,
+  deltaFlecha,
+  nudgeNodos,
+  sanitizeFondoUrl,
+  sanitizeHexColor,
   studioLivePayload,
   type WebLayout,
 } from "../lib/webLayoutStudio";
@@ -27,6 +34,8 @@ import {
   type StudioSelectOpts,
 } from "../lib/studioSelectSimilar";
 import { useUndoStack } from "../lib/studioUndo";
+import { aplicarEliminacionStudio, aplicarRestaurarHoja } from "../lib/studioEliminar";
+import { FondoImagenField } from "./studio-web/FondoImagenField";
 
 /**
  * Studio web — lienzo visual + tokens + contenido de mckennagroup.co
@@ -71,6 +80,8 @@ interface TemaWebConfig {
   layout: WebLayout;
   layout_clasico: WebLayout;
   clasico: {
+    colores: Record<string, string>;
+    fondos: Record<string, string>;
     anuncio: string;
     hero: {
       badge: string;
@@ -108,6 +119,7 @@ interface TemaWebConfig {
   };
   pureza: {
     colores: Record<string, string>;
+    fondos: Record<string, string>;
     anuncio: string;
     hero: {
       eyebrow: string;
@@ -155,12 +167,51 @@ const SECCION_LABEL: Record<string, string> = {
   cta: "Llamado a la acción final",
 };
 
-const COLOR_LABEL: Record<string, string> = {
+const COLOR_LABEL_PUREZA: Record<string, string> = {
   acento: "Acento (botones, enlaces)",
   acento_oscuro: "Acento oscuro (hover)",
   fondo: "Fondo de página",
   tinta: "Texto / footer",
   destacado: "Detalle destacado (dorado)",
+};
+
+const COLOR_LABEL_CLASICO: Record<string, string> = {
+  fondo: "Fondo claro de página",
+  fondo_oscuro: "Fondo oscuro (hero, footer, categorías)",
+  acento: "Acento (botones, enlaces, barra)",
+  acento_oscuro: "Acento oscuro (hover)",
+  acento_claro: "Acento claro (títulos en itálica)",
+  tinta: "Texto principal",
+};
+
+const FONDO_SLOTS_CLASICO: { key: string; label: string }[] = [
+  { key: "pagina", label: "Fondo de toda la página" },
+  { key: "hero_izq", label: "Hero — panel izquierdo" },
+  { key: "hero_der", label: "Hero — panel derecho" },
+  { key: "categorias", label: "Sección categorías" },
+  { key: "cta", label: "Banner final (CTA)" },
+];
+
+const FONDO_SLOTS_PUREZA: { key: string; label: string }[] = [
+  { key: "pagina", label: "Fondo de toda la página" },
+  { key: "hero", label: "Hero" },
+  { key: "categorias", label: "Sección categorías" },
+  { key: "cta", label: "Banner final (CTA)" },
+];
+
+const FONDOS_CLASICO_DEFAULT: Record<string, string> = {
+  pagina: "",
+  hero_izq: "",
+  hero_der: "",
+  categorias: "",
+  cta: "",
+};
+
+const FONDOS_PUREZA_DEFAULT: Record<string, string> = {
+  pagina: "",
+  hero: "",
+  categorias: "",
+  cta: "",
 };
 
 const RADIO_OPTS: { id: RadioUi; label: string; hint: string }[] = [
@@ -191,11 +242,29 @@ function ensureDiseno(cfg: TemaWebConfig): TemaWebConfig {
   cfg.layout = ensureLayout(cfg.layout);
   cfg.layout_clasico = ensureLayoutClasico(cfg.layout_clasico);
   cfg.clasico = ensureClasicoContent(cfg.clasico);
+  if (cfg.pureza && typeof cfg.pureza === "object") {
+    cfg.pureza.fondos = ensureFondosMap(cfg.pureza.fondos, FONDOS_PUREZA_DEFAULT);
+  }
   return cfg;
+}
+
+function ensureFondosMap(
+  raw: Record<string, string> | undefined,
+  defaults: Record<string, string>,
+): Record<string, string> {
+  const out = { ...defaults };
+  if (!raw || typeof raw !== "object") return out;
+  for (const key of Object.keys(defaults)) {
+    const v = raw[key];
+    if (typeof v === "string") out[key] = sanitizeFondoUrl(v) || "";
+  }
+  return out;
 }
 
 /** Defaults del home Clásico (mismo copy que el sitio publicado). */
 const CLASICO_DEFAULTS: TemaWebConfig["clasico"] = {
+  colores: { ...COLORES_CLASICO_DEFAULT },
+  fondos: { ...FONDOS_CLASICO_DEFAULT },
   anuncio:
     "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
   hero: {
@@ -294,7 +363,7 @@ function ensureClasicoContent(raw: TemaWebConfig["clasico"] | undefined): TemaWe
       const v = raw.hero[k];
       if (typeof v === "string" && v.trim()) out.hero[k] = v;
     }
-    if (Array.isArray(raw.hero.kit) && raw.hero.kit.length > 0) {
+    if (Array.isArray(raw.hero.kit)) {
       out.hero.kit = raw.hero.kit.map((item, i) => ({
         titulo: item?.titulo || base.hero.kit[i]?.titulo || "",
         texto: item?.texto || base.hero.kit[i]?.texto || "",
@@ -303,7 +372,7 @@ function ensureClasicoContent(raw: TemaWebConfig["clasico"] | undefined): TemaWe
       }));
     }
   }
-  if (Array.isArray(raw.features) && raw.features.length > 0) {
+  if (Array.isArray(raw.features)) {
     out.features = raw.features.map((f, i) => ({
       titulo: f?.titulo || base.features[i]?.titulo || "",
       texto: f?.texto || base.features[i]?.texto || "",
@@ -338,6 +407,14 @@ function ensureClasicoContent(raw: TemaWebConfig["clasico"] | undefined): TemaWe
   if (raw.secciones && typeof raw.secciones === "object") {
     out.secciones = { ...base.secciones, ...raw.secciones };
   }
+  out.colores = { ...base.colores };
+  if (raw.colores && typeof raw.colores === "object") {
+    for (const key of Object.keys(base.colores)) {
+      const hx = sanitizeHexColor(raw.colores[key]);
+      if (hx) out.colores[key] = hx;
+    }
+  }
+  out.fondos = ensureFondosMap(raw.fondos, base.fondos);
   return out;
 }
 
@@ -422,11 +499,20 @@ function Seccion({
   );
 }
 
-function LiveSwatch({ colores, diseno }: { colores: Record<string, string>; diseno: DisenoTokens }) {
+function LiveSwatch({
+  colores,
+  diseno,
+  variante = "pureza",
+}: {
+  colores: Record<string, string>;
+  diseno: DisenoTokens;
+  variante?: TemaId;
+}) {
   const acento = colores.acento || "#0c6069";
-  const fondo = colores.fondo || "#f8f6f1";
-  const tinta = colores.tinta || "#1c2b2a";
-  const oro = colores.destacado || "#b9862f";
+  const fondo = colores.fondo || (variante === "clasico" ? "#e3fcff" : "#f8f6f1");
+  const tinta = colores.tinta || (variante === "clasico" ? "#022d33" : "#1c2b2a");
+  const barra = variante === "clasico" ? colores.fondo_oscuro || tinta : tinta;
+  const oro = colores.destacado || colores.acento_claro || "#b9862f";
   const font = "Montserrat, system-ui, sans-serif";
   const radius = diseno.radio === "pill" ? 999 : diseno.radio === "soft" ? 12 : 4;
   const pad = diseno.densidad === "compacta" ? 10 : diseno.densidad === "amplia" ? 22 : 16;
@@ -437,7 +523,7 @@ function LiveSwatch({ colores, diseno }: { colores: Record<string, string>; dise
       style={{ background: fondo, fontFamily: font }}
       aria-hidden
     >
-      <div className="px-3 py-1.5 text-[10px] tracking-wide text-white/85" style={{ background: tinta }}>
+      <div className="px-3 py-1.5 text-[10px] tracking-wide text-white/85" style={{ background: barra }}>
         {diseno.tagline || "Proveemos a tus ideas"}
       </div>
       <div className="p-4" style={{ paddingTop: pad, paddingBottom: pad }}>
@@ -483,11 +569,14 @@ export default function SitioWebPanel() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastEstructura = useRef("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
   const [zoom, setZoom] = useState(0.72);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  const [chromeHost, setChromeHost] = useState<HTMLElement | null>(null);
   const historial = useUndoStack<TemaWebConfig>({ max: 80, coalesceMs: 450 });
 
   const cargar = useCallback(async () => {
@@ -592,7 +681,7 @@ export default function SitioWebPanel() {
   const restaurarContenido = useCallback(async () => {
     const esClasico = editTema === "clasico";
     const msg = esClasico
-      ? "¿Restaurar textos del tema Clásico a los valores recomendados?"
+      ? "¿Restaurar textos y colores del tema Clásico a los valores recomendados?"
       : "¿Restaurar textos y colores Pureza a los valores recomendados?";
     if (!window.confirm(msg)) return;
     setGuardando(true);
@@ -673,6 +762,55 @@ export default function SitioWebPanel() {
     setSelectedIds((prev) => aplicarSeleccionNodo(prev, id, opts));
   }, []);
 
+  const eliminarSeleccion = useCallback(() => {
+    const ids = selectedIdsRef.current;
+    if (!ids.length) {
+      setAviso("Selecciona algo para eliminar.");
+      window.setTimeout(() => setAviso(""), 2500);
+      return;
+    }
+    mutar((d) => {
+      if (editTema === "clasico") {
+        d.layout_clasico = aplicarEliminacionStudio(
+          ids,
+          d.layout_clasico || layoutClasicoDefault(),
+          d.clasico as unknown as Record<string, unknown>,
+        );
+      } else {
+        d.layout = aplicarEliminacionStudio(
+          ids,
+          d.layout || layoutDefault(),
+          d.pureza as unknown as Record<string, unknown>,
+        );
+      }
+    });
+    setSelectedIds([]);
+    setAviso("Eliminado. Ctrl+Z para deshacer.");
+    window.setTimeout(() => setAviso(""), 3000);
+  }, [editTema, mutar]);
+
+  const restaurarHoja = useCallback(
+    (sid: string) => {
+      mutar((d) => {
+        if (editTema === "clasico") {
+          d.layout_clasico = aplicarRestaurarHoja(
+            sid,
+            d.layout_clasico,
+            d.clasico as unknown as Record<string, unknown>,
+          );
+        } else {
+          d.layout = aplicarRestaurarHoja(
+            sid,
+            d.layout,
+            d.pureza as unknown as Record<string, unknown>,
+          );
+        }
+      });
+      setSelectedIds([sid]);
+    },
+    [editTema, mutar],
+  );
+
   const seleccionarSimilares = useCallback(() => {
     setSelectedIds((prev) => {
       const seed = prev[prev.length - 1];
@@ -697,7 +835,11 @@ export default function SitioWebPanel() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      const inField = !!t?.closest("input, textarea, select, [contenteditable=true]");
+      const field = t?.closest("input, textarea, select, [contenteditable=true]") as
+        | HTMLInputElement
+        | HTMLTextAreaElement
+        | null;
+      const inField = !!field && !("readOnly" in field && field.readOnly);
       const mod = e.ctrlKey || e.metaKey;
       if (mod && (e.key === "z" || e.key === "Z")) {
         if (inField && !e.shiftKey) return;
@@ -718,15 +860,52 @@ export default function SitioWebPanel() {
         seleccionarSimilares();
       }
       if (e.key === "Escape") setSelectedIds([]);
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedIdsRef.current.length) {
+        e.preventDefault();
+        eliminarSeleccion();
+      }
+      const flecha = !mod && !e.altKey ? deltaFlecha(e.key, e.shiftKey) : null;
+      if (flecha && selectedIdsRef.current.length) {
+        e.preventDefault();
+        const ids = selectedIdsRef.current;
+        mutar((d) => {
+          if (editTema === "clasico") {
+            d.layout_clasico = nudgeNodos(
+              d.layout_clasico || layoutClasicoDefault(),
+              ids,
+              flecha.dx,
+              flecha.dy,
+            );
+          } else {
+            d.layout = nudgeNodos(d.layout || layoutDefault(), ids, flecha.dx, flecha.dy);
+          }
+        });
+      }
     };
     const onPointerUp = () => historial.breakCoalesce();
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        historial.breakCoalesce();
+      }
+    };
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("pointerup", onPointerUp);
     return () => {
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("pointerup", onPointerUp);
     };
-  }, [tab, seleccionarSimilares, deshacer, rehacer, historial.breakCoalesce]);
+  }, [
+    tab,
+    editTema,
+    mutar,
+    seleccionarSimilares,
+    eliminarSeleccion,
+    deshacer,
+    rehacer,
+    historial.breakCoalesce,
+  ]);
 
   const basePreview = useLocalPreview ? previewBase : siteUrl;
   const iframeSrc = `${basePreview}/?vista_tema=${previewTema}&_studio=${previewKey}&studio_preview=${previewDraftOk ? "1" : "0"}`;
@@ -741,12 +920,18 @@ export default function SitioWebPanel() {
     } catch {
       origin = "*";
     }
-    win.postMessage(studioLivePayload(config.diseno, config.pureza.colores || {}), origin);
-  }, [config, basePreview]);
+    const liveColores =
+      previewTema === "clasico" ? config.clasico.colores || {} : config.pureza.colores || {};
+    win.postMessage(studioLivePayload(config.diseno, liveColores, previewTema), origin);
+  }, [config, basePreview, previewTema]);
 
   useEffect(() => {
     pushLiveTokens();
   }, [pushLiveTokens]);
+
+  useLayoutEffect(() => {
+    setChromeHost(document.getElementById("studio-web-chrome"));
+  }, []);
 
   useEffect(() => {
     if (!config || cargando) return;
@@ -802,124 +987,146 @@ export default function SitioWebPanel() {
     { id: "lienzo", label: "Lienzo" },
     { id: "diseno", label: "Tokens" },
     { id: "contenido", label: "Contenido" },
-    { id: "publicar", label: "Publicar" },
+    { id: "publicar", label: "Tema" },
   ];
 
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border bg-surface-panel px-4 py-3 md:px-5">
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-extrabold text-ink">Studio web</h1>
-            <p className="text-xs text-muted">
-              Se edita solo desde esta app · tema publicado:{" "}
-              <strong className="text-ink">{config.tema_activo === "pureza" ? "Pureza" : "Clásico"}</strong>
-              {config.actualizado && <> · {config.actualizado.replace("T", " ")}</>}
-              {dirty && <span className="ml-2 text-amber-600">· cambios sin guardar</span>}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-full border border-border bg-surface p-0.5 text-xs">
-              {tabs.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTab(t.id)}
-                  className={`rounded-full px-3 py-1.5 font-semibold transition ${
-                    tab === t.id ? "bg-accent text-white" : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex rounded-full border border-border bg-surface p-0.5 text-[11px]">
-              {(["clasico", "pureza"] as TemaId[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setEditTema(t);
-                    setPreviewTema(t);
-                    setSelectedIds([]);
-                  }}
-                  className={`rounded-full px-2.5 py-1 font-semibold transition ${
-                    editTema === t ? "bg-ink text-white" : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {t === "clasico" ? "Clásico" : "Pureza"}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              disabled={!historial.canUndo}
-              onClick={deshacer}
-              title="Deshacer (Ctrl+Z)"
-              className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Deshacer
-            </button>
-            <button
-              type="button"
-              disabled={!historial.canRedo}
-              onClick={rehacer}
-              title="Rehacer (Ctrl+Shift+Z)"
-              className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Rehacer
-            </button>
-            <button
-              type="button"
-              disabled={!dirty || guardando}
-              onClick={() => void guardar()}
-              className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {guardando ? "Guardando…" : "Guardar"}
-            </button>
-          </div>
+  const temaEnSitio = config.tema_activo === editTema;
+
+  const publicarEnSitio = () => {
+    if (!config) return;
+    if (!temaEnSitio) {
+      publicarTema(editTema);
+      return;
+    }
+    void guardar();
+  };
+
+  const nombreTema = (t: TemaId) => (t === "pureza" ? "Pureza" : "Clásico");
+
+  const chrome = (
+    <>
+      <div className="flex rounded-full border border-border bg-surface p-0.5 text-xs">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`rounded-full px-3 py-1.5 font-semibold transition ${
+              tab === t.id ? "bg-accent text-white" : "text-muted hover:text-ink"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="flex rounded-full border border-border bg-surface p-0.5 text-[11px]">
+          {(["clasico", "pureza"] as TemaId[]).map((t) => {
+            const enSitio = config.tema_activo === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                title={enSitio ? `${nombreTema(t)} está publicado en el sitio` : `Editar ${nombreTema(t)}`}
+                onClick={() => {
+                  setEditTema(t);
+                  setPreviewTema(t);
+                  setSelectedIds([]);
+                }}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition ${
+                  editTema === t ? "bg-ink text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                {nombreTema(t)}
+                {enSitio ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                ) : null}
+              </button>
+            );
+          })}
         </div>
-        {error && (
-          <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        {!temaEnSitio && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Borrador</span>
         )}
-        {aviso && (
-          <div className="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            ✓ {aviso}
-          </div>
-        )}
-        <div className="mt-2 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-ink">
-          {editTema === config.tema_activo ? (
-            <>
-              Editando tema publicado:{" "}
-              <strong>{editTema === "clasico" ? "Clásico" : "Pureza"}</strong>
-            </>
-          ) : (
-            <>
-              Editando borrador:{" "}
-              <strong>{editTema === "clasico" ? "Clásico" : "Pureza"}</strong>
-              <span className="ml-2 text-muted">
-                · publicado: {config.tema_activo === "clasico" ? "Clásico" : "Pureza"}
-              </span>
-            </>
+        {dirty && <span className="text-[10px] font-semibold text-amber-600">Sin guardar</span>}
+      </div>
+      {tab === "lienzo" && (
+        <LienzoToolbar
+          zoom={zoom}
+          onZoom={setZoom}
+          sectionIds={(layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())).orden}
+          sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
+          selectedIds={selectedIds}
+          onSelect={(id) => handleSelect(id)}
+          onSeleccionarSimilares={seleccionarSimilares}
+          onResetLayout={() => void restaurarLayout()}
+          onEliminar={eliminarSeleccion}
+          guardando={guardando}
+        />
+      )}
+      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          disabled={!historial.canUndo}
+          onClick={deshacer}
+          title="Deshacer (Ctrl+Z)"
+          className="rounded-full border border-border px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Deshacer
+        </button>
+        <button
+          type="button"
+          disabled={!historial.canRedo}
+          onClick={rehacer}
+          title="Rehacer (Ctrl+Shift+Z)"
+          className="rounded-full border border-border px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Rehacer
+        </button>
+        <button
+          type="button"
+          disabled={!dirty || guardando}
+          onClick={() => void guardar()}
+          className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {guardando ? "Guardando…" : "Guardar"}
+        </button>
+        <button
+          type="button"
+          disabled={guardando || (!dirty && temaEnSitio)}
+          onClick={publicarEnSitio}
+          title="Deja este tema y los cambios visibles para los visitantes"
+          className="rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {temaEnSitio && !dirty ? "Publicado" : "Publicar"}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {chromeHost ? createPortal(chrome, chromeHost) : (
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface-panel px-3 py-1.5">
+          {chrome}
+        </div>
+      )}
+      {(error || aviso) && (
+        <div className="shrink-0 space-y-2 border-b border-border px-3 py-2 md:px-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          )}
+          {aviso && (
+            <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              ✓ {aviso}
+            </div>
           )}
         </div>
-      </div>
+      )}
 
       {tab === "lienzo" ? (
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="flex min-h-0 min-w-0 flex-col">
-            <LienzoToolbar
-              zoom={zoom}
-              onZoom={setZoom}
-              sectionIds={(layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())).orden}
-              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
-              selectedIds={selectedIds}
-              onSelect={(id) => handleSelect(id)}
-              onSeleccionarSimilares={seleccionarSimilares}
-              onResetLayout={() => void restaurarLayout()}
-              guardando={guardando}
-              capitulo={editTema === "clasico" ? "Clásico" : "Pureza"}
-            />
             <div className="min-h-0 flex-1">
             {editTema === "clasico" ? (
               <ClasicoLayoutCanvas
@@ -934,6 +1141,9 @@ export default function SitioWebPanel() {
                 }
                 onClasicoPatch={patchClasico}
                 zoom={zoom}
+                assetBase={basePreview}
+                tagline={diseno.tagline}
+                onEliminar={eliminarSeleccion}
               />
             ) : (
               <WebLayoutCanvas
@@ -948,6 +1158,8 @@ export default function SitioWebPanel() {
                 }
                 onPurezaPatch={patchPureza}
                 zoom={zoom}
+                assetBase={basePreview}
+                onEliminar={eliminarSeleccion}
               />
             )}
             </div>
@@ -957,6 +1169,11 @@ export default function SitioWebPanel() {
               selectedIds={selectedIds}
               onSeleccionarSimilares={seleccionarSimilares}
               onSelect={(id) => handleSelect(id)}
+              onEliminar={eliminarSeleccion}
+              onRestaurarHoja={restaurarHoja}
+              contentDraft={
+                (editTema === "clasico" ? cl : pz) as unknown as Record<string, unknown>
+              }
               layout={layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())}
               onLayoutChange={(next) =>
                 mutar((d) => {
@@ -970,6 +1187,8 @@ export default function SitioWebPanel() {
                   : (fn) => patchPureza((d) => fn(d as unknown as Record<string, unknown>))
               }
               sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
+              assetBase={basePreview}
+              variante={editTema}
             />
           </div>
         </div>
@@ -991,26 +1210,95 @@ export default function SitioWebPanel() {
                 </button>
               </div>
 
-              <LiveSwatch colores={pz.colores} diseno={diseno} />
+              <LiveSwatch
+                colores={editTema === "clasico" ? cl.colores || {} : pz.colores}
+                diseno={diseno}
+                variante={editTema}
+              />
 
-              <Seccion titulo="Colores" hint="tema Pureza" defaultOpen>
+              <Seccion
+                titulo="Colores y fondos"
+                hint={editTema === "clasico" ? "tema Clásico (sitio publicado)" : "tema Pureza"}
+                defaultOpen
+              >
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {Object.entries(COLOR_LABEL).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={pz.colores[key] || "#0c6069"}
-                        onChange={(e) =>
-                          mutar((d) => {
-                            d.pureza.colores[key] = e.target.value;
-                          })
-                        }
-                        className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
-                      />
-                      <span className="text-sm text-ink">{label}</span>
-                    </label>
-                  ))}
+                  {Object.entries(editTema === "clasico" ? COLOR_LABEL_CLASICO : COLOR_LABEL_PUREZA).map(
+                    ([key, label]) => {
+                      const mapa =
+                        editTema === "clasico"
+                          ? cl.colores || COLORES_CLASICO_DEFAULT
+                          : pz.colores || COLORES_PUREZA_DEFAULT;
+                      return (
+                        <label key={key} className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={mapa[key] || "#0c6069"}
+                            onChange={(e) =>
+                              mutar((d) => {
+                                if (editTema === "clasico") {
+                                  if (!d.clasico.colores) d.clasico.colores = { ...COLORES_CLASICO_DEFAULT };
+                                  d.clasico.colores[key] = e.target.value;
+                                } else {
+                                  d.pureza.colores[key] = e.target.value;
+                                }
+                              })
+                            }
+                            className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+                          />
+                          <span className="text-sm text-ink">{label}</span>
+                        </label>
+                      );
+                    },
+                  )}
                 </div>
+                <p className="text-[11px] leading-relaxed text-muted">
+                  Los cambios se ven al instante en el lienzo. Pulsa <strong>Guardar</strong> y luego{" "}
+                  <strong>Publicar</strong> para verlos en mckennagroup.co.
+                </p>
+              </Seccion>
+
+              <Seccion
+                titulo="Imágenes de fondo"
+                hint="JPG PNG WEBP GIF · máx. 4 MB"
+                defaultOpen
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(editTema === "clasico" ? FONDO_SLOTS_CLASICO : FONDO_SLOTS_PUREZA).map(
+                    ({ key, label }) => {
+                      const mapa =
+                        editTema === "clasico"
+                          ? cl.fondos || FONDOS_CLASICO_DEFAULT
+                          : pz.fondos || FONDOS_PUREZA_DEFAULT;
+                      return (
+                        <FondoImagenField
+                          key={key}
+                          label={label}
+                          value={mapa[key] || ""}
+                          assetBase={basePreview}
+                          onChange={(url) =>
+                            mutar((d) => {
+                              if (editTema === "clasico") {
+                                if (!d.clasico.fondos) {
+                                  d.clasico.fondos = { ...FONDOS_CLASICO_DEFAULT };
+                                }
+                                d.clasico.fondos[key] = url;
+                              } else {
+                                if (!d.pureza.fondos) {
+                                  d.pureza.fondos = { ...FONDOS_PUREZA_DEFAULT };
+                                }
+                                d.pureza.fondos[key] = url;
+                              }
+                            })
+                          }
+                        />
+                      );
+                    },
+                  )}
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted">
+                  El recuadro oscuro sobre la foto mantiene el texto legible. También podés adjuntar
+                  una imagen a un bloque concreto desde el inspector del lienzo.
+                </p>
               </Seccion>
 
               <Seccion titulo="Tipografía" hint="Montserrat (única)" defaultOpen>

@@ -123,5 +123,8 @@ app/data/wa_alertas_intencion.json
 app/data/extractos_bancarios/
 PAGINA_WEB/site/data/cache.json
 PAGINA_WEB/site/data/tema_web_preview.json
+# Imágenes de fondo subidas desde el Studio (runtime)
+PAGINA_WEB/site/static/uploads/fondos/*
+!PAGINA_WEB/site/static/uploads/fondos/.gitkeep
 
 tmp_reportes_stock/

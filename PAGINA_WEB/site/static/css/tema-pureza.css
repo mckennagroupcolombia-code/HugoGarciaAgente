@@ -28,7 +28,11 @@ body.tema-pureza {
   --text-muted:   #6f8582;
   --border:       rgba(28,43,42,0.14);
 
-  background: var(--pz-fondo);
+  background-color: var(--pz-fondo);
+  background-image: var(--fondo-pagina, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--pz-tinta);
 }
 
@@ -148,12 +152,17 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
 }
 
 /* Hero */
-.pz-hero { padding: var(--studio-hero-pad, 84px 24px 64px); }
+.pz-hero {
+  padding: var(--studio-hero-pad, 84px 24px 64px);
+  background-image: var(--fondo-hero, none);
+  background-size: cover;
+  background-position: center;
+}
 .pz-hero-inner {
   max-width: 1160px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-columns: var(--hero-split-izq, 1.25fr) var(--hero-split-der, 0.75fr);
   gap: 56px;
   align-items: center;
 }
@@ -376,12 +385,20 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
 .pz-cat:hover {
-  border-color: var(--pz-acento);
-  border-left-color: var(--cat-line, var(--pz-acento));
+  border-color: var(--cat-accent, var(--pz-acento));
+  border-left-color: var(--cat-accent, var(--pz-acento));
+  background: color-mix(in srgb, var(--cat-accent, var(--pz-acento)) 10%, #fff);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(28,43,42,0.08);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--cat-accent, #1c2b2a) 22%, transparent);
 }
-.pz-cat-name { font-weight: 700; font-size: 0.92rem; color: var(--pz-tinta); }
+.pz-cat:hover .pz-cat-name { color: var(--cat-accent, var(--pz-tinta)); }
+.pz-cat:hover .pz-cat-arrow { color: var(--cat-accent, var(--pz-destacado)); }
+.pz-cat-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--pz-tinta);
+  transition: color .2s;
+}
 .pz-cat-count { font-size: 0.74rem; color: var(--text-muted); }
 .pz-cat-arrow {
   position: absolute;
@@ -389,10 +406,22 @@ body.tema-pureza .site-footer { background: var(--pz-tinta); }
   top: 50%;
   transform: translateY(-50%);
   color: color-mix(in srgb, var(--cat-accent, var(--pz-acento)) 45%, var(--pz-acento));
+  transition: color .2s;
 }
 
 /* CTA final */
-.pz-cta-band { background: var(--pz-tinta); padding: 84px 24px; }
+.pz-cats-band {
+  background-image: var(--fondo-categorias, none);
+  background-size: cover;
+  background-position: center;
+}
+.pz-cta-band {
+  background-color: var(--pz-tinta);
+  background-image: var(--fondo-cta, none);
+  background-size: cover;
+  background-position: center;
+  padding: 84px 24px;
+}
 .pz-cta-inner { max-width: 720px; margin: 0 auto; text-align: center; }
 .pz-cta-band h2 {
   font-size: clamp(1.8rem, 3.6vw, 2.6rem);

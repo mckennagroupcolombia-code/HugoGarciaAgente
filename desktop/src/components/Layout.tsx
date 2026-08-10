@@ -65,7 +65,9 @@ export default function Layout({
       ? "flex min-h-0 flex-col overflow-hidden px-3 pt-3 sm:px-5 sm:pt-4 lg:px-10 lg:pt-5"
       : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-10 lg:py-6"
     : isHub
-    ? "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
+    ? sectionId === "studio-web"
+      ? "flex min-h-0 flex-col overflow-hidden"
+      : "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
     : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8";
 
   const showHubTabs = isHub && sectionId;
@@ -118,7 +120,7 @@ export default function Layout({
                   <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
                 </span>
               ) : null}
-              <div className="min-w-0">
+              <div className={panel === "sitioweb" ? "shrink-0" : "min-w-0"}>
                 <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
                   {headerTitle}
                 </h1>
@@ -128,6 +130,12 @@ export default function Layout({
                   </p>
                 )}
               </div>
+              {panel === "sitioweb" && (
+                <div
+                  id="studio-web-chrome"
+                  className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5"
+                />
+              )}
             </div>
 
             {!isHub && advanced && (
@@ -151,7 +159,7 @@ export default function Layout({
             </div>
           </div>
 
-          {showHubTabs && (
+          {showHubTabs && sectionId !== "studio-web" && (
             <div className="min-w-0 w-full">
               {sectionId === "contabilidad" && <ContabilidadNavTabs />}
               {sectionId === "diseno" && <DisenoNavTabs />}
@@ -165,7 +173,9 @@ export default function Layout({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className={`mck-panel-scroll min-h-0 min-w-0 flex-1 ${contentScrollClass}`}>
             {isHub && !isCentroMando ? (
-              sectionId === "contabilidad" || sectionId === "publicaciones" ? (
+              sectionId === "contabilidad" ||
+              sectionId === "publicaciones" ||
+              sectionId === "studio-web" ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>
                 </div>
@@ -178,7 +188,7 @@ export default function Layout({
               <PanelTransition>{children}</PanelTransition>
             )}
           </div>
-          {isAdmin && !hubIntegrado && panel !== "stock" && (
+          {isAdmin && !hubIntegrado && panel !== "stock" && panel !== "sitioweb" && (
             <div className="hidden shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm md:block lg:px-8">
               <ActivityLog />
             </div>

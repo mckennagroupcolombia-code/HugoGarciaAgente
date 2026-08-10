@@ -1,36 +1,5 @@
 {
-  "pendientes": {
-    "2000011337189437": {
-      "pack_id": "2000011337189437",
-      "codigo": "437",
-      "comprador": "Comprador 3168571549",
-      "from_id": "3168571549",
-      "texto": "Hola buenas noches cómo estás.? He estado utilizando la fragancia para los jabones y es excelente. Tengo unos bálsamos labiales. Quisiera preguntarte si esta fragancia es apta para aplicarla en los labios",
-      "msg_id": "019fe3f4a9757e51a39f4eda217b8e5f",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-08T19:38:19"
-    },
-    "437": {
-      "pack_id": "2000011337189437",
-      "codigo": "437",
-      "comprador": "Comprador 3168571549",
-      "from_id": "3168571549",
-      "texto": "Hola buenas noches cómo estás.? He estado utilizando la fragancia para los jabones y es excelente. Tengo unos bálsamos labiales. Quisiera preguntarte si esta fragancia es apta para aplicarla en los labios",
-      "msg_id": "019fe3f4a9757e51a39f4eda217b8e5f",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-08T19:38:19"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019fd7ee7b827644bfe4611bcfb26a64",
     "019f33119a907333a1f1a7473df36950",

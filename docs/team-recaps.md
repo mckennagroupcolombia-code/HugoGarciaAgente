@@ -9,6 +9,123 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-09 18:35 - Studio web: una sola barra de título y acciones
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - El título Studio web quedó en la misma fila que Lienzo/Tokens, el switch Clásico/Pureza, zoom y Guardar/Publicar.
+  - Se quitaron el subtítulo, la franja «editando tema publicado», «Capítulo Clásico» y el segundo par Guardar/Publicado.
+  - El punto verde marca el tema que está en el sitio; «Borrador» solo aparece si se edita el otro.
+- **Archivos Modificados:**
+  - `desktop/src/components/SitioWebPanel.tsx`, `Layout.tsx`, `studio-web/StudioDesplegables.tsx`
+  - `tests/test_studio_web_toolbar_actions.py`
+
+### 2026-08-09 18:25 - Studio web: lienzo Clásico = página publicada
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El menú del header ya no se parte ni se recorta: logo a la izquierda, todos los enlaces a la derecha junto al buscador (mismo flex que el sitio).
+  - El hero del lienzo deja de meter cajas grises «Adjuntar imagen» que empujaban el copy; el adjunto queda como chip y el título en itálica coincide con la web.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `base.html`
+  - `ClasicoLayoutCanvas.tsx`, `tests/test_tema_web_header.py`
+
+### 2026-08-09 18:25 - Studio web: permiso para adjuntar fotos
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El adjuntar imagen fallaba con `Permission denied`: la carpeta `static/uploads/fondos` era de otro usuario y el servicio corre como `mckg`.
+  - Quedó `mckg:mckg` + setgid para que Hugo pueda guardar JPG/PNG. Si vuelve a faltar permiso, el aviso ya no es el traceback crudo.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/uploads/fondos` (permisos)
+  - `app/tools/tema_web_fondos.py`
+
+### 2026-08-09 16:35 - Studio web: logo y header alineados al sitio
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El lienzo Clásico replica el header publicado (ancho 1280, padding, menú + buscador + carrito + WhatsApp) y muestra el isotipo aunque :8083 no esté arriba.
+  - En la página, translate/width del Studio ya no corren la barra ni recortan el logo: el header queda a ancho completo como el CSS.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `webLayoutStudio.ts`, `app/tools/tema_web.py`
+  - `tests/test_tema_web_header.py`, `desktop/public/img/isotipo.png`
+
+### 2026-08-09 16:45 - Studio web: la foto se ve y se dimensiona
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La imagen ya no se esconde detrás del color: queda un recuadro visible (📷 Adjuntar imagen).
+  - Ese recuadro se arrastra y se redimensiona con las asas (o X/Y/ancho/alto en el inspector).
+  - En el sitio publicado sale el mismo `<img>` con tamaño y posición.
+- **Archivos Modificados:**
+  - lienzos Studio, `tema_web.py`, `index.html`, `main.css`
+
+### 2026-08-09 16:30 - Studio web: poner fotos en los fondos
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - En el lienzo, cada panel del hero (y categorías / CTA) tiene **📷 Poner imagen**: clic o arrastrar la foto encima.
+  - El inspector de «Página principal» ahora adjunta la foto al panel izquierdo o derecho (antes se guardaba en un campo que no se veía).
+  - El panel :8081 sirve esas fotos para que se vean al instante, sin depender del sitio :8083.
+- **Archivos Modificados:**
+  - `FondoImagenField.tsx`, lienzos Clásico/Pureza, `tema_web_fondos.py`, `routes.py`
+
+### 2026-08-09 16:20 - Home Clásico = lienzo (2 columnas)
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La web ya no esconde «Por qué elegirnos» al bajar de 1200px (el lienzo siempre lo muestra). En tablet las dos mitades se apilan; no se ocultan.
+  - Un `display:inline-block` del Studio dejaba de romper la grilla del hero y los botones.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `base.html`
+  - `app/tools/tema_web.py`
+  - `tests/test_hero_clasico_css.py`, `tests/test_tema_web_hero_split.py`
+
+### 2026-08-09 16:15 - Studio web: asas del recuadro en su sitio
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Las flechas de redimensionar, Mover y la X ya no se amontonan encima del texto: el marco se mide sobre el papel y las asas quedan en los bordes (derecha, abajo, esquina).
+  - Así no las recorta el overflow del hero ni el `inline-flex` de los títulos.
+- **Archivos Modificados:**
+  - `StudioSelectionChrome.tsx`, `studioSelectionBox.ts`, lienzos Clásico/Pureza
+  - `HojasCapitulo.tsx`, `StudioDeleteContext.tsx`
+  - `tests/test_studio_selection_box.py`
+
+### 2026-08-09 16:10 - Studio web: guías inteligentes en todos los objetos
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Al arrastrar o redimensionar cualquier objeto del lienzo aparecen guías magenta: bordes, centros, centro del papel y espacios iguales (como Figma).
+  - Cada objeto imanta contra los demás de la hoja (botones del menú entre sí, kit, features, tarjetas de categoría). Alt desactiva el imán.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioAlignmentGuides.ts`, `AlignmentGuidesOverlay.tsx`
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+  - `tests/test_studio_alignment_guides.py`
+
+### 2026-08-09 15:50 - Studio web: adjuntar imágenes de fondo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Tokens se pueden adjuntar fotos (JPG/PNG/WEBP/GIF ≤ 4 MB) para el fondo de la página, el hero, categorías y el CTA. También en el inspector de cada bloque del lienzo.
+  - Las imágenes viven en `/static/uploads/fondos/` y se publican con **Publicar**; el sitio las pinta con una capa oscura para que el texto siga leyéndose.
+- **Archivos Modificados:**
+  - `tema_web.py`, `tema_web_fondos.py`, `routes.py`, `website.py`
+  - `main.css`, `tema-pureza.css`, `base.html`, `index_pureza.html`
+  - `SitioWebPanel.tsx`, `FondoImagenField.tsx`, lienzos Studio, `webLayoutStudio.ts`
+  - `tests/test_tema_web_fondos.py`
+
+### 2026-08-09 15:10 - Studio web: botones del header uno a uno
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Cada enlace del menú Clásico (Inicio, Catálogo, Guías, Recetario, Blog, Nosotros, Contacto, Iniciar sesión) es un objeto del lienzo con su propio tamaño, fuente, color, hover y animación.
+  - Ocultar un botón no afecta a los demás. El grupo «Menú» sigue sirviendo para mover o estilar todos a la vez (los hijos heredan).
+- **Archivos Modificados:**
+  - `webLayoutStudio.ts`, `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+  - `base.html`, `main.css`, `tema_web.py`
+  - `tests/test_tema_web_header.py`
+
 ## Cómo agregar una entrada
 
 Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer** (más reciente arriba, justo debajo de este encabezado) un bloque con esta plantilla exacta, en el mismo commit que el código:
@@ -26,6 +143,190 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
 (La entrada real usa tres `#` — `### Fecha - Título`, sin corchetes. El bloque de arriba usa cuatro `#` a propósito, solo para que este ejemplo no aparezca como un recap real en el panel.)
 
 ---
+
+### 2026-08-09 16:05 - Studio web: separar fondos con el cursor
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Entre el verde y el celeste hay una barra gruesa «⟷ arrastrar»: se mueve con el cursor (no solo el slider del inspector).
+  - El arrastre usa captura de puntero sobre la manija para que no se pierda al salir del recuadro.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+
+### 2026-08-09 16:00 - Studio web: la línea del hero no baja el otro panel
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La manija ⟷ ya no es una celda de la grilla (eso empujaba «Por qué elegirnos» abajo). Queda superpuesta: los dos fondos siguen en la misma fila al arrastrar.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `main.css`
+
+### 2026-08-09 15:55 - Studio web: redimensionar fondos del hero
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Entre el fondo oscuro y el claro del home Clásico hay una línea ⟷: al arrastrarla un lado se reduce y el otro crece (28–72%).
+  - El inspector (sección Página principal) tiene el mismo control. Guardar publica la división en el sitio.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`, `webLayoutStudio.ts`, `tema_web.py`
+  - `main.css`, `tema-pureza.css`, `tests/test_tema_web_hero_split.py`
+
+### 2026-08-09 15:45 - Studio web: recuadro = tamaño real del botón
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El marco azul de Comprar / Cotización ya no queda más ancho que el fondo: la caja es `inline-flex` + `max-content` (o el ancho al arrastrar el asa).
+  - Debajo del botón aparece la medida real en px (la del sitio, sin el zoom del lienzo) y se actualiza al redimensionar.
+- **Archivos Modificados:**
+  - `webLayoutStudio.ts` (`estiloCajaHug`), lienzos Clásico/Pureza, `StudioDeleteContext.tsx`
+
+### 2026-08-09 15:20 - Studio web: caja e icono de los CTAs
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Los botones Comprar ahora / Pedir cotización ya no seleccionan solo el texto: la caja, el icono y el copy son objetos distintos.
+  - Mismo criterio en el banner final y en Pureza. En el sitio público el estilo de cada parte llega al `<a>`, al `<i>` y al `<span>`.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`, `webLayoutStudio.ts`, `studioEliminar.ts`
+  - `index.html`, `index_pureza.html`, `main.css`
+
+### 2026-08-09 15:15 - Studio web: mover con flechas
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Con un objeto (o varios) seleccionado en el lienzo, las flechas lo desplazan 1 px; Shift+flecha, 10 px.
+  - No aplica si se está escribiendo en un campo. Ctrl+Z deshace el lote de pulsaciones.
+- **Archivos Modificados:**
+  - `desktop/src/lib/webLayoutStudio.ts`, `SitioWebPanel.tsx`, `WebLayoutCanvas.tsx`
+  - `tests/test_studio_flechas.py`
+
+### 2026-08-09 15:10 - Studio web: botones del header uno a uno
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Cada enlace del menú Clásico (Inicio, Catálogo, Guías, Recetario, Blog, Nosotros, Contacto, Iniciar sesión) es un objeto del lienzo con su propio tamaño, fuente, color, hover y animación.
+  - Ocultar un botón no afecta a los demás. El grupo «Menú» sigue sirviendo para mover o estilar todos a la vez (los hijos heredan).
+- **Archivos Modificados:**
+  - `webLayoutStudio.ts`, `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+  - `base.html`, `main.css`, `tema_web.py`
+  - `tests/test_tema_web_header.py`
+
+### 2026-08-09 15:05 - Studio web: Guardar y Publicar siempre a la vista
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El lienzo ya no empuja fuera de pantalla la barra de Studio: el hub queda a altura fija.
+  - **Guardar** y **Publicar** están en la barra del lienzo (junto a Zoom). Publicar deja los cambios en el sitio real.
+- **Archivos Modificados:**
+  - `Layout.tsx`, `PanelTransition.tsx`, `SitioWebPanel.tsx`, `StudioDesplegables.tsx`
+  - `tests/test_studio_web_toolbar_actions.py`
+
+### 2026-08-09 14:50 - Studio web: editar el header
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - El header del home Clásico se parte en logo, menú, buscador y botón WhatsApp; cada uno se selecciona en el lienzo.
+  - Inspector: tipo de fuente (Montserrat / sistema / serif / mono), tamaño de botón (compacto/normal/grande), transición de color al hover y animaciones. Los estilos llegan al sitio público (`base.html` + CSS).
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `base.html`, `main.css`
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`, `webLayoutStudio.ts`
+  - `tests/test_tema_web_header.py`
+
+### 2026-08-09 14:45 - Studio web: guías de alineación
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al arrastrar objetos en el lienzo (Clásico y Pureza) aparecen líneas rosa que imantan bordes y centros con otros objetos de la misma hoja y con el papel.
+  - Alt desactiva el imán. El umbral sigue ~6 px de pantalla aunque el zoom esté bajo.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioAlignmentGuides.ts`, `AlignmentGuidesOverlay.tsx`
+  - Lienzos Clásico/Pureza, `HojasCapitulo.tsx`, `StudioDesplegables.tsx`
+  - `tests/test_studio_alignment_guides.py`
+
+### 2026-08-09 14:40 - Studio web: cajas de texto = tamaño del glifo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El recuadro azul y los controladores de un texto ya no quedan más altos que las letras (p. ej. «Explora por»).
+  - Causa: un ancho guardado dejaba la caja en `inline` + `position:relative` y el marco de los handles se disparaba. Ahora el alto sigue al texto; en títulos no hay manija de alto.
+- **Archivos Modificados:**
+  - `desktop/src/lib/webLayoutStudio.ts` (`estiloFitTexto`)
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+
+### 2026-08-09 14:35 - Home Clásico: el sitio recortaba el título
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El lienzo del Studio y la web pública no usaban el mismo CSS: en vivo el H1 iba a 80px, pegado abajo (`flex-end`) y con `overflow:hidden`, así que «Materias» se cortaba.
+  - El hero público ahora centra el copy, usa ~42px como el lienzo y llena la primera pantalla bajo anuncio+header.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `base.html`
+  - `ClasicoLayoutCanvas.tsx`, `tests/test_hero_clasico_css.py`
+
+### 2026-08-09 14:25 - Studio web: eliminar de verdad (lienzo + sitio)
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La X del objeto seleccionado ahora borra al primer clic (antes `preventDefault` anulaba el click). Queda dentro de la hoja para que no la recorte el overflow.
+  - Logo/nav/búsqueda son un bloque `header` borrable. Anuncio y header ocultos también desaparecen en el sitio real (`base.html`), no solo en el lienzo.
+  - Supr/Backspace ignoran el buscador de mentira del canvas.
+- **Archivos Modificados:**
+  - `StudioDeleteContext.tsx`, lienzos Clásico/Pureza, `SitioWebPanel.tsx`
+  - `PAGINA_WEB/site/templates/base.html`, `index.html`
+  - `tests/test_tema_web_layout_hidden.py`
+
+### 2026-08-09 14:10 - Studio web: X para eliminar en el lienzo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Sobre el objeto seleccionado hay una **X roja**; también Supr y el botón Eliminar.
+  - Se oculta el bloque entero (CTA, fila del kit, feature), no solo la letra de adentro.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioEliminar.ts`, `StudioDeleteContext.tsx`, lienzos, `SitioWebPanel.tsx`, `index.html`
+
+### 2026-08-09 14:05 - Studio web: colores y fondos del tema Clásico
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Studio → Tokens se pueden cambiar fondos y acentos del tema **Clásico** (el publicado): fondo de página, hero/footer oscuro, botones y texto.
+  - Los valores viven en `clasico.colores` y se inyectan como variables CSS (`--green*`) en todo el sitio. La vista previa local los muestra al instante; Guardar los publica.
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `PAGINA_WEB/site/website.py`, `templates/base.html`
+  - `SitioWebPanel.tsx`, `webLayoutStudio.ts`, `ClasicoLayoutCanvas.tsx`
+  - `tests/test_tema_web_colores.py`
+
+### 2026-08-09 13:56 - Studio web: reescribir texto del lienzo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - El inspector muestra un recuadro **Texto** para reescribir el copy del objeto seleccionado (Clásico y Pureza).
+  - En el lienzo: doble clic, Enter o F2 abren la edición inline. El arrastre espera ~5 px para no bloquear el doble clic.
+- **Archivos Modificados:**
+  - `desktop/src/lib/webLayoutStudio.ts` (`leerContentPath`, `pathEsTextoEditable`)
+  - `WebLayoutCanvas.tsx`, `ClasicoLayoutCanvas.tsx`, `SitioWebPanel.tsx`
+
+### 2026-08-09 13:55 - Studio web: eliminar objetos del lienzo
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En el lienzo se puede borrar lo seleccionado: botón **Eliminar**, menú Acciones, inspector, o teclas Supr / Backspace.
+  - Ítems de lista (kit, features, métricas, pilares…) se quitan del contenido; textos/botones se ocultan; una hoja entera se apaga y se puede restaurar desde Hojas.
+  - Ctrl+Z deshace. Al guardar, el sitio público deja de mostrar lo eliminado.
+- **Archivos Modificados:**
+  - `desktop/src/lib/studioEliminar.ts`
+  - `SitioWebPanel.tsx`, inspector/toolbar y lienzos Clásico/Pureza
+  - templates `index.html`, `index_pureza.html` (hero opcional)
+
+### 2026-08-09 13:50 - Studio web: hoja 1 = home Clásico real
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - La primera hoja del capítulo Clásico replica la página principal publicada: barra de anuncio, header (logo, nav, búsqueda) y hero partido (copy + “Por qué elegirnos”).
+  - Se edita en el lienzo lo mismo que se ve en mckennagroup.co, no un mock recortado.
+- **Archivos Modificados:**
+  - `desktop/src/components/studio-web/ClasicoLayoutCanvas.tsx`
+  - `desktop/src/components/studio-web/HojasCapitulo.tsx`, `SitioWebPanel.tsx`
+  - `desktop/src/lib/webLayoutStudio.ts` (nodo `anuncio`)
 
 ### 2026-08-09 00:05 - Studio web: lienzo por hojas del capítulo
 - **Autor:** Cynthia Ruiz

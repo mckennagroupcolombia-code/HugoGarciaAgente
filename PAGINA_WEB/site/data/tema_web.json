@@ -1,6 +1,6 @@
 {
   "tema_activo": "clasico",
-  "actualizado": "2026-08-06T12:40:42",
+  "actualizado": "2026-08-09T16:24:14",
   "diseno": {
     "fuente_display": "montserrat",
     "radio": "pill",
@@ -28,18 +28,31 @@
       "cta"
     ],
     "nodos": {
-      "hero.titulo_l1": {
-        "dx": 2,
-        "dy": -4,
-        "scale": 0.8,
-        "height": 16
+      "hero": {
+        "splitPct": 64
       },
-      "hero.titulo_em": {
-        "height": 27
+      "hero.cta_secundario": {
+        "dx": -271,
+        "dy": 65
       }
     }
   },
   "clasico": {
+    "colores": {
+      "acento": "#0c6069",
+      "acento_oscuro": "#045159",
+      "acento_claro": "#6aacb3",
+      "fondo": "#e3fcff",
+      "fondo_oscuro": "#022d33",
+      "tinta": "#022d33"
+    },
+    "fondos": {
+      "pagina": "",
+      "hero_izq": "",
+      "hero_der": "",
+      "categorias": "",
+      "cta": ""
+    },
     "anuncio": "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
     "hero": {
       "badge": "Materias Primas Certificadas · Colombia",
@@ -120,7 +133,7 @@
       "boton_contacto": "Formulario de Contacto"
     },
     "secciones": {
-      "features": true,
+      "features": false,
       "categorias": true,
       "destacados": true,
       "cta": true
@@ -133,6 +146,12 @@
       "fondo": "#f8f6f1",
       "tinta": "#1c2b2a",
       "destacado": "#b9862f"
+    },
+    "fondos": {
+      "pagina": "",
+      "hero": "",
+      "categorias": "",
+      "cta": ""
     },
     "anuncio": "Pureza verificada por lote · COA + ficha técnica en cada despacho · Bogotá, Colombia",
     "hero": {
