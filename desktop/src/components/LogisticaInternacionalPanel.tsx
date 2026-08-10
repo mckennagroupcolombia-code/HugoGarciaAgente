@@ -2,6 +2,7 @@ import { useAppStore } from "../stores/app";
 import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import type { LogisticaPanel } from "../lib/logisticaAccess";
+import ImportacionesPanel from "./ImportacionesPanel";
 
 interface SeccionDef {
   id: LogisticaPanel;
@@ -78,6 +79,10 @@ export default function LogisticaInternacionalPanel() {
   const panel = useAppStore((s) => s.panel);
   const seccion = panelActivo(panel);
   const def = SECCIONES[seccion];
+
+  if (seccion === "logistica-importaciones") {
+    return <ImportacionesPanel />;
+  }
 
   return (
     <div className="mx-auto max-w-3xl">

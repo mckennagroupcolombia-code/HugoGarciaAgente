@@ -35,6 +35,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "0 8 * * * cd ${REPO} && AGENTE_MONITOR_CORREOS_CRON_QUIET=1 ${PYTHON} ${REPO}/scripts/monitor_correos_certificados_retencion_cron.py >>${LOG} 2>&1"
   echo "# Costos LLM vía API: resumen semanal al grupo de sistemas (lunes)"
   echo "45 7 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/resumen_costos_llm_cron.py >>${LOG} 2>&1"
+  echo "# Comunicaciones importaciones: correos/WhatsApp nuevos → comentario en ticket (frecuencia real vía Sistemas → Tareas Programadas, ver app/services/cron_scheduler.py)"
+  echo "15 8 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/monitor_comunicaciones_importaciones.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 

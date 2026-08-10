@@ -1,0 +1,154 @@
+{
+  "guia_modalidad": {
+    "titulo": "¿DDP o Importación Ordinaria?",
+    "actualizado": "2026-08-10",
+    "resumen": "DDP (ej. China Latin Agent) es cómodo pero deja a McKenna sin figurar como importador de registro: sin Declaración de Importación DIAN a nombre de McKenna no hay soporte legal para deducir el gasto ni descontar el IVA pagado, y no hay forma de corregir una subfacturación del proveedor si la DIAN la detecta. La Importación Ordinaria (ej. Aduamarcol) es más lenta/burocrática pero deja a McKenna como importador de registro, con IVA descontable y soporte legal completo.",
+    "cuando_usar_ddp": [
+      "Muestras que no se van a comercializar",
+      "Pruebas de mercado / MVP con volumen mínimo (ej. ~100 unidades) para validar si un producto se vende"
+    ],
+    "cuando_usar_ordinaria": [
+      "Compras comerciales reales de volumen relevante (ej. desde ~USD 5.000)",
+      "Cuando se necesita IVA descontable y soporte fiscal ante una eventual auditoría DIAN",
+      "Cuando se requiere trazabilidad y sustento legal para reclamar seguro ante daños o pérdidas"
+    ],
+    "riesgos_ddp": [
+      "Sin Declaración de Importación a nombre de McKenna → el gasto puede no ser deducible y el IVA pagado no es descontable",
+      "Riesgo de subfacturación por el proveedor (valor declarado ficticio para abaratar el DDP) → posible sanción DIAN o decomiso por contrabando/fraude aduanero, sin forma de corregirlo porque McKenna no hizo la declaración",
+      "Pérdida de trazabilidad: sin documentos de importación propios, no hay sustento legal para reclamar seguro si la mercancía llega dañada"
+    ],
+    "matiz_importante": "No todo lo que se ve como \"courier internacional\" tiene este problema — los casos reales de McKenna con DHL bajo el Régimen de Tráfico Postal (ver histórico de costos) SÍ generan una Declaración Simplificada de Importación a nombre de MCKENNA GROUP SAS. El riesgo fiscal descrito aplica específicamente al modelo DDP puerta a puerta de aliados como China Latin Agent, donde el aliado gestiona la nacionalización sin dejar a McKenna como importador. Hay que confirmar con China Latin Agent (mensaje de confirmación pendiente) cómo queda documentada la importación a nombre de quién.",
+    "fuente": "Resumen de video aportado por el usuario (2026-08-10), contrastado con los casos reales del histórico de costos. No es asesoría legal/tributaria verificada — confirmar con el contador de McKenna antes de decidir la modalidad para una compra específica, sobre todo en el umbral de ~USD 5.000."
+  },
+  "aliados": [
+    {
+      "id": "china-latin-agent",
+      "nombre": "China Latin Agent",
+      "tipo_modalidad": "ddp",
+      "servicio": "DDP puerta a puerta China-Colombia",
+      "tiene_cotizador": true,
+      "fuente": "https://www.chinalatinagent.com/Puerta-a-Puerta-China-Colombia.html",
+      "fecha_extraccion": "2026-08-10",
+      "contacto": {
+        "whatsapp": "+8615622267379",
+        "responsable": "Alicia Song",
+        "telefono_fijo": "+862026284031",
+        "email": ["info@chinalatinagent.com", "info@chinalatinlogistics.com"],
+        "horario": "Lunes a sábado, 9:00am-6:30pm",
+        "direccion_bodega": "Room 2101-2102, Unites Shoe States Building, No.37 Huan Shi Xi Lu, Liwan District, Guangzhou"
+      },
+      "aplicabilidad_materia_prima_farmaceutica_cosmetica": "pendiente_confirmar",
+      "aplicabilidad_nota": "La página del aliado excluye explícitamente farmacéuticos, suplementos, cuidado personal, perfumes y químicos de limpieza de su servicio DDP. McKenna Group importa materia prima farmacéutica/cosmética a granel — se envió mensaje de confirmación al aliado (2026-08-10) y aún no hay respuesta.",
+      "modos": {
+        "maritimo": {
+          "nombre": "Marítimo (DDP)",
+          "unidad": "cbm",
+          "minimo": 1,
+          "tiers": [
+            {"hasta": 3, "usd_por_unidad": 680},
+            {"hasta": 5, "usd_por_unidad": 630},
+            {"hasta": null, "usd_por_unidad": 600}
+          ],
+          "requisitos_especiales_usd_por_unidad": 1200,
+          "dias_transito": [80, 90]
+        },
+        "aereo": {
+          "nombre": "Aéreo (DDP)",
+          "unidad": "kg",
+          "minimo": 50,
+          "tiers": [
+            {"hasta": 100, "usd_por_unidad": 22},
+            {"hasta": 300, "usd_por_unidad": 20},
+            {"hasta": null, "usd_por_unidad": 18.5}
+          ],
+          "dias_transito": [10, 15]
+        },
+        "courier": {
+          "nombre": "Courier internacional (DHL/UPS)",
+          "unidad": "kg",
+          "rango_kg": [21, 50],
+          "proveedores": {
+            "dhl": {"usd_por_kg_min": 11, "usd_por_kg_max": 22},
+            "ups": {"usd_por_kg_min": 9.5, "usd_por_kg_max": 24}
+          },
+          "dias_transito": [7, 10]
+        }
+      },
+      "aranceles_estimados": [
+        {"fob_usd_hasta": 200, "arancel_pct": 0, "iva_pct": 19, "nota": "Régimen de tráfico postal/envíos urgentes: sin arancel bajo 200 USD FOB, pero el IVA 19% sí se cobra (confirmado con facturas DHL reales, ago-2024: FOB 182 USD, arancel 0, IVA 228.000 COP)"},
+        {"fob_usd_desde": 200, "fob_usd_hasta": 2000, "arancel_pct": 10, "iva_pct": 19, "nota": "Confirmado con 3 facturas DHL reales 2024-2025 (FOB 479-1300 USD): arancel+IVA = 30,9% del CIF en los 3 casos"},
+        {"fob_usd_desde": 2000, "arancel_pct": null, "iva_pct": 19, "nota": "Importación formal — arancel según partida arancelaria específica, no estimable de forma genérica"}
+      ],
+      "restricciones_producto": {
+        "no_maneja": [
+          "farmacéuticos", "suplementos", "cuidado personal", "perfumes",
+          "alimentos", "bebidas", "vitaminas", "alcohol",
+          "pinturas, aceites o químicos de limpieza", "mercancía peligrosa",
+          "falsificaciones / infracción de propiedad intelectual", "importación personal (solo comercial)"
+        ],
+        "requiere_revision_previa": [
+          "dispositivos médicos", "juguetes", "textiles", "calzado",
+          "iluminación LED", "electrónica"
+        ]
+      },
+      "etapas_proceso": [
+        "Cotización",
+        "Compra al proveedor chino",
+        "Envío a bodega Guangzhou",
+        "Consolidación e inspección",
+        "Confirmación de costos y tracking",
+        "Tránsito internacional",
+        "Entrega en ciudad destino Colombia"
+      ],
+      "bodega_guangzhou": {
+        "recepcion": "Lunes a sábado",
+        "consolidacion_multiproveedor": true,
+        "reempaque_inspeccion": true,
+        "monitoreo_seguridad": true
+      },
+      "experiencia_aliado": {
+        "anos_operacion": 10,
+        "clientes_colombia": 500,
+        "kg_aereo_mensual": 20000,
+        "contenedores_mensuales": 100
+      },
+      "monto_ideal_envio_usd": 1500
+    },
+    {
+      "id": "aduamarcol",
+      "nombre": "Aduamarcol (Aduamar de Colombia)",
+      "tipo_modalidad": "importacion_ordinaria",
+      "servicio": "Agenciamiento aduanero para importación ordinaria/formal",
+      "tiene_cotizador": false,
+      "fuente": "https://aduamarcol.com/servicios/agenciamiento-aduanero-en-importaciones/",
+      "fecha_extraccion": "2026-08-10",
+      "contacto": {
+        "direccion": "Ac. 26 #96 J-03, piso 5, Bogotá D.C.",
+        "telefono": "+57-601-390-6434",
+        "horario": "Lunes a viernes 7:30am-5:30pm, sábados 9:00am-12:00pm"
+      },
+      "credenciales": {
+        "nivel_agencia": 1,
+        "anos_experiencia": 41,
+        "resolucion_dian": "007510",
+        "codigo": "0231"
+      },
+      "servicios": [
+        "Asesoría en clasificación arancelaria",
+        "Trámites aduaneros",
+        "Procesamiento de nacionalización",
+        "Autorizaciones/permisos de importación",
+        "Cumplimiento de normas técnicas"
+      ],
+      "nota_tarifas": "La página pública no publica tarifas, plazos ni proceso paso a paso — a diferencia de China Latin Agent. Solicitar cotización directa por compra antes de comprometerse. Sin cotizador automático en esta herramienta todavía.",
+      "etapas_proceso_generico": [
+        "Cotización / vinculación con la agencia",
+        "Asesoría de clasificación arancelaria",
+        "Elaboración y radicación de declaración de importación",
+        "Pago de tributos aduaneros (McKenna como importador de registro)",
+        "Levante / inspección si aplica selectividad",
+        "Entrega en destino"
+      ]
+    }
+  ]
+}

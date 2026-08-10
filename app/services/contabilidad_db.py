@@ -113,6 +113,10 @@ def init_db() -> None:
         "ALTER TABLE compras_exterior ADD COLUMN cuenta_cobro_estado TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN cuenta_flete_path TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN cuenta_flete_estado TEXT NOT NULL DEFAULT ''",
+        # "mckenna" = compra directa de la empresa; "socio" = compra personal de un
+        # socio que luego revende la mercancía a McKenna (ver app/data/aliados_logisticos.json
+        # / panel Importaciones — implicación fiscal distinta a validar con el contador).
+        "ALTER TABLE compras_exterior ADD COLUMN comprado_por TEXT NOT NULL DEFAULT ''",
 
         "ALTER TABLE servicios ADD COLUMN created_by INTEGER DEFAULT NULL",
         "ALTER TABLE pagos_servicios ADD COLUMN created_by INTEGER DEFAULT NULL",
@@ -646,6 +650,29 @@ def obtener_compra_exterior(compra_id: int) -> dict | None:
     except Exception:
         d["lineas"] = []
     return _compra_exterior_row(d)
+
+
+_COMPRADO_POR_VALIDOS = {"mckenna", "socio"}
+
+
+def establecer_comprado_por_compra_exterior(compra_id: int, comprado_por: str) -> tuple[bool, str]:
+    """Marca si una compra exterior fue directa de McKenna o comprada/revendida por un socio.
+
+    Ver app/data/aliados_logisticos.json / panel Importaciones: las compras vía socio
+    tienen una implicación fiscal distinta (no son importación directa de la empresa)
+    que hay que validar con el contador.
+    """
+    valor = (comprado_por or "").strip().lower()
+    if valor not in _COMPRADO_POR_VALIDOS:
+        return False, f"comprado_por debe ser uno de: {', '.join(sorted(_COMPRADO_POR_VALIDOS))}"
+    _ensure()
+    with _conn() as con:
+        cur = con.execute(
+            "UPDATE compras_exterior SET comprado_por=? WHERE id=?", (valor, int(compra_id))
+        )
+        if cur.rowcount == 0:
+            return False, "Compra exterior no encontrada"
+    return True, ""
 
 
 def eliminar_compra_exterior(compra_id: int, *, borrar_archivos: bool = True) -> bool:
@@ -1322,6 +1349,7 @@ def _compra_exterior_row(d: dict) -> dict:
             if flete_path and estado_f == "aprobada"
             else None
         ),
+        "comprado_por": (d.get("comprado_por") or "").strip(),
     }
 
 

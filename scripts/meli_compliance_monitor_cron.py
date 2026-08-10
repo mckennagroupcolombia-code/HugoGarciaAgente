@@ -28,6 +28,13 @@ load_dotenv(REPO / ".env")
 
 
 def main() -> int:
+    from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
+
+    if not debe_ejecutar("compliance_meli"):
+        print("⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
+        return 0
+    registrar_ejecucion("compliance_meli")
+
     from app.tools.meli_compliance_monitor import revisar_watchlist_diaria
 
     reporte = revisar_watchlist_diaria(enviar_whatsapp=True)

@@ -64,6 +64,10 @@ export const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> 
     label: "Mantenimiento",
     cls: "bg-purple-100 text-purple-800 dark:bg-accent-plum/20 dark:text-accent-plum",
   },
+  importaciones: {
+    label: "Importaciones",
+    cls: "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-200",
+  },
 };
 
 export const TIPO_MATERIAL_BADGE: Record<string, { emoji: string; label: string; className: string }> = {

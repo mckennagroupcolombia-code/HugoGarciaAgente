@@ -49,6 +49,13 @@ def _fmt_bloque(titulo: str, datos: dict[str, float]) -> str:
 
 
 def main() -> int:
+    from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
+
+    if not debe_ejecutar("resumen_costos_llm"):
+        print("⏭  Resumen costos LLM: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
+        return 0
+    registrar_ejecucion("resumen_costos_llm")
+
     from app.services.llm_budget import _f, resumen_semanal
 
     sem = resumen_semanal()

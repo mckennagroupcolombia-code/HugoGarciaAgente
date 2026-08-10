@@ -55,6 +55,13 @@ def _mensaje_whatsapp(data: dict) -> str:
 
 
 def main() -> int:
+    from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
+
+    if not debe_ejecutar("auditoria_scripts"):
+        print("⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
+        return 0
+    registrar_ejecucion("auditoria_scripts")
+
     rutas_extra = ",".join(p.strip() for p in sys.argv[1:] if p.strip())
 
     from app.tools.script_audit import ejecutar_auditoria_dict

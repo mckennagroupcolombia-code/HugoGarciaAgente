@@ -31,6 +31,13 @@ load_dotenv(REPO / ".env")
 
 
 def main() -> int:
+    from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
+
+    if not debe_ejecutar("certificados_retencion"):
+        print("⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
+        return 0
+    registrar_ejecucion("certificados_retencion")
+
     from app.tools.monitor_correos_proveedores import revisar_correos_certificados_retencion
 
     reporte = revisar_correos_certificados_retencion(crear_solicitudes=True)
