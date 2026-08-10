@@ -65,6 +65,7 @@ app/data/etiquetas_ai_cache/
 node_modules/
 package-lock.json
 !bot-mckenna/package-lock.json
+!desktop/package-lock.json
 
 # React SPA build output
 desktop/dist/
