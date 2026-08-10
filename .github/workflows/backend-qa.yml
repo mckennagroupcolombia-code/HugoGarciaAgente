@@ -11,13 +11,8 @@ on:
       - "requirements.txt"
       - "docs/agentic/**"
       - ".github/workflows/backend-qa.yml"
-    paths-ignore:
-      - "app/data/**"
-      - "app/data/tickets.db"
-      - "app/data/wa_chats.db"
-      - "app/data/*.json"
-      - "app/data/*.db"
-      - "log_cron.txt"
+      - "!app/data/**"
+      - "!log_cron.txt"
   pull_request:
     paths:
       - "app/**"
@@ -27,9 +22,8 @@ on:
       - "requirements.txt"
       - "docs/agentic/**"
       - ".github/workflows/backend-qa.yml"
-    paths-ignore:
-      - "app/data/**"
-      - "log_cron.txt"
+      - "!app/data/**"
+      - "!log_cron.txt"
 
 jobs:
   smoke:
