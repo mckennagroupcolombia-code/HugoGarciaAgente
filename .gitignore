@@ -66,6 +66,7 @@ node_modules/
 package-lock.json
 !bot-mckenna/package-lock.json
 !desktop/package-lock.json
+!bot-supervisor/package-lock.json
 
 # React SPA build output
 desktop/dist/
@@ -87,8 +88,8 @@ temp/
 *.tmp
 *.bak
 
-# Archivos de prueba y debug
-test_*.py
+# Scripts de debug sueltos en la raíz (NO afecta tests/, que sí se versiona)
+/test_*.py
 fichas_word/
 app/tools/token_gmail.json
 mi-agente-ubuntu-a0a27e48d640.json
