@@ -20,7 +20,7 @@ const tickets = readFileSync(ticketsPath, "utf8");
 const sidebar = readFileSync(sidebarPath, "utf8");
 
 const checks = [
-  { ok: tickets.includes("Centro de Mando"), msg: "Falta título Centro de Mando" },
+  { ok: tickets.includes("Agenda"), msg: "Falta título Agenda" },
   { ok: tickets.includes("quest-nav-bar"), msg: "Falta barra de navegación quest" },
   { ok: tickets.includes("crear_mision"), msg: "Falta flujo crear misión" },
   { ok: sidebar.includes("TemasSidebarButton"), msg: "Falta botón Temas en sidebar" },
