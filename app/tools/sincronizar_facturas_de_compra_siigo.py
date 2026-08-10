@@ -13,19 +13,20 @@ import re
 import zipfile
 import io
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from app.services.siigo import crear_factura_compra_siigo
 
+_ROOT = Path(__file__).resolve().parent.parent.parent  # /home/mckg/mi-agente
+
 SIIGO_CREDS_PATH = os.path.expanduser("~/mi-agente/credenciales_SIIGO.json")
-GOOGLE_CREDS_PATH = os.path.join("/home/mckg/mi-agente", "credenciales_google.json")
+GOOGLE_CREDS_PATH = str(_ROOT / "credenciales_google.json")
 TOKEN_GMAIL_PATH = os.path.join(os.path.dirname(__file__), "token_gmail.json")
 
 # Carpeta local para guardar facturas descargadas
-CARPETA_FACTURAS_LOCAL = os.path.join("/home/mckg/mi-agente", "facturas_descargadas")
+CARPETA_FACTURAS_LOCAL = str(_ROOT / "facturas_descargadas")
 os.makedirs(CARPETA_FACTURAS_LOCAL, exist_ok=True)
-RUTA_FACTURAS_DESCARGADAS = os.path.join(
-    "/home/mckg/mi-agente", "app", "data", "facturas_gmail_descargadas.json"
-)
+RUTA_FACTURAS_DESCARGADAS = str(_ROOT / "app" / "data" / "facturas_gmail_descargadas.json")
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.labels", "https://www.googleapis.com/auth/gmail.settings.basic"]
 
