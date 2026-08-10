@@ -43,6 +43,7 @@ import unicodedata
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from pathlib import Path
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -64,7 +65,8 @@ GRUPO_COMPRAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.
 #  Configuración
 # ─────────────────────────────────────────────
 
-CARPETA_IMPORTACIONES = os.path.join("/home/mckg/mi-agente", "importaciones_productos")
+_ROOT = Path(__file__).resolve().parent.parent.parent  # /home/mckg/mi-agente
+CARPETA_IMPORTACIONES = str(_ROOT / "importaciones_productos")
 os.makedirs(CARPETA_IMPORTACIONES, exist_ok=True)
 
 # Palabras que se ignoran al generar el código del producto
