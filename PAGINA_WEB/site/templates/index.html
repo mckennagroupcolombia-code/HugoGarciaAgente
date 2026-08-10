@@ -23,42 +23,73 @@
 
 {% for sec in LAYOUT_CLASICO.orden %}
 
-{% if sec == 'hero' %}
+{% if sec == 'hero' and Sec.hero != false and not LAYOUT_CLASICO.nodos.get('hero', {}).get('hidden') %}
 <!-- ════════════════════════════════════════════════════════
      HERO — split layout
 ════════════════════════════════════════════════════════ -->
 <section class="hero" style="order:{{ LAYOUT_CLASICO.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
 
   <div class="hero-left">
+    {% if not LAYOUT_CLASICO.nodos.get('hero.badge', {}).get('hidden') %}
     <span class="hero-badge" style="{{ nodo_style('hero.badge') }}">🌿 {{ H.badge or 'Materias Primas Certificadas · Colombia' }}</span>
+    {% endif %}
 
     <h1 class="hero-title">
+      {% if not LAYOUT_CLASICO.nodos.get('hero.titulo_l1', {}).get('hidden') %}
       <span style="{{ nodo_style('hero.titulo_l1') }}">{{ H.titulo_l1 or 'Materias primas' }}</span><br>
+      {% endif %}
+      {% if not LAYOUT_CLASICO.nodos.get('hero.titulo_em', {}).get('hidden') %}
       <em style="{{ nodo_style('hero.titulo_em') }}">{{ H.titulo_em or 'certificadas' }}</em><br>
+      {% endif %}
+      {% if not LAYOUT_CLASICO.nodos.get('hero.titulo_l2', {}).get('hidden') %}
       <span style="{{ nodo_style('hero.titulo_l2') }}">{{ H.titulo_l2 or 'para tu industria' }}</span>
+      {% endif %}
     </h1>
 
+    {% if not LAYOUT_CLASICO.nodos.get('hero.subtitulo', {}).get('hidden') %}
     <p class="hero-subtitle" style="{{ nodo_style('hero.subtitulo') }}">
       {{ H.subtitulo or 'Farmacéuticas, cosméticas y nutracéuticas.' }}
     </p>
+    {% endif %}
 
     <div class="hero-cta">
+      {% if not LAYOUT_CLASICO.nodos.get('hero.cta_principal', {}).get('hidden') %}
       <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg" style="{{ nodo_style('hero.cta_principal') }}">
-        <i class="ph ph-storefront"></i>
-        {{ H.cta_principal or 'Comprar ahora' }}
+        {% if not LAYOUT_CLASICO.nodos.get('hero.cta_principal.icono', {}).get('hidden') %}
+        <i class="ph ph-{{ icono_nodo('hero.cta_principal.icono', 'storefront') }}" style="{{ nodo_style('hero.cta_principal.icono') }}"></i>
+        {% endif %}
+        {% if not LAYOUT_CLASICO.nodos.get('hero.cta_principal.texto', {}).get('hidden') %}
+        <span style="{{ nodo_style('hero.cta_principal.texto') }}">{{ H.cta_principal or 'Comprar ahora' }}</span>
+        {% endif %}
       </a>
+      {% endif %}
+      {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario', {}).get('hidden') %}
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización"
          target="_blank" rel="noopener" class="btn btn-ghost btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
-        <i class="ph ph-whatsapp-logo"></i>
-        {{ H.cta_secundario or 'Pedir cotización' }}
+        {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario.icono', {}).get('hidden') %}
+        <i class="ph ph-{{ icono_nodo('hero.cta_secundario.icono', 'whatsapp-logo') }}" style="{{ nodo_style('hero.cta_secundario.icono') }}"></i>
+        {% endif %}
+        {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario.texto', {}).get('hidden') %}
+        <span style="{{ nodo_style('hero.cta_secundario.texto') }}">{{ H.cta_secundario or 'Pedir cotización' }}</span>
+        {% endif %}
       </a>
+      {% endif %}
     </div>
+    {% set foto_izq = LAYOUT_CLASICO.nodos.get('hero.foto_izq', {}) %}
+    {% set src_izq = foto_izq.get('backgroundImage') or FONDOS.hero_izq %}
+    {% if src_izq and not foto_izq.get('hidden') %}
+    <img class="hero-foto" src="{{ src_izq }}" alt="" style="{{ nodo_style('hero.foto_izq') }}">
+    {% endif %}
   </div>
 
   <div class="hero-right">
+    {% if not LAYOUT_CLASICO.nodos.get('hero.kit_label', {}).get('hidden') %}
     <div class="hero-right-label" style="{{ nodo_style('hero.kit_label') }}">{{ H.kit_label or 'Por qué elegirnos' }}</div>
+    {% endif %}
     <div class="kit-items">
       {% for item in Kit %}
+      {% set kitn = LAYOUT_CLASICO.nodos.get('hero.kit.' ~ loop.index0, {}) %}
+      {% if not kitn.get('hidden') %}
       <div class="kit-item" style="{{ nodo_style('hero.kit.' ~ loop.index0) }}">
         <div class="kit-dot dot-{{ loop.index }}"><i class="ph ph-{{ icono_nodo('hero.kit.' ~ loop.index0 ~ '.icono', item.icono or 'circle') }}"></i></div>
         <div class="kit-info">
@@ -67,18 +98,26 @@
         </div>
         <span class="kit-val" style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.valor') }}">{{ item.valor }}</span>
       </div>
+      {% endif %}
       {% endfor %}
     </div>
+    {% set foto_der = LAYOUT_CLASICO.nodos.get('hero.foto_der', {}) %}
+    {% set src_der = foto_der.get('backgroundImage') or FONDOS.hero_der %}
+    {% if src_der and not foto_der.get('hidden') %}
+    <img class="hero-foto" src="{{ src_der }}" alt="" style="{{ nodo_style('hero.foto_der') }}">
+    {% endif %}
   </div>
 
 </section>
 {% endif %}
 
-{% if sec == 'features' and Sec.features != false %}
+{% if sec == 'features' and Sec.features != false and not LAYOUT_CLASICO.nodos.get('features', {}).get('hidden') %}
 <!-- FEATURES STRIP -->
 <div class="features-strip" style="padding: 0;order:{{ LAYOUT_CLASICO.orden_map.features | default(1) }};{{ nodo_style('features') }}">
   <div class="features-grid">
     {% for f in Feat %}
+    {% set featn = LAYOUT_CLASICO.nodos.get('features.' ~ loop.index0, {}) %}
+    {% if not featn.get('hidden') %}
     <div class="feature-item reveal reveal-delay-{{ loop.index0 % 4 }}" style="{{ nodo_style('features.' ~ loop.index0) }}">
       <div class="feature-icon"><i class="ph ph-{{ icono_nodo('features.' ~ loop.index0 ~ '.icono', f.icono or 'circle') }}"></i></div>
       <div class="feature-text">
@@ -86,12 +125,13 @@
         <span style="{{ nodo_style('features.' ~ loop.index0 ~ '.texto') }}">{{ f.texto }}</span>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
 </div>
 {% endif %}
 
-{% if sec == 'categorias' and Sec.categorias != false %}
+{% if sec == 'categorias' and Sec.categorias != false and not LAYOUT_CLASICO.nodos.get('categorias', {}).get('hidden') %}
 <!-- CATEGORÍAS -->
 <div class="cats-section" style="order:{{ LAYOUT_CLASICO.orden_map.categorias | default(2) }};{{ nodo_style('categorias') }}">
   <div class="cats-inner">
@@ -132,7 +172,7 @@
 </div>
 {% endif %}
 
-{% if sec == 'destacados' and Sec.destacados != false %}
+{% if sec == 'destacados' and Sec.destacados != false and not LAYOUT_CLASICO.nodos.get('destacados', {}).get('hidden') %}
 <!-- PRODUCTOS DESTACADOS -->
 <div style="background: var(--green-ultra);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
   <div class="section">
@@ -167,7 +207,7 @@
 </div>
 {% endif %}
 
-{% if sec == 'cta' and Sec.cta != false %}
+{% if sec == 'cta' and Sec.cta != false and not LAYOUT_CLASICO.nodos.get('cta', {}).get('hidden') %}
 <!-- BANNER CTA -->
 <div class="banner-dark" style="order:{{ LAYOUT_CLASICO.orden_map.cta | default(4) }};{{ nodo_style('cta') }}">
   <div class="banner-dark-inner">
@@ -185,14 +225,24 @@
       </div>
     </div>
     <div class="hero-cta">
+      {% if not LAYOUT_CLASICO.nodos.get('cta.boton_wa', {}).get('hidden') %}
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
          target="_blank" rel="noopener" class="btn btn-wa btn-lg" style="{{ nodo_style('cta.boton_wa') }}">
-        <i class="ph ph-whatsapp-logo"></i>
-        {{ Cta.boton_wa or 'Cotizar por WhatsApp' }}
+        {% if not LAYOUT_CLASICO.nodos.get('cta.boton_wa.icono', {}).get('hidden') %}
+        <i class="ph ph-{{ icono_nodo('cta.boton_wa.icono', 'whatsapp-logo') }}" style="{{ nodo_style('cta.boton_wa.icono') }}"></i>
+        {% endif %}
+        {% if not LAYOUT_CLASICO.nodos.get('cta.boton_wa.texto', {}).get('hidden') %}
+        <span style="{{ nodo_style('cta.boton_wa.texto') }}">{{ Cta.boton_wa or 'Cotizar por WhatsApp' }}</span>
+        {% endif %}
       </a>
+      {% endif %}
+      {% if not LAYOUT_CLASICO.nodos.get('cta.boton_contacto', {}).get('hidden') %}
       <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg" style="{{ nodo_style('cta.boton_contacto') }}">
-        {{ Cta.boton_contacto or 'Formulario de Contacto' }}
+        {% if not LAYOUT_CLASICO.nodos.get('cta.boton_contacto.texto', {}).get('hidden') %}
+        <span style="{{ nodo_style('cta.boton_contacto.texto') }}">{{ Cta.boton_contacto or 'Formulario de Contacto' }}</span>
+        {% endif %}
       </a>
+      {% endif %}
     </div>
   </div>
 </div>

@@ -172,9 +172,13 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description:
       "Botón del menú lateral: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos Pureza y tema publicado). La página pública no tiene editor.",
     tips: [
-      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos, agranda con la esquina azul y edita con doble clic. Ctrl+Z deshace, Ctrl+Shift+Z rehace.",
-      "Tokens = colores/tipografía; Contenido = formularios; Publicar = tema que ven los clientes.",
-      "La vista previa local (:8083) muestra colores y densidad al instante; Guardar publica a los visitantes.",
+      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos o muévelos con las flechas (Shift = 10 px). Agranda con la esquina azul; doble clic edita. Ctrl+Z deshace.",
+      "Header: clic en cada botón del menú (Inicio, Catálogo…) o en WhatsApp para editarlo solo. El grupo «Menú» aplica a todos. Inspector: tamaño, fuente, hover y animación.",
+      "Botones Comprar / Cotización: clic en el borde de la caja, en el icono o en el texto — cada uno se edita aparte (tamaño, color, icono Phosphor).",
+      "Al redimensionar, el recuadro azul es el botón y debajo ves el tamaño real en px (como queda en el sitio, da igual el zoom del lienzo).",
+      "Fondos del hero: arrastra la línea vertical ⟷ entre el panel oscuro y el claro para achicar uno y agrandar el otro.",
+      "Tokens = fondos y colores del tema (Clásico o Pureza) + tipografía; Contenido = formularios; Publicar = tema que ven los clientes.",
+      "En Tokens puedes cambiar el fondo de página, el hero oscuro y los acentos. La vista previa local (:8083) los muestra al instante; Guardar publica a los visitantes.",
     ],
     tier: "standard",
     category: "studio-web",

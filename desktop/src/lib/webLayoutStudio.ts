@@ -10,6 +10,148 @@ export type ShadowPreset = "none" | "sm" | "md" | "lg";
 /** Única familia del Studio web / sitio: Montserrat. */
 export const STUDIO_FONT_FAMILY = "'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
+export type FuenteNodo = "montserrat" | "system" | "serif" | "mono";
+
+export const FUENTES_NODO: { id: FuenteNodo; label: string; css: string }[] = [
+  { id: "montserrat", label: "Montserrat (marca)", css: STUDIO_FONT_FAMILY },
+  { id: "system", label: "Sistema", css: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  { id: "serif", label: "Serif (Georgia)", css: "Georgia, 'Times New Roman', serif" },
+  { id: "mono", label: "Monoespaciada", css: "ui-monospace, Consolas, monospace" },
+];
+
+export const FUENTE_NODO_CSS: Record<FuenteNodo, string> = {
+  montserrat: STUDIO_FONT_FAMILY,
+  system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: "ui-monospace, Consolas, monospace",
+};
+
+export type TransicionColor = "none" | "fast" | "normal" | "slow";
+
+export const TRANSICION_COLOR_OPTS: { id: TransicionColor; label: string; css: string }[] = [
+  { id: "none", label: "Ninguna", css: "0s" },
+  { id: "fast", label: "Rápida (0.12s)", css: "0.12s" },
+  { id: "normal", label: "Media (0.25s)", css: "0.25s" },
+  { id: "slow", label: "Lenta (0.5s)", css: "0.5s" },
+];
+
+export const TRANSICION_COLOR_CSS: Record<TransicionColor, string> = {
+  none: "0s",
+  fast: "0.12s",
+  normal: "0.25s",
+  slow: "0.5s",
+};
+
+export const BTN_SIZE_PRESETS: {
+  id: "sm" | "md" | "lg";
+  label: string;
+  fontSize: number;
+  padX: number;
+  padY: number;
+}[] = [
+  { id: "sm", label: "Compacto", fontSize: 10, padX: 12, padY: 6 },
+  { id: "md", label: "Normal", fontSize: 12, padX: 16, padY: 10 },
+  { id: "lg", label: "Grande", fontSize: 14, padX: 22, padY: 12 },
+];
+
+/** Botones del menú Clásico (un nodo Studio por enlace). */
+export const HEADER_NAV_ITEMS: { id: string; label: string; active?: boolean }[] = [
+  { id: "header.nav.inicio", label: "Inicio", active: true },
+  { id: "header.nav.catalogo", label: "Catálogo" },
+  { id: "header.nav.guias", label: "Guías" },
+  { id: "header.nav.recetario", label: "Recetario" },
+  { id: "header.nav.blog", label: "Blog" },
+  { id: "header.nav.nosotros", label: "Nosotros" },
+  { id: "header.nav.contacto", label: "Contacto" },
+  { id: "header.nav.cuenta", label: "Iniciar sesión" },
+];
+
+export function esBotonHeader(id: string): boolean {
+  return id === "header.btn_wa" || id === "header.nav" || id.startsWith("header.nav.");
+}
+
+/** Barra anuncio / header del sitio: flex real, no translate ni caja forzada. */
+export function esNodoChromeSitio(id: string): boolean {
+  return id === "anuncio" || id === "header" || id.startsWith("header.");
+}
+
+/** Isotipo del panel (:8081 /app), sin depender del sitio :8083. */
+export function urlIsotipoStudio(): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    const origin = window.location.origin;
+    if (window.location.pathname.startsWith("/app")) {
+      return `${origin}/app/img/isotipo.png`;
+    }
+    return `${origin}/img/isotipo.png`;
+  }
+  return "/app/img/isotipo.png";
+}
+
+/** Cajas de botón del home (header + CTAs del hero / banner). */
+export const CTA_STUDIO_BASES = [
+  "hero.cta_principal",
+  "hero.cta_secundario",
+  "cta.boton_wa",
+  "cta.boton_contacto",
+  "cta.boton",
+] as const;
+
+export function baseCtaStudio(id: string): string | null {
+  for (const b of CTA_STUDIO_BASES) {
+    if (id === b || id.startsWith(`${b}.`)) return b;
+  }
+  return null;
+}
+
+export function esCajaBotonStudio(id: string): boolean {
+  if (esBotonHeader(id)) return true;
+  return (CTA_STUDIO_BASES as readonly string[]).includes(id);
+}
+
+/** Caja visual de un botón (no el grupo menú): el recuadro debe = el fondo. */
+export function esCajaHugStudio(id: string): boolean {
+  if (id === "header.btn_wa") return true;
+  if (id.startsWith("header.nav.")) return true;
+  return (CTA_STUDIO_BASES as readonly string[]).includes(id);
+}
+
+/** Foto recortable/movible del lienzo (no es fondo CSS de la sección). */
+export const NODOS_FOTO_STUDIO = [
+  "hero.foto_izq",
+  "hero.foto_der",
+  "hero.foto",
+  "categorias.foto",
+  "cta.foto",
+] as const;
+
+export function esNodoFotoStudio(id: string): boolean {
+  return (NODOS_FOTO_STUDIO as readonly string[]).includes(id);
+}
+
+export function mergeFotoNodo(layout: WebLayout, id: string, url: string): WebLayout {
+  const cur = nodoOf(layout, id);
+  return mergeNodo(layout, id, {
+    backgroundImage: url || undefined,
+    width: typeof cur.width === "number" ? cur.width : 260,
+    height: typeof cur.height === "number" ? cur.height : 180,
+  });
+}
+
+/** Inline-flex + max-content: el fondo pinta toda la caja; width/height al redimensionar. */
+export function estiloCajaHug(n: LayoutNodo): CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    verticalAlign: "top",
+    boxSizing: "border-box",
+    width: typeof n.width === "number" ? n.width : "max-content",
+    height: typeof n.height === "number" ? n.height : "auto",
+    maxWidth: "100%",
+  };
+}
+
 export type MontserratWeight = 300 | 400 | 500 | 600 | 700 | 800 | 900;
 
 export const MONTSERRAT_VARIANTES: {
@@ -65,20 +207,73 @@ export function sanitizeHexColor(v: unknown): string | undefined {
   return s.toLowerCase();
 }
 
+const FONDO_URL_RE = /^\/static\/uploads\/fondos\/[A-Za-z0-9._-]+$/;
+
+export function sanitizeFondoUrl(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const s = v.trim();
+  return FONDO_URL_RE.test(s) ? s : undefined;
+}
+
+/** Prefija `/static/...` con la base del sitio (8083 o mckennagroup.co). */
+export function resolveFondoSrc(url: string, assetBase = ""): string {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  // Uploads del Studio: mismo origen del panel (:8081), no el sitio :8083.
+  if (url.startsWith("/static/uploads/fondos/") && typeof window !== "undefined" && window.location?.origin) {
+    const name = url.slice("/static/uploads/fondos/".length);
+    if (name) {
+      return `${window.location.origin}/api/web/tema/fondo-archivo/${encodeURIComponent(name)}`;
+    }
+  }
+  if (!assetBase) return url;
+  return `${assetBase.replace(/\/$/, "")}${url.startsWith("/") ? url : `/${url}`}`;
+}
+
+/** Slot de `clasico.fondos` / `pureza.fondos` según la sección del lienzo. */
+export function slotFondoSeccion(
+  nodeId: string,
+  variante: "clasico" | "pureza" = "clasico",
+): string | null {
+  const sec = nodeId.includes(".") ? nodeId.split(".")[0]! : nodeId;
+  if (variante === "clasico") {
+    if (sec === "categorias" || sec === "cta") return sec;
+    return null;
+  }
+  if (sec === "hero" || sec === "categorias" || sec === "cta") return sec;
+  return null;
+}
+
 export interface LayoutNodo {
   dx?: number;
   dy?: number;
   /** Escala visual 0.5–2.5 (agrandar / reducir). */
   scale?: number;
   fontSize?: number;
-  /** Peso Montserrat 300–900. */
+  /** Familia del nodo (header / textos). Default visual: Montserrat. */
+  fontFamily?: FuenteNodo;
+  /** Peso 300–900. */
   fontWeight?: MontserratWeight;
-  /** Cursiva Montserrat. */
+  /** Cursiva. */
   fontItalic?: boolean;
+  /** Padding horizontal de botón (px). */
+  padX?: number;
+  /** Padding vertical de botón (px). */
+  padY?: number;
+  /** Transición de color / fondo (hover). */
+  transition?: TransicionColor;
+  /** Color de texto al hover (#hex). */
+  hoverColor?: string;
+  /** Fondo al hover (#hex). */
+  hoverBackground?: string;
   /** Color de texto (#hex). */
   color?: string;
   /** Relleno / fondo de caja (#hex). */
   background?: string;
+  /** Imagen de fondo del nodo (`/static/uploads/fondos/...`). */
+  backgroundImage?: string;
+  /** Hero Clásico: % del fondo izquierdo (28–72). El derecho = 100 − este. */
+  splitPct?: number;
   /** Color del trazo / borde (#hex). */
   borderColor?: string;
   /** Grosor del trazo en px. */
@@ -286,6 +481,27 @@ export function sanitizeNodo(n: LayoutNodo): LayoutNodo {
     out.fontSize = Math.round(clampNum(n.fontSize, 10, 96));
   }
   if (
+    n.fontFamily === "montserrat" ||
+    n.fontFamily === "system" ||
+    n.fontFamily === "serif" ||
+    n.fontFamily === "mono"
+  ) {
+    out.fontFamily = n.fontFamily;
+  }
+  if (typeof n.padX === "number" && Number.isFinite(n.padX)) {
+    out.padX = Math.round(clampNum(n.padX, 0, 64));
+  }
+  if (typeof n.padY === "number" && Number.isFinite(n.padY)) {
+    out.padY = Math.round(clampNum(n.padY, 0, 64));
+  }
+  if (n.transition === "none" || n.transition === "fast" || n.transition === "normal" || n.transition === "slow") {
+    out.transition = n.transition;
+  }
+  const hoverC = sanitizeHexColor(n.hoverColor);
+  if (hoverC) out.hoverColor = hoverC;
+  const hoverBg = sanitizeHexColor(n.hoverBackground);
+  if (hoverBg) out.hoverBackground = hoverBg;
+  if (
     n.fontWeight === 300 ||
     n.fontWeight === 400 ||
     n.fontWeight === 500 ||
@@ -301,6 +517,8 @@ export function sanitizeNodo(n: LayoutNodo): LayoutNodo {
   if (color) out.color = color;
   const background = sanitizeHexColor(n.background);
   if (background) out.background = background;
+  const backgroundImage = sanitizeFondoUrl(n.backgroundImage);
+  if (backgroundImage) out.backgroundImage = backgroundImage;
   const borderColor = sanitizeHexColor(n.borderColor);
   if (borderColor) out.borderColor = borderColor;
   if (typeof n.borderWidth === "number" && Number.isFinite(n.borderWidth)) {
@@ -345,8 +563,22 @@ export function sanitizeNodo(n: LayoutNodo): LayoutNodo {
   if (typeof n.icono === "string" && n.icono.trim()) {
     out.icono = n.icono.trim().replace(/^ph-/, "");
   }
+  if (typeof n.splitPct === "number" && Number.isFinite(n.splitPct)) {
+    out.splitPct = Math.round(clampNum(n.splitPct, HERO_SPLIT_MIN, HERO_SPLIT_MAX));
+  }
   if (n.hidden === true) out.hidden = true;
   return out;
+}
+
+export const HERO_SPLIT_MIN = 28;
+export const HERO_SPLIT_MAX = 72;
+
+export function heroSplitPct(n: LayoutNodo | undefined): number {
+  const v = n?.splitPct;
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return Math.round(clampNum(v, HERO_SPLIT_MIN, HERO_SPLIT_MAX));
+  }
+  return 50;
 }
 
 export function nodoOf(layout: WebLayout, id: string): LayoutNodo {
@@ -382,13 +614,48 @@ export function mergeNodo(layout: WebLayout, id: string, patch: LayoutNodo): Web
   if (cleaned.animation === "none") delete cleaned.animation;
   if (cleaned.animDuration === 0.7) delete cleaned.animDuration;
   if (cleaned.animDelay === 0) delete cleaned.animDelay;
+  if (cleaned.splitPct === 50) delete cleaned.splitPct;
   const nodos = { ...layout.nodos };
   if (Object.keys(cleaned).length === 0) delete nodos[id];
   else nodos[id] = cleaned;
   return { ...layout, nodos };
 }
 
-export function estiloNodo(n: LayoutNodo): CSSProperties {
+/** Tope alineado con `_normalizar_layout` (abs < 4000). */
+const NUDGE_LIM = 3999;
+
+/** Paso de flechas: 1 px; Shift = 10 px. */
+export function deltaFlecha(
+  key: string,
+  shift = false,
+): { dx: number; dy: number } | null {
+  const paso = shift ? 10 : 1;
+  if (key === "ArrowLeft") return { dx: -paso, dy: 0 };
+  if (key === "ArrowRight") return { dx: paso, dy: 0 };
+  if (key === "ArrowUp") return { dx: 0, dy: -paso };
+  if (key === "ArrowDown") return { dx: 0, dy: paso };
+  return null;
+}
+
+export function nudgeNodos(
+  layout: WebLayout,
+  ids: string[],
+  ddx: number,
+  ddy: number,
+): WebLayout {
+  if (!ids.length || (!ddx && !ddy)) return layout;
+  let next = layout;
+  for (const id of ids) {
+    if (!id) continue;
+    const n = nodoOf(next, id);
+    const dx = Math.max(NUDGE_LIM * -1, Math.min(NUDGE_LIM, Math.round((n.dx ?? 0) + ddx)));
+    const dy = Math.max(NUDGE_LIM * -1, Math.min(NUDGE_LIM, Math.round((n.dy ?? 0) + ddy)));
+    next = mergeNodo(next, id, { dx, dy });
+  }
+  return next;
+}
+
+export function estiloNodo(n: LayoutNodo, assetBase = "", chrome = false): CSSProperties {
   const dx = n.dx ?? 0;
   const dy = n.dy ?? 0;
   const scale = n.scale ?? 1;
@@ -401,34 +668,61 @@ export function estiloNodo(n: LayoutNodo): CSSProperties {
     return style;
   }
   const transforms: string[] = [];
-  if (dx || dy) transforms.push(`translate(${dx}px, ${dy}px)`);
-  if (rotate) transforms.push(`rotate(${rotate}deg)`);
-  if (scale !== 1) transforms.push(`scale(${scale})`);
+  if (!chrome) {
+    if (dx || dy) transforms.push(`translate(${dx}px, ${dy}px)`);
+    if (rotate) transforms.push(`rotate(${rotate}deg)`);
+    if (scale !== 1) transforms.push(`scale(${scale})`);
+  }
   if (transforms.length) {
     style.transform = transforms.join(" ");
     style.transformOrigin = "top left";
   }
   if (n.fontSize) style.fontSize = n.fontSize;
-  if (n.fontWeight || n.fontItalic) {
-    style.fontFamily = STUDIO_FONT_FAMILY;
-    if (n.fontWeight) style.fontWeight = n.fontWeight;
-    if (n.fontItalic) style.fontStyle = "italic";
+  const fam = n.fontFamily && FUENTE_NODO_CSS[n.fontFamily];
+  if (fam) style.fontFamily = fam;
+  else if (n.fontWeight || n.fontItalic) style.fontFamily = STUDIO_FONT_FAMILY;
+  if (n.fontWeight) style.fontWeight = n.fontWeight;
+  if (n.fontItalic) style.fontStyle = "italic";
+  if (typeof n.padX === "number" || typeof n.padY === "number") {
+    const px = typeof n.padX === "number" ? n.padX : 16;
+    const py = typeof n.padY === "number" ? n.padY : 10;
+    (style as Record<string, string>)["--studio-pad-x"] = `${px}px`;
+    (style as Record<string, string>)["--studio-pad-y"] = `${py}px`;
   }
+  if (n.transition && n.transition !== "none") {
+    const dur = TRANSICION_COLOR_CSS[n.transition];
+    style.transition = `color ${dur}, background ${dur}`;
+    (style as Record<string, string>)["--studio-tr"] = dur;
+  } else if (n.transition === "none") {
+    style.transition = "none";
+    (style as Record<string, string>)["--studio-tr"] = "0s";
+  }
+  if (n.hoverColor) (style as Record<string, string>)["--studio-hover-color"] = n.hoverColor;
+  if (n.hoverBackground) (style as Record<string, string>)["--studio-hover-bg"] = n.hoverBackground;
   if (n.color) style.color = n.color;
-  if (n.background) style.background = n.background;
+  if (n.background) style.backgroundColor = n.background;
+  if (n.backgroundImage) {
+    style.backgroundImage = `url("${resolveFondoSrc(n.backgroundImage, assetBase)}")`;
+    style.backgroundSize = "cover";
+    style.backgroundPosition = "center";
+    style.backgroundRepeat = "no-repeat";
+  }
   if (n.borderColor || (typeof n.borderWidth === "number" && n.borderWidth > 0)) {
     style.borderStyle = "solid";
     style.borderWidth = n.borderWidth ?? 1;
     style.borderColor = n.borderColor || "currentColor";
     style.boxSizing = "border-box";
   }
-  if (n.width) {
+  if (n.width && !chrome) {
     style.width = n.width;
     style.maxWidth = "100%";
   }
   if (n.height) {
-    style.height = n.height;
-    style.boxSizing = "border-box";
+    (style as Record<string, string>)["--studio-logo-h"] = `${n.height}px`;
+    if (!chrome) {
+      style.height = n.height;
+      style.boxSizing = "border-box";
+    }
   }
   if (typeof n.opacity === "number") style.opacity = n.opacity;
   if (typeof n.borderRadius === "number") style.borderRadius = n.borderRadius;
@@ -439,26 +733,40 @@ export function estiloNodo(n: LayoutNodo): CSSProperties {
 }
 
 /**
- * Caja de texto del lienzo: se ajusta al glifo (no estira a todo el flex/grid).
- * Si el nodo ya tiene ancho guardado (resize manual), se respeta.
+ * Caja de texto del lienzo: el recuadro sigue el glifo.
+ * Un `width` guardado solo acota el wrap; el alto nunca se fuerza (evita cajas
+ * altísimas). Tampoco se deja `display:inline` + `position:relative`: ese combo
+ * hace que los controladores absolutos usen un containing block enorme.
  */
 export function estiloFitTexto(
   n: LayoutNodo,
-  opts?: { className?: string; enabled?: boolean },
+  opts?: { className?: string; enabled?: boolean; tag?: string; chrome?: boolean },
 ): CSSProperties {
-  const core = estiloNodo(n);
+  const core = estiloNodo(n, "", opts?.chrome === true);
   if (opts?.enabled === false || n.hidden) return core;
-  if (n.width) return core;
-  const hasMax = /\bmax-w-/.test(opts?.className || "");
+  const cls = opts?.className || "";
+  const tag = (opts?.tag || "").toLowerCase();
+  const hasMax = /\bmax-w-/.test(cls);
+  const wantsBlock =
+    tag === "p" ||
+    tag === "div" ||
+    tag === "h1" ||
+    tag === "h2" ||
+    tag === "h3" ||
+    (/\bblock\b/.test(cls) && !/\binline\b/.test(cls));
+  const { height: _altoIgnorado, ...rest } = core;
   return {
-    display: "inline-block",
-    width: "fit-content",
+    ...rest,
+    display: wantsBlock ? "flex" : "inline-flex",
+    alignItems: "center",
+    width: n.width != null ? n.width : wantsBlock && hasMax ? "100%" : "max-content",
     maxWidth: hasMax ? undefined : "100%",
-    height: n.height ? core.height : "fit-content",
+    height: "auto",
+    lineHeight: 1.15,
     alignSelf: "flex-start",
     justifySelf: "start",
     verticalAlign: "top",
-    ...core,
+    boxSizing: "border-box",
   };
 }
 
@@ -475,12 +783,13 @@ export type ContentPath =
   | { type: "cta_clasico"; field: string };
 
 export const NODE_CONTENT: Record<string, ContentPath> = {
+  anuncio: { type: "string", path: ["anuncio"] },
   "hero.eyebrow": { type: "string", path: ["hero", "eyebrow"] },
   "hero.titulo": { type: "string", path: ["hero", "titulo"] },
   "hero.titulo_em": { type: "string", path: ["hero", "titulo_em"] },
   "hero.subtitulo": { type: "string", path: ["hero", "subtitulo"] },
-  "hero.cta_principal": { type: "string", path: ["hero", "cta_principal"] },
-  "hero.cta_secundario": { type: "string", path: ["hero", "cta_secundario"] },
+  "hero.cta_principal.texto": { type: "string", path: ["hero", "cta_principal"] },
+  "hero.cta_secundario.texto": { type: "string", path: ["hero", "cta_secundario"] },
   "hero.badge": { type: "string", path: ["hero", "badge"] },
   "hero.titulo_l1": { type: "string", path: ["hero", "titulo_l1"] },
   "hero.titulo_l2": { type: "string", path: ["hero", "titulo_l2"] },
@@ -495,14 +804,14 @@ export const NODE_CONTENT: Record<string, ContentPath> = {
   "destacados.texto": { type: "section_hdr", section: "destacados", field: "texto" },
   "cta.eyebrow": { type: "cta_clasico", field: "eyebrow" },
   "cta.titulo_em": { type: "cta_clasico", field: "titulo_em" },
-  "cta.boton_wa": { type: "cta_clasico", field: "boton_wa" },
-  "cta.boton_contacto": { type: "cta_clasico", field: "boton_contacto" },
+  "cta.boton_wa.texto": { type: "cta_clasico", field: "boton_wa" },
+  "cta.boton_contacto.texto": { type: "cta_clasico", field: "boton_contacto" },
   "trazabilidad.eyebrow": { type: "string", path: ["trazabilidad", "eyebrow"] },
   "trazabilidad.titulo": { type: "string", path: ["trazabilidad", "titulo"] },
   "trazabilidad.texto": { type: "string", path: ["trazabilidad", "texto"] },
   "cta.titulo": { type: "cta", field: "titulo" },
   "cta.texto": { type: "cta", field: "texto" },
-  "cta.boton": { type: "cta", field: "boton" },
+  "cta.boton.texto": { type: "cta", field: "boton" },
 };
 
 export function contentPathForNode(id: string): ContentPath | null {
@@ -520,6 +829,77 @@ export function contentPathForNode(id: string): ContentPath | null {
   m = /^hero\.kit\.(\d+)\.(titulo|texto|valor|icono)$/.exec(id);
   if (m) return { type: "kit", index: +m[1], field: m[2] as "titulo" | "texto" | "valor" | "icono" };
   return null;
+}
+
+export function pathEsTextoEditable(path: ContentPath | null): boolean {
+  if (!path) return false;
+  if (path.type === "paso" || path.type === "pilar" || path.type === "feature" || path.type === "kit") {
+    return path.field !== "icono";
+  }
+  return true;
+}
+
+/** Lee el texto actual según ContentPath (vacío si no hay). */
+export function leerContentPath(
+  draft: Record<string, unknown> | null | undefined,
+  path: ContentPath,
+): string {
+  if (!draft) return "";
+  try {
+    if (path.type === "string") {
+      let cur: unknown = draft;
+      for (const k of path.path) {
+        if (!cur || typeof cur !== "object") return "";
+        cur = (cur as Record<string, unknown>)[k];
+      }
+      return typeof cur === "string" ? cur : "";
+    }
+    if (path.type === "metric") {
+      const metricas = draft.metricas as { valor?: string; etiqueta?: string }[] | undefined;
+      const v = metricas?.[path.index]?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "paso") {
+      const pasos = (draft.trazabilidad as { pasos?: Record<string, string>[] } | undefined)?.pasos;
+      const v = pasos?.[path.index]?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "pilar") {
+      const pilares = draft.pilares as Record<string, string>[] | undefined;
+      const v = pilares?.[path.index]?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "badge") {
+      const badges = draft.badges_producto as string[] | undefined;
+      const v = badges?.[path.index];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "cta") {
+      const v = (draft.cta as Record<string, string> | undefined)?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "feature") {
+      const features = draft.features as Record<string, string>[] | undefined;
+      const v = features?.[path.index]?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "kit") {
+      const kit = (draft.hero as { kit?: Record<string, string>[] } | undefined)?.kit;
+      const v = kit?.[path.index]?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "section_hdr") {
+      const v = (draft[path.section] as Record<string, string> | undefined)?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+    if (path.type === "cta_clasico") {
+      const v = (draft.cta as Record<string, string> | undefined)?.[path.field];
+      return typeof v === "string" ? v : "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
 }
 
 /** Aplica un valor de texto/icono según ContentPath sobre un draft de tema (pureza o clasico). */
@@ -576,9 +956,61 @@ export const DENSIDAD_CSS_VARS: Record<
   amplia: { section_y: "96px", hero_pad: "104px 24px 80px", card_radius: "20px" },
 };
 
+export const COLORES_CLASICO_DEFAULT: Record<string, string> = {
+  acento: "#0c6069",
+  acento_oscuro: "#045159",
+  acento_claro: "#6aacb3",
+  fondo: "#e3fcff",
+  fondo_oscuro: "#022d33",
+  tinta: "#022d33",
+};
+
+export const COLORES_PUREZA_DEFAULT: Record<string, string> = {
+  acento: "#0c6069",
+  acento_oscuro: "#04353b",
+  fondo: "#f8f6f1",
+  tinta: "#1c2b2a",
+  destacado: "#b9862f",
+};
+
+export function cssVarsClasico(colores: Record<string, string>): Record<string, string> {
+  const acento = colores.acento || COLORES_CLASICO_DEFAULT.acento;
+  const acentoOscuro = colores.acento_oscuro || COLORES_CLASICO_DEFAULT.acento_oscuro;
+  const acentoClaro = colores.acento_claro || COLORES_CLASICO_DEFAULT.acento_claro;
+  const fondo = colores.fondo || COLORES_CLASICO_DEFAULT.fondo;
+  const fondoOscuro = colores.fondo_oscuro || COLORES_CLASICO_DEFAULT.fondo_oscuro;
+  const tinta = colores.tinta || COLORES_CLASICO_DEFAULT.tinta;
+  return {
+    "--green": acento,
+    "--green-dark": acentoOscuro,
+    "--green-deep": fondoOscuro,
+    "--green-light": acentoClaro,
+    "--green-ultra": fondo,
+    "--green-pale": `color-mix(in srgb, ${acento} 22%, ${fondo})`,
+    "--white": fondo,
+    "--off-white": fondo,
+    "--text-dark": tinta,
+    "--text-mid": acentoOscuro,
+    "--text-soft": acento,
+    "--text-muted": `color-mix(in srgb, ${tinta} 55%, ${acentoClaro})`,
+    "--border": `color-mix(in srgb, ${acento} 18%, transparent)`,
+  };
+}
+
+export function cssVarsPureza(colores: Record<string, string>): Record<string, string> {
+  return {
+    "--pz-acento": colores.acento || COLORES_PUREZA_DEFAULT.acento,
+    "--pz-acento-oscuro": colores.acento_oscuro || COLORES_PUREZA_DEFAULT.acento_oscuro,
+    "--pz-fondo": colores.fondo || COLORES_PUREZA_DEFAULT.fondo,
+    "--pz-tinta": colores.tinta || COLORES_PUREZA_DEFAULT.tinta,
+    "--pz-destacado": colores.destacado || COLORES_PUREZA_DEFAULT.destacado,
+  };
+}
+
 export function studioLivePayload(
   diseno: { radio: string; densidad: string; tagline: string },
   colores: Record<string, string>,
+  tema: "clasico" | "pureza" = "pureza",
 ) {
   const dens = DENSIDAD_CSS_VARS[diseno.densidad] || DENSIDAD_CSS_VARS.normal;
   return {
@@ -589,11 +1021,7 @@ export function studioLivePayload(
       "--studio-section-y": dens.section_y,
       "--studio-hero-pad": dens.hero_pad,
       "--studio-card-radius": dens.card_radius,
-      "--pz-acento": colores.acento || "#0c6069",
-      "--pz-acento-oscuro": colores.acento_oscuro || "#04353b",
-      "--pz-fondo": colores.fondo || "#f8f6f1",
-      "--pz-tinta": colores.tinta || "#1c2b2a",
-      "--pz-destacado": colores.destacado || "#b9862f",
+      ...(tema === "clasico" ? cssVarsClasico(colores) : cssVarsPureza(colores)),
     },
     tagline: diseno.tagline || "Proveemos a tus ideas",
   };
@@ -601,14 +1029,15 @@ export function studioLivePayload(
 
 /** Firma de lo que exige recargar el iframe (textos/lienzo). Tokens van por postMessage. */
 export function estructuraPreviewKey(cfg: {
-  clasico: unknown;
+  clasico: { colores?: unknown };
   layout: unknown;
   layout_clasico: unknown;
   pureza: { colores?: unknown };
 }): string {
-  const { colores: _colores, ...purezaSinColor } = cfg.pureza;
+  const { colores: _pz, ...purezaSinColor } = cfg.pureza;
+  const { colores: _cl, ...clasicoSinColor } = cfg.clasico;
   return JSON.stringify({
-    clasico: cfg.clasico,
+    clasico: clasicoSinColor,
     layout: cfg.layout,
     layout_clasico: cfg.layout_clasico,
     pureza: purezaSinColor,

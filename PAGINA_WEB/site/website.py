@@ -26,7 +26,9 @@ from app.tools.tema_web import (
     cargar_tema_preview,
     cargar_tema_web,
     host_permite_studio_preview,
+    resolver_colores_clasico_css,
     resolver_diseno_css,
+    resolver_fondos_css,
     resolver_layout_ctx,
 )
 from app.tools.stock_web import obtener_stock_web, set_stock_web
@@ -2770,6 +2772,8 @@ def _inject_tema_web():
         "TC": cfg.get("clasico", {}),
         "DISENO": cfg.get("diseno", {}),
         "DISENO_CSS": resolver_diseno_css(cfg),
+        "COLORES_CL": resolver_colores_clasico_css(cfg),
+        "FONDOS": resolver_fondos_css(cfg, tema=tema_web_activo()),
         "LAYOUT": resolver_layout_ctx(cfg),
         "LAYOUT_CLASICO": resolver_layout_ctx(cfg, key="layout_clasico"),
         "TEMA_PREVIEW": session.get("vista_tema") or "",

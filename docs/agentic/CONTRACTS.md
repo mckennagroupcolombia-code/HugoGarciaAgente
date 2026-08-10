@@ -163,8 +163,11 @@ Endpoints usados por React:
 | `/api/sync/aprendizaje` | POST | - | `status: iniciado` |
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
-| `/api/web/tema` | GET/PUT | PUT `{ config }` o `{ accion }` | Tema publicado (`tema_web.json`). PUT publica el sitio |
+| `/api/web/tema` | GET/PUT | PUT `{ config }` o `{ accion }` | Tema publicado (`tema_web.json`). PUT publica el sitio. `config.clasico.colores` / `config.pureza.colores` paletas hex. `config.clasico.fondos` / `config.pureza.fondos` URLs `/static/uploads/fondos/…`. Nodos de layout pueden llevar `backgroundImage` |
 | `/api/web/tema/preview` | PUT/DELETE | PUT `{ config }` | Borrador del iframe Studio (`tema_web_preview.json`). No publica. Solo localhost + `?studio_preview=1` |
+| `/api/web/tema/fondo` | POST | multipart `archivo` (JPG/PNG/WEBP/GIF ≤ 4 MB) | `{ ok, url, filename, bytes }` — guarda en `PAGINA_WEB/site/static/uploads/fondos/` |
+| `/api/web/tema/fondo-archivo/<archivo>` | GET | — | Sirve el JPG/PNG (preview Studio en :8081; el sitio público usa `/static/uploads/fondos/…` en :8083) |
+| `/api/web/tema/fondos` | GET | — | `{ ok, fondos: [{url, filename}] }` últimos 80 |
 | `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo; omite closed/inactive) |
 | `/api/stock/ventas-30d` | GET | `dias?` (default 30), `refresh?` | `por_item[meli_id]{unidades,ordenes,monto,ritmo_diario,nivel}`, `ordenes`, caché ~30 min |
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |

@@ -20,7 +20,7 @@ export function InspectorFold({
   return (
     <details
       className="group rounded-lg border border-border bg-surface"
-      defaultOpen={defaultOpen}
+      {...({ defaultOpen } as Record<string, unknown>)}
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide text-muted [&::-webkit-details-marker]:hidden">
         <span>
@@ -186,7 +186,7 @@ export const SHADOW_OPTS: { id: "none" | "sm" | "md" | "lg"; label: string }[] =
   { id: "lg", label: "Fuerte" },
 ];
 
-/** Barra sobre el lienzo: Capas, Zoom, Selección, Acciones. */
+/** Controles del lienzo (hojas, zoom, selección). Van en el header del Studio. */
 export function LienzoToolbar({
   zoom,
   onZoom,
@@ -196,8 +196,8 @@ export function LienzoToolbar({
   onSelect,
   onSeleccionarSimilares,
   onResetLayout,
+  onEliminar,
   guardando,
-  capitulo,
 }: {
   zoom: number;
   onZoom: (z: number) => void;
@@ -207,8 +207,8 @@ export function LienzoToolbar({
   onSelect: (id: string | null) => void;
   onSeleccionarSimilares: () => void;
   onResetLayout: () => void;
+  onEliminar?: () => void;
   guardando?: boolean;
-  capitulo: string;
 }) {
   const zoomPct = Math.round(zoom * 100);
   const zoomValue = String(zoomPct);
@@ -219,10 +219,7 @@ export function LienzoToolbar({
     : 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface-panel px-3 py-2">
-      <span className="mr-1 hidden text-[10px] font-bold uppercase tracking-wider text-muted sm:inline">
-        Capítulo {capitulo}
-      </span>
+    <div className="flex flex-wrap items-center gap-1.5">
       <StudioMenu
         label={
           <>
@@ -288,7 +285,8 @@ export function LienzoToolbar({
         </StudioMenuItem>
         <StudioMenuSep />
         <div className="px-3 py-1.5 text-[10px] leading-snug text-muted" data-keep-open>
-          Ctrl/⌘+clic o Shift+clic suma objetos. Esc limpia.
+          Ctrl/⌘+clic o Shift+clic suma objetos. Esc limpia. Al arrastrar, las
+          líneas rosa alinean bordes y centros. Alt desactiva el imán.
         </div>
       </StudioMenu>
 
@@ -296,7 +294,23 @@ export function LienzoToolbar({
         <StudioMenuItem disabled={guardando} onClick={onResetLayout}>
           Restaurar lienzo
         </StudioMenuItem>
+        <StudioMenuItem
+          disabled={!selectedIds.length}
+          onClick={onEliminar}
+          hint="Supr"
+        >
+          Eliminar selección
+        </StudioMenuItem>
       </StudioMenu>
+      <button
+        type="button"
+        disabled={!selectedIds.length}
+        onClick={onEliminar}
+        title="Eliminar (Supr o Backspace)"
+        className="inline-flex h-8 items-center rounded-md border border-red-300/80 bg-red-50 px-2.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Eliminar
+      </button>
     </div>
   );
 }

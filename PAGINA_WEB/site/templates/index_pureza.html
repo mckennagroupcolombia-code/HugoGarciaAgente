@@ -16,7 +16,7 @@
 
 {% for sec in LAYOUT.orden %}
 
-{% if sec == 'hero' %}
+{% if sec == 'hero' and TW.secciones.hero != false %}
 <section class="pz-hero" style="order:{{ LAYOUT.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
   <div class="pz-hero-inner">
     <div class="pz-hero-copy">
@@ -28,13 +28,27 @@
       <p class="pz-hero-sub" style="{{ nodo_style('hero.subtitulo') }}">{{ TW.hero.subtitulo }}</p>
 
       <div class="pz-hero-cta">
+        {% if not LAYOUT.nodos.get('hero.cta_principal', {}).get('hidden') %}
         <a href="{{ url_for('catalogo') }}" class="btn pz-btn-solid btn-lg" style="{{ nodo_style('hero.cta_principal') }}">
-          <i class="ph ph-storefront"></i> {{ TW.hero.cta_principal }}
+          {% if not LAYOUT.nodos.get('hero.cta_principal.icono', {}).get('hidden') %}
+          <i class="ph ph-{{ icono_nodo('hero.cta_principal.icono', 'storefront') }}" style="{{ nodo_style('hero.cta_principal.icono') }}"></i>
+          {% endif %}
+          {% if not LAYOUT.nodos.get('hero.cta_principal.texto', {}).get('hidden') %}
+          <span style="{{ nodo_style('hero.cta_principal.texto') }}">{{ TW.hero.cta_principal }}</span>
+          {% endif %}
         </a>
+        {% endif %}
+        {% if not LAYOUT.nodos.get('hero.cta_secundario', {}).get('hidden') %}
         <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20asesor%C3%ADa%20t%C3%A9cnica"
            target="_blank" rel="noopener" class="btn pz-btn-outline btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
-          <i class="ph ph-whatsapp-logo"></i> {{ TW.hero.cta_secundario }}
+          {% if not LAYOUT.nodos.get('hero.cta_secundario.icono', {}).get('hidden') %}
+          <i class="ph ph-{{ icono_nodo('hero.cta_secundario.icono', 'whatsapp-logo') }}" style="{{ nodo_style('hero.cta_secundario.icono') }}"></i>
+          {% endif %}
+          {% if not LAYOUT.nodos.get('hero.cta_secundario.texto', {}).get('hidden') %}
+          <span style="{{ nodo_style('hero.cta_secundario.texto') }}">{{ TW.hero.cta_secundario }}</span>
+          {% endif %}
         </a>
+        {% endif %}
       </div>
 
       <div class="pz-hero-chips">
@@ -116,7 +130,7 @@
 {% endif %}
 
 {% if sec == 'categorias' and TW.secciones.categorias %}
-<section class="pz-section" style="order:{{ LAYOUT.orden_map.categorias | default(4) }};{{ nodo_style('categorias') }}">
+<section class="pz-section pz-cats-band" style="order:{{ LAYOUT.orden_map.categorias | default(4) }};{{ nodo_style('categorias') }}">
   <div class="pz-section-head reveal">
     <span class="pz-eyebrow">Portafolio</span>
     <h2 class="pz-title">Explora por categoría</h2>
@@ -165,10 +179,17 @@
     <h2 style="{{ nodo_style('cta.titulo') }}">{{ TW.cta.titulo }}</h2>
     <p style="{{ nodo_style('cta.texto') }}">{{ TW.cta.texto }}</p>
     <div class="pz-hero-cta" style="justify-content:center;">
+      {% if not LAYOUT.nodos.get('cta.boton', {}).get('hidden') %}
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
          target="_blank" rel="noopener" class="btn btn-wa btn-lg" style="{{ nodo_style('cta.boton') }}">
-        <i class="ph ph-whatsapp-logo"></i> {{ TW.cta.boton }}
+        {% if not LAYOUT.nodos.get('cta.boton.icono', {}).get('hidden') %}
+        <i class="ph ph-{{ icono_nodo('cta.boton.icono', 'whatsapp-logo') }}" style="{{ nodo_style('cta.boton.icono') }}"></i>
+        {% endif %}
+        {% if not LAYOUT.nodos.get('cta.boton.texto', {}).get('hidden') %}
+        <span style="{{ nodo_style('cta.boton.texto') }}">{{ TW.cta.boton }}</span>
+        {% endif %}
       </a>
+      {% endif %}
       <a href="{{ url_for('contacto') }}" class="btn pz-btn-outline btn-lg">Formulario de contacto</a>
     </div>
   </div>

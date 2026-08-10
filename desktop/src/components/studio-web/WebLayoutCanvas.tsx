@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -10,20 +11,36 @@ import {
 import {
   contentPathForNode,
   estiloFitTexto,
+  leerContentPath,
+  pathEsTextoEditable,
   estiloNodo,
   applyContentPath,
   ANIM_OPTS,
+  BTN_SIZE_PRESETS,
+  FUENTES_NODO,
   ICONOS_STUDIO,
   mergeNodo,
   mergeNodos,
   MONTSERRAT_VARIANTES,
   moverSeccion,
+  esCajaBotonStudio,
+  esCajaHugStudio,
+  esNodoFotoStudio,
+  mergeFotoNodo,
+  estiloCajaHug,
+  heroSplitPct,
+  HERO_SPLIT_MAX,
+  HERO_SPLIT_MIN,
   nodoOf,
+  slotFondoSeccion,
   STUDIO_ANIM_CSS,
+  TRANSICION_COLOR_OPTS,
   varianteIdDesdeNodo,
   type AnimPreset,
+  type FuenteNodo,
   type LayoutNodo,
   type ShadowPreset,
+  type TransicionColor,
   type WebLayout,
 } from "../../lib/webLayoutStudio";
 import type { StudioSelectOpts } from "../../lib/studioSelectSimilar";
@@ -34,10 +51,30 @@ import {
   StudioSelect,
 } from "./StudioDesplegables";
 import { FolioHoja, MarcoCapitulo, useScrollHojaActiva } from "./HojasCapitulo";
+import { AlignmentGuidesOverlay } from "./AlignmentGuidesOverlay";
+import { StudioDeleteContext } from "./StudioDeleteContext";
+import { StudioSelectableFrame } from "./StudioSelectionChrome";
+import { hojaOculta } from "../../lib/studioEliminar";
+import {
+  captureAlignContext,
+  guidesForMove,
+  guidesForResize,
+  type AlignContext,
+  type AlignGuide,
+  type ResizeGuideMode,
+} from "../../lib/studioAlignmentGuides";
+import {
+  estiloFondoImagen,
+  FondoImagenField,
+  resolveFondoSrc,
+  StudioAssetBaseCtx,
+  ZonaFondoDrop,
+} from "./FondoImagenField";
 
 /** Subconjunto de pureza que el lienzo necesita. */
 export interface PurezaCanvas {
   colores: Record<string, string>;
+  fondos?: Record<string, string>;
   hero: {
     eyebrow: string;
     titulo: string;
@@ -76,6 +113,9 @@ interface DragState {
   startX: number;
   startY: number;
   orig: Record<string, DragOrig>;
+  /** En move: espera umbral para no pelear con doble clic / reescribir texto. */
+  armed?: boolean;
+  align?: AlignContext | null;
 }
 
 export const SECTION_LABEL: Record<string, string> = {
@@ -86,68 +126,20 @@ export const SECTION_LABEL: Record<string, string> = {
   categorias: "Categorías",
   destacados: "Destacados",
   cta: "CTA final",
+  "hero.foto": "Imagen del hero",
+  "hero.cta_principal": "Botón principal (caja)",
+  "hero.cta_principal.icono": "Icono botón principal",
+  "hero.cta_principal.texto": "Texto botón principal",
+  "hero.cta_secundario": "Botón secundario (caja)",
+  "hero.cta_secundario.icono": "Icono botón secundario",
+  "hero.cta_secundario.texto": "Texto botón secundario",
+  "cta.boton": "Botón CTA (caja)",
+  "cta.boton.icono": "Icono CTA",
+  "cta.boton.texto": "Texto CTA",
 };
-
-const HANDLE =
-  "absolute z-30 h-3 w-3 rounded-sm border-2 border-white bg-sky-500 shadow touch-none";
 
 function IconPh({ name, className }: { name: string; className?: string }) {
   return <i className={`ph ph-${name} ${className || ""}`} aria-hidden />;
-}
-
-function SelectionChrome({
-  onHandle,
-}: {
-  onHandle: (mode: DragMode, e: ReactPointerEvent) => void;
-}) {
-  const mk = (mode: DragMode) => (e: ReactPointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onHandle(mode, e);
-  };
-
-  return (
-    <>
-      <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-400 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]" />
-      <button
-        type="button"
-        data-studio-handle="move"
-        title="Arrastrar"
-        className="absolute -top-3 left-1/2 z-30 flex h-5 -translate-x-1/2 cursor-grab items-center gap-0.5 rounded-full border border-sky-400 bg-sky-500 px-2 text-[9px] font-bold uppercase tracking-wide text-white shadow active:cursor-grabbing touch-none"
-        onPointerDown={mk("move")}
-      >
-        <span aria-hidden>⠿</span> mover
-      </button>
-      <button
-        type="button"
-        data-studio-handle="resize-e"
-        title="Ancho"
-        className={`${HANDLE} -right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize`}
-        onPointerDown={mk("resize-e")}
-      />
-      <button
-        type="button"
-        data-studio-handle="resize-s"
-        title="Alto"
-        className={`${HANDLE} -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`}
-        onPointerDown={mk("resize-s")}
-      />
-      <button
-        type="button"
-        data-studio-handle="resize-se"
-        title="Redimensionar"
-        className={`${HANDLE} -bottom-1.5 -right-1.5 cursor-nwse-resize`}
-        onPointerDown={mk("resize-se")}
-      />
-      <button
-        type="button"
-        data-studio-handle="scale"
-        title="Escala uniforme"
-        className="absolute -bottom-1.5 -left-1.5 z-30 h-3 w-3 cursor-nesw-resize rounded-full border-2 border-white bg-amber-400 shadow touch-none"
-        onPointerDown={mk("scale")}
-      />
-    </>
-  );
 }
 
 function EditableNode({
@@ -176,12 +168,29 @@ function EditableNode({
   fitText?: boolean;
 }) {
   const n = nodoOf(layout, id);
-  const merged = { ...estiloFitTexto(n, { className, enabled: fitText }), ...style };
+  if (n.hidden) return null;
+  const hugBox = esCajaHugStudio(id);
+  const assetBase = useContext(StudioAssetBaseCtx);
+  const merged: CSSProperties = {
+    ...style,
+    ...estiloFitTexto(n, { className, enabled: fitText, tag: Tag }),
+    ...(hugBox ? estiloCajaHug(n) : {}),
+  };
+  if (n.backgroundImage && !esNodoFotoStudio(id)) {
+    merged.backgroundImage = `url("${resolveFondoSrc(n.backgroundImage, assetBase)}")`;
+    merged.backgroundSize = "cover";
+    merged.backgroundPosition = "center";
+  }
   const showHandles = selected && (primary ?? selected);
-  const common = {
+  const frame = {
     "data-node": id,
-    className: `relative select-none ${selected ? "z-10" : ""} ${className || ""}`,
+    className: `select-none ${selected ? "z-10" : ""} ${className || ""}`,
     style: merged,
+    selected,
+    primary: showHandles,
+    hugText: fitText,
+    onHandle: (mode: DragMode, e: ReactPointerEvent) =>
+      onDragStart(id, mode, e, e.currentTarget as HTMLElement),
     onPointerDown: (e: ReactPointerEvent) => {
       if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
       e.stopPropagation();
@@ -190,24 +199,12 @@ function EditableNode({
       if (additive) return;
       onDragStart(id, "move", e, e.currentTarget as HTMLElement);
     },
-    children: (
-      <>
-        {children}
-        {selected && !showHandles && (
-          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
-        )}
-        {showHandles && (
-          <SelectionChrome
-            onHandle={(mode, e) => onDragStart(id, mode, e, e.currentTarget as HTMLElement)}
-          />
-        )}
-      </>
-    ),
+    children,
   };
   if (Tag === "button") {
-    return <button type="button" {...common} />;
+    return <StudioSelectableFrame as="button" type="button" {...frame} />;
   }
-  return <Tag {...common} />;
+  return <StudioSelectableFrame as={Tag} {...frame} />;
 }
 
 export default function WebLayoutCanvas({
@@ -218,6 +215,8 @@ export default function WebLayoutCanvas({
   onLayoutChange,
   onPurezaPatch,
   zoom,
+  assetBase = "https://mckennagroup.co",
+  onEliminar,
 }: {
   pureza: PurezaCanvas;
   layout: WebLayout;
@@ -226,6 +225,8 @@ export default function WebLayoutCanvas({
   onLayoutChange: (next: WebLayout) => void;
   onPurezaPatch: (mutator: (draft: PurezaCanvas) => void) => void;
   zoom: number;
+  assetBase?: string;
+  onEliminar?: () => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -238,7 +239,13 @@ export default function WebLayoutCanvas({
   const selectedId = selectedIds[selectedIds.length - 1] ?? null;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [alignGuides, setAlignGuides] = useState<{
+    hojaId: string;
+    lines: AlignGuide[];
+    frame: { width: number; height: number };
+  } | null>(null);
   const colores = pureza.colores;
+  const fondos = pureza.fondos || {};
   const acento = colores.acento || "#0c6069";
   const fondo = colores.fondo || "#f8f6f1";
   const tinta = colores.tinta || "#1c2b2a";
@@ -247,7 +254,7 @@ export default function WebLayoutCanvas({
   const beginDrag = useCallback(
     (id: string, mode: DragMode, e: ReactPointerEvent, el?: HTMLElement) => {
       if (editingId) return;
-      e.preventDefault();
+      if (mode !== "move") e.preventDefault();
       e.stopPropagation();
       const curSel = selectedIdsRef.current;
       const ids = curSel.includes(id) && curSel.length > 1 ? [...curSel] : [id];
@@ -276,8 +283,13 @@ export default function WebLayoutCanvas({
         startX: e.clientX,
         startY: e.clientY,
         orig,
+        armed: mode === "move",
+        align:
+          mode === "move" || mode === "resize-e" || mode === "resize-s" || mode === "resize-se"
+            ? captureAlignContext(stageRef.current, ids, zoom)
+            : null,
       };
-      setDragging(true);
+      if (mode !== "move") setDragging(true);
       try {
         (el || (e.currentTarget as HTMLElement)).setPointerCapture?.(e.pointerId);
       } catch {
@@ -295,14 +307,51 @@ export default function WebLayoutCanvas({
       const inv = 1 / zoom;
       const dx = (e.clientX - d.startX) * inv;
       const dy = (e.clientY - d.startY) * inv;
+      if (d.armed) {
+        if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 5) return;
+        d.armed = false;
+        setDragging(true);
+      }
       let next = layoutRef.current;
+      let snapX = 0;
+      let snapY = 0;
+      const resizing =
+        d.mode === "resize-e" || d.mode === "resize-s" || d.mode === "resize-se";
+      if (d.mode === "move" && d.align) {
+        const snapped = guidesForMove(d.align, dx, dy, {
+          disabled: e.altKey,
+          zoom,
+        });
+        snapX = snapped.adjX;
+        snapY = snapped.adjY;
+        setAlignGuides(
+          snapped.guides.length
+            ? { hojaId: d.align.hojaId, lines: snapped.guides, frame: d.align.frame }
+            : null,
+        );
+      } else if (resizing && d.align) {
+        const o0 = d.orig[d.id] || d.orig[d.ids[0]];
+        const snapped = guidesForResize(d.align, d.mode as ResizeGuideMode, dx, dy, { w: o0?.w ?? 120, h: o0?.h ?? 40 }, {
+          disabled: e.altKey,
+          zoom,
+        });
+        snapX = snapped.adjX;
+        snapY = snapped.adjY;
+        setAlignGuides(
+          snapped.guides.length
+            ? { hojaId: d.align.hojaId, lines: snapped.guides, frame: d.align.frame }
+            : null,
+        );
+      } else {
+        setAlignGuides(null);
+      }
       for (const nid of d.ids) {
         const o = d.orig[nid];
         if (!o) continue;
         if (d.mode === "move") {
           next = mergeNodo(next, nid, {
-            dx: Math.round(o.dx + dx),
-            dy: Math.round(o.dy + dy),
+            dx: Math.round(o.dx + dx + snapX),
+            dy: Math.round(o.dy + dy + snapY),
           });
         } else if (d.mode === "scale") {
           const delta = (dx + dy) / 120;
@@ -310,13 +359,13 @@ export default function WebLayoutCanvas({
             scale: Math.min(2.5, Math.max(0.5, o.scale + delta)),
           });
         } else if (d.mode === "resize-e") {
-          next = mergeNodo(next, nid, { width: Math.round(Math.max(24, o.w + dx)) });
+          next = mergeNodo(next, nid, { width: Math.round(Math.max(24, o.w + dx + snapX)) });
         } else if (d.mode === "resize-s") {
-          next = mergeNodo(next, nid, { height: Math.round(Math.max(16, o.h + dy)) });
+          next = mergeNodo(next, nid, { height: Math.round(Math.max(16, o.h + dy + snapY)) });
         } else if (d.mode === "resize-se") {
           next = mergeNodo(next, nid, {
-            width: Math.round(Math.max(24, o.w + dx)),
-            height: Math.round(Math.max(16, o.h + dy)),
+            width: Math.round(Math.max(24, o.w + dx + snapX)),
+            height: Math.round(Math.max(16, o.h + dy + snapY)),
           });
         }
       }
@@ -326,6 +375,7 @@ export default function WebLayoutCanvas({
       if (dragRef.current) {
         dragRef.current = null;
         setDragging(false);
+        setAlignGuides(null);
       }
     };
     window.addEventListener("pointermove", onMove, { passive: false });
@@ -431,19 +481,71 @@ export default function WebLayoutCanvas({
     );
   };
 
+  const ctaBtn = (
+    id: string,
+    label: string,
+    opts: { icon?: string; solid?: boolean },
+  ) => {
+    if (nodoOf(layout, id).hidden) return null;
+    const iconId = `${id}.icono`;
+    const textoId = `${id}.texto`;
+    const iconName = nodoOf(layout, iconId).icono || opts.icon;
+    return (
+      <EditableNode
+        id={id}
+        selected={selectedIds.includes(id)}
+        primary={selectedId === id}
+        layout={layout}
+        onSelect={onSelect}
+        onDragStart={beginDrag}
+        as="span"
+        className={`studio-hover-target inline-flex cursor-grab items-center gap-2 rounded-full px-4 py-2 text-xs font-bold active:cursor-grabbing ${
+          opts.solid ? "text-white" : "border"
+        }`}
+        style={{
+          background: opts.solid ? acento : undefined,
+          padding: "var(--studio-pad-y, 10px) var(--studio-pad-x, 16px)",
+        }}
+      >
+        {iconName && !nodoOf(layout, iconId).hidden && (
+          <EditableNode
+            id={iconId}
+            selected={selectedIds.includes(iconId)}
+            primary={selectedId === iconId}
+            layout={layout}
+            onSelect={onSelect}
+            onDragStart={beginDrag}
+            className="inline-flex shrink-0 cursor-grab items-center justify-center text-base leading-none active:cursor-grabbing"
+          >
+            <IconPh name={iconName} />
+          </EditableNode>
+        )}
+        {!nodoOf(layout, textoId).hidden && textBlock(textoId, label, "leading-none", "span")}
+      </EditableNode>
+    );
+  };
+
   const sectionShell = (id: string, children: ReactNode, extraClass = "") => {
     const n = nodoOf(layout, id);
     if (n.hidden) return null;
     const selected = selectedIds.includes(id);
     const primary = selectedId === id;
     return (
-      <section
+      <StudioSelectableFrame
+        as="section"
         key={id}
         data-node={id}
-        className={`relative border select-none ${
+        className={`border select-none ${
           selected ? "border-sky-400" : "border-transparent hover:border-black/10"
         } ${extraClass}`}
-        style={estiloNodo(n)}
+        style={{
+          backgroundColor: fondo,
+          ...estiloFondoImagen(fondos.pagina, assetBase),
+          ...estiloNodo(n, assetBase),
+        }}
+        selected={selected}
+        primary={primary}
+        onHandle={(mode, e) => beginDrag(id, mode, e, e.currentTarget as HTMLElement)}
         onPointerDown={(e) => {
           if ((e.target as HTMLElement).closest("[data-studio-handle]")) return;
           const closest = (e.target as HTMLElement).closest("[data-node]");
@@ -460,24 +562,34 @@ export default function WebLayoutCanvas({
           {SECTION_LABEL[id] || id}
         </div>
         {children}
-        {selected && !primary && (
-          <span className="pointer-events-none absolute inset-0 rounded border-2 border-sky-300/90 bg-sky-400/10" />
-        )}
-        {primary && (
-          <SelectionChrome
-            onHandle={(mode, e) => beginDrag(id, mode, e, e.currentTarget as HTMLElement)}
-          />
-        )}
-      </section>
+      </StudioSelectableFrame>
     );
   };
 
   const renderSection = (id: string) => {
     switch (id) {
       case "hero":
+        if (pureza.secciones.hero === false) return null;
         return sectionShell(
           id,
-          <div className="grid gap-6 p-8 md:grid-cols-[1.2fr_0.8fr]" style={{ background: fondo, color: tinta }}>
+          <ZonaFondoDrop
+            label="imagen"
+            className="relative grid gap-6 p-8 md:grid-cols-[1.2fr_0.8fr]"
+            style={{
+              backgroundColor: fondo,
+              color: tinta,
+              ...estiloFondoImagen(
+                fondos.hero,
+                assetBase,
+                "linear-gradient(180deg, rgba(248,246,241,.45), rgba(248,246,241,.82))",
+              ),
+            }}
+            onUrl={(url) =>
+              onPurezaPatch?.((d) => {
+                d.fondos = { ...(d.fondos || {}), hero: url };
+              })
+            }
+          >
             <div className="space-y-3">
               {textBlock("hero.eyebrow", pureza.hero.eyebrow, "text-xs font-semibold uppercase tracking-wider", "div")}
               <div className="flex flex-wrap items-baseline gap-2">
@@ -491,18 +603,13 @@ export default function WebLayoutCanvas({
               </div>
               {textBlock("hero.subtitulo", pureza.hero.subtitulo, "max-w-xl text-sm leading-relaxed opacity-80", "p")}
               <div className="flex flex-wrap gap-2 pt-1">
-                {textBlock(
-                  "hero.cta_principal",
-                  pureza.hero.cta_principal,
-                  "rounded-full px-4 py-2 text-xs font-bold text-white",
-                  "button",
-                )}
-                {textBlock(
-                  "hero.cta_secundario",
-                  pureza.hero.cta_secundario,
-                  "rounded-full border px-4 py-2 text-xs font-semibold",
-                  "button",
-                )}
+                {ctaBtn("hero.cta_principal", pureza.hero.cta_principal, {
+                  icon: "storefront",
+                  solid: true,
+                })}
+                {ctaBtn("hero.cta_secundario", pureza.hero.cta_secundario, {
+                  icon: "whatsapp-logo",
+                })}
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
                 {pureza.badges_producto.map((b, i) =>
@@ -525,7 +632,7 @@ export default function WebLayoutCanvas({
                 </div>
               ))}
             </div>
-          </div>,
+          </ZonaFondoDrop>,
         );
       case "metricas":
         if (pureza.secciones.metricas === false) return null;
@@ -577,12 +684,30 @@ export default function WebLayoutCanvas({
         if (pureza.secciones.categorias === false) return null;
         return sectionShell(
           id,
-          <div className="p-8" style={{ background: fondo, color: tinta }}>
+          <ZonaFondoDrop
+            label="imagen"
+            className="relative p-8"
+            style={{
+              backgroundColor: fondo,
+              color: tinta,
+              ...estiloFondoImagen(
+                fondos.categorias,
+                assetBase,
+                "linear-gradient(180deg, rgba(248,246,241,.5), rgba(248,246,241,.85))",
+              ),
+            }}
+            onUrl={(url) =>
+              onPurezaPatch((d) => {
+                d.fondos = { ...(d.fondos || {}), categorias: url };
+              })
+            }
+          >
             <div className="mb-4 text-2xl font-extrabold">Explora por categoría</div>
             <div className="grid gap-2 md:grid-cols-3">
               {LINEAS_CATALOGO.map((c) => (
                 <div
                   key={c.id}
+                  data-studio-guide={`cat-${c.id}`}
                   className="rounded-xl border border-black/10 bg-white mck-paper-white px-4 py-3 text-sm font-semibold"
                   style={{ borderLeft: `3px solid ${c.color}`, color: c.color }}
                 >
@@ -590,7 +715,7 @@ export default function WebLayoutCanvas({
                 </div>
               ))}
             </div>
-          </div>,
+          </ZonaFondoDrop>,
         );
       case "destacados":
         if (pureza.secciones.destacados === false) return null;
@@ -601,7 +726,11 @@ export default function WebLayoutCanvas({
             <p className="mb-4 text-sm opacity-70">Bloque de catálogo (contenido dinámico del sitio).</p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-28 rounded-xl border border-black/10 bg-white/80" />
+                <div
+                  key={i}
+                  data-studio-guide={`dest-${i}`}
+                  className="h-28 rounded-xl border border-black/10 bg-white/80"
+                />
               ))}
             </div>
           </div>,
@@ -610,11 +739,27 @@ export default function WebLayoutCanvas({
         if (pureza.secciones.cta === false) return null;
         return sectionShell(
           id,
-          <div className="space-y-3 p-10 text-center text-white" style={{ background: tinta }}>
+          <ZonaFondoDrop
+            label="imagen"
+            className="relative space-y-3 p-10 text-center text-white"
+            style={{
+              backgroundColor: tinta,
+              ...estiloFondoImagen(
+                fondos.cta,
+                assetBase,
+                "linear-gradient(180deg, rgba(28,43,42,.5), rgba(28,43,42,.82))",
+              ),
+            }}
+            onUrl={(url) =>
+              onPurezaPatch((d) => {
+                d.fondos = { ...(d.fondos || {}), cta: url };
+              })
+            }
+          >
             {textBlock("cta.titulo", pureza.cta.titulo, "text-2xl font-extrabold", "h2")}
             {textBlock("cta.texto", pureza.cta.texto, "mx-auto max-w-xl text-sm text-white/70", "p")}
-            {textBlock("cta.boton", pureza.cta.boton, "mx-auto inline-block rounded-full bg-green-500 px-5 py-2 text-xs font-bold", "button")}
-          </div>,
+            {ctaBtn("cta.boton", pureza.cta.boton, { icon: "whatsapp-logo", solid: true })}
+          </ZonaFondoDrop>,
         );
       default:
         return null;
@@ -630,10 +775,28 @@ export default function WebLayoutCanvas({
     if (em) em.style.color = oro;
   });
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable=true]")) return;
+      if (e.key !== "Enter" && e.key !== "F2") return;
+      const id = selectedIds[selectedIds.length - 1];
+      if (!id || !pathEsTextoEditable(contentPathForNode(id))) return;
+      e.preventDefault();
+      setEditingId(id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedIds]);
+
   useScrollHojaActiva(stageRef, selectedIds);
-  const hojasVisibles = layout.orden.filter((sid) => nodoOf(layout, sid).hidden !== true);
+  const hojasVisibles = layout.orden.filter(
+    (sid) => nodoOf(layout, sid).hidden !== true && pureza.secciones[sid] !== false,
+  );
 
   return (
+    <StudioAssetBaseCtx.Provider value={assetBase}>
+    <StudioDeleteContext.Provider value={onEliminar}>
     <div
       className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
       style={{ background: "#505050" }}
@@ -660,6 +823,11 @@ export default function WebLayoutCanvas({
               label={SECTION_LABEL[sid] || sid}
               sectionId={sid}
               onActivate={() => onSelect(sid)}
+              overlay={
+                alignGuides?.hojaId === sid ? (
+                  <AlignmentGuidesOverlay guides={alignGuides.lines} frame={alignGuides.frame} />
+                ) : undefined
+              }
             >
               {rendered}
             </FolioHoja>
@@ -667,6 +835,8 @@ export default function WebLayoutCanvas({
         })}
       </MarcoCapitulo>
     </div>
+    </StudioDeleteContext.Provider>
+    </StudioAssetBaseCtx.Provider>
   );
 }
 
@@ -674,23 +844,33 @@ export function WebLayoutInspector({
   selectedId,
   selectedIds,
   layout,
+  contentDraft,
   onLayoutChange,
   onPurezaPatch,
   onContentPatch,
   onSeleccionarSimilares,
   onSelect,
+  onEliminar,
+  onRestaurarHoja,
   sectionLabels = SECTION_LABEL,
+  assetBase = "",
+  variante = "clasico",
 }: {
   selectedId?: string | null;
   selectedIds?: string[];
   layout: WebLayout;
+  contentDraft?: Record<string, unknown> | null;
   pureza?: PurezaCanvas;
   onLayoutChange: (next: WebLayout) => void;
   onPurezaPatch?: (mutator: (draft: PurezaCanvas) => void) => void;
   onContentPatch?: (mutator: (draft: Record<string, unknown>) => void) => void;
   onSeleccionarSimilares?: () => void;
   onSelect?: (id: string | null) => void;
+  onEliminar?: () => void;
+  onRestaurarHoja?: (sid: string) => void;
   sectionLabels?: Record<string, string>;
+  assetBase?: string;
+  variante?: "clasico" | "pureza";
 }) {
   const ids = selectedIds?.length ? selectedIds : selectedId ? [selectedId] : [];
   const primaryId = ids[ids.length - 1] ?? null;
@@ -705,25 +885,37 @@ export function WebLayoutInspector({
         <p className="px-0.5 font-semibold text-ink">Lienzo visual</p>
         <InspectorFold titulo="Hojas del capítulo" hint="secciones" defaultOpen>
           <div className="space-y-1">
-            {layout.orden.map((sid, i) => (
+            {layout.orden.map((sid, i) => {
+              const oculta = hojaOculta(sid, layout);
+              return (
               <button
                 key={sid}
                 type="button"
-                onClick={() => onSelect?.(sid)}
+                onClick={() => (oculta ? onRestaurarHoja?.(sid) : onSelect?.(sid))}
                 className="flex w-full items-center justify-between rounded-md border border-border px-2 py-1.5 text-left text-[11px] font-semibold text-ink hover:border-accent/50"
               >
-                <span>
+                <span className={oculta ? "opacity-50" : ""}>
                   <span className="mr-1.5 text-muted">{i + 1}.</span>
                   {sectionLabels[sid] || sid}
                 </span>
-                <span className="text-[10px] font-normal text-muted">ir</span>
+                <span className="text-[10px] font-normal text-muted">
+                  {oculta ? "restaurar" : "ir"}
+                </span>
               </button>
-            ))}
+              );
+            })}
           </div>
         </InspectorFold>
         <InspectorFold titulo="Ayuda">
           <ul className="list-disc space-y-1.5 pl-4">
             <li>Clic en texto, botón, icono o sección para seleccionar</li>
+            <li>
+              Al arrastrar o redimensionar: <strong className="text-ink">guías magenta</strong>{" "}
+              alinean con cualquier otro objeto (Alt las desactiva)
+            </li>
+            <li>
+              <strong className="text-ink">X roja</strong>, botón Eliminar o Supr/Backspace quitan el bloque
+            </li>
             <li>
               <strong className="text-ink">Ctrl/⌘+clic</strong> o Shift+clic: sumar a la selección
             </li>
@@ -731,7 +923,8 @@ export function WebLayoutInspector({
               Menú <strong className="text-ink">Selección → similares</strong> (Ctrl+Shift+L)
             </li>
             <li>
-              Arrastra el elemento o usa la barra <strong className="text-ink">mover</strong>
+              Arrastra el elemento, usa la barra <strong className="text-ink">mover</strong> o las{" "}
+              <strong className="text-ink">flechas</strong> (Shift = 10 px)
             </li>
             <li>
               Asas azules: <strong className="text-ink">ancho / alto / esquina</strong>
@@ -739,7 +932,13 @@ export function WebLayoutInspector({
             <li>
               Asa ámbar: <strong className="text-ink">escala</strong> uniforme
             </li>
-            <li>Doble clic en texto para editarlo</li>
+            <li>
+              <strong className="text-ink">Doble clic</strong>, <strong className="text-ink">Enter</strong> o
+              el recuadro Texto del panel para reescribir
+            </li>
+            <li>
+              <strong className="text-ink">Eliminar</strong> o tecla Supr / Backspace quita lo seleccionado
+            </li>
             <li>Propiedades del objeto en los desplegables de este panel</li>
           </ul>
         </InspectorFold>
@@ -749,13 +948,27 @@ export function WebLayoutInspector({
 
   const selectedIdSafe = primaryId;
   const n = nodoOf(layout, selectedIdSafe);
-  const isSection = !selectedIdSafe.includes(".") && !multi;
+  const isSection = !multi && layout.orden.includes(selectedIdSafe);
+  const esHeader = selectedIdSafe === "header" || selectedIdSafe.startsWith("header.");
+  const esHeaderBtn = esCajaBotonStudio(selectedIdSafe);
   const isIcon =
     ids.every(
       (id) => id.includes("icono") || id.endsWith(".icon") || id === "hero.doc.icon",
     );
 
   const patch = (p: LayoutNodo) => onLayoutChange(mergeNodos(layout, ids, p));
+  const fondosDraft =
+    contentDraft?.fondos && typeof contentDraft.fondos === "object"
+      ? (contentDraft.fondos as Record<string, string>)
+      : {};
+  const setFondoSlot = (key: string, url: string) => {
+    contentPatch?.((d) => {
+      const prev =
+        d.fondos && typeof d.fondos === "object" ? (d.fondos as Record<string, string>) : {};
+      d.fondos = { ...prev, [key]: url };
+    });
+  };
+  const slotSeccion = slotFondoSeccion(selectedIdSafe, variante);
 
   const setIconContent = (icon: string) => {
     patch({ icono: icon });
@@ -796,25 +1009,55 @@ export function WebLayoutInspector({
         )}
       </div>
 
+      {(() => {
+        const textPath = !multi ? contentPathForNode(selectedIdSafe) : null;
+        if (!textPath || !pathEsTextoEditable(textPath) || !contentPatch) return null;
+        const valor = leerContentPath(contentDraft, textPath);
+        return (
+          <InspectorFold titulo="Texto" hint="reescribir" defaultOpen>
+            <textarea
+              key={selectedIdSafe}
+              className={`${field} min-h-[4.5rem] resize-y leading-relaxed`}
+              rows={Math.min(8, Math.max(3, valor.split("\n").length + 1))}
+              value={valor}
+              placeholder="Escribe el texto…"
+              onChange={(e) => {
+                const v = e.target.value;
+                contentPatch((d) => applyContentPath(d, textPath, v));
+              }}
+            />
+            <p className="mt-1 text-[10px] leading-snug text-muted">
+              También: doble clic o Enter / F2 sobre el objeto en el lienzo.
+            </p>
+          </InspectorFold>
+        );
+      })()}
+
       <InspectorFold titulo="Hojas del capítulo" hint="ir a hoja">
         <div className="space-y-1">
-          {layout.orden.map((sid, i) => (
+          {layout.orden.map((sid, i) => {
+            const oculta = hojaOculta(sid, layout);
+            const activa =
+              (!selectedIdSafe.includes(".") ? selectedIdSafe : selectedIdSafe.split(".")[0]) === sid;
+            return (
             <button
               key={sid}
               type="button"
-              onClick={() => onSelect?.(sid)}
+              onClick={() => (oculta ? onRestaurarHoja?.(sid) : onSelect?.(sid))}
               className={`flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-left text-[11px] font-semibold ${
-                (!selectedIdSafe.includes(".") ? selectedIdSafe : selectedIdSafe.split(".")[0]) === sid
+                activa
                   ? "border-accent bg-accent/10 text-ink"
                   : "border-border text-ink hover:border-accent/50"
               }`}
             >
-              <span>
+              <span className={oculta ? "opacity-50" : ""}>
                 <span className="mr-1.5 text-muted">{i + 1}.</span>
                 {sectionLabels[sid] || sid}
               </span>
+              {oculta && <span className="text-[10px] font-normal text-muted">restaurar</span>}
             </button>
-          ))}
+            );
+          })}
         </div>
       </InspectorFold>
 
@@ -840,6 +1083,75 @@ export function WebLayoutInspector({
               ↓ Bajar
             </button>
           </div>
+        </InspectorFold>
+      )}
+
+      {selectedIdSafe === "hero" && (
+        <InspectorFold titulo="División de fondos" hint="hero" defaultOpen>
+          {variante === "clasico" ? (
+            <>
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold text-muted">
+                  Izquierdo {heroSplitPct(n)}% · derecho {100 - heroSplitPct(n)}%
+                </span>
+                <input
+                  type="range"
+                  min={HERO_SPLIT_MIN}
+                  max={HERO_SPLIT_MAX}
+                  value={heroSplitPct(n)}
+                  onChange={(e) => patch({ splitPct: +e.target.value })}
+                  className="w-full accent-accent"
+                />
+              </label>
+              <p className="text-[10px] text-muted">
+                Arrastra la barra azul ⟷. Las fotos van en los recuadros 📷 del lienzo: se ven, se mueven y se redimensionan.
+              </p>
+              <FondoImagenField
+                label="Imagen izquierda (caja)"
+                value={nodoOf(layout, "hero.foto_izq").backgroundImage || ""}
+                assetBase={assetBase}
+                onChange={(url) => onLayoutChange(mergeFotoNodo(layout, "hero.foto_izq", url))}
+              />
+              <FondoImagenField
+                label="Imagen derecha (caja)"
+                value={nodoOf(layout, "hero.foto_der").backgroundImage || ""}
+                assetBase={assetBase}
+                onChange={(url) => onLayoutChange(mergeFotoNodo(layout, "hero.foto_der", url))}
+              />
+            </>
+          ) : (
+            <FondoImagenField
+              label="Imagen del hero (caja)"
+              value={nodoOf(layout, "hero.foto").backgroundImage || ""}
+              assetBase={assetBase}
+              onChange={(url) => onLayoutChange(mergeFotoNodo(layout, "hero.foto", url))}
+            />
+          )}
+        </InspectorFold>
+      )}
+
+      {esNodoFotoStudio(selectedIdSafe) && (
+        <InspectorFold titulo="Imagen" hint="mover · tamaño" defaultOpen>
+          <FondoImagenField
+            label="Archivo de la foto"
+            value={n.backgroundImage || ""}
+            assetBase={assetBase}
+            onChange={(url) => onLayoutChange(mergeFotoNodo(layout, selectedIdSafe, url))}
+          />
+          <p className="text-[10px] text-muted">
+            Arrástrala en el lienzo. Asas azules = ancho y alto. Abajo: X, Y y píxeles a mano.
+          </p>
+        </InspectorFold>
+      )}
+
+      {slotSeccion && selectedIdSafe !== "hero" && (
+        <InspectorFold titulo="Imagen de fondo" hint="JPG PNG WEBP" defaultOpen>
+          <FondoImagenField
+            label="Foto de esta sección"
+            value={fondosDraft[slotSeccion] || ""}
+            assetBase={assetBase}
+            onChange={(url) => setFondoSlot(slotSeccion, url)}
+          />
         </InspectorFold>
       )}
 
@@ -913,16 +1225,37 @@ export function WebLayoutInspector({
 
       {!isIcon && (
         <InspectorFold titulo="Tipografía" defaultOpen>
-          <div className="rounded-md border border-border bg-surface px-2.5 py-2 text-xs">
-            <span className="font-semibold text-muted">Familia</span>
-            <div
-              className="mt-0.5 text-sm font-bold text-ink"
-              style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
-            >
-              Montserrat
+          <StudioSelect
+            label="Tipo de fuente"
+            value={(n.fontFamily || "montserrat") as FuenteNodo}
+            options={FUENTES_NODO.map((f) => ({ id: f.id, label: f.label }))}
+            onChange={(id) => patch({ fontFamily: id === "montserrat" ? undefined : id })}
+          />
+          {esHeaderBtn && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold text-muted">Tamaño de botón</span>
+              <div className="grid grid-cols-3 gap-1">
+                {BTN_SIZE_PRESETS.map((p) => {
+                  const on =
+                    (n.fontSize ?? 0) === p.fontSize &&
+                    (n.padX ?? 0) === p.padX &&
+                    (n.padY ?? 0) === p.padY;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`rounded-md border px-2 py-1.5 text-[11px] font-semibold ${
+                        on ? "border-accent bg-accent/10 text-ink" : "border-border text-muted hover:border-accent/50"
+                      }`}
+                      onClick={() => patch({ fontSize: p.fontSize, padX: p.padX, padY: p.padY })}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <p className="mt-0.5 text-[10px] text-muted">Única fuente de marca McKenna</p>
-          </div>
+          )}
           <StudioSelect
             label="Variante"
             value={varianteIdDesdeNodo(n)}
@@ -1019,6 +1352,14 @@ export function WebLayoutInspector({
             )}
           </div>
         </label>
+        {!(selectedIdSafe === "hero" || slotSeccion || esNodoFotoStudio(selectedIdSafe)) && (
+          <FondoImagenField
+            label="Imagen de fondo"
+            value={n.backgroundImage || ""}
+            assetBase={assetBase}
+            onChange={(url) => patch({ backgroundImage: url || undefined })}
+          />
+        )}
         <label className="block text-xs">
           <span className="mb-1 block font-semibold text-muted">Trazo (color)</span>
           <div className="flex items-center gap-2">
@@ -1082,6 +1423,77 @@ export function WebLayoutInspector({
           />
         </label>
       </InspectorFold>
+
+      {(esHeader || esHeaderBtn) && (
+        <InspectorFold titulo="Transición de color" hint="hover" defaultOpen={esHeaderBtn}>
+          <StudioSelect
+            label="Velocidad"
+            value={(n.transition || "normal") as TransicionColor}
+            options={TRANSICION_COLOR_OPTS.map((o) => ({ id: o.id, label: o.label }))}
+            onChange={(id) => patch({ transition: id === "normal" ? undefined : id })}
+          />
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold text-muted">Color al pasar el mouse</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+                value={n.hoverColor || "#022d33"}
+                onChange={(e) => patch({ hoverColor: e.target.value })}
+              />
+              <input
+                type="text"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px]"
+                value={n.hoverColor || ""}
+                placeholder="auto"
+                onChange={(e) =>
+                  patch({ hoverColor: e.target.value.trim() === "" ? undefined : e.target.value })
+                }
+              />
+              {n.hoverColor && (
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold text-muted underline"
+                  onClick={() => patch({ hoverColor: undefined })}
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold text-muted">Fondo al pasar el mouse</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                className="h-9 w-12 cursor-pointer rounded border border-border bg-surface"
+                value={n.hoverBackground || "#0c6069"}
+                onChange={(e) => patch({ hoverBackground: e.target.value })}
+              />
+              <input
+                type="text"
+                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-[11px]"
+                value={n.hoverBackground || ""}
+                placeholder="auto"
+                onChange={(e) =>
+                  patch({
+                    hoverBackground: e.target.value.trim() === "" ? undefined : e.target.value,
+                  })
+                }
+              />
+              {n.hoverBackground && (
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold text-muted underline"
+                  onClick={() => patch({ hoverBackground: undefined })}
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+          </label>
+        </InspectorFold>
+      )}
 
       <InspectorFold
         titulo="Animación"
@@ -1223,15 +1635,15 @@ export function WebLayoutInspector({
         </InspectorFold>
       )}
 
-      <InspectorFold titulo="Visibilidad">
-        <label className="flex items-center gap-2 text-xs font-semibold text-ink">
-          <input
-            type="checkbox"
-            checked={n.hidden === true}
-            onChange={(e) => patch({ hidden: e.target.checked || undefined })}
-          />
-          Ocultar elemento
-        </label>
+      <InspectorFold titulo="Eliminar" defaultOpen>
+        <button
+          type="button"
+          className="w-full rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+          onClick={onEliminar}
+        >
+          Eliminar selección
+          <span className="mt-0.5 block text-[10px] font-normal text-red-600/80">Supr o Backspace</span>
+        </button>
         <button
           type="button"
           className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted hover:border-red-300 hover:text-red-600"

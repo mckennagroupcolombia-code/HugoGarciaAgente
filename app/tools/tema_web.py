@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from app.tools.tema_web_fondos import sanitize_fondo_url
+
 _ROOT = Path(__file__).resolve().parent.parent.parent  # /home/mckg/mi-agente
 TEMA_WEB_FILE = _ROOT / "PAGINA_WEB" / "site" / "data" / "tema_web.json"
 # Borrador del Studio: solo lo lee el iframe local (?studio_preview=1). No es el sitio público.
@@ -62,6 +64,49 @@ _ORDEN_CLASICO = [
     "cta",
 ]
 
+# Paleta Clásico → variables CSS --green* / --text-* del sitio publicado.
+COLORES_CLASICO_DEFAULT = {
+    "acento": "#0c6069",
+    "acento_oscuro": "#045159",
+    "acento_claro": "#6aacb3",
+    "fondo": "#e3fcff",
+    "fondo_oscuro": "#022d33",
+    "tinta": "#022d33",
+}
+
+COLORES_PUREZA_DEFAULT = {
+    "acento": "#0c6069",
+    "acento_oscuro": "#04353b",
+    "fondo": "#f8f6f1",
+    "tinta": "#1c2b2a",
+    "destacado": "#b9862f",
+}
+
+FONDOS_CLASICO_KEYS = ("pagina", "hero_izq", "hero_der", "categorias", "cta")
+FONDOS_PUREZA_KEYS = ("pagina", "hero", "categorias", "cta")
+_FONDOS_OVERLAY = {
+    "hero_izq": (
+        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 42%, transparent), "
+        "color-mix(in srgb, var(--green-deep) 78%, transparent))"
+    ),
+    "hero_der": (
+        "linear-gradient(180deg, color-mix(in srgb, var(--green-ultra) 30%, transparent), "
+        "color-mix(in srgb, var(--green-ultra) 70%, transparent))"
+    ),
+    "categorias": (
+        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 48%, transparent), "
+        "color-mix(in srgb, var(--green-deep) 80%, transparent))"
+    ),
+    "cta": (
+        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 50%, transparent), "
+        "color-mix(in srgb, var(--green-deep) 82%, transparent))"
+    ),
+    "hero": (
+        "linear-gradient(180deg, color-mix(in srgb, var(--pz-fondo, #f8f6f1) 45%, transparent), "
+        "color-mix(in srgb, var(--pz-fondo, #f8f6f1) 82%, transparent))"
+    ),
+}
+
 TEMA_WEB_DEFAULTS: dict = {
     "tema_activo": "clasico",
     "actualizado": None,
@@ -80,6 +125,8 @@ TEMA_WEB_DEFAULTS: dict = {
         "nodos": {},
     },
     "clasico": {
+        "colores": copy.deepcopy(COLORES_CLASICO_DEFAULT),
+        "fondos": {k: "" for k in FONDOS_CLASICO_KEYS},
         "anuncio": (
             "Materias primas farmacéuticas y cosméticas certificadas | "
             "Bogotá, Colombia · Lun–Vie 8:00–17:30"
@@ -179,13 +226,8 @@ TEMA_WEB_DEFAULTS: dict = {
         },
     },
     "pureza": {
-        "colores": {
-            "acento": "#0c6069",
-            "acento_oscuro": "#04353b",
-            "fondo": "#f8f6f1",
-            "tinta": "#1c2b2a",
-            "destacado": "#b9862f",
-        },
+        "colores": copy.deepcopy(COLORES_PUREZA_DEFAULT),
+        "fondos": {k: "" for k in FONDOS_PUREZA_KEYS},
         "anuncio": "Pureza verificada por lote · COA + ficha técnica en cada despacho · Bogotá, Colombia",
         "hero": {
             "eyebrow": "Materias primas farmacéuticas y cosméticas",
@@ -313,8 +355,96 @@ def _sanitize_hex(v) -> str | None:
     return s.lower()
 
 
+def _normalizar_colores(raw, defaults: dict) -> dict:
+    """Solo claves conocidas y hex válidos; el resto cae al default."""
+    out = copy.deepcopy(defaults)
+    if not isinstance(raw, dict):
+        return out
+    for key in defaults:
+        hx = _sanitize_hex(raw.get(key))
+        if hx:
+            out[key] = hx
+    return out
+
+
+def _normalizar_fondos(raw, keys: tuple[str, ...]) -> dict:
+    out = {k: "" for k in keys}
+    if not isinstance(raw, dict):
+        return out
+    for k in keys:
+        u = sanitize_fondo_url(raw.get(k))
+        if u:
+            out[k] = u
+    return out
+
+
+def _asegurar_colores_tema(cfg: dict) -> dict:
+    if not isinstance(cfg.get("clasico"), dict):
+        cfg["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+    if not isinstance(cfg.get("pureza"), dict):
+        cfg["pureza"] = copy.deepcopy(TEMA_WEB_DEFAULTS["pureza"])
+    cfg["clasico"]["colores"] = _normalizar_colores(
+        cfg["clasico"].get("colores"), COLORES_CLASICO_DEFAULT
+    )
+    cfg["pureza"]["colores"] = _normalizar_colores(
+        cfg["pureza"].get("colores"), COLORES_PUREZA_DEFAULT
+    )
+    cfg["clasico"]["fondos"] = _normalizar_fondos(
+        cfg["clasico"].get("fondos"), FONDOS_CLASICO_KEYS
+    )
+    cfg["pureza"]["fondos"] = _normalizar_fondos(
+        cfg["pureza"].get("fondos"), FONDOS_PUREZA_KEYS
+    )
+    return cfg
+
+
+def resolver_fondos_css(cfg: dict | None = None, *, tema: str | None = None) -> dict:
+    """URLs + capas CSS listas para --fondo-* en base.html."""
+    cfg = cfg or cargar_tema_web()
+    activo = tema or (cfg.get("tema_activo") if isinstance(cfg, dict) else "clasico")
+    if activo not in TEMAS_VALIDOS:
+        activo = "clasico"
+    keys = FONDOS_CLASICO_KEYS if activo == "clasico" else FONDOS_PUREZA_KEYS
+    bloque = cfg.get("clasico" if activo == "clasico" else "pureza") if isinstance(cfg, dict) else {}
+    fondos = _normalizar_fondos(
+        bloque.get("fondos") if isinstance(bloque, dict) else None, keys
+    )
+    out: dict = {**fondos}
+    for k, url in fondos.items():
+        if not url:
+            out[f"{k}_css"] = "none"
+            continue
+        capa = _FONDOS_OVERLAY.get(k)
+        out[f"{k}_css"] = f"{capa}, url('{url}')" if capa else f"url('{url}')"
+    return out
+
+
 # Compat: familias antiguas del Studio se ignoran; solo Montserrat.
 _STUDIO_FONT = "'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif"
+_NODO_FUENTE_CSS = {
+    "montserrat": _STUDIO_FONT,
+    "system": "system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "serif": "Georgia, 'Times New Roman', serif",
+    "mono": "ui-monospace, Consolas, monospace",
+}
+_TRANS_COLOR_CSS = {
+    "none": "0s",
+    "fast": "0.12s",
+    "normal": "0.25s",
+    "slow": "0.5s",
+}
+
+# Enlaces del menú Clásico (un nodo por botón; ids = Studio + base.html).
+HEADER_NAV_BTN_IDS = (
+    "header.nav.inicio",
+    "header.nav.catalogo",
+    "header.nav.guias",
+    "header.nav.recetario",
+    "header.nav.blog",
+    "header.nav.nosotros",
+    "header.nav.contacto",
+    "header.nav.cuenta",
+)
 
 _ANIM_LOOP = frozenset({"pulse", "float"})
 _ANIM_CSS = {
@@ -366,7 +496,17 @@ def _normalizar_layout(layout: dict | None, orden_default: list[str] | None = No
                 n["fontWeight"] = int(fw)
             if raw.get("fontItalic") is True:
                 n["fontItalic"] = True
-            for color_key in ("color", "background", "borderColor"):
+            ff = raw.get("fontFamily")
+            if ff in _NODO_FUENTE_CSS:
+                n["fontFamily"] = ff
+            for pad_key in ("padX", "padY"):
+                pv = raw.get(pad_key)
+                if isinstance(pv, (int, float)) and 0 <= float(pv) <= 64:
+                    n[pad_key] = int(round(pv))
+            tr = raw.get("transition")
+            if tr in _TRANS_COLOR_CSS:
+                n["transition"] = tr
+            for color_key in ("color", "background", "borderColor", "hoverColor", "hoverBackground"):
                 hx = _sanitize_hex(raw.get(color_key))
                 if hx:
                     n[color_key] = hx
@@ -405,50 +545,103 @@ def _normalizar_layout(layout: dict | None, orden_default: list[str] | None = No
                 n["icono"] = ic.strip().removeprefix("ph-")[:64]
             if raw.get("hidden") is True:
                 n["hidden"] = True
+            img = sanitize_fondo_url(raw.get("backgroundImage"))
+            if img:
+                n["backgroundImage"] = img
+            sp = raw.get("splitPct")
+            if isinstance(sp, (int, float)) and 28 <= float(sp) <= 72:
+                n["splitPct"] = int(round(float(sp)))
             if n:
                 nodos_out[kid] = n
     return {"orden": orden, "nodos": nodos_out}
 
 
-def estilo_nodo_layout(nodo: dict | None) -> str:
+def es_nodo_chrome_sitio(nodo_id: str | None) -> bool:
+    """Anuncio + header: el CSS del sitio ya los posiciona; translate los corre."""
+    if not nodo_id:
+        return False
+    return nodo_id == "anuncio" or nodo_id == "header" or nodo_id.startswith("header.")
+
+
+NODOS_FOTO_SITIO = frozenset(
+    {"hero.foto_izq", "hero.foto_der", "hero.foto", "categorias.foto", "cta.foto"}
+)
+
+
+def es_nodo_foto_sitio(nodo_id: str | None) -> bool:
+    return bool(nodo_id) and nodo_id in NODOS_FOTO_SITIO
+
+
+def estilo_nodo_layout(nodo: dict | None, nodo_id: str | None = None) -> str:
     """Inline CSS para un nodo del layout (sitio público)."""
     if not isinstance(nodo, dict):
         return ""
     if nodo.get("hidden") is True:
         return "display:none"
+    chrome = es_nodo_chrome_sitio(nodo_id)
     parts: list[str] = []
     dx = int(nodo.get("dx") or 0)
     dy = int(nodo.get("dy") or 0)
     scale = float(nodo.get("scale") or 1)
     rotate = float(nodo.get("rotate") or 0)
     transforms: list[str] = []
-    if dx or dy:
-        transforms.append(f"translate({dx}px,{dy}px)")
-    if rotate:
-        transforms.append(f"rotate({rotate}deg)")
-    if scale != 1.0:
-        transforms.append(f"scale({scale})")
+    if not chrome:
+        if dx or dy:
+            transforms.append(f"translate({dx}px,{dy}px)")
+        if rotate:
+            transforms.append(f"rotate({rotate}deg)")
+        if scale != 1.0:
+            transforms.append(f"scale({scale})")
     if transforms:
         parts.append(f"transform:{' '.join(transforms)}")
         parts.append("transform-origin:top left")
-        parts.append("display:inline-block")
+        # No forzar display:inline-block: pisa display:grid del .hero y
+        # display:inline-flex de los botones; el lienzo no lo hace.
     fs = nodo.get("fontSize")
     if isinstance(fs, (int, float)):
         parts.append(f"font-size:{int(fs)}px")
     fw = nodo.get("fontWeight")
     fi = nodo.get("fontItalic") is True
-    if (isinstance(fw, (int, float)) and int(fw) in _FONT_WEIGHTS) or fi:
+    ff = nodo.get("fontFamily")
+    fam = _NODO_FUENTE_CSS.get(ff) if isinstance(ff, str) else None
+    if fam:
+        parts.append(f"font-family:{fam}")
+    elif (isinstance(fw, (int, float)) and int(fw) in _FONT_WEIGHTS) or fi:
         parts.append(f"font-family:{_STUDIO_FONT}")
-        if isinstance(fw, (int, float)) and int(fw) in _FONT_WEIGHTS:
-            parts.append(f"font-weight:{int(fw)}")
-        if fi:
-            parts.append("font-style:italic")
+    if isinstance(fw, (int, float)) and int(fw) in _FONT_WEIGHTS:
+        parts.append(f"font-weight:{int(fw)}")
+    if fi:
+        parts.append("font-style:italic")
+    px = nodo.get("padX")
+    py = nodo.get("padY")
+    if isinstance(px, (int, float)) or isinstance(py, (int, float)):
+        padx = int(px) if isinstance(px, (int, float)) else 16
+        pady = int(py) if isinstance(py, (int, float)) else 10
+        parts.append(f"--studio-pad-x:{padx}px")
+        parts.append(f"--studio-pad-y:{pady}px")
+    tr = nodo.get("transition")
+    if tr in _TRANS_COLOR_CSS:
+        dur = _TRANS_COLOR_CSS[tr]
+        parts.append(f"--studio-tr:{dur}")
+        parts.append(f"transition:color {dur},background {dur}")
+    hc = nodo.get("hoverColor")
+    if isinstance(hc, str) and hc:
+        parts.append(f"--studio-hover-color:{hc}")
+    hb = nodo.get("hoverBackground")
+    if isinstance(hb, str) and hb:
+        parts.append(f"--studio-hover-bg:{hb}")
     color = nodo.get("color")
     if isinstance(color, str) and color:
         parts.append(f"color:{color}")
     bg = nodo.get("background")
     if isinstance(bg, str) and bg:
-        parts.append(f"background:{bg}")
+        parts.append(f"background-color:{bg}")
+    bgi = nodo.get("backgroundImage")
+    if isinstance(bgi, str) and bgi and not es_nodo_foto_sitio(nodo_id):
+        parts.append(f"background-image:url('{bgi}')")
+        parts.append("background-size:cover")
+        parts.append("background-position:center")
+        parts.append("background-repeat:no-repeat")
     bw = nodo.get("borderWidth")
     bc = nodo.get("borderColor")
     if (isinstance(bw, (int, float)) and float(bw) > 0) or isinstance(bc, str):
@@ -457,14 +650,21 @@ def estilo_nodo_layout(nodo: dict | None) -> str:
         parts.append(f"border-color:{bc if isinstance(bc, str) and bc else 'currentColor'}")
         parts.append("box-sizing:border-box")
     w = nodo.get("width")
-    if isinstance(w, (int, float)):
+    if isinstance(w, (int, float)) and not chrome:
         parts.append(f"width:{int(w)}px")
         parts.append("max-width:100%")
         parts.append("box-sizing:border-box")
     h = nodo.get("height")
     if isinstance(h, (int, float)):
-        parts.append(f"height:{int(h)}px")
-        parts.append("box-sizing:border-box")
+        parts.append(f"--studio-logo-h:{int(h)}px")
+        if not chrome:
+            parts.append(f"height:{int(h)}px")
+            parts.append("box-sizing:border-box")
+    sp = nodo.get("splitPct")
+    if isinstance(sp, (int, float)):
+        izq = max(28, min(72, int(round(float(sp)))))
+        parts.append(f"--hero-split-izq:{izq}%")
+        parts.append(f"--hero-split-der:{100 - izq}%")
     op = nodo.get("opacity")
     if isinstance(op, (int, float)) and float(op) < 1:
         parts.append(f"opacity:{round(float(op), 2)}")
@@ -498,7 +698,7 @@ def resolver_layout_ctx(cfg: dict | None = None, *, key: str = "layout") -> dict
     cfg = cfg or cargar_tema_web()
     orden_def = _ORDEN_CLASICO if key == "layout_clasico" else _ORDEN_PUREZA
     layout = _normalizar_layout(cfg.get(key) if isinstance(cfg, dict) else None, orden_def)
-    estilos = {kid: estilo_nodo_layout(n) for kid, n in layout["nodos"].items()}
+    estilos = {kid: estilo_nodo_layout(n, kid) for kid, n in layout["nodos"].items()}
     orden_map = {sid: i for i, sid in enumerate(layout["orden"])}
     return {
         "orden": layout["orden"],
@@ -542,6 +742,23 @@ def resolver_diseno_css(cfg: dict | None = None) -> dict:
     }
 
 
+def resolver_colores_clasico_css(cfg: dict | None = None) -> dict:
+    """Tokens hex (+ mixes CSS) para inyectar --green* en base.html."""
+    cfg = cfg or cargar_tema_web()
+    clasico = cfg.get("clasico") if isinstance(cfg, dict) else {}
+    c = _normalizar_colores(
+        clasico.get("colores") if isinstance(clasico, dict) else None,
+        COLORES_CLASICO_DEFAULT,
+    )
+    acento, fondo, tinta, claro = c["acento"], c["fondo"], c["tinta"], c["acento_claro"]
+    return {
+        **c,
+        "green_pale": f"color-mix(in srgb, {acento} 22%, {fondo})",
+        "text_muted": f"color-mix(in srgb, {tinta} 55%, {claro})",
+        "border": f"color-mix(in srgb, {acento} 18%, transparent)",
+    }
+
+
 def cargar_tema_web(force: bool = False) -> dict:
     """Config completa (defaults + archivo). Cache por mtime; segura entre hilos."""
     global _cache, _cache_mtime
@@ -568,6 +785,7 @@ def cargar_tema_web(force: bool = False) -> dict:
         )
         if not isinstance(merged.get("clasico"), dict):
             merged["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+        _asegurar_colores_tema(merged)
         _cache = merged
         _cache_mtime = mtime
         return copy.deepcopy(merged)
@@ -620,6 +838,7 @@ def _aplicar_cambios(actual: dict, cambios: dict) -> dict:
     nuevo["diseno"] = _normalizar_diseno(nuevo.get("diseno"))
     if not isinstance(nuevo.get("clasico"), dict):
         nuevo["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+    _asegurar_colores_tema(nuevo)
     return nuevo
 
 
@@ -666,6 +885,7 @@ def cargar_tema_preview(force: bool = False) -> dict:
                 )
                 if not isinstance(merged.get("clasico"), dict):
                     merged["clasico"] = copy.deepcopy(TEMA_WEB_DEFAULTS["clasico"])
+                _asegurar_colores_tema(merged)
                 _preview_cache = merged
                 _preview_mtime = mtime
                 return copy.deepcopy(merged)

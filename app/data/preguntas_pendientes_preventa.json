@@ -1849,6 +1849,13 @@
       "respondida": true,
       "borrador_ia": "Hola veci, con gusto le colaboro con su duda.\n\nNuestro aceite es de origen vegetal, obtenido a partir de las semillas de la planta Ricinus communis.\n\nEste producto se obtiene mediante el proceso de prensado en frío, lo que significa que las semillas se prensan a baja temperatura para evitar la degradación de los nutrientes y mantener así la integridad del aceite.",
       "nota": "Respondida automáticamente por monitor (reintento) 2026-08-09"
+    },
+    {
+      "question_id": "13637736837",
+      "titulo_producto": "Colageno Hidrolizado 500g Neutro",
+      "pregunta": "“¿Me puede decir el COA del lote? ¿Está destinado a consumo humano directo o es exclusivamente materia prima?”",
+      "timestamp": "2026-08-09T17:06:17.387021",
+      "respondida": true
     }
   ]
 }

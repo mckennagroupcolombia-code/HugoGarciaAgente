@@ -40,9 +40,9 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260809b">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260809p">
 {% if TEMA_ACTIVO == 'pureza' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809b">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
 <style>
   :root {
@@ -51,7 +51,31 @@ fbq('track','PageView');
     --studio-section-y: {{ DISENO_CSS.section_y | default('72px') }};
     --studio-hero-pad: {{ DISENO_CSS.hero_pad | default('84px 24px 64px') }};
     --studio-card-radius: {{ DISENO_CSS.card_radius | default('16px') }};
+    --fondo-pagina: {{ FONDOS.pagina_css | default('none') }};
+    --fondo-hero-izq: {{ FONDOS.hero_izq_css | default('none') }};
+    --fondo-hero-der: {{ FONDOS.hero_der_css | default('none') }};
+    --fondo-hero: {{ FONDOS.hero_css | default('none') }};
+    --fondo-categorias: {{ FONDOS.categorias_css | default('none') }};
+    --fondo-cta: {{ FONDOS.cta_css | default('none') }};
   }
+  {% if TEMA_ACTIVO == 'clasico' %}
+  :root,
+  body.tema-clasico {
+    --green:        {{ COLORES_CL.acento | default('#0c6069') }};
+    --green-dark:   {{ COLORES_CL.acento_oscuro | default('#045159') }};
+    --green-deep:   {{ COLORES_CL.fondo_oscuro | default('#022D33') }};
+    --green-light:  {{ COLORES_CL.acento_claro | default('#6aacb3') }};
+    --green-ultra:  {{ COLORES_CL.fondo | default('#e3fcff') }};
+    --green-pale:   {{ COLORES_CL.green_pale | default('#c0f0f5') }};
+    --white:        {{ COLORES_CL.fondo | default('#e3fcff') }};
+    --off-white:    {{ COLORES_CL.fondo | default('#e3fcff') }};
+    --text-dark:    {{ COLORES_CL.tinta | default('#022D33') }};
+    --text-mid:     {{ COLORES_CL.acento_oscuro | default('#045159') }};
+    --text-soft:    {{ COLORES_CL.acento | default('#0c6069') }};
+    --text-muted:   {{ COLORES_CL.text_muted | default('#3a7e87') }};
+    --border:       {{ COLORES_CL.border | default('rgba(12,96,105,0.18)') }};
+  }
+  {% endif %}
   {% if TEMA_ACTIVO == 'pureza' %}
   body.tema-pureza {
     --pz-acento:        {{ TW.colores.acento | default('#0c6069') }};
@@ -86,8 +110,13 @@ fbq('track','PageView');
 </div>
 {% endif %}
 
+{% set LCHROME = LAYOUT_CLASICO if TEMA_ACTIVO == 'clasico' else LAYOUT %}
+{% set hide_anuncio = LCHROME.nodos.get('anuncio', {}).get('hidden') %}
+{% set hide_header = LCHROME.nodos.get('header', {}).get('hidden') %}
+
+{% if not hide_anuncio %}
 <!-- Barra anuncio -->
-<div class="announcement-bar">
+<div class="announcement-bar" style="{{ LCHROME.estilos.get('anuncio', '') }}">
   {% if TEMA_ACTIVO == 'pureza' and TW.anuncio %}
   🌿 {{ TW.anuncio }}
   {% elif TEMA_ACTIVO == 'clasico' and TC.anuncio %}
@@ -97,47 +126,68 @@ fbq('track','PageView');
   <strong>Bogotá, Colombia</strong> &nbsp;·&nbsp; Lun–Vie 8:00–17:30
   {% endif %}
 </div>
+{% endif %}
 
+{% if not hide_header %}
 <!-- Header -->
-<header class="site-header" id="site-header">
+<header class="site-header" id="site-header" style="{{ LCHROME.estilos.get('header', '') }}">
   <div class="header-inner">
 
     <!-- Logo -->
-    <a href="{{ url_for('index') }}" class="site-logo">
+    {% if not LCHROME.nodos.get('header.logo', {}).get('hidden') %}
+    <a href="{{ url_for('index') }}" class="site-logo" style="{{ LCHROME.estilos.get('header.logo', '') }}">
       <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group" class="site-logo-img">
       <div class="brand-text">
         MCKENNA GROUP S.A.S
         <span>{{ DISENO_CSS.tagline | default('Proveemos a tus ideas') }}</span>
       </div>
     </a>
+    {% endif %}
 
-    <!-- Nav principal -->
-    <nav class="main-nav">
+    <!-- Nav principal — un nodo Studio por botón (header.nav.*) -->
+    {% if not LCHROME.nodos.get('header.nav', {}).get('hidden') %}
+    <nav class="main-nav" style="{{ LCHROME.estilos.get('header.nav', '') }}">
       <ul>
+        {% if not LCHROME.nodos.get('header.nav.inicio', {}).get('hidden') %}
         <li class="{% if request.endpoint == 'index' %}active{% endif %}">
-          <a href="{{ url_for('index') }}">Inicio</a>
+          <a href="{{ url_for('index') }}" style="{{ LCHROME.estilos.get('header.nav.inicio', '') }}">Inicio</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.catalogo', {}).get('hidden') %}
         <li class="{% if request.endpoint in ['catalogo'] %}active{% endif %}">
-          <a href="{{ url_for('catalogo') }}">Catálogo</a>
+          <a href="{{ url_for('catalogo') }}" style="{{ LCHROME.estilos.get('header.nav.catalogo', '') }}">Catálogo</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.guias', {}).get('hidden') %}
         <li class="{% if request.endpoint in ['guias','guia_kit_acidos','guia_detalle'] %}active{% endif %}">
-          <a href="{{ url_for('guias') }}">Guías</a>
+          <a href="{{ url_for('guias') }}" style="{{ LCHROME.estilos.get('header.nav.guias', '') }}">Guías</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.recetario', {}).get('hidden') %}
         <li class="{% if request.endpoint == 'recetario' %}active{% endif %}">
-          <a href="{{ url_for('recetario') }}">Recetario</a>
+          <a href="{{ url_for('recetario') }}" style="{{ LCHROME.estilos.get('header.nav.recetario', '') }}">Recetario</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.blog', {}).get('hidden') %}
         <li class="{% if request.endpoint in ['blog','blog_post'] %}active{% endif %}">
-          <a href="{{ url_for('blog') }}">Blog</a>
+          <a href="{{ url_for('blog') }}" style="{{ LCHROME.estilos.get('header.nav.blog', '') }}">Blog</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.nosotros', {}).get('hidden') %}
         <li class="{% if request.endpoint == 'nosotros' %}active{% endif %}">
-          <a href="{{ url_for('nosotros') }}">Nosotros</a>
+          <a href="{{ url_for('nosotros') }}" style="{{ LCHROME.estilos.get('header.nav.nosotros', '') }}">Nosotros</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.contacto', {}).get('hidden') %}
         <li class="{% if request.endpoint == 'contacto' %}active{% endif %}">
-          <a href="{{ url_for('contacto') }}">Contacto</a>
+          <a href="{{ url_for('contacto') }}" style="{{ LCHROME.estilos.get('header.nav.contacto', '') }}">Contacto</a>
         </li>
+        {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.cuenta', {}).get('hidden') %}
         <li class="{% if request.endpoint in ['mis_pedidos','cuenta_entrar','auth_google_start','auth_google_callback'] %}active{% endif %}">
-          <a href="{{ account_nav_href }}">{{ account_nav_label }}</a>
+          <a href="{{ account_nav_href }}" style="{{ LCHROME.estilos.get('header.nav.cuenta', '') }}">{{ account_nav_label }}</a>
         </li>
+        {% endif %}
         {% if show_admin_pedidos_link %}
         <li class="{% if request.endpoint and 'admin_pedido' in request.endpoint %}active{% endif %}">
           <a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a>
@@ -145,12 +195,15 @@ fbq('track','PageView');
         {% endif %}
       </ul>
     </nav>
+    {% endif %}
 
     <!-- Búsqueda -->
-    <div class="header-search">
+    {% if not LCHROME.nodos.get('header.search', {}).get('hidden') %}
+    <div class="header-search" style="{{ LCHROME.estilos.get('header.search', '') }}">
       <i class="ph ph-magnifying-glass search-icon"></i>
       <input type="search" id="header-search-input" placeholder="Buscar producto..." autocomplete="off">
     </div>
+    {% endif %}
 
     <!-- CTA WhatsApp + Carrito -->
     <div class="header-actions">
@@ -164,11 +217,13 @@ fbq('track','PageView');
         <span class="cart-count">{{ cart_count }}</span>
         {% endif %}
       </div>
+      {% if not LCHROME.nodos.get('header.btn_wa', {}).get('hidden') %}
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
-         target="_blank" rel="noopener" class="btn-wa-header">
+         target="_blank" rel="noopener" class="btn-wa-header" style="{{ LCHROME.estilos.get('header.btn_wa', '') }}">
         <i class="ph ph-whatsapp-logo"></i>
         WhatsApp
       </a>
+      {% endif %}
     </div>
 
     <!-- Hamburger -->
@@ -181,21 +236,40 @@ fbq('track','PageView');
   <!-- Menú móvil -->
   <nav class="mobile-menu" id="mobile-menu" hidden>
     <ul class="mobile-nav-list">
-      <li><a href="{{ url_for('index') }}">Inicio</a></li>
-      <li><a href="{{ url_for('catalogo') }}">Catálogo</a></li>
-      <li><a href="{{ url_for('guias') }}">Guías de Uso</a></li>
-      <li><a href="{{ url_for('recetario') }}">Recetario</a></li>
-      <li><a href="{{ url_for('blog') }}">Blog</a></li>
-      <li><a href="{{ url_for('nosotros') }}">Nosotros</a></li>
-      <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
-      <li><a href="{{ account_nav_href }}">{{ account_nav_label }}</a></li>
+      {% if not LCHROME.nodos.get('header.nav.inicio', {}).get('hidden') %}
+      <li><a href="{{ url_for('index') }}" style="{{ LCHROME.estilos.get('header.nav.inicio', '') }}">Inicio</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.catalogo', {}).get('hidden') %}
+      <li><a href="{{ url_for('catalogo') }}" style="{{ LCHROME.estilos.get('header.nav.catalogo', '') }}">Catálogo</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.guias', {}).get('hidden') %}
+      <li><a href="{{ url_for('guias') }}" style="{{ LCHROME.estilos.get('header.nav.guias', '') }}">Guías de Uso</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.recetario', {}).get('hidden') %}
+      <li><a href="{{ url_for('recetario') }}" style="{{ LCHROME.estilos.get('header.nav.recetario', '') }}">Recetario</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.blog', {}).get('hidden') %}
+      <li><a href="{{ url_for('blog') }}" style="{{ LCHROME.estilos.get('header.nav.blog', '') }}">Blog</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.nosotros', {}).get('hidden') %}
+      <li><a href="{{ url_for('nosotros') }}" style="{{ LCHROME.estilos.get('header.nav.nosotros', '') }}">Nosotros</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.contacto', {}).get('hidden') %}
+      <li><a href="{{ url_for('contacto') }}" style="{{ LCHROME.estilos.get('header.nav.contacto', '') }}">Contacto</a></li>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.cuenta', {}).get('hidden') %}
+      <li><a href="{{ account_nav_href }}" style="{{ LCHROME.estilos.get('header.nav.cuenta', '') }}">{{ account_nav_label }}</a></li>
+      {% endif %}
       {% if show_admin_pedidos_link %}
       <li><a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a></li>
       {% endif %}
-      <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank">WhatsApp</a></li>
+      {% if not LCHROME.nodos.get('header.btn_wa', {}).get('hidden') %}
+      <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" style="{{ LCHROME.estilos.get('header.btn_wa', '') }}">WhatsApp</a></li>
+      {% endif %}
     </ul>
   </nav>
 </header>
+{% endif %}
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}

@@ -4062,6 +4062,44 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 400
         return jsonify({"ok": True, "config": draft, "mensaje": "Vista previa actualizada"})
 
+    @app.route("/app/api/web/tema/fondo", methods=["POST"])
+    @app.route("/api/web/tema/fondo", methods=["POST"])
+    def api_web_tema_fondo_subir():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.tema_web_fondos import guardar_fondo
+
+        archivo = request.files.get("archivo") or request.files.get("file")
+        try:
+            item = guardar_fondo(archivo)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+        return jsonify({"ok": True, **item})
+
+    @app.route("/app/api/web/tema/fondos", methods=["GET"])
+    @app.route("/api/web/tema/fondos", methods=["GET"])
+    def api_web_tema_fondos_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.tema_web_fondos import listar_fondos
+
+        return jsonify({"ok": True, "fondos": listar_fondos()})
+
+    @app.route("/api/web/tema/fondo-archivo/<filename>", methods=["GET"])
+    @app.route("/app/api/web/tema/fondo-archivo/<filename>", methods=["GET"])
+    @app.route("/static/uploads/fondos/<filename>", methods=["GET"])
+    @app.route("/app/static/uploads/fondos/<filename>", methods=["GET"])
+    def api_web_tema_fondo_archivo(filename):
+        """Preview del Studio en :8081 (mismas fotos que sirve el sitio en :8083)."""
+        from app.tools.tema_web_fondos import ruta_fondo_segura
+
+        path = ruta_fondo_segura(filename)
+        if path is None:
+            return jsonify({"error": "No encontrado"}), 404
+        return send_from_directory(str(path.parent), path.name)
+
     def _titulo_documento_datos(datos: dict | None) -> str:
         if not isinstance(datos, dict):
             return ""
