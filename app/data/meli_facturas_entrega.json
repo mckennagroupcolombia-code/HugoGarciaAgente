@@ -913,6 +913,27 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000017745604094": {
+      "shipping_id": "47679920504",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-10T23:24:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 9400.0
+          }
+        ],
+        "total": 9400.0,
+        "nombre_cliente": "Gloria amparo Morales",
+        "identificacion": "222222222222",
+        "direccion_envio": "Avenida Calle 6  barrio palo cabildo parte media Casa 10-320, Remedios, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   }
 }

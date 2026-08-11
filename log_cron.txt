@@ -484,3 +484,47 @@ PermissionError: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/t
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 [meli_compliance_monitor] revisadas=14 activas=11 problemas=2 alertas_wa=0
+[cursor/wa-metricas-panel 449872d] Auto-commit: actualizacion diaria 2026-08-10 23:00
+ 133 files changed, 12387 insertions(+), 1852 deletions(-)
+ create mode 100644 app/data/alertas_sistema_estado.json
+ create mode 100644 app/data/cron_frecuencias.json
+ create mode 100644 app/data/meli_facturas_entrega.json
+ create mode 100644 app/data/notas_credito_auto_log.json
+ rename app/data/{wa_chats.db-shm => wa_biblioteca.db-shm} (97%)
+ create mode 100644 app/data/wa_biblioteca.db-wal
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/routes_meli_oauth.py
+ create mode 100644 app/services/contabilidad_core.py
+ create mode 100644 app/tools/alertas_sistema.py
+ create mode 100644 app/tools/meli_autofactura_entrega.py
+ create mode 100644 app/tools/notas_credito.py
+ create mode 100644 desktop/public/fonts/a-note/ANote.ttf
+ create mode 100644 desktop/public/fonts/a-note/LICENSE.txt
+ create mode 100644 desktop/src/assets/fonts/ANote.ttf
+ create mode 100644 desktop/src/components/BarbieSparkles.tsx
+ create mode 100644 desktop/src/components/LibroMayorPanel.tsx
+ create mode 100644 desktop/src/components/MatrixRain.tsx
+ create mode 100644 desktop/src/components/MeliOAuthPanel.tsx
+ create mode 100644 desktop/src/components/SystemAlertsBanner.tsx
+ create mode 100644 desktop/src/components/ThemePackPicker.tsx
+ create mode 100644 desktop/src/components/ThemeStudio.tsx
+ create mode 100644 desktop/src/components/ThemesDialog.tsx
+ create mode 100644 desktop/src/components/libroMayor.css
+ create mode 100644 desktop/src/components/nav/InicioNavTabs.tsx
+ create mode 100644 desktop/src/hooks/useAlertasSistema.ts
+ create mode 100644 desktop/src/lib/hubTabClass.ts
+ create mode 100644 desktop/src/stores/themesDialog.ts
+ create mode 100644 productos que no se dejan facturar.docx
+ create mode 100644 scripts/aplicar_sku_meli_faltantes.py
+ create mode 100644 scripts/auditar_sku_meli_faltantes.py
+ create mode 100755 scripts/emitir_notas_credito_cron.py
+ create mode 100644 tests/test_notas_credito.py
+ create mode 100644 uploads/tickets/87d159cd06c24c1687ad2562d70a24ec.docx
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-10 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
