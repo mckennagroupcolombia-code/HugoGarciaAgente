@@ -1856,6 +1856,28 @@
       "pregunta": "“¿Me puede decir el COA del lote? ¿Está destinado a consumo humano directo o es exclusivamente materia prima?”",
       "timestamp": "2026-08-09T17:06:17.387021",
       "respondida": true
+    },
+    {
+      "question_id": "13638352871",
+      "titulo_producto": "Manteca De Karité Orgánica Amarilla Sin - G A $191",
+      "pregunta": "Buenas tardes tienen disponible manteca Karite , glicerina vegetal y arcilla blanca caolin y aceite esencial de menta ?",
+      "timestamp": "2026-08-10T14:16:54.452130",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buenas tardes. Con gusto le colaboro.\n\nContamos con disponibilidad de nuestra Manteca de Karité Orgánica Amarilla Sin Refinar. Es un producto 100% natural, extraída de la semilla del árbol del karité de África Central, ideal para formulaciones cosméticas, hidratación, cuidado del cabello y tratamiento de la piel.\n\nSin embargo, los demás productos que menciona — glicerina vegetal, arcilla blanca caolín y aceite esencial de menta — no hacen parte de nuestro catálogo disponible en esta publicación, por lo que no le puedo confirmar disponibilidad de esos artículos.\n\nSi le interesa la manteca de karité, contamos con varias presentaciones:\n- 125 gr — $31,900 👉 https://articulo.mercadolibre.com.co/MCO-572516333-manteca-de-karite-organica-amarilla-sin-refinar-125-gr-_JM\n- 250 gr — $61,900 👉 https://articulo.mercadolibre.com.co/MCO-572516617-manteca-de-karite-organica-amarilla-sin-refinar-250-gr-_JM\n- 500 gr — $116,000 👉 https://articulo.mercadolibre.com.co/MCO-566618436-manteca-karite-500-gr-envio-_JM\n- 1 kg — $189,000 👉 https://articulo.mercadolibre.com.co/MCO-566618455-manteca-karite-1-kg-envio-_JM\n\nQuedamos atentos a cualquier otra consulta. 😊"
+    },
+    {
+      "question_id": "13639377842",
+      "titulo_producto": "Té Matcha  Polvo 100 Gr ",
+      "pregunta": "Como es el COA de este producto; Cual es el contenido de EGCG/catequinas del COA, EGCG = %?",
+      "timestamp": "2026-08-10T21:31:20.653166",
+      "respondida": false
+    },
+    {
+      "question_id": "13639386412",
+      "titulo_producto": "Té Matcha  Polvo 100 Gr ",
+      "pregunta": "cuánta cafeína hay por gramo cuántas catequinas hay por gramo cuál es la dosis recomendada para consumo humano directo?",
+      "timestamp": "2026-08-10T21:31:20.653166",
+      "respondida": false
     }
   ]
 }

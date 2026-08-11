@@ -1,7 +1,11 @@
 """
 Chat con clientes (WhatsApp, burbuja web): catálogo/ficha en Python + LLM solo texto.
 
-No usa AgentRun ni tool-use API: evita costo Claude y el fallo Gemini+tools.
+No usa AgentRun ni tool-use API: el LLM (Claude por defecto, ver
+app.services.canales_config) solo redacta sobre el contexto ya resuelto en
+Python. Evita el costo de un loop de herramientas y el fallo de Gemini con
+tool-use. Gemini/Ollama quedan como red de seguridad si Claude falla o el
+presupuesto LLM lo bloquea (ver _completar_claude / _completar_gemini).
 """
 
 from __future__ import annotations
@@ -209,6 +213,67 @@ def _completar_gemini(
         return None
 
 
+def _completar_claude(
+    cliente_claude,
+    modelo_id: str,
+    system: str,
+    historial: list[dict],
+    mensaje_usuario: str,
+    max_tokens: int = 1024,
+) -> str | None:
+    if cliente_claude is None:
+        return None
+    modelo = (modelo_id or "").strip()
+    if not modelo.startswith("claude-"):
+        modelo = "claude-sonnet-4-6"
+
+    from app.agent.llm_router import ClaudeProvider, ProviderError
+    from app.services.llm_budget import permitir_llamada, registrar_llamada
+
+    ok, motivo = permitir_llamada(modelo, contexto="cliente_chat")
+    if not ok:
+        log_json("cliente_chat_budget_bloqueado", model=modelo, motivo=motivo[:150])
+        return None
+
+    messages: list[dict] = []
+    for m in historial[-10:]:
+        role = m.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+        c = m.get("content", "")
+        if isinstance(c, list):
+            c = " ".join(
+                b.get("text", "")
+                for b in c
+                if isinstance(b, dict) and b.get("type") == "text"
+            )
+        txt = str(c).strip()[:4000]
+        if txt:
+            messages.append({"role": role, "content": txt})
+    # Claude exige que el primer turno sea "user".
+    while messages and messages[0]["role"] != "user":
+        messages.pop(0)
+    messages.append({"role": "user", "content": mensaje_usuario[:8000]})
+
+    try:
+        resp = ClaudeProvider(cliente_claude, model_id=modelo).complete(
+            messages, system=system, max_tokens=max_tokens
+        )
+    except ProviderError as e:
+        log_json("cliente_chat_claude_error", model=modelo, error=str(e)[:200])
+        return None
+
+    registrar_llamada(
+        modelo,
+        tokens_in=resp.input_tokens,
+        tokens_out=resp.output_tokens,
+        contexto="cliente_chat",
+        chars_prompt=len(system) + len(mensaje_usuario),
+        chars_respuesta=len(resp.text or ""),
+    )
+    return (resp.text or "").strip() or None
+
+
 def _historial_plano(historial: list, extraer_texto: Callable, max_turnos: int = 25) -> str:
     """Genera historial en texto plano para el prompt de Gemini/Ollama."""
     partes: list[str] = []
@@ -233,7 +298,8 @@ def responder_canal_cliente(
     modelo_id: str,
     es_web: bool,
     cliente_gemini,
-    memoria_vectorial: str,
+    cliente_claude=None,
+    memoria_vectorial: str = "",
     contexto_catalogo: str | None,
     contexto_ficha: str | None,
     extraer_texto_visible: Callable,
@@ -272,10 +338,11 @@ def responder_canal_cliente(
             "No redirija a WhatsApp salvo para cotización formal o pago."
         )
 
-    # Para Gemini en WhatsApp: usar prompt limpio (sin refs a tools de Claude).
+    # Para Gemini/Claude en WhatsApp (modelos API sin tools en este flujo): usar
+    # prompt limpio, sin refs a herramientas internas.
     # Para web y Ollama: usar el prompt heredado con el sufijo MODO CLIENTE.
     es_gemini = modelo_id.startswith("gemini-") or _FALLBACK_GEMINI.startswith("gemini-")
-    if es_gemini and not es_web:
+    if (es_gemini or modelo_id.startswith("claude-")) and not es_web:
         sys = SYSTEM_PROMPT_WHATSAPP_GEMINI
         try:
             from app.core import cargar_datos_pago
@@ -304,6 +371,9 @@ def responder_canal_cliente(
     elif modelo_id.startswith("gemini-"):
         texto = _completar_gemini(cliente_gemini, modelo_id, sys, hist_plano, mensaje_llm)
         proveedor = "gemini"
+    elif modelo_id.startswith("claude-"):
+        texto = _completar_claude(cliente_claude, modelo_id, sys, historial, mensaje_llm)
+        proveedor = "claude"
 
     if not texto and _FALLBACK_GEMINI and modelo_id != _FALLBACK_GEMINI:
         texto = _completar_gemini(cliente_gemini, _FALLBACK_GEMINI, sys, hist_plano, mensaje_llm)

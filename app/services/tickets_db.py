@@ -1738,6 +1738,73 @@ def desactivar_usuario(user_id: int, solicitante_id: int) -> tuple:
     return True, None
 
 
+_TEMA_COLOR_KEYS = {
+    "surface", "surfacePanel", "surfaceInput", "surfaceHover",
+    "ink", "inkSecondary", "muted", "border", "borderStrong",
+    "menuBg", "menuText", "menuActiveBg", "menuActiveText",
+    "submenuBg", "submenuText", "title", "subtitle", "cardBg", "sectionBg",
+}
+
+
+def _rgb_tema_ok(value: object) -> bool:
+    parts = str(value).strip().split()
+    return len(parts) == 3 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
+
+
+def _limpiar_colores_tema(raw: object) -> dict | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, val in raw.items():
+        if key in _TEMA_COLOR_KEYS and _rgb_tema_ok(val):
+            out[str(key)] = " ".join(str(int(p)) for p in str(val).split())
+    return out
+
+
+def _limpiar_temas_custom(raw: object) -> list | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, list):
+        return []
+    fonts = {
+        "Montserrat", "Inter", "DM Sans", "Nunito", "Outfit",
+        "JetBrains Mono", "Share Tech Mono", "system-ui",
+    }
+    out: list[dict] = []
+    for item in raw[:12]:
+        if not isinstance(item, dict):
+            continue
+        tid = str(item.get("id") or "")
+        name = str(item.get("name") or "").strip()[:40]
+        if not tid.startswith("u_") or not name:
+            continue
+        accent = item.get("accentRgb")
+        if not _rgb_tema_ok(accent):
+            accent = "12 96 105"
+        mode = item.get("mode") if item.get("mode") in ("light", "dark", "system") else "light"
+        font = item.get("fontSans") if item.get("fontSans") in fonts else "Montserrat"
+        radius = item.get("radius") if item.get("radius") in ("sm", "md", "lg") else "md"
+        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura") else "clasica"
+        font_scale = item.get("fontScale") if item.get("fontScale") in ("sm", "md", "lg", "xl") else "md"
+        menu_scale = item.get("menuScale") if item.get("menuScale") in ("sm", "md", "lg") else "md"
+        colors = _limpiar_colores_tema(item.get("colors")) or {}
+        out.append({
+            "id": tid[:40],
+            "name": name,
+            "mode": mode,
+            "fontSans": font,
+            "accentRgb": " ".join(str(int(p)) for p in str(accent).split()),
+            "radius": radius,
+            "skin": skin,
+            "fontScale": font_scale,
+            "menuScale": menu_scale,
+            "colors": colors,
+        })
+    return out
+
+
 def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:
     """Guarda tema del panel asociado al usuario (JSON validado)."""
     import json as _json
@@ -1760,7 +1827,16 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["mode"] = mode
         font = panel_in.get("fontSans")
         if font is not None:
-            if font not in ("Montserrat", "Inter", "DM Sans", "Nunito", "system-ui"):
+            if font not in (
+                "Montserrat",
+                "Inter",
+                "DM Sans",
+                "Nunito",
+                "Outfit",
+                "JetBrains Mono",
+                "Share Tech Mono",
+                "system-ui",
+            ):
                 return False, "fontSans inválido", None
             panel["fontSans"] = font
         accent = panel_in.get("accentRgb")
@@ -1774,6 +1850,33 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             if radius not in ("sm", "md", "lg"):
                 return False, "radius inválido", None
             panel["radius"] = radius
+        skin = panel_in.get("skin")
+        if skin is not None:
+            if skin not in ("clasica", "atelier", "matrix", "sakura"):
+                return False, "skin inválido", None
+            panel["skin"] = skin
+        font_scale = panel_in.get("fontScale")
+        if font_scale is not None:
+            if font_scale not in ("sm", "md", "lg", "xl"):
+                return False, "fontScale inválido", None
+            panel["fontScale"] = font_scale
+        menu_scale = panel_in.get("menuScale")
+        if menu_scale is not None:
+            if menu_scale not in ("sm", "md", "lg"):
+                return False, "menuScale inválido", None
+            panel["menuScale"] = menu_scale
+        colors = _limpiar_colores_tema(panel_in.get("colors"))
+        if colors is not None:
+            panel["colors"] = colors
+        custom = _limpiar_temas_custom(panel_in.get("customThemes"))
+        if custom is not None:
+            panel["customThemes"] = custom
+        active_custom = panel_in.get("activeCustomId")
+        if active_custom is None or active_custom == "":
+            if "activeCustomId" in panel_in:
+                panel["activeCustomId"] = None
+        elif isinstance(active_custom, str) and active_custom.startswith("u_"):
+            panel["activeCustomId"] = active_custom[:40]
         if panel:
             clean["panel"] = panel
 

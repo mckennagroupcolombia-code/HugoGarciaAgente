@@ -34,6 +34,7 @@ export type Panel =
   | "impuestos"
   | "servicios"
   | "ingresos-egresos"
+  | "libro-mayor"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
@@ -44,6 +45,8 @@ export type Panel =
   | "logistica-proveedores"
   | "logistica-seguimiento"
   | "control-versiones"
+  | "meli-oauth"
+  | "tareas-programadas"
   | "settings"
   | "perfil";
 
@@ -148,6 +151,9 @@ interface AppState {
   toggleSidebar: () => void;
   etiquetasTab: EtiquetasTab;
   setEtiquetasTab: (t: EtiquetasTab) => void;
+  /** Studio visual en vista de lienzo (editor): Layout usa fill sin padding. */
+  etiquetasStudioInmersivo: boolean;
+  setEtiquetasStudioInmersivo: (v: boolean) => void;
   etiquetasHandoff: EtiquetasHandoff | null;
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
@@ -236,8 +242,16 @@ export const useAppStore = create<AppState>()(
       etiquetasTab: "imprimir",
       setEtiquetasTab: (etiquetasTab) => {
         if (get().etiquetasTab === etiquetasTab) return;
-        set({ etiquetasTab });
+        set({
+          etiquetasTab,
+          ...(etiquetasTab !== "studio" ? { etiquetasStudioInmersivo: false } : {}),
+        });
         queueMicrotask(() => notifyNavChange());
+      },
+      etiquetasStudioInmersivo: false,
+      setEtiquetasStudioInmersivo: (etiquetasStudioInmersivo) => {
+        if (get().etiquetasStudioInmersivo === etiquetasStudioInmersivo) return;
+        set({ etiquetasStudioInmersivo });
       },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),

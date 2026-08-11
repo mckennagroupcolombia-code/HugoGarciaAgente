@@ -120,6 +120,7 @@ from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
 from app.meli_reclamos import crear_accion_anular_factura_por_reclamo
 from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.sync import sincronizar_stock_todas_las_plataformas
+from app.tools.meli_autofactura_entrega import procesar_entrega_meli_para_factura
 
 # Memoria para deduplicación de preguntas
 preguntas_procesadas = {}
@@ -301,6 +302,10 @@ def notifications():
             kwargs={"topic": plan.get("topic")},
             daemon=True,
         )
+    elif t == "envio":
+        shipping_id = plan["shipping_id"]
+        print(f"🚚 [MELI-SHIP] Notificación de envío {shipping_id} recibida.")
+        spawn_thread(procesar_entrega_meli_para_factura, args=(shipping_id,), daemon=True)
     else:
         _noop_msgs = {
             "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
@@ -312,6 +317,8 @@ def notifications():
             ),
             "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
             "reclamo_sin_resource": "⚠️ [MELI-CLAIM] Reclamo sin resource, ignorado.",
+            "envio_sin_resource": "⚠️ [MELI-SHIP] shipments sin resource, ignorado.",
+            "envio_sin_id": "⚠️ [MELI-SHIP] shipments sin id de envío, ignorado.",
             "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
         }
         print(_noop_msgs.get(t, f"ℹ️ [NOTIF] tipo plan={t!r}"))

@@ -1,4 +1,4 @@
-import { MCKENNA_THEME_DEFAULT } from "../theme/presets";
+import { MCKENNA_THEME_DEFAULT, sanitizePanelTheme } from "../theme/presets";
 import type { PanelThemeConfig } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useQuestTheme } from "../stores/questTheme";
@@ -12,16 +12,26 @@ let hydrating = false;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSavedJson = "";
 
+export function panelThemeSnapshot(panel: PanelThemeConfig) {
+  return {
+    mode: panel.mode,
+    fontSans: panel.fontSans,
+    accentRgb: panel.accentRgb,
+    radius: panel.radius,
+    skin: panel.skin,
+    fontScale: panel.fontScale,
+    menuScale: panel.menuScale,
+    colors: panel.colors,
+    customThemes: panel.customThemes,
+    activeCustomId: panel.activeCustomId,
+  };
+}
+
 export function buildUserUiPreferences(): UserUiPreferences {
   const panel = usePanelTheme.getState();
   const quest = useQuestTheme.getState();
   return {
-    panel: {
-      mode: panel.mode,
-      fontSans: panel.fontSans,
-      accentRgb: panel.accentRgb,
-      radius: panel.radius,
-    },
+    panel: panelThemeSnapshot(panel),
     quest: { dark: quest.dark },
   };
 }
@@ -30,10 +40,10 @@ export function buildUserUiPreferences(): UserUiPreferences {
 export function applyUserUiPreferences(prefs: UserUiPreferences | null | undefined) {
   hydrating = true;
   try {
-    const panel: PanelThemeConfig = {
+    const panel = sanitizePanelTheme({
       ...MCKENNA_THEME_DEFAULT,
       ...(prefs?.panel ?? {}),
-    };
+    });
     usePanelTheme.getState().hydrate(panel, prefs?.quest?.dark);
   } finally {
     hydrating = false;

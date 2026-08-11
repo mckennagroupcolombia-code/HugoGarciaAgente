@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
+import SystemAlertsBanner from "./SystemAlertsBanner";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
+import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 import DisenoNavTabs from "./nav/DisenoNavTabs";
+import InicioNavTabs from "./nav/InicioNavTabs";
 import ThemeModeToggle from "./ThemeModeToggle";
+import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { esAdminPanel, modoAvanzadoEfectivo } from "../lib/adminAccess";
+import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import {
   esSeccionHub,
   navSectionForPanel,
@@ -36,6 +41,7 @@ export default function Layout({
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
+  const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   const user = useTicketsAuth((s) => s.user);
   const isAdmin = esAdminPanel(user);
   const { advanced: advancedToggle } = useUiMode();
@@ -60,12 +66,13 @@ export default function Layout({
     panel === "perfil" || panel === "settings" ? "Cuenta" : null;
 
   /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
+  const studioEtiquetasFill = panel === "etiquetas" && etiquetasStudioInmersivo;
   const contentScrollClass = isCentroMando
     ? hubIntegrado
       ? "flex min-h-0 flex-col overflow-hidden px-3 pt-3 sm:px-5 sm:pt-4 lg:px-10 lg:pt-5"
       : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-10 lg:py-6"
     : isHub
-    ? sectionId === "studio-web"
+    ? panel === "sitioweb" || studioEtiquetasFill
       ? "flex min-h-0 flex-col overflow-hidden"
       : "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
     : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8";
@@ -85,6 +92,7 @@ export default function Layout({
       <Sidebar />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <SystemAlertsBanner />
         <header
           className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm sm:gap-2.5 sm:px-4 sm:py-2.5"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
@@ -120,20 +128,20 @@ export default function Layout({
                   <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
                 </span>
               ) : null}
-              <div className={panel === "sitioweb" ? "shrink-0" : "min-w-0"}>
-                <h1 className="truncate text-sm font-bold tracking-tight text-ink lg:text-base">
+              <div className="min-w-0 shrink-0">
+                <h1 className="mck-title truncate text-sm font-bold tracking-tight lg:text-base">
                   {headerTitle}
                 </h1>
                 {headerSubtitle && (
-                  <p className="hidden truncate text-[10px] leading-snug text-muted lg:block">
+                  <p className="mck-subtitle hidden truncate text-[10px] leading-snug lg:block">
                     {headerSubtitle}
                   </p>
                 )}
               </div>
               {panel === "sitioweb" && (
                 <div
-                  id="studio-web-chrome"
-                  className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5"
+                  id="studio-web-chrome-top"
+                  className="flex min-w-0 flex-1 items-center gap-1"
                 />
               )}
             </div>
@@ -154,18 +162,44 @@ export default function Layout({
               </button>
             )}
 
-            <div className="shrink-0">
+            <div className="flex min-w-0 shrink items-center gap-1.5">
+              {sectionId === "contabilidad" && (
+                <ContabilidadHerramientas
+                  puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
+                />
+              )}
+              {/* Diseño: pestañas (imprimir…) a la izquierda de Temas y estilo visual */}
+              {sectionId === "diseno" && (
+                <div className="mr-0.5 min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5">
+                  <DisenoNavTabs />
+                </div>
+              )}
+              {/* Inicio: Agenda / Acciones / Solicitudes / Métricas junto a Temas */}
+              {sectionId === "inicio" && (
+                <div className="mr-0.5 min-w-0 max-w-[min(100%,48rem)] border-r border-border/80 pr-1.5">
+                  <InicioNavTabs />
+                </div>
+              )}
+              {panel !== "sitioweb" && <TemasHeaderButton />}
               <ThemeModeToggle />
             </div>
           </div>
 
-          {showHubTabs && sectionId !== "studio-web" && (
-            <div className="min-w-0 w-full">
-              {sectionId === "contabilidad" && <ContabilidadNavTabs />}
-              {sectionId === "diseno" && <DisenoNavTabs />}
-              {sectionId !== "contabilidad" && sectionId !== "diseno" && (
+          {showHubTabs && sectionId !== "diseno" && sectionId !== "inicio" && (
+            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+              {sectionId === "contabilidad" ? (
+                <ContabilidadNavTabs />
+              ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}
+            </div>
+          )}
+          {panel === "sitioweb" && (
+            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+              <div
+                id="studio-web-chrome"
+                className="flex min-w-0 flex-1 items-center gap-1"
+              />
             </div>
           )}
         </header>
@@ -175,7 +209,8 @@ export default function Layout({
             {isHub && !isCentroMando ? (
               sectionId === "contabilidad" ||
               sectionId === "publicaciones" ||
-              sectionId === "studio-web" ? (
+              panel === "sitioweb" ||
+              studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>
                 </div>
@@ -188,7 +223,7 @@ export default function Layout({
               <PanelTransition>{children}</PanelTransition>
             )}
           </div>
-          {isAdmin && !hubIntegrado && panel !== "stock" && panel !== "sitioweb" && (
+          {isAdmin && !hubIntegrado && panel !== "stock" && panel !== "sitioweb" && !studioEtiquetasFill && (
             <div className="hidden shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm md:block lg:px-8">
               <ActivityLog />
             </div>

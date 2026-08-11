@@ -2,13 +2,14 @@
 
 ## Proposito
 
-Recibir notificaciones de MercadoLibre en puerto 8080 y despachar questions, orders_v2 y messages sin bloquear el webhook.
+Recibir notificaciones de MercadoLibre en puerto 8080 y despachar questions, orders_v2, messages y shipments (autofactura entrega) sin bloquear el webhook.
 
 ## Archivos Ancla
 
 - `webhook_meli.py`
 - `app/meli_webhook_topics.py`
 - `app/meli_postventa_notif.py`
+- `app/tools/meli_autofactura_entrega.py`
 - `preventa_meli.py`
 - `app/sync.py`
 
@@ -19,6 +20,7 @@ Recibir notificaciones de MercadoLibre en puerto 8080 y despachar questions, ord
 - Webhook responde 200 rapido y procesa en hilos.
 - Deduplicacion de preguntas usa ventana corta para evitar doble respuesta.
 - Posventa MeLi usa API messages con header `x-version: 2`.
+- Topico `shipments` -> `procesar_entrega_meli_para_factura` gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO` (default 0 = modo sombra, no toca Siigo/DIAN). No activar sin confirmar trafico real del topico.
 
 ## Riesgos
 

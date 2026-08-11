@@ -9,6 +9,7 @@ import { PanelIcon } from "../icons/PanelIcon";
 import { Icon, type UiIconName } from "../icons";
 import UserAvatar from "./UserAvatar";
 import ThemeModeToggle from "./ThemeModeToggle";
+import { useThemesDialog } from "../stores/themesDialog";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -665,6 +666,7 @@ function PerfilTab({
   onNavigateTo: (p: Panel) => void;
 }) {
   const { user, token } = useTicketsAuth();
+  const openTemas = useThemesDialog((s) => s.setOpen);
 
   return (
     <div className="h-full overflow-y-auto pb-24 pt-6 px-4">
@@ -689,6 +691,14 @@ function PerfilTab({
       {/* Menu */}
       <div className="space-y-2">
         <ThemeModeToggle variant="sidebar" className="rounded-2xl bg-surface-panel px-4 py-4 shadow-paper-sm" />
+        <button
+          type="button"
+          onClick={() => openTemas(true)}
+          className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98]"
+        >
+          <IllustrationIcon name="palette" size={24} tone="neutral" />
+          <span className="flex-1 text-sm font-semibold text-ink">Temas y estilo visual</span>
+        </button>
         {[
           { icon: "nut" as UiIconName, label: "Ajustes y preferencias", action: () => onNavigateTo("settings") },
           { icon: "user" as UiIconName, label: "Mi perfil", action: () => onNavigateTo("perfil") },

@@ -172,6 +172,13 @@ def migrate_orders_table() -> None:
         ("cancelled_at", "TEXT"),
         ("cancel_reason", "TEXT"),
         ("stock_restaurado_at", "TEXT"),
+        ("delivered_at", "TEXT"),
+        # Método de pago Mercado Pago (payment_method_id / payment_type_id)
+        ("payment_method", "TEXT"),
+        ("payment_type", "TEXT"),
+        ("refunded_at", "TEXT"),
+        ("mp_refund_id", "TEXT"),
+        ("mp_refund_json", "TEXT"),
     ]
     for col, decl in additions:
         if col not in existing:
@@ -1469,6 +1476,36 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
     return emitir_factura_siigo_pedido_web(ref, force=True)
 
 
+def registrar_entrega_y_facturar(reference: str) -> tuple[bool, str]:
+    """
+    Marca el pedido como entregado y dispara la factura Siigo en ESE momento
+    (no al momento de la venta/aprobación). Reduce notas crédito por
+    arrepentimiento del cliente entre la compra y la entrega.
+
+    Idempotente: si ya tenía factura, emitir_factura_siigo_pedido_web() la
+    devuelve sin duplicar (mismo dedup que usa 'facturar').
+    """
+    migrate_orders_table()
+    ref = reference.strip().upper()
+    order = get_order_by_reference(ref)
+    if not order:
+        return False, f"No encontré el pedido {ref}."
+
+    now = datetime.now().isoformat()
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.execute(
+        """UPDATE orders SET shipping_status = 'delivered',
+           delivered_at = COALESCE(delivered_at, ?) WHERE upper(reference) = ?""",
+        (now, ref),
+    )
+    con.commit()
+    con.close()
+
+    ok, out = emitir_factura_siigo_pedido_web(ref, force=True)
+    prefijo = "✅ Entrega registrada. " if ok else "⚠️ Entrega registrada, pero "
+    return ok, prefijo + out
+
+
 def anular_pedido_web(
     reference: str,
     *,
@@ -1555,9 +1592,24 @@ def anular_pedido_web(
 
     siigo_num = (order.get("siigo_invoice_number") or "").strip()
     if siigo_num:
-        parts.append(
-            f"⚠️ Tiene factura Siigo #{siigo_num}: anula o nota crédito manual en Siigo si aplica."
-        )
+        try:
+            from app.tools.notas_credito import crear_ticket_nota_credito
+
+            _tk_ok, tk_msg = crear_ticket_nota_credito(
+                canal="Web",
+                referencia=ref,
+                motivo=motivo,
+                siigo_factura_numero=siigo_num,
+                siigo_factura_estado=order.get("siigo_invoice_status"),
+                siigo_factura_url=_siigo_invoice_url(order.get("siigo_invoice_id")),
+            )
+            parts.append(f"⚠️ Tiene factura Siigo #{siigo_num}. {tk_msg}")
+        except Exception as e:
+            log.warning("Ticket nota crédito %s: %s", ref, e)
+            parts.append(
+                f"⚠️ Tiene factura Siigo #{siigo_num}: anula o nota crédito manual en Siigo si aplica "
+                f"(no se pudo crear el ticket automático: {e})."
+            )
     if motivo:
         parts.append(f"Motivo: {motivo}")
 
@@ -1575,6 +1627,412 @@ def anular_pedido_web(
             log.warning("WA anular pedido web %s: %s", ref, e)
 
     return True, msg
+
+
+def _mp_access_token() -> str:
+    return (os.getenv("MP_ACCESS_TOKEN") or "").strip()
+
+
+def _mp_consultar_pago(payment_id: str) -> dict:
+    """GET /v1/payments/{id}. Retorna dict vacío si falla."""
+    import requests
+
+    pid = str(payment_id or "").strip()
+    token = _mp_access_token()
+    if not pid or not token:
+        return {}
+    try:
+        res = requests.get(
+            f"https://api.mercadopago.com/v1/payments/{pid}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        if res.status_code == 200:
+            data = res.json()
+            return data if isinstance(data, dict) else {}
+    except Exception as e:
+        log.warning("MP consultar pago %s: %s", pid, e)
+    return {}
+
+
+def _fmt_cop(valor: float | int | None) -> str:
+    try:
+        n = float(valor or 0)
+    except (TypeError, ValueError):
+        n = 0.0
+    return f"$ {n:,.0f}".replace(",", ".")
+
+
+def _armar_recibo_reembolso(
+    order: dict,
+    *,
+    payment_id: str,
+    refund_data: dict,
+    amount: float | None,
+    motivo: str,
+    already: bool = False,
+) -> dict:
+    """Recibo legible para panel / WhatsApp a partir de la respuesta MP + orden."""
+    pay = _mp_consultar_pago(payment_id) if payment_id else {}
+    refund_id = str(refund_data.get("id") or "").strip()
+    st = str(refund_data.get("status") or ("approved" if not already else "refunded")).strip()
+    monto_raw = refund_data.get("amount")
+    if monto_raw is None:
+        monto_raw = amount if amount is not None else order.get("total")
+    try:
+        monto = float(monto_raw or 0)
+    except (TypeError, ValueError):
+        monto = float(order.get("total") or 0)
+    fecha = (
+        str(refund_data.get("date_created") or "").strip()
+        or datetime.now().isoformat(timespec="seconds")
+    )
+    metodo = (
+        str(order.get("payment_method") or "").strip()
+        or str(pay.get("payment_method_id") or "").strip()
+        or "Mercado Pago"
+    )
+    pay_type = (
+        str(order.get("payment_type") or "").strip()
+        or str(pay.get("payment_type_id") or "").strip()
+    )
+    return {
+        "titulo": "Recibo de reembolso — Mercado Pago",
+        "pedido": str(order.get("reference") or "").upper(),
+        "comprador": str(order.get("buyer_name") or "").strip(),
+        "email": str(order.get("buyer_email") or "").strip(),
+        "payment_id": str(payment_id),
+        "refund_id": refund_id,
+        "monto": monto,
+        "monto_fmt": _fmt_cop(monto),
+        "moneda": str(refund_data.get("currency_id") or pay.get("currency_id") or "COP"),
+        "estado": st,
+        "fecha": fecha,
+        "metodo": metodo,
+        "tipo_pago": pay_type,
+        "motivo": (motivo or "").strip()[:500],
+        "parcial": amount is not None,
+        "ya_existia": bool(already),
+        "mp_activity_url": (
+            f"https://www.mercadopago.com.co/activities/{payment_id}"
+            if payment_id
+            else ""
+        ),
+    }
+
+
+def _recibo_texto_plano(recibo: dict) -> str:
+    lines = [
+        recibo.get("titulo") or "Recibo de reembolso",
+        f"Pedido: {recibo.get('pedido') or '—'}",
+        f"Cliente: {recibo.get('comprador') or '—'}",
+        f"Monto: {recibo.get('monto_fmt') or '—'} {recibo.get('moneda') or 'COP'}",
+        f"Estado: {recibo.get('estado') or '—'}",
+        f"Payment ID: {recibo.get('payment_id') or '—'}",
+        f"Refund ID: {recibo.get('refund_id') or '—'}",
+        f"Fecha: {recibo.get('fecha') or '—'}",
+        f"Método: {recibo.get('metodo') or '—'}",
+    ]
+    if recibo.get("motivo"):
+        lines.append(f"Motivo: {recibo['motivo']}")
+    if recibo.get("mp_activity_url"):
+        lines.append(f"Ver en MP: {recibo['mp_activity_url']}")
+    return "\n".join(lines)
+
+
+def _mp_reembolsar_pago(
+    payment_id: str,
+    *,
+    amount: float | None = None,
+    idempotency_key: str = "",
+) -> tuple[bool, str, dict]:
+    """POST /v1/payments/{id}/refunds en Mercado Pago.
+
+    Retorna (ok, mensaje, refund_data). ``amount`` None = devolución total.
+    """
+    import requests
+
+    pid = str(payment_id or "").strip()
+    token = _mp_access_token()
+    if not pid:
+        return False, "Falta el payment_id de Mercado Pago.", {}
+    if not token:
+        return False, "Falta MP_ACCESS_TOKEN en el entorno (.env).", {}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": (idempotency_key or str(uuid.uuid4())).strip()[:64],
+    }
+    body: dict = {}
+    if amount is not None:
+        try:
+            amt = float(amount)
+        except (TypeError, ValueError):
+            return False, "Monto de reembolso inválido.", {}
+        if amt <= 0:
+            return False, "El monto de reembolso debe ser mayor a 0.", {}
+        body["amount"] = round(amt, 2)
+
+    try:
+        res = requests.post(
+            f"https://api.mercadopago.com/v1/payments/{pid}/refunds",
+            headers=headers,
+            json=body,
+            timeout=30,
+        )
+    except Exception as e:
+        log.warning("MP refund payment=%s: %s", pid, e)
+        return False, f"Error de red al llamar Mercado Pago: {e}", {}
+
+    data: dict = {}
+    try:
+        raw = res.json()
+        if isinstance(raw, dict):
+            data = raw
+        elif isinstance(raw, list) and raw and isinstance(raw[0], dict):
+            data = raw[0]
+    except Exception:
+        data = {}
+
+    refund_id = str(data.get("id") or "").strip()
+    st = str(data.get("status") or "").strip().lower()
+
+    if res.status_code in (200, 201) and (st in ("approved", "refunded", "") or refund_id):
+        msg = f"Reembolso MP #{refund_id or 'ok'} ({st or 'approved'})."
+        return True, msg, data
+
+    # Ya reembolsado / duplicado: tratar como éxito idempotente si MP lo indica.
+    cause0 = ""
+    causes = data.get("cause")
+    if isinstance(causes, list) and causes and isinstance(causes[0], dict):
+        cause0 = str(causes[0].get("description") or causes[0].get("code") or "")
+    err_msg = (
+        str(data.get("message") or "").strip()
+        or cause0
+        or str(data.get("error") or "").strip()
+        or (res.text or "")[:200]
+        or f"HTTP {res.status_code}"
+    )
+    err_l = str(err_msg).lower()
+    if res.status_code in (400, 409) and any(
+        x in err_l
+        for x in ("already", "ya fue", "refunded", "reembols", "duplicat")
+    ):
+        # Completar con el último refund del pago si la respuesta no trae id.
+        if not refund_id:
+            pay = _mp_consultar_pago(pid)
+            refunds = pay.get("refunds") if isinstance(pay, dict) else None
+            if isinstance(refunds, list) and refunds:
+                last = refunds[-1] if isinstance(refunds[-1], dict) else {}
+                data = {
+                    "id": last.get("id"),
+                    "amount": last.get("amount"),
+                    "status": last.get("status") or "approved",
+                    "date_created": last.get("date_created"),
+                    "currency_id": pay.get("currency_id") or "COP",
+                    "payment_id": pid,
+                }
+                refund_id = str(data.get("id") or "").strip()
+        return (
+            True,
+            f"El pago ya estaba reembolsado en Mercado Pago ({err_msg}).",
+            {**data, "_already": True},
+        )
+
+    log.warning("MP refund falló payment=%s status=%s body=%s", pid, res.status_code, data or res.text[:300])
+    return False, f"Mercado Pago rechazó el reembolso: {err_msg}", {}
+
+
+def reembolsar_pedido_web(
+    reference: str,
+    *,
+    reason: str = "",
+    force: bool = False,
+    amount: float | None = None,
+    notify_wa: bool = False,
+) -> tuple[bool, str, dict | None]:
+    """Devuelve el dinero vía Mercado Pago y cierra el pedido como ``refunded``.
+
+    Retorna ``(ok, mensaje, recibo)``. El recibo es un dict listo para UI cuando ok=True.
+    """
+    migrate_orders_table()
+    raw = (reference or "").strip()
+    if not raw:
+        return False, "Falta la referencia del pedido.", None
+
+    ref, err = resolver_referencia_desde_token(raw)
+    if err or not ref:
+        return False, err or "No encontré el pedido.", None
+
+    order = get_order_by_reference(ref)
+    if not order:
+        return False, f"No encontré el pedido {ref}.", None
+
+    status = (order.get("status") or "").strip().lower()
+    if status == "refunded":
+        recibo_prev = None
+        raw_json = (order.get("mp_refund_json") or "").strip()
+        if raw_json:
+            try:
+                parsed = json.loads(raw_json)
+                if isinstance(parsed, dict):
+                    recibo_prev = parsed
+            except Exception:
+                recibo_prev = None
+        return False, f"El pedido *{ref}* ya está reembolsado.", recibo_prev
+
+    # Con payment_id se puede reembolsar aunque el estado local sea "unknown"
+    # (IPN incompleto). Solo bloqueamos pendientes / rechazados / no realizados.
+    status_bloqueado = ("pending", "declined", "rejected", "no_realizado")
+    if status in status_bloqueado:
+        return (
+            False,
+            f"Solo se puede reembolsar un pedido con pago capturado "
+            f"(estado actual: {status or '—'}).",
+            None,
+        )
+
+    payment_id = str(order.get("payu_ref") or "").strip()
+    if not payment_id:
+        return (
+            False,
+            f"El pedido *{ref}* no tiene payment_id de Mercado Pago (payu_ref). "
+            f"Reembolso manual en el panel de MP.",
+            None,
+        )
+
+    ship = (order.get("shipping_status") or "").strip().lower()
+    if ship == "shipped" and not force:
+        return (
+            False,
+            f"El pedido *{ref}* ya tiene guía/envío. "
+            f"Confirma con *force* (panel) para reembolsar de todas formas.",
+            None,
+        )
+
+    motivo = (reason or "").strip()[:500] or "Reembolso desde panel (producto agotado / anulación)"
+    idem = f"web-refund-{ref}-{payment_id}"[:64]
+    ok_mp, msg_mp, refund_data = _mp_reembolsar_pago(
+        payment_id,
+        amount=amount,
+        idempotency_key=idem,
+    )
+    if not ok_mp:
+        return False, msg_mp, None
+
+    already = bool(refund_data.pop("_already", False)) if isinstance(refund_data, dict) else False
+    refund_id = str((refund_data or {}).get("id") or "").strip()
+    recibo = _armar_recibo_reembolso(
+        order,
+        payment_id=payment_id,
+        refund_data=refund_data or {},
+        amount=amount,
+        motivo=motivo,
+        already=already,
+    )
+
+    now = datetime.now().isoformat()
+    stock_restored = False
+    restored_skus: list[str] = []
+
+    if order.get("stock_descontado_at") and not order.get("stock_restaurado_at"):
+        try:
+            from app.tools.stock_web import restaurar_stock_web
+
+            data, parse_error = _parse_order_items_json(order)
+            if not parse_error:
+                for it in data.get("items") or []:
+                    sku = str(it.get("ref") or "").strip()
+                    qty = _qty_float(it.get("qty", 0))
+                    if sku and qty > 0:
+                        restaurar_stock_web(sku, int(qty))
+                        restored_skus.append(f"{sku}×{int(qty)}")
+                        stock_restored = True
+        except Exception as e:
+            log.warning("Restaurar stock tras refund %s: %s", ref, e)
+
+    recibo_json = json.dumps(recibo, ensure_ascii=False)
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.execute(
+        """
+        UPDATE orders SET
+            status = 'refunded',
+            refunded_at = ?,
+            mp_refund_id = COALESCE(?, mp_refund_id),
+            mp_refund_json = ?,
+            cancelled_at = COALESCE(cancelled_at, ?),
+            cancel_reason = COALESCE(?, cancel_reason),
+            stock_restaurado_at = COALESCE(stock_restaurado_at, ?)
+        WHERE upper(reference) = ?
+        """,
+        (
+            now,
+            refund_id or None,
+            recibo_json,
+            now,
+            motivo,
+            now if stock_restored else None,
+            ref,
+        ),
+    )
+    con.commit()
+    con.close()
+
+    parts = [
+        f"✅ Pedido *{ref}* reembolsado.",
+        msg_mp,
+        f"MP payment `{payment_id}`.",
+    ]
+    if amount is not None:
+        parts.append(f"Monto parcial: {_fmt_cop(amount)} COP.")
+    if stock_restored:
+        parts.append(f"Stock web restaurado: {', '.join(restored_skus)}.")
+    elif order.get("stock_descontado_at") and not order.get("stock_restaurado_at") and not stock_restored:
+        parts.append("⚠️ No se pudo restaurar stock automáticamente; revisa inventario.")
+    elif order.get("stock_descontado_at"):
+        parts.append("Stock ya estaba restaurado.")
+    else:
+        parts.append("Sin descuento de stock previo.")
+
+    siigo_num = (order.get("siigo_invoice_number") or "").strip()
+    if siigo_num:
+        try:
+            from app.tools.notas_credito import crear_ticket_nota_credito
+
+            _tk_ok, tk_msg = crear_ticket_nota_credito(
+                canal="Web",
+                referencia=ref,
+                motivo=motivo,
+                siigo_factura_numero=siigo_num,
+                siigo_factura_estado=order.get("siigo_invoice_status"),
+                siigo_factura_url=_siigo_invoice_url(order.get("siigo_invoice_id")),
+            )
+            parts.append(f"⚠️ Tiene factura Siigo #{siigo_num}. {tk_msg}")
+        except Exception as e:
+            log.warning("Ticket nota crédito (refund) %s: %s", ref, e)
+            parts.append(
+                f"⚠️ Tiene factura Siigo #{siigo_num}: gestiona nota crédito en Siigo "
+                f"(no se pudo crear el ticket: {e})."
+            )
+    if motivo:
+        parts.append(f"Motivo: {motivo}")
+
+    msg = " ".join(parts)
+
+    if notify_wa:
+        try:
+            from app.utils import enviar_whatsapp_reporte
+
+            enviar_whatsapp_reporte(
+                f"💸 *Reembolso web (Mercado Pago)*\n{msg}\n\n"
+                f"🧾 *Recibo*\n{_recibo_texto_plano(recibo)}",
+                numero_destino=GRUPO_PEDIDOS_WEB_WA,
+            )
+        except Exception as e:
+            log.warning("WA reembolso pedido web %s: %s", ref, e)
+
+    return True, msg, recibo
 
 
 def marcar_pedidos_expirados(horas: int = 24) -> int:

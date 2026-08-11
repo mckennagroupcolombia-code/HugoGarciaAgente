@@ -5,6 +5,7 @@ import { esPanelContabilidad } from "../../lib/contabilidadAccess";
 /** Entrada suave al cambiar de panel (respeta prefers-reduced-motion). */
 export function PanelTransition({ children }: { children: ReactNode }) {
   const panel = useAppStore((s) => s.panel);
+  const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   // Hubs con scroll interno (Centro de Mando, Contabilidad, Tienda): altura flex.
   const fillHeight =
     panel === "hugo" ||
@@ -12,7 +13,8 @@ export function PanelTransition({ children }: { children: ReactNode }) {
     esPanelContabilidad(panel) ||
     panel === "publicaciones" ||
     panel === "placas-concreto" ||
-    panel === "sitioweb";
+    panel === "sitioweb" ||
+    (panel === "etiquetas" && etiquetasStudioInmersivo);
   // Misma key en todo el hub Contabilidad: si no, cada pestaña remonta el árbol
   // y se pierde keep-alive (Stock/Rentabilidad) + estado de filtros.
   const transitionKey = esPanelContabilidad(panel) ? "hub-contabilidad" : panel;

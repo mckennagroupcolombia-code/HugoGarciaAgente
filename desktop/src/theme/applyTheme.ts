@@ -1,11 +1,16 @@
 import { ensurePanelFont } from "./fontLoader";
-import type { PanelThemeConfig, ThemeMode } from "./types";
+import { COLOR_CSS_VARS, THEME_COLOR_KEYS } from "./presets";
+import type { FontScale, PanelThemeConfig, ThemeMode } from "./types";
 
 const FONT_STACKS: Record<PanelThemeConfig["fontSans"], string> = {
   Montserrat: '"Montserrat", system-ui, sans-serif',
   Inter: '"Inter", system-ui, sans-serif',
   "DM Sans": '"DM Sans", system-ui, sans-serif',
   Nunito: '"Nunito", system-ui, sans-serif',
+  Outfit: '"Outfit", system-ui, sans-serif',
+  "JetBrains Mono": '"JetBrains Mono", ui-monospace, monospace',
+  "Share Tech Mono": '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace',
+  "A Note": '"A Note", cursive',
   "system-ui": "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
@@ -13,6 +18,13 @@ const RADIUS_PX: Record<PanelThemeConfig["radius"], string> = {
   sm: "10px",
   md: "14px",
   lg: "22px",
+};
+
+const FONT_SCALE_PX: Record<FontScale, string> = {
+  sm: "15px",
+  md: "16px",
+  lg: "18px",
+  xl: "20px",
 };
 
 function resolveDark(mode: ThemeMode): boolean {
@@ -24,30 +36,72 @@ function resolveDark(mode: ThemeMode): boolean {
 /** Aplica variables CSS y clase .dark en html para todo el panel. */
 export function applyPanelTheme(config: PanelThemeConfig): void {
   ensurePanelFont(config.fontSans);
+  if (
+    config.skin === "sakura" ||
+    config.skin === "barbie" ||
+    config.skin === "atelier"
+  ) {
+    ensurePanelFont("A Note");
+  }
   const root = document.documentElement;
   const dark = resolveDark(config.mode);
+  const skin =
+    config.skin === "atelier" ||
+    config.skin === "matrix" ||
+    config.skin === "sakura" ||
+    config.skin === "barbie"
+      ? config.skin
+      : "clasica";
 
   root.classList.toggle("dark", dark);
-  root.style.colorScheme = dark ? "dark" : "light";
+  root.style.colorScheme = dark || skin === "matrix" ? "dark" : "light";
   try {
     localStorage.setItem("mck-theme-mode-hint", config.mode === "system" ? "system" : config.mode);
   } catch {
     /* ignore */
   }
-  // Oscuro: acento legible sobre #2B454F (misma tinta McKenna, más luminoso).
-  // Claro: acento corporativo profundo. Hover siempre un paso más oscuro.
-  const accent = dark ? liftAccentForDark(config.accentRgb) : config.accentRgb;
+
+  const baseAccent =
+    skin === "sakura" && config.accentRgb === "12 96 105"
+      ? "232 92 128"
+      : skin === "barbie" && (config.accentRgb === "12 96 105" || config.accentRgb === "233 30 140")
+        ? "255 126 182"
+        : skin === "matrix" && config.accentRgb === "12 96 105"
+          ? "0 255 65"
+          : config.accentRgb;
+  const accent = dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
   root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
     "--mck-accent-hover",
-    dark ? config.accentRgb : darkenAccentRgb(config.accentRgb),
+    dark || skin === "matrix" ? baseAccent : darkenAccentRgb(baseAccent),
   );
   root.style.setProperty("--mck-font-sans", FONT_STACKS[config.fontSans]);
   root.style.setProperty("--mck-radius-paper", RADIUS_PX[config.radius]);
+  root.style.fontSize = FONT_SCALE_PX[config.fontScale] ?? FONT_SCALE_PX.md;
+  root.dataset.mckSkin = skin;
+  root.dataset.mckMenu = config.menuScale === "sm" || config.menuScale === "lg" ? config.menuScale : "md";
+
+  for (const key of THEME_COLOR_KEYS) {
+    root.style.removeProperty(COLOR_CSS_VARS[key]);
+  }
+  for (const key of THEME_COLOR_KEYS) {
+    const rgb = config.colors[key];
+    if (rgb) root.style.setProperty(COLOR_CSS_VARS[key], rgb);
+  }
 
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) {
-    themeMeta.setAttribute("content", dark ? "#2B454F" : rgbToHex(config.accentRgb));
+    const hex =
+      skin === "matrix"
+        ? "#030803"
+        : skin === "sakura"
+          ? "#e85c80"
+          : skin === "barbie"
+            ? "#ff7eb6"
+            : dark
+              ? "#2B454F"
+              : rgbToHex(config.accentRgb);
+    themeMeta.setAttribute("content", hex);
   }
 }
 
@@ -124,4 +178,10 @@ export function hexToRgb(hex: string): string {
   const b = parseInt(h.slice(4, 6), 16);
   if ([r, g, b].some((n) => Number.isNaN(n))) return "12 96 105";
   return `${r} ${g} ${b}`;
+}
+
+export function readCssColor(varName: string): string {
+  if (typeof document === "undefined") return "12 96 105";
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return v || "12 96 105";
 }

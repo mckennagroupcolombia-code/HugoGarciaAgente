@@ -15,6 +15,25 @@ from app.utils import refrescar_token_meli
 
 # --- Funciones de Interacción con Mercado Libre ---
 
+def _obtener_seller_id_meli(token: str) -> str | None:
+    """
+    GET /users/me → id numérico del vendedor. Necesario para /orders/search:
+    el alias `seller=me` responde 403 "caller.id does not match buyer or seller"
+    en esta cuenta (confirmado ago-2026) — hay que pasar el id numérico real.
+    """
+    try:
+        res = requests.get(
+            "https://api.mercadolibre.com/users/me",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if res.status_code == 200:
+            return str(res.json().get("id") or "").strip() or None
+    except requests.RequestException:
+        pass
+    return None
+
+
 def consultar_devoluciones_meli():
     """Consulta órdenes canceladas o devueltas en Mercado Libre."""
     print("📡 [MELI] Buscando devoluciones o cancelaciones...")
@@ -22,9 +41,13 @@ def consultar_devoluciones_meli():
     if not token:
         return "❌ Error: No se pudo obtener el token de Mercado Libre."
 
+    seller_id = _obtener_seller_id_meli(token)
+    if not seller_id:
+        return "❌ Error: No se pudo obtener el id de vendedor de Mercado Libre."
+
     # TODO: La fecha de inicio está hard-codeada al futuro, ajustar si es necesario.
     fecha_inicio = "2026-01-01T00:00:00.000-00:00"
-    url = f"https://api.mercadolibre.com/orders/search?seller=me&order.date_created.from={fecha_inicio}"
+    url = f"https://api.mercadolibre.com/orders/search?seller={seller_id}&order.date_created.from={fecha_inicio}"
     headers = {"Authorization": f"Bearer {token}"}
 
     try:
@@ -42,6 +65,53 @@ def consultar_devoluciones_meli():
         return f"Error consultando Mercado Libre: {res.status_code} - {res.text}"
     except requests.RequestException as e:
         return f"Error de red consultando Mercado Libre: {e}"
+
+
+def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
+    """
+    Todas las órdenes MeLi con status='cancelled' desde hace `dias_atras` días,
+    paginado completo. A diferencia de `consultar_devoluciones_meli` (texto,
+    una sola página, pensado para el chat), esta devuelve los dicts crudos de
+    la API — usada por el cron de notas crédito automáticas.
+    """
+    token = refrescar_token_meli()
+    if not token:
+        return []
+    seller_id = _obtener_seller_id_meli(token)
+    if not seller_id:
+        return []
+
+    fecha_inicio = (datetime.now() - timedelta(days=dias_atras)).strftime("%Y-%m-%dT00:00:00.000-00:00")
+    url = "https://api.mercadolibre.com/orders/search"
+    headers = {"Authorization": f"Bearer {token}"}
+    params = {
+        "seller": seller_id,
+        "order.date_created.from": fecha_inicio,
+        "order.status": "cancelled",
+        "sort": "date_desc",
+        "limit": 50,
+        "offset": 0,
+    }
+
+    todas: list[dict] = []
+    offset = 0
+    while True:
+        params["offset"] = offset
+        try:
+            res = requests.get(url, headers=headers, params=params, timeout=20)
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            print(f"⚠️ [MELI] Error listando canceladas (offset {offset}): {res.status_code} {res.text[:200]}")
+            break
+        data = res.json()
+        results = data.get("results", [])
+        todas.extend(results)
+        total = (data.get("paging") or {}).get("total", 0)
+        offset += len(results)
+        if offset >= total or not results:
+            break
+    return todas
 
 def consultar_detalle_venta_meli(pack_id: str):
     """Consulta los detalles de una orden o paquete (pack) específico en Mercado Libre."""
@@ -63,6 +133,93 @@ def consultar_detalle_venta_meli(pack_id: str):
         return f"No se encontró la venta {pack_id} (Código de error: {res.status_code})."
     except requests.RequestException as e:
         return f"Error de red consultando detalle de venta en Meli: {e}"
+
+
+def consultar_envio_meli(shipping_id: str) -> dict | None:
+    """GET /shipments/{id} crudo. None si falla la consulta. Usado para detectar 'delivered'."""
+    token = refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        res = requests.get(
+            f"https://api.mercadolibre.com/shipments/{shipping_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return None
+    if res.status_code != 200:
+        return None
+    try:
+        return res.json()
+    except ValueError:
+        return None
+
+
+def consultar_orden_meli_completa(order_id: str) -> dict | None:
+    """GET /orders/{id} crudo (a diferencia de consultar_detalle_venta_meli, que devuelve texto)."""
+    token = refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        res = requests.get(
+            f"https://api.mercadolibre.com/orders/{order_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+    except requests.RequestException:
+        return None
+    if res.status_code != 200:
+        return None
+    try:
+        return res.json()
+    except ValueError:
+        return None
+
+
+def consultar_item_meli_basico(item_id: str) -> dict | None:
+    """GET /items/{id} crudo (seller_custom_field, title, etc.)."""
+    token = refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        res = requests.get(
+            f"https://api.mercadolibre.com/items/{item_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return None
+    if res.status_code != 200:
+        return None
+    try:
+        return res.json()
+    except ValueError:
+        return None
+
+
+def actualizar_seller_custom_field_meli(item_id: str, sku: str) -> str:
+    """PUT /items/{id} para cargar el SKU propio (seller_custom_field) en una publicación MeLi."""
+    token = refrescar_token_meli()
+    if not token:
+        return "❌ Error: No se pudo obtener el token de Mercado Libre."
+    sku = (sku or "").strip()
+    if not sku:
+        return "❌ Error: SKU vacío."
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    try:
+        res = _request_meli(
+            "PUT",
+            f"https://api.mercadolibre.com/items/{item_id}",
+            headers=headers,
+            json={"seller_custom_field": sku},
+        )
+    except requests.RequestException as e:
+        return f"❌ Error de red actualizando seller_custom_field de {item_id}: {e}"
+    if res is not None and res.status_code in (200, 201):
+        return f"✅ SKU '{sku}' cargado en {item_id}."
+    detalle = f"{res.status_code} - {res.text}" if res is not None else "sin respuesta"
+    return f"❌ Error actualizando seller_custom_field de {item_id}: {detalle}"
 
 
 def meli_pack_tiene_documento_fiscal(pack_id: str, *, token: str | None = None) -> bool:

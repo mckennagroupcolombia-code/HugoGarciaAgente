@@ -38,6 +38,8 @@ export interface ElementoBase {
   visible?: boolean;
   /** Agrupa elementos para seleccionarlos y moverlos juntos. */
   groupId?: string;
+  /** Nombre mostrado en el panel Capas (si falta, se infiere del contenido/tipo). */
+  nombreCapa?: string;
 }
 
 export type RolTextoCapa = "descripcion" | "titulo" | "subtitulo" | "otro";
@@ -858,6 +860,32 @@ export function labelRolTextoCapa(rol: RolTextoCapa | null): string {
     default:
       return "Texto";
   }
+}
+
+/** Etiqueta del panel Capas: nombre manual o inferido del contenido/tipo. */
+export function labelCapaElemento(
+  el: ElementoVisual,
+  todos?: ElementoVisual[],
+): string {
+  const manual = (el.nombreCapa || "").replace(/\s+/g, " ").trim();
+  if (manual) return manual.slice(0, 80);
+  if (el.type === "text") {
+    const palabras = (el.content || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .filter(Boolean);
+    if (palabras.length === 0) {
+      return labelRolTextoCapa(inferirRolTextoCapa(el, todos ?? [el]));
+    }
+    return palabras.slice(0, 2).join(" ");
+  }
+  if (el.type === "image") return "Imagen";
+  if (el.type === "rect") {
+    return el.borderRadius >= Math.min(el.width, el.height) / 2 ? "Círculo" : "Rectángulo";
+  }
+  if (el.type === "line") return "Línea";
+  return "Elemento";
 }
 
 export function nuevoGroupId(): string {

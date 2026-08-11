@@ -46,12 +46,23 @@ def meli_webhook_es_mensajes_postventa(topic: str | None) -> bool:
     return t.startswith("messages")
 
 
-def meli_webhook_question_id_desde_resource(resource: str) -> str:
-    """Último segmento de la ruta o el id suelto (MeLi: /questions/…, /marketplace/questions/…)."""
+def meli_webhook_ultimo_segmento_resource(resource: str) -> str:
+    """Último segmento de la ruta o el id suelto (MeLi: /questions/…, /shipments/…)."""
     r = (resource or "").strip().strip("/")
     if not r:
         return ""
     return r.split("/")[-1]
+
+
+def meli_webhook_question_id_desde_resource(resource: str) -> str:
+    """Último segmento de la ruta o el id suelto (MeLi: /questions/…, /marketplace/questions/…)."""
+    return meli_webhook_ultimo_segmento_resource(resource)
+
+
+def meli_webhook_es_envio(topic: str | None) -> bool:
+    """Notificaciones de envío (shipments) — usadas para detectar entrega y disparar autofactura."""
+    t = (topic or "").strip().lower()
+    return t in ("shipments", "marketplace_shipments")
 
 
 # Acciones que típicamente no implican mensaje nuevo del comprador (solo estado de entrega/lectura).
@@ -153,4 +164,11 @@ def meli_webhook_evaluar_despacho(
         if not res:
             return {"tipo": "postventa_sin_resource", "topic": topic}
         return {"tipo": "postventa", "resource": res, "topic": topic}
+    if meli_webhook_es_envio(topic):
+        if not res:
+            return {"tipo": "envio_sin_resource", "topic": topic}
+        shipping_id = meli_webhook_ultimo_segmento_resource(res)
+        if not shipping_id:
+            return {"tipo": "envio_sin_id", "topic": topic, "resource": res}
+        return {"tipo": "envio", "shipping_id": shipping_id, "topic": topic}
     return {"tipo": "topic_no_manejado", "topic": topic, "resource": res or None}

@@ -197,16 +197,14 @@ fbq('track','PageView');
     </nav>
     {% endif %}
 
-    <!-- Búsqueda -->
-    {% if not LCHROME.nodos.get('header.search', {}).get('hidden') %}
-    <div class="header-search" style="{{ LCHROME.estilos.get('header.search', '') }}">
-      <i class="ph ph-magnifying-glass search-icon"></i>
-      <input type="search" id="header-search-input" placeholder="Buscar producto..." autocomplete="off">
-    </div>
-    {% endif %}
-
-    <!-- CTA WhatsApp + Carrito -->
+    <!-- Acciones: buscar + carrito + WhatsApp (agrupadas a la derecha) -->
     <div class="header-actions">
+      {% if not LCHROME.nodos.get('header.search', {}).get('hidden') %}
+      <div class="header-search" style="{{ LCHROME.estilos.get('header.search', '') }}">
+        <i class="ph ph-magnifying-glass search-icon"></i>
+        <input type="search" id="header-search-input" placeholder="Buscar producto..." autocomplete="off">
+      </div>
+      {% endif %}
       <!-- Carrito -->
       <div class="cart-icon-wrap">
         <a href="{{ url_for('carrito') }}" class="cart-icon-link" title="Carrito">

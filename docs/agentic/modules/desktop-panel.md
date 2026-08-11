@@ -18,6 +18,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Produccion sirve `desktop/dist` desde Flask.
 - Mutaciones pueden usar `/app/api/...` para evitar proxies que devuelven HTML.
 - Auth usa Bearer `CHAT_API_TOKEN`.
+- Preferencias UI (`preferencias_ui.panel`): `mode`, `fontSans`, `accentRgb`, `radius`, `skin` (variantes visibles `matrix` | `sakura` | `barbie`; `clasica`/`atelier` se mapean a Sakura), `fontScale`, `menuScale`, `colors` (menú/títulos/cajas), `customThemes` (hasta 12 temas del usuario).
 - Cambios en endpoint deben reflejarse en hook/tipo UI.
 - Panel `empaque` (Atención): ventas MeLi/web/WA + fotos en `/api/empaque/*`; permiso `permisos_secciones.empaque`.
 

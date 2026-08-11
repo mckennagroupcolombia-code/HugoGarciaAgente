@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { ProseTextarea } from "./ProseTextarea";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -69,13 +70,9 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-            active === t.id
-              ? "bg-accent text-white shadow-sm"
-              : "text-muted hover:text-ink hover:bg-surface-hover"
-          }`}
+          className={hubTabClass(active === t.id, "flex-1 justify-center")}
         >
-          {t.label}
+          <span className={HUB_TAB_LABEL}>{t.label}</span>
         </button>
       ))}
     </div>

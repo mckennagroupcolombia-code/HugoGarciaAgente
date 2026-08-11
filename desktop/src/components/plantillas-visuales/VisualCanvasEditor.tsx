@@ -49,6 +49,7 @@ import {
   type PlantillaVisualDoc,
   contextoCapasParaDescripcion,
   inferirRolTextoCapa,
+  labelCapaElemento,
   labelRolTextoCapa,
 } from "../../lib/plantillasVisuales";
 import { dimensionesImagenParaLienzo } from "../../lib/plantillasVisualesImagen";
@@ -578,6 +579,9 @@ export default function VisualCanvasEditor({
   const [casAutoEstado, setCasAutoEstado] = useState<"idle" | "cargando" | "error">("idle");
   const [capaArrastradaId, setCapaArrastradaId] = useState<string | null>(null);
   const [capaSobreId, setCapaSobreId] = useState<string | null>(null);
+  const [renombrandoCapaId, setRenombrandoCapaId] = useState<string | null>(null);
+  const [renombrandoCapaTexto, setRenombrandoCapaTexto] = useState("");
+  const renombrarCapaInputRef = useRef<HTMLInputElement | null>(null);
   const [editandoInlineId, setEditandoInlineId] = useState<string | null>(null);
   const [editandoInlineTexto, setEditandoInlineTexto] = useState("");
   const editandoInlineRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1768,22 +1772,40 @@ export default function VisualCanvasEditor({
   );
 
   function labelCapa(el: ElementoVisual): string {
-    if (el.type === "text") {
-      const palabras = (el.content || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .split(" ")
-        .filter(Boolean);
-      if (palabras.length === 0) return labelRolTextoCapa(inferirRolTextoCapa(el, doc.elementos));
-      return palabras.slice(0, 2).join(" ");
-    }
-    if (el.type === "image") return "Imagen";
-    if (el.type === "rect") {
-      return el.borderRadius >= Math.min(el.width, el.height) / 2 ? "Círculo" : "Rectángulo";
-    }
-    if (el.type === "line") return "Línea";
-    return "Elemento";
+    return labelCapaElemento(el, doc.elementos);
   }
+
+  function iniciarRenombrarCapa(el: ElementoVisual) {
+    setRenombrandoCapaId(el.id);
+    setRenombrandoCapaTexto((el.nombreCapa || "").trim() || labelCapaElemento(el, doc.elementos));
+    setCapaArrastradaId(null);
+    setCapaSobreId(null);
+  }
+
+  function commitRenombrarCapa() {
+    const id = renombrandoCapaId;
+    if (!id) return;
+    const valor = renombrandoCapaTexto.replace(/\s+/g, " ").trim().slice(0, 80);
+    patchElemento(id, { nombreCapa: valor || undefined });
+    setRenombrandoCapaId(null);
+    setRenombrandoCapaTexto("");
+  }
+
+  function cancelarRenombrarCapa() {
+    setRenombrandoCapaId(null);
+    setRenombrandoCapaTexto("");
+  }
+
+  useEffect(() => {
+    if (!renombrandoCapaId) return;
+    const t = window.setTimeout(() => {
+      const input = renombrarCapaInputRef.current;
+      if (!input) return;
+      input.focus();
+      input.select();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [renombrandoCapaId]);
 
   const fondoTransparente =
     !doc.fondo || doc.fondo === "transparent" || doc.fondo === "none";
@@ -3353,11 +3375,16 @@ export default function VisualCanvasEditor({
                           el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "▣";
                         const arrastrando = capaArrastradaId === el.id;
                         const sobreEsta = capaSobreId === el.id && capaArrastradaId !== null && !arrastrando;
+                        const renombrando = renombrandoCapaId === el.id;
                         return (
                           <li
                             key={el.id}
-                            draggable
+                            draggable={!renombrando}
                             onDragStart={(e) => {
+                              if (renombrando) {
+                                e.preventDefault();
+                                return;
+                              }
                               e.dataTransfer.effectAllowed = "move";
                               setCapaArrastradaId(el.id);
                             }}
@@ -3380,41 +3407,87 @@ export default function VisualCanvasEditor({
                               sobreEsta ? "border-t-2 border-accent" : ""
                             }`}
                           >
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                const next = resolverSeleccionAlClic(
-                                  el,
-                                  doc.elementos,
-                                  seleccionIds,
-                                  e.shiftKey,
-                                );
-                                setSeleccionIds(next);
-                              }}
-                              className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition active:cursor-grabbing ${
-                                activa
-                                  ? "bg-accent/15 text-accent font-medium"
-                                  : oculto
-                                    ? "text-muted/40 hover:bg-surface-hover"
-                                    : "text-ink-secondary hover:bg-surface-hover"
-                              }`}
-                            >
-                              <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
-                              <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
-                                {labelCapa(el)}
-                              </span>
-                              {el.type === "text" && (() => {
-                                const rol = inferirRolTextoCapa(el, doc.elementos);
-                                if (!rol || rol === "otro") return null;
-                                const short =
-                                  rol === "descripcion" ? "MP" : rol === "titulo" ? "Tít" : "Sub";
-                                return (
-                                  <span className="ml-auto shrink-0 rounded bg-accent/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-accent">
-                                    {short}
-                                  </span>
-                                );
-                              })()}
-                            </button>
+                            {renombrando ? (
+                              <div className="flex min-w-0 flex-1 items-center gap-1 px-1 py-0.5">
+                                <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
+                                <input
+                                  ref={renombrarCapaInputRef}
+                                  value={renombrandoCapaTexto}
+                                  maxLength={80}
+                                  aria-label="Nombre de la capa"
+                                  onChange={(e) => setRenombrandoCapaTexto(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      commitRenombrarCapa();
+                                    } else if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      cancelarRenombrarCapa();
+                                    }
+                                  }}
+                                  onBlur={() => commitRenombrarCapa()}
+                                  className="min-w-0 flex-1 rounded border border-accent/50 bg-surface px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                title="Clic para seleccionar · Doble clic para renombrar"
+                                onClick={(e) => {
+                                  const next = resolverSeleccionAlClic(
+                                    el,
+                                    doc.elementos,
+                                    seleccionIds,
+                                    e.shiftKey,
+                                  );
+                                  setSeleccionIds(next);
+                                }}
+                                onDoubleClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  iniciarRenombrarCapa(el);
+                                }}
+                                className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition active:cursor-grabbing ${
+                                  activa
+                                    ? "bg-accent/15 text-accent font-medium"
+                                    : oculto
+                                      ? "text-muted/40 hover:bg-surface-hover"
+                                      : "text-ink-secondary hover:bg-surface-hover"
+                                }`}
+                              >
+                                <span className="w-5 shrink-0 text-center text-sm font-bold opacity-70">{icon}</span>
+                                <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
+                                  {labelCapa(el)}
+                                </span>
+                                {el.type === "text" && (() => {
+                                  const rol = inferirRolTextoCapa(el, doc.elementos);
+                                  if (!rol || rol === "otro") return null;
+                                  const short =
+                                    rol === "descripcion" ? "MP" : rol === "titulo" ? "Tít" : "Sub";
+                                  return (
+                                    <span className="ml-auto shrink-0 rounded bg-accent/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-accent">
+                                      {short}
+                                    </span>
+                                  );
+                                })()}
+                              </button>
+                            )}
+                            {!renombrando && (
+                              <button
+                                type="button"
+                                title="Renombrar capa"
+                                aria-label="Renombrar capa"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  iniciarRenombrarCapa(el);
+                                }}
+                                className="shrink-0 rounded p-1 text-[10px] text-muted hover:bg-surface-hover hover:text-ink"
+                              >
+                                ✎
+                              </button>
+                            )}
                             <button
                               type="button"
                               title={oculto ? "Mostrar" : "Ocultar"}

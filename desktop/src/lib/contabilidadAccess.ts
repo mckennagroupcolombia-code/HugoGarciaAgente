@@ -8,6 +8,7 @@ export const CONTABILIDAD_PANELS = [
   "sync",
   "facturas",
   "ingresos-egresos",
+  "libro-mayor",
   "stock",
   "rentabilidad",
   "compras-exterior",
@@ -97,7 +98,8 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.rrhh
       || p.operativos
       || p.impuestos
-      || p.servicios,
+      || p.servicios
+      || p["libro-mayor"],
   );
 }
 
@@ -153,6 +155,11 @@ export function puedeVerModuloContabilidad(
     return Boolean(
       p["ingresos-egresos"] || p.facturas || p.sync || p.facturacion || p.rentabilidad,
     );
+  }
+  if (seccion === "libro-mayor") {
+    // Permiso propio y explícito: partida doble, plan de cuentas y saldos con
+    // socios/proveedores son datos sensibles — no se hereda de facturación/sync.
+    return Boolean(p["libro-mayor"]);
   }
   return Boolean(p[seccion as keyof typeof p]);
 }

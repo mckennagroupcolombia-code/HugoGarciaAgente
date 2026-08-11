@@ -54,9 +54,7 @@ function NavItem({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={`group mck-nav-item mck-press flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left ${
-          active
-            ? "is-active bg-accent text-white"
-            : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
+          active ? "is-active" : "hover:bg-surface-hover hover:text-ink"
         }`}
       >
         <PanelIcon panel={id} size={24} active={active} className="shrink-0" />

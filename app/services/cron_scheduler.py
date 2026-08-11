@@ -56,6 +56,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Busca correos/WhatsApp nuevos de aliados logísticos y los comenta en los tickets activos.",
         "script": "scripts/monitor_comunicaciones_importaciones.py",
     },
+    "notas_credito_auto": {
+        "nombre": "Notas crédito automáticas (MeLi canceladas)",
+        "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
+        "script": "scripts/emitir_notas_credito_cron.py",
+    },
 }
 
 

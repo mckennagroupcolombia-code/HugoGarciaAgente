@@ -32,9 +32,9 @@ function StatCard({
         className="mck-illus-icon--hoverable shrink-0"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-        <p className={`mt-0.5 text-2xl font-bold tabular-nums transition-colors ${color}`}>{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+        <p className="text-sm font-semibold tracking-tight text-muted">{label}</p>
+        <p className={`mt-0.5 text-3xl font-extrabold tabular-nums tracking-tight transition-colors ${color}`}>{value}</p>
+        {sub && <p className="mt-0.5 text-sm text-muted">{sub}</p>}
       </div>
     </div>
   );

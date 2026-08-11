@@ -1,6 +1,6 @@
 {
   "tema_activo": "clasico",
-  "actualizado": "2026-08-09T16:24:14",
+  "actualizado": "2026-08-10T13:02:43",
   "diseno": {
     "fuente_display": "montserrat",
     "radio": "pill",
@@ -31,9 +31,13 @@
       "hero": {
         "splitPct": 64
       },
-      "hero.cta_secundario": {
-        "dx": -271,
-        "dy": 65
+      "hero.foto_izq": {
+        "dx": 432,
+        "dy": -387,
+        "scale": 1.93,
+        "width": 200,
+        "height": 204,
+        "backgroundImage": "/static/uploads/fondos/120fc6d51b9f4f6b962ecf2a30e967f0.png"
       }
     }
   },

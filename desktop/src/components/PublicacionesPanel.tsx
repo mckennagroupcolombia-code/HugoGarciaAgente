@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ProseTextarea } from "./ProseTextarea";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import {
   usePublicaciones,
   usePublicacionDetalle,
@@ -889,19 +890,17 @@ export function EditorPanel({
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
-              tab === t
-                ? "bg-accent text-white shadow-sm"
-                : "text-muted hover:text-ink"
-            }`}
+            className={hubTabClass(tab === t, "flex-1 justify-center")}
           >
-            {t === "general"
-              ? "General"
-              : t === "imagenes"
-                ? "Imágenes"
-                : t === "meli"
-                  ? "MeLi"
-                  : "Ficha"}
+            <span className={HUB_TAB_LABEL}>
+              {t === "general"
+                ? "General"
+                : t === "imagenes"
+                  ? "Imágenes"
+                  : t === "meli"
+                    ? "MeLi"
+                    : "Ficha"}
+            </span>
           </button>
         ))}
       </div>
@@ -1444,23 +1443,15 @@ export default function PublicacionesPanel() {
       <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface p-1">
         <button
           onClick={() => setMainView("catalogo")}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-            mainView === "catalogo"
-              ? "bg-accent text-white shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
+          className={hubTabClass(mainView === "catalogo", "flex-1 justify-center")}
         >
-          🗂 Catálogo
+          <span className={HUB_TAB_LABEL}>🗂 Catálogo</span>
         </button>
         <button
           onClick={() => setMainView("galeria")}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-            mainView === "galeria"
-              ? "bg-violet-600 text-white shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
+          className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
         >
-          🖼 Galería
+          <span className={HUB_TAB_LABEL}>🖼 Galería</span>
         </button>
         <button
           onClick={() => setMainView("compliance")}

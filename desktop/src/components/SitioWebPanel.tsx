@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api/client";
 import ClasicoLayoutCanvas, {
@@ -6,8 +6,7 @@ import ClasicoLayoutCanvas, {
   type ClasicoCanvas,
   SECTION_LABEL_CLASICO,
 } from "./studio-web/ClasicoLayoutCanvas";
-import WebLayoutCanvas, {
-  SECTION_LABEL,
+import {
   usePhosphorIcons,
   type PurezaCanvas,
 } from "./studio-web/WebLayoutCanvas";
@@ -43,7 +42,7 @@ import { FondoImagenField } from "./studio-web/FondoImagenField";
  */
 
 type TemaId = "clasico" | "pureza";
-type StudioTab = "lienzo" | "diseno" | "contenido" | "publicar";
+type StudioTab = "lienzo" | "diseno" | "contenido";
 type FuenteDisplay = "montserrat";
 type RadioUi = "pill" | "soft" | "sharp";
 type Densidad = "compacta" | "normal" | "amplia";
@@ -571,11 +570,14 @@ export default function SitioWebPanel() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef(selectedIds);
   selectedIdsRef.current = selectedIds;
-  const [zoom, setZoom] = useState(0.72);
+  const [zoom, setZoom] = useState(0.65);
+  const [panelAncho, setPanelAncho] = useState(228);
+  const panelResizeRef = useRef<{ startX: number; startW: number } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  const [chromeTopHost, setChromeTopHost] = useState<HTMLElement | null>(null);
   const [chromeHost, setChromeHost] = useState<HTMLElement | null>(null);
   const historial = useUndoStack<TemaWebConfig>({ max: 80, coalesceMs: 450 });
 
@@ -588,8 +590,8 @@ export default function SitioWebPanel() {
       setConfig(cfg);
       setOriginal(JSON.stringify(cfg));
       historial.reset();
-      setEditTema(cfg.tema_activo);
-      setPreviewTema(cfg.tema_activo);
+      setEditTema("clasico");
+      setPreviewTema("clasico");
       if (res.site_url) setSiteUrl(res.site_url);
       if (res.preview_url) setPreviewBase(res.preview_url.replace(/\/$/, ""));
     } catch (e) {
@@ -930,6 +932,7 @@ export default function SitioWebPanel() {
   }, [pushLiveTokens]);
 
   useLayoutEffect(() => {
+    setChromeTopHost(document.getElementById("studio-web-chrome-top"));
     setChromeHost(document.getElementById("studio-web-chrome"));
   }, []);
 
@@ -957,6 +960,33 @@ export default function SitioWebPanel() {
     return () => window.clearTimeout(t);
   }, [config, dirty, cargando]);
 
+  // Studio publica solo Clásico; Pureza queda fuera de la UI.
+  // Hooks deben ir antes de cualquier return — si no, React #310 al salir de cargando.
+  useEffect(() => {
+    setEditTema("clasico");
+    setPreviewTema("clasico");
+  }, []);
+
+  const iniciarResizePanel = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    panelResizeRef.current = { startX: e.clientX, startW: panelAncho };
+    const el = e.currentTarget;
+    el.setPointerCapture?.(e.pointerId);
+    const onMove = (ev: PointerEvent) => {
+      const r = panelResizeRef.current;
+      if (!r) return;
+      const dx = r.startX - ev.clientX;
+      setPanelAncho(Math.min(340, Math.max(188, r.startW + dx)));
+    };
+    const onUp = () => {
+      panelResizeRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [panelAncho]);
+
   if (cargando) {
     return (
       <div className="flex h-full min-h-[40vh] items-center justify-center text-sm text-muted">
@@ -983,13 +1013,6 @@ export default function SitioWebPanel() {
   const diseno = config.diseno;
   const layoutActivo = editTema === "clasico" ? config.layout_clasico : config.layout;
 
-  const tabs: { id: StudioTab; label: string }[] = [
-    { id: "lienzo", label: "Lienzo" },
-    { id: "diseno", label: "Tokens" },
-    { id: "contenido", label: "Contenido" },
-    { id: "publicar", label: "Tema" },
-  ];
-
   const temaEnSitio = config.tema_activo === editTema;
 
   const publicarEnSitio = () => {
@@ -1001,76 +1024,32 @@ export default function SitioWebPanel() {
     void guardar();
   };
 
-  const nombreTema = (t: TemaId) => (t === "pureza" ? "Pureza" : "Clásico");
+  const chromeTop = (
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <span className="hidden text-[10px] font-semibold text-muted sm:inline">
+        {tab === "lienzo" ? "Lienzo" : tab === "diseno" ? "Tokens" : "Textos"}
+      </span>
 
-  const chrome = (
-    <>
-      <div className="flex rounded-full border border-border bg-surface p-0.5 text-xs">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`rounded-full px-3 py-1.5 font-semibold transition ${
-              tab === t.id ? "bg-accent text-white" : "text-muted hover:text-ink"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="flex rounded-full border border-border bg-surface p-0.5 text-[11px]">
-          {(["clasico", "pureza"] as TemaId[]).map((t) => {
-            const enSitio = config.tema_activo === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                title={enSitio ? `${nombreTema(t)} está publicado en el sitio` : `Editar ${nombreTema(t)}`}
-                onClick={() => {
-                  setEditTema(t);
-                  setPreviewTema(t);
-                  setSelectedIds([]);
-                }}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition ${
-                  editTema === t ? "bg-ink text-white" : "text-muted hover:text-ink"
-                }`}
-              >
-                {nombreTema(t)}
-                {enSitio ? (
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-                ) : null}
-              </button>
-            );
-          })}
+      {(dirty || !temaEnSitio) && (
+        <div className="flex shrink-0 items-center gap-1">
+          {!temaEnSitio && (
+            <span className="hidden text-[9px] font-semibold uppercase tracking-wide text-muted lg:inline">
+              Borrador
+            </span>
+          )}
+          {dirty && (
+            <span className="hidden text-[9px] font-semibold text-amber-600 lg:inline">Sin guardar</span>
+          )}
         </div>
-        {!temaEnSitio && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Borrador</span>
-        )}
-        {dirty && <span className="text-[10px] font-semibold text-amber-600">Sin guardar</span>}
-      </div>
-      {tab === "lienzo" && (
-        <LienzoToolbar
-          zoom={zoom}
-          onZoom={setZoom}
-          sectionIds={(layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())).orden}
-          sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
-          selectedIds={selectedIds}
-          onSelect={(id) => handleSelect(id)}
-          onSeleccionarSimilares={seleccionarSimilares}
-          onResetLayout={() => void restaurarLayout()}
-          onEliminar={eliminarSeleccion}
-          guardando={guardando}
-        />
       )}
-      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <button
           type="button"
           disabled={!historial.canUndo}
           onClick={deshacer}
           title="Deshacer (Ctrl+Z)"
-          className="rounded-full border border-border px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-border px-1.5 py-1 text-[10px] font-bold leading-none text-muted hover:bg-surface-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           Deshacer
         </button>
@@ -1079,7 +1058,7 @@ export default function SitioWebPanel() {
           disabled={!historial.canRedo}
           onClick={rehacer}
           title="Rehacer (Ctrl+Shift+Z)"
-          className="rounded-full border border-border px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-border px-1.5 py-1 text-[10px] font-bold leading-none text-muted hover:bg-surface-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           Rehacer
         </button>
@@ -1087,7 +1066,7 @@ export default function SitioWebPanel() {
           type="button"
           disabled={!dirty || guardando}
           onClick={() => void guardar()}
-          className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-border bg-surface px-2 py-1 text-[10px] font-bold leading-none text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
         >
           {guardando ? "Guardando…" : "Guardar"}
         </button>
@@ -1096,21 +1075,47 @@ export default function SitioWebPanel() {
           disabled={guardando || (!dirty && temaEnSitio)}
           onClick={publicarEnSitio}
           title="Deja este tema y los cambios visibles para los visitantes"
-          className="rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg bg-accent px-2 py-1 text-[10px] font-bold leading-none text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {temaEnSitio && !dirty ? "Publicado" : "Publicar"}
         </button>
       </div>
-    </>
+    </div>
+  );
+
+  const chromeSub = (
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <LienzoToolbar
+        zoom={zoom}
+        onZoom={setZoom}
+        sectionIds={(layoutActivo || layoutClasicoDefault()).orden}
+        sectionLabels={SECTION_LABEL_CLASICO}
+        selectedIds={selectedIds}
+        onSelect={(id) => handleSelect(id)}
+        onSeleccionarSimilares={seleccionarSimilares}
+        onResetLayout={() => void restaurarLayout()}
+        onEliminar={eliminarSeleccion}
+        guardando={guardando}
+      />
+    </div>
   );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {chromeHost ? createPortal(chrome, chromeHost) : (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-surface-panel px-3 py-1.5">
-          {chrome}
-        </div>
-      )}
+      {chromeTopHost
+        ? createPortal(chromeTop, chromeTopHost)
+        : (
+          <div className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1">
+            {chromeTop}
+          </div>
+        )}
+      {chromeHost
+        ? createPortal(chromeSub, chromeHost)
+        : (
+          <div className="mck-submenu flex shrink-0 items-center gap-1 border-b border-border px-2 py-0.5">
+            {chromeSub}
+          </div>
+        )}
       {(error || aviso) && (
         <div className="shrink-0 space-y-2 border-b border-border px-3 py-2 md:px-4">
           {error && (
@@ -1124,82 +1129,110 @@ export default function SitioWebPanel() {
         </div>
       )}
 
-      {tab === "lienzo" ? (
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="flex min-h-0 min-w-0 flex-col">
-            <div className="min-h-0 flex-1">
-            {editTema === "clasico" ? (
-              <ClasicoLayoutCanvas
-                clasico={cl as ClasicoCanvas}
-                layout={layoutActivo || layoutClasicoDefault()}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside
+          className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface-panel py-2"
+          aria-label="Herramientas del Studio"
+        >
+          {(
+            [
+              { id: "lienzo" as const, label: "Lienzo", glyph: "▣" },
+              { id: "diseno" as const, label: "Tokens", glyph: "◐" },
+              { id: "contenido" as const, label: "Textos", glyph: "T" },
+            ] as const
+          ).map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                title={t.label}
+                aria-label={t.label}
+                aria-pressed={active}
+                onClick={() => setTab(t.id)}
+                className={`flex h-9 w-9 flex-col items-center justify-center rounded-lg text-[11px] font-bold transition ${
+                  active
+                    ? "bg-accent text-white shadow-sm"
+                    : "text-muted hover:bg-surface-hover hover:text-ink"
+                }`}
+              >
+                <span className="text-sm leading-none">{t.glyph}</span>
+                <span className="mt-0.5 max-w-[2.4rem] truncate text-[8px] font-semibold leading-none">
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+          <div className="my-1 h-px w-6 bg-border" />
+          <a
+            href={siteUrl || iframeSrc}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir sitio"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[10px] font-bold text-muted hover:bg-surface-hover hover:text-ink"
+          >
+            ↗
+          </a>
+        </aside>
+
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <ClasicoLayoutCanvas
+            clasico={cl as ClasicoCanvas}
+            layout={layoutActivo || layoutClasicoDefault()}
+            selectedIds={selectedIds}
+            onSelect={handleSelect}
+            onLayoutChange={(next) =>
+              mutar((d) => {
+                d.layout_clasico = next;
+              })
+            }
+            onClasicoPatch={patchClasico}
+            zoom={zoom}
+            assetBase={basePreview}
+            tagline={diseno.tagline}
+            onEliminar={eliminarSeleccion}
+          />
+        </div>
+
+        <div
+          className="relative flex shrink-0 flex-col border-l border-border bg-surface-panel"
+          style={{ width: panelAncho }}
+        >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Ancho del panel"
+            title="Arrastra para cambiar el ancho"
+            onPointerDown={iniciarResizePanel}
+            className="absolute left-0 top-0 z-10 h-full w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-accent/40"
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {tab === "lienzo" && (
+              <WebLayoutInspector
                 selectedIds={selectedIds}
-                onSelect={handleSelect}
+                onSeleccionarSimilares={seleccionarSimilares}
+                onSelect={(id) => handleSelect(id)}
+                onEliminar={eliminarSeleccion}
+                onRestaurarHoja={restaurarHoja}
+                contentDraft={cl as unknown as Record<string, unknown>}
+                layout={layoutActivo || layoutClasicoDefault()}
                 onLayoutChange={(next) =>
                   mutar((d) => {
                     d.layout_clasico = next;
                   })
                 }
-                onClasicoPatch={patchClasico}
-                zoom={zoom}
-                assetBase={basePreview}
-                tagline={diseno.tagline}
-                onEliminar={eliminarSeleccion}
-              />
-            ) : (
-              <WebLayoutCanvas
-                pureza={pz as PurezaCanvas}
-                layout={layoutActivo || layoutDefault()}
-                selectedIds={selectedIds}
-                onSelect={handleSelect}
-                onLayoutChange={(next) =>
-                  mutar((d) => {
-                    d.layout = next;
-                  })
+                onContentPatch={(fn) =>
+                  patchClasico((d) => fn(d as unknown as Record<string, unknown>))
                 }
-                onPurezaPatch={patchPureza}
-                zoom={zoom}
+                sectionLabels={SECTION_LABEL_CLASICO}
                 assetBase={basePreview}
-                onEliminar={eliminarSeleccion}
+                variante="clasico"
               />
             )}
-            </div>
-          </div>
-          <div className="min-h-0 overflow-y-auto border-l border-border bg-surface-panel">
-            <WebLayoutInspector
-              selectedIds={selectedIds}
-              onSeleccionarSimilares={seleccionarSimilares}
-              onSelect={(id) => handleSelect(id)}
-              onEliminar={eliminarSeleccion}
-              onRestaurarHoja={restaurarHoja}
-              contentDraft={
-                (editTema === "clasico" ? cl : pz) as unknown as Record<string, unknown>
-              }
-              layout={layoutActivo || (editTema === "clasico" ? layoutClasicoDefault() : layoutDefault())}
-              onLayoutChange={(next) =>
-                mutar((d) => {
-                  if (editTema === "clasico") d.layout_clasico = next;
-                  else d.layout = next;
-                })
-              }
-              onContentPatch={
-                editTema === "clasico"
-                  ? (fn) => patchClasico((d) => fn(d as unknown as Record<string, unknown>))
-                  : (fn) => patchPureza((d) => fn(d as unknown as Record<string, unknown>))
-              }
-              sectionLabels={editTema === "clasico" ? SECTION_LABEL_CLASICO : SECTION_LABEL}
-              assetBase={basePreview}
-              variante={editTema}
-            />
-          </div>
-        </div>
-      ) : (
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
-        {/* Controles */}
-        <div className="min-h-0 overflow-y-auto border-r border-border p-4 md:p-5">
           {tab === "diseno" && (
-            <div className="space-y-5">
+            <div className="space-y-3 p-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Tokens visuales</h2>
+                <h2 className="text-[10px] font-extrabold uppercase tracking-wide text-ink">Tokens visuales</h2>
                 <button
                   type="button"
                   onClick={() => void restaurarDiseno()}
@@ -1218,10 +1251,10 @@ export default function SitioWebPanel() {
 
               <Seccion
                 titulo="Colores y fondos"
-                hint={editTema === "clasico" ? "tema Clásico (sitio publicado)" : "tema Pureza"}
+                hint="tema Clásico (sitio publicado)"
                 defaultOpen
               >
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2">
                   {Object.entries(editTema === "clasico" ? COLOR_LABEL_CLASICO : COLOR_LABEL_PUREZA).map(
                     ([key, label]) => {
                       const mapa =
@@ -1262,7 +1295,7 @@ export default function SitioWebPanel() {
                 hint="JPG PNG WEBP GIF · máx. 4 MB"
                 defaultOpen
               >
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
                   {(editTema === "clasico" ? FONDO_SLOTS_CLASICO : FONDO_SLOTS_PUREZA).map(
                     ({ key, label }) => {
                       const mapa =
@@ -1304,7 +1337,7 @@ export default function SitioWebPanel() {
               <Seccion titulo="Tipografía" hint="Montserrat (única)" defaultOpen>
                 <div className="space-y-3">
                   <div
-                    className="rounded-lg border border-border bg-surface px-4 py-3"
+                    className="rounded-lg border border-border bg-surface px-2 py-2"
                     style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                   >
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -1316,7 +1349,7 @@ export default function SitioWebPanel() {
                       ajustan por elemento en el Lienzo (Light → Black + itálicas).
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-1">
                     {[
                       { label: "Light", w: 300 },
                       { label: "Regular", w: 400 },
@@ -1383,10 +1416,10 @@ export default function SitioWebPanel() {
           )}
 
           {tab === "contenido" && (
-            <div className="space-y-3">
+            <div className="space-y-2.5 p-2">
               <div className="flex items-center justify-between pb-1">
-                <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">
-                  Contenido {editTema === "clasico" ? "Clásico" : "Pureza"}
+                <h2 className="text-[10px] font-extrabold uppercase tracking-wide text-ink">
+                  Contenido Clásico
                 </h2>
                 <button
                   type="button"
@@ -1706,11 +1739,11 @@ export default function SitioWebPanel() {
                   </Seccion>
 
                   <Seccion titulo="Secciones visibles">
-                    <div className="grid gap-2 md:grid-cols-2">
+                    <div className="grid gap-1.5">
                       {Object.entries(SECCION_LABEL_CLASICO).map(([key, label]) => (
                         <label
                           key={key}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-[11px] text-ink"
                         >
                           <input
                             type="checkbox"
@@ -1959,11 +1992,11 @@ export default function SitioWebPanel() {
               </Seccion>
 
               <Seccion titulo="Secciones visibles">
-                <div className="grid gap-2 md:grid-cols-2">
+                <div className="grid gap-1.5">
                   {Object.entries(SECCION_LABEL).map(([key, label]) => (
                     <label
                       key={key}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-[11px] text-ink"
                     >
                       <input
                         type="checkbox"
@@ -1985,124 +2018,9 @@ export default function SitioWebPanel() {
             </div>
           )}
 
-          {tab === "publicar" && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted">
-                Elige qué tema ven los visitantes. La vista previa del Studio no cambia el sitio público.
-              </p>
-              {(["clasico", "pureza"] as TemaId[]).map((tema) => {
-                const activo = config.tema_activo === tema;
-                return (
-                  <div
-                    key={tema}
-                    className={`mck-card space-y-3 p-4 ${activo ? "border-accent ring-1 ring-accent" : ""}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-bold text-ink">
-                        {tema === "pureza" ? "Pureza & Trazabilidad" : "Clásico"}
-                      </div>
-                      {activo && (
-                        <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold text-green-700">
-                          ● Publicado
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted">
-                      {tema === "pureza"
-                        ? "Fondo claro, tipografía editable y foco en COA / trazabilidad."
-                        : "Hero oscuro y paleta verde-aqua original."}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewTema(tema);
-                          setPreviewKey((k) => k + 1);
-                        }}
-                        className="flex-1 rounded-full border border-border bg-surface px-3 py-2 text-xs font-semibold hover:border-accent hover:text-accent"
-                      >
-                        Previsualizar aquí
-                      </button>
-                      <button
-                        type="button"
-                        disabled={activo || guardando}
-                        onClick={() => publicarTema(tema)}
-                        className="flex-1 rounded-full bg-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
-                      >
-                        {activo ? "En uso" : "Publicar"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Preview */}
-        <div className="flex min-h-[50vh] flex-col bg-[#1a1f1e] lg:min-h-0">
-          <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Vista previa</span>
-            <div className="flex rounded-full bg-white/10 p-0.5 text-[11px]">
-              {(["pureza", "clasico"] as TemaId[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setPreviewTema(t);
-                    setPreviewKey((k) => k + 1);
-                  }}
-                  className={`rounded-full px-2.5 py-1 font-semibold ${
-                    previewTema === t ? "bg-white text-[#022D33]" : "text-white/60"
-                  }`}
-                >
-                  {t === "pureza" ? "Pureza" : "Clásico"}
-                </button>
-              ))}
-            </div>
-            <label className="ml-auto flex items-center gap-1.5 text-[11px] text-white/60">
-              <input
-                type="checkbox"
-                checked={useLocalPreview}
-                onChange={(e) => {
-                  setUseLocalPreview(e.target.checked);
-                  setPreviewKey((k) => k + 1);
-                }}
-                className="accent-current"
-              />
-              Local :8083
-            </label>
-            <button
-              type="button"
-              onClick={() => setPreviewKey((k) => k + 1)}
-              className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
-            >
-              Recargar
-            </button>
-            <a
-              href={iframeSrc}
-              target="_blank"
-              rel="noopener"
-              className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
-            >
-              Abrir ↗
-            </a>
           </div>
-          <iframe
-            ref={iframeRef}
-            key={previewKey}
-            title="Vista previa sitio"
-            src={iframeSrc}
-            onLoad={pushLiveTokens}
-            className="min-h-[420px] w-full flex-1 bg-white mck-paper-white"
-          />
-          <p className="px-3 py-1.5 text-[10px] text-white/40">
-            Colores, botones y densidad se ven al instante. Textos y lienzo, en ~0,3 s (borrador local, no publica).
-            {useLocalPreview ? " Usa Local :8083." : " Marca Local :8083 para el borrador en vivo."}
-          </p>
         </div>
       </div>
-      )}
     </div>
   );
 }

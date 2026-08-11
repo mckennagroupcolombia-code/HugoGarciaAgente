@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 type Modo = "producto" | "combo";
 
@@ -254,13 +255,9 @@ export default function CrearProductosSiigoPanel({
               setResultado(null);
               setCheck(null);
             }}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition ${
-              modo === t.id
-                ? "bg-accent text-white shadow-sm"
-                : "text-muted hover:text-ink"
-            }`}
+            className={hubTabClass(modo === t.id, "flex-1 justify-center")}
           >
-            {t.label}
+            <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         ))}
       </div>

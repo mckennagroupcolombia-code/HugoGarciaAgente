@@ -113,10 +113,10 @@ export function StudioMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-surface px-2.5 text-[11px] font-semibold text-ink hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-6 items-center gap-0.5 rounded-md border border-border bg-surface px-1.5 text-[10px] font-semibold leading-none text-ink hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {label}
-        <span aria-hidden className={`text-[10px] text-muted transition ${open ? "rotate-180" : ""}`}>
+        <span aria-hidden className={`text-[9px] text-muted transition ${open ? "rotate-180" : ""}`}>
           ▾
         </span>
       </button>
@@ -161,14 +161,14 @@ export function StudioMenuItem({
       role="menuitem"
       disabled={disabled}
       onClick={onClick}
-      className={`flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex w-full items-center justify-between gap-2 px-2 py-1 text-left text-[10px] transition disabled:cursor-not-allowed disabled:opacity-40 ${
         active
           ? "bg-accent/10 font-semibold text-ink"
           : "text-ink hover:bg-surface-hover"
       }`}
     >
       <span>{children}</span>
-      {hint && <span className="shrink-0 text-[10px] font-normal text-muted">{hint}</span>}
+      {hint && <span className="shrink-0 text-[9px] font-normal text-muted">{hint}</span>}
     </button>
   );
 }
@@ -177,7 +177,7 @@ export function StudioMenuSep() {
   return <div className="my-1 border-t border-border" role="separator" />;
 }
 
-export const ZOOM_PRESETS = [40, 50, 60, 72, 85, 100] as const;
+export const ZOOM_PRESETS = [40, 50, 60, 65, 72, 85, 100] as const;
 
 export const SHADOW_OPTS: { id: "none" | "sm" | "md" | "lg"; label: string }[] = [
   { id: "none", label: "Ninguna" },
@@ -219,13 +219,13 @@ export function LienzoToolbar({
     : 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1">
       <StudioMenu
         label={
           <>
             Hojas
             {hojaActiva > 0 ? (
-              <span className="max-w-[8rem] truncate font-normal text-muted">
+              <span className="max-w-[7rem] truncate font-normal text-muted">
                 · {hojaActiva}. {sectionLabels[seccionActiva] || seccionActiva}
               </span>
             ) : null}
@@ -244,12 +244,12 @@ export function LienzoToolbar({
         ))}
       </StudioMenu>
 
-      <label className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-2 text-[11px] font-semibold text-muted">
+      <label className="inline-flex h-6 items-center gap-1 rounded-md border border-border bg-surface px-1.5 text-[10px] font-semibold leading-none text-muted">
         Zoom
         <select
           value={zoomValue}
           onChange={(e) => onZoom(+e.target.value / 100)}
-          className="bg-transparent text-[11px] font-semibold text-ink outline-none"
+          className="bg-transparent text-[10px] font-semibold text-ink outline-none"
           aria-label="Zoom del lienzo"
         >
           {!ZOOM_PRESETS.includes(zoomPct as (typeof ZOOM_PRESETS)[number]) && (
@@ -268,7 +268,7 @@ export function LienzoToolbar({
         max={100}
         value={zoomPct}
         onChange={(e) => onZoom(+e.target.value / 100)}
-        className="w-20 accent-accent"
+        className="h-6 w-16 accent-accent"
         aria-label="Zoom fino"
       />
 
@@ -284,7 +284,7 @@ export function LienzoToolbar({
           Quitar selección
         </StudioMenuItem>
         <StudioMenuSep />
-        <div className="px-3 py-1.5 text-[10px] leading-snug text-muted" data-keep-open>
+        <div className="px-2 py-1 text-[9px] leading-snug text-muted" data-keep-open>
           Ctrl/⌘+clic o Shift+clic suma objetos. Esc limpia. Al arrastrar, las
           líneas rosa alinean bordes y centros. Alt desactiva el imán.
         </div>
@@ -307,7 +307,7 @@ export function LienzoToolbar({
         disabled={!selectedIds.length}
         onClick={onEliminar}
         title="Eliminar (Supr o Backspace)"
-        className="inline-flex h-8 items-center rounded-md border border-red-300/80 bg-red-50 px-2.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-6 items-center rounded-md border border-red-300/80 bg-red-50 px-1.5 text-[10px] font-semibold leading-none text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Eliminar
       </button>

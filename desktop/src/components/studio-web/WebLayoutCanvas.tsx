@@ -50,7 +50,12 @@ import {
   SHADOW_OPTS,
   StudioSelect,
 } from "./StudioDesplegables";
-import { FolioHoja, MarcoCapitulo, useScrollHojaActiva } from "./HojasCapitulo";
+import {
+  FolioHoja,
+  MarcoCapitulo,
+  useCentrarLienzoPorDefecto,
+  useScrollHojaActiva,
+} from "./HojasCapitulo";
 import { AlignmentGuidesOverlay } from "./AlignmentGuidesOverlay";
 import { StudioDeleteContext } from "./StudioDeleteContext";
 import { StudioSelectableFrame } from "./StudioSelectionChrome";
@@ -167,16 +172,21 @@ function EditableNode({
   as?: "div" | "span" | "h1" | "h2" | "h3" | "p" | "button";
   fitText?: boolean;
 }) {
+  const assetBase = useContext(StudioAssetBaseCtx);
   const n = nodoOf(layout, id);
   if (n.hidden) return null;
   const hugBox = esCajaHugStudio(id);
-  const assetBase = useContext(StudioAssetBaseCtx);
+  const esFoto = esNodoFotoStudio(id);
   const merged: CSSProperties = {
     ...style,
     ...estiloFitTexto(n, { className, enabled: fitText, tag: Tag }),
     ...(hugBox ? estiloCajaHug(n) : {}),
   };
-  if (n.backgroundImage && !esNodoFotoStudio(id)) {
+  if (esFoto) {
+    merged.backgroundImage = "none";
+    merged.background = "transparent";
+    merged.overflow = "visible";
+  } else if (n.backgroundImage) {
     merged.backgroundImage = `url("${resolveFondoSrc(n.backgroundImage, assetBase)}")`;
     merged.backgroundSize = "cover";
     merged.backgroundPosition = "center";
@@ -229,6 +239,7 @@ export default function WebLayoutCanvas({
   onEliminar?: () => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const pasteboardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const layoutRef = useRef(layout);
   const onLayoutChangeRef = useRef(onLayoutChange);
@@ -793,11 +804,14 @@ export default function WebLayoutCanvas({
   const hojasVisibles = layout.orden.filter(
     (sid) => nodoOf(layout, sid).hidden !== true && pureza.secciones[sid] !== false,
   );
+  useCentrarLienzoPorDefecto(pasteboardRef, stageRef, zoom, hojasVisibles.join(","));
 
   return (
     <StudioAssetBaseCtx.Provider value={assetBase}>
     <StudioDeleteContext.Provider value={onEliminar}>
     <div
+      ref={pasteboardRef}
+      data-studio-pasteboard=""
       className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
       style={{ background: "#505050" }}
       onPointerDown={() => {
@@ -881,8 +895,8 @@ export function WebLayoutInspector({
     : undefined);
   if (!primaryId) {
     return (
-      <div className="space-y-3 p-3 text-xs text-muted">
-        <p className="px-0.5 font-semibold text-ink">Lienzo visual</p>
+      <div className="space-y-2 p-2 text-xs text-muted">
+        <p className="px-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">Lienzo</p>
         <InspectorFold titulo="Hojas del capítulo" hint="secciones" defaultOpen>
           <div className="space-y-1">
             {layout.orden.map((sid, i) => {
@@ -907,39 +921,11 @@ export function WebLayoutInspector({
           </div>
         </InspectorFold>
         <InspectorFold titulo="Ayuda">
-          <ul className="list-disc space-y-1.5 pl-4">
-            <li>Clic en texto, botón, icono o sección para seleccionar</li>
-            <li>
-              Al arrastrar o redimensionar: <strong className="text-ink">guías magenta</strong>{" "}
-              alinean con cualquier otro objeto (Alt las desactiva)
-            </li>
-            <li>
-              <strong className="text-ink">X roja</strong>, botón Eliminar o Supr/Backspace quitan el bloque
-            </li>
-            <li>
-              <strong className="text-ink">Ctrl/⌘+clic</strong> o Shift+clic: sumar a la selección
-            </li>
-            <li>
-              Menú <strong className="text-ink">Selección → similares</strong> (Ctrl+Shift+L)
-            </li>
-            <li>
-              Arrastra el elemento, usa la barra <strong className="text-ink">mover</strong> o las{" "}
-              <strong className="text-ink">flechas</strong> (Shift = 10 px)
-            </li>
-            <li>
-              Asas azules: <strong className="text-ink">ancho / alto / esquina</strong>
-            </li>
-            <li>
-              Asa ámbar: <strong className="text-ink">escala</strong> uniforme
-            </li>
-            <li>
-              <strong className="text-ink">Doble clic</strong>, <strong className="text-ink">Enter</strong> o
-              el recuadro Texto del panel para reescribir
-            </li>
-            <li>
-              <strong className="text-ink">Eliminar</strong> o tecla Supr / Backspace quita lo seleccionado
-            </li>
-            <li>Propiedades del objeto en los desplegables de este panel</li>
+          <ul className="list-disc space-y-1 pl-3 text-[10px] leading-snug">
+            <li>Clic para seleccionar · arrastrar para mover</li>
+            <li>Guías magenta al alinear (Alt las apaga)</li>
+            <li>Supr / ✕ elimina · flechas mueven 1 px</li>
+            <li>Doble clic o Enter para editar texto</li>
           </ul>
         </InspectorFold>
       </div>
@@ -987,7 +973,7 @@ export function WebLayoutInspector({
     "w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent/50";
 
   return (
-    <div className="space-y-2.5 overflow-y-auto p-3 text-sm">
+    <div className="space-y-2 overflow-y-auto p-2 text-xs">
       <div>
         <div className="text-[10px] font-bold uppercase tracking-wide text-muted">
           {multi ? `${ids.length} seleccionados` : "Seleccionado"}

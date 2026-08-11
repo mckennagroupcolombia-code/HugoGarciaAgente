@@ -76,8 +76,9 @@
       {% endif %}
     </div>
     {% set foto_izq = LAYOUT_CLASICO.nodos.get('hero.foto_izq', {}) %}
-    {% set src_izq = foto_izq.get('backgroundImage') or FONDOS.hero_izq %}
-    {% if src_izq and not foto_izq.get('hidden') %}
+    {# Solo el nodo foto: FONDOS.hero_izq ya es el fondo CSS del panel (si se repite = doble imagen). #}
+    {% set src_izq = foto_izq.get('backgroundImage') %}
+    {% if src_izq and src_izq != FONDOS.hero_izq and not foto_izq.get('hidden') %}
     <img class="hero-foto" src="{{ src_izq }}" alt="" style="{{ nodo_style('hero.foto_izq') }}">
     {% endif %}
   </div>
@@ -102,8 +103,8 @@
       {% endfor %}
     </div>
     {% set foto_der = LAYOUT_CLASICO.nodos.get('hero.foto_der', {}) %}
-    {% set src_der = foto_der.get('backgroundImage') or FONDOS.hero_der %}
-    {% if src_der and not foto_der.get('hidden') %}
+    {% set src_der = foto_der.get('backgroundImage') %}
+    {% if src_der and src_der != FONDOS.hero_der and not foto_der.get('hidden') %}
     <img class="hero-foto" src="{{ src_der }}" alt="" style="{{ nodo_style('hero.foto_der') }}">
     {% endif %}
   </div>

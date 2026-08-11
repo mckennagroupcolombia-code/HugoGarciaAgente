@@ -159,3 +159,16 @@ def test_nodo_foto_sitio_no_emite_background_css(tmp_path, monkeypatch) -> None:
     assert "translate(12px,8px)" in css
     assert tw.es_nodo_foto_sitio("hero.foto_izq")
     assert not tw.es_nodo_foto_sitio("hero")
+
+
+def test_index_no_repite_fondo_como_img_hero() -> None:
+    """FONDOS.hero_* es CSS del panel; el <img> no debe caer a ese mismo URL."""
+    from pathlib import Path
+
+    html = (Path(__file__).resolve().parents[1] / "PAGINA_WEB/site/templates/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "or FONDOS.hero_izq" not in html
+    assert "or FONDOS.hero_der" not in html
+    assert "src_izq != FONDOS.hero_izq" in html
+    assert "src_der != FONDOS.hero_der" in html

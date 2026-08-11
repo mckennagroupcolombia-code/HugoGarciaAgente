@@ -936,7 +936,7 @@ export default function PlantillasVisualesPanel({
 
   if (vista === "editor" && doc) {
     return (
-      <div className="fixed inset-x-0 bottom-0 top-[52px] z-20 flex flex-col lg:static lg:-mx-10 lg:-my-8 lg:h-[calc(100vh-3.25rem)] lg:max-h-[calc(100vh-3.25rem)]">
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
         {msg && (
           <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2 rounded-lg border border-accent/40 bg-surface-panel px-4 py-2 text-sm text-ink shadow-lg">
             {msg}

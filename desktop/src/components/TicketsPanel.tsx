@@ -4125,13 +4125,13 @@ function CentroMandoHome({
   }
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="mck-stagger space-y-4 pb-4">
       {/* ── Header ── */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-1">
+        <p className="mck-subtitle text-[11px] font-semibold uppercase tracking-widest mb-1">
           {fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1)}
         </p>
-        <h2 className="text-2xl font-black text-ink leading-tight tracking-tight">
+        <h2 className="mck-title text-2xl font-black leading-tight tracking-tight">
           {saludo},{" "}
           <span className="text-accent">{user.nombre.split(" ")[0]}</span>
         </h2>
@@ -4139,7 +4139,7 @@ function CentroMandoHome({
 
       {/* ── Acciones ── */}
       {pVer("acciones") && (
-        <div className="rounded-xl border border-accent/25 bg-accent/5 p-3">
+        <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-3">
           <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} onVerTodo={onAcciones} />
           {acciones.length === 0 ? (
             <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
@@ -4147,7 +4147,7 @@ function CentroMandoHome({
             <div className="space-y-1.5">
               {acciones.slice(0, 4).map((a: any) => (
                 <button key={a.id} type="button" onClick={onAcciones}
-                  className="flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
+                  className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
                   <span className="text-[13px] font-semibold text-ink truncate flex-1">{a.titulo}</span>
                   <span className="shrink-0 text-[10px] text-accent font-semibold">{a.estado === "en_proceso" ? "en curso" : "pendiente"}</span>
@@ -4163,7 +4163,7 @@ function CentroMandoHome({
 
       {/* ── Solicitudes ── */}
       {pVer("solicitudes") && (
-        <div className="rounded-xl border border-accent/20 bg-accent/[0.03] p-3">
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
           <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} onVerTodo={onSolicitudes} />
           {solicitudes.length === 0 ? (
             <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
@@ -4171,7 +4171,7 @@ function CentroMandoHome({
             <div className="space-y-1.5">
               {solicitudes.slice(0, 4).map((s: any) => (
                 <button key={s.id} type="button" onClick={() => onVerSolicitud(s.id)}
-                  className="flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
+                  className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
                   <span className="text-[13px] font-semibold text-ink truncate flex-1">{s.titulo}</span>
                   <span className="shrink-0 text-[10px] text-accent/70 font-medium truncate max-w-[80px]">{s.creado_por_nombre || ""}</span>
                 </button>
@@ -4186,7 +4186,7 @@ function CentroMandoHome({
 
       {/* ── Recordatorios ── */}
       {pVer("acciones") && (
-        <div className="rounded-xl border border-accent/20 bg-accent/[0.03] p-3">
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
           <SeccionHeader icon="🔔" titulo="Recordatorios" count={recordatorios.filter((r: any) => (r.proxima_fecha ?? "") <= hoy).length || undefined} onVerTodo={onRecordatorios} />
           {recordatorios.length === 0 ? (
             <p className="text-[12px] text-muted py-1">Sin recordatorios programados.</p>
@@ -4196,7 +4196,7 @@ function CentroMandoHome({
                 const vencido = (r.proxima_fecha ?? "") <= hoy;
                 return (
                   <button key={r.id} type="button" onClick={onRecordatorios}
-                    className="flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
+                    className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
                     <span className="text-[13px] font-semibold text-ink truncate flex-1">{r.titulo}</span>
                     <span className={`shrink-0 text-[10px] font-bold ${vencido ? "text-accent" : "text-accent/60"}`}>
                       {vencido ? "hoy" : (r.proxima_fecha ? r.proxima_fecha.slice(5).replace("-", "/") : "")}
@@ -4216,7 +4216,7 @@ function CentroMandoHome({
       <div className="grid grid-cols-3 gap-2">
         {pVer("acciones") && (
           <button type="button" onClick={onProcedimientos}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
             <span className="text-accent"><TopicIcon value="🔒" size={20} weight="regular" /></span>
             <span className="text-[12px] font-bold text-ink leading-none">Procedimientos</span>
             <span className="text-[10px] text-accent/70 font-semibold">
@@ -4226,7 +4226,7 @@ function CentroMandoHome({
         )}
         {pVer("acciones") && onNotas && (
           <button type="button" onClick={onNotas}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
             <span className="text-accent"><TopicIcon value="💭" size={20} weight="regular" /></span>
             <span className="text-[12px] font-bold text-ink leading-none">Notas</span>
             <span className="text-[10px] text-accent/70 font-semibold line-clamp-1 text-center px-1">
@@ -4236,7 +4236,7 @@ function CentroMandoHome({
         )}
         {pVer("acciones") && onBolsillo && (
           <button type="button" onClick={onBolsillo}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
             <span className="text-accent"><TopicIcon value="🔑" size={20} weight="regular" /></span>
             <span className="text-[12px] font-bold text-ink leading-none">Bolsillo</span>
             <span className="text-[10px] text-accent/70 font-semibold">cifradas</span>
@@ -22736,13 +22736,13 @@ const CENTRO_MANDO_CTA_BTN =
   "inline-flex items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
 
 const ACCIONES_TAB_CFG = {
-  subhome:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  activas:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  agenda:         { card: "border-accent/20  bg-accent/5",                   icon: "bg-accent/70  text-accent",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#134e4a]",     ctaBase: false },
-  pendientes:     { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
-  procedimientos: { card: "border-accent/20  bg-accent/5",                      icon: "bg-accent/70  text-accent",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
+  subhome:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",   ctaBase: true  },
+  activas:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",   ctaBase: true  },
+  agenda:         { card: "border-accent/20  bg-accent/5",                   icon: "bg-accent/70  text-accent",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",     ctaBase: false },
+  pendientes:     { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]", ctaBase: false },
+  procedimientos: { card: "border-accent/20  bg-accent/5",                      icon: "bg-accent/70  text-accent",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
-  notas:          { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
+  notas:          { card: "border-accent/20  bg-accent/5",       icon: "bg-accent/70  text-accent",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]", ctaBase: false },
   bolsillo:       { card: "border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-950/50",               icon: "bg-slate-200/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300",             emoji: "🔑", titulo: "Bolsillo",           desc: "Notas cifradas con tu PIN personal. Nadie más puede verlas.",                                          btnCtaCls: "bg-slate-600 hover:bg-slate-700 shadow-[0_2px_0_#1e293b]",   ctaBase: false },
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
@@ -27808,7 +27808,7 @@ export default function TicketsPanel() {
   const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
   const accionesBootTab = useAppStore((s) => s.accionesBootTab);
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
-  const questDark = useQuestTheme((s) => s.dark);
+  // questDark vive en html.dark vía panelTheme; no re-aplicar class dark en quest-canvas.
   // Inicializar desde el store para que el botón atrás del mouse no caiga en "home"
   // al remontar Hugo (el bridge aún no existe en el popstate).
   const [view, setView] = useState<View>(() => (useAppStore.getState().centroMandoView as View) || "home");
@@ -28056,21 +28056,7 @@ export default function TicketsPanel() {
 
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-    <div className={`quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${questDark ? "dark" : ""}`}>
-        {/* En móvil, cuando Hugo está en pantalla completa (home), la nav bar se oculta */}
-        {!(isMobile && view === "home" && hugoChatExpanded) && (
-          <QuestNavBar
-            view={view}
-            nivel={nivel}
-            permisos={permisos}
-            hugoChatActive={view === "home" && hugoChatExpanded}
-            onInicio={goInicio}
-            onCentroMando={goCentroMando}
-            onSolicitudes={goSolicitudes}
-            onAcciones={() => goAcciones("activas")}
-            onProcedimientos={() => goAcciones("procedimientos")}
-          />
-        )}
+    <div className="quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <InventarioCarritoModal
           token={token}
           nivel={nivel}

@@ -177,6 +177,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M17 14l-2 2-2-2" />
     </>
   ),
+  "libro-mayor": (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="1.5" />
+      <path d="M12 4v16" />
+      <path d="M4 9h16" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />
@@ -265,10 +272,26 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M7 12c0-2.5 2-4 5-4h3" />
     </>
   ),
+  "meli-oauth": (
+    <>
+      <path d="M9 3v5" />
+      <path d="M15 3v5" />
+      <path d="M6 8h12v3a6 6 0 0 1-12 0V8Z" />
+      <path d="M12 17v2" />
+      <path d="M9 21h6" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="2.5" />
       <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" />
+    </>
+  ),
+  "tareas-programadas": (
+    <>
+      <circle cx="12" cy="13" r="7" />
+      <path d="M12 9v4l3 2" />
+      <path d="M9 3h6" />
     </>
   ),
   perfil: (

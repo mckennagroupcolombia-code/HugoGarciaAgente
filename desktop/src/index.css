@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Afkari Studio — A Note (títulos Sakura / Barbie / Atelier + Temas → Fuente) */
+@font-face {
+  font-family: "A Note";
+  src: url("./assets/fonts/ANote.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --mck-font-sans: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -32,14 +41,28 @@
     --mck-shadow-paper: 0 4px 0 rgba(2, 45, 51, 0.06), 0 12px 32px rgba(12, 96, 105, 0.08);
     --mck-shadow-paper-sm: 0 2px 0 rgba(2, 45, 51, 0.04);
     --mck-shadow-paper-lg: 0 8px 0 rgba(2, 45, 51, 0.07), 0 24px 60px rgba(12, 96, 105, 0.12);
+    --mck-menu-bg: var(--mck-surface-panel);
+    --mck-menu-text: var(--mck-ink-secondary);
+    --mck-menu-active-bg: var(--mck-accent);
+    --mck-menu-active-text: 255 255 255;
+    --mck-submenu-bg: var(--mck-surface-panel);
+    --mck-submenu-text: var(--mck-ink-secondary);
+    --mck-title: var(--mck-ink);
+    --mck-subtitle: var(--mck-muted);
+    --mck-card-bg: var(--mck-surface-panel);
+    --mck-section-bg: var(--mck-surface);
   }
 
   /*
    * Oscuro McKenna — base #2B454F.
    * Acento elevado (~L58) para texto/iconos legibles; hover = teal profundo corporativo.
    * muted/ink-muted más claros que en la 1ª pasada (fechas, títulos de sección).
+   *
+   * IMPORTANTE: solo en `html.dark`. Si se define en `.dark` genérico, un hijo con
+   * class="dark" (p. ej. quest-canvas de la Agenda) re-aplica el teal McKenna y
+   * anula skin Sakura/Matrix heredado del <html> — menú morado + Agenda teal.
    */
-  .dark {
+  html.dark {
     --mck-surface: 43 69 79;
     --mck-surface-panel: 52 81 92;
     --mck-surface-input: 61 92 104;
@@ -70,10 +93,350 @@
     color-scheme: dark;
   }
 
-  .dark body {
+  html.dark body {
     background:
       radial-gradient(ellipse 90% 55% at 0% -15%, rgb(var(--mck-accent) / 0.12), transparent 55%),
       rgb(var(--mck-surface));
+  }
+
+  /*
+   * Atelier — piel distinta al mint plano:
+   * papel cálido / espresso, tipo más grande, sombras gruesas.
+   */
+  html[data-mck-skin="atelier"]:not(.dark) {
+    --mck-surface: 247 238 224;
+    --mck-surface-panel: 255 250 242;
+    --mck-surface-input: 255 255 252;
+    --mck-surface-hover: 236 220 196;
+    --mck-ink: 42 28 18;
+    --mck-ink-secondary: 78 52 34;
+    --mck-ink-muted: 122 90 62;
+    --mck-border: 214 190 158;
+    --mck-border-strong: 186 148 104;
+    --mck-muted: 112 84 58;
+    --mck-shadow-paper: 0 6px 0 rgba(42, 28, 18, 0.1), 0 18px 36px rgba(120, 72, 36, 0.14);
+    --mck-shadow-paper-sm: 0 3px 0 rgba(42, 28, 18, 0.08);
+    --mck-shadow-paper-lg: 0 10px 0 rgba(42, 28, 18, 0.1), 0 28px 56px rgba(120, 72, 36, 0.18);
+  }
+  html[data-mck-skin="atelier"].dark {
+    --mck-surface: 34 28 24;
+    --mck-surface-panel: 48 40 34;
+    --mck-surface-input: 58 48 40;
+    --mck-surface-hover: 72 58 48;
+    --mck-ink: 252 244 232;
+    --mck-ink-secondary: 232 216 196;
+    --mck-ink-muted: 196 172 148;
+    --mck-border: 92 74 58;
+    --mck-border-strong: 140 112 84;
+    --mck-muted: 204 180 156;
+    --mck-shadow-paper: 0 6px 0 rgba(0, 0, 0, 0.35), 0 18px 40px rgba(0, 0, 0, 0.5);
+    --mck-shadow-paper-sm: 0 3px 0 rgba(0, 0, 0, 0.3);
+    --mck-shadow-paper-lg: 0 10px 0 rgba(0, 0, 0, 0.4), 0 28px 56px rgba(0, 0, 0, 0.55);
+  }
+  html[data-mck-skin="atelier"] body {
+    letter-spacing: 0;
+    line-height: 1.5;
+    background:
+      radial-gradient(ellipse 80% 50% at 0% 0%, rgb(var(--mck-accent) / 0.1), transparent 50%),
+      radial-gradient(ellipse 70% 40% at 100% 100%, rgb(232 168 56 / 0.12), transparent 48%),
+      rgb(var(--mck-surface));
+  }
+  html[data-mck-skin="atelier"].dark body {
+    background:
+      radial-gradient(ellipse 80% 50% at 0% -10%, rgb(var(--mck-accent) / 0.16), transparent 55%),
+      rgb(var(--mck-surface));
+  }
+
+  html[data-mck-skin="matrix"],
+  html[data-mck-skin="matrix"].dark {
+    --mck-surface: 2 8 2;
+    --mck-surface-panel: 5 16 5;
+    --mck-surface-input: 4 22 4;
+    --mck-surface-hover: 10 36 10;
+    --mck-ink: 170 255 170;
+    --mck-ink-secondary: 110 230 110;
+    --mck-ink-muted: 70 170 70;
+    --mck-border: 16 90 16;
+    --mck-border-strong: 0 210 55;
+    --mck-muted: 80 190 80;
+    --mck-accent: 0 255 65;
+    --mck-accent-hover: 0 190 50;
+    --mck-success: 0 255 65;
+    --mck-danger: 255 70 70;
+    --mck-warning: 210 255 80;
+    --mck-shadow-paper: 0 0 16px rgba(0, 255, 65, 0.22), 0 10px 28px rgba(0, 0, 0, 0.65);
+    --mck-shadow-paper-sm: 0 0 8px rgba(0, 255, 65, 0.15);
+    --mck-shadow-paper-lg: 0 0 28px rgba(0, 255, 65, 0.3), 0 18px 48px rgba(0, 0, 0, 0.7);
+    --mck-menu-bg: 0 10 0;
+    --mck-menu-text: 120 230 120;
+    --mck-menu-active-bg: 0 40 0;
+    --mck-menu-active-text: 180 255 180;
+    --mck-submenu-bg: 3 12 3;
+    --mck-submenu-text: 100 210 100;
+    --mck-title: 190 255 190;
+    --mck-subtitle: 80 190 80;
+    --mck-card-bg: 5 18 5;
+    --mck-section-bg: 2 8 2;
+  }
+  html[data-mck-skin="matrix"] body {
+    letter-spacing: 0.02em;
+    background: #020802;
+  }
+  html[data-mck-skin="matrix"] body::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.08;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 65, 0.12) 3px
+    );
+  }
+  /* La lluvia/scanlines no pueden tapar la UI (fixed z-0 pinta encima del flujo). */
+  html[data-mck-skin="matrix"] #root > *:not(.mck-matrix-rain) {
+    position: relative;
+    z-index: 2;
+  }
+  html[data-mck-skin="matrix"] .mck-app-shell,
+  html[data-mck-skin="matrix"] .mck-panel-scroll {
+    background: transparent !important;
+  }
+  html[data-mck-skin="matrix"] aside.mck-sidebar,
+  html[data-mck-skin="matrix"] .mck-sidebar {
+    background: rgb(2 18 4 / 0.94) !important;
+    backdrop-filter: blur(10px);
+  }
+  html[data-mck-skin="matrix"] .mck-header-glass {
+    background: rgb(3 18 6 / 0.94);
+  }
+  html[data-mck-skin="matrix"] .mck-card,
+  html[data-mck-skin="matrix"] .lm-card,
+  html[data-mck-skin="matrix"] .bg-surface-panel,
+  html[data-mck-skin="matrix"] [class*="bg-surface-panel"] {
+    background-color: rgb(6 28 10 / 0.96) !important;
+    border-color: rgb(0 180 50 / 0.55);
+  }
+  html[data-mck-skin="matrix"] .bg-surface-input,
+  html[data-mck-skin="matrix"] [class*="bg-surface-input"] {
+    background-color: rgb(4 22 8 / 0.96) !important;
+  }
+  html[data-mck-skin="matrix"] .mck-nav-item.is-active {
+    box-shadow: inset 0 0 12px rgba(0, 255, 65, 0.25), 0 0 10px rgba(0, 255, 65, 0.2);
+  }
+  html[data-mck-skin="matrix"] .mck-card {
+    box-shadow: var(--mck-shadow-paper);
+  }
+
+  /* Sakura — anime shoujo + arcade retro, pasteles cálidos. */
+  html[data-mck-skin="sakura"]:not(.dark) {
+    --mck-surface: 255 236 228;
+    --mck-surface-panel: 255 246 241;
+    --mck-surface-input: 255 252 250;
+    --mck-surface-hover: 255 214 204;
+    --mck-ink: 92 36 52;
+    --mck-ink-secondary: 140 58 78;
+    --mck-ink-muted: 176 98 112;
+    --mck-border: 244 186 176;
+    --mck-border-strong: 232 120 132;
+    --mck-muted: 168 88 102;
+    --mck-accent: 232 92 128;
+    --mck-accent-hover: 204 64 104;
+    --mck-accent-sun: 244 180 90;
+    --mck-accent-rose: 255 150 160;
+    --mck-accent-plum: 210 140 190;
+    --mck-success: 90 160 120;
+    --mck-shadow-paper: 4px 4px 0 rgba(232, 92, 128, 0.28);
+    --mck-shadow-paper-sm: 2px 2px 0 rgba(232, 92, 128, 0.2);
+    --mck-shadow-paper-lg: 6px 6px 0 rgba(232, 92, 128, 0.32);
+    --mck-menu-bg: 255 242 236;
+    --mck-menu-text: 140 58 78;
+    --mck-menu-active-bg: 232 92 128;
+    --mck-menu-active-text: 255 255 255;
+    --mck-submenu-bg: 255 236 228;
+    --mck-submenu-text: 140 58 78;
+    --mck-title: 92 36 52;
+    --mck-subtitle: 168 88 102;
+    --mck-card-bg: 255 248 244;
+    --mck-section-bg: 255 236 228;
+  }
+  html[data-mck-skin="sakura"].dark {
+    --mck-surface: 42 22 34;
+    --mck-surface-panel: 62 32 46;
+    --mck-surface-input: 74 38 54;
+    --mck-surface-hover: 96 48 68;
+    --mck-ink: 255 232 236;
+    --mck-ink-secondary: 244 196 206;
+    --mck-ink-muted: 214 150 166;
+    --mck-border: 140 72 96;
+    --mck-border-strong: 232 120 150;
+    --mck-muted: 220 160 174;
+    --mck-accent: 255 130 160;
+    --mck-accent-hover: 232 92 128;
+    --mck-shadow-paper: 4px 4px 0 rgba(255, 130, 160, 0.28);
+    --mck-shadow-paper-sm: 2px 2px 0 rgba(255, 130, 160, 0.2);
+    --mck-shadow-paper-lg: 6px 6px 0 rgba(255, 130, 160, 0.35);
+    --mck-menu-bg: 52 26 40;
+    --mck-menu-text: 244 196 206;
+    --mck-menu-active-bg: 232 92 128;
+    --mck-menu-active-text: 255 255 255;
+    --mck-submenu-bg: 48 24 38;
+    --mck-card-bg: 62 32 46;
+    --mck-section-bg: 42 22 34;
+  }
+  html[data-mck-skin="sakura"] body {
+    letter-spacing: 0;
+    background:
+      radial-gradient(circle at 10% 12%, rgb(255 186 198 / 0.55), transparent 34%),
+      radial-gradient(circle at 92% 6%, rgb(255 214 150 / 0.42), transparent 30%),
+      radial-gradient(circle at 78% 92%, rgb(255 168 150 / 0.38), transparent 36%),
+      linear-gradient(180deg, #fff3ea 0%, #ffe6ef 48%, #ffdcc8 100%);
+  }
+  html[data-mck-skin="sakura"].dark body {
+    background:
+      radial-gradient(circle at 12% 10%, rgb(232 92 128 / 0.22), transparent 40%),
+      radial-gradient(circle at 90% 90%, rgb(180 90 140 / 0.2), transparent 42%),
+      #2a1622;
+  }
+  html[data-mck-skin="sakura"] .mck-card,
+  html[data-mck-skin="sakura"] .lm-card {
+    border-width: 3px;
+    box-shadow: var(--mck-shadow-paper);
+  }
+  html[data-mck-skin="sakura"] .mck-card-interactive:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 rgb(var(--mck-accent) / 0.35);
+  }
+  html[data-mck-skin="sakura"] .mck-btn-primary {
+    border: 3px solid rgb(var(--mck-ink) / 0.12);
+    box-shadow: 0 4px 0 rgb(var(--mck-accent-hover));
+  }
+  html[data-mck-skin="sakura"] .mck-btn-primary:hover {
+    transform: translateY(-2px);
+  }
+  html[data-mck-skin="sakura"] .mck-nav-item.is-active {
+    box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.35);
+  }
+  html[data-mck-skin="sakura"] .mck-header-glass h1,
+  html[data-mck-skin="sakura"] .mck-title {
+    letter-spacing: 0.02em;
+  }
+
+  /* Barbie Agenda — planner glam, rosa chicle */
+  html[data-mck-skin="barbie"]:not(.dark) {
+    --mck-surface: 255 244 250;
+    --mck-surface-panel: 255 252 255;
+    --mck-surface-input: 255 255 255;
+    --mck-surface-hover: 255 224 240;
+    --mck-ink: 96 36 68;
+    --mck-ink-secondary: 160 70 120;
+    --mck-ink-muted: 200 120 160;
+    --mck-border: 255 196 224;
+    --mck-border-strong: 255 126 182;
+    --mck-muted: 190 110 150;
+    --mck-accent: 255 126 182;
+    --mck-accent-hover: 240 95 160;
+    --mck-accent-sun: 255 210 110;
+    --mck-accent-rose: 255 150 200;
+    --mck-accent-plum: 255 140 190;
+    --mck-success: 80 180 140;
+    --mck-shadow-paper: 0 8px 24px rgba(255, 126, 182, 0.2);
+    --mck-shadow-paper-sm: 0 4px 12px rgba(255, 126, 182, 0.14);
+    --mck-shadow-paper-lg: 0 14px 36px rgba(255, 126, 182, 0.24);
+    --mck-menu-bg: 255 232 244;
+    --mck-menu-text: 160 70 120;
+    --mck-menu-active-bg: 255 126 182;
+    --mck-menu-active-text: 255 255 255;
+    --mck-submenu-bg: 255 244 250;
+    --mck-submenu-text: 160 70 120;
+    --mck-title: 96 36 68;
+    --mck-subtitle: 190 110 150;
+    --mck-card-bg: 255 252 255;
+    --mck-section-bg: 255 244 250;
+  }
+  html[data-mck-skin="barbie"].dark {
+    --mck-surface: 52 22 40;
+    --mck-surface-panel: 76 30 56;
+    --mck-surface-input: 90 36 66;
+    --mck-surface-hover: 114 48 82;
+    --mck-ink: 255 236 246;
+    --mck-ink-secondary: 255 200 226;
+    --mck-ink-muted: 235 160 198;
+    --mck-border: 170 70 120;
+    --mck-border-strong: 255 140 190;
+    --mck-muted: 235 160 198;
+    --mck-accent: 255 140 190;
+    --mck-accent-hover: 255 126 182;
+    --mck-shadow-paper: 0 8px 24px rgba(255, 140, 190, 0.22);
+    --mck-shadow-paper-sm: 0 4px 12px rgba(255, 140, 190, 0.16);
+    --mck-shadow-paper-lg: 0 14px 36px rgba(255, 140, 190, 0.28);
+    --mck-menu-bg: 66 26 50;
+    --mck-menu-text: 255 200 226;
+    --mck-menu-active-bg: 255 126 182;
+    --mck-menu-active-text: 255 255 255;
+    --mck-submenu-bg: 58 24 44;
+    --mck-card-bg: 76 30 56;
+    --mck-section-bg: 52 22 40;
+  }
+  html[data-mck-skin="barbie"] body {
+    letter-spacing: 0;
+    background-color: #fff4fa;
+    background-image:
+      radial-gradient(circle at 8% 10%, rgb(255 180 220 / 0.42), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgb(255 220 140 / 0.32), transparent 26%),
+      radial-gradient(circle at 85% 88%, rgb(255 170 210 / 0.26), transparent 32%),
+      repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 27px,
+        rgb(255 196 224 / 0.22) 27px,
+        rgb(255 196 224 / 0.22) 28px
+      ),
+      linear-gradient(180deg, #fffafc 0%, #ffeef6 45%, #ffe0ef 100%);
+  }
+  html[data-mck-skin="barbie"].dark body {
+    background-color: #341628;
+    background-image:
+      radial-gradient(circle at 12% 10%, rgb(255 126 182 / 0.26), transparent 38%),
+      radial-gradient(circle at 88% 86%, rgb(255 150 200 / 0.2), transparent 40%),
+      #341628;
+  }
+  html[data-mck-skin="barbie"] #root > *:not(.mck-barbie-sparkles):not(.mck-matrix-rain) {
+    position: relative;
+    z-index: 1;
+  }
+  html[data-mck-skin="barbie"] .mck-card,
+  html[data-mck-skin="barbie"] .lm-card {
+    border-width: 2px;
+    border-radius: calc(var(--mck-radius-paper) + 4px);
+    box-shadow: var(--mck-shadow-paper);
+  }
+  html[data-mck-skin="barbie"] .mck-card-interactive:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 12px 28px rgb(var(--mck-accent) / 0.28);
+  }
+  html[data-mck-skin="barbie"] .mck-btn-primary {
+    border: 2px solid rgb(255 255 255 / 0.55);
+    box-shadow:
+      0 4px 0 rgb(var(--mck-accent-hover)),
+      0 8px 20px rgb(var(--mck-accent) / 0.35);
+  }
+  html[data-mck-skin="barbie"] .mck-btn-primary:hover {
+    transform: translateY(-2px);
+  }
+  html[data-mck-skin="barbie"] .mck-nav-item.is-active {
+    box-shadow: 0 4px 14px rgb(var(--mck-accent) / 0.4);
+  }
+  html[data-mck-skin="barbie"] .mck-header-glass h1,
+  html[data-mck-skin="barbie"] .mck-title {
+    letter-spacing: 0.01em;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    color: #ff7eb6;
   }
 
   * {
@@ -102,6 +465,7 @@
   .mck-app-shell,
   .mck-panel-scroll {
     max-width: 100%;
+    background-color: rgb(var(--mck-section-bg) / 0.35);
   }
   .mck-panel-scroll {
     overscroll-behavior-x: contain;
@@ -155,14 +519,14 @@
 
 @layer components {
   /* Fondo oscuro del Centro de Mando — sin margen horizontal (evita recorte junto al sidebar) */
-  .quest-canvas.dark {
+  html.dark .quest-canvas {
     @apply bg-surface text-ink;
   }
 
   .quest-nav-bar {
     @apply bg-surface-panel/90;
   }
-  .quest-canvas.dark .quest-nav-bar {
+  html.dark .quest-canvas .quest-nav-bar {
     background: rgb(var(--mck-surface) / 0.92);
   }
   .quest-nav-bar-main {
@@ -186,7 +550,7 @@
       box-shadow: 0 0 0 0 transparent;
     }
     100% {
-      box-shadow: 0 0 20px 0 rgba(12, 96, 105, 0.45);
+      box-shadow: 0 0 20px 0 rgb(var(--mck-accent) / 0.45);
     }
   }
 
@@ -209,7 +573,7 @@
     background: rgb(var(--mck-surface-hover) / 0.9);
     box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.25);
   }
-  .quest-canvas.dark .quest-nav-btn:hover {
+  html.dark .quest-canvas .quest-nav-btn:hover {
     box-shadow: 0 0 14px 0 rgb(var(--mck-accent) / 0.28);
   }
   .quest-nav-btn--active {
@@ -521,7 +885,7 @@
   .quest-board-reino {
     @apply overflow-hidden rounded-xl border-2 bg-surface-panel/40 shadow-paper-sm;
   }
-  .quest-canvas.dark .quest-board-reino {
+  html.dark .quest-canvas .quest-board-reino {
     @apply bg-surface-panel/25 shadow-none;
   }
 
@@ -540,7 +904,7 @@
     background-image: none;
     box-shadow: none;
   }
-  .quest-canvas.dark .quest-board-cork--nested {
+  html.dark .quest-canvas .quest-board-cork--nested {
     background: rgb(var(--mck-surface) / 0.35);
     background-image:
       radial-gradient(circle, rgb(var(--mck-border) / 0.28) 1px, transparent 1px);
@@ -556,7 +920,7 @@
     background-size: 100% 100%, 22px 22px;
     box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.35);
   }
-  .quest-canvas.dark .quest-board-cork {
+  html.dark .quest-canvas .quest-board-cork {
     border-color: rgb(var(--mck-border) / 0.55);
     background-color: rgb(var(--mck-surface-input) / 0.55);
     background-image:
@@ -743,14 +1107,14 @@
       6px 12px 24px rgba(0, 0, 0, 0.14),
       12px 28px 48px rgba(0, 0, 0, 0.1);
   }
-  .quest-canvas.dark .quest-sticky {
+  html.dark .quest-canvas .quest-sticky {
     border-color: rgb(var(--mck-border-strong) / 0.45);
     box-shadow:
       0 1px 0 rgba(0, 0, 0, 0.3),
       0 6px 18px rgba(0, 0, 0, 0.24),
       inset 0 1px 0 rgb(255 255 255 / 0.04);
   }
-  .quest-canvas.dark .quest-sticky:hover {
+  html.dark .quest-canvas .quest-sticky:hover {
     box-shadow:
       0 2px 0 rgba(0, 0, 0, 0.32),
       0 10px 28px rgba(0, 0, 0, 0.28),
@@ -774,7 +1138,7 @@
     transform: translateX(-50%) rotate(-2.5deg);
     opacity: 0.88;
   }
-  .quest-canvas.dark .quest-sticky-tape {
+  html.dark .quest-canvas .quest-sticky-tape {
     background: linear-gradient(
       180deg,
       rgb(var(--mck-accent-sky) / 0.65) 0%,
@@ -807,7 +1171,7 @@
     @apply h-6 w-6 rounded-md border-2 border-black/15 shadow-sm transition hover:scale-110;
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35);
   }
-  .quest-canvas.dark .quest-sticky-color-trigger {
+  html.dark .quest-canvas .quest-sticky-color-trigger {
     @apply border-white/20;
   }
 
@@ -852,12 +1216,12 @@
     opacity: 0.5;
     cursor: wait;
   }
-  .quest-canvas.dark .quest-sticky-close {
+  html.dark .quest-canvas .quest-sticky-close {
     border-color: rgba(190, 100, 100, 0.45);
     background: rgba(0, 0, 0, 0.35);
     color: rgba(230, 140, 140, 0.95);
   }
-  .quest-canvas.dark .quest-sticky-close:hover:not(:disabled) {
+  html.dark .quest-canvas .quest-sticky-close:hover:not(:disabled) {
     background: rgb(180, 70, 70);
     color: #fff;
   }
@@ -875,11 +1239,11 @@
     background: rgba(255, 255, 255, 0.78);
     transform: translateY(-1px);
   }
-  .quest-canvas.dark .quest-sticky-task {
+  html.dark .quest-canvas .quest-sticky-task {
     background: rgb(var(--mck-surface-panel) / 0.55);
     border-color: rgb(var(--mck-border) / 0.45);
   }
-  .quest-canvas.dark .quest-sticky-task:hover {
+  html.dark .quest-canvas .quest-sticky-task:hover {
     background: rgb(var(--mck-surface-hover) / 0.65);
   }
 
@@ -889,7 +1253,7 @@
     background: rgb(var(--mck-surface-panel) / 0.95);
     color: rgb(var(--mck-accent));
   }
-  .quest-canvas.dark .quest-kingdom-pin {
+  html.dark .quest-canvas .quest-kingdom-pin {
     border-color: rgb(var(--mck-border) / 0.5);
     background: rgb(var(--mck-surface-panel) / 0.9);
     color: rgb(var(--mck-ink-secondary));
@@ -1372,7 +1736,7 @@
   .mck-card {
     border-radius: var(--mck-radius-paper);
     border: 1px solid rgb(var(--mck-border));
-    background: rgb(var(--mck-surface-panel));
+    background: rgb(var(--mck-card-bg));
     box-shadow: var(--mck-shadow-paper-sm);
     transition:
       transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1436,6 +1800,8 @@
     opacity: 1;
   }
   .mck-nav-item.is-active {
+    background: rgb(var(--mck-menu-active-bg));
+    color: rgb(var(--mck-menu-active-text));
     box-shadow: 0 2px 0 rgba(2, 45, 51, 0.18);
   }
   .dark .mck-nav-item.is-active {
@@ -1498,7 +1864,7 @@
   }
 
   .mck-header-glass {
-    background: rgb(var(--mck-surface-panel) / 0.88);
+    background: rgb(var(--mck-submenu-bg) / 0.88);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
@@ -1507,10 +1873,10 @@
     border-color: rgb(var(--mck-border) / 0.85);
   }
 
-  /* Sidebar — un tono bajo la base #2B454F */
+  /* Sidebar — siempre --mck-menu-bg (skin / Theme Studio), sin hardcode teal/morado */
   .dark aside.mck-sidebar,
   .dark .mck-sidebar {
-    background: rgb(35 56 64 / 0.96);
+    background: rgb(var(--mck-menu-bg) / 0.96);
     border-color: rgb(var(--mck-border) / 0.9);
   }
 
@@ -1561,6 +1927,232 @@ p.text-sm.text-ink-secondary {
 .mck-help-text {
   font-size: 9px;
   line-height: 1.35;
+}
+
+/* Atelier / Sakura: anula el 9px global + tipografía e interacción propias. */
+html[data-mck-skin="atelier"] .text-sm.text-muted,
+html[data-mck-skin="atelier"] p.text-sm.text-ink-secondary,
+html[data-mck-skin="atelier"] .mck-help-text,
+html[data-mck-skin="sakura"] .text-sm.text-muted,
+html[data-mck-skin="sakura"] p.text-sm.text-ink-secondary,
+html[data-mck-skin="sakura"] .mck-help-text,
+html[data-mck-skin="barbie"] .text-sm.text-muted,
+html[data-mck-skin="barbie"] p.text-sm.text-ink-secondary,
+html[data-mck-skin="barbie"] .mck-help-text {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+html[data-mck-skin="atelier"] aside.mck-sidebar,
+html[data-mck-skin="sakura"] aside.mck-sidebar,
+html[data-mck-skin="barbie"] aside.mck-sidebar {
+  width: min(18.75rem, 90vw);
+}
+@media (min-width: 1024px) {
+  html[data-mck-skin="atelier"] aside.mck-sidebar,
+  html[data-mck-skin="sakura"] aside.mck-sidebar,
+  html[data-mck-skin="barbie"] aside.mck-sidebar {
+    width: 16rem;
+  }
+}
+
+html[data-mck-skin="atelier"] .mck-nav-item,
+html[data-mck-skin="sakura"] .mck-nav-item,
+html[data-mck-skin="barbie"] .mck-nav-item {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  border-radius: 0.9rem;
+}
+html[data-mck-skin="atelier"] .mck-nav-item:not(.is-active):hover {
+  transform: translateX(5px);
+}
+html[data-mck-skin="sakura"] .mck-nav-item:not(.is-active):hover,
+html[data-mck-skin="barbie"] .mck-nav-item:not(.is-active):hover {
+  transform: translateX(4px) translateY(-1px);
+}
+
+html[data-mck-menu="sm"] .mck-nav-item span {
+  font-size: 12px;
+}
+html[data-mck-menu="md"] .mck-nav-item span {
+  font-size: 13.5px;
+}
+html[data-mck-menu="lg"] .mck-nav-item span {
+  font-size: 16px;
+  font-weight: 700;
+}
+html[data-mck-menu="lg"] .mck-nav-item {
+  padding-top: 0.72rem;
+  padding-bottom: 0.72rem;
+}
+
+/* Pestañas del cabezote / tabs internos: misma tipografía que el menú, más compactas en horizontal. */
+.mck-hub-tab.mck-nav-item:not(.is-active):hover {
+  transform: none;
+}
+html[data-mck-skin="atelier"] .mck-hub-tab.mck-nav-item,
+html[data-mck-skin="sakura"] .mck-hub-tab.mck-nav-item,
+html[data-mck-skin="barbie"] .mck-hub-tab.mck-nav-item {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  border-radius: 0.5rem;
+}
+html[data-mck-menu="lg"] .mck-hub-tab.mck-nav-item {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+html[data-mck-menu="lg"] .mck-hub-tab.mck-nav-item span {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+html[data-mck-skin="atelier"] .mck-header-glass h1,
+html[data-mck-skin="atelier"] .mck-title,
+html[data-mck-skin="sakura"] .mck-header-glass h1,
+html[data-mck-skin="sakura"] .mck-title,
+html[data-mck-skin="barbie"] .mck-header-glass h1,
+html[data-mck-skin="barbie"] .mck-title {
+  font-family: "A Note", cursive !important;
+  font-size: 1.7rem !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  font-synthesis: none;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.mck-title {
+  color: rgb(var(--mck-title));
+}
+.mck-subtitle {
+  color: rgb(var(--mck-subtitle));
+}
+.mck-submenu {
+  background: rgb(var(--mck-submenu-bg) / 0.92);
+  color: rgb(var(--mck-submenu-text));
+}
+aside.mck-sidebar {
+  background: rgb(var(--mck-menu-bg) / 0.96);
+  color: rgb(var(--mck-menu-text));
+}
+.mck-nav-item:not(.is-active) {
+  color: rgb(var(--mck-menu-text));
+}
+html[data-mck-skin="atelier"] .mck-header-glass [role="tab"],
+html[data-mck-skin="atelier"] .mck-scroll-tabs button,
+html[data-mck-skin="sakura"] .mck-header-glass [role="tab"],
+html[data-mck-skin="sakura"] .mck-scroll-tabs button,
+html[data-mck-skin="barbie"] .mck-header-glass [role="tab"],
+html[data-mck-skin="barbie"] .mck-scroll-tabs button {
+  font-size: 0.95rem;
+  padding-left: 0.9rem;
+  padding-right: 0.9rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+html[data-mck-skin="atelier"] .mck-card {
+  box-shadow: var(--mck-shadow-paper);
+  border-width: 2px;
+}
+html[data-mck-skin="atelier"] .mck-card-interactive:hover {
+  transform: translateY(-5px) scale(1.015);
+  box-shadow: var(--mck-shadow-paper-lg);
+}
+html[data-mck-skin="atelier"] .mck-card-interactive:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+html[data-mck-skin="atelier"] .mck-btn,
+html[data-mck-skin="sakura"] .mck-btn,
+html[data-mck-skin="barbie"] .mck-btn {
+  font-size: 1rem;
+  min-height: 2.65rem;
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+}
+html[data-mck-skin="atelier"] .mck-btn-primary:hover {
+  transform: translateY(-2px);
+}
+html[data-mck-skin="atelier"] .mck-btn-primary:active {
+  transform: translateY(2px);
+}
+html[data-mck-skin="sakura"] .mck-btn-primary:active,
+html[data-mck-skin="barbie"] .mck-btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgb(var(--mck-accent-hover));
+}
+
+html[data-mck-skin="atelier"] table,
+html[data-mck-skin="sakura"] table,
+html[data-mck-skin="barbie"] table {
+  font-size: 0.98rem;
+}
+html[data-mck-skin="atelier"] thead th,
+html[data-mck-skin="sakura"] thead th,
+html[data-mck-skin="barbie"] thead th {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+html[data-mck-skin="atelier"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-mck-skin="atelier"] select,
+html[data-mck-skin="atelier"] textarea,
+html[data-mck-skin="sakura"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-mck-skin="sakura"] select,
+html[data-mck-skin="sakura"] textarea,
+html[data-mck-skin="barbie"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-mck-skin="barbie"] select,
+html[data-mck-skin="barbie"] textarea {
+  font-size: 1rem;
+  min-height: 2.7rem;
+}
+
+html[data-mck-skin="atelier"] .mck-sidebar button,
+html[data-mck-skin="atelier"] aside .text-\[11px\],
+html[data-mck-skin="atelier"] aside .text-\[9px\],
+html[data-mck-skin="sakura"] .mck-sidebar button,
+html[data-mck-skin="sakura"] aside .text-\[11px\],
+html[data-mck-skin="sakura"] aside .text-\[9px\],
+html[data-mck-skin="barbie"] .mck-sidebar button,
+html[data-mck-skin="barbie"] aside .text-\[11px\],
+html[data-mck-skin="barbie"] aside .text-\[9px\] {
+  font-size: 0.82rem;
+}
+
+html[data-mck-skin="sakura"] .mck-header-glass {
+  background: rgb(255 246 241 / 0.92);
+}
+html[data-mck-skin="sakura"].dark .mck-header-glass {
+  background: rgb(42 22 34 / 0.94);
+}
+html[data-mck-skin="sakura"] aside.mck-sidebar {
+  border-right: 3px solid rgb(var(--mck-border));
+}
+html[data-mck-skin="barbie"] .mck-header-glass {
+  background: rgb(255 247 251 / 0.92);
+}
+html[data-mck-skin="barbie"].dark .mck-header-glass {
+  background: rgb(48 16 36 / 0.94);
+}
+html[data-mck-skin="barbie"] aside.mck-sidebar {
+  border-right: 3px solid rgb(var(--mck-border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-mck-skin="atelier"] .mck-card-interactive:hover,
+  html[data-mck-skin="atelier"] .mck-nav-item:not(.is-active):hover,
+  html[data-mck-skin="atelier"] .mck-btn-primary:hover,
+  html[data-mck-skin="sakura"] .mck-card-interactive:hover,
+  html[data-mck-skin="sakura"] .mck-nav-item:not(.is-active):hover,
+  html[data-mck-skin="sakura"] .mck-btn-primary:hover,
+  html[data-mck-skin="barbie"] .mck-card-interactive:hover,
+  html[data-mck-skin="barbie"] .mck-nav-item:not(.is-active):hover,
+  html[data-mck-skin="barbie"] .mck-btn-primary:hover {
+    transform: none;
+  }
 }
 
 /* Studio web: hover de botones del header (tokens --studio-hover-* / --studio-tr). */

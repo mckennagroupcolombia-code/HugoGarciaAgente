@@ -9,6 +9,96 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-10 13:15 - Studio web: lienzo Clásico igual a la home real
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La ilustración de la científica del hero (`hero.foto_izq`) se pinta en el lienzo como en el sitio: `<img>` con translate/scale, sin recorte ni fondo CSS duplicado.
+  - Antes el canvas la aplastaba y la repetía como background; por eso Hoja 1 se veía distinta a la home publicada.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+
+### 2026-08-10 12:45 - Studio web: PNG sin doble pegue
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Al adjuntar un PNG al hero ya no se ve duplicado: el fondo del panel y la foto flotante dejaron de pintar la misma imagen.
+  - Soltar/pegar en el panel actualiza solo el fondo; el `<img>` del sitio no reutiliza `FONDOS.hero_*`.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `index.html`, `tests/test_tema_web_fondos.py`
+
+### 2026-08-10 12:20 - Sitio: header centrado sin cortar login
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El menú del header ya no empuja «Iniciar sesión» ni el buscador fuera de la pantalla (el body tenía overflow-x hidden).
+  - Barra centrada a 1280px; a ≤1200 se ocultan buscar/WhatsApp; a ≤1100 pasa a menú hamburguesa.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `base.html`
+  - `ClasicoLayoutCanvas.tsx`, `tests/test_tema_web_header.py`
+
+### 2026-08-10 12:40 - Studio web: lienzo = sitio publicado (hero)
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Bugfix
+- **Qué se implementó:**
+  - El chip «Adjuntar imagen» y el asa del split ya no tapan el hero: solo se ven al pasar el mouse (no existen en el sitio público).
+  - Se quitó un `translate(-271px, 65px)` accidental en «Pedir cotización» que desplazaba el botón en la publicación.
+  - El lienzo recorta el hero como la web (`overflow:hidden`) y la itálica del título usa el acento claro del tema.
+- **Archivos Modificados:**
+  - `ClasicoLayoutCanvas.tsx`, `tema_web.json`, `tema_web_preview.json`
+
+### 2026-08-10 12:15 - Studio web: herramientas como Studio Visual
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Se quitó el botón Temas del cabezote en Studio web y la pestaña Tema.
+  - Rail izquierdo (Lienzo / Tokens / Textos) + lienzo siempre al centro + panel derecho estrecho y redimensionable (188–340 px), al estilo Studio Visual.
+- **Archivos Modificados:**
+  - `SitioWebPanel.tsx`, `Layout.tsx`, `WebLayoutCanvas.tsx`, `panelInfo.ts`
+  - `tests/test_studio_web_toolbar_actions.py`
+
+### 2026-08-10 11:40 - Studio web: lienzo centrado por defecto
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - El capítulo del lienzo se centra en el área de trabajo (pasteboard). Al abrir o cambiar zoom, la primera hoja queda en el centro del viewport.
+- **Archivos Modificados:**
+  - `HojasCapitulo.tsx`, `ClasicoLayoutCanvas.tsx`, `WebLayoutCanvas.tsx`
+
+### 2026-08-10 11:30 - Studio web: sin botón Pureza
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Se quitó el switch Clásico/Pureza del encabezado, de la vista previa y de Publicar. El Studio edita solo Clásico.
+- **Archivos Modificados:**
+  - `SitioWebPanel.tsx`
+
+### 2026-08-10 11:20 - Studio web: pestañas al lado del título
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Lienzo/Tokens/Clásico/Pureza y Guardar/Publicar van en la fila del título (espacio que estaba vacío).
+  - Hojas, zoom y Selección quedan en la segunda fila, como las pestañas de Contabilidad.
+- **Archivos Modificados:**
+  - `Layout.tsx`, `SitioWebPanel.tsx`
+
+### 2026-08-10 11:15 - Studio web: encabezado como Contabilidad
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Primera fila: solo título «Studio web» + temas/modo (igual que Contabilidad).
+  - Segunda fila (`mck-submenu`): Lienzo/Tokens/Contenido/Tema, Clásico/Pureza, zoom y Guardar/Publicar.
+- **Archivos Modificados:**
+  - `Layout.tsx`, `SitioWebPanel.tsx`, `tests/test_studio_web_toolbar_actions.py`
+
+### 2026-08-10 10:30 - Studio web: barra más compacta (10 pt)
+- **Autor:** Cynthia Ruiz
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Botones de Lienzo/Tokens, Clásico/Pureza, Hojas, Zoom, Guardar y Publicar a texto 10 pt con menos padding.
+- **Archivos Modificados:**
+  - `SitioWebPanel.tsx`, `StudioDesplegables.tsx`, `Layout.tsx`
+
 ### 2026-08-09 18:35 - Studio web: una sola barra de título y acciones
 - **Autor:** Cynthia Ruiz
 - **Tipo de Cambio:** Mejora técnica

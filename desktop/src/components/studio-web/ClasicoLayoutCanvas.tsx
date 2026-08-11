@@ -40,7 +40,12 @@ import {
   type AlignGuide,
   type ResizeGuideMode,
 } from "../../lib/studioAlignmentGuides";
-import { FolioHoja, MarcoCapitulo, useScrollHojaActiva } from "./HojasCapitulo";
+import {
+  FolioHoja,
+  MarcoCapitulo,
+  useCentrarLienzoPorDefecto,
+  useScrollHojaActiva,
+} from "./HojasCapitulo";
 import { AlignmentGuidesOverlay } from "./AlignmentGuidesOverlay";
 import { StudioDeleteContext } from "./StudioDeleteContext";
 import { StudioSelectableFrame } from "./StudioSelectionChrome";
@@ -215,17 +220,23 @@ function EditableNode({
   /** Ajusta la caja al texto (títulos/párrafos). No usar en tarjetas ni iconos. */
   fitText?: boolean;
 }) {
+  const assetBase = useContext(StudioAssetBaseCtx);
   const n = nodoOf(layout, id);
   if (n.hidden) return null;
   const hugBox = esCajaHugStudio(id);
   const chrome = esNodoChromeSitio(id);
-  const assetBase = useContext(StudioAssetBaseCtx);
+  const esFoto = esNodoFotoStudio(id);
   const merged: CSSProperties = {
     ...style,
     ...estiloFitTexto(n, { className, enabled: fitText, tag: Tag, chrome }),
     ...(hugBox && !chrome ? estiloCajaHug(n) : {}),
   };
-  if (n.backgroundImage && !esNodoFotoStudio(id)) {
+  // Foto = <img src>, no background CSS (si no el lienzo pinta doble / tapa el watermark).
+  if (esFoto) {
+    merged.backgroundImage = "none";
+    merged.background = "transparent";
+    merged.overflow = "visible";
+  } else if (n.backgroundImage) {
     merged.backgroundImage = `url("${resolveFondoSrc(n.backgroundImage, assetBase)}")`;
     merged.backgroundSize = "cover";
     merged.backgroundPosition = "center";
@@ -282,6 +293,7 @@ export default function ClasicoLayoutCanvas({
   onEliminar?: () => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const pasteboardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const heroSplitRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef(layout);
@@ -302,15 +314,25 @@ export default function ClasicoLayoutCanvas({
   const fondos = clasico.fondos || {};
   const kitDots = [pal.fondoOscuro, pal.acentoOscuro, pal.acento, pal.acentoClaro];
 
+  const ponerFondoPanel = (slot: "hero_izq" | "hero_der", url: string) => {
+    onClasicoPatch((d) => {
+      d.fondos = { ...(d.fondos || {}), [slot]: url };
+    });
+    // Soltar en el panel = solo fondo CSS. Limpia el nodo foto si era el mismo PNG.
+    const fotoId = slot === "hero_izq" ? "hero.foto_izq" : "hero.foto_der";
+    onLayoutChangeRef.current(mergeFotoNodo(layoutRef.current, fotoId, ""));
+  };
+
   const ponerFoto = (id: string, url: string) => {
     onLayoutChangeRef.current(mergeFotoNodo(layoutRef.current, id, url));
     onSelect(id);
   };
 
-  const fotoBloque = (id: string, fallbackUrl?: string) => {
+  const fotoBloque = (id: string) => {
     const n = nodoOf(layout, id);
     if (n.hidden) return null;
-    const raw = n.backgroundImage || fallbackUrl || "";
+    // Igual que .hero-foto del sitio: <img> + transform del nodo (dx/dy/scale).
+    const raw = n.backgroundImage || "";
     const src = raw ? resolveFondoSrc(raw, assetBase) : "";
     const onPick = (e: ChangeEvent<HTMLInputElement>) => {
       const f = e.target.files?.[0];
@@ -327,10 +349,11 @@ export default function ClasicoLayoutCanvas({
         <label
           data-node={id}
           data-studio-handle="fondo-img"
-          className="absolute bottom-3 left-3 z-30 cursor-pointer rounded-md border border-white/50 bg-black/45 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow hover:bg-black/60"
+          title="Adjuntar imagen flotante (distinta del fondo del panel)"
+          className="absolute right-3 top-3 z-30 cursor-pointer rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white/90 opacity-0 shadow transition hover:bg-black/55 group-hover:opacity-100 group-focus-within:opacity-100"
           onPointerDown={(e) => e.stopPropagation()}
         >
-          📷 Adjuntar imagen
+          📷 Imagen
           <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onPick} />
         </label>
       );
@@ -343,14 +366,23 @@ export default function ClasicoLayoutCanvas({
         layout={layout}
         onSelect={onSelect}
         onDragStart={beginDrag}
-        className="relative z-[2] mt-6 shrink-0 cursor-grab overflow-hidden active:cursor-grabbing"
+        className="relative z-[2] mt-6 block shrink-0 cursor-grab active:cursor-grabbing"
         style={{
-          width: n.width || undefined,
+          width: n.width || 200,
+          height: n.height || 204,
           maxWidth: "100%",
-          height: n.height || undefined,
+          marginTop: 24,
+          backgroundImage: "none",
+          background: "transparent",
+          overflow: "visible",
         }}
       >
-        <img src={src} alt="" className="pointer-events-none max-h-[220px] w-auto max-w-full object-contain" />
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="pointer-events-none block h-full w-full max-w-none object-contain"
+        />
       </EditableNode>
     );
   };
@@ -745,8 +777,7 @@ export default function ClasicoLayoutCanvas({
               className="w-full border-b-2"
               style={{ borderColor: pal.acento, background: pal.fondo }}
             >
-              <div
-                className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center gap-5 px-12"
+              <div className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center gap-3 px-8"
                 style={{ boxSizing: "border-box" }}
               >
               {!nodoOf(layout, "header.logo").hidden && (
@@ -780,7 +811,7 @@ export default function ClasicoLayoutCanvas({
                 onDragStart={beginDrag}
                 className="min-w-0 flex-1"
               >
-                <ul className="flex flex-nowrap items-center justify-end gap-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#0c6069]">
+                <ul className="flex flex-nowrap items-center justify-end gap-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#0c6069]">
                   {HEADER_NAV_ITEMS.map((item) =>
                     nodoOf(layout, item.id).hidden ? null : (
                       <li key={item.id}>
@@ -799,7 +830,7 @@ export default function ClasicoLayoutCanvas({
                           }`}
                           style={{
                             padding:
-                              "var(--studio-pad-y, 8px) var(--studio-pad-x, 10px)",
+                              "var(--studio-pad-y, 6px) var(--studio-pad-x, 8px)",
                           }}
                         >
                           {item.label}
@@ -825,7 +856,7 @@ export default function ClasicoLayoutCanvas({
                   readOnly
                   tabIndex={-1}
                   placeholder="Buscar producto..."
-                  className="w-[190px] rounded border border-[#0c6069] bg-[rgba(12,96,105,0.06)] py-[9px] pl-8 pr-4 text-xs text-[#0c6069] outline-none"
+                  className="w-[150px] rounded border border-[#0c6069] bg-[rgba(12,96,105,0.06)] py-2 pl-8 pr-3 text-xs text-[#0c6069] outline-none"
                 />
               </EditableNode>
               )}
@@ -859,7 +890,7 @@ export default function ClasicoLayoutCanvas({
             </EditableNode>
             )}
             {/* Tamaños = main.css .hero (42px / justify-center). No subir a 80px. */}
-            <div ref={heroSplitRef} className="relative min-h-[680px] min-w-0">
+            <div ref={heroSplitRef} className="relative min-h-[680px] min-w-0 overflow-hidden">
               <div
                 className="grid min-h-[680px] min-w-0"
                 style={{
@@ -872,7 +903,7 @@ export default function ClasicoLayoutCanvas({
               <ZonaFondoDrop
                 label="imagen izquierda"
                 mostrarBoton={false}
-                className="relative flex min-w-0 flex-col justify-center overflow-hidden text-white"
+                className="group relative flex min-w-0 flex-col justify-center overflow-hidden text-white"
                 style={{
                   padding: "56px 48px",
                   backgroundColor: pal.fondoOscuro,
@@ -882,7 +913,7 @@ export default function ClasicoLayoutCanvas({
                     "linear-gradient(180deg, rgba(2,45,51,.45), rgba(2,45,51,.78))",
                   ),
                 }}
-                onUrl={(url) => ponerFoto("hero.foto_izq", url)}
+                onUrl={(url) => ponerFondoPanel("hero_izq", url)}
               >
                 <span
                   aria-hidden
@@ -907,7 +938,10 @@ export default function ClasicoLayoutCanvas({
                   )}
                   <h1 className="mb-6 text-[42px] font-extrabold leading-[1.08] tracking-[-1px]">
                     {textBlock("hero.titulo_l1", H.titulo_l1, "block", "span")}
-                    <em className="block font-normal italic text-[#6aacb3]">
+                    <em
+                      className="block font-light italic"
+                      style={{ color: pal.acentoClaro, fontWeight: 300 }}
+                    >
                       {textBlock("hero.titulo_em", H.titulo_em, "italic", "span")}
                     </em>
                     {textBlock("hero.titulo_l2", H.titulo_l2, "block", "span")}
@@ -930,13 +964,13 @@ export default function ClasicoLayoutCanvas({
                       borderColor: "rgba(255,255,255,0.35)",
                     })}
                   </div>
-                  {fotoBloque("hero.foto_izq", fondos.hero_izq)}
+                  {fotoBloque("hero.foto_izq")}
                 </div>
               </ZonaFondoDrop>
               <ZonaFondoDrop
                 label="imagen derecha"
                 mostrarBoton={false}
-                className="relative flex min-w-0 flex-col justify-center overflow-hidden"
+                className="group relative flex min-w-0 flex-col justify-center overflow-hidden"
                 style={{
                   padding: "56px 48px",
                   backgroundColor: pal.fondo,
@@ -946,7 +980,7 @@ export default function ClasicoLayoutCanvas({
                     "linear-gradient(180deg, rgba(227,252,255,.35), rgba(227,252,255,.72))",
                   ),
                 }}
-                onUrl={(url) => ponerFoto("hero.foto_der", url)}
+                onUrl={(url) => ponerFondoPanel("hero_der", url)}
               >
                 {textBlock(
                   "hero.kit_label",
@@ -1002,7 +1036,7 @@ export default function ClasicoLayoutCanvas({
                     )
                   ))}
                 </div>
-                {fotoBloque("hero.foto_der", fondos.hero_der)}
+                {fotoBloque("hero.foto_der")}
               </ZonaFondoDrop>
               </div>
               <div
@@ -1010,8 +1044,8 @@ export default function ClasicoLayoutCanvas({
                 aria-orientation="vertical"
                 aria-valuenow={heroSplitPct(nodoOf(layout, "hero"))}
                 data-studio-handle="hero-split"
-                title="Arrastra con el cursor para agrandar o achicar cada fondo"
-                className="absolute top-0 z-50 flex h-full w-10 -translate-x-1/2 cursor-col-resize items-center justify-center touch-none select-none"
+                title="Arrastra para cambiar el ancho de cada panel (solo Studio)"
+                className="group/split absolute top-0 z-50 flex h-full w-8 -translate-x-1/2 cursor-col-resize items-center justify-center touch-none select-none"
                 style={{ left: `${heroSplitPct(nodoOf(layout, "hero"))}%` }}
                 onPointerDown={(e) => {
                   e.preventDefault();
@@ -1047,11 +1081,17 @@ export default function ClasicoLayoutCanvas({
                   handle.addEventListener("pointercancel", onUp);
                 }}
               >
-                <span className="pointer-events-none h-full w-1 rounded-full bg-sky-400 shadow-[0_0_0_2px_rgba(255,255,255,.85)]" />
-                <span className="pointer-events-none absolute top-1/2 flex -translate-y-1/2 flex-col items-center gap-0.5 rounded-md border-2 border-white bg-sky-500 px-2 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-lg">
-                  ⟷ arrastrar
-                  <span className="tabular-nums text-[9px] font-bold normal-case tracking-normal">
-                    {heroSplitPct(nodoOf(layout, "hero"))}% · {100 - heroSplitPct(nodoOf(layout, "hero"))}%
+                <span className="pointer-events-none h-full w-px bg-sky-400/70 opacity-40 transition group-hover/split:opacity-100 group-hover/split:w-0.5" />
+                <span
+                  className={`pointer-events-none absolute top-1/2 flex -translate-y-1/2 flex-col items-center gap-0.5 rounded-md border border-white/80 bg-sky-500 px-1.5 py-1 text-[9px] font-extrabold uppercase tracking-wide text-white shadow transition ${
+                    selectedIds.includes("hero") || dragging
+                      ? "opacity-100"
+                      : "opacity-0 group-hover/split:opacity-100"
+                  }`}
+                >
+                  ⟷
+                  <span className="tabular-nums text-[8px] font-bold normal-case tracking-normal">
+                    {heroSplitPct(nodoOf(layout, "hero"))}/{100 - heroSplitPct(nodoOf(layout, "hero"))}
                   </span>
                 </span>
               </div>
@@ -1235,11 +1275,14 @@ export default function ClasicoLayoutCanvas({
   const hojasVisibles = layout.orden.filter(
     (sid) => nodoOf(layout, sid).hidden !== true && clasico.secciones[sid] !== false,
   );
+  useCentrarLienzoPorDefecto(pasteboardRef, stageRef, zoom, hojasVisibles.join(","));
 
   return (
     <StudioAssetBaseCtx.Provider value={assetBase}>
     <StudioDeleteContext.Provider value={onEliminar}>
     <div
+      ref={pasteboardRef}
+      data-studio-pasteboard=""
       className={`h-full overflow-auto ${dragging ? "cursor-grabbing select-none" : ""}`}
       style={{ background: "#505050" }}
       onPointerDown={() => {

@@ -46,40 +46,42 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "id": "whatsapp",
         "nombre": "WhatsApp",
         "icono": "wa",
-        "modelo_id": "gemma4:e4b",
+        "modelo_id": "claude-sonnet-4-6",
         "modo": "Cliente · catálogo + texto",
         "flujo": "cliente_texto",
         "descripcion": (
             "Ventas a clientes: catálogo Sheets y ficha técnica se cargan en Python; "
-            "el LLM (Ollama gemma4:e4b por defecto) solo redacta. Sin tool-use API ni Claude."
+            "el LLM (Claude por defecto) solo redacta, sin tool-use API. "
+            "Fallback automático a Gemini/Ollama si Claude falla o se agota el presupuesto."
         ),
         "editable": True,
-        "categorias_modelo": ["ollama", "gemini"],
+        "categorias_modelo": ["claude", "ollama", "gemini"],
     },
     {
         "id": "meli_preventa",
         "nombre": "MeLi Preventa",
         "icono": "ml",
-        "modelo_id": "gemini-2.5-pro",
+        "modelo_id": "claude-sonnet-4-6",
         "modo": "Operaciones · ficha MeLi",
         "flujo": "operaciones",
         "descripcion": "Responde con ficha técnica. Sin ficha → delega al equipo.",
         "editable": True,
-        "categorias_modelo": ["gemini"],
+        "categorias_modelo": ["claude", "gemini"],
     },
     {
         "id": "web_chat",
         "nombre": "Web Chat (burbuja)",
         "icono": "web",
-        "modelo_id": "gemma4:e4b",
+        "modelo_id": "claude-sonnet-4-6",
         "modo": "Cliente · combo SIIGO + texto",
         "flujo": "cliente_texto",
         "descripcion": (
             "Burbuja mckennagroup.co: combos SIIGO y fichas en preflight; "
-            "LLM local (gemma4:e4b) o Gemini Flash solo texto. Sin Claude ni 36 tools."
+            "LLM (Claude por defecto) solo texto, sin tool-use API. "
+            "Fallback automático a Gemini/Ollama si Claude falla o se agota el presupuesto."
         ),
         "editable": True,
-        "categorias_modelo": ["ollama", "gemini"],
+        "categorias_modelo": ["claude", "ollama", "gemini"],
     },
     {
         "id": "panel_chat",

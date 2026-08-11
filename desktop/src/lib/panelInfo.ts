@@ -132,11 +132,11 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   etiquetas: {
     emoji: "🏷️",
     label: "Diseño",
-    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio, el editor visual de plantillas.",
+    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio visual y Studio web.",
     tips: [
       "Selecciona el producto, el lote y la fecha de vencimiento antes de imprimir.",
       "El formato más usado es la etiqueta de 50×30mm para frascos pequeños.",
-      "Usa la pestaña Studio para diseñar una plantilla y enviarla directo a imprimir.",
+      "Usa Studio visual para plantillas de etiquetas y Studio web para mckennagroup.co.",
     ],
     tier: "core",
     category: "diseno",
@@ -170,18 +170,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "🎨",
     label: "Studio web",
     description:
-      "Botón del menú lateral: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos Pureza y tema publicado). La página pública no tiene editor.",
+      "Pestaña de Diseño: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos y tema publicado). La página pública no tiene editor.",
     tips: [
       "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos o muévelos con las flechas (Shift = 10 px). Agranda con la esquina azul; doble clic edita. Ctrl+Z deshace.",
       "Header: clic en cada botón del menú (Inicio, Catálogo…) o en WhatsApp para editarlo solo. El grupo «Menú» aplica a todos. Inspector: tamaño, fuente, hover y animación.",
       "Botones Comprar / Cotización: clic en el borde de la caja, en el icono o en el texto — cada uno se edita aparte (tamaño, color, icono Phosphor).",
       "Al redimensionar, el recuadro azul es el botón y debajo ves el tamaño real en px (como queda en el sitio, da igual el zoom del lienzo).",
       "Fondos del hero: arrastra la línea vertical ⟷ entre el panel oscuro y el claro para achicar uno y agrandar el otro.",
-      "Tokens = fondos y colores del tema (Clásico o Pureza) + tipografía; Contenido = formularios; Publicar = tema que ven los clientes.",
-      "En Tokens puedes cambiar el fondo de página, el hero oscuro y los acentos. La vista previa local (:8083) los muestra al instante; Guardar publica a los visitantes.",
+      "Tokens = colores/fondos en el rail izquierdo; Textos = formularios; el lienzo queda siempre al centro.",
+      "Panel derecho estrecho (arrastrable), como Studio Visual. Guardar/Publicar publican a los visitantes.",
     ],
     tier: "standard",
-    category: "studio-web",
+    category: "diseno",
   },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────────
@@ -316,6 +316,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  "libro-mayor": {
+    emoji: "🧮",
+    label: "Libro Mayor",
+    description:
+      "Contabilidad de partida doble propia: plan de cuentas, terceros (proveedores, clientes, socios), asientos con débito/crédito y cuentas T. Incluye plantillas para compras de socios (p.ej. Amazon con comisión, registradas como cuenta por pagar) y compras a proveedores/socios-proveedores (p.ej. materia prima transformada).",
+    tips: [
+      "Vista Simple: acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor) y saldos pendientes con cada socio.",
+      "Vista Avanzada: plan de cuentas, terceros, cuentas T por cuenta y balance de comprobación.",
+      "Toda compra de un socio a nombre propio (p.ej. Amazon) se registra como cuenta por pagar al socio, no como gasto directo — el giro posterior salda esa cuenta.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   impuestos: {
     emoji: "🧾",
     label: "Pagos de impuestos",
@@ -360,6 +373,29 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Pestaña 'Árbol de commits': cada nodo es un commit; los colores separan ramas.",
       "Pestaña 'Recaps del equipo': resumen de qué se implementó, quién y en qué archivos, por tarea.",
       "Los recaps se agregan automáticamente en docs/team-recaps.md al terminar una tarea con la IA.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
+  "meli-oauth": {
+    emoji: "🔌",
+    label: "Conexión MercadoLibre",
+    description: "Reactivar la conexión OAuth con MercadoLibre cuando la app queda inactiva o se crea una nueva (Client ID/Secret + código de autorización).",
+    tips: [
+      "Si la app de MeLi queda 'INACTIVA', preguntas/órdenes/posventa/envíos dejan de llegar en silencio — reconecta aquí.",
+      "El Client Secret nunca se muestra de vuelta por seguridad; solo indica si ya hay uno guardado.",
+      "Después de activar, recuerda revisar en developers.mercadolibre.com que el Callback URL y los tópicos (questions, orders_v2, messages, shipments) sigan habilitados — eso no se puede hacer desde aquí.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
+  "tareas-programadas": {
+    emoji: "⏱️",
+    label: "Tareas Programadas",
+    description: "Frecuencia de los crons de la app (auditoría, compliance MeLi, certificados de retención, costos LLM, monitor de importaciones) — sin tocar el crontab del servidor.",
+    tips: [
+      "Cada job sigue disparándose por cron como siempre, pero se salta si no ha pasado el intervalo configurado aquí.",
+      "Por defecto todos corren cada 7 días — cámbialo si alguno necesita más o menos frecuencia.",
     ],
     tier: "advanced",
     category: "sistemas",
@@ -441,7 +477,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     label: "Ajustes",
     description: "Configuración del panel: apariencia, tema, notificaciones y gestión de usuarios.",
     tips: [
-      "Puedes cambiar el tema de color desde la opción 'Apariencia'.",
+      "Paleta en el cabezote o Temas en el menú: McKenna (clásico) o Atelier. También en Ajustes.",
       "Los administradores pueden agregar o quitar usuarios desde aquí.",
     ],
     tier: "core",

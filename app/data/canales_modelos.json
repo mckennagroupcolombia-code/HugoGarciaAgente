@@ -1,7 +1,8 @@
 {
-  "updated_at": "2026-06-06T05:21:11",
+  "updated_at": "2026-08-10T00:00:00",
   "asignaciones": {
-    "web_chat": "gemini-2.5-pro",
-    "whatsapp": "gemini-2.5-pro"
+    "web_chat": "claude-sonnet-4-6",
+    "whatsapp": "claude-sonnet-4-6",
+    "meli_preventa": "claude-sonnet-4-6"
   }
 }

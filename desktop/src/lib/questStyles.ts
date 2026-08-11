@@ -122,7 +122,7 @@ export function stickyRotation(id: number): number {
 export function stickyPaperBackground(color: string, dark: boolean): string {
   const c = color || "#0c6069";
   if (dark) {
-    return `linear-gradient(168deg, ${c}55 0%, rgb(26 48 53) 38%, rgb(18 36 40) 100%)`;
+    return `linear-gradient(168deg, ${c}55 0%, rgb(var(--mck-surface-panel)) 38%, rgb(var(--mck-surface)) 100%)`;
   }
   return `linear-gradient(168deg, ${c}28 0%, rgb(var(--mck-surface-panel)) 42%, rgb(var(--mck-surface-input)) 100%)`;
 }

@@ -427,6 +427,14 @@ def jid_grupo_inventario_wa() -> str:
     return _wa_jid_env("GRUPO_INVENTARIO_WA", _JID_INVENTARIO_DEFAULT)
 
 
+_JID_FACTURACION_VENTAS_DEFAULT = "120363425465848868@g.us"
+
+
+def jid_grupo_facturacion_ventas_wa() -> str:
+    """Facturas electrónicas de venta (web/WhatsApp/MeLi) + PDF — GRUPO_FACTURACION_VENTAS_WA."""
+    return _wa_jid_env("GRUPO_FACTURACION_VENTAS_WA", _JID_FACTURACION_VENTAS_DEFAULT)
+
+
 def _normalizar_destino_wa(destino: str | None) -> str:
     """JID o número: strip y comentario inline (#) por si llega desde .env sin pasar por _wa_jid_env."""
     if not destino:

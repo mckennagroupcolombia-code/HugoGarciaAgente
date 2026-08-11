@@ -10,6 +10,7 @@ import {
   type FacturacionSubtabId,
 } from "../lib/contabilidadAccess";
 import { PanelIcon } from "../icons/PanelIcon";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 const SyncPanel = lazy(() => import("./SyncPanel"));
 const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
@@ -93,14 +94,10 @@ export default function FacturacionPanel() {
               role="tab"
               aria-selected={selected}
               onClick={() => setSub(t.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
-                selected
-                  ? "bg-accent text-white shadow-sm"
-                  : "text-muted hover:bg-surface-hover hover:text-ink"
-              }`}
+              className={hubTabClass(selected)}
             >
-              <PanelIcon panel={iconPanel} size={18} active={selected} bubble={false} />
-              {t.label}
+              <PanelIcon panel={iconPanel} size={16} active={selected} bubble={false} />
+              <span className={HUB_TAB_LABEL}>{t.label}</span>
             </button>
           );
         })}

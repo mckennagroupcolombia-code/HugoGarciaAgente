@@ -8,7 +8,7 @@ Instrucciones y arquitectura completa para cualquier IA que trabaje en este repo
 
 **Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo, generación de catálogos y producción de contenido multimedia para redes sociales.
 
-**Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (agente WhatsApp + `/chat`, tool-calling) · **Google GenAI Gemini 2.5-Pro** (solo preventa MeLi con ficha y scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
+**Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (modelo por defecto en WhatsApp, `/chat`, Web Chat y preventa MeLi; tool-calling en canales de operaciones) · **Google GenAI Gemini 2.5-Pro** (red de seguridad de los canales cliente/preventa y modelo de scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
 
@@ -145,7 +145,8 @@ git pull origin main    # o: git pull origin master
 │   │   ├── script_audit.py        Auditoría py_compile + manifiesto; usado por herramienta auditar_scripts
 │   │   ├── backup_drive.py        Backup nocturno Drive/local + git push opcional + WA a GRUPO_ALERTAS_SISTEMAS_WA
 │   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
-│   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío)
+│   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío / entregado)
+│   │   ├── notas_credito.py       Ticket "anular factura / nota crédito" en Centro de Mando (Web/MeLi)
 │   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
 │   │   └── sincronizar_facturas_de_compra_siigo.py  Facturas de compra desde Gmail
 │   │
@@ -184,8 +185,8 @@ git pull origin main    # o: git pull origin master
 
 ```env
 # IA
-GOOGLE_API_KEY              # Google GenAI (Gemini) — preventa MeLi, pipelines de contenido
-ANTHROPIC_API_KEY           # Claude API — obligatorio para WhatsApp, `/chat` y herramientas del agente
+GOOGLE_API_KEY              # Google GenAI (Gemini) — red de seguridad WhatsApp/web/preventa, pipelines de contenido
+ANTHROPIC_API_KEY           # Claude API — obligatorio: modelo por defecto en WhatsApp, `/chat`, Web Chat, preventa MeLi y herramientas del agente
 WEB_API_URL                 # Base URL API stock/precios sitio web (opcional; ver sincronizar_productos_pagina_web)
 WEB_API_KEY                 # Bearer para API web (opcional)
 
@@ -207,7 +208,7 @@ GRUPO_INVENTARIO_WA         # ID grupo inventario
 TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
 GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
 GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
-GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio
+GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio + entregado
 # Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
 
 # API
@@ -302,14 +303,15 @@ generó un gasto de decenas de dólares sin aviso previo.
 ```
 MeLi → POST /notifications (puerto 8080)
   └─ topic: "questions"
-  └─ hilo: procesar_nueva_pregunta(question_id)   # preventa_meli + Gemini si hay ficha
+  └─ hilo: procesar_nueva_pregunta(question_id)   # preventa_meli + LLM si hay ficha
        ├─ GET /questions/{id} → texto pregunta + item_id
        ├─ GET /items/{item_id} → nombre del producto
        ├─ manejar_pregunta_preventa()
        │    ├─ buscar_ficha_tecnica_producto(nombre) → Google Sheets col I
-       │    ├─ CON ficha → generar_respuesta_con_ficha() con Gemini
-       │    │    ├─ Gemini OK → POST /answers → responde en MeLi ✅
-       │    │    └─ Gemini falla → delega al grupo ❓
+       │    ├─ CON ficha → generar_respuesta_con_ficha() — modelo del canal `meli_preventa`
+       │    │    (Claude por defecto, Gemini como red de seguridad, ver canales_config.py)
+       │    │    ├─ LLM OK → POST /answers → responde en MeLi ✅
+       │    │    └─ Claude y Gemini fallan → delega al grupo ❓
        │    └─ SIN ficha → guardar_pregunta_pendiente() → alerta grupo ❓
        └─ Reporte al grupo WhatsApp con resultado
 
@@ -337,7 +339,7 @@ WhatsApp → POST /whatsapp (puerto 8081)
   ├─ Grupo contabilidad / compras / inventario (según JID y flags): pagos `ok`/`no`, `resp …`, facturas compra `inv …`, etc.
   ├─ Grupo preventa (`GRUPO_PREVENTA_WA`): `resp …` / `resp preventa …` para preguntas MeLi pendientes
   ├─ Grupo postventa (`GRUPO_POSTVENTA_WA`): `posventa <código>: <txt>` → envía respuesta al pack MeLi (cola `app/data/mensajes_posventa_pendientes.json`)
-  ├─ Grupos pedidos web: comandos `facturar` / envío (ver `web_pedidos.py`)
+  ├─ Grupos pedidos web: comandos `facturar` / `envio` / `entregado` (ver `web_pedidos.py`)
   ├─ "hugo dale ok <order_id>" → si hay borrador de respuesta IA posventa, envía a MeLi vía `modulo_posventa` (la alerta de aprobación se envía al grupo postventa)
   ├─ Si número en modo humano → reenvía al grupo
   ├─ Si imagen recibida → guarda comprobante → alerta pago al grupo
@@ -380,6 +382,79 @@ sincronizar_facturas_recientes(dias=1):
   ├─ obtener_facturas_siigo_paginadas(fecha_desde)
   └─ Para cada factura con Pack ID → upload a MeLi
 ```
+
+Este flujo asume que la factura **ya existe en Siigo** (creada manualmente) y solo la cruza/sube a MeLi. Para creación automática desde cero ver Flujo G.
+
+### G. Autofactura MeLi al entregarse el pedido
+
+```
+MeLi → POST /notifications (puerto 8080)
+  └─ topic: "shipments"
+  └─ hilo: procesar_entrega_meli_para_factura(shipping_id)   # app/tools/meli_autofactura_entrega.py
+       ├─ GET /shipments/{id} → si status != "delivered", ignora
+       ├─ order_id desde el shipment; dedup por order_id en app/data/meli_facturas_entrega.json
+       ├─ GET /orders/{order_id} → arma líneas (SKU vía seller_custom_field + buscar_producto_siigo_por_sku)
+       ├─ Comprador: SIEMPRE "Consumidor Final" con NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL,
+       │    default 222222222222) — MeLi no expone cédula/NIT real ni en orders ni en shipments
+       └─ crear_factura_venta_siigo(...) → reporta éxito/error a GRUPO_FACTURACION_VENTAS_WA
+```
+
+**Gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO`** (default `0` = modo sombra): mientras esté en 0,
+calcula y registra en `app/data/meli_facturas_entrega.json` qué se habría facturado (sin llamar a
+Siigo/DIAN). Cambiar a `1` solo tras confirmar con tráfico real que el tópico `shipments` llega al
+webhook — precedente: en abril/2026 se asumió que `questions`/`orders_v2`/`messages` ya estaban
+suscritos en la app de MeLi y no era cierto, dejando preventa/posventa rotas en silencio semanas.
+Requiere habilitar el tópico `shipments` en developers.mercadolibre.com para la app.
+
+### H. Facturación al momento de ENTREGA (política general, no solo MeLi) + nota crédito
+
+Principio de negocio (reemplaza "facturar al vender"): facturar en el momento de la **entrega**
+reduce cuántas facturas terminan necesitando nota crédito por arrepentimiento del cliente entre
+la compra y la entrega. MeLi ya lo hace vía Flujo G (evento `shipments`/`delivered`). Pedidos web
+lo hace por comando explícito porque **no existe señal automática de entrega para web** (el
+tracking de Interrapidísimo solo llega hasta `shipping_status=shipped`):
+
+```
+Grupo GRUPO_PEDIDOS_WEB_WA → "entregado 250" (o "entregado MCKG-…")
+  └─ app/routes.py → wp.registrar_entrega_y_facturar(ref)   # app/tools/web_pedidos.py
+       ├─ UPDATE orders SET shipping_status='delivered', delivered_at=...
+       └─ emitir_factura_siigo_pedido_web(ref, force=True)   # mismo dedup que "facturar"
+```
+
+`facturar <ref>` sigue existiendo como override manual (casos donde el cliente necesita la
+factura antes de la entrega, p. ej. clientes corporativos) — pero el flujo estándar para venta
+al detal es esperar a `entregado`.
+
+**Nota crédito — ticket al operador para casos puntuales (web / reclamos), cron automático para
+cancelaciones MeLi "normales":** cuando `anular_pedido_web()` detecta que el pedido ya tenía
+factura Siigo emitida, en vez de solo advertir en el texto de WhatsApp, crea un ticket en el
+Centro de Mando vía `app/tools/notas_credito.py::crear_ticket_nota_credito()` (categoría
+`contabilidad`, prioridad alta, asignado al aliado configurado para
+`TAREA_RECLAMO_MELI_ANULAR_FACTURA` en `tickets_db`). Es la generalización del patrón que ya
+existía solo para reclamos de MeLi (`app/meli_reclamos.py::crear_accion_anular_factura_por_reclamo`).
+
+Para el caso más frecuente — una orden MeLi se cancela (sin ser reclamo) después de que la
+factura ya se emitió automáticamente vía la integración externa (astroselling.com) — el ticket
+manual dejó de trabajarse silenciosamente 6 semanas (26-jun a 10-ago-2026, 44 casos, $2.1M COP)
+sin que nadie lo notara. Por eso existe **`scripts/emitir_notas_credito_cron.py`** (diario,
+frecuencia real vía Sistemas → Tareas Programadas): cruza órdenes MeLi canceladas
+(`app/services/meli.py::listar_ordenes_canceladas_meli`) contra facturas Siigo por Pack ID
+(mismo cruce por `observations`/`purchase_order` que Flujo F) y emite automáticamente la nota
+crédito (`app/services/siigo.py::crear_nota_credito_siigo`, `reason=2` "anulación de factura
+electrónica") si aún no existe una. Solo procesa cancelaciones con más de
+`NOTAS_CREDITO_MARGEN_HORAS` (default 48h) de antigüedad, y vuelve a chequear
+(`buscar_nota_credito_existente_siigo`) justo antes de cada emisión — la corrida manual del
+10-ago-2026 generó **4 notas crédito duplicadas** exactamente por no tener ese segundo chequeo,
+mientras contabilidad resolvía esos mismos casos a mano en paralelo. Reporta por WhatsApp a
+`GRUPO_FACTURACION_VENTAS_WA` solo cuando emite algo o encuentra un error real (no cuando el
+caso ya estaba resuelto por otra vía — eso es el camino normal, no una anomalía). Apagar con
+`NOTAS_CREDITO_CRON_ACTIVO=0` sin tocar el crontab.
+
+**Pendiente (paso separado, no implementado aún):** aplicar el mismo principio de "facturar al
+entregar" a ventas por WhatsApp — hoy `crear_factura_completa_siigo` lo dispara Claude vía
+tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambiarlo requiere
+tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
+conversación de WhatsApp — se trata aparte, con su propia revisión.
 
 ---
 
@@ -433,7 +508,7 @@ sincronizar_facturas_recientes(dias=1):
 
 **CORS**: habilitado para `localhost:5173` (Vite dev), `tauri://localhost`. Middleware manual en `routes.py`.
 
-**Pedidos tienda web:** lógica en `PAGINA_WEB/site/website.py` y alertas/comandos en grupo `GRUPO_PEDIDOS_WEB_WA` vía `app/tools/web_pedidos.py` (facturación y envío desde WhatsApp).
+**Pedidos tienda web:** lógica en `PAGINA_WEB/site/website.py` y alertas/comandos en grupo `GRUPO_PEDIDOS_WEB_WA` vía `app/tools/web_pedidos.py` (facturación al entregarse, envío y anulación desde WhatsApp — ver Flujo H).
 
 ---
 
@@ -576,9 +651,9 @@ app/training/casos_preventa.json
 Nueva pregunta MeLi
   │
   ├─ Ficha técnica en Sheets → SI
-  │    └─ Gemini genera respuesta
-  │         ├─ Gemini OK → responde automáticamente en MeLi
-  │         └─ Gemini falla (503, timeout) → ❓ delega al grupo
+  │    └─ LLM del canal `meli_preventa` genera respuesta (Claude primero, Gemini de respaldo)
+  │         ├─ OK → responde automáticamente en MeLi
+  │         └─ Claude y Gemini fallan (503, timeout, presupuesto) → ❓ delega al grupo
   │
   └─ Ficha técnica → NO → ❓ delega al grupo
 
@@ -640,8 +715,10 @@ El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 
 ## IA Principal (app/core.py)
 
-- **Modelo (WhatsApp, `/chat`, CLI chat)**: Claude `claude-sonnet-4-6` vía `ANTHROPIC_API_KEY`, con bucle de tool-use (`obtener_respuesta_ia`).
-- **Modelo (preventa MeLi con ficha)**: Gemini `gemini-2.5-pro` en `app/services/meli_preventa.py` — sin herramientas; solo texto con ficha.
+- **Modelo por canal**: asignado en `app/services/canales_config.py` / editable en Panel → Sistemas → Chat de Agentes → Canales (persistido en `app/data/canales_modelos.json`). Claude `claude-sonnet-4-6` es el default en `whatsapp`, `web_chat` y `meli_preventa`, vía `ANTHROPIC_API_KEY`.
+- **WhatsApp y Web Chat (clientes)**: `obtener_respuesta_ia()` en `app/core.py` despacha a `app/agent/cliente_chat.py` — LLM (Claude por defecto) solo redacta texto sobre catálogo/ficha ya resueltos en Python, **sin** tool-use API. Gemini/Ollama son red de seguridad si Claude falla o el presupuesto LLM lo bloquea.
+- **CLI chat y canales de operaciones** (ej. `sede_sur`): pasan por el bucle de tool-use de `AgentRun`/`LLMRouter`, Claude por defecto.
+- **Preventa MeLi con ficha**: `generar_respuesta_con_ficha()` en `app/services/meli_preventa.py` — intenta primero el modelo del canal `meli_preventa` (Claude por defecto); si falla o no hay presupuesto, cae a la cascada de modelos Gemini (`gemini-2.5-pro` → flash). Sin herramientas; solo texto con ficha.
 - **Persona**: Hugo García, asesor ejecutivo McKenna Group
 - **Tono**: Directo, colombiano ("veci"), sin rodeos
 - **Herramientas registradas**: ~32 funciones en `todas_las_herramientas` (Sheets, MeLi, Siigo, sync facturas, precios, catálogo PDF, pipeline FB, guías web, memoria, sistema). Stock hacia la web: `sincronizar_productos_pagina_web` (CLI/`sync.py`; no siempre expuesta como tool de Claude — ver `app/core.py`)
@@ -804,7 +881,7 @@ WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
 
 2. **Fotos en catálogo**: se obtienen por `meli_id` (columna A del Sheet, formato MCOxxxxxxxx), NO por `seller_custom_field`. El `seller_custom_field` usa formato "AS-XX" que no coincide con los SKUs del catálogo.
 
-3. **Preventa sin respuesta genérica**: si Gemini falla, se delega al grupo. Nunca se envía el fallback `"En breve nuestros asesores..."` al cliente.
+3. **Preventa sin respuesta genérica**: si Claude y Gemini fallan, se delega al grupo. Nunca se envía el fallback `"En breve nuestros asesores..."` al cliente.
 
 4. **Confirmación de pagos corta**: comando `ok <3dígitos>` en lugar de `ok confirmado {número_completo}@c.us`.
 

@@ -12,7 +12,6 @@ export type NavCategory =
   | "atencion"
   | "canales"
   | "diseno"
-  | "studio-web"
   | "docs"
   | "contabilidad"
   | "publicaciones"
@@ -54,6 +53,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "postventa", tier: "core" },
       { panel: "pedidos", tier: "core" },
       { panel: "empaque", tier: "core" },
+      { panel: "whatsapp", tier: "standard" },
     ],
   },
   {
@@ -70,13 +70,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "diseno",
     label: "Diseño",
     hub: true,
-    items: [{ panel: "etiquetas", tier: "core" }],
-  },
-  {
-    id: "studio-web",
-    label: "Studio web",
-    hub: true,
-    items: [{ panel: "sitioweb", tier: "standard" }],
+    items: [
+      { panel: "etiquetas", tier: "core" },
+      { panel: "sitioweb", tier: "standard" },
+    ],
   },
   {
     id: "docs",
@@ -120,6 +117,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "supervisor", tier: "advanced" },
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },
+      { panel: "meli-oauth", tier: "advanced" },
+      { panel: "tareas-programadas", tier: "advanced" },
     ],
   },
 ] as const;
@@ -136,7 +135,6 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   atencion: "Atención",
   canales: "Canales",
   diseno: "Diseño",
-  "studio-web": "Studio web",
   docs: "Docs técnicos",
   contabilidad: "Contabilidad",
   publicaciones: "Publicaciones",

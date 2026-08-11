@@ -5,6 +5,9 @@ import MobileHub, { useMobileLayout } from "./components/MobileHub";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import TicketsPanel from "./components/TicketsPanel";
+import ThemesDialog from "./components/ThemesDialog";
+import MatrixRain from "./components/MatrixRain";
+import BarbieSparkles from "./components/BarbieSparkles";
 
 // Paneles bajo demanda: cada uno baja en su propio chunk al abrirlo, en vez de
 // inflar el bundle inicial. Dashboard y TicketsPanel quedan estáticos por ser
@@ -21,6 +24,8 @@ const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
 const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPanel"));
+const MeliOAuthPanel = lazy(() => import("./components/MeliOAuthPanel"));
+const TareasProgramadasPanel = lazy(() => import("./components/TareasProgramadasPanel"));
 const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
 const ConfigurarProductosPanel = lazy(() =>
   import("./components/EtiquetasPanel").then((m) => ({
@@ -86,6 +91,10 @@ function PanelRouterInner() {
       return <SupervisorPanel />;
     case "control-versiones":
       return <ControlVersionesPanel />;
+    case "meli-oauth":
+      return <MeliOAuthPanel />;
+    case "tareas-programadas":
+      return <TareasProgramadasPanel />;
     case "preventa":
       return <PreventaPanel />;
     case "postventa":
@@ -100,6 +109,7 @@ function PanelRouterInner() {
     case "rrhh":
     case "operativos":
     case "ingresos-egresos":
+    case "libro-mayor":
     case "stock":
       return <ContabilidadPanel />;
     case "fichas":
@@ -321,6 +331,12 @@ export default function App() {
         && state.fontSans === prev.fontSans
         && state.accentRgb === prev.accentRgb
         && state.radius === prev.radius
+        && state.skin === prev.skin
+        && state.fontScale === prev.fontScale
+        && state.menuScale === prev.menuScale
+        && state.activeCustomId === prev.activeCustomId
+        && JSON.stringify(state.colors) === JSON.stringify(prev.colors)
+        && JSON.stringify(state.customThemes) === JSON.stringify(prev.customThemes)
       ) {
         return;
       }
@@ -398,38 +414,48 @@ export default function App() {
 
   if (showMobile) {
     return (
-      <MobileHub
-        onSwitchDesktop={() => {
-          localStorage.setItem("mck-force-desktop", "1");
-          setForceDesktop(true);
-          setMobileShell("app");
-        }}
-        onOpenPanel={() => setMobileShell("app")}
-      />
+      <>
+        <MatrixRain />
+        <BarbieSparkles />
+        <ThemesDialog />
+        <MobileHub
+          onSwitchDesktop={() => {
+            localStorage.setItem("mck-force-desktop", "1");
+            setForceDesktop(true);
+            setMobileShell("app");
+          }}
+          onOpenPanel={() => setMobileShell("app")}
+        />
+      </>
     );
   }
 
   return (
-    <Layout
-      onBackToMobileHub={
-        isMobile && !forceDesktop
-          ? () => {
-              setMobileShell("hub");
-              setPanel("hugo");
-            }
-          : undefined
-      }
-      onExitForceDesktop={
-        forceDesktop && isMobile && !isMcKennaAndroidApp()
-          ? () => {
-              localStorage.removeItem("mck-force-desktop");
-              setForceDesktop(false);
-              setMobileShell("hub");
-            }
-          : undefined
-      }
-    >
-      <PanelRouter />
-    </Layout>
+    <>
+      <MatrixRain />
+      <BarbieSparkles />
+      <ThemesDialog />
+      <Layout
+        onBackToMobileHub={
+          isMobile && !forceDesktop
+            ? () => {
+                setMobileShell("hub");
+                setPanel("hugo");
+              }
+            : undefined
+        }
+        onExitForceDesktop={
+          forceDesktop && isMobile && !isMcKennaAndroidApp()
+            ? () => {
+                localStorage.removeItem("mck-force-desktop");
+                setForceDesktop(false);
+                setMobileShell("hub");
+              }
+            : undefined
+        }
+      >
+        <PanelRouter />
+      </Layout>
+    </>
   );
 }

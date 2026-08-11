@@ -700,6 +700,45 @@ def contexto_hilo_reciente(titulo_producto: str, question_id: str) -> str:
     )
 
 
+def _generar_respuesta_claude(modelo: str, prompt: str) -> str | None:
+    """Genera la respuesta de preventa con Claude (texto plano, sin tools)."""
+    from app.core import cliente_ia
+
+    if cliente_ia is None:
+        print("Preventa: ANTHROPIC_API_KEY no configurado — no se puede llamar a Claude")
+        return None
+
+    from app.agent.llm_router import ClaudeProvider, ProviderError
+    from app.services.llm_budget import permitir_llamada, registrar_llamada
+
+    ok_budget, motivo_budget = permitir_llamada(modelo, contexto="meli_preventa")
+    if not ok_budget:
+        print(f"⛔ Preventa: llamada a {modelo} bloqueada por presupuesto LLM: {motivo_budget}")
+        return None
+
+    try:
+        resp = ClaudeProvider(cliente_ia, model_id=modelo).complete(
+            [{"role": "user", "content": prompt}], max_tokens=1024
+        )
+    except ProviderError as e:
+        print(f"❌ Preventa: error generando respuesta IA ({modelo}): {e}")
+        return None
+
+    texto = (resp.text or "").strip().replace("**", "").replace("__", "")
+    registrar_llamada(
+        modelo,
+        tokens_in=resp.input_tokens,
+        tokens_out=resp.output_tokens,
+        contexto="meli_preventa",
+        chars_prompt=len(prompt),
+        chars_respuesta=len(texto),
+    )
+    if not texto:
+        print(f"Preventa: {modelo} devolvió respuesta vacía")
+        return None
+    return texto
+
+
 def generar_respuesta_con_ficha(
     titulo_producto: str,
     pregunta: str,
@@ -709,18 +748,14 @@ def generar_respuesta_con_ficha(
     contexto_hilo: str = "",
 ):
     """
-    Genera respuesta usando Gemini con la ficha técnica real.
-    Tries multiple models: primary (2.5-pro), then flash fallbacks on 503/overload.
+    Genera respuesta con la ficha técnica real. Usa el modelo asignado al canal
+    "meli_preventa" (Panel → Chat de Agentes → Canales): si es Claude, lo intenta
+    primero y cae a Gemini como red de seguridad; si es Gemini, prueba varios
+    modelos Gemini (primary 2.5-pro, luego flash) en caso de 503/overload.
     otras_presentaciones / contexto_hilo: bloques opcionales (ver
     otras_presentaciones_meli / contexto_hilo_reciente).
     Retorna el texto de respuesta, o None si todos fallan.
     """
-    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
-    if not api_key:
-        print("Preventa: GOOGLE_API_KEY vacío — no se puede llamar a Gemini")
-        return None
-
-    gemini_client = genai.Client(api_key=api_key)
     ejemplos = _ejemplos_fewshot(titulo_producto)
 
     bloques_extra = "\n\n".join(
@@ -770,14 +805,27 @@ Genera únicamente la respuesta para el cliente, sin comillas ni texto introduct
         from app.services.canales_config import obtener_modelo_canal
 
         preferido = obtener_modelo_canal("meli_preventa")
-        modelos_intento = []
-        if preferido and preferido.startswith("gemini-"):
-            modelos_intento.append(preferido)
-        for m in _GEMINI_MODELS:
-            if m not in modelos_intento:
-                modelos_intento.append(m)
     except Exception:
-        modelos_intento = list(_GEMINI_MODELS)
+        preferido = ""
+
+    if preferido and preferido.startswith("claude-"):
+        texto_claude = _generar_respuesta_claude(preferido, prompt)
+        if texto_claude:
+            return texto_claude[:1997] + "..." if len(texto_claude) > 2000 else texto_claude
+        print("⚠️ Preventa: Claude falló o sin presupuesto — usando Gemini como red de seguridad")
+
+    modelos_intento = []
+    if preferido and preferido.startswith("gemini-"):
+        modelos_intento.append(preferido)
+    for m in _GEMINI_MODELS:
+        if m not in modelos_intento:
+            modelos_intento.append(m)
+
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        print("Preventa: GOOGLE_API_KEY vacío — no se puede llamar a Gemini")
+        return None
+    gemini_client = genai.Client(api_key=api_key)
 
     from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
 

@@ -4,6 +4,7 @@ Ejecutar: python -m unittest tests.test_web_pedidos_comandos -v
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 import tempfile
 import threading
@@ -138,6 +139,112 @@ class TestResolverYEnvio(unittest.TestCase):
         self.assertEqual(row["tracking_number"], "FLEX")
         self.assertIn("motorizado", (row.get("tracking_carrier") or "").lower())
 
+    def test_registrar_entrega_factura_en_ese_momento(self) -> None:
+        """Facturar al ENTREGAR, no al vender: dispara Siigo solo con 'entregado'."""
+        with patch(
+            "app.tools.web_pedidos.emitir_factura_siigo_pedido_web",
+            return_value=(True, "Factura emitida para MCKG-F09BC12250"),
+        ) as mock_fact:
+            ok, out = self.wp.registrar_entrega_y_facturar("MCKG-F09BC12250")
+        self.assertTrue(ok, out)
+        mock_fact.assert_called_once_with("MCKG-F09BC12250", force=True)
+        row = self.wp.get_order_by_reference("MCKG-F09BC12250")
+        assert row is not None
+        self.assertEqual(row["shipping_status"], "delivered")
+        self.assertTrue(row.get("delivered_at"))
+
+    def test_registrar_entrega_pedido_inexistente(self) -> None:
+        ok, out = self.wp.registrar_entrega_y_facturar("999")
+        self.assertFalse(ok)
+        self.assertIn("No encontré", out)
+
+    def test_anular_con_factura_crea_ticket_nota_credito(self) -> None:
+        con = sqlite3.connect(self.db)
+        con.execute(
+            "UPDATE orders SET siigo_invoice_number = 'FE-100', siigo_invoice_id = 'inv-100' "
+            "WHERE reference = 'MCKG-F09BC12250'"
+        )
+        con.commit()
+        con.close()
+
+        with patch(
+            "app.tools.notas_credito.crear_ticket_nota_credito",
+            return_value=(True, "🎫 Ticket #7 creado en el Centro de Mando."),
+        ) as mock_ticket:
+            ok, out = self.wp.anular_pedido_web("250", reason="cliente se arrepintió")
+        self.assertTrue(ok, out)
+        mock_ticket.assert_called_once()
+        kwargs = mock_ticket.call_args.kwargs
+        self.assertEqual(kwargs["canal"], "Web")
+        self.assertEqual(kwargs["referencia"], "MCKG-F09BC12250")
+        self.assertEqual(kwargs["siigo_factura_numero"], "FE-100")
+        self.assertIn("Ticket #7", out)
+
+    def test_reembolsar_mp_marca_refunded(self) -> None:
+        con = sqlite3.connect(self.db)
+        con.execute(
+            "UPDATE orders SET payu_ref = '170994362109', total = 65872 "
+            "WHERE reference = 'MCKG-F09BC12250'"
+        )
+        con.commit()
+        con.close()
+
+        class _Resp:
+            status_code = 201
+            text = '{"id":99,"status":"approved","amount":65872}'
+
+            def json(self):
+                return {
+                    "id": 99,
+                    "status": "approved",
+                    "amount": 65872,
+                    "date_created": "2026-08-10T20:00:00.000-05:00",
+                    "currency_id": "COP",
+                }
+
+        with patch.dict(os.environ, {"MP_ACCESS_TOKEN": "APP_USR-test"}, clear=False):
+            with patch("requests.post", return_value=_Resp()) as mock_post:
+                with patch.object(self.wp, "_mp_consultar_pago", return_value={}):
+                    ok, out, recibo = self.wp.reembolsar_pedido_web(
+                        "250", reason="producto agotado", notify_wa=False
+                    )
+        self.assertTrue(ok, out)
+        self.assertIn("reembolsado", out.lower())
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        self.assertIn("/v1/payments/170994362109/refunds", args[0])
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer APP_USR-test")
+        self.assertIsInstance(recibo, dict)
+        self.assertEqual(recibo.get("payment_id"), "170994362109")
+        self.assertEqual(str(recibo.get("refund_id")), "99")
+        self.assertEqual(recibo.get("monto"), 65872)
+        row = self.wp.get_order_by_reference("MCKG-F09BC12250")
+        assert row is not None
+        self.assertEqual(row["status"], "refunded")
+        self.assertEqual(str(row.get("mp_refund_id")), "99")
+        self.assertTrue(row.get("refunded_at"))
+        self.assertIn("170994362109", row.get("mp_refund_json") or "")
+
+    def test_reembolsar_sin_payu_ref(self) -> None:
+        ok, out, recibo = self.wp.reembolsar_pedido_web("250")
+        self.assertFalse(ok)
+        self.assertIsNone(recibo)
+        self.assertIn("payu_ref", out.lower())
+
+    def test_reembolsar_enviado_requiere_force(self) -> None:
+        con = sqlite3.connect(self.db)
+        con.execute(
+            """
+            UPDATE orders SET payu_ref = '111', shipping_status = 'shipped'
+            WHERE reference = 'MCKG-F09BC12250'
+            """
+        )
+        con.commit()
+        con.close()
+        ok, out, _recibo = self.wp.reembolsar_pedido_web("250")
+        self.assertFalse(ok)
+        self.assertIn("force", out.lower())
+
 
 class TestWhatsappEndpointPedidoWeb(unittest.TestCase):
     def setUp(self) -> None:
@@ -180,6 +287,43 @@ class TestWhatsappEndpointPedidoWeb(unittest.TestCase):
             any("MCKG-F09BC12250" in m for m, _ in captured if m),
             f"captured={captured}",
         )
+
+    def test_post_entregado_250(self) -> None:
+        from flask import Flask
+
+        from app.routes import register_routes
+
+        captured: list[tuple[str, str | None]] = []
+
+        def grab(msg: str, numero_destino: str | None = None) -> bool:
+            captured.append((msg, numero_destino))
+            return True
+
+        with patch("app.observability.threading.Thread", SyncThread):
+            with patch("app.routes.enviar_whatsapp_reporte", side_effect=grab):
+                with patch(
+                    "app.tools.web_pedidos.emitir_factura_siigo_pedido_web",
+                    return_value=(True, "Factura emitida para MCKG-F09BC12250"),
+                ):
+                    app = Flask(__name__)
+                    register_routes(app)
+                    client = app.test_client()
+                    r = client.post(
+                        "/whatsapp",
+                        json={
+                            "sender": JID_WEB,
+                            "remoteJid": JID_WEB,
+                            "mensaje": "entregado 250",
+                        },
+                    )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(
+            any("MCKG-F09BC12250" in m for m, _ in captured if m),
+            f"captured={captured}",
+        )
+        row = self.wp.get_order_by_reference("MCKG-F09BC12250")
+        assert row is not None
+        self.assertEqual(row["shipping_status"], "delivered")
 
     def test_post_envio_flex(self) -> None:
         from flask import Flask

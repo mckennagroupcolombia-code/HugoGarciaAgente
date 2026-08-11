@@ -4,6 +4,7 @@ import { ProseTextarea } from "./ProseTextarea";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import ImageLightbox from "./ImageLightbox";
 import WhatsAppMetricas from "./WhatsAppMetricas";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -184,13 +185,9 @@ function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`relative flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-            active === t.id
-              ? "bg-accent text-white shadow-sm"
-              : "text-muted hover:text-ink hover:bg-surface-hover"
-          }`}
+          className={hubTabClass(active === t.id, "relative flex-1 justify-center")}
         >
-          {t.label}
+          <span className={HUB_TAB_LABEL}>{t.label}</span>
           {t.id === "chats" && (noLeidos ?? 0) > 0 && (
             <span className="absolute -top-1 -right-1 rounded-full bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center">
               {(noLeidos ?? 0) > 9 ? "9+" : noLeidos}

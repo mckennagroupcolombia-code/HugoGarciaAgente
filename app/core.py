@@ -2398,11 +2398,14 @@ def obtener_respuesta_ia(
     contexto_sistema: str = "",
 ):
     """
-    Usa Gemini 2.5 Pro como primera opción. Si falla o requiere binarios/tools,
-    hace fallback a Claude con loop de herramientas.
+    Modelo según el canal (Panel → Sistemas → Chat de Agentes → Canales), Claude
+    por defecto (claude-sonnet-4-6). Canales cliente (whatsapp/web_chat) responden
+    solo texto vía app.agent.cliente_chat (sin tool-use API), con Gemini/Ollama
+    como red de seguridad si Claude falla o el presupuesto LLM lo bloquea.
+    Canales de operaciones (ej. sede_sur) usan el loop de herramientas de AgentRun.
 
     adjuntos_payload: lista de dicts {media_type, data_base64} (imagen/PDF) vía /chat.
-    canal: 'web_chat' fuerza reglas y catálogo solo combos SIIGO (sin Gemini sin tools).
+    canal: 'web_chat' fuerza reglas y catálogo solo combos SIIGO (sin tool-use).
     contexto_sistema: bloque adicional al system prompt (ej. modo fuera de horario).
     """
     from app.services.canales_config import obtener_modelo_canal
@@ -2901,6 +2904,7 @@ def obtener_respuesta_ia(
             modelo_id=modelo_canal,
             es_web=es_web,
             cliente_gemini=cliente_gemini,
+            cliente_claude=cliente_ia,
             memoria_vectorial=memoria_vec,
             contexto_catalogo=ctx_catalogo,
             contexto_ficha=ctx_ficha,

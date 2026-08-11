@@ -3473,12 +3473,10 @@ def checkout_pagar():
         buyer_name=buyer_name, buyer_email=buyer_email)
 
 
-def _resolver_referencia_mp(external_ref: str, payment_id: str) -> str:
-    ref = (external_ref or "").strip().upper()
-    if ref:
-        return ref
+def _mp_consultar_pago(payment_id: str) -> dict:
+    """GET /v1/payments/{id}. Retorna dict vacío si falla."""
     if not payment_id or not MP_ACCESS_TOKEN:
-        return ""
+        return {}
     try:
         res = requests.get(
             f"{MP_API}/v1/payments/{payment_id}",
@@ -3486,10 +3484,60 @@ def _resolver_referencia_mp(external_ref: str, payment_id: str) -> str:
             timeout=10,
         )
         if res.status_code == 200:
-            return (res.json().get("external_reference") or "").strip().upper()
+            data = res.json()
+            return data if isinstance(data, dict) else {}
     except Exception as e:
-        log.warning(f"resolver ref MP: {e}")
-    return ""
+        log.warning(f"consulta pago MP {payment_id}: {e}")
+    return {}
+
+
+def _resolver_referencia_mp(external_ref: str, payment_id: str) -> str:
+    ref = (external_ref or "").strip().upper()
+    if ref:
+        return ref
+    data = _mp_consultar_pago(payment_id)
+    return (data.get("external_reference") or "").strip().upper()
+
+
+def _actualizar_pago_orden(
+    reference: str,
+    *,
+    status: str | None = None,
+    payment_id: str = "",
+    payment_method: str = "",
+    payment_type: str = "",
+) -> None:
+    """Actualiza estado y datos de pago MP en orders (reference en mayúsculas)."""
+    rup = (reference or "").strip().upper()
+    if not rup:
+        return
+    sets: list[str] = []
+    params: list[Any] = []
+    if status:
+        sets.append("status=?")
+        params.append(status)
+    if payment_id:
+        sets.append("payu_ref=?")
+        params.append(str(payment_id))
+    if payment_method:
+        sets.append("payment_method=?")
+        params.append(payment_method)
+    if payment_type:
+        sets.append("payment_type=?")
+        params.append(payment_type)
+    if not sets:
+        return
+    params.append(rup)
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            f"UPDATE orders SET {', '.join(sets)} WHERE upper(reference)=?",
+            params,
+        )
+        con.commit()
+        con.close()
+    except Exception as e:
+        log.warning(f"actualizar pago orden {rup}: {e}")
 
 
 @app.route("/pago/respuesta")
@@ -3500,6 +3548,8 @@ def pago_respuesta():
     ref         = request.args.get("external_reference", "")
     payment_id  = request.args.get("payment_id", "")
     collection_status = request.args.get("collection_status", "")
+    # Query params de redirect (a veces vienen vacíos; la API es fuente de verdad)
+    payment_type_q = (request.args.get("payment_type") or "").strip()
 
     # Normalizar status
     raw = mp_status or collection_status or estado
@@ -3514,18 +3564,21 @@ def pago_respuesta():
         init_db()
         session.pop("cart", None)
         session.modified = True
-        ref = _resolver_referencia_mp(ref, payment_id)
+        mp_data = _mp_consultar_pago(payment_id) if payment_id else {}
+        if not ref and mp_data:
+            ref = (mp_data.get("external_reference") or "").strip().upper()
+        else:
+            ref = _resolver_referencia_mp(ref, payment_id)
+        pay_method = (mp_data.get("payment_method_id") or "").strip()
+        pay_type = (mp_data.get("payment_type_id") or payment_type_q or "").strip()
         if ref:
-            try:
-                con = sqlite3.connect(DB_PATH)
-                con.execute(
-                    "UPDATE orders SET status='approved', payu_ref=? WHERE upper(reference)=?",
-                    (payment_id, ref),
-                )
-                con.commit()
-                con.close()
-            except Exception:
-                pass
+            _actualizar_pago_orden(
+                ref,
+                status="approved",
+                payment_id=payment_id,
+                payment_method=pay_method,
+                payment_type=pay_type,
+            )
             # Confirmación cliente, grupo WA y factura Siigo (app.tools.web_pedidos): ver process_order_paid_side_effects
             threading.Thread(
                 target=_procesar_pedido_pagado_y_refrescar_catalogo,
@@ -3547,32 +3600,29 @@ def pago_confirmacion():
     if topic not in ("payment", "merchant_order") or not payment_id:
         return "OK", 200
 
-    # Consultar el pago a la API de MP para obtener estado real
+    # Consultar el pago a la API de MP para obtener estado real + método
     try:
-        res = requests.get(
-            f"{MP_API}/v1/payments/{payment_id}",
-            headers={"Authorization": f"Bearer {MP_ACCESS_TOKEN}"},
-            timeout=10,
-        )
-        if res.status_code == 200:
-            data       = res.json()
+        data = _mp_consultar_pago(payment_id)
+        if data:
             ref        = data.get("external_reference", "")
             mp_status  = data.get("status", "")
             mapping    = {"approved": "approved", "rejected": "declined",
                           "in_process": "pending", "pending": "pending"}
             new_status = mapping.get(mp_status, "unknown")
-            try:
-                con = sqlite3.connect(DB_PATH)
-                rup = ref.strip().upper() if ref else ""
-                con.execute(
-                    "UPDATE orders SET status=?, payu_ref=? WHERE upper(reference)=?",
-                    (new_status, str(payment_id), rup),
+            pay_method = (data.get("payment_method_id") or "").strip()
+            pay_type = (data.get("payment_type_id") or "").strip()
+            if ref:
+                _actualizar_pago_orden(
+                    ref,
+                    status=new_status,
+                    payment_id=str(payment_id),
+                    payment_method=pay_method,
+                    payment_type=pay_type,
                 )
-                con.commit()
-                con.close()
-            except Exception as e:
-                log.warning(f"MP confirmacion DB: {e}")
-            log.info(f"MP IPN: payment={payment_id} ref={ref} status={new_status}")
+            log.info(
+                f"MP IPN: payment={payment_id} ref={ref} status={new_status} "
+                f"method={pay_method} type={pay_type}"
+            )
             if new_status == "approved" and ref:
                 # Misma cola async que /pago/respuesta (idempotencia en web_pedidos)
                 threading.Thread(

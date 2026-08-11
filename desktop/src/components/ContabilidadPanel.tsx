@@ -16,6 +16,7 @@ import {
 const FacturacionPanel = lazy(() => import("./FacturacionPanel"));
 const OperativosPanel = lazy(() => import("./OperativosPanel"));
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
+const LibroMayorPanel = lazy(() => import("./LibroMayorPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
@@ -49,6 +50,8 @@ function renderSubpanel(id: ContabilidadPanelId) {
       return <CostosProductosPanel />;
     case "ingresos-egresos":
       return <IngresosEgresosPanel />;
+    case "libro-mayor":
+      return <LibroMayorPanel />;
     case "operativos":
     case "rrhh":
       return <OperativosPanel />;
@@ -139,6 +142,15 @@ export default function ContabilidadPanel() {
     });
   }, [subpanelId]);
 
+  // Incluye el subpanel keep-alive activo aunque el useEffect aún no haya corrido
+  // (evita primer frame en blanco donde no hay filtros ni tabla).
+  // Debe ir antes del return por !tabs.length — si no, React #310 al ganar permisos.
+  const vivosEfectivos = useMemo(() => {
+    const s = new Set(vivos);
+    if (KEEP_ALIVE.has(subpanelId)) s.add(subpanelId);
+    return s;
+  }, [vivos, subpanelId]);
+
   if (!tabs.length) {
     if (puedeCrearSiigo) {
       return (
@@ -156,14 +168,6 @@ export default function ContabilidadPanel() {
       </div>
     );
   }
-
-  // Incluye el subpanel keep-alive activo aunque el useEffect aún no haya corrido
-  // (evita primer frame en blanco donde no hay filtros ni tabla).
-  const vivosEfectivos = useMemo(() => {
-    const s = new Set(vivos);
-    if (KEEP_ALIVE.has(subpanelId)) s.add(subpanelId);
-    return s;
-  }, [vivos, subpanelId]);
 
   const keepAliveIds = (["stock", "rentabilidad"] as const).filter(
     (id) => tabs.includes(id) && vivosEfectivos.has(id),

@@ -2934,6 +2934,18 @@ def register_routes(app):
             log_actividad=[],
         )
 
+    @app.route("/api/alertas/sistema")
+    @app.route("/app/api/alertas/sistema")
+    def api_alertas_sistema():
+        """Alertas operativas para el banner global del panel (todas las secciones).
+        Sin auth (no sensible), igual que /api/metricas y /api/costos-ia."""
+        from app.tools.alertas_sistema import calcular_alertas_sistema
+
+        try:
+            return jsonify({"alertas": calcular_alertas_sistema()})
+        except Exception as e:
+            return jsonify({"alertas": [], "error": str(e)})
+
     @app.route("/api/costos-ia")
     def api_costos_ia():
         """Costos LLM vía API (Gemini/Claude): hoy, historial y resumen semanal.
@@ -7512,6 +7524,7 @@ def register_routes(app):
 
     # ── Pedidos tienda web ──────────────────────────────────────────────────
 
+    @app.route("/app/api/pedidos/web")
     @app.route("/api/pedidos/web")
     def api_pedidos_web():
         if not _api_token_valido():
@@ -7523,6 +7536,7 @@ def register_routes(app):
             return jsonify({"orders": [], "total": 0, "page": 1, "per_page": 50})
         search = (request.args.get("q") or "").strip()
         status_filter = (request.args.get("status") or "").strip()
+        ship_filter = (request.args.get("shipping") or request.args.get("shipping_status") or "").strip()
         page = max(1, int(request.args.get("page", 1) or 1))
         per_page = 50
         try:
@@ -7531,13 +7545,22 @@ def register_routes(app):
             where, params = ["1=1"], []
             if search:
                 where.append(
-                    "(lower(reference) LIKE ? OR lower(buyer_email) LIKE ? OR lower(buyer_name) LIKE ?)"
+                    "("
+                    "lower(reference) LIKE ? OR lower(buyer_email) LIKE ? OR lower(buyer_name) LIKE ? "
+                    "OR lower(COALESCE(buyer_phone,'')) LIKE ? "
+                    "OR lower(COALESCE(siigo_invoice_number,'')) LIKE ? "
+                    "OR lower(COALESCE(tracking_number,'')) LIKE ? "
+                    "OR lower(COALESCE(payu_ref,'')) LIKE ?"
+                    ")"
                 )
                 s = f"%{search.lower()}%"
-                params += [s, s, s]
+                params += [s, s, s, s, s, s, s]
             if status_filter:
-                where.append("status = ?")
-                params.append(status_filter)
+                where.append("lower(status) = ?")
+                params.append(status_filter.lower())
+            if ship_filter:
+                where.append("lower(COALESCE(shipping_status,'')) = ?")
+                params.append(ship_filter.lower())
             w = " AND ".join(where)
             total = con.execute(f"SELECT COUNT(*) FROM orders WHERE {w}", params).fetchone()[0]
             offset = (page - 1) * per_page
@@ -7564,6 +7587,15 @@ def register_routes(app):
                         d["items"] = []
                 except Exception:
                     d["items"] = []
+                raw_refund = (d.get("mp_refund_json") or "").strip()
+                if raw_refund:
+                    try:
+                        parsed_rf = json.loads(raw_refund)
+                        if isinstance(parsed_rf, dict):
+                            d["recibo_reembolso"] = parsed_rf
+                    except Exception:
+                        pass
+                d.pop("mp_refund_json", None)
                 del d["items_json"]
                 orders.append(d)
             con.close()
@@ -7616,6 +7648,48 @@ def register_routes(app):
                 "message": message,
                 "reference": reference.upper(),
             }
+            if not ok:
+                payload["error"] = message
+            return jsonify(payload), (200 if ok else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "message": str(e)}), 500
+
+    @app.route("/app/api/pedidos/web/reembolsar", methods=["POST"])
+    @app.route("/api/pedidos/web/reembolsar", methods=["POST"])
+    def api_pedidos_web_reembolsar():
+        """Devolución de dinero vía Mercado Pago (payment_id en payu_ref)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        reference = (body.get("reference") or body.get("ref") or "").strip()
+        if not reference:
+            return jsonify({"ok": False, "message": "Falta la referencia del pedido."}), 400
+        reason = (body.get("reason") or body.get("motivo") or "").strip()
+        force = bool(body.get("force"))
+        amount_raw = body.get("amount")
+        amount = None
+        if amount_raw is not None and str(amount_raw).strip() != "":
+            try:
+                amount = float(amount_raw)
+            except (TypeError, ValueError):
+                return jsonify({"ok": False, "message": "Monto de reembolso inválido."}), 400
+        try:
+            from app.tools.web_pedidos import reembolsar_pedido_web
+
+            ok, message, recibo = reembolsar_pedido_web(
+                reference,
+                reason=reason,
+                force=force,
+                amount=amount,
+                notify_wa=True,
+            )
+            payload = {
+                "ok": ok,
+                "message": message,
+                "reference": reference.upper(),
+            }
+            if recibo:
+                payload["recibo"] = recibo
             if not ok:
                 payload["error"] = message
             return jsonify(payload), (200 if ok else 400)
@@ -10011,6 +10085,12 @@ def register_routes(app):
         """Serve JS/CSS hashed assets from the Vite build."""
         assets_dir = os.path.join(_SPA_DIR, "assets")
         return send_from_directory(assets_dir, filename)
+
+    @app.route("/app/fonts/<path:filename>")
+    def serve_spa_fonts(filename):
+        """Fuentes self-hosted del panel (p. ej. Milky Matcha)."""
+        fonts_dir = os.path.join(_SPA_DIR, "fonts")
+        return send_from_directory(fonts_dir, filename)
 
     @app.route("/app/favicon.svg")
     def serve_spa_favicon():

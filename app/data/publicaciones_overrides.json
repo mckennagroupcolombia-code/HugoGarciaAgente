@@ -58,8 +58,8 @@
     "updated_at": "2026-06-12T01:07:05.002674"
   },
   "C-ACEESENAR5mL": {
-    "meli_item_id": "MCO1278616147",
-    "updated_at": "2026-08-04T23:52:06.118951"
+    "meli_item_id": "MCO1672279583",
+    "updated_at": "2026-08-10T22:53:14.889220"
   },
   "FOR-GLUTAR2PmL": {
     "meli_item_id": "908856272",
@@ -82,8 +82,8 @@
     "updated_at": "2026-06-12T01:08:56.650651"
   },
   "C-AMILTRI100g": {
-    "meli_item_id": "1179039063",
-    "updated_at": "2026-06-12T01:09:11.562142"
+    "meli_item_id": "MCO1179039063",
+    "updated_at": "2026-08-10T17:28:03.176689"
   },
   "C-EXTTEMATVER100g": {
     "meli_item_id": "1262314547",
@@ -143,7 +143,7 @@
   },
   "C-ACEESEEUC5mL": {
     "meli_item_id": "MCO1278677373",
-    "updated_at": "2026-06-12T01:44:01.654275"
+    "updated_at": "2026-08-10T22:53:59.084247"
   },
   "C-ACEESNMAN5mL": {
     "meli_item_id": "MCO1393840298",
@@ -379,5 +379,33 @@
   "C-CITPOT500g": {
     "meli_item_id": "MCO616763443",
     "updated_at": "2026-08-06T07:03:10.502294"
+  },
+  "C-COL50g": {
+    "meli_item_id": "MCO1140118070",
+    "updated_at": "2026-08-10T22:47:04.160485"
+  },
+  "C-ACEESEMEN5mL": {
+    "meli_item_id": "MCO1671943297",
+    "updated_at": "2026-08-10T22:52:50.833196"
+  },
+  "C-SUC100g": {
+    "meli_item_id": "MCO862277266",
+    "updated_at": "2026-08-10T22:48:20.699345"
+  },
+  "C-ACEESEMAN5mL": {
+    "meli_item_id": "MCO1278643483",
+    "updated_at": "2026-08-10T22:48:58.548563"
+  },
+  "C-FRACOS250mL": {
+    "meli_item_id": "MCO3044906620",
+    "updated_at": "2026-08-10T22:54:36.025388"
+  },
+  "C-CERLAN500g": {
+    "meli_item_id": "MCO1338895385",
+    "updated_at": "2026-08-10T22:55:02.599193"
+  },
+  "C-VERMAL30mL": {
+    "meli_item_id": "MCO2604821524",
+    "updated_at": "2026-08-10T22:55:33.978606"
   }
 }

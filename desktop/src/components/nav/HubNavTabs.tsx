@@ -11,6 +11,7 @@ import {
 import { PanelIcon } from "../../icons/PanelIcon";
 import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { puedeVerSeccionPanel } from "../../lib/panelAccess";
+import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
 import ScrollableTabList from "./ScrollableTabList";
 
 /**
@@ -79,14 +80,10 @@ export default function HubNavTabs({
               role="tab"
               aria-selected={selected}
               onClick={() => irA(id)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition sm:gap-2 sm:px-3 sm:text-xs ${
-                selected
-                  ? "bg-accent text-white shadow-sm"
-                  : "text-muted hover:bg-surface-hover hover:text-ink"
-              }`}
+              className={hubTabClass(selected)}
             >
-              <PanelIcon panel={id} size={20} active={selected} bubble={false} />
-              <span className="hidden truncate sm:inline">{info?.label ?? id}</span>
+              <PanelIcon panel={id} size={16} active={selected} bubble={false} />
+              <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>{info?.label ?? id}</span>
             </button>
           );
         })}

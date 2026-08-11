@@ -7,7 +7,7 @@ import base64
 import re
 import xml.etree.ElementTree as ET
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Variable de configuración para la API de Siigo
 PARTNER_ID = "SiigoAPI"
@@ -1524,6 +1524,183 @@ def crear_factura_venta_siigo(
         return {"ok": False, "error": f"Error de red con Siigo: {e}"}
     except Exception as e:
         return {"ok": False, "error": f"Error crítico creando factura Siigo: {e}"}
+
+
+def buscar_nota_credito_existente_siigo(invoice_id: str, dias_atras: int = 120) -> dict | None:
+    """
+    Busca si una factura ya tiene nota crédito emitida en Siigo — compara por
+    `invoice.id` entre las notas crédito creadas en los últimos `dias_atras`.
+
+    Chequeo de último segundo antes de emitir: evita duplicar si alguien la
+    generó a mano en el medio (incidente 10-ago-2026: una corrida automática
+    duplicó 4 notas crédito por no volver a revisar justo antes de cada POST,
+    justo cuando contabilidad estaba resolviendo esos mismos tickets a mano).
+    """
+    token = autenticar_siigo()
+    if not token:
+        return None
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    desde = (datetime.now() - timedelta(days=dias_atras)).strftime("%Y-%m-%d")
+    hasta = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    page = 1
+    while True:
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/credit-notes",
+                params={"created_start": desde, "created_end": hasta, "page_size": 100, "page": page},
+                headers=headers,
+                timeout=20,
+            )
+        except requests.RequestException:
+            return None
+        if res.status_code != 200:
+            return None
+        data = res.json()
+        for nc in data.get("results", []):
+            inv = nc.get("invoice") or {}
+            if str(inv.get("id") or "") == str(invoice_id):
+                return nc
+        total = (data.get("pagination") or {}).get("total_results", 0)
+        if page * 100 >= total:
+            break
+        page += 1
+    return None
+
+
+def crear_nota_credito_siigo(
+    *,
+    invoice_id: str,
+    items: list[dict],
+    payments: list[dict],
+    reason: int = 2,
+    observaciones: str = "",
+    document_id: int | None = None,
+    enviar_dian: bool = True,
+) -> dict:
+    """
+    Crea una nota crédito en Siigo referenciando una factura ya emitida.
+
+    `items`: [{"code", "description", "quantity", "price", "tax_ids": [int, ...]}]
+      — mismos valores de la línea de la factura original. `price` es el
+      precio unitario ANTES de impuestos; si se omite `tax_ids` el total de
+      la nota queda sin IVA y Siigo rechaza con `invalid_total_payments`.
+    `payments`: [{"id", "value"}] — mismos métodos/valores de pago de la
+      factura original; la suma debe ser exactamente igual al total (items + IVA).
+    `reason`: código de motivo Siigo (1 devolución parcial, 2 anulación de
+      factura electrónica, 3 rebaja/descuento, 4 ajuste de precio, 6/7
+      descuento comercial). Default 2 = anulación, el caso de cancelaciones.
+
+    Cliente y datos del vendedor se toman automáticamente de `invoice_id`,
+    no hace falta pasarlos.
+    """
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con Siigo."}
+    if not invoice_id:
+        return {"ok": False, "error": "Falta invoice_id de la factura a anular."}
+    if not items:
+        return {"ok": False, "error": "La nota crédito no tiene ítems."}
+
+    document_id = document_id or _env_int_siigo("SIIGO_CREDIT_NOTE_DOCUMENT_ID", 26671)
+    hoy = datetime.now().strftime("%Y-%m-%d")
+
+    items_payload = []
+    for it in items:
+        codigo = str(it.get("code") or "").strip()
+        if not codigo:
+            return {"ok": False, "error": f"Ítem sin código: {it!r}"}
+        items_payload.append({
+            "code": codigo,
+            "description": str(it.get("description") or ""),
+            "quantity": it.get("quantity", 1),
+            "price": it.get("price", 0),
+            "taxes": [{"id": tid} for tid in (it.get("tax_ids") or [])],
+        })
+
+    payments_payload = [{"id": p["id"], "value": p["value"]} for p in payments]
+
+    payload = {
+        "document": {"id": document_id},
+        "date": hoy,
+        "reason": reason,
+        "invoice": invoice_id,
+        "items": items_payload,
+        "payments": payments_payload,
+    }
+    if observaciones:
+        payload["observations"] = observaciones
+    if enviar_dian:
+        payload["stamp"] = {"send": True}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    puede_reintentar_auth = True
+    try:
+        while True:
+            res = requests.post(
+                "https://api.siigo.com/v1/credit-notes",
+                json=payload,
+                headers=headers,
+                timeout=25,
+            )
+            if res.status_code in (200, 201):
+                break
+            if res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if not token:
+                    return {"ok": False, "error": "Siigo 401 y no fue posible renovar token."}
+                headers["Authorization"] = f"Bearer {token}"
+                continue
+            return {
+                "ok": False,
+                "status_code": res.status_code,
+                "error": f"Error al crear nota crédito en Siigo: {res.text[:1000]}",
+                "payload": payload,
+            }
+
+        nc = res.json()
+        nc_id = nc.get("id")
+
+        if enviar_dian and nc_id:
+            for poll_idx in range(6):
+                if poll_idx:
+                    time.sleep(2)
+                try:
+                    res_get = requests.get(
+                        f"https://api.siigo.com/v1/credit-notes/{nc_id}",
+                        headers=headers,
+                        timeout=15,
+                    )
+                    if res_get.status_code == 200:
+                        nc = res_get.json()
+                        stamp_status = (nc.get("stamp") or {}).get("status")
+                        if stamp_status in {"Accepted", "Rejected"}:
+                            break
+                except requests.RequestException:
+                    break
+
+        stamp = nc.get("stamp") or {}
+        return {
+            "ok": True,
+            "credit_note_id": nc_id,
+            "name": nc.get("name"),
+            "number": nc.get("number"),
+            "status": stamp.get("status"),
+            "cude": stamp.get("cude") or stamp.get("cufe") or "",
+            "total": nc.get("total"),
+            "data": nc,
+            "payload": payload,
+        }
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red con Siigo: {e}"}
+    except Exception as e:
+        return {"ok": False, "error": f"Error crítico creando nota crédito Siigo: {e}"}
 
 
 def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direccion_envio: str, productos: str, total: float, comprobante_pago_path: str = ""):

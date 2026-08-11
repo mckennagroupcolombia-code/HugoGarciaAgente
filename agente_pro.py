@@ -80,6 +80,24 @@ def create_app():
         print(f"⚠️ RRHH · Compensaciones: {e}")
 
     try:
+        from app.routes_meli_oauth import register_meli_oauth_routes
+        register_meli_oauth_routes(app)
+    except Exception as e:
+        print(f"⚠️ Conexión MeLi (OAuth): {e}")
+
+    try:
+        from app.routes_importaciones import register_importaciones_routes
+        register_importaciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Importaciones: {e}")
+
+    try:
+        from app.routes_cron import register_cron_routes
+        register_cron_routes(app)
+    except Exception as e:
+        print(f"⚠️ Tareas Programadas (cron): {e}")
+
+    try:
         import threading, time as _time
         from app.services.tickets_db import procesar_renovaciones
 

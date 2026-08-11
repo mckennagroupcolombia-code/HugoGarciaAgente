@@ -12,7 +12,6 @@ const SECTION_ICON: Partial<Record<NavCategory, UiIconName>> = {
   atencion: "bell",
   canales: "chat",
   diseno: "tag",
-  "studio-web": "palette",
   docs: "file",
   contabilidad: "receipt",
   publicaciones: "megaphone",

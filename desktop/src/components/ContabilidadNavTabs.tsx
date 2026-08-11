@@ -1,21 +1,10 @@
-import { useMemo } from "react";
-import { useTicketsAuth } from "../stores/ticketsAuth";
-import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
-import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 
 /**
- * Pestañas Contabilidad + herramientas en el cabezote.
+ * Pestañas Contabilidad en el cabezote.
  * Facturación es pestaña plana (como Rentabilidad), sin desplegable.
+ * Herramientas (Siigo / factura / calc) viven a la izquierda de Temas en Layout.
  */
 export default function ContabilidadNavTabs() {
-  const { user } = useTicketsAuth();
-  const puedeCrearSiigo = Boolean(puedeVerModuloContabilidad(user, "productos-siigo"));
-
-  const leading = useMemo(
-    () => <ContabilidadHerramientas puedeCrearSiigo={puedeCrearSiigo} />,
-    [puedeCrearSiigo],
-  );
-
-  return <HubNavTabs sectionId="contabilidad" leading={leading} />;
+  return <HubNavTabs sectionId="contabilidad" />;
 }

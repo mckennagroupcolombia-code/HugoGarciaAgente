@@ -6909,7 +6909,14 @@ export default function EtiquetasPanel() {
   });
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
-  const [studioInmersivo, setStudioInmersivo] = useState(false);
+  const setStudioInmersivoStore = useAppStore((s) => s.setEtiquetasStudioInmersivo);
+  const [studioInmersivo, setStudioInmersivoLocal] = useState(false);
+  const setStudioInmersivo = useCallback((v: boolean) => {
+    setStudioInmersivoLocal(v);
+    setStudioInmersivoStore(v);
+  }, [setStudioInmersivoStore]);
+
+  useEffect(() => () => setStudioInmersivoStore(false), [setStudioInmersivoStore]);
 
   useEffect(() => {
     if (esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
@@ -6952,7 +6959,11 @@ export default function EtiquetasPanel() {
 
   return (
     <div className={`mck-animate-enter px-1 sm:px-0 ${
-      studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl space-y-5"
+      studioFullscreen
+        ? "flex h-full min-h-0 flex-1 flex-col"
+        : tab === "imprimir"
+          ? "mx-auto max-w-[min(100%,1600px)]"
+          : "mx-auto max-w-6xl space-y-5"
     }`}>
       {tab === "imprimir" && (
         <TabImprimir

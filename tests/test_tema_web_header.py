@@ -148,8 +148,30 @@ def test_css_header_nav_flex_como_el_lienzo() -> None:
     )
     bloque = css.split(".header-inner {", 1)[1].split(".site-logo", 1)[0]
     assert "justify-content: space-between" not in bloque
+    assert "width: 100%" in bloque
+    assert "margin: 0 auto" in bloque
     nav = css.split(".main-nav {", 1)[1].split(".main-nav ul li a:hover", 1)[0]
     assert "flex: 1 1 auto" in nav
+
+
+def test_css_header_no_recorta_login_en_desktop() -> None:
+    """Buscar/WA se ocultan antes; hamburguesa a 1100px evita cortar Iniciar sesión."""
+    from pathlib import Path
+
+    css = (Path(__file__).resolve().parents[1] / "PAGINA_WEB/site/static/css/main.css").read_text(
+        encoding="utf-8"
+    )
+    i1200 = css.find("@media (max-width: 1200px)")
+    i1100 = css.find("@media (max-width: 1100px)")
+    i900 = css.find("@media (max-width: 900px)")
+    assert i1200 != -1 and i1100 != -1 and i900 != -1
+    assert i1200 < i1100 < i900
+    bloque_1200 = css[i1200:i1100]
+    assert ".header-search { display: none; }" in bloque_1200
+    assert ".btn-wa-header { display: none; }" in bloque_1200
+    bloque_1100 = css[i1100:i900]
+    assert ".main-nav { display: none; }" in bloque_1100
+    assert ".menu-toggle { display: flex; }" in bloque_1100
 
 
 def test_estilo_anuncio_ignora_translate() -> None:

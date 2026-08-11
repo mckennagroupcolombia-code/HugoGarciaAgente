@@ -2,7 +2,7 @@
 Activa / renueva la conexión OAuth con Mercado Libre.
 
 Uso:
-    python3 scripts/activar_meli.py <TG-xxxx>
+    python3 scripts/activar_meli.py <TG-xxxx> [code_verifier]
 
 Obtener el código TG:
     1. Ve a https://auth.mercadolibre.com.co/authorization?response_type=code&client_id=<APP_ID>&redirect_uri=<REDIRECT_URI>
@@ -10,8 +10,16 @@ Obtener el código TG:
     3. Pega ese código como argumento.
 
 El código caduca en ~10 minutos y es de un solo uso.
+
+PKCE: las apps nuevas de MeLi exigen `code_verifier`/`code_challenge` (las viejas no).
+Si al canjear el código sale "code_verifier is a required parameter", genera el link
+de autorización con `generar_pkce()` (agrega code_challenge a la URL) y pasa el mismo
+code_verifier como segundo argumento al canjear el código.
 """
+import base64
+import hashlib
 import json
+import secrets
 import sys
 import os
 import requests
@@ -20,7 +28,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def activar_conexion_meli(codigo_tg: str | None = None):
+def generar_pkce() -> tuple[str, str]:
+    """(code_verifier, code_challenge) para el flujo PKCE que exigen las apps nuevas de MeLi."""
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(64)).rstrip(b"=").decode("ascii")
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode("ascii")).digest()
+    ).rstrip(b"=").decode("ascii")
+    return code_verifier, code_challenge
+
+
+def activar_conexion_meli(codigo_tg: str | None = None, code_verifier: str | None = None):
     ruta_creds = os.getenv("MELI_CREDS_PATH") or "credenciales_meli.json"
 
     if not os.path.exists(ruta_creds):
@@ -37,14 +54,17 @@ def activar_conexion_meli(codigo_tg: str | None = None):
         return "❌ Faltan app_id / client_secret en credenciales_meli.json."
 
     if not codigo_tg:
+        verifier, challenge = generar_pkce()
         auth_url = (
             f"https://auth.mercadolibre.com.co/authorization"
             f"?response_type=code&client_id={app_id}&redirect_uri={redirect_uri}"
+            f"&code_challenge={challenge}&code_challenge_method=S256"
         )
         return (
             "❌ No se proporcionó código TG.\n\n"
             f"👉 Genera uno abriendo esta URL:\n{auth_url}\n\n"
-            "Luego corre:\n    python3 scripts/activar_meli.py TG-xxxxxxxx"
+            f"⚠️ Guarda este code_verifier (lo necesitas para el siguiente paso):\n{verifier}\n\n"
+            "Luego corre:\n    python3 scripts/activar_meli.py TG-xxxxxxxx " + verifier
         )
 
     payload = {
@@ -54,6 +74,8 @@ def activar_conexion_meli(codigo_tg: str | None = None):
         "code": codigo_tg.strip(),
         "redirect_uri": redirect_uri,
     }
+    if code_verifier:
+        payload["code_verifier"] = code_verifier.strip()
 
     print(f"🚀 Intercambiando código con App ID {app_id}...")
     response = requests.post(
@@ -98,4 +120,5 @@ def activar_conexion_meli(codigo_tg: str | None = None):
 
 if __name__ == "__main__":
     codigo = sys.argv[1] if len(sys.argv) > 1 else None
-    print(activar_conexion_meli(codigo))
+    verifier_arg = sys.argv[2] if len(sys.argv) > 2 else None
+    print(activar_conexion_meli(codigo, verifier_arg))

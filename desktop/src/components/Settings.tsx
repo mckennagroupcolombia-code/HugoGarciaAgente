@@ -7,6 +7,7 @@ import { useStatus } from "../hooks/useStatus";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
+import AppearancePanel from "./AppearancePanel";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -211,6 +212,8 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <h2 className="text-lg font-semibold text-ink">Ajustes y Sistema</h2>
+
+      <AppearancePanel />
 
       {/* ── Sesión ── */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
@@ -740,6 +743,7 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "productos-siigo", label: "Crear en Siigo — botón flotante (incl. con Facturas o Sync)" },
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
+  { id: "libro-mayor",   label: "Libro Mayor — partida doble, cuentas T (permiso propio, no heredado)" },
   { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios (avanzado)" },
   { id: "rrhh",          label: "RRHH · Compensaciones (también vía Operativos)" },
   { id: "impuestos",     label: "Pagos de impuestos (vía Operativos)" },

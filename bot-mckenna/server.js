@@ -694,7 +694,19 @@ app.post('/enviar', async (req, res) => {
                 setTimeout(() => sedeSurBotSentIds.delete(sid), 30000);
             }
         }
-        console.log(`📤 Reporte enviado a: ${chatId}`);
+        const ackInicial = sentMsg && typeof sentMsg.ack !== 'undefined' ? sentMsg.ack : 'sin dato';
+        const idSerial = sentMsg && sentMsg.id ? (sentMsg.id._serialized || sentMsg.id.id || '') : '';
+        console.log(`📤 Reporte enviado a: ${chatId} | ack inicial=${ackInicial} | id=${idSerial}`);
+        if (idSerial) {
+            setTimeout(async () => {
+                try {
+                    const msgCheck = await client.getMessageById(idSerial);
+                    console.log(`🔎 [DIAG ACK] ${chatId} tras 6s: ack=${msgCheck ? msgCheck.ack : 'mensaje no encontrado'}`);
+                } catch (e) {
+                    console.log(`🔎 [DIAG ACK] ${chatId} error al verificar: ${e.message}`);
+                }
+            }, 6000);
+        }
         logActividad('SALIENTE', { para: chatId, texto: mensaje, origen: 'API /enviar' });
         res.status(200).json({ status: "success" });
     } catch (error) {

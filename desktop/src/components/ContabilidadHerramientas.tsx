@@ -49,7 +49,7 @@ function ToolBtn({
 }
 
 /**
- * Iconos de herramientas a la izquierda del cabezote Contabilidad.
+ * Iconos de herramientas Contabilidad (cabezote, a la izquierda de Temas).
  * Ventanas flotantes: arrastrables, redimensionables, posición recordada.
  * Stock y Rentabilidad se mantienen vivos vía ContabilidadPanel (keep-alive).
  */
@@ -99,7 +99,7 @@ export default function ContabilidadHerramientas({
   return (
     <>
       <div
-        className="mr-1 flex shrink-0 items-center gap-1 border-r border-border pr-2"
+        className="mr-0.5 flex shrink-0 items-center gap-1 border-r border-border/80 pr-1.5"
         role="toolbar"
         aria-label="Herramientas Contabilidad"
       >
