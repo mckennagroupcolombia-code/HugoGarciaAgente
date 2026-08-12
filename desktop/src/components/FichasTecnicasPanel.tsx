@@ -13,9 +13,15 @@ import DocumentoGeneradorTab, {
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
+import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import DocumentosCatalogoTab, {
   type ProductoDocumentacion,
 } from "./documentos/DocumentosCatalogoTab";
+import {
+  parseParamRows,
+  rowsToParamString,
+  type ParamRow,
+} from "../lib/coaParametros";
 
 type TabDoc = "catalogo" | "ft" | "coa" | "sds" | "completo" | "biblioteca";
 
@@ -156,6 +162,8 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
+      <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
+
       {deleteError && (
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">Error al eliminar: {deleteError}</p>
       )}
@@ -1002,25 +1010,6 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
   );
 }
 
-type ParamRow = { parametro: string; especificacion: string; resultado: string };
-
-function parseParamRows(text: string): ParamRow[] {
-  const lines = text.trim().split("\n").filter(Boolean);
-  if (!lines.length) return [{ parametro: "", especificacion: "", resultado: "" }];
-  return lines.map((line) => {
-    const parts = line.split("|");
-    return {
-      parametro:     (parts[0] ?? "").trim(),
-      especificacion:(parts[1] ?? "").trim(),
-      resultado:     (parts[2] ?? "").trim(),
-    };
-  });
-}
-
-function rowsToParamString(rows: ParamRow[]): string {
-  return rows.map((r) => `${r.parametro}|${r.especificacion}|${r.resultado}`).join("\n");
-}
-
 function CoaSection({
   coaEinces, setCoaEinces,
   coaGrado, setCoaGrado,
@@ -1033,86 +1022,24 @@ function CoaSection({
   ia: (campo: string) => { label: string; loading: boolean; onClick: () => void };
   nombreProducto: string;
 }) {
-  const scanFileRef = useRef<HTMLInputElement>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [scanPreview, setScanPreview] = useState<string | null>(null);
-  const [scanLightbox, setScanLightbox] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-
   /* ── Tabla de parámetros ── */
   const rows = parseParamRows(coaParametros);
+  const rowsParaTabla = rows.length ? rows : [{ parametro: "", especificacion: "", resultado: "" }];
 
   const updateRow = (i: number, field: keyof ParamRow, val: string) => {
-    const next = rows.map((r, idx) => idx === i ? { ...r, [field]: val } : r);
+    const next = rowsParaTabla.map((r, idx) => idx === i ? { ...r, [field]: val } : r);
     setCoaParametros(rowsToParamString(next));
   };
 
   const addRow = () => {
-    const next = [...rows, { parametro: "", especificacion: "", resultado: "" }];
+    const next = [...rowsParaTabla, { parametro: "", especificacion: "", resultado: "" }];
     setCoaParametros(rowsToParamString(next));
   };
 
   const removeRow = (i: number) => {
-    const next = rows.filter((_, idx) => idx !== i);
+    const next = rowsParaTabla.filter((_, idx) => idx !== i);
     setCoaParametros(rowsToParamString(next.length ? next : [{ parametro: "", especificacion: "", resultado: "" }]));
   };
-
-  /* ── Escáner ── */
-  const handleScanImage = async (file: File) => {
-    setScanError(null);
-    setScanning(true);
-    try {
-      const { resolvePanelApiUrl } = await import("../api/client");
-      const { useTicketsAuth } = await import("../stores/ticketsAuth");
-      const { useAuthStore } = await import("../stores/auth");
-      const t = useTicketsAuth.getState();
-      const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-      const url = await resolvePanelApiUrl("/api/fichas/coa/escanear-parametros", "POST");
-      const fd = new FormData();
-      fd.append("imagen", file);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
-      setCoaParametros(json.parametros || "");
-    } catch (e: unknown) {
-      setScanError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") setScanPreview(URL.createObjectURL(file));
-    handleScanImage(file);
-    e.target.value = "";
-  };
-
-  useEffect(() => {
-    const handler = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) {
-            setScanPreview(URL.createObjectURL(file));
-            handleScanImage(file);
-            e.preventDefault();
-          }
-          break;
-        }
-      }
-    };
-    document.addEventListener("paste", handler);
-    return () => document.removeEventListener("paste", handler);
-  }, []);
 
   const cellCls = "w-full bg-transparent px-2 py-1.5 text-xs outline-none focus:bg-accent/5";
 
@@ -1158,65 +1085,11 @@ function CoaSection({
         </div>
       </div>
 
-      {/* Escáner de imagen COA */}
-      <div
-        className={`rounded-lg border border-dashed p-3 space-y-2 transition-colors ${dragOver ? "border-accent bg-accent/15" : "border-accent/50 bg-accent/5"}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          const file = e.dataTransfer.files[0];
-          if (!file) return;
-          if (file.type !== "application/pdf") setScanPreview(URL.createObjectURL(file));
-          handleScanImage(file);
-        }}
-      >
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <p className="text-xs font-medium text-accent">
-            {dragOver ? "Suelta la imagen o PDF aquí" : "Escanear COA desde imagen o PDF"}
-          </p>
-          <button
-            type="button"
-            onClick={() => scanFileRef.current?.click()}
-            disabled={scanning}
-            className="rounded border border-accent/40 px-3 py-1 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
-          >
-            {scanning ? "Extrayendo…" : "Adjuntar archivo"}
-          </button>
-          <input ref={scanFileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange} />
-        </div>
-        <p className="text-[10px] text-muted">
-          Pega con Ctrl+V, arrastra una imagen o PDF, o usa el botón. La IA extraerá y completará la tabla de parámetros automáticamente.
-        </p>
-        {scanLightbox && scanPreview && <ImageLightbox url={scanPreview} onClose={() => setScanLightbox(false)} />}
-        {scanPreview && (
-          <div className="relative inline-block">
-            <img
-              src={scanPreview}
-              alt="Vista previa COA"
-              title="Clic para ampliar"
-              onClick={() => setScanLightbox(true)}
-              className="max-h-40 rounded border border-border object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
-            />
-            <button
-              type="button"
-              onClick={() => { URL.revokeObjectURL(scanPreview); setScanPreview(null); setScanError(null); }}
-              className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white text-[10px] font-bold hover:opacity-80"
-              title="Eliminar imagen"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-        {scanError && <p className="text-xs text-danger">{scanError}</p>}
-      </div>
-
       {/* Tabla de parámetros */}
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs text-muted">Parámetros de análisis</p>
-          {rows.some((r) => r.parametro || r.especificacion || r.resultado) && (
+          {rowsParaTabla.some((r) => r.parametro || r.especificacion || r.resultado) && (
             <button
               type="button"
               onClick={() => setCoaParametros("")}
@@ -1237,7 +1110,7 @@ function CoaSection({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
+              {rowsParaTabla.map((row, i) => (
                 <tr key={i} className="border-b border-border last:border-0 hover:bg-accent/5">
                   <td className="border-r border-border">
                     <input

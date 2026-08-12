@@ -411,5 +411,17 @@
   "C-CDHA10g": {
     "meli_item_id": "MCO2944713394",
     "updated_at": "2026-08-11T00:49:24.620157"
+  },
+  "C-CERABEREFAMAKg": {
+    "meli_item_id": "MCO560569172",
+    "updated_at": "2026-08-12T00:10:34.777914"
+  },
+  "C-PISTOS250g": {
+    "meli_item_id": "MCO2035213641",
+    "updated_at": "2026-08-12T00:26:27.006581"
+  },
+  "C-ACETEATRE30mL": {
+    "meli_item_id": "MCO1338939263",
+    "updated_at": "2026-08-12T00:28:24.307182"
   }
 }
