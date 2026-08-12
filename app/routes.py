@@ -3788,6 +3788,32 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/stock/estado", methods=["POST"])
+    @app.route("/app/api/stock/estado", methods=["POST"])
+    def api_stock_estado():
+        """Activa o pausa una publicación MeLi (status active|paused)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        meli_id = str(body.get("meli_id") or "").strip()
+        estado = str(body.get("estado") or body.get("status") or "").strip().lower()
+        if not meli_id or estado not in ("active", "paused"):
+            return jsonify({"error": "Campos 'meli_id' y 'estado' (active|paused) requeridos"}), 400
+        try:
+            from app.panel_activity import log_line
+            from app.services.meli import cambiar_estado_publicacion_meli
+
+            resultado = cambiar_estado_publicacion_meli(meli_id, estado)
+            if resultado.get("ok"):
+                log_line(
+                    f"✔ publicación {meli_id}: "
+                    f"{resultado.get('estado_anterior')} → {resultado.get('estado')}"
+                )
+                return jsonify({"status": "ok", **resultado})
+            return jsonify({"status": "error", **resultado}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/stock/relacion-codigos")
     @app.route("/app/api/stock/relacion-codigos")
     def api_stock_relacion_codigos():
@@ -4322,12 +4348,71 @@ def register_routes(app):
                 datos_sds=datos_sds,
                 cabezote_id=body.get("cabezote_id"),
             )
+            try:
+                from app.services.ficha_tecnica import eliminar_borrador_completo_por_titulo
+                eliminar_borrador_completo_por_titulo(titulo)
+            except Exception:
+                pass
             log_line(f"✔ documento completo: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
             from app.panel_activity import log_line
             log_line(f"✖ fichas/generar-completo: {e!r}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/guardar-borrador", methods=["POST"])
+    @app.route("/api/fichas/guardar-borrador", methods=["POST"])
+    def api_fichas_guardar_borrador():
+        """Guarda FT+COA+SDS como YAML borrador (sin generar PDF)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        datos_ft = body.get("ft") or {}
+        datos_coa = body.get("coa") or None
+        datos_sds = body.get("sds") or None
+        if not isinstance(datos_ft, dict) or not _titulo_documento_datos(datos_ft):
+            return jsonify({"error": "Se requiere el nombre del producto para guardar el borrador"}), 400
+        try:
+            from datetime import datetime, timezone
+            from app.panel_activity import log_line
+            from app.services.ficha_tecnica import (
+                guardar_yaml_datos, normalizar_datos_ficha, _normalizar,
+            )
+            titulo = _titulo_documento_datos(datos_ft)
+            slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
+            slug_borrador = f"borrador_ft_coa_sds_{slug_auto}"
+            datos_para_guardar = normalizar_datos_ficha(datos_ft)
+            datos_para_guardar["_tipo"] = "completo"
+            datos_para_guardar["_borrador"] = True
+            datos_para_guardar["_guardado_at"] = datetime.now(timezone.utc).isoformat()
+            if datos_coa:
+                datos_para_guardar["_coa"] = datos_coa
+            if datos_sds:
+                datos_para_guardar["_sds"] = datos_sds
+            cabezote_id_val = body.get("cabezote_id")
+            if cabezote_id_val:
+                datos_para_guardar["_cabezote_id"] = cabezote_id_val
+            path = guardar_yaml_datos(datos_para_guardar, slug=slug_borrador)
+            log_line(f"✔ borrador FT+COA+SDS: {path.name}")
+            return jsonify({
+                "ok": True,
+                "slug": slug_borrador,
+                "archivo": path.name,
+                "titulo": titulo,
+                "guardado_at": datos_para_guardar["_guardado_at"],
+            })
+        except Exception as e:
+            from app.panel_activity import log_line
+            log_line(f"✖ fichas/guardar-borrador: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/borradores", methods=["GET"])
+    @app.route("/api/fichas/borradores", methods=["GET"])
+    def api_fichas_borradores():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import listar_borradores_completo
+        return jsonify({"borradores": listar_borradores_completo()})
 
     @app.route("/app/api/fichas/coa/escanear-parametros", methods=["POST"])
     @app.route("/api/fichas/coa/escanear-parametros", methods=["POST"])

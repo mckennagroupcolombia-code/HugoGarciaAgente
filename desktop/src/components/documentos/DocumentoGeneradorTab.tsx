@@ -952,6 +952,10 @@ export function Field({
   rows = 1,
   placeholder,
   mono,
+  type,
+  clearable = true,
+  /** Acciones extra a la derecha de la etiqueta (p. ej. botón IA). */
+  actions,
 }: {
   label?: string;
   value: string;
@@ -959,20 +963,70 @@ export function Field({
   rows?: number;
   placeholder?: string;
   mono?: boolean;
+  type?: string;
+  /** Botón Limpiar (default true). */
+  clearable?: boolean;
+  actions?: ReactNode;
 }) {
+  const hasValue = value.length > 0;
+  const showClear = clearable;
   const cls = `w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm ${mono ? "font-mono text-xs" : ""}`;
+
+  const clearControl = showClear ? (
+    <button
+      type="button"
+      onClick={() => onChange("")}
+      disabled={!hasValue}
+      title="Limpiar campo"
+      aria-label="Limpiar campo"
+      className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+        hasValue
+          ? "border-border text-muted hover:border-danger hover:bg-danger/10 hover:text-danger"
+          : "cursor-default border-transparent text-muted/35"
+      }`}
+    >
+      Limpiar
+    </button>
+  ) : null;
+
+  const header =
+    label || actions || showClear ? (
+      <div className="mb-1 flex min-h-[1.25rem] items-center justify-between gap-2">
+        {label ? <label className="text-xs text-muted">{label}</label> : <span className="text-xs text-muted" />}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {clearControl}
+          {actions}
+        </div>
+      </div>
+    ) : null;
+
   if (rows > 1) {
     return (
       <div>
-        {label && <label className="text-xs text-muted">{label}</label>}
-        <ProseTextarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={`mt-1 ${cls}`} />
+        {header}
+        <ProseTextarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={rows}
+          placeholder={placeholder}
+          className={`${header ? "" : "mt-1 "}${cls}`}
+        />
       </div>
     );
   }
+
   return (
     <div>
-      {label && <label className="text-xs text-muted">{label}</label>}
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`mt-1 ${cls}`} />
+      {header}
+      <div className="relative">
+        <input
+          type={type || "text"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`${header ? "" : "mt-1 "}${cls}`}
+        />
+      </div>
     </div>
   );
 }

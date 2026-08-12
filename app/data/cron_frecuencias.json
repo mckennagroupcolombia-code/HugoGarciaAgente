@@ -2,5 +2,21 @@
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
     "ultima_ejecucion": "2026-08-10T15:50:34"
+  },
+  "auditoria_scripts": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-11T07:15:01"
+  },
+  "certificados_retencion": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-11T08:00:01"
+  },
+  "monitor_importaciones": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-11T08:15:01"
+  },
+  "compliance_meli": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-11T08:30:01"
   }
 }

@@ -603,6 +603,118 @@ def _reactivar_item_meli_si_pausada(
     return f" · ⚠️ stock enviado; MeLi aún no reactiva ({detalle})"
 
 
+def cambiar_estado_publicacion_meli(item_id: str, nuevo_estado: str) -> dict:
+    """
+    Cambia el status de una publicación MeLi entre ``active`` y ``paused``.
+
+    Returns:
+        ``{ok, estado, estado_anterior, mensaje, stock?}``
+    """
+    item_id = (item_id or "").strip().upper()
+    destino = (nuevo_estado or "").strip().lower()
+    if not item_id:
+        return {"ok": False, "mensaje": "meli_id requerido", "estado": None}
+    if destino not in ("active", "paused"):
+        return {
+            "ok": False,
+            "mensaje": "estado inválido (solo active o paused)",
+            "estado": None,
+        }
+
+    token = refrescar_token_meli()
+    if not token:
+        return {"ok": False, "mensaje": "No se pudo obtener token MeLi", "estado": None}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    try:
+        res_get = requests.get(
+            f"https://api.mercadolibre.com/items/{item_id}",
+            headers=headers,
+            timeout=12,
+        )
+        if res_get.status_code != 200:
+            return {
+                "ok": False,
+                "mensaje": f"No se pudo leer ítem ({res_get.status_code})",
+                "estado": None,
+            }
+        item = res_get.json() or {}
+        actual = str(item.get("status") or "").lower()
+        if item.get("variations"):
+            qty = sum(int(v.get("available_quantity") or 0) for v in item["variations"])
+        else:
+            qty = int(item.get("available_quantity") or 0)
+
+        if actual in ("closed", "inactive"):
+            return {
+                "ok": False,
+                "estado": actual,
+                "estado_anterior": actual,
+                "stock": qty,
+                "mensaje": f"No se puede cambiar: publicación {actual}",
+            }
+        if actual == "under_review":
+            return {
+                "ok": False,
+                "estado": actual,
+                "estado_anterior": actual,
+                "stock": qty,
+                "mensaje": "En revisión: MeLi bloquea el cambio de estado",
+            }
+        if actual == destino:
+            return {
+                "ok": True,
+                "estado": actual,
+                "estado_anterior": actual,
+                "stock": qty,
+                "mensaje": f"Ya estaba {destino}",
+            }
+        if destino == "active" and qty <= 0:
+            return {
+                "ok": False,
+                "estado": actual,
+                "estado_anterior": actual,
+                "stock": qty,
+                "mensaje": "Sin stock: pon unidades > 0 antes de activar",
+            }
+
+        put = requests.put(
+            f"https://api.mercadolibre.com/items/{item_id}",
+            json={"status": destino},
+            headers=headers,
+            timeout=15,
+        )
+        if put.status_code not in (200, 201):
+            err = ""
+            try:
+                body = put.json() or {}
+                err = str(body.get("message") or body.get("error") or "")[:180]
+            except Exception:
+                err = (put.text or "")[:180]
+            return {
+                "ok": False,
+                "estado": actual,
+                "estado_anterior": actual,
+                "stock": qty,
+                "mensaje": err or f"MeLi rechazó el cambio ({put.status_code})",
+            }
+
+        label = "Activa" if destino == "active" else "Pausada"
+        print(f"✅ [MELI-STATUS] {item_id}: {actual} → {destino}")
+        return {
+            "ok": True,
+            "estado": destino,
+            "estado_anterior": actual,
+            "stock": qty,
+            "mensaje": f"Publicación {label.lower()} en MeLi",
+        }
+    except requests.RequestException as e:
+        return {"ok": False, "mensaje": f"Error de red MeLi: {e}", "estado": None}
+
+
 def _actualizar_stock_meli_item(item_id: str, nuevo_stock: int, headers: dict) -> str:
     """
     Actualiza stock de un ítem. Si tiene user_product_id (cuenta multi-bodega),

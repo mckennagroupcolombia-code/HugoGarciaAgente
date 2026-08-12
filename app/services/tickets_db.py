@@ -1770,7 +1770,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         return []
     fonts = {
         "Montserrat", "Inter", "DM Sans", "Nunito", "Outfit",
-        "JetBrains Mono", "Share Tech Mono", "system-ui",
+        "JetBrains Mono", "Share Tech Mono", "A Note", "system-ui",
     }
     out: list[dict] = []
     for item in raw[:12]:
@@ -1786,7 +1786,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         mode = item.get("mode") if item.get("mode") in ("light", "dark", "system") else "light"
         font = item.get("fontSans") if item.get("fontSans") in fonts else "Montserrat"
         radius = item.get("radius") if item.get("radius") in ("sm", "md", "lg") else "md"
-        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura") else "clasica"
+        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura", "barbie") else "clasica"
         font_scale = item.get("fontScale") if item.get("fontScale") in ("sm", "md", "lg", "xl") else "md"
         menu_scale = item.get("menuScale") if item.get("menuScale") in ("sm", "md", "lg") else "md"
         colors = _limpiar_colores_tema(item.get("colors")) or {}
@@ -1835,6 +1835,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
                 "Outfit",
                 "JetBrains Mono",
                 "Share Tech Mono",
+                "A Note",
                 "system-ui",
             ):
                 return False, "fontSans inválido", None
@@ -1852,7 +1853,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["radius"] = radius
         skin = panel_in.get("skin")
         if skin is not None:
-            if skin not in ("clasica", "atelier", "matrix", "sakura"):
+            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie"):
                 return False, "skin inválido", None
             panel["skin"] = skin
         font_scale = panel_in.get("fontScale")

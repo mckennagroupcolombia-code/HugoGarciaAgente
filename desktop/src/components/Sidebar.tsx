@@ -17,6 +17,7 @@ import type { NavItemDef } from "../lib/navStructure";
 import { modoAvanzadoEfectivo, puedeVerSeccionPanel } from "../lib/panelAccess";
 import { useUiMode } from "../stores/uiMode";
 import { PANEL_INFO, type PanelTier } from "../lib/panelInfo";
+import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon } from "../icons";
@@ -177,6 +178,7 @@ export default function Sidebar() {
 
   async function logout() {
     if (token) {
+      await flushSaveUserUiPreferences(token);
       let sid = "";
       try { sid = sessionStorage.getItem("mckenna-panel-session-uuid") ?? ""; } catch { /* */ }
       await cerrarSesionPanel(token);

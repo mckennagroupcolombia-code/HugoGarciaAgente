@@ -41,7 +41,7 @@ function ToolBtn({
       aria-label={title}
       aria-pressed={active}
       onClick={onClick}
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 shadow-sm transition active:scale-95 ${tones[tone]}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 shadow-sm transition active:scale-95 sm:h-10 sm:w-10 sm:rounded-xl ${tones[tone]}`}
     >
       {children}
     </button>
@@ -99,7 +99,7 @@ export default function ContabilidadHerramientas({
   return (
     <>
       <div
-        className="mr-0.5 flex shrink-0 items-center gap-1 border-r border-border/80 pr-1.5"
+        className="mr-0.5 flex max-w-[min(100vw-9rem,12rem)] shrink-0 items-center gap-0.5 overflow-x-auto overscroll-x-contain border-r border-border/80 pr-1 sm:max-w-none sm:gap-1 sm:pr-1.5"
         role="toolbar"
         aria-label="Herramientas Contabilidad"
       >

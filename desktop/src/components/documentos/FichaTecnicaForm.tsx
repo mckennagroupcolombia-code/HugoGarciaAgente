@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { Field, listaDesdeTexto } from "./DocumentoGeneradorTab";
-import { ProseTextarea } from "../ProseTextarea";
 
 export type ComposicionFila = { componente: string; valor: string };
 
@@ -492,133 +491,95 @@ export default function FichaTecnicaForm({
           />
         )}
 
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="text-xs text-muted">Sinónimos</label>
-            <IaBtn label="IA" {...ia("sinonimos")} />
-          </div>
-          <ProseTextarea
-            value={state.sinonimos}
-            onChange={(e) => patch({ sinonimos: e.target.value })}
-            rows={2}
-            placeholder="Nombres alternativos, INCI, comerciales…"
-            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-          />
-        </div>
+        <Field
+          label="Sinónimos"
+          value={state.sinonimos}
+          onChange={(v) => patch({ sinonimos: v })}
+          rows={2}
+          placeholder="Nombres alternativos, INCI, comerciales…"
+          actions={<IaBtn label="IA" {...ia("sinonimos")} />}
+        />
 
         <div className={`grid gap-3 ${hideIdentificacion ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
           {!hideIdentificacion && (
-            <div>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <label className="text-xs text-muted">Número CAS</label>
-                <IaBtn label="IA" {...ia("cas")} />
-              </div>
-              <input
-                value={state.cas}
-                onChange={(e) => patch({ cas: e.target.value })}
-                placeholder="0000-00-0"
-                className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
-              />
-            </div>
+            <Field
+              label="Número CAS"
+              value={state.cas}
+              onChange={(v) => patch({ cas: v })}
+              placeholder="0000-00-0"
+              mono
+              actions={<IaBtn label="IA" {...ia("cas")} />}
+            />
           )}
-          <div>
-            <label className="text-xs text-muted">Fecha de revisión</label>
-            <input
-              type="date"
-              value={state.fechaRevision}
-              onChange={(e) => patch({ fechaRevision: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted">Lote <span className="text-[10px] opacity-60">(dejar vacío = línea en blanco)</span></label>
-            <input
-              value={state.lote}
-              onChange={(e) => patch({ lote: e.target.value })}
-              placeholder="Ej. LT-2025-001"
-              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
-            />
-          </div>
+          <Field
+            label="Fecha de revisión"
+            type="date"
+            value={state.fechaRevision}
+            onChange={(v) => patch({ fechaRevision: v })}
+          />
+          <Field
+            label="Lote (vacío = línea en blanco)"
+            value={state.lote}
+            onChange={(v) => patch({ lote: v })}
+            placeholder="Ej. LT-2025-001"
+            mono
+          />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="text-xs text-muted">País de origen</label>
-            <input
-              value={state.paisOrigen}
-              onChange={(e) => patch({ paisOrigen: e.target.value })}
-              placeholder="Ej. Colombia, China, India…"
-              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted">Fabricante</label>
-            <input
-              value={state.fabricante}
-              onChange={(e) => patch({ fabricante: e.target.value })}
-              placeholder="Nombre del fabricante o proveedor"
-              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
+          <Field
+            label="País de origen"
+            value={state.paisOrigen}
+            onChange={(v) => patch({ paisOrigen: v })}
+            placeholder="Ej. Colombia, China, India…"
+          />
+          <Field
+            label="Fabricante"
+            value={state.fabricante}
+            onChange={(v) => patch({ fabricante: v })}
+            placeholder="Nombre del fabricante o proveedor"
+          />
         </div>
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle>Descripción</SectionTitle>
-          <IaBtn label="IA" {...ia("descripcion")} />
-        </div>
+        <SectionTitle>Descripción</SectionTitle>
         <Field
+          label="Descripción"
           value={state.descripcion}
           onChange={(v) => patch({ descripcion: v })}
           rows={5}
           placeholder="Origen, modo de obtención, proceso, usos generales…"
+          actions={<IaBtn label="IA" {...ia("descripcion")} />}
         />
       </section>
 
       <section className="space-y-3">
         <SectionTitle>Características físicas</SectionTitle>
 
-        {/* Apariencia — IA rellena directamente el campo */}
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="text-xs text-muted">Apariencia</label>
-            <IaBtn label="IA" {...ia("apariencia")} />
-          </div>
-          <input
-            value={state.apariencia}
-            onChange={(e) => patch({ apariencia: e.target.value })}
-            placeholder="Ej. Polvo blanco fino cristalino"
-            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-          />
-        </div>
+        <Field
+          label="Apariencia"
+          value={state.apariencia}
+          onChange={(v) => patch({ apariencia: v })}
+          placeholder="Ej. Polvo blanco fino cristalino"
+          actions={<IaBtn label="IA" {...ia("apariencia")} />}
+        />
 
-        {/* Olor y Sabor — fila compartida */}
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <label className="text-xs text-muted">Olor</label>
-              <IaBtn label="IA" {...ia("olor")} />
-            </div>
-            <input
-              value={state.olor}
-              onChange={(e) => patch({ olor: e.target.value })}
-              placeholder="Ej. Inodoro o ligero aroma"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <label className="text-xs text-muted">Sabor</label>
-              <IaBtn label="IA" {...ia("sabor")} />
-            </div>
-            <input
-              value={state.sabor}
-              onChange={(e) => patch({ sabor: e.target.value })}
-              placeholder="Ej. Insípido, dulce, amargo…"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
+          <Field
+            label="Olor"
+            value={state.olor}
+            onChange={(v) => patch({ olor: v })}
+            placeholder="Ej. Inodoro o ligero aroma"
+            actions={<IaBtn label="IA" {...ia("olor")} />}
+          />
+          <Field
+            label="Sabor"
+            value={state.sabor}
+            onChange={(v) => patch({ sabor: v })}
+            placeholder="Ej. Insípido, dulce, amargo…"
+            actions={<IaBtn label="IA" {...ia("sabor")} />}
+          />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -629,74 +590,62 @@ export default function FichaTecnicaForm({
             { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆" },
             { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría" },
           ].map(({ label, campo, val, set, ph: placeholder }) => (
-            <div key={campo}>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <label className="text-xs text-muted">{label}</label>
-                <IaBtn label="IA" {...ia(campo)} />
-              </div>
-              <input
-                value={val}
-                onChange={(e) => set(e.target.value)}
-                placeholder={placeholder}
-                className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-              />
-            </div>
+            <Field
+              key={campo}
+              label={label}
+              value={val}
+              onChange={set}
+              placeholder={placeholder}
+              actions={<IaBtn label="IA" {...ia(campo)} />}
+            />
           ))}
         </div>
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle>Beneficios</SectionTitle>
-          <IaBtn label="IA" {...ia("propiedades_lista")} />
-        </div>
+        <SectionTitle>Beneficios</SectionTitle>
         <Field
+          label="Beneficios"
           value={state.propiedadesLista}
           onChange={(v) => patch({ propiedadesLista: v })}
           rows={4}
           placeholder="Una propiedad por línea. Formato: Nombre|Valor (ej. Densidad|0.85 g/cm³)"
+          actions={<IaBtn label="IA" {...ia("propiedades_lista")} />}
         />
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle>Aplicaciones</SectionTitle>
-          <IaBtn label="IA" {...ia("aplicaciones")} />
-        </div>
+        <SectionTitle>Aplicaciones</SectionTitle>
         <Field
+          label="Aplicaciones"
           value={state.aplicaciones}
           onChange={(v) => patch({ aplicaciones: v })}
           rows={4}
           placeholder="Una aplicación por línea"
+          actions={<IaBtn label="IA" {...ia("aplicaciones")} />}
         />
       </section>
 
       <section className="space-y-2">
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <SectionTitle>Modo de uso</SectionTitle>
-            <IaBtn label="IA" {...ia("modo_uso")} />
-          </div>
-          <Field
-            value={state.modoUso}
-            onChange={(v) => patch({ modoUso: v })}
-            rows={3}
-            placeholder="Concentración típica, forma de incorporación, temperatura, orden de adición…"
-          />
-        </div>
+        <Field
+          label="Modo de uso"
+          value={state.modoUso}
+          onChange={(v) => patch({ modoUso: v })}
+          rows={3}
+          placeholder="Concentración típica, forma de incorporación, temperatura, orden de adición…"
+          actions={<IaBtn label="IA" {...ia("modo_uso")} />}
+        />
       </section>
 
       {!hideRecomendaciones && (
         <section className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <SectionTitle>Recomendaciones GHS</SectionTitle>
-            <IaBtn label="IA" {...ia("recomendaciones")} />
-          </div>
           <Field
+            label="Recomendaciones GHS"
             value={state.recomendaciones}
             onChange={(v) => patch({ recomendaciones: v })}
             rows={6}
             placeholder={"Una recomendación por línea. Ej:\nPREVENCIÓN: Evitar inhalar polvo. Usar EPP adecuado.\nRESPUESTA: En caso de contacto ocular, lavar con agua abundante.\nALMACENAMIENTO: Mantener en lugar seco y bien ventilado."}
+            actions={<IaBtn label="IA" {...ia("recomendaciones")} />}
           />
         </section>
       )}

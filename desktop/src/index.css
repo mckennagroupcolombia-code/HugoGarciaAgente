@@ -1872,6 +1872,13 @@
     background: rgb(var(--mck-surface-panel) / 0.92);
     border-color: rgb(var(--mck-border) / 0.85);
   }
+  /* Cabezote: nada se desborda ni se apila encima de otro control */
+  .mck-header-glass > div {
+    max-width: 100%;
+  }
+  .mck-header-glass .mck-submenu {
+    max-width: 100%;
+  }
 
   /* Sidebar — siempre --mck-menu-bg (skin / Theme Studio), sin hardcode teal/morado */
   .dark aside.mck-sidebar,

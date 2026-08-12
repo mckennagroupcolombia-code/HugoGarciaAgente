@@ -228,9 +228,9 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="max-h-[min(70vh,800px)] overflow-auto rounded-xl border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-surface-panel text-left text-xs text-muted">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface-panel text-left text-xs text-muted shadow-[0_1px_0_0_var(--color-border,rgba(0,0,0,0.08))] [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-surface-panel">
             <tr>
               <th className="px-3 py-2 font-medium">Ref</th>
               <th className="px-3 py-2 font-medium">Producto</th>

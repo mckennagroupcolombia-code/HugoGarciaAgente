@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 from datetime import datetime
 
 from app.meli_webhook_incidents import registrar_meli_webhook_incidente
@@ -101,6 +102,23 @@ def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
     }
 
 
+def _buscar_producto_siigo_con_reintentos(sku: str, intentos: int = 3) -> dict | None:
+    """
+    buscar_producto_siigo_por_sku() devuelve None tanto si el SKU no existe en
+    Siigo como si la consulta falló transitoriamente (timeout, 5xx) — no
+    distingue los dos casos. Reintentar aquí evita marcar como "no existe en
+    Siigo" (y disparar ticket de creación de producto) algo que en realidad
+    fue un hipo momentáneo de la API.
+    """
+    for intento in range(intentos):
+        producto = buscar_producto_siigo_por_sku(sku)
+        if producto:
+            return producto
+        if intento < intentos - 1:
+            time.sleep(1.5 * (intento + 1))
+    return None
+
+
 def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict], str | None]:
     items = orden.get("order_items") or []
     if not items:
@@ -126,7 +144,7 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
         if precio is None:
             missing.append(f"{sku}: sin precio unitario en la orden")
             continue
-        if not buscar_producto_siigo_por_sku(sku):
+        if not _buscar_producto_siigo_con_reintentos(sku):
             missing.append(f"{sku}: no existe en Siigo")
             continue
 

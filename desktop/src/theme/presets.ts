@@ -284,7 +284,11 @@ export function sanitizePanelTheme(raw: Partial<PanelThemeConfig> | null | undef
   }
   return {
     mode: MODES.has(r.mode as ThemeMode) ? (r.mode as ThemeMode) : MCKENNA_THEME_DEFAULT.mode,
-    fontSans: FONTS.has(r.fontSans as FontChoice) ? (r.fontSans as FontChoice) : MCKENNA_THEME_DEFAULT.fontSans,
+    fontSans: (() => {
+      const rawFont = r.fontSans as string | undefined;
+      const raw = rawFont === "Milky Matcha" ? "A Note" : rawFont;
+      return FONTS.has(raw as FontChoice) ? (raw as FontChoice) : MCKENNA_THEME_DEFAULT.fontSans;
+    })(),
     accentRgb,
     radius: RADII.has(r.radius as RadiusScale) ? (r.radius as RadiusScale) : MCKENNA_THEME_DEFAULT.radius,
     skin,

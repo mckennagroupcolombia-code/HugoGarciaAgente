@@ -1,11 +1,14 @@
 import { matchingThemePack, THEME_PACKS } from "../theme/presets";
 import type { ThemePackId } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
 
 export default function ThemePackPicker() {
   const skin = usePanelTheme((s) => s.skin);
   const activeCustomId = usePanelTheme((s) => s.activeCustomId);
   const applyPack = usePanelTheme((s) => s.applyPack);
+  const token = useTicketsAuth((s) => s.token);
   const active = matchingThemePack({ skin, activeCustomId });
 
   return (
@@ -18,7 +21,10 @@ export default function ThemePackPicker() {
             <button
               key={pack.id}
               type="button"
-              onClick={() => applyPack(pack.id)}
+              onClick={() => {
+                applyPack(pack.id);
+                if (token) void flushSaveUserUiPreferences(token);
+              }}
               aria-pressed={selected}
               className={`overflow-hidden rounded-xl border-2 p-2.5 text-left transition ${
                 selected

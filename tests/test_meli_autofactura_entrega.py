@@ -81,11 +81,39 @@ def test_construir_lineas_factura_sin_sku_en_siigo(monkeypatch):
     }
     monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "RARO-1"})
     monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: None)
+    monkeypatch.setattr(m.time, "sleep", lambda _s: None)  # sin esperar los reintentos reales
 
     lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
 
     assert lines == []
     assert "RARO-1" in error and "no existe en Siigo" in error
+
+
+def test_construir_lineas_factura_reintenta_tras_fallo_transitorio_siigo(monkeypatch):
+    """Un None puntual de Siigo (timeout/5xx) no debe marcarse como 'no existe' si reintentar funciona."""
+    from app.tools import meli_autofactura_entrega as m
+
+    orden = {
+        "order_items": [
+            {"item": {"id": "MCO1", "title": "Producto"}, "quantity": 1, "unit_price": 1000}
+        ]
+    }
+    monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "SKU-1"})
+    monkeypatch.setattr(m.time, "sleep", lambda _s: None)
+
+    llamadas = []
+
+    def _fake_buscar(sku):
+        llamadas.append(sku)
+        return None if len(llamadas) < 2 else {"code": sku}
+
+    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", _fake_buscar)
+
+    lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
+
+    assert error is None
+    assert lines == [{"codigo": "SKU-1", "nombre": "Producto", "cantidad": 1.0, "precio_unitario": 1000.0}]
+    assert len(llamadas) == 2  # falló una vez, el reintento lo resolvió
 
 
 def test_construir_lineas_factura_sin_sku_en_meli(monkeypatch):

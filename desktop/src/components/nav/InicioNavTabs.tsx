@@ -74,7 +74,7 @@ export default function InicioNavTabs() {
   const metricasActiva = panel === "dashboard";
 
   return (
-    <ScrollableTabList aria-label="Secciones de Inicio" justify="end">
+    <ScrollableTabList aria-label="Secciones de Inicio" justify="start">
       <button
         type="button"
         role="tab"
@@ -83,7 +83,7 @@ export default function InicioNavTabs() {
         className={hubTabClass(agendaActiva)}
       >
         <Icon name="target" size={16} weight={agendaActiva ? "fill" : "regular"} />
-        <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>Agenda</span>
+        <span className={HUB_TAB_LABEL}>Agenda</span>
       </button>
       {showAcciones && (
         <button
@@ -94,7 +94,7 @@ export default function InicioNavTabs() {
           className={hubTabClass(accionesActiva)}
         >
           <Icon name="lightning" size={16} weight={accionesActiva ? "fill" : "regular"} />
-          <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>Acciones</span>
+          <span className={HUB_TAB_LABEL}>Acciones</span>
         </button>
       )}
       {showSolicitudes && (
@@ -106,7 +106,7 @@ export default function InicioNavTabs() {
           className={hubTabClass(solicitudesActiva)}
         >
           <Icon name="listChecks" size={16} weight={solicitudesActiva ? "fill" : "regular"} />
-          <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>Solicitudes</span>
+          <span className={HUB_TAB_LABEL}>Solicitudes</span>
         </button>
       )}
       <button
@@ -117,7 +117,7 @@ export default function InicioNavTabs() {
         className={hubTabClass(metricasActiva)}
       >
         <PanelIcon panel="dashboard" size={16} active={metricasActiva} bubble={false} />
-        <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>Métricas</span>
+        <span className={HUB_TAB_LABEL}>Métricas</span>
       </button>
     </ScrollableTabList>
   );

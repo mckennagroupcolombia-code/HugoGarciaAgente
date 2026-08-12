@@ -2,6 +2,7 @@ import { MCKENNA_THEME_DEFAULT, sanitizePanelTheme } from "../theme/presets";
 import type { PanelThemeConfig } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useQuestTheme } from "../stores/questTheme";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 
 export interface UserUiPreferences {
   panel?: Partial<PanelThemeConfig>;
@@ -58,21 +59,42 @@ export function scheduleSaveUserUiPreferences(token: string) {
   if (hydrating || !token) return;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const prefs = buildUserUiPreferences();
-    const json = JSON.stringify(prefs);
-    if (json === lastSavedJson) return;
-    fetch("/api/tickets/auth/me/preferencias", {
+    void flushSaveUserUiPreferences(token);
+  }, 500);
+}
+
+/** Guarda de inmediato (p. ej. al elegir pack o antes de cerrar sesión). */
+export async function flushSaveUserUiPreferences(token: string): Promise<boolean> {
+  if (hydrating || !token) return false;
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  const prefs = buildUserUiPreferences();
+  const json = JSON.stringify(prefs);
+  if (json === lastSavedJson) return true;
+  try {
+    const r = await fetch("/api/tickets/auth/me/preferencias", {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: json,
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.ok) lastSavedJson = json;
-      })
-      .catch(() => {});
-  }, 500);
+    });
+    if (!r.ok) return false;
+    const data = await r.json().catch(() => null);
+    if (!data?.ok) return false;
+    lastSavedJson = json;
+    // Mantener preferencias en la sesión persistida del navegador.
+    const auth = useTicketsAuth.getState();
+    if (auth.user && auth.token === token) {
+      useTicketsAuth.setState({
+        user: { ...auth.user, preferencias_ui: prefs },
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }

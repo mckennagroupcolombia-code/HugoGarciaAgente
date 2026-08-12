@@ -260,6 +260,7 @@ function HomeTab({
   onSolicitudCreated: number;
   onNavigateTo: (p: Panel) => void;
 }) {
+  const user = useTicketsAuth((s) => s.user);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [status, setStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -282,11 +283,11 @@ function HomeTab({
   useEffect(() => { load(); }, [load, onSolicitudCreated]);
 
   const quickActions = [
-    { icon: "listChecks" as UiIconName, tone: "accent" as const, label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]" },
-    { icon: "chat" as UiIconName, tone: "plum" as const, label: "Chat con\nHugo", cat: "", action: () => onNavigateTo("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-    { icon: "package" as UiIconName, tone: "sky" as const, label: "Stock &\ninventario", cat: "", action: () => onNavigateTo("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Diseño\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-  ];
+    { icon: "listChecks" as UiIconName, tone: "accent" as const, label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]", show: true },
+    { icon: "chat" as UiIconName, tone: "plum" as const, label: "Chat con\nHugo", cat: "", action: () => onNavigateTo("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: true },
+    { icon: "package" as UiIconName, tone: "sky" as const, label: "Stock &\ninventario", cat: "", action: () => onNavigateTo("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: puedeVerSeccionPanel(user, "stock") },
+    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Diseño\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: true },
+  ].filter((a) => a.show);
 
   return (
     <div className="h-full overflow-y-auto pb-24 pt-2">

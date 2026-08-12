@@ -49,7 +49,7 @@ export default function DisenoNavTabs() {
   }
 
   return (
-    <ScrollableTabList aria-label="Secciones de Diseño" justify="end">
+    <ScrollableTabList aria-label="Secciones de Diseño" justify="start">
       {tabs.map((t) => {
         const selected = !enStudioWeb && activo === t.id;
         return (

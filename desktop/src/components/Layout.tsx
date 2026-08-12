@@ -97,12 +97,12 @@ export default function Layout({
           className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm sm:gap-2.5 sm:px-4 sm:py-2.5"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
         >
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
             {onBackToMobileHub && (
               <button
                 type="button"
                 onClick={onBackToMobileHub}
-                className="mck-press rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
+                className="mck-press shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
                 aria-label="Volver al inicio móvil"
                 title="Inicio móvil"
               >
@@ -112,7 +112,7 @@ export default function Layout({
             <button
               type="button"
               onClick={toggle}
-              className="mck-press rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
+              className="mck-press shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
               aria-label="Abrir menú"
             >
               <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
@@ -128,7 +128,7 @@ export default function Layout({
                   <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
                 </span>
               ) : null}
-              <div className="min-w-0 shrink-0">
+              <div className="min-w-0 flex-1">
                 <h1 className="mck-title truncate text-sm font-bold tracking-tight lg:text-base">
                   {headerTitle}
                 </h1>
@@ -141,13 +141,13 @@ export default function Layout({
               {panel === "sitioweb" && (
                 <div
                   id="studio-web-chrome-top"
-                  className="flex min-w-0 flex-1 items-center gap-1"
+                  className="hidden min-w-0 flex-1 items-center gap-1 sm:flex"
                 />
               )}
             </div>
 
             {!isHub && advanced && (
-              <span className="hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent sm:inline">
+              <span className="hidden shrink-0 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent md:inline">
                 Avanzado
               </span>
             )}
@@ -162,21 +162,21 @@ export default function Layout({
               </button>
             )}
 
-            <div className="flex min-w-0 shrink items-center gap-1.5">
+            {/* Controles fijos a la derecha: no pelean con pestañas en pantallas angostas */}
+            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
               {sectionId === "contabilidad" && (
                 <ContabilidadHerramientas
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
-              {/* Diseño: pestañas (imprimir…) a la izquierda de Temas y estilo visual */}
+              {/* Diseño / Inicio: pestañas inline solo con ancho suficiente (≥ xl) */}
               {sectionId === "diseno" && (
-                <div className="mr-0.5 min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5">
+                <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5 xl:block">
                   <DisenoNavTabs />
                 </div>
               )}
-              {/* Inicio: Agenda / Acciones / Solicitudes / Métricas junto a Temas */}
               {sectionId === "inicio" && (
-                <div className="mr-0.5 min-w-0 max-w-[min(100%,48rem)] border-r border-border/80 pr-1.5">
+                <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,48rem)] border-r border-border/80 pr-1.5 xl:block">
                   <InicioNavTabs />
                 </div>
               )}
@@ -185,10 +185,18 @@ export default function Layout({
             </div>
           </div>
 
-          {showHubTabs && sectionId !== "diseno" && sectionId !== "inicio" && (
-            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+          {showHubTabs && (
+            <div
+              className={`mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5 ${
+                sectionId === "diseno" || sectionId === "inicio" ? "xl:hidden" : ""
+              }`}
+            >
               {sectionId === "contabilidad" ? (
                 <ContabilidadNavTabs />
+              ) : sectionId === "diseno" ? (
+                <DisenoNavTabs />
+              ) : sectionId === "inicio" ? (
+                <InicioNavTabs />
               ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}

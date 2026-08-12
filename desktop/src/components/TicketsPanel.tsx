@@ -4033,7 +4033,7 @@ function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onVerSolicitud, onContratos, onTablero,
   onAccionesFuturas, onRecordatorios, onProcedimientos, onImpresora,
-  onNotas, onBolsillo,
+  onNotas, onBolsillo, onStock, onEmpaque,
 }: {
   token: string;
   user: TicketsUser;
@@ -4050,8 +4050,14 @@ function CentroMandoHome({
   onImpresora?: () => void;
   onNotas?: () => void;
   onBolsillo?: () => void;
+  onStock?: () => void;
+  onEmpaque?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+  const verStock = Boolean(onStock && puedeVerSeccionPanel(user, "stock"));
+  const verEmpaque = Boolean(onEmpaque && puedeVerSeccionPanel(user, "empaque"));
+  const verImpresora = Boolean(onImpresora && puedeVerSeccionPanel(user, "etiquetas"));
+  const tieneAtajos = verStock || verEmpaque || verImpresora;
 
   const [acciones,      setAcciones]      = useState<any[]>([]);
   const [solicitudes,   setSolicitudes]   = useState<any[]>([]);
@@ -4136,6 +4142,56 @@ function CentroMandoHome({
           <span className="text-accent">{user.nombre.split(" ")[0]}</span>
         </h2>
       </div>
+
+      {tieneAtajos && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {verStock && (
+            <button
+              type="button"
+              onClick={onStock}
+              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/30 bg-accent/10 px-3 py-3 text-left hover:border-accent/60"
+            >
+              <span className="text-accent">
+                <Icon name="package" size={22} weight="duotone" />
+              </span>
+              <span className="text-[13px] font-extrabold text-ink leading-none">Stock MeLi</span>
+              <span className="text-[10px] font-semibold text-accent/80 leading-snug">
+                Editar unidades · ver Activa / Pausada
+              </span>
+            </button>
+          )}
+          {verEmpaque && (
+            <button
+              type="button"
+              onClick={onEmpaque}
+              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 text-left hover:border-accent/50"
+            >
+              <span className="text-accent">
+                <Icon name="camera" size={22} weight="duotone" />
+              </span>
+              <span className="text-[13px] font-extrabold text-ink leading-none">Empaque</span>
+              <span className="text-[10px] font-semibold text-muted leading-snug">
+                Evidencia fotográfica
+              </span>
+            </button>
+          )}
+          {verImpresora && (
+            <button
+              type="button"
+              onClick={onImpresora}
+              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 text-left hover:border-accent/50"
+            >
+              <span className="text-accent">
+                <Icon name="tag" size={22} weight="duotone" />
+              </span>
+              <span className="text-[13px] font-extrabold text-ink leading-none">Etiquetas</span>
+              <span className="text-[10px] font-semibold text-muted leading-snug">
+                Impresión y diseño
+              </span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Acciones ── */}
       {pVer("acciones") && (
@@ -28035,6 +28091,14 @@ export default function TicketsPanel() {
     if (!puedeVerSeccionPanel(user, "etiquetas")) return;
     setPanel("etiquetas");
   }
+  function goStock() {
+    if (!puedeVerSeccionPanel(user, "stock")) return;
+    setPanel("stock");
+  }
+  function goEmpaque() {
+    if (!puedeVerSeccionPanel(user, "empaque")) return;
+    setPanel("empaque");
+  }
   function goCreateContrato() {
     if (nivel < 3) return;
     setPanel("hugo");
@@ -28091,6 +28155,8 @@ export default function TicketsPanel() {
               onRecordatorios={() => goAcciones("agenda")}
               onProcedimientos={() => goAcciones("procedimientos")}
               onImpresora={goImpresora}
+              onStock={goStock}
+              onEmpaque={goEmpaque}
               onNotas={() => goAcciones("notas")}
               onBolsillo={() => goAcciones("bolsillo")}
             />

@@ -8,6 +8,7 @@ import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import AppearancePanel from "./AppearancePanel";
+import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ function ServiceCard({
   const isAgente = svc.id === "agente-pro";
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-surface-panel px-4 py-3 gap-4">
+    <div className="flex flex-wrap items-center justify-between rounded-xl border border-border bg-surface-panel px-4 py-3 gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-ink truncate">{svc.label}</p>
         <p className="text-[11px] text-muted font-mono">{svc.id}</p>
@@ -90,10 +91,14 @@ function ServiceCard({
 
 export default function Settings() {
   const token = useAuthStore((s) => s.token);
-  const { user: ticketsUser, clear: clearTickets } = useTicketsAuth();
+  const { user: ticketsUser, token: ticketsToken, clear: clearTickets } = useTicketsAuth();
   const isAdmin = esAdminPanel(ticketsUser);
   const clearMain = useAuthStore((s) => s.clear);
-  function logout() { clearTickets(); clearMain(); }
+  async function logout() {
+    if (ticketsToken) await flushSaveUserUiPreferences(ticketsToken);
+    clearTickets();
+    clearMain();
+  }
   const { data: status } = useStatus();
   const qc = useQueryClient();
 
@@ -218,7 +223,7 @@ export default function Settings() {
       {/* ── Sesión ── */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
         <h3 className="text-sm font-semibold text-ink">Sesión</h3>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-muted">
             Token:{" "}
             <code className="text-xs text-ink">
@@ -248,7 +253,7 @@ export default function Settings() {
 
       {/* ── Acceso desde red local ── */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-ink">Acceso desde red local</h3>
             <p className="text-xs text-muted mt-0.5">
@@ -274,7 +279,7 @@ export default function Settings() {
         </div>
 
         {accesoRed?.habilitado && accesoRed.url && (
-          <div className="rounded-lg border border-border bg-surface-hover px-4 py-3 flex items-center justify-between gap-3">
+          <div className="rounded-lg border border-border bg-surface-hover px-4 py-3 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] text-muted mb-1">URL de acceso</p>
               <code className="text-sm text-accent break-all">{accesoRed.url}</code>
@@ -303,7 +308,7 @@ export default function Settings() {
 
       {/* ── Servicios ── */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink">Servicios del Sistema</h3>
           <button
             onClick={() => refetchServicios()}
@@ -336,7 +341,7 @@ export default function Settings() {
 
       {/* ── Repositorio ── */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink">Repositorio GitHub</h3>
           <button
             onClick={() => refetchGit()}
@@ -496,7 +501,7 @@ function ApkBuilderSection() {
 
   return (
     <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
             <span>📱</span> App Android (TWA)
@@ -611,7 +616,7 @@ function SupervisorSection({ onMarkRunning }: { onMarkRunning: () => void }) {
 
   return (
     <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink">Supervisor IA (gemma4:e4b)</h3>
           <p className="text-xs text-muted mt-0.5">
@@ -1030,7 +1035,7 @@ function NotifWaSection() {
       {config === null ? (
         <p className="text-sm text-muted">Cargando configuración…</p>
       ) : (
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-ink">Acciones y solicitudes → MCKG SEDE SUR</p>
             <p className="text-xs text-muted mt-0.5">
@@ -1244,7 +1249,7 @@ function AgentScheduleSection() {
     <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-5">
 
       {/* Encabezado con estado actual */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
             <span>🤖</span> Agente Hugo — WhatsApp
@@ -1265,7 +1270,7 @@ function AgentScheduleSection() {
       </div>
 
       {/* Toggle global */}
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">Bot activado</p>
           <p className="text-xs text-muted mt-0.5">

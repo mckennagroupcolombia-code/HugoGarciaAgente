@@ -219,10 +219,10 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
         <p className="text-sm text-muted">No hay documentos que coincidan.</p>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="max-h-[min(70vh,800px)] overflow-auto rounded-xl border border-border">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-surface-panel">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface-panel shadow-[0_1px_0_0_var(--color-border,rgba(0,0,0,0.08))] [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-surface-panel">
+            <tr>
               <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide">Documento</th>
               <th className="px-3 py-2.5 text-center text-xs font-semibold text-muted uppercase tracking-wide w-16">Tipo</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-20">Tamaño</th>
@@ -1120,16 +1120,31 @@ function CoaSection({
     <div className="space-y-4">
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">EINECS</span>
-            <IaBtn {...ia("coa_einecs")} />
-          </div>
-          <Field value={coaEinces} onChange={setCoaEinces} />
+          <Field
+            label="EINECS"
+            value={coaEinces}
+            onChange={setCoaEinces}
+            actions={<IaBtn {...ia("coa_einecs")} />}
+          />
         </div>
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="mb-1 flex items-center justify-between gap-2">
             <span className="text-xs text-muted">Grado</span>
-            <IaBtn {...ia("coa_grado")} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCoaGrado("")}
+                disabled={!coaGrado.length}
+                className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
+                  coaGrado.length
+                    ? "border-border text-muted hover:border-danger hover:bg-danger/10 hover:text-danger"
+                    : "cursor-default border-transparent text-muted/35"
+                }`}
+              >
+                Limpiar
+              </button>
+              <IaBtn {...ia("coa_grado")} />
+            </div>
           </div>
           <div className="flex flex-wrap gap-1.5 mb-1.5">
             {["Cosmético", "Alimentos", "Industrial", "Grasas y Ceras", "Agro"].map((g) => (
@@ -1139,7 +1154,7 @@ function CoaSection({
               >{g}</button>
             ))}
           </div>
-          <Field value={coaGrado} onChange={setCoaGrado} placeholder="O escribe un grado personalizado…" />
+          <Field value={coaGrado} onChange={setCoaGrado} placeholder="O escribe un grado personalizado…" label="Grado personalizado" />
         </div>
       </div>
 
@@ -1199,7 +1214,18 @@ function CoaSection({
 
       {/* Tabla de parámetros */}
       <div>
-        <p className="text-xs text-muted mb-2">Parámetros de análisis</p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs text-muted">Parámetros de análisis</p>
+          {rows.some((r) => r.parametro || r.especificacion || r.resultado) && (
+            <button
+              type="button"
+              onClick={() => setCoaParametros("")}
+              className="text-[10px] font-medium text-muted hover:text-danger"
+            >
+              Limpiar tabla
+            </button>
+          )}
+        </div>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-left text-xs">
             <thead>
@@ -1410,55 +1436,65 @@ function DocumentoCompletoTabContent({
     setReferencia(producto.ref);
   }, [producto?.ref]);
 
-  /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
-  useEffect(() => {
-    if (!preload) return;
-
-    const coaData = (preload._coa as Record<string, unknown>) || null;
-    const sdsData = (preload._sds as Record<string, unknown>) || null;
+  const applyCompletoDatos = useCallback((datos: Record<string, unknown>) => {
+    const coaData = (datos._coa as Record<string, unknown>) || null;
+    const sdsData = (datos._sds as Record<string, unknown>) || null;
     const coaIdent = (coaData?.identificacion as Record<string, unknown>) || {};
     const sdsIdent = (sdsData?.identificacion as Record<string, unknown>) || {};
 
-    // Nombre del producto: raíz FT > _coa.titulo > _sds.titulo
     const nombreRaw = String(
-      preload.nombre_producto || preload.titulo ||
+      datos.nombre_producto || datos.titulo ||
       coaData?.titulo || sdsData?.titulo || ""
     );
     if (nombreRaw) setNombre(nombreRaw.toUpperCase());
 
-    // Referencia y CAS: raíz FT > identificación COA > identificación SDS
-    const ref = String(preload.referencia || coaIdent.referencia_interna || sdsIdent.referencia_interna || "");
+    const ref = String(datos.referencia || coaIdent.referencia_interna || sdsIdent.referencia_interna || "");
     if (ref) setReferencia(ref);
-    const casVal = String(preload.cas || coaIdent.cas || sdsIdent.cas || "");
+    const casVal = String(datos.cas || coaIdent.cas || sdsIdent.cas || "");
     if (casVal) setCas(casVal);
 
-    // Cabezote guardado
-    if (preload._cabezote_id) setCabezoteId(String(preload._cabezote_id));
+    const nc = String(datos.nombre_comercial || coaIdent.nombre_comercial || "");
+    if (nc) setNombreComercial(nc);
+    const inciVal = String(datos.inci || coaIdent.nombre_inci || "");
+    if (inciVal) setInci(inciVal);
 
-    // Color de acento (se controla desde el padre, no desde FichaTecnicaForm)
-    if (preload.color_acento) setColorAcento(String(preload.color_acento));
+    if (datos._cabezote_id) setCabezoteId(String(datos._cabezote_id));
+    if (datos.color_acento) setColorAcento(String(datos.color_acento));
 
-    // Cargar formulario FT (solo aplica si hay datos FT al nivel raíz)
-    loadFtRef.current(preload);
+    loadFtRef.current(datos);
 
-    // Sección COA
     if (coaData) {
       if (coaIdent.einces) setCoaEinces(String(coaIdent.einces));
-      if (coaIdent.grado)  setCoaGrado(String(coaIdent.grado));
+      if (coaIdent.grado) setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
     }
 
-    // Sección SDS
     if (sdsData) {
       const peligros = (sdsData.peligros as Record<string, unknown>) || {};
-      const manip    = (sdsData.manipulacion as Record<string, unknown>) || {};
+      const manip = (sdsData.manipulacion as Record<string, unknown>) || {};
       if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
-      if (peligros.pictogramas)   setSdsPictogramas(String(peligros.pictogramas));
-      if (sdsData.composicion)    setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
+      if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
+      if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
       if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
-      if (manip.manipulacion)     setSdsManipulacion(String(manip.manipulacion));
+      if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
     }
-  }, [preload]);
+  }, []);
+
+  /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
+  useEffect(() => {
+    if (!preload) return;
+    applyCompletoDatos(preload);
+  }, [preload, applyCompletoDatos]);
+
+  const { data: borradoresData, refetch: refetchBorradores } = useQuery({
+    queryKey: ["fichas-borradores"],
+    queryFn: () => api.get<{ borradores: Array<{ id: string; titulo: string; guardado_at?: string; archivo: string }> }>("/api/fichas/borradores"),
+  });
+  const borradores = borradoresData?.borradores ?? [];
+
+  const [borradorMsg, setBorradorMsg] = useState<string | null>(null);
+  const [borradorError, setBorradorError] = useState<string | null>(null);
+  const [cargandoBorrador, setCargandoBorrador] = useState<string | null>(null);
 
   const buildCoaDatos = useCallback(() => ({
     titulo: nombre,
@@ -1510,6 +1546,46 @@ function DocumentoCompletoTabContent({
     return t.apiToken || t.token || useAuthStore.getState().token || "";
   };
 
+  const guardarBorradorMut = useMutation({
+    mutationFn: async () => {
+      const { resolvePanelApiUrl } = await import("../api/client");
+      const token = await _getToken();
+      const url = await resolvePanelApiUrl("/api/fichas/guardar-borrador", "POST");
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(_buildBody()),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
+      return json as { ok: boolean; slug: string; archivo: string; titulo: string; guardado_at: string };
+    },
+    onSuccess: (r) => {
+      setBorradorError(null);
+      setBorradorMsg(`Borrador guardado: ${r.titulo}`);
+      void refetchBorradores();
+      void qc.invalidateQueries({ queryKey: ["fichas-biblioteca"] });
+    },
+    onError: (e: Error) => {
+      setBorradorMsg(null);
+      setBorradorError(e.message);
+    },
+  });
+
+  const cargarBorrador = async (slug: string) => {
+    setCargandoBorrador(slug);
+    setBorradorError(null);
+    try {
+      const r = await api.get<{ datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(slug)}`);
+      applyCompletoDatos(r.datos || {});
+      setBorradorMsg(`Borrador cargado: ${String(r.datos?.titulo || slug)}`);
+    } catch (e: unknown) {
+      setBorradorError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCargandoBorrador(null);
+    }
+  };
+
   const handleGenerar = async () => {
     setLoading(true);
     setError(null);
@@ -1526,6 +1602,7 @@ function DocumentoCompletoTabContent({
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
       setResultado(json);
+      void refetchBorradores();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1582,7 +1659,33 @@ function DocumentoCompletoTabContent({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4 pb-28">
+
+      {borradores.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
+          <p className="text-xs font-medium text-ink">Borradores guardados</p>
+          <ul className="space-y-1">
+            {borradores.slice(0, 8).map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
+                {b.guardado_at && (
+                  <span className="shrink-0 text-[10px] text-muted">
+                    {new Date(b.guardado_at).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={cargandoBorrador === b.id}
+                  onClick={() => void cargarBorrador(b.id)}
+                  className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] font-medium text-accent hover:border-accent disabled:opacity-40"
+                >
+                  {cargandoBorrador === b.id ? "Cargando…" : "Continuar"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ─── IDENTIFICACIÓN COMPARTIDA ─── */}
       <div className="rounded-lg border border-accent/40 bg-accent/5 p-4 space-y-4">
@@ -1596,14 +1699,13 @@ function DocumentoCompletoTabContent({
         />
         <div className="grid gap-2 sm:grid-cols-2">
           <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-muted">Número CAS</span>
-              <IaBtn {...ia("cas")} />
-            </div>
-            <Field value={cas} onChange={setCas} placeholder="0000-00-0" />
-          </div>
-
+          <Field
+            label="Número CAS"
+            value={cas}
+            onChange={setCas}
+            placeholder="0000-00-0"
+            actions={<IaBtn {...ia("cas")} />}
+          />
         </div>
         {sugerirMut.isError && (
           <p className="text-xs text-danger">{(sugerirMut.error as Error).message}</p>
@@ -1843,84 +1945,109 @@ function DocumentoCompletoTabContent({
       <SeccionBanner titulo="Sección 3 — Hoja de Datos de Seguridad (SDS)" />
       <div className="space-y-4">
         <p className="text-xs font-medium text-muted">Peligros</p>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">Clasificación GHS</span>
-            <IaBtn {...ia("sds_clasificacion_ghs")} />
-          </div>
-          <Field value={sdsClasificacion} onChange={setSdsClasificacion} rows={2} />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">Pictogramas / frases H-P</span>
-            <IaBtn {...ia("sds_pictogramas")} />
-          </div>
-          <Field value={sdsPictogramas} onChange={setSdsPictogramas} rows={2} />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">Composición (componente|concentración)</span>
-            <IaBtn {...ia("composicion")} />
-          </div>
-          <Field value={sdsComposicion} onChange={setSdsComposicion} rows={4} mono />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">Primeros auxilios (caso|instrucción)</span>
-            <IaBtn {...ia("sds_primeros_auxilios")} />
-          </div>
-          <Field value={sdsPrimeros} onChange={setSdsPrimeros} rows={4} mono />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted">Manipulación</span>
-            <IaBtn {...ia("sds_manipulacion")} />
-          </div>
-          <Field value={sdsManipulacion} onChange={setSdsManipulacion} rows={2} />
-        </div>
+        <Field
+          label="Clasificación GHS"
+          value={sdsClasificacion}
+          onChange={setSdsClasificacion}
+          rows={2}
+          actions={<IaBtn {...ia("sds_clasificacion_ghs")} />}
+        />
+        <Field
+          label="Pictogramas / frases H-P"
+          value={sdsPictogramas}
+          onChange={setSdsPictogramas}
+          rows={2}
+          actions={<IaBtn {...ia("sds_pictogramas")} />}
+        />
+        <Field
+          label="Composición (componente|concentración)"
+          value={sdsComposicion}
+          onChange={setSdsComposicion}
+          rows={4}
+          mono
+          actions={<IaBtn {...ia("composicion")} />}
+        />
+        <Field
+          label="Primeros auxilios (caso|instrucción)"
+          value={sdsPrimeros}
+          onChange={setSdsPrimeros}
+          rows={4}
+          mono
+          actions={<IaBtn {...ia("sds_primeros_auxilios")} />}
+        />
+        <Field
+          label="Manipulación"
+          value={sdsManipulacion}
+          onChange={setSdsManipulacion}
+          rows={2}
+          actions={<IaBtn {...ia("sds_manipulacion")} />}
+        />
       </div>
 
-      {/* ─── Generar ─── */}
-      <div className="mt-6 rounded-lg border border-border p-4 space-y-3">
-        {error && (
-          <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
-        )}
-        {previewMut.isError && (
-          <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{(previewMut.error as Error).message}</p>
-        )}
-        {resultado && (
-          <div className="flex items-center gap-3 rounded bg-surface-alt px-3 py-2">
-            <span className="text-sm text-ink">
-              Generado: <span className="font-mono text-xs text-accent">{resultado.pdf_nombre}</span>
-            </span>
+      {/* ─── Resultado / errores (sin botones de acción: van flotantes) ─── */}
+      {(error || previewMut.isError || resultado || borradorMsg || borradorError) && (
+        <div className="mt-6 space-y-2 rounded-lg border border-border p-4">
+          {error && (
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+          )}
+          {previewMut.isError && (
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{(previewMut.error as Error).message}</p>
+          )}
+          {borradorError && (
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{borradorError}</p>
+          )}
+          {borradorMsg && (
+            <p className="rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">{borradorMsg}</p>
+          )}
+          {resultado && (
+            <div className="flex items-center gap-3 rounded bg-surface-alt px-3 py-2">
+              <span className="text-sm text-ink">
+                Generado: <span className="font-mono text-xs text-accent">{resultado.pdf_nombre}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleDescargar}
+                className="ml-auto rounded bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90"
+              >
+                Descargar PDF
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Barra flotante permanente: borrador + vista previa + generar */}
+      {!previewUrl && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[4.5rem] z-30 flex justify-center px-3 md:bottom-14 lg:px-10">
+          <div className="pointer-events-auto flex w-full max-w-4xl flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-panel/95 p-2.5 shadow-lg backdrop-blur-md">
             <button
               type="button"
-              onClick={handleDescargar}
-              className="ml-auto rounded bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90"
+              onClick={() => guardarBorradorMut.mutate()}
+              disabled={guardarBorradorMut.isPending || loading || previewMut.isPending || !nombre.trim()}
+              className="min-w-[8rem] flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-ink hover:border-accent disabled:opacity-40"
+              title={!nombre.trim() ? "Indica el nombre del producto para guardar" : "Guarda el formulario sin generar PDF"}
             >
-              Descargar PDF
+              {guardarBorradorMut.isPending ? "Guardando…" : "Guardar borrador"}
+            </button>
+            <button
+              type="button"
+              onClick={() => previewMut.mutate()}
+              disabled={previewMut.isPending || loading}
+              className="min-w-[8rem] flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-ink hover:border-accent disabled:opacity-40"
+            >
+              {previewMut.isPending ? "Generando vista previa…" : "Vista previa"}
+            </button>
+            <button
+              type="button"
+              onClick={handleGenerar}
+              disabled={loading || previewMut.isPending}
+              className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "Generando documento…" : "Ficha Técnica COA SDS"}
             </button>
           </div>
-        )}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => previewMut.mutate()}
-            disabled={previewMut.isPending || loading}
-            className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-ink hover:border-accent disabled:opacity-40"
-          >
-            {previewMut.isPending ? "Generando vista previa…" : "Vista previa"}
-          </button>
-          <button
-            type="button"
-            onClick={handleGenerar}
-            disabled={loading || previewMut.isPending}
-            className="flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Generando documento…" : "Ficha Técnica COA SDS"}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* ─── Modal vista previa PDF ─── */}
       {previewUrl && (

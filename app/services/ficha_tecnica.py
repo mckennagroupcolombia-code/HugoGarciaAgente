@@ -452,7 +452,7 @@ def guardar_cabezote_subido(file_storage, *, nombre: str | None = None) -> dict[
     }
 
 
-def listar_yaml_datos() -> list[dict[str, str]]:
+def listar_yaml_datos() -> list[dict]:
     if not DATOS_DIR.is_dir():
         return []
     items = []
@@ -464,8 +464,46 @@ def listar_yaml_datos() -> list[dict[str, str]]:
             titulo = (d.get("titulo") or p.stem).strip()
         except Exception:
             titulo = p.stem
-        items.append({"id": p.stem, "archivo": p.name, "titulo": titulo})
+            d = {}
+        items.append({
+            "id": p.stem,
+            "archivo": p.name,
+            "titulo": titulo,
+            "borrador": bool(d.get("_borrador")) or p.stem.startswith("borrador_"),
+            "guardado_at": str(d.get("_guardado_at") or ""),
+        })
     return items
+
+
+def listar_borradores_completo() -> list[dict]:
+    """YAML de documentos FT+COA+SDS guardados como borrador (sin PDF aún)."""
+    items = []
+    for it in listar_yaml_datos():
+        if not it.get("borrador"):
+            continue
+        stem = it["id"]
+        if stem.startswith("borrador_ft_coa_sds_"):
+            items.append(it)
+            continue
+        try:
+            d = cargar_datos_desde_archivo(DATOS_DIR / it["archivo"])
+        except Exception:
+            continue
+        if d.get("_tipo") == "completo":
+            items.append(it)
+    return items
+
+
+def eliminar_borrador_completo_por_titulo(titulo: str) -> bool:
+    """Borra el YAML de borrador asociado a un título (tras generar el PDF final)."""
+    slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
+    ok = False
+    for ext in (".yaml", ".yml"):
+        path = DATOS_DIR / f"borrador_ft_coa_sds_{slug_auto}{ext}"
+        if path.is_file():
+            path.unlink(missing_ok=True)
+            ok = True
+    return ok
 
 
 def _filas_tabla(data: list) -> list[list[str]]:

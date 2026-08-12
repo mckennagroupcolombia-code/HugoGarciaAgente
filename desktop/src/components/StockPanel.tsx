@@ -42,64 +42,21 @@ interface SincronizarResultado {
   siigo: CanalResultado;
 }
 
-type FiltroCodigo =
-  | "todos"
-  | "vinculados"
-  | "sin_siigo"
-  | "divergentes"
-  | "sin_codigo"
-  | "sin_c";
-
 type FiltroStock = "todos" | "agotados" | "criticos" | "bajos" | "ok" | "sin_dato";
-
-type FiltroRotacion = "todos" | "sin_ventas" | "baja" | "media" | "alta";
-
-type FiltroPublicacion = "todos" | "activas" | "pausadas";
 
 const STOCK_FILTROS_KEY = "mckenna-stock-filtros";
 
 interface StockFiltrosPersistidos {
   search?: string;
-  filtroStock?: FiltroStock;
-  filtroCodigo?: FiltroCodigo;
-  filtroRotacion?: FiltroRotacion;
-  filtroPublicacion?: FiltroPublicacion;
 }
-
-const FILTRO_STOCK_OK = new Set<FiltroStock>(["todos", "agotados", "criticos", "bajos", "ok", "sin_dato"]);
-const FILTRO_CODIGO_OK = new Set<FiltroCodigo>([
-  "todos",
-  "vinculados",
-  "sin_siigo",
-  "divergentes",
-  "sin_codigo",
-  "sin_c",
-]);
-const FILTRO_ROTACION_OK = new Set<FiltroRotacion>(["todos", "sin_ventas", "baja", "media", "alta"]);
-const FILTRO_PUB_OK = new Set<FiltroPublicacion>(["todos", "activas", "pausadas"]);
 
 function leerFiltrosStock(): StockFiltrosPersistidos {
   try {
     const raw = localStorage.getItem(STOCK_FILTROS_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    let pub = typeof parsed.filtroPublicacion === "string" ? parsed.filtroPublicacion : "";
-    // Migrar filtro legado "inactivas" → pausadas
-    if (pub === "inactivas") pub = "pausadas";
     return {
       search: typeof parsed.search === "string" ? parsed.search : "",
-      filtroStock: FILTRO_STOCK_OK.has(parsed.filtroStock as FiltroStock)
-        ? (parsed.filtroStock as FiltroStock)
-        : "todos",
-      filtroCodigo: FILTRO_CODIGO_OK.has(parsed.filtroCodigo as FiltroCodigo)
-        ? (parsed.filtroCodigo as FiltroCodigo)
-        : "todos",
-      filtroRotacion: FILTRO_ROTACION_OK.has(parsed.filtroRotacion as FiltroRotacion)
-        ? (parsed.filtroRotacion as FiltroRotacion)
-        : "todos",
-      filtroPublicacion: FILTRO_PUB_OK.has(pub as FiltroPublicacion)
-        ? (pub as FiltroPublicacion)
-        : "todos",
     };
   } catch {
     return {};
@@ -113,28 +70,6 @@ function guardarFiltrosStock(f: StockFiltrosPersistidos): void {
     /* ignore */
   }
 }
-
-function nivelRotacion(venta: VentaItem30d | undefined): Exclude<FiltroRotacion, "todos"> {
-  const uds = venta?.unidades ?? 0;
-  if (!venta || uds <= 0) return "sin_ventas";
-  if (venta.nivel === "alta" || uds > 10) return "alta";
-  if (venta.nivel === "media" || uds > 2) return "media";
-  return "baja";
-}
-
-function esPublicacionActiva(estado?: string, syncBloqueado?: boolean): boolean {
-  const e = (estado || "").toLowerCase();
-  if (e === "active") return true;
-  if (!e && !syncBloqueado) return true;
-  return false;
-}
-
-function esPublicacionPausada(estado?: string): boolean {
-  return (estado || "").toLowerCase() === "paused";
-}
-
-const SELECT_FILTRO =
-  "min-w-[8.5rem] max-w-[11rem] rounded-lg border border-border bg-surface-input px-2 py-2 text-xs font-semibold text-ink outline-none focus:border-accent";
 
 interface RelacionItem {
   meli_id: string;
@@ -314,24 +249,6 @@ function badgePublicacion(
   };
 }
 
-const ESTADO_RELACION: Record<string, { label: string; className: string }> = {
-  vinculado: {
-    label: "Vinculado",
-    className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  },
-  sin_siigo: {
-    label: "Sin Siigo",
-    className: "bg-danger/15 text-danger",
-  },
-  sku_divergente: {
-    label: "SKU distinto",
-    className: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  },
-  sin_codigo: {
-    label: "Sin código",
-    className: "bg-muted/20 text-muted",
-  },
-};
 
 function nivelStock(stock: number | null | undefined): {
   key: FiltroStock | "ok";
@@ -397,11 +314,6 @@ function filaCoincideBusqueda(f: FilaUnificada, q: string): boolean {
   const qCompact = normalizeSearchToken(q);
   if (!qCompact) return false;
   return fields.some((x) => normalizeSearchToken(x).includes(qCompact));
-}
-
-function tienePrefijoC(sku: string, codigoSiigo: string): boolean {
-  const compact = (s: string) => (s || "").replace(/\s+/g, "").toUpperCase();
-  return compact(sku).startsWith("C-") || compact(codigoSiigo).startsWith("C-");
 }
 
 function CanalResultMini({ resultado }: { resultado: SincronizarResultado }) {
@@ -713,6 +625,8 @@ function DialogPrecioVenta({
   >({});
   const [promoBusy, setPromoBusy] = useState<string | null>(null);
   const [promoMsg, setPromoMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [estadoBusy, setEstadoBusy] = useState(false);
+  const [estadoLocal, setEstadoLocal] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -846,7 +760,9 @@ function DialogPrecioVenta({
   const precioBase =
     precioLocal ?? d?.precio ?? rent?.precio_venta ?? fila.precio ?? null;
   const moneda = d?.moneda || fila.moneda || "COP";
-  const pub = badgePublicacion(d?.estado_meli || fila.estado_meli, fila.sync_bloqueado);
+  const estadoActual =
+    (estadoLocal || d?.estado_meli || fila.estado_meli || "").toLowerCase();
+  const pub = badgePublicacion(estadoActual || undefined, fila.sync_bloqueado);
   const stock = d?.stock ?? fila.stock;
   const nivel = nivelStock(stock);
   const permalink = d?.permalink || fila.permalink;
@@ -885,6 +801,32 @@ function DialogPrecioVenta({
     setEditando(true);
     setMsgOk(null);
     setMsgErr(null);
+  };
+
+  const cambiarEstadoPub = async (next: "active" | "paused") => {
+    if (!fila.meli_id || next === estadoActual) return;
+    setEstadoBusy(true);
+    setMsgErr(null);
+    setMsgOk(null);
+    try {
+      const res = await api.post<{ ok?: boolean; estado?: string; mensaje?: string }>(
+        "/api/stock/estado",
+        { meli_id: fila.meli_id, estado: next },
+        { timeoutMs: 30_000 },
+      );
+      const est = (res.estado || next).toLowerCase();
+      setEstadoLocal(est);
+      setMsgOk(res.mensaje || "Estado actualizado");
+      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["stock-detalle-producto", fila.meli_id, fila.sku],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["relacion-codigos"] });
+    } catch (e) {
+      setMsgErr((e as Error).message || "No se pudo cambiar el estado");
+    } finally {
+      setEstadoBusy(false);
+    }
   };
 
   const guardarPrecio = async () => {
@@ -1129,9 +1071,28 @@ function DialogPrecioVenta({
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
               <dt className="text-[10px] font-bold uppercase text-muted">Publicación</dt>
               <dd className="mt-0.5">
-                <span className={`inline-block rounded-full px-1.5 py-px text-[10px] font-bold ${pub.className}`}>
-                  {pub.label}
-                </span>
+                {estadoActual === "active" ||
+                estadoActual === "paused" ||
+                (!estadoActual && !fila.sync_bloqueado) ? (
+                  <select
+                    value={estadoActual === "paused" ? "paused" : "active"}
+                    disabled={estadoBusy}
+                    onChange={(e) =>
+                      void cambiarEstadoPub(e.target.value as "active" | "paused")
+                    }
+                    className={`cursor-pointer rounded border border-border bg-surface-input px-1.5 py-0.5 text-[10px] font-bold outline-none focus:border-accent disabled:opacity-40 ${pub.className}`}
+                    title="Cambiar estado en MeLi"
+                  >
+                    <option value="active">Activa</option>
+                    <option value="paused">Pausada</option>
+                  </select>
+                ) : (
+                  <span
+                    className={`inline-block rounded-full px-1.5 py-px text-[10px] font-bold ${pub.className}`}
+                  >
+                    {pub.label}
+                  </span>
+                )}
               </dd>
             </div>
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
@@ -1410,22 +1371,9 @@ function DialogPrecioVenta({
 export default function StockPanel() {
   const filtrosIniciales = useMemo(() => leerFiltrosStock(), []);
   const [search, setSearch] = useState(filtrosIniciales.search ?? "");
-  const [filtroStock, setFiltroStock] = useState<FiltroStock>(filtrosIniciales.filtroStock ?? "todos");
-  const [filtroCodigo, setFiltroCodigo] = useState<FiltroCodigo>(filtrosIniciales.filtroCodigo ?? "todos");
-  const [filtroRotacion, setFiltroRotacion] = useState<FiltroRotacion>(
-    filtrosIniciales.filtroRotacion ?? "todos",
-  );
-  const [filtroPublicacion, setFiltroPublicacion] = useState<FiltroPublicacion>(
-    filtrosIniciales.filtroPublicacion ?? "todos",
-  );
   const [detalleProducto, setDetalleProducto] = useState<FilaUnificada | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [rowResult, setRowResult] = useState<Record<string, SincronizarResultado>>({});
-  const [skuMsg, setSkuMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
-  const [editMeli, setEditMeli] = useState<string | null>(null);
-  const [skuDraft, setSkuDraft] = useState("");
-  const [codigoDraft, setCodigoDraft] = useState("");
-  const [qtyDraft, setQtyDraft] = useState<Record<string, string>>({});
   const [stockDraft, setStockDraft] = useState<Record<string, string>>({});
   const forceRefreshRelacionRef = useRef(false);
   const forceRefreshVentasRef = useRef(false);
@@ -1435,20 +1383,14 @@ export default function StockPanel() {
   const esAdmin = esAdminPanel(ticketsUser);
 
   useEffect(() => {
-    guardarFiltrosStock({
-      search,
-      filtroStock,
-      filtroCodigo,
-      filtroRotacion,
-      filtroPublicacion,
-    });
-  }, [search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion]);
+    guardarFiltrosStock({ search });
+  }, [search]);
 
-  // Tras filtrar, el scrollTop viejo puede dejar la tabla en blanco (contenido más corto).
+  // Tras buscar, el scrollTop viejo puede dejar la tabla en blanco (contenido más corto).
   useEffect(() => {
     const el = tablaScrollRef.current;
     if (el) el.scrollTop = 0;
-  }, [search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion]);
+  }, [search]);
 
   const stockQ = useQuery<StockResumen>({
     queryKey: ["stock-resumen"],
@@ -1550,156 +1492,17 @@ export default function StockPanel() {
     return Array.from(byId.values());
   }, [stockQ.data, relacionQ.data]);
 
-  const ventaDeFila = (
-    f: FilaUnificada,
-    rawVentas: Record<string, VentaItem30d>,
-  ): VentaItem30d | undefined => {
-    const mid = (f.meli_id || "").toUpperCase();
-    return rawVentas[mid] ?? rawVentas[f.meli_id];
-  };
-
-  /** Base filtrada por búsqueda + todos los filtros salvo `omit` (para conteos facetados). */
-  const baseParaConteo = (
-    omit: "stock" | "codigo" | "rotacion" | "publicacion" | null,
-    rawVentas: Record<string, VentaItem30d>,
-  ): FilaUnificada[] => {
+  const items = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = filas;
-    if (q) {
-      list = list.filter((f) => filaCoincideBusqueda(f, q));
-    }
-    if (omit !== "stock" && filtroStock !== "todos") {
-      list = list.filter((f) => nivelStock(f.stock).key === filtroStock);
-    }
-    if (omit !== "codigo" && filtroCodigo !== "todos") {
-      if (filtroCodigo === "vinculados") {
-        list = list.filter((f) => f.estado_vinculo === "vinculado");
-      } else if (filtroCodigo === "sin_siigo") {
-        list = list.filter((f) => f.estado_vinculo === "sin_siigo");
-      } else if (filtroCodigo === "divergentes") {
-        list = list.filter((f) => f.estado_vinculo === "sku_divergente");
-      } else if (filtroCodigo === "sin_codigo") {
-        list = list.filter((f) => f.estado_vinculo === "sin_codigo");
-      } else if (filtroCodigo === "sin_c") {
-        list = list.filter((f) => !tienePrefijoC(f.sku, f.codigo_siigo));
-      }
-    }
-    if (omit !== "rotacion" && filtroRotacion !== "todos") {
-      list = list.filter(
-        (f) => nivelRotacion(ventaDeFila(f, rawVentas)) === filtroRotacion,
-      );
-    }
-    if (omit !== "publicacion" && filtroPublicacion !== "todos") {
-      if (filtroPublicacion === "activas") {
-        list = list.filter((f) => esPublicacionActiva(f.estado_meli, f.sync_bloqueado));
-      } else if (filtroPublicacion === "pausadas") {
-        list = list.filter((f) => esPublicacionPausada(f.estado_meli));
-      }
-    }
-    return list;
-  };
-
-  const counts = useMemo(() => {
-    const rawVentas = ventasQ.data?.por_item ?? {};
-    // Cada dimensión se cuenta sobre el resto de filtros (números = lo que verías al elegir esa opción).
-    const porStock = baseParaConteo("stock", rawVentas);
-    const porCodigo = baseParaConteo("codigo", rawVentas);
-    const porRot = baseParaConteo("rotacion", rawVentas);
-    const porPub = baseParaConteo("publicacion", rawVentas);
-
-    let agotados = 0;
-    let criticos = 0;
-    let bajos = 0;
-    let ok = 0;
-    let sinDato = 0;
-    for (const f of porStock) {
-      const n = nivelStock(f.stock);
-      if (n.key === "agotados") agotados += 1;
-      else if (n.key === "criticos") criticos += 1;
-      else if (n.key === "bajos") bajos += 1;
-      else if (n.key === "ok") ok += 1;
-      else sinDato += 1;
-    }
-
-    let sinC = 0;
-    let vinculados = 0;
-    let sinSiigo = 0;
-    let divergentes = 0;
-    let sinCodigo = 0;
-    for (const f of porCodigo) {
-      if (!tienePrefijoC(f.sku, f.codigo_siigo)) sinC += 1;
-      if (f.estado_vinculo === "vinculado") vinculados += 1;
-      else if (f.estado_vinculo === "sin_siigo") sinSiigo += 1;
-      else if (f.estado_vinculo === "sku_divergente") divergentes += 1;
-      else if (f.estado_vinculo === "sin_codigo") sinCodigo += 1;
-    }
-
-    let sinVentas = 0;
-    let rotBaja = 0;
-    let rotMedia = 0;
-    let rotAlta = 0;
-    for (const f of porRot) {
-      const rot = nivelRotacion(ventaDeFila(f, rawVentas));
-      if (rot === "sin_ventas") sinVentas += 1;
-      else if (rot === "baja") rotBaja += 1;
-      else if (rot === "media") rotMedia += 1;
-      else rotAlta += 1;
-    }
-
-    let activas = 0;
-    let pausadas = 0;
-    for (const f of porPub) {
-      if (esPublicacionActiva(f.estado_meli, f.sync_bloqueado)) activas += 1;
-      else if (esPublicacionPausada(f.estado_meli)) pausadas += 1;
-    }
-
-    return {
-      total: filas.length,
-      totalStock: porStock.length,
-      totalCodigo: porCodigo.length,
-      totalRotacion: porRot.length,
-      totalPublicacion: porPub.length,
-      agotados,
-      criticos,
-      bajos,
-      ok,
-      sinDato,
-      sinC,
-      vinculados,
-      sinSiigo,
-      divergentes,
-      sinCodigo,
-      sinVentas,
-      rotBaja,
-      rotMedia,
-      rotAlta,
-      activas,
-      pausadas,
-    };
-  }, [
-    filas,
-    search,
-    filtroStock,
-    filtroCodigo,
-    filtroRotacion,
-    filtroPublicacion,
-    ventasQ.data,
-  ]);
-
-  const items = useMemo(() => {
-    const rawVentas = ventasQ.data?.por_item ?? {};
-    const list = baseParaConteo(null, rawVentas);
+    if (q) list = list.filter((f) => filaCoincideBusqueda(f, q));
     return [...list].sort((a, b) => {
-      const va = ventaDeFila(a, rawVentas)?.unidades ?? 0;
-      const vb = ventaDeFila(b, rawVentas)?.unidades ?? 0;
-      if (va === 0 && vb > 0) return -1;
-      if (vb === 0 && va > 0) return 1;
       const sa = a.stock ?? 999999;
       const sb = b.stock ?? 999999;
       if (sa !== sb) return sa - sb;
-      return vb - va;
+      return (a.nombre || "").localeCompare(b.nombre || "", "es");
     });
-  }, [filas, search, filtroStock, filtroCodigo, filtroRotacion, filtroPublicacion, ventasQ.data]);
+  }, [filas, search]);
 
   const errorResultado = (sku: string, message: string): SincronizarResultado => ({
     sku,
@@ -1754,35 +1557,36 @@ export default function StockPanel() {
     });
   };
 
-  const ajustarMut = useMutation({
-    mutationFn: ({ sku, meli_id, delta }: { sku: string; meli_id: string; delta: number }) =>
-      api.post<SincronizarResultado>(
-        "/api/stock/ajustar",
-        { sku: sku || meli_id, meli_id, delta },
-        { timeoutMs: 90_000 },
-      ),
-    onMutate: ({ meli_id }) => setBusyKey(meli_id),
-    onSuccess: (res, { meli_id }) => {
-      setRowResult((prev) => ({ ...prev, [meli_id]: res }));
-      setQtyDraft((prev) => ({ ...prev, [meli_id]: "" }));
-      aplicarStockEnCache(meli_id, res, res.stock_anterior);
-      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
-    },
-    onError: (err, { sku, meli_id }) =>
-      setRowResult((prev) => ({ ...prev, [meli_id]: errorResultado(sku, err.message) })),
-    onSettled: () => setBusyKey(null),
-  });
+  type EstadoPubRes = {
+    ok?: boolean;
+    estado?: string;
+    estado_anterior?: string;
+    mensaje?: string;
+    error?: string;
+  };
 
-  const lanzarAjuste = (it: FilaUnificada, signo: 1 | -1) => {
-    const escrito = Math.max(0, parseInt(qtyDraft[it.meli_id] || "", 10) || 0);
-    const qty = escrito > 0 ? escrito : 1;
-    const sku = (it.sku || "").trim() || it.meli_id;
-    setRowResult((prev) => {
-      const next = { ...prev };
-      delete next[it.meli_id];
-      return next;
+  const aplicarEstadoEnCache = (meli_id: string, estado: string) => {
+    const syncBloqueado = estado !== "active";
+    queryClient.setQueryData<StockResumen>(["stock-resumen"], (old) => {
+      if (!old?.items) return old;
+      return {
+        ...old,
+        items: old.items.map((it) =>
+          it.meli_id === meli_id
+            ? { ...it, estado_meli: estado, sync_bloqueado: syncBloqueado }
+            : it,
+        ),
+      };
     });
-    ajustarMut.mutate({ sku, meli_id: it.meli_id, delta: signo * qty });
+    queryClient.setQueriesData<RelacionResp>({ queryKey: ["relacion-codigos"] }, (old) => {
+      if (!old?.items) return old;
+      return {
+        ...old,
+        items: old.items.map((it) =>
+          it.meli_id === meli_id ? { ...it, estado_meli: estado } : it,
+        ),
+      };
+    });
   };
 
   const sincronizarUnoMut = useMutation({
@@ -1838,182 +1642,12 @@ export default function StockPanel() {
     });
   };
 
-  const editarMut = useMutation({
-    mutationFn: ({
-      meli_id,
-      sku_meli,
-      codigo_siigo,
-    }: {
-      meli_id: string;
-      sku_meli: string;
-      codigo_siigo: string;
-    }) =>
-      api.post<{
-        ok?: boolean;
-        aviso?: string;
-        meli?: {
-          sku_meli?: string;
-          cargado_en_meli?: boolean;
-          error?: string;
-          sheets?: { ok?: boolean; mensaje?: string };
-        };
-        vinculo?: { codigo_siigo?: string; en_siigo?: boolean; nombre_siigo?: string };
-      }>(
-        "/api/stock/relacion-codigos/editar",
-        {
-          meli_id,
-          sku_meli,
-          codigo_siigo: codigo_siigo || sku_meli,
-          vincular_si_sku: true,
-        },
-        { timeoutMs: 90_000 },
-      ),
-    onMutate: ({ meli_id }) => {
-      setBusyKey(meli_id);
-      setSkuMsg((prev) => {
-        const next = { ...prev };
-        delete next[meli_id];
-        return next;
-      });
-    },
-    onSuccess: (res, { meli_id, sku_meli, codigo_siigo }) => {
-      const escrito = res?.meli?.sku_meli || sku_meli;
-      const codigo = res?.vinculo?.codigo_siigo || codigo_siigo || sku_meli;
-      const meliOk = res?.meli?.cargado_en_meli !== false && !res?.meli?.error;
-      const sheets = res?.meli?.sheets;
-      const partes: string[] = [];
-      if (meliOk) partes.push(`MeLi «${escrito}»`);
-      else if (res?.meli?.error || res?.aviso)
-        partes.push(`MeLi no actualizó (${res?.meli?.error || res?.aviso})`);
-      if (res?.vinculo) {
-        partes.push(
-          `vínculo Siigo «${codigo}»${
-            res.vinculo.en_siigo ? " OK" : " (local)"
-          }`,
-        );
-      }
-      if (sheets?.ok) partes.push("Sheets OK");
-      else if (sheets?.ok === false) partes.push(`Sheets: ${sheets.mensaje || "no"}`);
-      setSkuMsg((prev) => ({
-        ...prev,
-        [meli_id]: {
-          ok: Boolean(res?.ok !== false && (meliOk || res?.vinculo)),
-          text: partes.join(" · ") || "Guardado",
-        },
-      }));
-      setEditMeli(null);
-      setSkuDraft("");
-      setCodigoDraft("");
-      queryClient.setQueryData<StockResumen>(["stock-resumen"], (old) => {
-        if (!old?.items) return old;
-        return {
-          ...old,
-          items: old.items.map((it) =>
-            it.meli_id === meli_id ? { ...it, sku: escrito } : it,
-          ),
-        };
-      });
-      queryClient.setQueriesData<RelacionResp>({ queryKey: ["relacion-codigos"] }, (old) => {
-        if (!old?.items) return old;
-        return {
-          ...old,
-          items: old.items.map((it) =>
-            it.meli_id === meli_id
-              ? {
-                  ...it,
-                  sku_meli: escrito,
-                  codigo_siigo: codigo,
-                  en_siigo: res?.vinculo?.en_siigo ?? it.en_siigo,
-                  nombre_siigo: res?.vinculo?.nombre_siigo || it.nombre_siigo,
-                }
-              : it,
-          ),
-        };
-      });
-      forceRefreshRelacionRef.current = true;
-      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
-      void queryClient.invalidateQueries({ queryKey: ["relacion-codigos"] });
-    },
-    onError: (err, { meli_id }) => {
-      setSkuMsg((prev) => ({
-        ...prev,
-        [meli_id]: {
-          ok: false,
-          text: err instanceof Error ? err.message : "No se pudo guardar el SKU",
-        },
-      }));
-    },
-    onSettled: () => setBusyKey(null),
-  });
-
-  const vincularMut = useMutation({
-    mutationFn: ({ codigo_siigo, meli_id }: { codigo_siigo: string; meli_id: string }) =>
-      api.post<{ ok?: boolean; en_siigo?: boolean; nombre_siigo?: string; codigo_siigo?: string }>(
-        "/api/stock/relacion-codigos/vincular",
-        { codigo_siigo, meli_id },
-      ),
-    onMutate: ({ meli_id }) => {
-      setBusyKey(meli_id);
-      setSkuMsg((prev) => {
-        const next = { ...prev };
-        delete next[meli_id];
-        return next;
-      });
-    },
-    onSuccess: (res, { meli_id, codigo_siigo }) => {
-      const enSiigo = res?.en_siigo
-        ? ` · encontrado en Siigo${res.nombre_siigo ? `: ${res.nombre_siigo}` : ""}`
-        : " · aún no está en Siigo (vínculo local guardado)";
-      setSkuMsg((prev) => ({
-        ...prev,
-        [meli_id]: {
-          ok: true,
-          text: `Vinculado a Siigo «${res?.codigo_siigo || codigo_siigo}»${enSiigo}`,
-        },
-      }));
-      setEditMeli(null);
-      setSkuDraft("");
-      setCodigoDraft("");
-      forceRefreshRelacionRef.current = true;
-      void queryClient.invalidateQueries({ queryKey: ["relacion-codigos"] });
-      void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
-    },
-    onError: (err, { meli_id }) => {
-      setSkuMsg((prev) => ({
-        ...prev,
-        [meli_id]: {
-          ok: false,
-          text: err instanceof Error ? err.message : "No se pudo vincular a Siigo",
-        },
-      }));
-    },
-    onSettled: () => setBusyKey(null),
-  });
-
   const sincronizarTodoMut = useMutation({
     mutationFn: () => api.post("/api/stock/sincronizar-todo"),
   });
 
   const isLoading = stockQ.isLoading || relacionQ.isLoading;
   const isFetching = stockQ.isFetching || relacionQ.isFetching || ventasQ.isFetching;
-  const puedeGuardarSku = Boolean(skuDraft.trim() || codigoDraft.trim());
-  const mutPendiente = editarMut.isPending || vincularMut.isPending;
-
-  const guardarEdicionSku = (meliId: string, syncBloqueado?: boolean) => {
-    const sku = skuDraft.trim();
-    const codigo = codigoDraft.trim() || sku;
-    if (!sku && !codigo) return;
-    // Publicación bloqueada: igual guarda vínculo local (codigo/sku → meli_id).
-    if (syncBloqueado && !sku) {
-      vincularMut.mutate({ meli_id: meliId, codigo_siigo: codigo });
-      return;
-    }
-    editarMut.mutate({
-      meli_id: meliId,
-      sku_meli: sku || codigo,
-      codigo_siigo: codigo,
-    });
-  };
   const ventasMap = useMemo(() => {
     const raw = ventasQ.data?.por_item ?? {};
     const out: Record<string, VentaItem30d> = {};
@@ -2035,253 +1669,123 @@ export default function StockPanel() {
             void ventasQ.refetch();
           }}
           disabled={isFetching}
-          className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+          className="rounded-lg border border-border bg-surface-panel px-2.5 py-2 text-[11px] font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40 sm:px-3 sm:text-xs"
         >
-          {isFetching ? "Actualizando..." : "🔄 Actualizar MeLi + Siigo + ventas"}
+          {isFetching ? "Actualizando..." : (
+            <>
+              <span className="sm:hidden">🔄 Actualizar</span>
+              <span className="hidden sm:inline">🔄 Actualizar MeLi + Siigo + ventas</span>
+            </>
+          )}
         </button>
         <button
           onClick={() => sincronizarTodoMut.mutate()}
           disabled={sincronizarTodoMut.isPending || !filas.length}
-          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
+          className="rounded-lg bg-accent px-2.5 py-2 text-[11px] font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40 sm:px-3 sm:text-xs"
         >
-          {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Reenviar stock a canales"}
+          {sincronizarTodoMut.isPending ? "Sincronizando..." : (
+            <>
+              <span className="sm:hidden">⇄ Reenviar stock</span>
+              <span className="hidden sm:inline">⇄ Reenviar stock a canales</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Buscador + filtros en una sola fila */}
       <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-3">
-        <div className="flex flex-wrap items-end gap-2 xl:flex-nowrap">
-          <form
-            className="flex min-w-[14rem] flex-1 basis-[16rem] gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-          >
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
-              className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-            />
-            {search.trim() && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
-              >
-                Limpiar texto
-              </button>
-            )}
-          </form>
-
-          <label className="flex shrink-0 flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Unidades</span>
-            <select
-              value={filtroStock}
-              onChange={(e) => setFiltroStock(e.target.value as FiltroStock)}
-              title="Agotado=0 · Última=1 · Bajo=2–5 · OK≥6"
-              className={SELECT_FILTRO}
-            >
-              <option value="todos">Todos ({counts.totalStock})</option>
-              <option value="agotados">Sin unidades ({counts.agotados})</option>
-              <option value="criticos">Última ud. ({counts.criticos})</option>
-              <option value="bajos">Bajos 2–5 ({counts.bajos})</option>
-              <option value="ok">OK ≥ 6 ({counts.ok})</option>
-              <option value="sin_dato">Sin dato ({counts.sinDato})</option>
-            </select>
-          </label>
-
-          <label className="flex shrink-0 flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Códigos</span>
-            <select
-              value={filtroCodigo}
-              onChange={(e) => setFiltroCodigo(e.target.value as FiltroCodigo)}
-              className={SELECT_FILTRO}
-            >
-              <option value="todos">Todos ({counts.totalCodigo})</option>
-              <option value="sin_c">Sin C- ({counts.sinC})</option>
-              <option value="vinculados">Vinculados ({counts.vinculados})</option>
-              <option value="sin_siigo">Sin Siigo ({counts.sinSiigo})</option>
-              <option value="divergentes">SKU distinto ({counts.divergentes})</option>
-              <option value="sin_codigo">Sin código ({counts.sinCodigo})</option>
-            </select>
-          </label>
-
-          <label className="flex shrink-0 flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Publicación</span>
-            <select
-              value={filtroPublicacion}
-              onChange={(e) => setFiltroPublicacion(e.target.value as FiltroPublicacion)}
-              className={SELECT_FILTRO}
-              title="Activa = publicada en MeLi · Pausada = pausada en MeLi"
-            >
-              <option value="todos">Todas ({counts.totalPublicacion})</option>
-              <option value="activas">Activas ({counts.activas})</option>
-              <option value="pausadas">Pausadas ({counts.pausadas})</option>
-            </select>
-          </label>
-
-          <label className="flex shrink-0 flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Rotación 30 d</span>
-            <select
-              value={filtroRotacion}
-              onChange={(e) => setFiltroRotacion(e.target.value as FiltroRotacion)}
-              className={SELECT_FILTRO}
-              disabled={ventasQ.isLoading && !ventasQ.data}
-            >
-              <option value="todos">Todas ({counts.totalRotacion})</option>
-              <option value="sin_ventas">Sin ventas ({counts.sinVentas})</option>
-              <option value="baja">Baja rotación ({counts.rotBaja})</option>
-              <option value="media">Media ({counts.rotMedia})</option>
-              <option value="alta">Alta ({counts.rotAlta})</option>
-            </select>
-          </label>
-
-          {(filtroStock !== "todos"
-            || filtroCodigo !== "todos"
-            || filtroRotacion !== "todos"
-            || filtroPublicacion !== "todos"
-            || search.trim() !== "") && (
+        <form
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, MCO, SKU o código Siigo…"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+          />
+          {search.trim() && (
             <button
               type="button"
-              onClick={() => {
-                setSearch("");
-                setFiltroStock("todos");
-                setFiltroCodigo("todos");
-                setFiltroRotacion("todos");
-                setFiltroPublicacion("todos");
-              }}
-              className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
+              onClick={() => setSearch("")}
+              className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
             >
-              Limpiar filtros
+              Limpiar
             </button>
           )}
-        </div>
-
+        </form>
         <p className="mt-2 text-[11px] text-muted">
           Mostrando <span className="font-bold text-ink">{items.length}</span> de{" "}
-          <span className="font-bold text-ink">{filas.length}</span> publicaciones
-          {search.trim() || filtroStock !== "todos" || filtroCodigo !== "todos"
-            || filtroRotacion !== "todos" || filtroPublicacion !== "todos"
-            ? " (filtros activos)"
-            : ""}
+          <span className="font-bold text-ink">{filas.length}</span> productos
+          {search.trim() ? " (búsqueda activa)" : ""}
         </p>
       </div>
 
       <div className="shrink-0 space-y-2">
-      {filtroCodigo === "sin_c" && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-          Sin prefijo <span className="font-mono font-bold">C-</span>: edita el SKU, cárgalo a MeLi y
-          registra el combo en Siigo / catálogo.
-        </p>
-      )}
-
-      {sincronizarTodoMut.isSuccess && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-          Sincronización masiva iniciada. Revisa Sincronización → Actividad.
-        </p>
-      )}
-      {sincronizarTodoMut.isError && (
-        <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
-      )}
-      {ventasQ.data?.actualizado_en && (
-        <p className="text-[11px] text-muted">
-          Ventas 30 d: {ventasQ.data.actualizado_en}
-          {ventasQ.data.fuente === "cache" ? " (caché)" : ""} ·{" "}
-          {ventasQ.data.ordenes ?? 0} órdenes analizadas ·{" "}
-          {Object.keys(ventasMap).length} productos con venta
-        </p>
-      )}
-      {ventasQ.isError && (
-        <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
-          No se pudo cargar ventas 30 d:{" "}
-          {ventasQ.error instanceof Error ? ventasQ.error.message : "error"}. Pulsa «Actualizar MeLi +
-          Siigo + ventas».
-        </p>
-      )}
-      {!ventasQ.isLoading && !ventasQ.isError && ventasQ.data && Object.keys(ventasMap).length === 0 && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
-          Ventas 30 d cargaron vacías (0 productos). Reintenta con actualizar forzado.
-        </p>
-      )}
-
-      {isLoading && <p className="text-sm text-muted">Cargando inventario y códigos...</p>}
-      {(stockQ.isError || relacionQ.isError) && (
-        <p className="text-sm text-danger">
-          {stockQ.error instanceof Error
-            ? stockQ.error.message
-            : relacionQ.error instanceof Error
-              ? relacionQ.error.message
-              : "No se pudo cargar el panel"}
-        </p>
-      )}
-      {editarMut.isError && <p className="text-xs text-danger">{editarMut.error.message}</p>}
-      {vincularMut.isError && <p className="text-xs text-danger">{vincularMut.error.message}</p>}
-
-      {!isLoading && items.length === 0 && (
-        <p className="text-sm text-muted">No hay filas para este filtro.</p>
-      )}
+        {sincronizarTodoMut.isSuccess && (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+            Sincronización masiva iniciada. Revisa Sincronización → Actividad.
+          </p>
+        )}
+        {sincronizarTodoMut.isError && (
+          <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
+        )}
+        {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
+        {(stockQ.isError || relacionQ.isError) && (
+          <p className="text-sm text-danger">
+            {stockQ.error instanceof Error
+              ? stockQ.error.message
+              : relacionQ.error instanceof Error
+                ? relacionQ.error.message
+                : "No se pudo cargar el panel"}
+          </p>
+        )}
+        {!isLoading && items.length === 0 && (
+          <p className="text-sm text-muted">
+            {search.trim() ? "Ningún producto coincide con la búsqueda." : "No hay productos."}
+          </p>
+        )}
       </div>
 
       <div
         ref={tablaScrollRef}
-        className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border"
+        className="mck-table-wrap min-h-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border"
       >
-        <table className="min-w-full text-left text-[11px]">
-          <thead className="sticky top-0 z-10 border-b border-border bg-surface text-[9px] uppercase tracking-wide text-muted shadow-sm [&_th]:bg-surface">
+        <table className="w-full min-w-0 table-fixed text-left text-sm">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted shadow-sm [&_th]:bg-surface">
             <tr>
-              <th className="px-2 py-1.5 font-bold">Producto</th>
-              <th className="px-2 py-1.5 font-bold">Pub.</th>
-              <th className="px-2 py-1.5 font-bold" title="Edita el stock y pulsa Guardar (Enter)">
+              <th className="w-[65%] px-3 py-2.5 font-bold sm:w-[70%]">Producto</th>
+              <th className="w-[35%] px-3 py-2.5 font-bold sm:w-[30%]" title="Edita el stock y pulsa Guardar (Enter)">
                 Stock
-              </th>
-              <th className="px-2 py-1.5 font-bold">Ventas 30d</th>
-              <th className="px-2 py-1.5 font-bold">SKU</th>
-              <th className="px-2 py-1.5 font-bold">Siigo</th>
-              <th className="px-2 py-1.5 font-bold">Vínculo</th>
-              <th className="px-2 py-1.5 font-bold" title="Ajuste rápido ±1 o N">
-                ±
               </th>
             </tr>
           </thead>
           <tbody>
             {items.map((it) => {
               const nivel = nivelStock(it.stock);
-              const est = ESTADO_RELACION[it.estado_vinculo] ?? ESTADO_RELACION.sin_codigo;
-              const editing = editMeli === it.meli_id;
               const busy = busyKey === it.meli_id;
-              const skuListo = Boolean(it.sku.trim());
-              const qty = Math.max(0, parseInt(qtyDraft[it.meli_id] || "", 10) || 0);
               const resultado = rowResult[it.meli_id];
-              const msg = skuMsg[it.meli_id];
-              const venta = ventasMap[(it.meli_id || "").toUpperCase()];
-              const analisis = analisisVentas(venta, it.stock);
-              const pub = badgePublicacion(it.estado_meli, it.sync_bloqueado);
 
               return (
                 <tr key={it.meli_id} className={`border-t border-border/50 align-middle ${nivel.rowClass}`}>
-                  <td className="px-2 py-1">
-                    <div className="flex min-w-[10rem] max-w-[16rem] items-center gap-1.5">
+                  <td className="max-w-0 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => setDetalleProducto(it)}
-                        className="min-w-0 flex-1 truncate text-left font-medium text-ink underline-offset-2 transition hover:text-accent hover:underline"
-                        title="Ver precio de venta"
+                        className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-ink underline-offset-2 transition hover:text-accent hover:underline"
+                        title="Ver detalle / precio"
                       >
                         {it.nombre || "—"}
                       </button>
-                      {it.es_full && (
-                        <span className="shrink-0 rounded bg-muted/25 px-1 text-[9px] font-semibold text-muted">
-                          Full
-                        </span>
-                      )}
                       {it.permalink && (
                         <a
                           href={it.permalink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 text-[10px] font-semibold text-accent"
+                          className="shrink-0 text-xs font-semibold text-accent"
                           title="Abrir en MeLi"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -2289,26 +1793,12 @@ export default function StockPanel() {
                         </a>
                       )}
                     </div>
-                    <p className="truncate font-mono text-[9px] text-muted">{it.meli_id}</p>
-                    {it.precio != null && (
-                      <p className="truncate text-[9px] font-semibold tabular-nums text-accent/90">
-                        {formatPrecioVenta(it.precio, it.moneda)}
-                      </p>
-                    )}
+                    <p className="truncate font-mono text-[10px] text-muted">{it.meli_id}</p>
                   </td>
 
-                  <td className="px-2 py-1 whitespace-nowrap">
-                    <span
-                      className={`inline-block rounded-full px-1.5 py-px text-[9px] font-bold ${pub.className}`}
-                      title={it.estado_meli || pub.label}
-                    >
-                      {pub.label}
-                    </span>
-                  </td>
-
-                  <td className="px-2 py-1 whitespace-nowrap">
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1">
+                  <td className="px-3 py-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <input
                           type="number"
                           min={0}
@@ -2348,235 +1838,31 @@ export default function StockPanel() {
                             }
                           }}
                           disabled={busy}
-                          title="Escribe el stock final y Guardar / Enter. Si estaba en 0, se reactiva en MeLi."
-                          className={`w-14 rounded border border-border bg-surface-input px-1 py-0.5 text-[11px] tabular-nums outline-none focus:border-accent disabled:opacity-40 ${nivel.stockClass}`}
+                          title="Escribe el stock final y Guardar / Enter"
+                          className={`w-16 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm tabular-nums outline-none focus:border-accent disabled:opacity-40 sm:w-20 ${nivel.stockClass}`}
                         />
                         <button
                           type="button"
                           disabled={busy}
                           title="Guardar stock en MeLi y web"
                           onClick={() => guardarStockAbsoluto(it)}
-                          className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent disabled:opacity-40"
+                          className="rounded-lg bg-accent/15 px-2 py-1.5 text-[11px] font-bold text-accent disabled:opacity-40"
                         >
                           {busy && sincronizarUnoMut.isPending ? "…" : "Guardar"}
                         </button>
-                        <span className={`rounded-full px-1.5 py-px text-[9px] font-bold ${nivel.badgeClass}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${nivel.badgeClass}`}>
                           {nivel.label}
                         </span>
                       </div>
                       {resultado && <CanalResultMini resultado={resultado} />}
-                      {resultado && /reactivada/i.test(resultado.meli?.mensaje || "") && (
-                        <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
-                          Publicación activada en MeLi
-                        </p>
-                      )}
                       {resultado && resultado.meli && resultado.meli.ok === false && (
                         <p
-                          className="max-w-[14rem] truncate text-[9px] text-danger"
+                          className="truncate text-[10px] text-danger"
                           title={resultado.meli.mensaje}
                         >
                           {resultado.meli.mensaje}
                         </p>
                       )}
-                    </div>
-                  </td>
-
-                  <td className="px-2 py-1 whitespace-nowrap">
-                    {ventasQ.isLoading && !ventasQ.data ? (
-                      <span className="text-muted">…</span>
-                    ) : (
-                      <div className="flex items-center gap-1" title={[analisis.detail, venta?.monto ? formatCopCorto(venta.monto) : ""].filter(Boolean).join(" · ")}>
-                        <span className="font-bold tabular-nums text-ink">
-                          {analisis.uds > 0 ? analisis.uds : "0"}
-                        </span>
-                        <span className={`rounded-full px-1.5 py-px text-[9px] font-bold ${analisis.className}`}>
-                          {analisis.label}
-                        </span>
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="px-2 py-1">
-                    {editing ? (
-                      <input
-                        autoFocus
-                        value={skuDraft}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setSkuDraft(v);
-                          if (
-                            !codigoDraft.trim() ||
-                            codigoDraft.trim() === (it.sku || it.codigo_siigo || "").trim()
-                          ) {
-                            setCodigoDraft(v);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            guardarEdicionSku(it.meli_id, it.sync_bloqueado);
-                          }
-                          if (e.key === "Escape") {
-                            setEditMeli(null);
-                            setSkuDraft("");
-                            setCodigoDraft("");
-                          }
-                        }}
-                        placeholder="C-…"
-                        className="w-full min-w-[6.5rem] rounded border border-border bg-surface-input px-1.5 py-0.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
-                      />
-                    ) : (
-                      <p
-                        className={`truncate font-mono text-[11px] ${skuListo ? "text-ink" : "text-danger"}`}
-                        title={skuListo ? it.sku : "Sin SKU"}
-                      >
-                        {skuListo ? it.sku : "Sin SKU"}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="px-2 py-1">
-                    {editing ? (
-                      <input
-                        value={codigoDraft}
-                        onChange={(e) => setCodigoDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            guardarEdicionSku(it.meli_id, it.sync_bloqueado);
-                          }
-                          if (e.key === "Escape") {
-                            setEditMeli(null);
-                            setSkuDraft("");
-                            setCodigoDraft("");
-                          }
-                        }}
-                        placeholder="Código Siigo"
-                        className="w-full min-w-[6.5rem] rounded border border-border bg-surface-input px-1.5 py-0.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
-                      />
-                    ) : (
-                      <p
-                        className="max-w-[9rem] truncate font-mono text-[11px] text-ink"
-                        title={it.nombre_siigo ? `${it.codigo_siigo || "—"} · ${it.nombre_siigo}` : it.codigo_siigo || undefined}
-                      >
-                        {it.codigo_siigo || "—"}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="px-2 py-1">
-                    <div className="flex flex-wrap items-center gap-1">
-                      <span className={`rounded-full px-1.5 py-px text-[9px] font-bold ${est.className}`}>
-                        {est.label}
-                      </span>
-                      {editing ? (
-                        <>
-                          <button
-                            disabled={!puedeGuardarSku || busy || mutPendiente}
-                            title="Guarda SKU en MeLi + vínculo Siigo (Enter)"
-                            onClick={() => guardarEdicionSku(it.meli_id, it.sync_bloqueado)}
-                            className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white disabled:opacity-40"
-                          >
-                            {editarMut.isPending && busy ? "…" : "Guardar"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditMeli(null);
-                              setSkuDraft("");
-                              setCodigoDraft("");
-                            }}
-                            className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted"
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditMeli(it.meli_id);
-                              setSkuDraft(it.sku || "");
-                              setCodigoDraft(it.codigo_siigo || it.sku || "");
-                            }}
-                            disabled={busy}
-                            className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted hover:border-accent/50 hover:text-accent disabled:opacity-40"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            disabled={busy || mutPendiente || !(it.codigo_siigo || it.sku).trim()}
-                            title={
-                              (it.codigo_siigo || it.sku).trim()
-                                ? `Vincular ${it.codigo_siigo || it.sku} ↔ ${it.meli_id}`
-                                : "Primero asigna un código Siigo"
-                            }
-                            onClick={() => {
-                              const codigo = (it.codigo_siigo || it.sku).trim();
-                              if (!codigo) {
-                                setEditMeli(it.meli_id);
-                                setSkuDraft(it.sku || "");
-                                setCodigoDraft("");
-                                return;
-                              }
-                              vincularMut.mutate({ meli_id: it.meli_id, codigo_siigo: codigo });
-                            }}
-                            className="rounded bg-emerald-600/90 px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-600 disabled:opacity-40"
-                          >
-                            {vincularMut.isPending && busy ? "…" : "Vincular"}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    {msg && (
-                      <p
-                        className={`mt-0.5 truncate text-[9px] ${
-                          msg.ok ? "text-emerald-600 dark:text-emerald-400" : "text-danger"
-                        }`}
-                        title={msg.text}
-                      >
-                        {msg.text}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="px-2 py-1">
-                    <div className="flex items-center gap-0.5">
-                      <input
-                        type="number"
-                        min={0}
-                        inputMode="numeric"
-                        value={qtyDraft[it.meli_id] || ""}
-                        onChange={(e) =>
-                          setQtyDraft((prev) => ({ ...prev, [it.meli_id]: e.target.value }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key !== "Enter" || busy) return;
-                          e.preventDefault();
-                          lanzarAjuste(it, 1);
-                        }}
-                        placeholder="±"
-                        title="Cantidad a sumar/restar (vacío = 1)"
-                        disabled={busy}
-                        className="w-10 rounded border border-border bg-surface-input px-1 py-0.5 text-[11px] text-ink outline-none focus:border-accent disabled:opacity-40"
-                      />
-                      <button
-                        type="button"
-                        disabled={busy}
-                        title={`Sumar ${qty || 1}`}
-                        onClick={() => lanzarAjuste(it, 1)}
-                        className="rounded bg-emerald-600/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 disabled:opacity-40"
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy || (it.stock != null && it.stock <= 0 && !qty)}
-                        title={`Restar ${qty || 1}`}
-                        onClick={() => lanzarAjuste(it, -1)}
-                        className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-bold text-danger disabled:opacity-40"
-                      >
-                        −
-                      </button>
                     </div>
                   </td>
                 </tr>

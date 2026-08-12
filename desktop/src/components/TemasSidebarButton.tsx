@@ -45,7 +45,7 @@ export function TemasHeaderButton() {
       aria-haspopup="dialog"
       title="Temas y estilo visual"
       aria-label="Temas y estilo visual"
-      className="mck-press inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-surface-panel text-muted shadow-paper-sm transition-colors hover:border-accent/40 hover:bg-surface-hover hover:text-ink"
+      className="mck-press inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-surface-panel text-muted shadow-paper-sm transition-colors hover:border-accent/40 hover:bg-surface-hover hover:text-ink sm:h-9 sm:w-9"
     >
       <Icon name="palette" size={18} weight="regular" />
     </button>
