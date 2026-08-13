@@ -473,6 +473,18 @@
       "factura": "FV-2-66384",
       "nc": "NC-2-93",
       "actualizado_en": "2026-08-10T15:50:34"
+    },
+    "2000017851411712": {
+      "estado": "ya_tenia_nc",
+      "factura": "FV-2-69723",
+      "nc": "NC-2-162",
+      "actualizado_en": "2026-08-12T07:22:17"
+    },
+    "2000014438756235": {
+      "estado": "ya_tenia_nc",
+      "factura": "FV-2-69699",
+      "nc": "NC-2-163",
+      "actualizado_en": "2026-08-12T07:22:19"
     }
   }
 }

@@ -571,3 +571,14 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-08-11 23:00:06] ERROR en el push. Revisar credenciales o conflictos.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   130 órdenes canceladas en la ventana.
+⚠️ Error de red obteniendo facturas de Siigo: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=15)
+   3325 facturas Siigo en la ventana.
+Resumen: 0 emitidas, 2 ya tenían NC (sin acción), 0 errores.
+✅ Sin novedades que reportar (nada emitido, nada roto).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

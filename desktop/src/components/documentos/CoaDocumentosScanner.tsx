@@ -21,38 +21,192 @@ interface BibliotecaDatosResult {
   tiene_datos: boolean;
 }
 
-function mergeCoaEnDatos(
+function normalizarTitulo(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.(pdf|docx)$/i, "")
+    .replace(
+      /\b(ft|coa|sds|completo|ficha tecnica|certificado de analisis|tds|hoja de datos)\b/gi,
+      " ",
+    )
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tokensTitulo(s: string): string[] {
+  return normalizarTitulo(s).split(/\s+/).filter((t) => t.length > 1);
+}
+
+/** Devuelve el mejor documento de biblioteca para el nombre de materia prima detectado. */
+export function encontrarDocumentoPorMateriaPrima(
+  archivos: ArchivoBiblioteca[],
+  nombreProducto: string,
+): { archivo: ArchivoBiblioteca; score: number } | null {
+  const query = normalizarTitulo(nombreProducto);
+  if (!query) return null;
+  const qTokens = tokensTitulo(nombreProducto);
+  if (!qTokens.length) return null;
+
+  let best: { archivo: ArchivoBiblioteca; score: number } | null = null;
+
+  for (const a of archivos) {
+    if (!a.nombre.toLowerCase().endsWith(".pdf")) continue;
+    const tituloArchivo = a.nombre.replace(/\.(pdf|docx)$/i, "");
+    const cand = normalizarTitulo(tituloArchivo);
+    if (!cand) continue;
+
+    let score = 0;
+    if (cand === query) score = 100;
+    else if (cand.includes(query) || query.includes(cand)) score = 85;
+    else {
+      const cTokens = tokensTitulo(tituloArchivo);
+      if (!cTokens.length) continue;
+      const overlap = qTokens.filter((t) => cTokens.some((c) => c.includes(t) || t.includes(c))).length;
+      score = Math.round((overlap / Math.max(qTokens.length, cTokens.length)) * 70);
+    }
+
+    // Preferir documentos "completo" cuando hay empate
+    if (a.categoria === "completo") score += 2;
+
+    if (!best || score > best.score) best = { archivo: a, score };
+  }
+
+  if (!best || best.score < 40) return null;
+  return best;
+}
+
+function vacio(v: unknown): boolean {
+  return v == null || String(v).trim() === "";
+}
+
+function fillEmpty(
+  target: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  filled: string[],
+  label?: string,
+) {
+  if (vacio(value) || !vacio(target[key])) return;
+  target[key] = typeof value === "string" ? value.trim() : value;
+  filled.push(label || key);
+}
+
+export type CoaScanCampos = Record<string, string>;
+
+/** Complementa casillas vacías del documento con datos extraídos del COA. */
+export function mergeCoaEnDatos(
   datos: Record<string, unknown>,
   tipo: BibliotecaDatosResult["tipo"],
   parametrosText: string,
-): Record<string, unknown> {
-  if (!parametrosText.trim()) return datos;
+  campos: CoaScanCampos = {},
+): { datos: Record<string, unknown>; filled: string[] } {
+  const filled: string[] = [];
+  const c = { ...campos };
+  if (c.einecs && !c.einces) c.einces = c.einecs;
+
+  const aplicarCamposCoa = (coa: Record<string, unknown>) => {
+    const ident = { ...((coa.identificacion as Record<string, unknown>) || {}) };
+    const lote = { ...((coa.lote as Record<string, unknown>) || {}) };
+    const emp = { ...((coa.empaque as Record<string, unknown>) || {}) };
+
+    if (c.nombre_producto) {
+      fillEmpty(coa, "titulo", String(c.nombre_producto).toUpperCase(), filled, "título COA");
+      fillEmpty(ident, "nombre_comercial", c.nombre_comercial || c.nombre_producto, filled, "nombre comercial");
+    }
+    fillEmpty(ident, "nombre_inci", c.inci, filled, "INCI");
+    fillEmpty(ident, "cas", c.cas, filled, "CAS");
+    fillEmpty(ident, "einces", c.einces || c.einecs, filled, "EINECS");
+    fillEmpty(ident, "formula_molecular", c.formula_quimica, filled, "fórmula");
+    fillEmpty(ident, "grado", c.grado, filled, "grado");
+    fillEmpty(ident, "concentracion", c.concentracion, filled, "concentración");
+    fillEmpty(ident, "presentacion", c.presentacion, filled, "presentación");
+
+    fillEmpty(lote, "numero", c.lote, filled, "lote");
+    fillEmpty(lote, "fecha_fabricacion", c.fecha_fabricacion, filled, "fecha fabricación");
+    fillEmpty(lote, "fecha_vencimiento", c.fecha_vencimiento, filled, "fecha vencimiento");
+    fillEmpty(lote, "fecha_analisis", c.fecha_analisis, filled, "fecha análisis");
+    fillEmpty(lote, "fecha_emision", c.fecha_emision, filled, "fecha emisión");
+    fillEmpty(lote, "vida_util", c.vida_util, filled, "vida útil");
+    fillEmpty(lote, "tamano_lote", c.tamano_lote, filled, "tamaño lote");
+    fillEmpty(lote, "pais_origen", c.pais_origen, filled, "país origen");
+    fillEmpty(lote, "fabricante", c.fabricante, filled, "fabricante");
+
+    fillEmpty(emp, "empaque_original", c.presentacion, filled, "empaque");
+    fillEmpty(emp, "almacenamiento", c.almacenamiento, filled, "almacenamiento");
+
+    if (parametrosText.trim()) {
+      const existing = coa.parametros ? textoDesdeFilasTres(coa.parametros) : "";
+      const merged = mergeParamStrings(existing, parametrosText);
+      if (merged.trim() && merged !== (existing || "").trim()) {
+        coa.parametros = filasTresDesdeTexto(merged);
+        if (!existing.trim()) filled.push("parámetros COA");
+        else filled.push("parámetros COA (fusionados)");
+      }
+    }
+
+    coa.identificacion = ident;
+    coa.lote = lote;
+    coa.empaque = emp;
+    return coa;
+  };
+
+  const complementarFt = (next: Record<string, unknown>) => {
+    fillEmpty(next, "nombre_producto", c.nombre_producto, filled, "nombre producto");
+    fillEmpty(next, "titulo", c.nombre_producto ? String(c.nombre_producto).toUpperCase() : "", filled, "título");
+    fillEmpty(next, "nombre_comercial", c.nombre_comercial, filled, "nombre comercial");
+    fillEmpty(next, "inci", c.inci, filled, "INCI");
+    fillEmpty(next, "cas", c.cas, filled, "CAS");
+    fillEmpty(next, "lote", c.lote, filled, "lote");
+    fillEmpty(next, "pais_origen", c.pais_origen, filled, "país origen");
+    fillEmpty(next, "fabricante", c.fabricante, filled, "fabricante");
+
+    const cf = { ...((next.caracteristicas_fisicas as Record<string, unknown>) || {}) };
+    fillEmpty(cf, "apariencia", c.apariencia, filled, "apariencia");
+    fillEmpty(cf, "olor", c.olor, filled, "olor");
+    fillEmpty(cf, "ph", c.ph, filled, "pH");
+    fillEmpty(cf, "formula_quimica", c.formula_quimica, filled, "fórmula");
+    fillEmpty(cf, "solubilidad", c.solubilidad, filled, "solubilidad");
+    if (c.humedad && vacio(cf.humedad)) {
+      // humedad no siempre tiene casilla propia; si hay lista de propiedades, se anexa
+      fillEmpty(cf, "humedad", c.humedad, filled, "humedad");
+    }
+    next.caracteristicas_fisicas = cf;
+
+    if (c.humedad && vacio(next.propiedades_lista) && typeof next.propiedades_lista !== "string") {
+      // noop — ya en cf
+    } else if (c.humedad) {
+      const props = String(next.propiedades_lista || "");
+      if (!/humedad/i.test(props)) {
+        const line = `Humedad|${c.humedad}`;
+        next.propiedades_lista = props.trim() ? `${props.trim()}\n${line}` : line;
+        if (!filled.includes("humedad")) filled.push("humedad");
+      }
+    }
+    return next;
+  };
 
   if (tipo === "completo" || tipo === "ft") {
-    const next = { ...datos };
-    const coa = { ...((next._coa as Record<string, unknown>) || {}) };
-    const existing = coa.parametros ? textoDesdeFilasTres(coa.parametros) : "";
-    coa.parametros = filasTresDesdeTexto(mergeParamStrings(existing, parametrosText));
-    next._coa = coa;
-    return next;
+    let next = complementarFt({ ...datos });
+    next._coa = aplicarCamposCoa({ ...((next._coa as Record<string, unknown>) || {}) });
+    return { datos: next, filled: [...new Set(filled)] };
   }
 
   if (tipo === "coa") {
-    const next = { ...datos };
-    const existing = next.parametros ? textoDesdeFilasTres(next.parametros) : "";
-    next.parametros = filasTresDesdeTexto(mergeParamStrings(existing, parametrosText));
-    return next;
+    const next = aplicarCamposCoa({ ...datos });
+    return { datos: next, filled: [...new Set(filled)] };
   }
 
-  // SDS u otro: adjuntar bloque COA al abrir en editor completo
-  return {
-    ...datos,
-    titulo: datos.titulo || "",
-    _coa: {
-      parametros: filasTresDesdeTexto(parametrosText),
-      identificacion: {},
-    },
-  };
+  // SDS u otro
+  let next = complementarFt({ ...datos });
+  next._coa = aplicarCamposCoa({
+    parametros: [],
+    identificacion: {},
+    lote: {},
+    empaque: {},
+  });
+  return { datos: next, filled: [...new Set(filled)] };
 }
 
 export default function CoaDocumentosScanner({
@@ -76,43 +230,138 @@ export default function CoaDocumentosScanner({
   const [aplicando, setAplicando] = useState(false);
   const [aplicarError, setAplicarError] = useState<string | null>(null);
   const [aplicarOk, setAplicarOk] = useState(false);
+  const [materiaPrima, setMateriaPrima] = useState("");
+  const [asociacionMsg, setAsociacionMsg] = useState<string | null>(null);
+  const [matchScore, setMatchScore] = useState<number | null>(null);
+  const [camposComplementados, setCamposComplementados] = useState<string[]>([]);
+  const camposRef = useRef<CoaScanCampos>({});
+  const parametrosRef = useRef("");
 
   const opcionesDoc = archivos.filter((a) => a.nombre.toLowerCase().endsWith(".pdf"));
 
-  useEffect(() => {
-    if (!docSeleccionado && opcionesDoc.length === 1) {
-      setDocSeleccionado(opcionesDoc[0].nombre);
-    }
-  }, [docSeleccionado, opcionesDoc]);
+  const aplicarADocumento = useCallback(
+    async (nombreArchivo: string, parametrosText: string) => {
+      if (!nombreArchivo) {
+        setAplicarError("No se encontró un documento con el título de esta materia prima.");
+        return;
+      }
+      const tieneAlgo =
+        parametrosText.trim() ||
+        Object.keys(camposRef.current).some((k) => k !== "parametros" && camposRef.current[k]);
+      if (!tieneAlgo) {
+        setAplicarError("Escanea al menos un COA antes de actualizar.");
+        return;
+      }
+      setAplicando(true);
+      setAplicarError(null);
+      setAplicarOk(false);
+      try {
+        const r = await api.get<BibliotecaDatosResult>(
+          `/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(nombreArchivo)}`,
+        );
+        const { datos, filled } = mergeCoaEnDatos(
+          r.datos,
+          r.tipo,
+          parametrosText,
+          camposRef.current,
+        );
+        setCamposComplementados(filled);
+        onEditar({ ...r, datos });
+        setAplicarOk(true);
+      } catch (e: unknown) {
+        setAplicarError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setAplicando(false);
+      }
+    },
+    [onEditar],
+  );
 
-  const escanearArchivo = useCallback(async (file: File) => {
-    setScanError(null);
-    setAplicarOk(false);
-    setScanning(true);
-    try {
-      const { resolvePanelApiUrl } = await import("../../api/client");
-      const { useTicketsAuth } = await import("../../stores/ticketsAuth");
-      const { useAuthStore } = await import("../../stores/auth");
-      const t = useTicketsAuth.getState();
-      const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-      const url = await resolvePanelApiUrl("/api/fichas/coa/escanear-parametros", "POST");
-      const fd = new FormData();
-      fd.append("imagen", file);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
-      setParametros((prev) => mergeParamStrings(prev, json.parametros || ""));
-      setFotosCapturadas((n) => n + 1);
-    } catch (e: unknown) {
-      setScanError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setScanning(false);
-    }
-  }, []);
+  const escanearArchivo = useCallback(
+    async (file: File) => {
+      setScanError(null);
+      setAplicarOk(false);
+      setAsociacionMsg(null);
+      setCamposComplementados([]);
+      setScanning(true);
+      try {
+        const { resolvePanelApiUrl } = await import("../../api/client");
+        const { useTicketsAuth } = await import("../../stores/ticketsAuth");
+        const { useAuthStore } = await import("../../stores/auth");
+        const t = useTicketsAuth.getState();
+        const token = t.apiToken || t.token || useAuthStore.getState().token || "";
+        const url = await resolvePanelApiUrl("/api/fichas/coa/escanear-parametros", "POST");
+        const fd = new FormData();
+        fd.append("imagen", file);
+        const res = await fetch(url, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        const json = await res.json();
+        if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
+
+        const nuevosParams = String(json.parametros || "");
+        const camposIn: CoaScanCampos =
+          json.campos && typeof json.campos === "object"
+            ? Object.fromEntries(
+                Object.entries(json.campos as Record<string, unknown>)
+                  .filter(([, v]) => v != null && String(v).trim())
+                  .map(([k, v]) => [k, String(v).trim()]),
+              )
+            : {};
+
+        // Acumular campos: no sobrescribir con vacío; valor nuevo gana si llega
+        const acumulados: CoaScanCampos = { ...camposRef.current };
+        for (const [k, v] of Object.entries(camposIn)) {
+          if (k === "parametros") continue;
+          if (v) acumulados[k] = v;
+        }
+        camposRef.current = acumulados;
+
+        const nombreDetectado = String(
+          acumulados.nombre_producto || json.nombre_producto || "",
+        ).trim();
+
+        const merged = mergeParamStrings(parametrosRef.current, nuevosParams);
+        parametrosRef.current = merged;
+        setParametros(merged);
+        setFotosCapturadas((n) => n + 1);
+
+        const extras = Object.keys(acumulados).filter((k) => k !== "parametros" && k !== "nombre_producto");
+        const extrasTxt = extras.length
+          ? ` · ${extras.length} dato${extras.length !== 1 ? "s" : ""} para complementar casillas`
+          : "";
+
+        if (nombreDetectado) {
+          setMateriaPrima(nombreDetectado);
+          const hit = encontrarDocumentoPorMateriaPrima(archivos, nombreDetectado);
+          if (hit) {
+            setDocSeleccionado(hit.archivo.nombre);
+            setMatchScore(hit.score);
+            setAsociacionMsg(
+              `IA detectó «${nombreDetectado}» → asociado a «${hit.archivo.nombre.replace(/\.pdf$/i, "")}»${extrasTxt}`,
+            );
+            await aplicarADocumento(hit.archivo.nombre, merged);
+          } else {
+            setMatchScore(null);
+            setAsociacionMsg(
+              `IA detectó «${nombreDetectado}»${extrasTxt}, pero no hay documento en la biblioteca con ese título. Elige uno manualmente.`,
+            );
+          }
+        } else {
+          setAsociacionMsg(
+            `No se pudo leer el nombre de la materia prima.${extrasTxt || " Elige el documento manualmente."}`,
+          );
+        }
+      } catch (e: unknown) {
+        setScanError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setScanning(false);
+      }
+    },
+    [archivos, aplicarADocumento],
+  );
 
   const procesarArchivo = useCallback(
     (file: File) => {
@@ -155,36 +404,16 @@ export default function CoaDocumentosScanner({
     if (scanPreview) URL.revokeObjectURL(scanPreview);
     setScanPreview(null);
     setParametros("");
+    parametrosRef.current = "";
+    camposRef.current = {};
     setFotosCapturadas(0);
     setScanError(null);
     setAplicarError(null);
     setAplicarOk(false);
-  };
-
-  const aplicarADocumento = async () => {
-    if (!docSeleccionado) {
-      setAplicarError("Elige un documento de la biblioteca.");
-      return;
-    }
-    if (!parametros.trim()) {
-      setAplicarError("Escanea al menos un COA antes de actualizar.");
-      return;
-    }
-    setAplicando(true);
-    setAplicarError(null);
-    setAplicarOk(false);
-    try {
-      const r = await api.get<BibliotecaDatosResult>(
-        `/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(docSeleccionado)}`,
-      );
-      const datos = mergeCoaEnDatos(r.datos, r.tipo, parametros);
-      onEditar({ ...r, datos });
-      setAplicarOk(true);
-    } catch (e: unknown) {
-      setAplicarError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setAplicando(false);
-    }
+    setMateriaPrima("");
+    setAsociacionMsg(null);
+    setMatchScore(null);
+    setCamposComplementados([]);
   };
 
   const filas = parseParamRows(parametros);
@@ -221,27 +450,28 @@ export default function CoaDocumentosScanner({
             Escáner de documentos COA
           </h3>
           <p className="mt-1 text-xs text-muted">
-            Fotografía cada COA que llegue, acumula parámetros y actualiza el documento elegido en la biblioteca.
+            Al subir la foto, la IA identifica la materia prima, completa casillas vacías del formulario
+            (CAS, lote, fabricante, grado, apariencia, etc.) y asocia el documento de la biblioteca.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => abrirCamaraCaptura({ cameraInputRef, setCamaraOpen })}
-            disabled={scanning}
+            disabled={scanning || aplicando}
             className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-accent-hover disabled:opacity-40"
           >
-            {scanning ? "Extrayendo…" : "📷 Escáner de documentos COA"}
+            {scanning ? "Analizando COA…" : aplicando ? "Asociando…" : "📷 Escáner de documentos COA"}
           </button>
           <button
             type="button"
             onClick={() => scanFileRef.current?.click()}
-            disabled={scanning}
+            disabled={scanning || aplicando}
             className="rounded-lg border border-accent/40 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
           >
             Adjuntar imagen / PDF
           </button>
-          {(parametros || scanPreview || fotosCapturadas > 0) && (
+          {(parametros || scanPreview || fotosCapturadas > 0 || materiaPrima) && (
             <button
               type="button"
               onClick={limpiar}
@@ -270,7 +500,7 @@ export default function CoaDocumentosScanner({
       />
 
       <p className="text-[10px] text-muted">
-        También puedes pegar con Ctrl+V o arrastrar archivos. Varios COA del mismo producto se fusionan en una sola tabla.
+        También puedes pegar con Ctrl+V o arrastrar. Varios COA de la misma materia prima se fusionan en una sola tabla.
       </p>
 
       {scanPreview && (
@@ -284,6 +514,21 @@ export default function CoaDocumentosScanner({
       )}
       {scanLightbox && scanPreview && (
         <ImageLightbox url={scanPreview} onClose={() => setScanLightbox(false)} />
+      )}
+
+      {materiaPrima && (
+        <div className="rounded-lg border border-accent/30 bg-surface-panel px-3 py-2 text-xs">
+          <p className="font-semibold text-ink">
+            Materia prima detectada: <span className="text-accent">{materiaPrima}</span>
+            {matchScore != null && (
+              <span className="ml-2 font-normal text-muted">· coincidencia {matchScore}%</span>
+            )}
+          </p>
+          {asociacionMsg && <p className="mt-1 text-muted">{asociacionMsg}</p>}
+        </div>
+      )}
+      {!materiaPrima && asociacionMsg && (
+        <p className="text-xs text-amber-700 dark:text-amber-300">{asociacionMsg}</p>
       )}
 
       {fotosCapturadas > 0 && (
@@ -340,7 +585,7 @@ export default function CoaDocumentosScanner({
         </label>
         <button
           type="button"
-          onClick={() => void aplicarADocumento()}
+          onClick={() => void aplicarADocumento(docSeleccionado, parametros)}
           disabled={aplicando || scanning || !parametros.trim() || !docSeleccionado}
           className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-40"
         >
@@ -350,7 +595,11 @@ export default function CoaDocumentosScanner({
 
       {aplicarOk && (
         <p className="text-xs text-emerald-600">
-          Documento abierto en el editor con los parámetros COA aplicados. Revisa y genera el PDF actualizado.
+          Documento abierto con datos del COA de «{materiaPrima || "la materia prima"}».
+          {camposComplementados.length > 0 && (
+            <> Casillas complementadas: {camposComplementados.join(", ")}.</>
+          )}{" "}
+          Revisa y genera el PDF actualizado.
         </p>
       )}
       {aplicarError && <p className="text-xs text-danger">{aplicarError}</p>}

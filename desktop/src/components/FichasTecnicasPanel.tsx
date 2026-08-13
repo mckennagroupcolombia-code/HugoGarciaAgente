@@ -1369,18 +1369,26 @@ function DocumentoCompletoTabContent({
   const [borradorError, setBorradorError] = useState<string | null>(null);
   const [cargandoBorrador, setCargandoBorrador] = useState<string | null>(null);
 
-  const buildCoaDatos = useCallback(() => ({
-    titulo: nombre,
-    identificacion: {
-      nombre_comercial: nombreComercial || nombre,
-      referencia_interna: referencia,
-      nombre_inci: inci,
-      cas,
-      einces: coaEinces,
-      grado: coaGrado,
-    },
-    parametros: filasTresDesdeTexto(coaParametros),
-  }), [
+  const buildCoaDatos = useCallback(() => {
+    const ft = buildFtRef.current() as Record<string, unknown>;
+    return {
+      titulo: nombre,
+      identificacion: {
+        nombre_comercial: nombreComercial || nombre,
+        referencia_interna: referencia,
+        nombre_inci: inci,
+        cas,
+        einces: coaEinces,
+        grado: coaGrado,
+      },
+      lote: {
+        numero: String(ft.lote || ""),
+        fabricante: String(ft.fabricante || ""),
+        pais_origen: String(ft.pais_origen || ""),
+      },
+      parametros: filasTresDesdeTexto(coaParametros),
+    };
+  }, [
     nombre, nombreComercial, referencia, inci, cas,
     coaEinces, coaGrado, coaParametros,
   ]);
@@ -1974,15 +1982,62 @@ export default function FichasTecnicasPanel() {
   };
 
   const handleEditar = (r: BibliotecaDatosResult) => {
+    const hoy = (() => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    })();
+
+    const stampFechaHoy = (datos: Record<string, unknown>): Record<string, unknown> => {
+      const next: Record<string, unknown> = { ...datos, fecha_revision: hoy };
+
+      // Tabla de identidad (algunos YAML guardan la fecha ahí)
+      if (Array.isArray(next.identidad)) {
+        next.identidad = (next.identidad as unknown[]).map((row) => {
+          if (!Array.isArray(row) || row.length < 2) return row;
+          const clave = String(row[0] || "");
+          if (/fecha\s*(de\s*)?revisi[oó]n/i.test(clave)) {
+            return [row[0], hoy];
+          }
+          return row;
+        });
+      }
+
+      // Bloque COA anidado (documento completo / FT con _coa)
+      if (next._coa && typeof next._coa === "object") {
+        const coa = { ...(next._coa as Record<string, unknown>) };
+        const lote = { ...((coa.lote as Record<string, unknown>) || {}) };
+        lote.fecha_emision = hoy;
+        coa.lote = lote;
+        if (!coa.titulo && next.titulo) coa.titulo = next.titulo;
+        next._coa = coa;
+      }
+
+      // COA puro (datos en raíz)
+      if (r.tipo === "coa") {
+        const lote = { ...((next.lote as Record<string, unknown>) || {}) };
+        lote.fecha_emision = hoy;
+        next.lote = lote;
+      }
+
+      return next;
+    };
+
     let payload: Record<string, unknown>;
     if (r.tipo === "completo") {
-      payload = r.datos;
+      payload = stampFechaHoy(r.datos);
     } else if (r.tipo === "coa") {
-      payload = { titulo: r.titulo, nombre_producto: r.titulo, _coa: r.datos };
+      payload = stampFechaHoy({
+        titulo: r.titulo,
+        nombre_producto: r.titulo,
+        _coa: stampFechaHoy(r.datos),
+      });
     } else if (r.tipo === "sds") {
-      payload = { titulo: r.titulo, nombre_producto: r.titulo, _sds: r.datos };
+      payload = stampFechaHoy({ titulo: r.titulo, nombre_producto: r.titulo, _sds: r.datos });
     } else {
-      payload = r.datos; // ft — FT data al nivel raíz
+      payload = stampFechaHoy(r.datos); // ft
     }
     setCompletoPreload(payload);
     setTab("completo");

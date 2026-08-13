@@ -4443,26 +4443,53 @@ def register_routes(app):
             else:
                 mime_type = "image/jpeg"
 
+            import json as _json
+            import re as _re
+
             prompt = (
-                "Eres un especialista en control de calidad de materias primas farmacéuticas y cosméticas.\n"
-                "Analiza esta imagen de un Certificado de Análisis (COA) y extrae la tabla de parámetros analíticos.\n\n"
-                "Formato de salida ESTRICTO: una línea por parámetro, separado por pipes:\n"
-                "Parámetro|Especificación|Resultado\n\n"
-                "Ejemplo:\n"
-                "Aspecto|Polvo blanco cristalino|Cumple\n"
-                "pH (sol. 10%)|4.5 - 6.5|5.2\n"
-                "Humedad|≤ 5.0%|3.8%\n"
-                "Pureza|≥ 99.0%|99.4%\n\n"
+                "Eres un especialista en control de calidad de materias primas farmaceuticas y cosmeticas.\n"
+                "Analiza esta imagen/PDF de un Certificado de Analisis (COA) u hoja de calidad.\n"
+                "1) Identifica la MATERIA PRIMA.\n"
+                "2) Extrae la tabla de parametros.\n"
+                "3) Extrae TODOS los datos visibles que puedan complementar un formulario tecnico "
+                "(solo si aparecen; no inventes).\n\n"
+                "Responde SOLO un JSON valido (sin markdown) con esta forma:\n"
+                "{\n"
+                '  "nombre_producto": "materia prima (ej. Acido Citrico Anhidro)",\n'
+                '  "nombre_comercial": "nombre comercial si difiere",\n'
+                '  "inci": "nombre INCI si aparece",\n'
+                '  "cas": "numero CAS",\n'
+                '  "einecs": "numero EINECS/EC",\n'
+                '  "formula_quimica": "formula molecular",\n'
+                '  "grado": "Cosmetico/Alimentos/Industrial/Farmaceutico/etc",\n'
+                '  "concentracion": "concentracion o pureza nominal",\n'
+                '  "lote": "numero de lote",\n'
+                '  "fecha_fabricacion": "fecha fabricacion (mejor YYYY-MM-DD)",\n'
+                '  "fecha_vencimiento": "fecha vencimiento o retest",\n'
+                '  "fecha_analisis": "fecha de analisis",\n'
+                '  "fecha_emision": "fecha emision del COA",\n'
+                '  "vida_util": "vida util / shelf life",\n'
+                '  "tamano_lote": "tamano del lote si aparece",\n'
+                '  "pais_origen": "pais de origen",\n'
+                '  "fabricante": "fabricante o proveedor",\n'
+                '  "apariencia": "aspecto fisico",\n'
+                '  "olor": "olor si aparece",\n'
+                '  "ph": "pH o rango",\n'
+                '  "solubilidad": "solubilidad si aparece",\n'
+                '  "humedad": "humedad / loss on drying si aparece fuera de tabla",\n'
+                '  "presentacion": "presentacion o empaque",\n'
+                '  "almacenamiento": "condiciones de almacenamiento",\n'
+                '  "parametros": "lineas Parametro|Especificacion|Resultado separadas por \\n"\n'
+                "}\n\n"
                 "Reglas:\n"
-                "- Extrae TODOS los parámetros visibles en la imagen.\n"
-                "- Si una celda está vacía o ilegible escribe «-» en ese campo.\n"
-                "- IMPORTANTE: Si el COA está en inglés, traduce los nombres de parámetros y descripciones al español. "
-                "Mantén los valores numéricos, unidades y símbolos exactamente como aparecen (%, ppm, mg/g, etc.). "
-                "Ejemplos de traducción: Appearance→Aspecto, Assay→Valoración, Loss on Drying→Pérdida por Secado, "
-                "Heavy Metals→Metales Pesados, Microbial Count→Recuento Microbiano, Conforms→Cumple, Passes→Cumple, "
-                "Fails→No cumple, White powder→Polvo blanco, Colorless liquid→Líquido incoloro.\n"
-                "- NO incluyas encabezados, numeración ni texto adicional.\n"
-                "- Responde SOLO las líneas en formato Parámetro|Especificación|Resultado."
+                "- Omite claves vacias o no visibles.\n"
+                "- nombre_producto: producto analizado, NO el laboratorio emisor.\n"
+                "- Extrae TODOS los parametros de la tabla.\n"
+                "- Si el documento esta en ingles, traduce textos al espanol; "
+                "manten numeros y unidades. "
+                "Appearance→Aspecto, Assay→Valoracion, Loss on Drying→Perdida por Secado, "
+                "Heavy Metals→Metales Pesados, Conforms/Passes→Cumple.\n"
+                "- Responde SOLO JSON valido."
             )
 
             def _llamar_gemini():
@@ -4481,8 +4508,50 @@ def register_routes(app):
 
             texto = (response.text or "").strip()
             if not texto:
-                return jsonify({"error": "Gemini no pudo extraer parámetros de la imagen"}), 500
-            return jsonify({"ok": True, "parametros": texto})
+                return jsonify({"error": "Gemini no pudo extraer datos de la imagen"}), 500
+
+            texto_limpio = texto.strip("`")
+            if texto_limpio.lower().startswith("json"):
+                texto_limpio = texto_limpio[4:].strip()
+
+            campos = {}
+            try:
+                parsed = _json.loads(texto_limpio)
+            except Exception:
+                m = _re.search(r"\{.*\}", texto_limpio, _re.DOTALL)
+                try:
+                    parsed = _json.loads(m.group(0)) if m else None
+                except Exception:
+                    parsed = None
+
+            if isinstance(parsed, dict):
+                for k, v in parsed.items():
+                    if v is None:
+                        continue
+                    s = str(v).strip()
+                    if s:
+                        campos[str(k)] = s
+            else:
+                # Compatibilidad: respuesta antigua (solo lineas Parametro|Especificacion|Resultado)
+                campos["parametros"] = texto
+
+            parametros = str(campos.get("parametros") or "").strip()
+            nombre_producto = str(campos.get("nombre_producto") or "").strip()
+            if not parametros and not nombre_producto and not campos.get("cas"):
+                return jsonify({"error": "Gemini no pudo extraer informacion util de la imagen"}), 500
+
+            # Alias frecuentes
+            if campos.get("einecs") and not campos.get("einces"):
+                campos["einces"] = campos["einecs"]
+
+            return jsonify({
+                "ok": True,
+                "parametros": parametros,
+                "nombre_producto": nombre_producto,
+                "cas": str(campos.get("cas") or "").strip(),
+                "lote": str(campos.get("lote") or "").strip(),
+                "campos": campos,
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
