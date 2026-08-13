@@ -582,3 +582,17 @@ Resumen: 0 emitidas, 2 ya tenían NC (sin acción), 0 errores.
 ⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 2e2bf2d] Auto-commit: actualizacion diaria 2026-08-12 23:00
+ 18 files changed, 1802 insertions(+), 594 deletions(-)
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 uploads/tickets/6a93c272dd15474ab327e0f4efb0bd9a.jpg
+ create mode 100644 uploads/tickets/ec114a3f1c724cceaa43db160f7a8855.docx
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-08-12 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
