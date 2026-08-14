@@ -600,3 +600,12 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel a214ef5] Auto-commit: actualizacion diaria 2026-08-13 23:00
+ 42 files changed, 26163 insertions(+), 879 deletions(-)
+ create mode 100644 app/data/facturacion_meli_index.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/conciliacion_meli.py
+ create mode 100644 desktop/src/components/VentasFacturacionPanel.tsx
+ create mode 100644 tests/test_coa_documento_match.py
+[2026-08-13 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-13 23:00'
