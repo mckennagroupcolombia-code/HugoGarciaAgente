@@ -1,6 +1,209 @@
 {
   "archivos": [
     {
+      "nombre": "MANTECA_KARITE_125g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_6.25x.pdf",
+      "subido_at": "2026-08-13T12:58:11",
+      "bytes": 410968
+    },
+    {
+      "nombre": "MANTECA_KARITE_125g_BLANCA_6.25x_20260813_125449.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260813_125449.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260813_125449.pdf",
+      "subido_at": "2026-08-13T12:54:49",
+      "bytes": 383445
+    },
+    {
+      "nombre": "MANTECA_KARITE_125g_BLANCA_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x.pdf",
+      "subido_at": "2026-08-13T12:53:54",
+      "bytes": 383445
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x_20260813_111959.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260813_111959.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260813_111959.pdf",
+      "subido_at": "2026-08-13T11:19:59",
+      "bytes": 256268
+    },
+    {
+      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x_20260813_111944.pdf",
+      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260813_111944.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260813_111944.pdf",
+      "subido_at": "2026-08-13T11:19:44",
+      "bytes": 256268
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111756.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111756.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111756.pdf",
+      "subido_at": "2026-08-13T11:17:57",
+      "bytes": 253349
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111740.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111740.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260813_111740.pdf",
+      "subido_at": "2026-08-13T11:17:40",
+      "bytes": 253349
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260813_111601.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111601.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111601.pdf",
+      "subido_at": "2026-08-13T11:16:01",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260813_111532.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111532.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111532.pdf",
+      "subido_at": "2026-08-13T11:15:32",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260813_111517.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111517.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111517.pdf",
+      "subido_at": "2026-08-13T11:15:17",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_250g_6.25x_20260813_111501.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111501.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260813_111501.pdf",
+      "subido_at": "2026-08-13T11:15:02",
+      "bytes": 333771
+    },
+    {
+      "nombre": "PISTACHOS_500g_6.25x_20260813_111335.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111335.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111335.pdf",
+      "subido_at": "2026-08-13T11:13:35",
+      "bytes": 364390
+    },
+    {
+      "nombre": "PISTACHOS_500g_6.25x_20260813_111257.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111257.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111257.pdf",
+      "subido_at": "2026-08-13T11:12:58",
+      "bytes": 364390
+    },
+    {
+      "nombre": "PISTACHOS_500g_6.25x_20260813_111244.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111244.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111244.pdf",
+      "subido_at": "2026-08-13T11:12:44",
+      "bytes": 364390
+    },
+    {
+      "nombre": "PISTACHOS_500g_6.25x_20260813_111231.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111231.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111231.pdf",
+      "subido_at": "2026-08-13T11:12:31",
+      "bytes": 364390
+    },
+    {
+      "nombre": "PISTACHOS_500g_6.25x_20260813_111203.pdf",
+      "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111203.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x_20260813_111203.pdf",
+      "subido_at": "2026-08-13T11:12:04",
+      "bytes": 364390
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110654.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110654.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110654.pdf",
+      "subido_at": "2026-08-13T11:06:54",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110618.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110618.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110618.pdf",
+      "subido_at": "2026-08-13T11:06:18",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110555.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110555.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110555.pdf",
+      "subido_at": "2026-08-13T11:05:55",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110543.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110543.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110543.pdf",
+      "subido_at": "2026-08-13T11:05:44",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110529.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110529.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110529.pdf",
+      "subido_at": "2026-08-13T11:05:29",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110515.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110515.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110515.pdf",
+      "subido_at": "2026-08-13T11:05:15",
+      "bytes": 257697
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110458.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110458.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260813_110458.pdf",
+      "subido_at": "2026-08-13T11:04:58",
+      "bytes": 257697
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110251.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110251.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110251.pdf",
+      "subido_at": "2026-08-13T11:02:51",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110200.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110200.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110200.pdf",
+      "subido_at": "2026-08-13T11:02:00",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110135.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110135.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110135.pdf",
+      "subido_at": "2026-08-13T11:01:35",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110123.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110123.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110123.pdf",
+      "subido_at": "2026-08-13T11:01:23",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110052.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110052.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_110052.pdf",
+      "subido_at": "2026-08-13T11:00:52",
+      "bytes": 281604
+    },
+    {
+      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260813_105100.pdf",
+      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_105100.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260813_105100.pdf",
+      "subido_at": "2026-08-13T10:51:00",
+      "bytes": 281604
+    },
+    {
       "nombre": "PISTACHOS_500g_6.25x.pdf",
       "ruta": "Etiquetas McKenna/PISTACHOS_500g_6.25x.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_500g_6.25x.pdf",
@@ -1196,209 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
       "subido_at": "2026-07-15T09:49:48",
       "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094901.pdf",
-      "subido_at": "2026-07-15T09:49:02",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094837.pdf",
-      "subido_at": "2026-07-15T09:48:38",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094459.pdf",
-      "subido_at": "2026-07-15T09:45:00",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094252.pdf",
-      "subido_at": "2026-07-15T09:42:52",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094201.pdf",
-      "subido_at": "2026-07-15T09:42:01",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x.pdf",
-      "subido_at": "2026-07-15T09:41:22",
-      "bytes": 612563
-    },
-    {
-      "nombre": "DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
-      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_093013.pdf",
-      "subido_at": "2026-07-15T09:30:13",
-      "bytes": 697470
-    },
-    {
-      "nombre": "DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
-      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x_20260715_092948.pdf",
-      "subido_at": "2026-07-15T09:29:48",
-      "bytes": 697470
-    },
-    {
-      "nombre": "DIPROPILENGLICOL_500mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DIPROPILENGLICOL_500mL_6.25x.pdf",
-      "subido_at": "2026-07-15T09:29:28",
-      "bytes": 697470
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092552.pdf",
-      "subido_at": "2026-07-15T09:25:52",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092452.pdf",
-      "subido_at": "2026-07-15T09:24:52",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092414.pdf",
-      "subido_at": "2026-07-15T09:24:14",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092331.pdf",
-      "subido_at": "2026-07-15T09:23:31",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092300.pdf",
-      "subido_at": "2026-07-15T09:23:00",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_20260715_092222.pdf",
-      "subido_at": "2026-07-15T09:22:23",
-      "bytes": 705721
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x.pdf",
-      "subido_at": "2026-07-15T09:21:59",
-      "bytes": 705721
-    },
-    {
-      "nombre": "INULINA_Kg_6.25x_20260715_092102.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_092102.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_092102.pdf",
-      "subido_at": "2026-07-15T09:21:03",
-      "bytes": 653437
-    },
-    {
-      "nombre": "INULINA_Kg_6.25x_20260715_091949.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091949.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091949.pdf",
-      "subido_at": "2026-07-15T09:19:49",
-      "bytes": 653437
-    },
-    {
-      "nombre": "INULINA_Kg_6.25x_20260715_091914.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091914.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091914.pdf",
-      "subido_at": "2026-07-15T09:19:15",
-      "bytes": 653437
-    },
-    {
-      "nombre": "INULINA_Kg_6.25x_20260715_091836.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091836.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x_20260715_091836.pdf",
-      "subido_at": "2026-07-15T09:18:36",
-      "bytes": 653437
-    },
-    {
-      "nombre": "INULINA_Kg_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/INULINA_Kg_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/INULINA_Kg_6.25x.pdf",
-      "subido_at": "2026-07-15T09:18:06",
-      "bytes": 653437
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091656.pdf",
-      "subido_at": "2026-07-15T09:16:56",
-      "bytes": 652750
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091612.pdf",
-      "subido_at": "2026-07-15T09:16:12",
-      "bytes": 652750
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091538.pdf",
-      "subido_at": "2026-07-15T09:15:39",
-      "bytes": 652750
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091502.pdf",
-      "subido_at": "2026-07-15T09:15:02",
-      "bytes": 652750
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260715_091406.pdf",
-      "subido_at": "2026-07-15T09:14:06",
-      "bytes": 652750
-    },
-    {
-      "nombre": "AGUA_DESTILDA_250_mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x.pdf",
-      "subido_at": "2026-07-15T09:11:06",
-      "bytes": 301752
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185655.pdf",
-      "subido_at": "2026-07-12T18:56:55",
-      "bytes": 689102
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185117.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185117.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_20260712_185117.pdf",
-      "subido_at": "2026-07-12T18:51:17",
-      "bytes": 452372
     }
   ]
 }

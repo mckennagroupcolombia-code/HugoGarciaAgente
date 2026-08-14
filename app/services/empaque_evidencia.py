@@ -43,6 +43,14 @@ def init_db() -> None:
     global _DB_READY
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
+    # El agente suele correr como mckg; carpetas creadas por root/otro user
+    # dejaban Permission denied al guardar fotos (evidencia vacía en panel).
+    for path, mode in ((UPLOADS_DIR, 0o777), (DB_PATH, 0o666)):
+        try:
+            if os.path.exists(path):
+                os.chmod(path, mode)
+        except OSError:
+            pass
     with _conn() as con:
         con.executescript(
             """
@@ -181,18 +189,55 @@ def eliminar_evidencia(evidencia_id: int) -> tuple[bool, str]:
     return True, "Eliminada"
 
 
+def _asegurar_dir_uploads() -> None:
+    """Crea UPLOADS_DIR y intenta dejarlo escribible por el proceso del agente."""
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    try:
+        os.chmod(UPLOADS_DIR, 0o777)
+    except OSError:
+        pass
+    probe = os.path.join(UPLOADS_DIR, f".wprobe_{uuid.uuid4().hex[:8]}")
+    try:
+        with open(probe, "wb") as fh:
+            fh.write(b"1")
+        os.remove(probe)
+    except OSError as e:
+        raise PermissionError(
+            f"No se puede guardar fotos en {UPLOADS_DIR} (permiso denegado). "
+            "Ajusta dueño/permisos al usuario del agente (mckg)."
+        ) from e
+
+
 def guardar_archivo_upload(file_storage) -> str:
     """Guarda el FileStorage de Flask y retorna el nombre de archivo seguro."""
     _ensure_db()
-    nombre_orig = (getattr(file_storage, "filename", None) or "foto.jpg").strip()
+    nombre_orig = (getattr(file_storage, "filename", None) or "").strip()
+    # Móvil (input capture) a veces manda filename vacío o sin extensión.
+    content_type = (getattr(file_storage, "content_type", None) or "").lower()
     _, ext = os.path.splitext(nombre_orig)
-    ext = (ext or ".jpg").lower()
+    ext = (ext or "").lower()
+    if not ext:
+        if "png" in content_type:
+            ext = ".png"
+        elif "webp" in content_type:
+            ext = ".webp"
+        elif "heic" in content_type or "heif" in content_type:
+            ext = ".heic"
+        else:
+            ext = ".jpg"
     if ext not in _ALLOWED_EXT:
         raise ValueError(f"Formato no permitido ({ext}). Usa JPG, PNG o WEBP.")
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    _asegurar_dir_uploads()
     nombre = f"emp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:10]}{ext}"
     path = os.path.join(UPLOADS_DIR, nombre)
-    file_storage.save(path)
+    try:
+        file_storage.save(path)
+    except OSError as e:
+        raise PermissionError(
+            f"No se pudo escribir la foto ({e}). Revisa permisos de {UPLOADS_DIR}."
+        ) from e
+    if not os.path.isfile(path) or os.path.getsize(path) <= 0:
+        raise ValueError("La foto llegó vacía. Vuelve a tomar o elige de galería.")
     return nombre
 
 

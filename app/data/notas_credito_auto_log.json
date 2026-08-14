@@ -4,487 +4,648 @@
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69661",
       "nc": "NC-2-161",
-      "actualizado_en": "2026-08-10T15:46:11"
+      "actualizado_en": "2026-08-10T15:46:11",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:22:48"
     },
     "2000014391822863": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69609",
       "nc": "NC-2-160",
-      "actualizado_en": "2026-08-10T15:46:12"
+      "actualizado_en": "2026-08-10T15:46:12",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:22:53"
     },
     "2000014383055183": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69588",
       "nc": "NC-2-159",
-      "actualizado_en": "2026-08-10T15:46:13"
+      "actualizado_en": "2026-08-10T15:46:13",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:22:58"
     },
     "2000017743347532": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69501",
       "nc": "NC-2-158",
-      "actualizado_en": "2026-08-10T15:46:15"
+      "actualizado_en": "2026-08-10T15:46:15",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:03"
     },
     "2000014302930171": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69366",
       "nc": "NC-2-165",
-      "actualizado_en": "2026-08-10T15:46:16"
+      "actualizado_en": "2026-08-10T15:46:16",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:08"
     },
     "2000017691495140": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69328",
       "nc": "NC-2-154",
-      "actualizado_en": "2026-08-10T15:46:17"
+      "actualizado_en": "2026-08-10T15:46:17",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:14"
     },
     "2000017688704528": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69301",
       "nc": "NC-2-155",
-      "actualizado_en": "2026-08-10T15:46:19"
+      "actualizado_en": "2026-08-10T15:46:19",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:19"
     },
     "2000014291261353": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69288",
       "nc": "NC-2-156",
-      "actualizado_en": "2026-08-10T15:46:20"
+      "actualizado_en": "2026-08-10T15:46:20",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:23"
     },
     "2000014274132173": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69248",
       "nc": "NC-2-153",
-      "actualizado_en": "2026-08-10T15:46:21"
+      "actualizado_en": "2026-08-10T15:46:21",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:28"
     },
     "2000017660101152": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69219",
       "nc": "NC-2-148",
-      "actualizado_en": "2026-08-10T15:46:22"
+      "actualizado_en": "2026-08-10T15:46:22",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:32"
     },
     "2000014262107235": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69210",
       "nc": "NC-2-164",
-      "actualizado_en": "2026-08-10T15:46:23"
+      "actualizado_en": "2026-08-10T15:46:23",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:37"
     },
     "2000017640817086": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69175",
       "nc": "NC-2-149",
-      "actualizado_en": "2026-08-10T15:46:25"
+      "actualizado_en": "2026-08-10T15:46:25",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:43"
     },
     "2000017629299942": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69150",
       "nc": "NC-2-150",
-      "actualizado_en": "2026-08-10T15:46:26"
+      "actualizado_en": "2026-08-10T15:46:26",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:49"
     },
     "2000017614498804": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69097",
       "nc": "NC-2-146",
-      "actualizado_en": "2026-08-10T15:46:27"
+      "actualizado_en": "2026-08-10T15:46:27",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:54"
     },
     "2000017608514464": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69080",
       "nc": "NC-2-147",
-      "actualizado_en": "2026-08-10T15:46:28"
+      "actualizado_en": "2026-08-10T15:46:28",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:23:59"
     },
     "2000014194855245": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69032",
       "nc": "NC-2-144",
-      "actualizado_en": "2026-08-10T15:46:29"
+      "actualizado_en": "2026-08-10T15:46:29",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:19"
     },
     "2000014191407355": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69024",
       "nc": "NC-2-145",
-      "actualizado_en": "2026-08-10T15:46:31"
+      "actualizado_en": "2026-08-10T15:46:31",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:24"
     },
     "2000014180141893": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68997",
       "nc": "NC-2-143",
-      "actualizado_en": "2026-08-10T15:46:32"
+      "actualizado_en": "2026-08-10T15:46:32",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:30"
     },
     "2000017568180422": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68983",
       "nc": "NC-2-142",
-      "actualizado_en": "2026-08-10T15:46:34"
+      "actualizado_en": "2026-08-10T15:46:34",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:35"
     },
     "2000017544521946": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68930",
       "nc": "NC-2-140",
-      "actualizado_en": "2026-08-10T15:46:35"
+      "actualizado_en": "2026-08-10T15:46:35",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:39"
     },
     "2000017534239544": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68905",
       "nc": "NC-2-141",
-      "actualizado_en": "2026-08-10T15:46:36"
+      "actualizado_en": "2026-08-10T15:46:36",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:45"
     },
     "2000014133332763": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68881",
       "nc": "NC-2-139",
-      "actualizado_en": "2026-08-10T15:46:38"
+      "actualizado_en": "2026-08-10T15:46:38",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:49"
     },
     "2000017496499116": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68809",
       "nc": "NC-2-138",
-      "actualizado_en": "2026-08-10T15:46:39"
+      "actualizado_en": "2026-08-10T15:46:39",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:54"
     },
     "2000017468510564": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68741",
       "nc": "NC-2-137",
-      "actualizado_en": "2026-08-10T15:46:40"
+      "actualizado_en": "2026-08-10T15:46:40",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:24:59"
     },
     "2000017452923344": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68695",
       "nc": "NC-2-136",
-      "actualizado_en": "2026-08-10T15:46:41"
+      "actualizado_en": "2026-08-10T15:46:41",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:04"
     },
     "2000017322732826": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68655",
       "nc": "NC-2-135",
-      "actualizado_en": "2026-08-10T15:46:43"
+      "actualizado_en": "2026-08-10T15:46:43",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:08"
     },
     "2000017417530302": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68602",
       "nc": "NC-2-134",
-      "actualizado_en": "2026-08-10T15:46:44"
+      "actualizado_en": "2026-08-10T15:46:44",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:13"
     },
     "2000017390259570": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68550",
       "nc": "NC-2-133",
-      "actualizado_en": "2026-08-10T15:46:45"
+      "actualizado_en": "2026-08-10T15:46:45",
+      "subida_meli": true
     },
     "2000017379741032": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68535",
       "nc": "NC-2-116",
-      "actualizado_en": "2026-08-10T15:46:47"
+      "actualizado_en": "2026-08-10T15:46:47",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:19"
     },
     "2000013917164507": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68395",
       "nc": "NC-2-130",
-      "actualizado_en": "2026-08-10T15:46:48"
+      "actualizado_en": "2026-08-10T15:46:48",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:24"
     },
     "2000013916202459": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68393",
       "nc": "NC-2-131",
-      "actualizado_en": "2026-08-10T15:46:49"
+      "actualizado_en": "2026-08-10T15:46:49",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:29"
     },
     "2000013913878625": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68387",
       "nc": "NC-2-132",
-      "actualizado_en": "2026-08-10T15:46:50"
+      "actualizado_en": "2026-08-10T15:46:50",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:35"
     },
     "2000013855984303": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68263",
       "nc": "NC-2-129",
-      "actualizado_en": "2026-08-10T15:46:52"
+      "actualizado_en": "2026-08-10T15:46:52",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:40"
     },
     "2000017232510894": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68220",
       "nc": "NC-2-128",
-      "actualizado_en": "2026-08-10T15:46:53"
+      "actualizado_en": "2026-08-10T15:46:53",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:45"
     },
     "2000013811308851": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68184",
       "nc": "NC-2-127",
-      "actualizado_en": "2026-08-10T15:46:54"
+      "actualizado_en": "2026-08-10T15:46:54",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:50"
     },
     "2000013797421947": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68151",
       "nc": "NC-2-126",
-      "actualizado_en": "2026-08-10T15:46:55"
+      "actualizado_en": "2026-08-10T15:46:55",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:25:55"
     },
     "2000013739520491": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68067",
       "nc": "NC-2-125",
-      "actualizado_en": "2026-08-10T15:46:56"
+      "actualizado_en": "2026-08-10T15:46:56",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:00"
     },
     "2000013758316499": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68043",
       "nc": "NC-2-123",
-      "actualizado_en": "2026-08-10T15:46:58"
+      "actualizado_en": "2026-08-10T15:46:58",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:05"
     },
     "2000017156164328": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68022",
       "nc": "NC-2-124",
-      "actualizado_en": "2026-08-10T15:46:59"
+      "actualizado_en": "2026-08-10T15:46:59",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:12"
     },
     "2000013741123915": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-68006",
       "nc": "NC-2-122",
-      "actualizado_en": "2026-08-10T15:47:00"
+      "actualizado_en": "2026-08-10T15:47:00",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:17"
     },
     "2000013725348201": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-67973",
       "nc": "NC-2-121",
-      "actualizado_en": "2026-08-10T15:47:01"
+      "actualizado_en": "2026-08-10T15:47:01",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:21"
     },
     "2000013707141817": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-67930",
       "nc": "NC-2-120",
-      "actualizado_en": "2026-08-10T15:47:02"
+      "actualizado_en": "2026-08-10T15:47:02",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:25"
     },
     "2000017099371060": {
       "estado": "emitida",
       "factura": "FV-2-67889",
       "nc": "NC-2-166",
-      "actualizado_en": "2026-08-10T15:47:09"
+      "actualizado_en": "2026-08-10T15:47:09",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:31"
     },
     "2000013680993725": {
       "estado": "emitida",
       "factura": "FV-2-67870",
       "nc": "NC-2-167",
-      "actualizado_en": "2026-08-10T15:47:16"
+      "actualizado_en": "2026-08-10T15:47:16",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:37"
     },
     "2000013664851883": {
       "estado": "emitida",
       "factura": "FV-2-67817",
       "nc": "NC-2-168",
-      "actualizado_en": "2026-08-10T15:47:24"
+      "actualizado_en": "2026-08-10T15:47:24",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:42"
     },
     "2000013656519887": {
       "estado": "emitida",
       "factura": "FV-2-67796",
       "nc": "NC-2-169",
-      "actualizado_en": "2026-08-10T15:47:30"
+      "actualizado_en": "2026-08-10T15:47:30",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:47"
     },
     "2000013637206593": {
       "estado": "emitida",
       "factura": "FV-2-67760",
       "nc": "NC-2-170",
-      "actualizado_en": "2026-08-10T15:47:39"
+      "actualizado_en": "2026-08-10T15:47:39",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:52"
     },
     "2000013635497797": {
       "estado": "emitida",
       "factura": "FV-2-67757",
       "nc": "NC-2-171",
-      "actualizado_en": "2026-08-10T15:47:46"
+      "actualizado_en": "2026-08-10T15:47:46",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:26:57"
     },
     "2000013624300223": {
       "estado": "emitida",
       "factura": "FV-2-67743",
       "nc": "NC-2-172",
-      "actualizado_en": "2026-08-10T15:47:54"
+      "actualizado_en": "2026-08-10T15:47:54",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:01"
     },
     "2000013613833827": {
       "estado": "emitida",
       "factura": "FV-2-67707",
       "nc": "NC-2-173",
-      "actualizado_en": "2026-08-10T15:48:04"
+      "actualizado_en": "2026-08-10T15:48:04",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:06"
     },
     "2000013613460193": {
       "estado": "emitida",
       "factura": "FV-2-67706",
       "nc": "NC-2-174",
-      "actualizado_en": "2026-08-10T15:48:12"
+      "actualizado_en": "2026-08-10T15:48:12",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:11"
     },
     "2000017025095514": {
       "estado": "emitida",
       "factura": "FV-2-67703",
       "nc": "NC-2-175",
-      "actualizado_en": "2026-08-10T15:48:19"
+      "actualizado_en": "2026-08-10T15:48:19",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:15"
     },
     "2000013608585897": {
       "estado": "emitida",
       "factura": "FV-2-67697",
       "nc": "NC-2-176",
-      "actualizado_en": "2026-08-10T15:48:26"
+      "actualizado_en": "2026-08-10T15:48:26",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:25"
     },
     "2000013598605533": {
       "estado": "emitida",
       "factura": "FV-2-67678",
       "nc": "NC-2-177",
-      "actualizado_en": "2026-08-10T15:48:34"
+      "actualizado_en": "2026-08-10T15:48:34",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:29"
     },
     "2000013542073231": {
       "estado": "emitida",
       "factura": "FV-2-67547",
       "nc": "NC-2-178",
-      "actualizado_en": "2026-08-10T15:48:42"
+      "actualizado_en": "2026-08-10T15:48:42",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:33"
     },
     "2000013450867705": {
       "estado": "emitida",
       "factura": "FV-2-67382",
       "nc": "NC-2-179",
-      "actualizado_en": "2026-08-10T15:48:52"
+      "actualizado_en": "2026-08-10T15:48:52",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:38"
     },
     "2000016850904622": {
       "estado": "emitida",
       "factura": "FV-2-67345",
       "nc": "NC-2-180",
-      "actualizado_en": "2026-08-10T15:49:00"
+      "actualizado_en": "2026-08-10T15:49:00",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:44"
     },
     "2000013413737601": {
       "estado": "emitida",
       "factura": "FV-2-67334",
       "nc": "NC-2-181",
-      "actualizado_en": "2026-08-10T15:49:08"
+      "actualizado_en": "2026-08-10T15:49:08",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:48"
     },
     "2000013399037515": {
       "estado": "emitida",
       "factura": "FV-2-67311",
       "nc": "NC-2-182",
-      "actualizado_en": "2026-08-10T15:49:16"
+      "actualizado_en": "2026-08-10T15:49:16",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:53"
     },
     "2000016820986176": {
       "estado": "emitida",
       "factura": "FV-2-67304",
       "nc": "NC-2-183",
-      "actualizado_en": "2026-08-10T15:49:23"
+      "actualizado_en": "2026-08-10T15:49:23",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:27:57"
     },
     "2000013340609037": {
       "estado": "emitida",
       "factura": "FV-2-67211",
       "nc": "NC-2-184",
-      "actualizado_en": "2026-08-10T15:49:31"
+      "actualizado_en": "2026-08-10T15:49:31",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:02"
     },
     "2000013329567445": {
       "estado": "emitida",
       "factura": "FV-2-67177",
       "nc": "NC-2-185",
-      "actualizado_en": "2026-08-10T15:49:38"
+      "actualizado_en": "2026-08-10T15:49:38",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:07"
     },
     "2000016653951652": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66945",
       "nc": "NC-2-106",
-      "actualizado_en": "2026-08-10T15:49:40"
+      "actualizado_en": "2026-08-10T15:49:40",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:14"
     },
     "2000016631730642": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66892",
       "nc": "NC-2-103",
-      "actualizado_en": "2026-08-10T15:49:41"
+      "actualizado_en": "2026-08-10T15:49:41",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:19"
     },
     "2000016616291688": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66858",
       "nc": "NC-2-104",
-      "actualizado_en": "2026-08-10T15:49:43"
+      "actualizado_en": "2026-08-10T15:49:43",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:23"
     },
     "2000016603065842": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66913",
       "nc": "NC-2-107",
-      "actualizado_en": "2026-08-10T15:49:44"
+      "actualizado_en": "2026-08-10T15:49:44",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:28"
     },
     "2000016567336574": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66760",
       "nc": "NC-2-102",
-      "actualizado_en": "2026-08-10T15:49:45"
+      "actualizado_en": "2026-08-10T15:49:45",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:33"
     },
     "2000016562847086": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66749",
       "nc": "NC-2-101",
-      "actualizado_en": "2026-08-10T15:49:47"
+      "actualizado_en": "2026-08-10T15:49:47",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:38"
     },
     "2000016561388526": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66744",
       "nc": "NC-2-100",
-      "actualizado_en": "2026-08-10T15:49:48"
+      "actualizado_en": "2026-08-10T15:49:48",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:42"
     },
     "2000013112862455": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66731",
       "nc": "NC-2-99",
-      "actualizado_en": "2026-08-10T15:49:49"
+      "actualizado_en": "2026-08-10T15:49:49",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:47"
     },
     "2000016548030022": {
       "estado": "emitida",
       "factura": "FV-2-66707",
       "nc": "NC-2-187",
-      "actualizado_en": "2026-08-10T15:49:57"
+      "actualizado_en": "2026-08-10T15:49:57",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:28:53"
     },
     "2000016521952120": {
       "estado": "emitida",
       "factura": "FV-2-66644",
       "nc": "NC-2-188",
-      "actualizado_en": "2026-08-10T15:50:04"
+      "actualizado_en": "2026-08-10T15:50:04",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:04"
     },
     "2000016504425766": {
       "estado": "emitida",
       "factura": "FV-2-66604",
       "nc": "NC-2-189",
-      "actualizado_en": "2026-08-10T15:50:12"
+      "actualizado_en": "2026-08-10T15:50:12",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:09"
     },
     "2000013036070453": {
       "estado": "emitida",
       "factura": "FV-2-66567",
       "nc": "NC-2-190",
-      "actualizado_en": "2026-08-10T15:50:19"
+      "actualizado_en": "2026-08-10T15:50:19",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:13"
     },
     "2000016481652014": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66561",
       "nc": "NC-2-96",
-      "actualizado_en": "2026-08-10T15:50:21"
+      "actualizado_en": "2026-08-10T15:50:21",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:19"
     },
     "2000012987686037": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66478",
       "nc": "NC-2-95",
-      "actualizado_en": "2026-08-10T15:50:22"
+      "actualizado_en": "2026-08-10T15:50:22",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:24"
     },
     "2000012984423037": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66472",
       "nc": "NC-2-94",
-      "actualizado_en": "2026-08-10T15:50:24"
+      "actualizado_en": "2026-08-10T15:50:24",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:29"
     },
     "2000016412467330": {
       "estado": "emitida",
       "factura": "FV-2-66427",
       "nc": "NC-2-191",
-      "actualizado_en": "2026-08-10T15:50:32"
+      "actualizado_en": "2026-08-10T15:50:32",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:33"
     },
     "2000012940926287": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-66384",
       "nc": "NC-2-93",
-      "actualizado_en": "2026-08-10T15:50:34"
+      "actualizado_en": "2026-08-10T15:50:34",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:37"
     },
     "2000017851411712": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69723",
       "nc": "NC-2-162",
-      "actualizado_en": "2026-08-12T07:22:17"
+      "actualizado_en": "2026-08-12T07:22:17",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:42"
     },
     "2000014438756235": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69699",
       "nc": "NC-2-163",
-      "actualizado_en": "2026-08-12T07:22:19"
+      "actualizado_en": "2026-08-12T07:22:19",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-13T15:29:47"
     }
   }
 }

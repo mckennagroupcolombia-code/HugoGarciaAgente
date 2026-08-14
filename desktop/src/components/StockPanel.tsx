@@ -136,7 +136,7 @@ function esPublicacionPausada(estado?: string): boolean {
 }
 
 const SELECT_FILTRO =
-  "min-w-[8.5rem] max-w-[11rem] rounded-lg border border-border bg-surface-input px-2 py-2 text-xs font-semibold text-ink outline-none focus:border-accent";
+  "min-w-0 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs font-semibold text-ink outline-none focus:border-accent md:min-w-[8.5rem] md:max-w-[11rem] md:py-2";
 
 interface RelacionItem {
   meli_id: string;
@@ -1420,6 +1420,8 @@ function StockPanelCompleto() {
   const [filtroPublicacion, setFiltroPublicacion] = useState<FiltroPublicacion>(
     filtrosIniciales.filtroPublicacion ?? "todos",
   );
+  /** En móvil los 4 selects ocupan casi toda la pantalla; colapsados por defecto. */
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [detalleProducto, setDetalleProducto] = useState<FilaUnificada | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [rowResult, setRowResult] = useState<Record<string, SincronizarResultado>>({});
@@ -1969,6 +1971,20 @@ function StockPanelCompleto() {
   const isFetching = stockQ.isFetching || relacionQ.isFetching || ventasQ.isFetching;
   const puedeGuardarSku = Boolean(skuDraft.trim() || codigoDraft.trim());
   const mutPendiente = editarMut.isPending || vincularMut.isPending;
+  const nDimsFiltro = [
+    filtroStock !== "todos",
+    filtroCodigo !== "todos",
+    filtroRotacion !== "todos",
+    filtroPublicacion !== "todos",
+  ].filter(Boolean).length;
+  const hayFiltrosActivos = nDimsFiltro > 0 || search.trim() !== "";
+  const limpiarFiltros = () => {
+    setSearch("");
+    setFiltroStock("todos");
+    setFiltroCodigo("todos");
+    setFiltroRotacion("todos");
+    setFiltroPublicacion("todos");
+  };
 
   const guardarEdicionSku = (meliId: string, syncBloqueado?: boolean) => {
     const sku = skuDraft.trim();
@@ -1995,8 +2011,8 @@ function StockPanelCompleto() {
   }, [ventasQ.data]);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-2">
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
         <button
           onClick={() => {
             forceRefreshRelacionRef.current = true;
@@ -2006,53 +2022,104 @@ function StockPanelCompleto() {
             void ventasQ.refetch();
           }}
           disabled={isFetching}
-          className="rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
+          className="rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-[11px] font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs"
         >
-          {isFetching ? "Actualizando..." : "🔄 Actualizar MeLi + Siigo + ventas"}
+          {isFetching ? "Actualizando..." : (
+            <>
+              <span className="sm:hidden">🔄 Actualizar</span>
+              <span className="hidden sm:inline">🔄 Actualizar MeLi + Siigo + ventas</span>
+            </>
+          )}
         </button>
         <button
           onClick={() => sincronizarTodoMut.mutate()}
           disabled={sincronizarTodoMut.isPending || !filas.length}
-          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
+          className="rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs"
         >
-          {sincronizarTodoMut.isPending ? "Sincronizando..." : "⇄ Reenviar stock a canales"}
+          {sincronizarTodoMut.isPending ? "Sincronizando..." : (
+            <>
+              <span className="sm:hidden">⇄ Reenviar</span>
+              <span className="hidden sm:inline">⇄ Reenviar stock a canales</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Buscador + filtros en una sola fila */}
-      <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-3">
-        <div className="flex flex-wrap items-end gap-2 xl:flex-nowrap">
-          <form
-            className="flex min-w-[14rem] flex-1 basis-[16rem] gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-          >
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filtrar por nombre, MCO, SKU o código Siigo..."
-              className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-            />
-            {search.trim() && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
-              >
-                Limpiar texto
-              </button>
-            )}
-          </form>
+      {/* Buscador siempre visible; filtros colapsables en móvil */}
+      <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-2 sm:p-3">
+        <form
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nombre, MCO, SKU o Siigo…"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent sm:px-3 sm:py-2"
+          />
+          {search.trim() && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:text-ink sm:px-2.5 sm:py-2"
+            >
+              Limpiar
+            </button>
+          )}
+        </form>
 
-          <label className="flex shrink-0 flex-col gap-0.5">
+        <div className="mt-1.5 flex items-center gap-2 md:hidden">
+          <button
+            type="button"
+            onClick={() => setFiltrosAbiertos((v) => !v)}
+            aria-expanded={filtrosAbiertos}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition ${
+              nDimsFiltro > 0 || filtrosAbiertos
+                ? "border-accent/50 bg-accent/10 text-accent"
+                : "border-border text-ink hover:bg-surface-hover"
+            }`}
+          >
+            Filtros
+            {nDimsFiltro > 0 && (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-extrabold text-white">
+                {nDimsFiltro}
+              </span>
+            )}
+            <span className="text-muted" aria-hidden>
+              {filtrosAbiertos ? "▴" : "▾"}
+            </span>
+          </button>
+          <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
+            <span className="font-bold text-ink">{items.length}</span>
+            <span className="text-muted"> / {filas.length}</span>
+            {hayFiltrosActivos ? " · activos" : ""}
+          </p>
+          {hayFiltrosActivos && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:text-ink"
+            >
+              Quitar
+            </button>
+          )}
+        </div>
+
+        <div
+          className={`${
+            filtrosAbiertos ? "mt-2 grid" : "hidden"
+          } grid-cols-2 gap-2 md:mt-2 md:flex md:flex-wrap md:items-end xl:flex-nowrap`}
+        >
+          <label className="flex min-w-0 flex-col gap-0.5 md:shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Unidades</span>
             <select
               value={filtroStock}
               onChange={(e) => setFiltroStock(e.target.value as FiltroStock)}
               title="Agotado=0 · Última=1 · Bajo=2–5 · OK≥6"
-              className={SELECT_FILTRO}
+              className={`${SELECT_FILTRO} w-full max-w-none md:w-auto`}
             >
               <option value="todos">Todos ({counts.totalStock})</option>
               <option value="agotados">Sin unidades ({counts.agotados})</option>
@@ -2063,12 +2130,12 @@ function StockPanelCompleto() {
             </select>
           </label>
 
-          <label className="flex shrink-0 flex-col gap-0.5">
+          <label className="flex min-w-0 flex-col gap-0.5 md:shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Códigos</span>
             <select
               value={filtroCodigo}
               onChange={(e) => setFiltroCodigo(e.target.value as FiltroCodigo)}
-              className={SELECT_FILTRO}
+              className={`${SELECT_FILTRO} w-full max-w-none md:w-auto`}
             >
               <option value="todos">Todos ({counts.totalCodigo})</option>
               <option value="sin_c">Sin C- ({counts.sinC})</option>
@@ -2079,12 +2146,12 @@ function StockPanelCompleto() {
             </select>
           </label>
 
-          <label className="flex shrink-0 flex-col gap-0.5">
+          <label className="flex min-w-0 flex-col gap-0.5 md:shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Publicación</span>
             <select
               value={filtroPublicacion}
               onChange={(e) => setFiltroPublicacion(e.target.value as FiltroPublicacion)}
-              className={SELECT_FILTRO}
+              className={`${SELECT_FILTRO} w-full max-w-none md:w-auto`}
               title="Activa = publicada en MeLi · Pausada = pausada en MeLi"
             >
               <option value="todos">Todas ({counts.totalPublicacion})</option>
@@ -2093,12 +2160,12 @@ function StockPanelCompleto() {
             </select>
           </label>
 
-          <label className="flex shrink-0 flex-col gap-0.5">
+          <label className="flex min-w-0 flex-col gap-0.5 md:shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Rotación 30 d</span>
             <select
               value={filtroRotacion}
               onChange={(e) => setFiltroRotacion(e.target.value as FiltroRotacion)}
-              className={SELECT_FILTRO}
+              className={`${SELECT_FILTRO} w-full max-w-none md:w-auto`}
               disabled={ventasQ.isLoading && !ventasQ.data}
             >
               <option value="todos">Todas ({counts.totalRotacion})</option>
@@ -2109,38 +2176,25 @@ function StockPanelCompleto() {
             </select>
           </label>
 
-          {(filtroStock !== "todos"
-            || filtroCodigo !== "todos"
-            || filtroRotacion !== "todos"
-            || filtroPublicacion !== "todos"
-            || search.trim() !== "") && (
+          {hayFiltrosActivos && (
             <button
               type="button"
-              onClick={() => {
-                setSearch("");
-                setFiltroStock("todos");
-                setFiltroCodigo("todos");
-                setFiltroRotacion("todos");
-                setFiltroPublicacion("todos");
-              }}
-              className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
+              onClick={limpiarFiltros}
+              className="hidden shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/40 hover:text-ink md:inline-flex"
             >
               Limpiar filtros
             </button>
           )}
         </div>
 
-        <p className="mt-2 text-[11px] text-muted">
+        <p className="mt-2 hidden text-[11px] text-muted md:block">
           Mostrando <span className="font-bold text-ink">{items.length}</span> de{" "}
           <span className="font-bold text-ink">{filas.length}</span> publicaciones
-          {search.trim() || filtroStock !== "todos" || filtroCodigo !== "todos"
-            || filtroRotacion !== "todos" || filtroPublicacion !== "todos"
-            ? " (filtros activos)"
-            : ""}
+          {hayFiltrosActivos ? " (filtros activos)" : ""}
         </p>
       </div>
 
-      <div className="shrink-0 space-y-2">
+      <div className="shrink-0 space-y-1.5 sm:space-y-2">
       {filtroCodigo === "sin_c" && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
           Sin prefijo <span className="font-mono font-bold">C-</span>: edita el SKU, cárgalo a MeLi y
@@ -2157,7 +2211,7 @@ function StockPanelCompleto() {
         <p className="text-xs text-danger">{sincronizarTodoMut.error.message}</p>
       )}
       {ventasQ.data?.actualizado_en && (
-        <p className="text-[11px] text-muted">
+        <p className="hidden text-[11px] text-muted sm:block">
           Ventas 30 d: {ventasQ.data.actualizado_en}
           {ventasQ.data.fuente === "cache" ? " (caché)" : ""} ·{" "}
           {ventasQ.data.ordenes ?? 0} órdenes analizadas ·{" "}
@@ -2172,7 +2226,7 @@ function StockPanelCompleto() {
         </p>
       )}
       {!ventasQ.isLoading && !ventasQ.isError && ventasQ.data && Object.keys(ventasMap).length === 0 && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
+        <p className="hidden text-xs text-amber-600 dark:text-amber-400 sm:block">
           Ventas 30 d cargaron vacías (0 productos). Reintenta con actualizar forzado.
         </p>
       )}

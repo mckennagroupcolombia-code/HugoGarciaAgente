@@ -1659,8 +1659,8 @@ export default function StockPanelSimple() {
   }, [ventasQ.data]);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-2">
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
         <button
           onClick={() => {
             forceRefreshRelacionRef.current = true;
@@ -1670,7 +1670,7 @@ export default function StockPanelSimple() {
             void ventasQ.refetch();
           }}
           disabled={isFetching}
-          className="rounded-lg border border-border bg-surface-panel px-2.5 py-2 text-[11px] font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40 sm:px-3 sm:text-xs"
+          className="rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-[11px] font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs"
         >
           {isFetching ? "Actualizando..." : (
             <>
@@ -1682,18 +1682,18 @@ export default function StockPanelSimple() {
         <button
           onClick={() => sincronizarTodoMut.mutate()}
           disabled={sincronizarTodoMut.isPending || !filas.length}
-          className="rounded-lg bg-accent px-2.5 py-2 text-[11px] font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40 sm:px-3 sm:text-xs"
+          className="rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs"
         >
           {sincronizarTodoMut.isPending ? "Sincronizando..." : (
             <>
-              <span className="sm:hidden">⇄ Reenviar stock</span>
+              <span className="sm:hidden">⇄ Reenviar</span>
               <span className="hidden sm:inline">⇄ Reenviar stock a canales</span>
             </>
           )}
         </button>
       </div>
 
-      <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-3">
+      <div className="relative z-20 shrink-0 rounded-xl border border-border bg-surface-panel p-2 sm:p-3">
         <form
           className="flex min-w-0 flex-1 gap-2"
           onSubmit={(e) => {
@@ -1704,27 +1704,30 @@ export default function StockPanelSimple() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, MCO, SKU o código Siigo…"
-            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+            placeholder="Buscar nombre, MCO o SKU…"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent sm:px-3 sm:py-2"
           />
           {search.trim() && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="shrink-0 rounded-lg border border-border px-2.5 py-2 text-[11px] font-semibold text-muted hover:text-ink"
+              className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold text-muted hover:text-ink sm:px-2.5 sm:py-2"
             >
               Limpiar
             </button>
           )}
         </form>
-        <p className="mt-2 text-[11px] text-muted">
-          Mostrando <span className="font-bold text-ink">{items.length}</span> de{" "}
-          <span className="font-bold text-ink">{filas.length}</span> productos
-          {search.trim() ? " (búsqueda activa)" : ""}
+        <p className="mt-1.5 text-[11px] text-muted sm:mt-2">
+          <span className="font-bold text-ink">{items.length}</span>
+          <span className="sm:hidden"> / {filas.length}</span>
+          <span className="hidden sm:inline">
+            {" "}de <span className="font-bold text-ink">{filas.length}</span> productos
+          </span>
+          {search.trim() ? " · búsqueda" : ""}
         </p>
       </div>
 
-      <div className="shrink-0 space-y-2">
+      <div className="shrink-0 space-y-1.5 sm:space-y-2">
         {sincronizarTodoMut.isSuccess && (
           <p className="text-xs text-emerald-600 dark:text-emerald-400">
             Sincronización masiva iniciada. Revisa Sincronización → Actividad.

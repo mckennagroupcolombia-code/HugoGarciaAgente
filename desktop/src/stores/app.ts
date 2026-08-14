@@ -138,6 +138,9 @@ interface AppState {
   setSolicitudBoot: (v: SolicitudBoot | null) => void;
   accionesBootTab: AccionesBootTab | null;
   setAccionesBootTab: (v: AccionesBootTab | null) => void;
+  /** One-shot: Acciones → «Continuar donde quedé» abre ejecución en Hugo. No persistir. */
+  hugoAccionBoot: { id: number; titulo: string } | null;
+  setHugoAccionBoot: (v: { id: number; titulo: string } | null) => void;
   rentabilidadBootTab: RentabilidadBootTab | null;
   setRentabilidadBootTab: (v: RentabilidadBootTab | null) => void;
   /** Abrir detalle de factura pendiente al entrar al panel Facturas. */
@@ -223,6 +226,8 @@ export const useAppStore = create<AppState>()(
       setSolicitudBoot: (solicitudBoot) => set({ solicitudBoot }),
       accionesBootTab: null,
       setAccionesBootTab: (accionesBootTab) => set({ accionesBootTab }),
+      hugoAccionBoot: null,
+      setHugoAccionBoot: (hugoAccionBoot) => set({ hugoAccionBoot }),
       rentabilidadBootTab: null,
       setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
       facturasBootSufijo: null,

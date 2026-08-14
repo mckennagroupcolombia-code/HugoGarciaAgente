@@ -23344,6 +23344,8 @@ function AccionesView({
   const [showRepetirWizard, setShowRepetirWizard] = useState(false);
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
   const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
+  /** Pantalla de ejecución (notas + cronómetro) al pulsar «Continuar donde quedé». */
+  const [ejecutandoAccion, setEjecutandoAccion] = useState<{ id: number; titulo: string } | null>(null);
   const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "agenda" | "notas" | "bolsillo">(initialTab ?? "activas");
   const [appAbierta, setAppAbierta] = useState<"placas-concreto" | null>(null);
   const [historial, setHistorial] = useState<Ticket[]>([]);
@@ -23684,16 +23686,20 @@ function AccionesView({
       return;
     }
 
-    // Acción en_proceso sin bloqueo: sincronizar timer y abrir en Hugo
+    // Acción en_proceso sin bloqueo: abrir pantalla de ejecución (notas + cronómetro) en Hugo
     if (t.estado === "en_proceso" && !t.bloqueado_por && onInicio) {
       setLoadingExtra(true);
       setMsg("");
       try {
-        localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: t.id, titulo: t.titulo }));
+        const payload = { id: t.id, titulo: t.titulo };
+        localStorage.setItem("mckenna-accion-activa", JSON.stringify(payload));
+        // Boot en store: Hugo lo consume al montar/actualizar. localStorage solo no basta —
+        // AgenteMandoView borraba mckenna-accion-activa al montar y nunca abría la acción.
+        useAppStore.getState().setHugoAccionBoot(payload);
         onInicio();
         return;
       } catch {
-        /* falló el fetch — continuar con el wizard como fallback */
+        /* falló el handoff — continuar con el wizard como fallback */
       } finally {
         setLoadingExtra(false);
       }
@@ -26741,9 +26747,24 @@ function AgenteMandoView({
   } | null>(null);
   const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(null);
   const [esperandoTituloAccion, setEsperandoTituloAccion] = useState(false);
+  const hugoAccionBoot = useAppStore((s) => s.hugoAccionBoot);
+  const setHugoAccionBoot = useAppStore((s) => s.setHugoAccionBoot);
+
+  // «Continuar donde quedé» (Acciones) deja hugoAccionBoot y navega aquí
+  useEffect(() => {
+    if (!hugoAccionBoot?.id) return;
+    const boot = { id: hugoAccionBoot.id, titulo: hugoAccionBoot.titulo || "" };
+    setHugoAccionBoot(null);
+    localStorage.setItem("mckenna-accion-activa", JSON.stringify(boot));
+    setModoEjecucion(boot);
+  }, [hugoAccionBoot, setHugoAccionBoot]);
 
   // Limpiar clave legacy al montar — evita que una sesión anterior abra la acción automáticamente
-  useEffect(() => { localStorage.removeItem("mckenna-accion-activa"); }, []);
+  // (salvo handoff fresco de Continuar, que ya consumió hugoAccionBoot arriba)
+  useEffect(() => {
+    if (useAppStore.getState().hugoAccionBoot?.id) return;
+    localStorage.removeItem("mckenna-accion-activa");
+  }, []);
 
   // Limpiar sub-vistas cuando el padre incrementa clearSubViewKey (botón "Agenda" en móvil)
   useEffect(() => {

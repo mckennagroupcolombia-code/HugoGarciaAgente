@@ -27,13 +27,6 @@ MENSAJE="Auto-commit: actualizacion diaria $FECHA $HORA"
 # Commit
 git commit -m "$MENSAJE"
 
-# Push master → main
-git push origin master:main
-
-# Registrar resultado
-if [ $? -eq 0 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Push exitoso: '$MENSAJE'" >> "$LOG"
-else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR en el push. Revisar credenciales o conflictos." >> "$LOG"
-    exit 1
-fi
+# El push al remoto lo hace app/tools/backup_drive.py (cron 2:00, rama actual).
+# Este script solo deja el commit local listo para ese push.
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Commit local creado: '$MENSAJE'" >> "$LOG"

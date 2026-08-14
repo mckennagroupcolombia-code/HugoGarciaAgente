@@ -287,8 +287,15 @@ export default function EmpaquePanel() {
   const uploadMut = useMutation({
     mutationFn: async (file: File) => {
       if (!sel) throw new Error("Selecciona una venta");
+      // Algunos móviles envían File sin nombre → el API lo rechazaba.
+      const named =
+        file.name && file.name.trim()
+          ? file
+          : new File([file], `empaque_${Date.now()}.jpg`, {
+              type: file.type || "image/jpeg",
+            });
       const fd = new FormData();
-      fd.append("foto", file);
+      fd.append("foto", named, named.name);
       if (nota.trim()) fd.append("nota", nota.trim());
       return api.upload<{ ok: boolean; evidencia: Evidencia }>(
         `/api/empaque/ventas/${sel.canal}/${encodeURIComponent(sel.id)}/evidencias`,
@@ -303,7 +310,8 @@ export default function EmpaquePanel() {
       if (cameraInputRef.current) cameraInputRef.current.value = "";
       if (galleryInputRef.current) galleryInputRef.current.value = "";
     },
-    onError: (e: Error) => setMsg(e.message),
+    onError: (e: Error) =>
+      setMsg(e.message || "No se pudo guardar la foto. Revisa conexión y permisos."),
   });
 
   const delMut = useMutation({
@@ -371,8 +379,161 @@ export default function EmpaquePanel() {
   const ventas = data?.ventas ?? [];
   const resumen = data?.resumen;
 
+  const detalleEvidencia = sel ? (
+    <>
+      <div>
+        <span
+          className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+            CANAL_META[sel.canal]?.cls ?? ""
+          }`}
+        >
+          {CANAL_META[sel.canal]?.label}
+        </span>
+        <h2 className="mt-2 text-lg font-extrabold text-ink break-words [overflow-wrap:anywhere]">
+          {sel.cliente || "Sin nombre"}
+        </h2>
+        <p className="font-mono text-xs text-muted break-all">{sel.id}</p>
+        <p className="mt-1 text-sm text-muted">
+          {fmtDate(sel.fecha)} · {fmtCOP(sel.total)} · {sel.estado}
+        </p>
+        {sel.telefono && <p className="text-sm text-ink">Tel: {sel.telefono}</p>}
+        {sel.notas && <p className="mt-1 text-xs text-muted break-words">{sel.notas}</p>}
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">Productos</p>
+        <ul className="space-y-1 text-sm text-ink">
+          {(sel.items || []).length === 0 && (
+            <li className="text-muted break-words">{sel.items_resumen || "—"}</li>
+          )}
+          {(sel.items || []).map((it, i) => {
+            const nom = it.nombre || it.name || it.title || "?";
+            const cant = it.cantidad ?? it.qty ?? it.quantity ?? 1;
+            return (
+              <li
+                key={i}
+                className="flex justify-between gap-2 border-b border-border/40 py-1.5"
+              >
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{nom}</span>
+                <span className="shrink-0 font-semibold">×{cant}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-dashed border-accent/40 bg-accent/5 p-3">
+        <p className="mb-2 text-sm font-bold text-ink">Evidencia fotográfica</p>
+        <p className="mb-2 text-xs text-muted">
+          Abre la cámara, fotografía el contenido del paquete y se sube al instante.
+        </p>
+        {msg && (
+          <p
+            className={`mb-2 rounded-lg border px-3 py-2 text-sm ${
+              /guardada|registrado/i.test(msg)
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+                : "border-danger/40 bg-danger/10 text-danger"
+            }`}
+          >
+            {msg}
+          </p>
+        )}
+        {uploadMut.isPending && (
+          <p className="mb-2 text-sm font-semibold text-accent">Subiendo foto…</p>
+        )}
+        <input
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+          placeholder="Nota opcional (ej. 3 frascos + 2 sobres)"
+          className="mb-3 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-base text-ink sm:text-sm"
+        />
+
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={onPickFile}
+          disabled={uploadMut.isPending}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={onPickFile}
+          disabled={uploadMut.isPending}
+        />
+
+        <button
+          type="button"
+          disabled={uploadMut.isPending}
+          onClick={abrirCamara}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-paper bg-accent px-4 py-3.5 text-base font-extrabold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5 disabled:opacity-50"
+        >
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          {uploadMut.isPending ? "Subiendo…" : "Tomar foto y cargar"}
+        </button>
+
+        <button
+          type="button"
+          disabled={uploadMut.isPending}
+          onClick={() => galleryInputRef.current?.click()}
+          className="mt-2 min-h-11 w-full rounded-paper border-2 border-border bg-surface-panel px-3 py-2.5 text-sm font-semibold text-ink hover:border-accent disabled:opacity-50"
+        >
+          Elegir de galería
+        </button>
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+          Evidencias ({evidenciasQ.data?.evidencias?.length ?? 0})
+        </p>
+        {evidenciasQ.isLoading && <p className="text-xs text-muted">Cargando…</p>}
+        <div className="grid grid-cols-2 gap-2">
+          {(evidenciasQ.data?.evidencias ?? []).map((ev) => (
+            <figure key={ev.id} className="relative overflow-hidden rounded-lg border border-border">
+              <a href={evidenciaImgUrl(ev.url, token)} target="_blank" rel="noreferrer">
+                <img
+                  src={evidenciaImgUrl(ev.url, token)}
+                  alt={ev.nota || "Evidencia"}
+                  className="aspect-square w-full object-cover"
+                />
+              </a>
+              <figcaption className="truncate px-1.5 py-1 text-[10px] text-muted">
+                {ev.subido_por || "—"} · {fmtDate(ev.creado_en)}
+              </figcaption>
+              <button
+                type="button"
+                title="Eliminar"
+                onClick={() => delMut.mutate(ev.id)}
+                className="absolute right-1 top-1 rounded bg-black/60 px-1.5 text-[10px] font-bold text-white"
+              >
+                ✕
+              </button>
+            </figure>
+          ))}
+        </div>
+        {!evidenciasQ.isLoading && (evidenciasQ.data?.evidencias?.length ?? 0) === 0 && (
+          <p className="text-xs text-orange-600 dark:text-orange-300">
+            Sin fotos todavía — tómalas antes de despachar.
+          </p>
+        )}
+      </div>
+    </>
+  ) : null;
+
+  const seleccionarVenta = (v: Venta) => {
+    setSel(v);
+    setMsg(null);
+  };
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 md:p-6">
+    <div className="flex h-full min-h-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:p-6">
       <CamaraEvidenciaModal
         open={camaraOpen}
         onClose={() => setCamaraOpen(false)}
@@ -380,9 +541,11 @@ export default function EmpaquePanel() {
       />
 
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-extrabold text-ink dark:text-white">Empaque · Evidencia</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted">
+        <div className="min-w-0">
+          <h1 className="text-lg font-extrabold text-ink dark:text-white sm:text-xl">
+            Empaque · Evidencia
+          </h1>
+          <p className="mt-1 hidden max-w-xl text-sm text-muted sm:block">
             Ventas de Mercado Libre, página web y WhatsApp. Toma foto del paquete
             para evitar reclamos por faltantes.
           </p>
@@ -391,14 +554,14 @@ export default function EmpaquePanel() {
           <button
             type="button"
             onClick={() => setShowWaForm((v) => !v)}
-            className="rounded-paper border-2 border-border bg-surface-panel px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
+            className="min-h-10 rounded-paper border-2 border-border bg-surface-panel px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
           >
             + Pedido WhatsApp
           </button>
           <button
             type="button"
             onClick={() => refetch()}
-            className="rounded-paper border-2 border-accent bg-accent px-3 py-2 text-sm font-semibold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5"
+            className="min-h-10 rounded-paper border-2 border-accent bg-accent px-3 py-2 text-sm font-semibold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5"
           >
             {isFetching ? "Actualizando…" : "Actualizar"}
           </button>
@@ -414,7 +577,7 @@ export default function EmpaquePanel() {
               <input
                 value={waCliente}
                 onChange={(e) => setWaCliente(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
                 placeholder="Nombre del cliente"
               />
             </label>
@@ -423,7 +586,7 @@ export default function EmpaquePanel() {
               <input
                 value={waTel}
                 onChange={(e) => setWaTel(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
                 placeholder="300…"
               />
             </label>
@@ -433,7 +596,7 @@ export default function EmpaquePanel() {
                 value={waProds}
                 onChange={(e) => setWaProds(e.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
                 placeholder={"Niacinamida 100g\nÁcido hialurónico 50g"}
               />
             </label>
@@ -442,7 +605,7 @@ export default function EmpaquePanel() {
               <input
                 value={waTotal}
                 onChange={(e) => setWaTotal(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
                 placeholder="85000"
               />
             </label>
@@ -452,14 +615,14 @@ export default function EmpaquePanel() {
               type="button"
               disabled={!waCliente.trim() || crearWaMut.isPending}
               onClick={() => crearWaMut.mutate()}
-              className="rounded-paper bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="min-h-11 rounded-paper bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               {crearWaMut.isPending ? "Guardando…" : "Guardar pedido"}
             </button>
             <button
               type="button"
               onClick={() => setShowWaForm(false)}
-              className="rounded-paper border border-border px-4 py-2 text-sm text-muted"
+              className="min-h-11 rounded-paper border border-border px-4 py-2 text-sm text-muted"
             >
               Cancelar
             </button>
@@ -467,13 +630,14 @@ export default function EmpaquePanel() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-2">
+      {/* Filtros: ocultos en móvil cuando ya hay pedido seleccionado (más espacio para cámara) */}
+      <div className={`flex flex-wrap items-end gap-2 ${sel ? "hidden lg:flex" : ""}`}>
         <label className="text-xs font-semibold text-muted">
           Canal
           <select
             value={canal}
             onChange={(e) => setCanal(e.target.value as Canal)}
-            className="mt-1 block rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+            className="mt-1 block min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
           >
             <option value="">Todos</option>
             <option value="meli">Mercado Libre</option>
@@ -486,7 +650,7 @@ export default function EmpaquePanel() {
           <select
             value={dias}
             onChange={(e) => setDias(Number(e.target.value))}
-            className="mt-1 block rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+            className="mt-1 block min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
           >
             {[3, 7, 14, 30].map((d) => (
               <option key={d} value={d}>
@@ -495,7 +659,7 @@ export default function EmpaquePanel() {
             ))}
           </select>
         </label>
-        <label className="min-w-[12rem] flex-1 text-xs font-semibold text-muted">
+        <label className="min-w-0 flex-1 basis-full text-xs font-semibold text-muted sm:basis-auto sm:min-w-[12rem]">
           Buscar
           <div className="mt-1 flex gap-1">
             <input
@@ -504,31 +668,31 @@ export default function EmpaquePanel() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") setQ(qDraft.trim());
               }}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
+              className="min-h-10 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-ink sm:text-sm"
               placeholder="Cliente, ID, teléfono…"
             />
             <button
               type="button"
               onClick={() => setQ(qDraft.trim())}
-              className="rounded-lg border border-border px-3 text-sm font-semibold text-ink"
+              className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold text-ink"
             >
               Ir
             </button>
           </div>
         </label>
-        <label className="flex items-center gap-2 pb-2 text-sm text-ink">
+        <label className="flex min-h-10 items-center gap-2 pb-1 text-sm text-ink">
           <input
             type="checkbox"
             checked={soloSin}
             onChange={(e) => setSoloSin(e.target.checked)}
-            className="accent-[var(--color-accent,#0d9488)]"
+            className="h-4 w-4 accent-[var(--color-accent,#0d9488)]"
           />
           Solo sin foto
         </label>
       </div>
 
       {resumen && (
-        <div className="flex flex-wrap gap-2 text-xs font-semibold">
+        <div className={`flex flex-wrap gap-2 text-xs font-semibold ${sel ? "hidden lg:flex" : ""}`}>
           <span className="rounded-full border border-border px-3 py-1 text-muted">
             Total {data?.total ?? 0}
           </span>
@@ -563,7 +727,75 @@ export default function EmpaquePanel() {
         </p>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_360px]">
+      {/* ── Móvil: lista de pedidos O detalle+cámara (no ambos a la vez) ── */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:hidden">
+        {!sel ? (
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pb-4">
+            {isLoading && (
+              <p className="py-8 text-center text-sm text-muted">Cargando ventas…</p>
+            )}
+            {!isLoading && ventas.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted">No hay ventas en este filtro.</p>
+            )}
+            {ventas.map((v) => {
+              const meta = CANAL_META[v.canal] ?? CANAL_META.web;
+              return (
+                <button
+                  key={`${v.canal}-${v.id}`}
+                  type="button"
+                  onClick={() => seleccionarVenta(v)}
+                  className="flex w-full flex-col gap-1.5 rounded-xl border-2 border-border bg-surface-panel p-3 text-left shadow-paper active:border-accent active:bg-accent/5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${meta.cls}`}
+                    >
+                      {meta.label}
+                    </span>
+                    {v.evidencias_count > 0 ? (
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                        {v.evidencias_count} foto{v.evidencias_count !== 1 ? "s" : ""}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                        Sin foto
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-base font-bold text-ink break-words [overflow-wrap:anywhere]">
+                    {v.cliente || "—"}
+                  </p>
+                  <p className="font-mono text-[11px] text-muted break-all">{v.id}</p>
+                  <p className="text-sm text-muted break-words [overflow-wrap:anywhere] line-clamp-2">
+                    {v.items_resumen || "Sin productos"}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="text-muted">{fmtDate(v.fecha)}</span>
+                    <span className="font-semibold text-ink">{fmtCOP(v.total)}</span>
+                  </div>
+                  <span className="mt-1 text-center text-xs font-semibold text-accent">
+                    Tocar para evidenciar →
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pb-6">
+            <button
+              type="button"
+              onClick={() => setSel(null)}
+              className="sticky top-0 z-10 flex min-h-11 items-center gap-2 rounded-xl border-2 border-border bg-surface-panel px-3 py-2 text-sm font-bold text-ink shadow-paper"
+            >
+              ← Volver a pedidos
+            </button>
+            {detalleEvidencia}
+          </div>
+        )}
+      </div>
+
+      {/* ── Escritorio: tabla + aside ── */}
+      <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-[1fr_360px]">
         <div className="mck-table-wrap min-h-0 overflow-auto rounded-paper border-2 border-border bg-surface-panel shadow-paper">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-border bg-surface-panel text-[11px] uppercase tracking-wide text-muted">
@@ -597,16 +829,15 @@ export default function EmpaquePanel() {
                 return (
                   <tr
                     key={`${v.canal}-${v.id}`}
-                    onClick={() => {
-                      setSel(v);
-                      setMsg(null);
-                    }}
+                    onClick={() => seleccionarVenta(v)}
                     className={`cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-hover ${
                       active ? "bg-accent/10" : ""
                     }`}
                   >
                     <td className="px-3 py-2">
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${meta.cls}`}>
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${meta.cls}`}
+                      >
                         {meta.label}
                       </span>
                     </td>
@@ -615,7 +846,10 @@ export default function EmpaquePanel() {
                       <div className="font-semibold text-ink">{v.cliente || "—"}</div>
                       <div className="font-mono text-[11px] text-muted">{v.id}</div>
                     </td>
-                    <td className="max-w-[14rem] truncate px-3 py-2 text-muted" title={v.items_resumen}>
+                    <td
+                      className="max-w-[14rem] truncate px-3 py-2 text-muted"
+                      title={v.items_resumen}
+                    >
                       {v.items_resumen || "—"}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink">
@@ -643,130 +877,7 @@ export default function EmpaquePanel() {
               Elige una venta de la lista para ver el detalle y tomar fotos del paquete.
             </p>
           ) : (
-            <>
-              <div>
-                <span
-                  className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
-                    CANAL_META[sel.canal]?.cls ?? ""
-                  }`}
-                >
-                  {CANAL_META[sel.canal]?.label}
-                </span>
-                <h2 className="mt-2 text-lg font-extrabold text-ink">{sel.cliente || "Sin nombre"}</h2>
-                <p className="font-mono text-xs text-muted">{sel.id}</p>
-                <p className="mt-1 text-sm text-muted">
-                  {fmtDate(sel.fecha)} · {fmtCOP(sel.total)} · {sel.estado}
-                </p>
-                {sel.telefono && <p className="text-sm text-ink">Tel: {sel.telefono}</p>}
-                {sel.notas && <p className="mt-1 text-xs text-muted">{sel.notas}</p>}
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">Productos</p>
-                <ul className="space-y-1 text-sm text-ink">
-                  {(sel.items || []).length === 0 && <li className="text-muted">{sel.items_resumen || "—"}</li>}
-                  {(sel.items || []).map((it, i) => {
-                    const nom = it.nombre || it.name || it.title || "?";
-                    const cant = it.cantidad ?? it.qty ?? it.quantity ?? 1;
-                    return (
-                      <li key={i} className="flex justify-between gap-2 border-b border-border/40 py-1">
-                        <span>{nom}</span>
-                        <span className="shrink-0 font-semibold">×{cant}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              <div className="rounded-lg border border-dashed border-accent/40 bg-accent/5 p-3">
-                <p className="mb-2 text-sm font-bold text-ink">Evidencia fotográfica</p>
-                <p className="mb-2 text-xs text-muted">
-                  Abre la cámara, fotografía el contenido del paquete y se sube al instante.
-                </p>
-                <input
-                  value={nota}
-                  onChange={(e) => setNota(e.target.value)}
-                  placeholder="Nota opcional (ej. 3 frascos + 2 sobres)"
-                  className="mb-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink"
-                />
-
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="sr-only"
-                  onChange={onPickFile}
-                  disabled={uploadMut.isPending}
-                />
-                <input
-                  ref={galleryInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={onPickFile}
-                  disabled={uploadMut.isPending}
-                />
-
-                <button
-                  type="button"
-                  disabled={uploadMut.isPending}
-                  onClick={abrirCamara}
-                  className="flex w-full items-center justify-center gap-2 rounded-paper bg-accent px-4 py-3.5 text-base font-extrabold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5 disabled:opacity-50"
-                >
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                  {uploadMut.isPending ? "Subiendo…" : "Tomar foto y cargar"}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={uploadMut.isPending}
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="mt-2 w-full rounded-paper border-2 border-border bg-surface-panel px-3 py-2 text-sm font-semibold text-ink hover:border-accent disabled:opacity-50"
-                >
-                  Elegir de galería
-                </button>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
-                  Evidencias ({evidenciasQ.data?.evidencias?.length ?? 0})
-                </p>
-                {evidenciasQ.isLoading && <p className="text-xs text-muted">Cargando…</p>}
-                <div className="grid grid-cols-2 gap-2">
-                  {(evidenciasQ.data?.evidencias ?? []).map((ev) => (
-                    <figure key={ev.id} className="relative overflow-hidden rounded-lg border border-border">
-                      <a href={evidenciaImgUrl(ev.url, token)} target="_blank" rel="noreferrer">
-                        <img
-                          src={evidenciaImgUrl(ev.url, token)}
-                          alt={ev.nota || "Evidencia"}
-                          className="aspect-square w-full object-cover"
-                        />
-                      </a>
-                      <figcaption className="truncate px-1.5 py-1 text-[10px] text-muted">
-                        {ev.subido_por || "—"} · {fmtDate(ev.creado_en)}
-                      </figcaption>
-                      <button
-                        type="button"
-                        title="Eliminar"
-                        onClick={() => delMut.mutate(ev.id)}
-                        className="absolute right-1 top-1 rounded bg-black/60 px-1.5 text-[10px] font-bold text-white"
-                      >
-                        ✕
-                      </button>
-                    </figure>
-                  ))}
-                </div>
-                {!evidenciasQ.isLoading && (evidenciasQ.data?.evidencias?.length ?? 0) === 0 && (
-                  <p className="text-xs text-orange-600 dark:text-orange-300">
-                    Sin fotos todavía — tómalas antes de despachar.
-                  </p>
-                )}
-              </div>
-            </>
+            detalleEvidencia
           )}
         </aside>
       </div>

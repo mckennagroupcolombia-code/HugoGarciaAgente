@@ -28,7 +28,7 @@ function normalizarTitulo(s: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\.(pdf|docx)$/i, "")
     .replace(
-      /\b(ft|coa|sds|completo|ficha tecnica|certificado de analisis|tds|hoja de datos)\b/gi,
+      /\b(ft|coa|sds|tds|completo|ficha tecnica|certificado de analisis|hoja de datos|msds|usp|bp|nf|fcc|ep|pharma|pharmaceutical|cosmetic|cosmetico|food|grade|grado|anhydrous|anhidro|monohydrate|monohidrato|powder|polvo|crystal|cristales)\b/gi,
       " ",
     )
     .replace(/[^a-z0-9]+/g, " ")
@@ -37,6 +37,13 @@ function normalizarTitulo(s: string): string {
 
 function tokensTitulo(s: string): string[] {
   return normalizarTitulo(s).split(/\s+/).filter((t) => t.length > 1);
+}
+
+function tokenCerca(a: string, b: string): boolean {
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  // Variantes EN/ES (niacinamide/niacinamida, glycerin/glicerina)
+  const n = Math.min(a.length, b.length);
+  return n >= 5 && a.slice(0, 5) === b.slice(0, 5);
 }
 
 /** Devuelve el mejor documento de biblioteca para el nombre de materia prima detectado. */
@@ -59,22 +66,43 @@ export function encontrarDocumentoPorMateriaPrima(
 
     let score = 0;
     if (cand === query) score = 100;
-    else if (cand.includes(query) || query.includes(cand)) score = 85;
+    else if (cand.includes(query) || query.includes(cand)) score = 88;
     else {
       const cTokens = tokensTitulo(tituloArchivo);
       if (!cTokens.length) continue;
-      const overlap = qTokens.filter((t) => cTokens.some((c) => c.includes(t) || t.includes(c))).length;
-      score = Math.round((overlap / Math.max(qTokens.length, cTokens.length)) * 70);
+      const overlap = qTokens.filter((t) => cTokens.some((c) => tokenCerca(t, c))).length;
+      const denom = Math.max(qTokens.length, 1);
+      score = Math.round((overlap / denom) * 80);
+      if (overlap >= Math.min(qTokens.length, 2) && overlap / qTokens.length >= 0.6) {
+        score = Math.max(score, 55);
+      } else if (overlap >= 1 && qTokens.length === 1) {
+        score = Math.max(score, 50);
+      }
     }
 
-    // Preferir documentos "completo" cuando hay empate
-    if (a.categoria === "completo") score += 2;
+    if (a.categoria === "completo") score += 3;
 
     if (!best || score > best.score) best = { archivo: a, score };
   }
 
-  if (!best || best.score < 40) return null;
+  if (!best || best.score < 35) return null;
   return best;
+}
+
+/** Resuelve un nombre sugerido por la IA contra la lista real de PDFs. */
+export function resolverArchivoBiblioteca(
+  archivos: ArchivoBiblioteca[],
+  sugerido: string,
+): ArchivoBiblioteca | null {
+  const s = sugerido.trim();
+  if (!s) return null;
+  const low = s.toLowerCase().replace(/\.pdf$/i, "");
+  const exact = archivos.find((a) => {
+    const n = a.nombre.toLowerCase();
+    return n === s.toLowerCase() || n.replace(/\.pdf$/i, "") === low;
+  });
+  if (exact) return exact;
+  return encontrarDocumentoPorMateriaPrima(archivos, s)?.archivo ?? null;
 }
 
 function vacio(v: unknown): boolean {
@@ -277,6 +305,50 @@ export default function CoaDocumentosScanner({
     [onEditar],
   );
 
+  const abrirDesdeCamposIa = useCallback(
+    (nombreDetectado: string, parametrosText: string) => {
+      const base: Record<string, unknown> = {
+        titulo: nombreDetectado.toUpperCase(),
+        nombre_producto: nombreDetectado,
+        nombre_comercial: camposRef.current.nombre_comercial || "",
+        inci: camposRef.current.inci || "",
+        cas: camposRef.current.cas || "",
+        lote: camposRef.current.lote || "",
+        pais_origen: camposRef.current.pais_origen || "",
+        fabricante: camposRef.current.fabricante || "",
+        caracteristicas_fisicas: {},
+        _coa: {
+          titulo: nombreDetectado.toUpperCase(),
+          parametros: [],
+          identificacion: {},
+          lote: {},
+          empaque: {},
+        },
+      };
+      const { datos, filled } = mergeCoaEnDatos(
+        base,
+        "completo",
+        parametrosText,
+        camposRef.current,
+      );
+      setCamposComplementados(filled);
+      onEditar({
+        tipo: "completo",
+        titulo: nombreDetectado,
+        datos,
+        yaml: "",
+        tiene_datos: true,
+      });
+      setAplicarOk(true);
+      setDocSeleccionado("");
+      setMatchScore(null);
+      setAsociacionMsg(
+        `IA detectó «${nombreDetectado}». No había PDF en biblioteca: se abrió un documento nuevo con los datos del COA.`,
+      );
+    },
+    [onEditar],
+  );
+
   const escanearArchivo = useCallback(
     async (file: File) => {
       setScanError(null);
@@ -293,6 +365,12 @@ export default function CoaDocumentosScanner({
         const url = await resolvePanelApiUrl("/api/fichas/coa/escanear-parametros", "POST");
         const fd = new FormData();
         fd.append("imagen", file);
+        const catalogo = archivos
+          .filter((a) => a.nombre.toLowerCase().endsWith(".pdf"))
+          .map((a) => a.nombre);
+        if (catalogo.length) {
+          fd.append("catalogo", JSON.stringify(catalogo));
+        }
         const res = await fetch(url, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -311,10 +389,9 @@ export default function CoaDocumentosScanner({
               )
             : {};
 
-        // Acumular campos: no sobrescribir con vacío; valor nuevo gana si llega
         const acumulados: CoaScanCampos = { ...camposRef.current };
         for (const [k, v] of Object.entries(camposIn)) {
-          if (k === "parametros") continue;
+          if (k === "parametros" || k === "archivo_biblioteca") continue;
           if (v) acumulados[k] = v;
         }
         camposRef.current = acumulados;
@@ -328,30 +405,40 @@ export default function CoaDocumentosScanner({
         setParametros(merged);
         setFotosCapturadas((n) => n + 1);
 
-        const extras = Object.keys(acumulados).filter((k) => k !== "parametros" && k !== "nombre_producto");
+        const extras = Object.keys(acumulados).filter(
+          (k) => k !== "parametros" && k !== "nombre_producto",
+        );
         const extrasTxt = extras.length
           ? ` · ${extras.length} dato${extras.length !== 1 ? "s" : ""} para complementar casillas`
           : "";
 
-        if (nombreDetectado) {
-          setMateriaPrima(nombreDetectado);
+        const sugeridoIa = String(json.archivo_biblioteca || "").trim();
+        let archivoHit =
+          (sugeridoIa && resolverArchivoBiblioteca(archivos, sugeridoIa)) || null;
+        let score: number | null = sugeridoIa && archivoHit ? 95 : null;
+
+        if (!archivoHit && nombreDetectado) {
           const hit = encontrarDocumentoPorMateriaPrima(archivos, nombreDetectado);
           if (hit) {
-            setDocSeleccionado(hit.archivo.nombre);
-            setMatchScore(hit.score);
-            setAsociacionMsg(
-              `IA detectó «${nombreDetectado}» → asociado a «${hit.archivo.nombre.replace(/\.pdf$/i, "")}»${extrasTxt}`,
-            );
-            await aplicarADocumento(hit.archivo.nombre, merged);
-          } else {
-            setMatchScore(null);
-            setAsociacionMsg(
-              `IA detectó «${nombreDetectado}»${extrasTxt}, pero no hay documento en la biblioteca con ese título. Elige uno manualmente.`,
-            );
+            archivoHit = hit.archivo;
+            score = hit.score;
           }
+        }
+
+        if (archivoHit) {
+          setMateriaPrima(nombreDetectado || archivoHit.nombre.replace(/\.pdf$/i, ""));
+          setDocSeleccionado(archivoHit.nombre);
+          setMatchScore(score);
+          setAsociacionMsg(
+            `IA identificó la materia prima${nombreDetectado ? ` «${nombreDetectado}»` : ""} → «${archivoHit.nombre.replace(/\.pdf$/i, "")}»${extrasTxt}. Actualizando documento…`,
+          );
+          await aplicarADocumento(archivoHit.nombre, merged);
+        } else if (nombreDetectado) {
+          setMateriaPrima(nombreDetectado);
+          abrirDesdeCamposIa(nombreDetectado, merged);
         } else {
           setAsociacionMsg(
-            `No se pudo leer el nombre de la materia prima.${extrasTxt || " Elige el documento manualmente."}`,
+            `No se pudo leer el nombre de la materia prima.${extrasTxt || " Sube una foto más legible del encabezado del COA."}`,
           );
         }
       } catch (e: unknown) {
@@ -360,7 +447,7 @@ export default function CoaDocumentosScanner({
         setScanning(false);
       }
     },
-    [archivos, aplicarADocumento],
+    [archivos, aplicarADocumento, abrirDesdeCamposIa],
   );
 
   const procesarArchivo = useCallback(
@@ -450,8 +537,9 @@ export default function CoaDocumentosScanner({
             Escáner de documentos COA
           </h3>
           <p className="mt-1 text-xs text-muted">
-            Al subir la foto, la IA identifica la materia prima, completa casillas vacías del formulario
-            (CAS, lote, fabricante, grado, apariencia, etc.) y asocia el documento de la biblioteca.
+            Sube o fotografía el COA: la IA identifica sola la materia prima, completa casillas
+            y abre el documento de la biblioteca (o uno nuevo si aún no existe). No hace falta
+            elegir de la lista.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -564,7 +652,7 @@ export default function CoaDocumentosScanner({
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs text-muted">
-          Documento a actualizar
+          Corregir documento (opcional)
           <select
             value={docSeleccionado}
             onChange={(e) => {
@@ -574,7 +662,7 @@ export default function CoaDocumentosScanner({
             }}
             className="rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink"
           >
-            <option value="">— Elegir documento —</option>
+            <option value="">— Solo si la IA se equivocó —</option>
             {opcionesDoc.map((a) => (
               <option key={a.nombre} value={a.nombre}>
                 {a.nombre.replace(/\.pdf$/i, "")}
@@ -587,9 +675,9 @@ export default function CoaDocumentosScanner({
           type="button"
           onClick={() => void aplicarADocumento(docSeleccionado, parametros)}
           disabled={aplicando || scanning || !parametros.trim() || !docSeleccionado}
-          className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-40"
+          className="rounded-lg border border-accent/50 bg-surface-panel px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
         >
-          {aplicando ? "Abriendo editor…" : "Actualizar documento"}
+          {aplicando ? "Abriendo editor…" : "Aplicar a este documento"}
         </button>
       </div>
 

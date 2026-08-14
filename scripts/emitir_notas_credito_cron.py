@@ -101,8 +101,50 @@ def _texto_factura(f: dict) -> str:
     return f"{f.get('observations', '')} {f.get('purchase_order', '')}"
 
 
+def _subir_nota_credito_a_meli(pack_id: str, nc_id: str) -> tuple[bool, str]:
+    """
+    Descarga el PDF de la nota crédito en Siigo y lo sube al pack en MeLi
+    (mismo endpoint fiscal_documents que la factura). Sin esto, Siigo queda
+    con la nota crédito correcta pero MeLi solo muestra la factura original
+    en "ver factura" — como si la cancelación nunca se hubiera resuelto.
+
+    MeLi solo admite UN documento fiscal por pack (confirmado con un 409
+    "File Not allowed... there can be only one fiscal_document per pack" al
+    intentar subir la NC junto a la factura ya existente): hay que borrar el
+    documento anterior antes de subir la nota crédito. Siigo conserva ambos
+    documentos siempre — esto solo reemplaza lo que MeLi expone.
+    """
+    from app.services.siigo import descargar_nota_credito_pdf_siigo
+    from app.services.meli import subir_factura_meli, eliminar_documentos_fiscales_meli
+
+    if not nc_id:
+        return False, "Sin ID de nota crédito para descargar el PDF."
+    pdf_b64 = descargar_nota_credito_pdf_siigo(nc_id)
+    if not pdf_b64 or "Error" in str(pdf_b64):
+        return False, f"No se pudo descargar el PDF de la nota crédito en Siigo: {pdf_b64}"
+
+    borrado_ok, borrado_error = eliminar_documentos_fiscales_meli(pack_id)
+    if not borrado_ok:
+        return False, f"No se pudo borrar el documento fiscal anterior en MeLi: {borrado_error}"
+
+    resultado = subir_factura_meli(pack_id, pdf_b64, formato="pdf", prefijo_archivo="NC")
+    if "✅" in str(resultado):
+        return True, ""
+    return False, f"No se pudo subir la nota crédito a MeLi: {resultado}"
+
+
 def _mas_viejo_que_margen(orden: dict, margen_horas: float) -> bool:
-    fecha_txt = orden.get("date_closed") or orden.get("date_created")
+    # `cancel_detail.date` es el momento real de la cancelación — puede ser
+    # muy posterior a date_closed/date_created (esos son de cuando la orden
+    # se cerró/pagó originalmente). Usar date_closed como proxy de "cuándo se
+    # canceló" adelanta el margen de seguridad: una orden cerrada hace días
+    # pero cancelada hace una hora pasaría el chequeo de inmediato, dejando
+    # a contabilidad sin las 48h que el margen promete.
+    fecha_txt = (
+        (orden.get("cancel_detail") or {}).get("date")
+        or orden.get("date_closed")
+        or orden.get("date_created")
+    )
     if not fecha_txt:
         return True
     try:
@@ -177,6 +219,7 @@ def main() -> int:
     from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
 
     if not debe_ejecutar(JOB_ID):
+        print("⏭  Notas crédito automáticas: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
         return 0
 
     if not _activo():
@@ -199,8 +242,34 @@ def main() -> int:
     print(f"   {len(canceladas)} órdenes canceladas en la ventana.")
 
     fecha_inicio_facturas = (datetime.now() - timedelta(days=dias_atras + 5)).strftime("%Y-%m-%d")
-    facturas = obtener_facturas_siigo_paginadas(fecha_inicio_facturas)
+    try:
+        facturas = obtener_facturas_siigo_paginadas(fecha_inicio_facturas, estricto=True)
+    except Exception as e:
+        # No seguir: una lista de facturas incompleta hace que cancelaciones
+        # con factura real se traten como "sin factura" y se descarten sin
+        # dejar rastro (ver historial de este archivo). Mejor abortar la
+        # corrida, avisar y reintentar mañana con la lista completa.
+        print(f"🔴 No se pudo obtener el listado completo de facturas Siigo, se aborta esta corrida: {e}")
+        errores = [{"pack": "-", "factura": "-", "error": f"Paginación de facturas Siigo incompleta: {e}"}]
+        _crear_ticket_revision(errores)
+        if not _quiet():
+            enviar_whatsapp_reporte(_mensaje_whatsapp([], [], errores), jid_grupo_facturacion_ventas_wa())
+        registrar_ejecucion(JOB_ID)
+        return 1
     print(f"   {len(facturas)} facturas Siigo en la ventana.")
+
+    try:
+        from app.services.conciliacion_meli import (
+            construir_indice_facturacion_meli,
+            guardar_indice_facturacion_meli,
+        )
+        indice = construir_indice_facturacion_meli(facturas)
+        guardar_indice_facturacion_meli(indice)
+        print(f"   Índice de conciliación Ventas/Facturación actualizado ({len(indice)} packs con factura).")
+    except Exception as e:
+        # No es crítico para el flujo de notas crédito — solo alimenta el
+        # panel "Ventas y NC". No abortar la corrida por esto.
+        print(f"⚠️ No se pudo actualizar el índice de conciliación: {e}")
 
     estado = _leer_estado()
     procesadas = estado["procesadas"]
@@ -227,13 +296,17 @@ def main() -> int:
 
         existente = buscar_nota_credito_existente_siigo(factura_id)
         if existente:
+            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, existente.get("id"))
             duplicados.append({
                 "pack": pack_id, "factura": factura_numero,
                 "nc_existente": existente.get("name"),
             })
+            if not subida_ok:
+                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {existente.get('name')} ya existía en Siigo pero no se pudo subir a MeLi: {subida_error}"})
             procesadas[pack_id] = {
                 "estado": "ya_tenia_nc", "factura": factura_numero,
-                "nc": existente.get("name"), "actualizado_en": datetime.now().isoformat(timespec="seconds"),
+                "nc": existente.get("name"), "subida_meli": subida_ok,
+                "actualizado_en": datetime.now().isoformat(timespec="seconds"),
             }
             continue
 
@@ -261,16 +334,20 @@ def main() -> int:
         )
 
         if resultado.get("ok"):
+            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, resultado.get("credit_note_id"))
             emitidas.append({
                 "pack": pack_id, "factura": factura_numero,
                 "nc_name": resultado["name"], "total": resultado.get("total") or factura.get("total") or 0,
                 "status": resultado.get("status"),
             })
+            if not subida_ok:
+                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {resultado['name']} se emitió en Siigo pero no se pudo subir a MeLi: {subida_error}"})
             procesadas[pack_id] = {
                 "estado": "emitida", "factura": factura_numero, "nc": resultado["name"],
+                "subida_meli": subida_ok,
                 "actualizado_en": datetime.now().isoformat(timespec="seconds"),
             }
-            print(f"   ✅ {factura_numero} -> {resultado['name']} ({resultado.get('status')})")
+            print(f"   ✅ {factura_numero} -> {resultado['name']} ({resultado.get('status')}) — MeLi: {'✅' if subida_ok else '❌ ' + subida_error}")
         else:
             errores.append({"pack": pack_id, "factura": factura_numero, "error": resultado.get("error", "error desconocido")})
             print(f"   🔴 {factura_numero}: {resultado.get('error')}")

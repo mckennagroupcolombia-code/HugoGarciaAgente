@@ -1,55 +1,7 @@
 {
-  "pendientes": {
-    "2000017899030260": {
-      "pack_id": "2000017899030260",
-      "codigo": "260",
-      "comprador": "Comprador 88599534",
-      "from_id": "88599534",
-      "texto": "Gracias",
-      "msg_id": "019ff724846371839b69516af4699bee",
-      "productos": "  • Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura x1 — $120,000 c/u",
-      "productos_detalle": [
-        {
-          "nombre": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
-          "cantidad": 1,
-          "precio_unitario": 120000.0
-        }
-      ],
-      "total": "$120,000 COP (pagado)",
-      "fecha_compra": "12/08/2026 01:34 PM",
-      "envio": "Listo para enviar",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-12T13:03:20"
-    },
-    "260": {
-      "pack_id": "2000017899030260",
-      "codigo": "260",
-      "comprador": "Comprador 88599534",
-      "from_id": "88599534",
-      "texto": "Gracias",
-      "msg_id": "019ff724846371839b69516af4699bee",
-      "productos": "  • Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura x1 — $120,000 c/u",
-      "productos_detalle": [
-        {
-          "nombre": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
-          "cantidad": 1,
-          "precio_unitario": 120000.0
-        }
-      ],
-      "total": "$120,000 COP (pagado)",
-      "fecha_compra": "12/08/2026 01:34 PM",
-      "envio": "Listo para enviar",
-      "sugerencia_ia": "",
-      "timestamp": "2026-08-12T13:03:20"
-    }
-  },
+  "pendientes": {},
   "procesados": [
-    "019efa0ed1ec729ba4d024bdbf81041b",
-    "019e03da568f76eaa1510125e222780e",
-    "019f05fe04f6776582859762420b7194",
-    "019e42dd3b5a7c6e94fdc4d2cee19b4f",
     "019fb31e37fd7641a91ddf666220772a",
-    "019e1e6de16479c49338422a6dbe89a4",
     "019f8614304c7680a1a25dba8c4be072",
     "019fc9edb2407f15a0bd222f67f6326f",
     "019e7093c34a77468c16991a55ccfcd0",
@@ -165,6 +117,7 @@
     "019dcbacd251732cbc43e28c32776824",
     "019e1838d74574318693d3ce516ce384",
     "019d888957e97a088cc88d4e57ad5cd3",
+    "019ffd49293b753d86785bc027a7578f",
     "019f201693117a6c95f610b59d0a9651",
     "019f05db8467739da8c2fbe52853e764",
     "019f3978a90f7a64987580648d81faee",
@@ -194,6 +147,7 @@
     "019e2bd0cecf7e3f8a64a33fb6cd8779",
     "019dbb2baf2b74e9b60456fe5039cea7",
     "019f760e61fb7a7f80a28a7ceccad59f",
+    "019ffd35793b7b8585341ac6ce505ed8",
     "019ebcab38397aa68092f766e9c11057",
     "019f05c02e1e7313b60ab076909f5923",
     "019de97dd7737416928a32d8c63af93c",
@@ -297,6 +251,7 @@
     "019fc9ef2d1270cda22a5d959ca4c71e",
     "019fcdbf6c96772c90682a4646590c0b",
     "019eefbb99c47e838438126e5885a889",
+    "019ffd48dd387614958756bb29aa7baf",
     "019f1f5b65a2786daa0c36e638b9c05b",
     "019eefa74dec7406b96d43b5fe53d48f",
     "019f391061ec725e8a55ab577aa6ec16",
@@ -306,6 +261,7 @@
     "019fc9ef3f817db788b86d1062d85856",
     "019ebcaf739e7b74bfac2d5e79423e78",
     "019df4f3fe347d289c34b6cf91e9b6e0",
+    "019ffd4860197765b636639d7de1e6e3",
     "019f4cdced5e76ad8d1cd1ab22fb68f0",
     "019efbad7e4a74368a2506b4d272aae6",
     "019dd9c118e87b3c87722cbd1b10584e",
@@ -416,6 +372,7 @@
     "019f38c283ed79a487a53f36ce227b73",
     "019f1a25cb34739c926241ab819da039",
     "019f4d1f96507ebfaf86361f984204d8",
+    "019ffd48375070ce8345a2ed77d9ee03",
     "019ee5a1af267987af12a46c9bf2a5bb",
     "019fca792c17798fa7baf966eeecbd1d",
     "019e8ef8710676aa8cc6e26bb38874b8",

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from app.routes import (
     _diagnosticar_sufijo_postventa,
     _ejecutar_respuesta_postventa,
+    _omitir_pendiente_postventa,
     _pendientes_postventa_por_sufijo,
     _resolver_entrada_postventa,
 )
@@ -103,3 +106,43 @@ def test_ejecutar_respuesta_ambiguo_notifica(monkeypatch, tmp_path):
     assert res["ok"] is False
     assert "ambiguo" in res["error"].lower()
     assert any("ambiguo" in m.lower() for m in msgs)
+
+
+def test_omitir_pendiente_postventa_quita_cola_y_marca_procesado(monkeypatch, tmp_path):
+    entrada = {
+        "pack_id": "2000016700990404",
+        "codigo": "404",
+        "comprador": "Cliente",
+        "texto": "¿Ya salió?",
+        "msg_id": "msg-omitir-1",
+    }
+    state = {
+        "pendientes": {
+            "2000016700990404": entrada,
+            "404": entrada,
+        },
+        "procesados": [],
+    }
+    p = tmp_path / "mensajes_posventa_pendientes.json"
+    p.write_text(json.dumps(state), encoding="utf-8")
+    monkeypatch.setattr("app.routes._POSVENTA_STATE_PATH", str(p))
+
+    res = _omitir_pendiente_postventa("404")
+    assert res["ok"] is True
+    assert res["omitido"] is True
+    assert res["pack_id"] == "2000016700990404"
+
+    guardado = json.loads(p.read_text(encoding="utf-8"))
+    assert guardado["pendientes"] == {}
+    assert "msg-omitir-1" in guardado["procesados"]
+    assert _resolver_entrada_postventa("404")[0] is None
+
+
+def test_omitir_pendiente_postventa_inexistente(monkeypatch, tmp_path):
+    p = tmp_path / "mensajes_posventa_pendientes.json"
+    p.write_text(json.dumps({"pendientes": {}, "procesados": []}), encoding="utf-8")
+    monkeypatch.setattr("app.routes._POSVENTA_STATE_PATH", str(p))
+
+    res = _omitir_pendiente_postventa("999")
+    assert res["ok"] is False
+    assert "no hay mensaje" in res["error"].lower()

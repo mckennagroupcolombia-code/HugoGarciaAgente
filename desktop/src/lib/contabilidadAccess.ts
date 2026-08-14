@@ -42,6 +42,7 @@ export const CONTABILIDAD_TAB_OCULTAS = new Set<ContabilidadPanelId>([
 export const FACTURACION_SUBTABS = [
   { id: "sync", label: "Sync" },
   { id: "compra", label: "Facturas de compra" },
+  { id: "ventas", label: "Ventas y NC" },
 ] as const;
 
 export type FacturacionSubtabId = (typeof FACTURACION_SUBTABS)[number]["id"];
@@ -191,7 +192,7 @@ export function guardarUltimoPanelContabilidad(panel: ContabilidadPanelId): void
 export function leerSubtabFacturacion(): FacturacionSubtabId {
   try {
     const v = localStorage.getItem(FACTURACION_SUB_KEY) || "";
-    if (v === "sync" || v === "compra") return v;
+    if (v === "sync" || v === "compra" || v === "ventas") return v;
     if (v === "facturas") return "compra";
   } catch { /* */ }
   return "compra";

@@ -321,6 +321,67 @@ def _quitar_pendiente_postventa(pack_id: str, clave_pendiente: str | None = None
         pass
 
 
+def _marcar_msg_procesado_postventa(msg_id: str | None) -> None:
+    """Evita que polling/huecos re-alerten el mismo mensaje tras omitir."""
+    mid = str(msg_id or "").strip()
+    if not mid:
+        return
+    try:
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            _state = json.load(_f)
+        procesados = list(_state.get("procesados") or [])
+        if mid not in procesados:
+            procesados.append(mid)
+            _state["procesados"] = procesados[-500:]
+            with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as _f:
+                json.dump(_state, _f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _omitir_pendiente_postventa(codigo: str) -> dict:
+    """
+    Saca un mensaje de la cola postventa sin responder en MeLi.
+    Detiene recordatorios del supervisor y evita re-alertas WA (msg → procesados).
+    """
+    codigo = (codigo or "").strip()
+    if not codigo:
+        return {"ok": False, "error": "Falta código"}
+
+    entrada, clave_pendiente = _resolver_entrada_postventa(codigo)
+    if not entrada:
+        diag = _diagnosticar_sufijo_postventa(codigo)
+        if diag["count"] > 1:
+            ids = ", ".join(f"…{p[-6:]}" for p in diag["matches"][:5])
+            return {
+                "ok": False,
+                "error": (
+                    f"Código {codigo} ambiguo: hay {diag['count']} mensajes "
+                    f"pendientes ({ids}). Usa el pack completo."
+                ),
+            }
+        return {
+            "ok": False,
+            "error": f"No hay mensaje postventa pendiente con código {codigo}",
+        }
+
+    pack_id = str(entrada.get("pack_id") or "").strip()
+    if not pack_id:
+        return {"ok": False, "error": "Entrada sin pack_id"}
+
+    msg_id = entrada.get("msg_id")
+    codigo_corto = str(entrada.get("codigo") or codigo).strip()
+    _quitar_pendiente_postventa(pack_id, clave_pendiente)
+    _marcar_msg_procesado_postventa(msg_id)
+    return {
+        "ok": True,
+        "omitido": True,
+        "pack_id": pack_id,
+        "codigo": codigo_corto,
+        "comprador": entrada.get("comprador") or "",
+    }
+
+
 def _listar_postventa_pendientes_api() -> list[dict]:
     """Lista pendientes deduplicados por pack_id (el JSON guarda clave pack + sufijo)."""
     try:
@@ -3249,6 +3310,18 @@ def register_routes(app):
         )
         return jsonify(resultado)
 
+    @app.route("/api/postventa/omitir", methods=["POST"])
+    def api_postventa_omitir():
+        """Quita pendiente de la cola sin responder en MeLi (deja de alertar WA)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        codigo = str(data.get("codigo") or data.get("pack_id") or "").strip()
+        if not codigo:
+            return jsonify({"ok": False, "error": "Falta código"}), 400
+        resultado = _omitir_pendiente_postventa(codigo)
+        return jsonify(resultado)
+
     @app.route("/api/sync/schedule")
     def api_sync_schedule():
         if not _api_token_valido():
@@ -3431,6 +3504,48 @@ def register_routes(app):
             return jsonify({"items": items, "total": len(items)})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/ventas-facturacion")
+    def api_contabilidad_ventas_facturacion():
+        """
+        Conciliación Ventas MeLi ↔ Factura Siigo ↔ Nota crédito, para el panel
+        Contabilidad → Facturación → "Ventas y NC". Lee el índice local que
+        arma scripts/emitir_notas_credito_cron.py (no repagina Siigo en cada
+        request) y lo cruza en vivo con MeLi (liviano, solo /orders/search).
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        estado = (request.args.get("estado") or "canceladas").strip().lower()
+        if estado not in ("canceladas", "concretadas"):
+            return jsonify({"error": "estado debe ser 'canceladas' o 'concretadas'"}), 400
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        try:
+            from app.services.conciliacion_meli import listar_ventas_meli_conciliacion
+            data = listar_ventas_meli_conciliacion(estado, dias=dias)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/contabilidad/ventas-facturacion/documento")
+    def api_contabilidad_ventas_facturacion_documento():
+        """PDF de la factura o nota crédito de un pack, bajo demanda (no se cachea)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        pack_id = (request.args.get("pack_id") or "").strip()
+        tipo = (request.args.get("tipo") or "").strip().lower()
+        if not pack_id or tipo not in ("factura", "nota_credito"):
+            return jsonify({"error": "pack_id y tipo ('factura'|'nota_credito') requeridos"}), 400
+        try:
+            from app.services.conciliacion_meli import obtener_documento_pdf
+            data = obtener_documento_pdf(pack_id, tipo)
+            if not data.get("ok"):
+                return jsonify(data), 404
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
 
     @app.route("/api/stock/detalle-producto")
     @app.route("/app/api/stock/detalle-producto")
@@ -4446,16 +4561,44 @@ def register_routes(app):
             import json as _json
             import re as _re
 
+            catalogo_raw = (request.form.get("catalogo") or "").strip()
+            catalogo: list[str] = []
+            if catalogo_raw:
+                try:
+                    parsed_cat = _json.loads(catalogo_raw)
+                    if isinstance(parsed_cat, list):
+                        catalogo = [
+                            str(x).strip()
+                            for x in parsed_cat
+                            if str(x).strip()
+                        ][:120]
+                except Exception:
+                    catalogo = []
+
+            catalogo_prompt = ""
+            if catalogo:
+                lineas = "\n".join(f"- {n}" for n in catalogo)
+                catalogo_prompt = (
+                    "\n\nCatalogo de documentos YA existentes en la biblioteca "
+                    "(elige el mas cercano a la materia prima del COA):\n"
+                    f"{lineas}\n"
+                    "Si alguno corresponde, incluye en el JSON "
+                    '"archivo_biblioteca": "nombre exacto de la lista (con .pdf si aparece)". '
+                    "Si ninguno corresponde, omite archivo_biblioteca.\n"
+                )
+
             prompt = (
                 "Eres un especialista en control de calidad de materias primas farmaceuticas y cosmeticas.\n"
                 "Analiza esta imagen/PDF de un Certificado de Analisis (COA) u hoja de calidad.\n"
-                "1) Identifica la MATERIA PRIMA.\n"
+                "1) Identifica la MATERIA PRIMA (producto analizado, no el laboratorio).\n"
                 "2) Extrae la tabla de parametros.\n"
                 "3) Extrae TODOS los datos visibles que puedan complementar un formulario tecnico "
-                "(solo si aparecen; no inventes).\n\n"
+                "(solo si aparecen; no inventes).\n"
+                f"{catalogo_prompt}\n"
                 "Responde SOLO un JSON valido (sin markdown) con esta forma:\n"
                 "{\n"
                 '  "nombre_producto": "materia prima (ej. Acido Citrico Anhidro)",\n'
+                '  "archivo_biblioteca": "nombre exacto del catalogo si aplica",\n'
                 '  "nombre_comercial": "nombre comercial si difiere",\n'
                 '  "inci": "nombre INCI si aparece",\n'
                 '  "cas": "numero CAS",\n'
@@ -4483,7 +4626,8 @@ def register_routes(app):
                 "}\n\n"
                 "Reglas:\n"
                 "- Omite claves vacias o no visibles.\n"
-                "- nombre_producto: producto analizado, NO el laboratorio emisor.\n"
+                "- nombre_producto: producto analizado, NO el laboratorio emisor. "
+                "Usa el nombre quimico/comercial mas corto y tipico (sin lotes ni fechas).\n"
                 "- Extrae TODOS los parametros de la tabla.\n"
                 "- Si el documento esta en ingles, traduce textos al espanol; "
                 "manten numeros y unidades. "
@@ -4544,10 +4688,28 @@ def register_routes(app):
             if campos.get("einecs") and not campos.get("einces"):
                 campos["einces"] = campos["einecs"]
 
+            archivo_bib = str(campos.get("archivo_biblioteca") or "").strip()
+            if archivo_bib and catalogo:
+                # Resolver a un nombre exacto del catálogo (tolerante a mayúsculas / sin .pdf)
+                low = archivo_bib.lower().removesuffix(".pdf")
+                exact = next(
+                    (
+                        n
+                        for n in catalogo
+                        if n.lower() == archivo_bib.lower()
+                        or n.lower().removesuffix(".pdf") == low
+                    ),
+                    None,
+                )
+                archivo_bib = exact or ""
+            elif not catalogo:
+                archivo_bib = ""  # sin catálogo no validamos sugerencia de archivo
+
             return jsonify({
                 "ok": True,
                 "parametros": parametros,
                 "nombre_producto": nombre_producto,
+                "archivo_biblioteca": archivo_bib,
                 "cas": str(campos.get("cas") or "").strip(),
                 "lote": str(campos.get("lote") or "").strip(),
                 "campos": campos,
@@ -7924,8 +8086,21 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         f = request.files.get("foto") or request.files.get("file") or request.files.get("imagen")
-        if not f or not getattr(f, "filename", None):
+        # En celular el <input capture> a veces manda filename vacío; igual hay stream.
+        if not f:
             return jsonify({"error": "Adjunta una foto (campo foto)."}), 400
+        try:
+            # FileStorage puede no exponer tell/seek útil; peek size vía stream.
+            stream = getattr(f, "stream", None)
+            if stream is not None and hasattr(stream, "seek") and hasattr(stream, "tell"):
+                pos = stream.tell()
+                stream.seek(0, os.SEEK_END)
+                size = stream.tell()
+                stream.seek(pos)
+                if size <= 0:
+                    return jsonify({"error": "Adjunta una foto (campo foto)."}), 400
+        except Exception:
+            pass
         nota = (request.form.get("nota") or request.form.get("comentario") or "").strip()
         try:
             from app.services.empaque_evidencia import guardar_archivo_upload, registrar_evidencia

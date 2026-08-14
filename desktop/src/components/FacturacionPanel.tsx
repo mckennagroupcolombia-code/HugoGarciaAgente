@@ -14,6 +14,7 @@ import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 const SyncPanel = lazy(() => import("./SyncPanel"));
 const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
+const VentasFacturacionPanel = lazy(() => import("./VentasFacturacionPanel"));
 
 function Cargando() {
   return (
@@ -105,7 +106,13 @@ export default function FacturacionPanel() {
 
       <div className="min-h-0 flex-1">
         <Suspense fallback={<Cargando />}>
-          {sub === "sync" ? <SyncPanel /> : <FacturasCompraPanel key="compra" />}
+          {sub === "sync" ? (
+            <SyncPanel />
+          ) : sub === "ventas" ? (
+            <VentasFacturacionPanel key="ventas" />
+          ) : (
+            <FacturasCompraPanel key="compra" />
+          )}
         </Suspense>
       </div>
     </div>

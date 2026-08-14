@@ -1,64 +1,16 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us",
-    "224734230905051@lid",
-    "573160592812@c.us",
-    "120363023555909043@g.us",
-    "102520886153228@lid",
-    "573102427373@c.us"
+    "573009990001@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1786364544.9996345,
-    "224734230905051@lid": 1786390230.5077336,
-    "573160592812@c.us": 1786390230.5077336,
-    "120363023555909043@g.us": 1786401089.4731822,
-    "102520886153228@lid": 1786453564.7201345,
-    "573102427373@c.us": 1786453564.7201345
+    "573009990001@c.us": 1786663574.123446
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
-      "timestamp": 1786364544.9996345,
+      "timestamp": 1786663574.123446,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
-    },
-    "224734230905051@lid": {
-      "timestamp": 1786390230.5077336,
-      "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
-    },
-    "573160592812@c.us": {
-      "timestamp": 1786390230.5077336,
-      "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
-    },
-    "120363023555909043@g.us": {
-      "timestamp": 1786401089.4731822,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
-    },
-    "102520886153228@lid": {
-      "timestamp": 1786453564.7201345,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
-    },
-    "573102427373@c.us": {
-      "timestamp": 1786453564.7201345,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "\ud83e\uddd0 Si continuas con el proceso est\u00e1s dando consentimiento y aprobaci\u00f3n para el tratamiento de tus datos personales a SODIMAC COLOMBIA S.A. Lee aqu\u00ed \ud83d\udc49 https://botm.cc/l/15EcFjTH"
+      "ultimo_mensaje": "hola"
     }
-  },
-  "bot_global_activo": true,
-  "horario_bot": {
-    "habilitado": false,
-    "hora_inicio": "08:00",
-    "hora_fin": "18:00",
-    "dias": [
-      1,
-      2,
-      3,
-      4,
-      5
-    ]
   }
 }

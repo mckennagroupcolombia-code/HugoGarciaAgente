@@ -136,10 +136,16 @@ def listar_centros_costo_siigo() -> tuple[list | None, str | None]:
         return None, str(e)
 
 
-def obtener_facturas_siigo_paginadas(fecha_inicio):
+def obtener_facturas_siigo_paginadas(fecha_inicio, estricto: bool = False):
     """
     Obtiene todas las facturas de Siigo a partir de una fecha de inicio,
     manejando la paginación de la API.
+
+    `estricto=True`: si la paginación se corta por un error de red a mitad de
+    camino, relanza la excepción en vez de devolver la lista parcial en
+    silencio. Por defecto queda en False para no cambiar el comportamiento de
+    los demás llamadores (app/sync.py, meli_reclamos.py, rentabilidad.py,
+    reporte_financiero.py), que hoy asumen que siempre reciben una lista.
     """
     token = autenticar_siigo()
     if not token:
@@ -149,14 +155,17 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
     page = 1
     puede_reintentar_auth = True
     reintentos_429 = 0
+    reintentos_red = 0
+    MAX_REINTENTOS_RED = 3
     while True:
         try:
             res = requests.get(
                 f"https://api.siigo.com/v1/invoices?created_start={fecha_inicio}&page={page}",
                 headers={"Partner-Id": PARTNER_ID, "Authorization": f"Bearer {token}"},
-                timeout=15
+                timeout=20
             )
             if res.status_code == 200:
+                reintentos_red = 0
                 data = res.json()
                 facturas_pagina = data.get("results")
                 if facturas_pagina:
@@ -200,7 +209,18 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
                 )
                 break
         except requests.RequestException as e:
-            print(f"⚠️ Error de red obteniendo facturas de Siigo: {e}")
+            reintentos_red += 1
+            if reintentos_red <= MAX_REINTENTOS_RED:
+                espera_red = 3 * reintentos_red
+                print(
+                    f"⏳ Error de red listando facturas Siigo (página {page}); "
+                    f"reintento {reintentos_red}/{MAX_REINTENTOS_RED} en {espera_red}s: {e}"
+                )
+                time.sleep(espera_red)
+                continue
+            print(f"⚠️ Error de red obteniendo facturas de Siigo tras {MAX_REINTENTOS_RED} reintentos: {e}")
+            if estricto:
+                raise
             break
     return todas_las_facturas
 
@@ -497,6 +517,58 @@ def _siigo_retry_after_seconds(res: requests.Response, default: int = 3) -> int:
     if match:
         return max(1, min(30, int(match.group(1))))
     return default
+
+
+def descargar_nota_credito_pdf_siigo(id_credit_note: str) -> str:
+    """
+    Descarga el PDF de una nota crédito de Siigo en base64 (GET
+    /v1/credit-notes/{id}/pdf, misma forma de respuesta que la de facturas).
+    A diferencia de `descargar_factura_pdf_siigo`, no necesita las oleadas de
+    espera por generación DIAN — `crear_nota_credito_siigo` ya hace polling
+    del estado del timbrado antes de devolver el `credit_note_id`.
+    """
+    id_credit_note = str(id_credit_note).strip()
+    token = autenticar_siigo()
+    if not token:
+        return "❌ Error: No se pudo autenticar con Siigo."
+
+    url = f"https://api.siigo.com/v1/credit-notes/{id_credit_note}/pdf"
+    puede_reintentar_auth = True
+    reintentos_429 = 0
+    try:
+        while True:
+            res = requests.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Partner-Id": PARTNER_ID,
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+            if res.status_code == 200:
+                b64 = _siigo_extraer_base64_pdf_respuesta(res)
+                if b64:
+                    return b64
+                return "❌ Error"
+            if res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if token:
+                    continue
+            if res.status_code == 429 and reintentos_429 < 4:
+                reintentos_429 += 1
+                time.sleep(_siigo_retry_after_seconds(res))
+                continue
+            print(
+                f"⚠️ Error descargando PDF de nota crédito Siigo (ID: {id_credit_note}): "
+                f"{res.status_code} {(res.text or '')[:300]}"
+            )
+            return "❌ Error"
+    except requests.RequestException as e:
+        print(f"⚠️ Error de red descargando PDF de nota crédito de Siigo: {e}")
+        return f"⚠️ Error: {e}"
 
 
 def descargar_factura_pdf_siigo(id_factura):

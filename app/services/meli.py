@@ -67,12 +67,12 @@ def consultar_devoluciones_meli():
         return f"Error de red consultando Mercado Libre: {e}"
 
 
-def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
+def listar_ordenes_meli_por_estado(status: str, dias_atras: int = 90) -> list[dict]:
     """
-    Todas las órdenes MeLi con status='cancelled' desde hace `dias_atras` días,
-    paginado completo. A diferencia de `consultar_devoluciones_meli` (texto,
-    una sola página, pensado para el chat), esta devuelve los dicts crudos de
-    la API — usada por el cron de notas crédito automáticas.
+    Todas las órdenes MeLi con el `status` dado (ej. "cancelled", "paid")
+    desde hace `dias_atras` días, paginado completo. A diferencia de
+    `consultar_devoluciones_meli` (texto, una sola página, pensado para el
+    chat), esta devuelve los dicts crudos de la API.
     """
     token = refrescar_token_meli()
     if not token:
@@ -87,7 +87,7 @@ def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
     params = {
         "seller": seller_id,
         "order.date_created.from": fecha_inicio,
-        "order.status": "cancelled",
+        "order.status": status,
         "sort": "date_desc",
         "limit": 50,
         "offset": 0,
@@ -102,7 +102,7 @@ def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
         except requests.RequestException:
             break
         if res.status_code != 200:
-            print(f"⚠️ [MELI] Error listando canceladas (offset {offset}): {res.status_code} {res.text[:200]}")
+            print(f"⚠️ [MELI] Error listando órdenes '{status}' (offset {offset}): {res.status_code} {res.text[:200]}")
             break
         data = res.json()
         results = data.get("results", [])
@@ -112,6 +112,11 @@ def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
         if offset >= total or not results:
             break
     return todas
+
+
+def listar_ordenes_canceladas_meli(dias_atras: int = 90) -> list[dict]:
+    """Compatibilidad: usada por el cron de notas crédito automáticas."""
+    return listar_ordenes_meli_por_estado("cancelled", dias_atras=dias_atras)
 
 def consultar_detalle_venta_meli(pack_id: str):
     """Consulta los detalles de una orden o paquete (pack) específico en Mercado Libre."""
@@ -247,10 +252,38 @@ def meli_pack_tiene_documento_fiscal(pack_id: str, *, token: str | None = None) 
         return False
 
 
-def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
+def eliminar_documentos_fiscales_meli(pack_id: str, *, token: str | None = None) -> tuple[bool, str]:
+    """
+    DELETE /packs/{pack_id}/fiscal_documents — borra TODOS los documentos
+    fiscales subidos a ese pack. MeLi solo admite un documento fiscal por
+    pack y tipo (ver `subir_factura_meli`): para reemplazar la factura por
+    una nota crédito (o viceversa) hay que borrar primero. Siigo conserva
+    ambos documentos siempre; esto solo afecta lo que MeLi expone.
+    """
+    pack_id = str(pack_id or "").strip()
+    if not pack_id:
+        return False, "Sin pack_id."
+    token = token or refrescar_token_meli()
+    if not token:
+        return False, "No se pudo obtener el token de Mercado Libre."
+    url = f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents"
+    try:
+        res = requests.delete(url, headers={"Authorization": f"Bearer {token}"}, timeout=20)
+        if res.status_code in (200, 204, 404):
+            # 404: ya no había documento — el resultado que queremos igual.
+            return True, ""
+        return False, f"{res.status_code} - {res.text[:300]}"
+    except requests.RequestException as e:
+        return False, str(e)
+
+
+def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf", prefijo_archivo: str = "Fac"):
     """
     Sube documento fiscal al pack en Mercado Libre (Colombia: PDF y/o XML DIAN).
     formato: \"pdf\" (default) o \"xml\" — ver docs MeLi `fiscal_documents`.
+    prefijo_archivo: prefijo del nombre de archivo subido (default "Fac"; usar
+    "NC" para notas crédito — así el listado de fiscal_documents del pack
+    distingue cuál es cuál sin tener que abrir cada PDF).
     """
     try:
         fmt = (formato or "pdf").strip().lower()
@@ -277,7 +310,7 @@ def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
         url = f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents"
         headers = {"Authorization": f"Bearer {token}"}
         files = {
-            "fiscal_document": (f"Fac_{pack_id}.{ext}", pdf_decodificado, mime)
+            "fiscal_document": (f"{prefijo_archivo}_{pack_id}.{ext}", pdf_decodificado, mime)
         }
         
         res = requests.post(url, headers=headers, files=files, timeout=30)

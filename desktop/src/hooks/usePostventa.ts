@@ -42,6 +42,15 @@ interface ResponderResult {
   motivo?: string;
 }
 
+interface OmitirResult {
+  ok: boolean;
+  error?: string;
+  omitido?: boolean;
+  pack_id?: string;
+  codigo?: string;
+  comprador?: string;
+}
+
 export function usePostventa() {
   return useQuery<PendientesResponse>({
     queryKey: ["postventa-pendientes"],
@@ -55,6 +64,17 @@ export function useResponderPostventa() {
   return useMutation({
     mutationFn: (vars: { codigo: string; respuesta: string }) =>
       api.post<ResponderResult>("/api/responder-postventa", vars),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["postventa-pendientes"] });
+    },
+  });
+}
+
+export function useOmitirPostventa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { codigo: string }) =>
+      api.post<OmitirResult>("/api/postventa/omitir", vars),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["postventa-pendientes"] });
     },

@@ -30,6 +30,16 @@ _CONFIG_PATH = Path(__file__).resolve().parents[1] / "data" / "cron_frecuencias.
 
 DEFAULT_INTERVALO_HORAS = 168  # una vez por semana — estas operaciones no son frecuentes
 
+# El crontab del sistema dispara siempre a una hora fija, pero `ultima_ejecucion`
+# se registra cuando el job TERMINA. Si un job tarda unos minutos (ej. paginación
+# de una API externa) y su intervalo configurado coincide con la cadencia del
+# crontab (ej. 24h para un cron diario), el disparo de mañana siempre cae unos
+# minutos ANTES de cumplirse el intervalo exacto — el job se autobloquea todos
+# los días desde entonces, en silencio, porque `ultima_ejecucion` nunca vuelve
+# a avanzar. Precedente: notas_credito_auto quedó así trabado desde el 13-ago-2026
+# tras una única corrida que tardó 2m19s. Este margen absorbe ese jitter.
+_MARGEN_TOLERANCIA_MIN = 15
+
 JOBS: dict[str, dict[str, str]] = {
     "auditoria_scripts": {
         "nombre": "Auditoría de scripts",
@@ -94,7 +104,8 @@ def debe_ejecutar(job_id: str) -> bool:
     except Exception:
         return True
     intervalo = float(entrada.get("intervalo_horas") or DEFAULT_INTERVALO_HORAS)
-    return datetime.now() >= ultima_dt + timedelta(hours=intervalo)
+    umbral = ultima_dt + timedelta(hours=intervalo) - timedelta(minutes=_MARGEN_TOLERANCIA_MIN)
+    return datetime.now() >= umbral
 
 
 def registrar_ejecucion(job_id: str) -> None:

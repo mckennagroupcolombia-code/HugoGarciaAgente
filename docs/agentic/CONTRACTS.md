@@ -153,6 +153,10 @@ Endpoints usados por React:
 | `/api/preventa/pendientes` | GET | - | `preguntas`, `total` |
 | `/api/preventa/casos` | GET | - | casos recientes |
 | `/api/responder-preventa` | POST | `question_id`, `respuesta` | `ok` o error |
+| `/api/postventa/pendientes` | GET | - | `mensajes`, `total` |
+| `/api/postventa/historial/<pack_id>` | GET | - | `historial` |
+| `/api/responder-postventa` | POST | `codigo`, `respuesta` | `ok` o error |
+| `/api/postventa/omitir` | POST | `codigo` (o `pack_id`) | `ok`, `omitido` — saca de cola sin responder MeLi; corta recordatorios WA |
 | `/api/sync/hoy` | POST | - | `status: iniciado` |
 | `/api/sync/10dias` | POST | - | `status: iniciado` |
 | `/api/sync/completo` | POST | - | `status: iniciado` |
