@@ -1273,8 +1273,10 @@ def _meli_orders_paid_qty_rango(
 
 
 # Cortes de rotación sobre unidades vendidas en lo que va del año (~8 meses a ago-2026).
-ROTACION_BAJA_MAX = 1  # 1 unidad vendida en el año → baja rotación
-ROTACION_MEDIA_MAX = 9  # 2 a 9 unidades → media rotación; 10+ → alta
+# Calibrados sobre los cuartiles reales de los productos agotados/críticos (ago-2026):
+# p25≈5, mediana=19, p75≈64 unidades vendidas en el año.
+ROTACION_BAJA_MAX = 5  # ≤5 unidades vendidas en el año → baja rotación (puede esperar)
+ROTACION_MEDIA_MAX = 49  # 6 a 49 unidades → media rotación; 50+ → alta
 
 
 def clasificar_rotacion(unidades_ytd: int) -> str:

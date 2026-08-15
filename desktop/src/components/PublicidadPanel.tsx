@@ -36,6 +36,35 @@ function acosPillClass(acos: number): string {
 
 const DIAS_OPCIONES = [30, 60, 90] as const;
 
+/** Botón compacto para copiar el nombre de una publicación — para pegarlo en el buscador de Mercado Ads. */
+function CopyButton({ text }: { text: string }) {
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void navigator.clipboard?.writeText(text);
+        setCopiado(true);
+        window.setTimeout(() => setCopiado(false), 1200);
+      }}
+      title="Copiar nombre de la publicación"
+      aria-label="Copiar nombre de la publicación"
+      className="shrink-0 inline-flex items-center justify-center rounded-md p-1 text-muted hover:text-accent hover:bg-surface-hover transition"
+    >
+      {copiado ? (
+        <span className="text-[11px] font-bold text-accent leading-none">✓</span>
+      ) : (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 // Espejo (solo para mostrar) de NIVELES_ACOS en app/services/meli_ads_recomendaciones.py —
 // si cambia el umbral ahí, actualizar aquí también.
 const NIVEL_LIMITES: Record<string, { label: string; objetivo: number; pausar: number }> = {
@@ -111,21 +140,24 @@ function TablaItems({
             {items.map((it) => (
               <tr key={it.item_id} className="border-b border-border last:border-b-0 hover:bg-surface-hover">
                 <td className="px-3 py-2 max-w-[280px]">
-                  {it.permalink ? (
-                    <a
-                      href={it.permalink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate text-sm font-semibold text-ink hover:text-accent"
-                      title={it.titulo}
-                    >
-                      {it.titulo}
-                    </a>
-                  ) : (
-                    <span className="block truncate text-sm font-semibold text-ink" title={it.titulo}>
-                      {it.titulo}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 min-w-0">
+                    <CopyButton text={it.titulo} />
+                    {it.permalink ? (
+                      <a
+                        href={it.permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-sm font-semibold text-ink hover:text-accent"
+                        title={it.titulo}
+                      >
+                        {it.titulo}
+                      </a>
+                    ) : (
+                      <span className="block truncate text-sm font-semibold text-ink" title={it.titulo}>
+                        {it.titulo}
+                      </span>
+                    )}
+                  </div>
                   {columnaExtra === "marca" && it.marca && (
                     <span className="block text-[11px] text-muted">{it.marca}</span>
                   )}
@@ -245,7 +277,10 @@ function MargenRealSeccion({ dias }: { dias: number }) {
                     {(data.con_margen as PublicidadItemConMargen[]).map((it) => (
                       <tr key={it.item_id} className="border-b border-border last:border-b-0 hover:bg-surface-hover">
                         <td className="px-3 py-2 max-w-[240px]">
-                          <span className="block truncate text-sm font-semibold text-ink" title={it.titulo}>{it.titulo}</span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            <CopyButton text={it.titulo} />
+                            <span className="block truncate text-sm font-semibold text-ink" title={it.titulo}>{it.titulo}</span>
+                          </div>
                           <span className="block text-[10px] text-muted font-mono">{it.sku}</span>
                         </td>
                         <td className="px-3 py-2 text-right font-mono text-sm text-ink-secondary whitespace-nowrap">{cop(it.costo_combo)}</td>
@@ -360,13 +395,16 @@ function AdsVsPromocionesSeccion({ dias }: { dias: number }) {
                 <div key={p.item_id} className="border-b border-border last:border-b-0 px-3 py-2.5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {p.permalink ? (
-                        <a href={p.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
-                          {p.titulo}
-                        </a>
-                      ) : (
-                        <span className="text-sm font-semibold text-ink">{p.titulo}</span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <CopyButton text={p.titulo} />
+                        {p.permalink ? (
+                          <a href={p.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
+                            {p.titulo}
+                          </a>
+                        ) : (
+                          <span className="text-sm font-semibold text-ink">{p.titulo}</span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                         <span className="rounded-full bg-border px-2 py-0.5 text-[10px] font-bold text-ink-secondary">
                           {NIVEL_LIMITES[p.nivel_rotacion]?.label ?? p.nivel_rotacion}
@@ -430,18 +468,21 @@ function RecomendacionFila({ f }: { f: PublicidadRecomendacionItem }) {
     <div className="border-b border-border last:border-b-0 px-3 py-2.5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          {f.permalink ? (
-            <a
-              href={f.permalink}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm font-semibold text-ink hover:text-accent"
-            >
-              {f.titulo}
-            </a>
-          ) : (
-            <span className="text-sm font-semibold text-ink">{f.titulo}</span>
-          )}
+          <div className="flex items-center gap-1">
+            <CopyButton text={f.titulo} />
+            {f.permalink ? (
+              <a
+                href={f.permalink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-ink hover:text-accent"
+              >
+                {f.titulo}
+              </a>
+            ) : (
+              <span className="text-sm font-semibold text-ink">{f.titulo}</span>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
             {f.margen_real ? (
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
@@ -758,13 +799,16 @@ function AjustesCampanasTabs({ alertas }: { alertas: PublicidadAlertasReasignaci
         <div className="rounded-xl border-2 border-border bg-surface overflow-hidden max-h-[360px] overflow-y-auto">
           {filas.map((a) => (
             <div key={a.item_id} className="border-b border-border last:border-b-0 px-3 py-2.5">
-              {a.permalink ? (
-                <a href={a.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
-                  {a.titulo}
-                </a>
-              ) : (
-                <span className="text-sm font-semibold text-ink">{a.titulo}</span>
-              )}
+              <div className="flex items-center gap-1">
+                <CopyButton text={a.titulo} />
+                {a.permalink ? (
+                  <a href={a.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
+                    {a.titulo}
+                  </a>
+                ) : (
+                  <span className="text-sm font-semibold text-ink">{a.titulo}</span>
+                )}
+              </div>
               <p className="text-[11px] text-muted mt-1">{a.motivo}</p>
             </div>
           ))}
