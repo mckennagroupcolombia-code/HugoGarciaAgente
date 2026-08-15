@@ -435,6 +435,24 @@ def jid_grupo_facturacion_ventas_wa() -> str:
     return _wa_jid_env("GRUPO_FACTURACION_VENTAS_WA", _JID_FACTURACION_VENTAS_DEFAULT)
 
 
+def jid_grupo_publicidad_wa() -> str:
+    """
+    Recomendaciones semanales de publicidad MeLi (pausar/revisar por ACOS) —
+    GRUPO_PUBLICIDAD_WA. Sin grupo dedicado en grupos_whatsapp_oficiales.json
+    aún, cae a Facturación_Ventas (mismo destino que nota crédito/sync
+    facturas — impacto financiero de ventas MeLi).
+    """
+    return _wa_jid_env("GRUPO_PUBLICIDAD_WA", _JID_FACTURACION_VENTAS_DEFAULT)
+
+
+_JID_SEDE_SUR_DEFAULT = "120363023555909043@g.us"
+
+
+def jid_grupo_sede_sur_wa() -> str:
+    """Ticket nuevo asignado (instantáneo) y resumen diario de acciones — GRUPO_SEDE_SUR_WA."""
+    return _wa_jid_env("GRUPO_SEDE_SUR_WA", _JID_SEDE_SUR_DEFAULT)
+
+
 def _normalizar_destino_wa(destino: str | None) -> str:
     """JID o número: strip y comentario inline (#) por si llega desde .env sin pasar por _wa_jid_env."""
     if not destino:

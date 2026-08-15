@@ -138,6 +138,7 @@ export function mergeCoaEnDatos(
     const ident = { ...((coa.identificacion as Record<string, unknown>) || {}) };
     const lote = { ...((coa.lote as Record<string, unknown>) || {}) };
     const emp = { ...((coa.empaque as Record<string, unknown>) || {}) };
+    const firma = { ...((coa.firma as Record<string, unknown>) || {}) };
 
     if (c.nombre_producto) {
       fillEmpty(coa, "titulo", String(c.nombre_producto).toUpperCase(), filled, "título COA");
@@ -164,6 +165,13 @@ export function mergeCoaEnDatos(
     fillEmpty(emp, "empaque_original", c.presentacion, filled, "empaque");
     fillEmpty(emp, "almacenamiento", c.almacenamiento, filled, "almacenamiento");
 
+    fillEmpty(firma, "nombre", c.firma_nombre, filled, "nombre del firmante");
+    fillEmpty(firma, "cargo", c.firma_cargo, filled, "cargo del firmante");
+    fillEmpty(firma, "organizacion", c.firma_organizacion, filled, "organización del firmante");
+    if (c.firma_imagen_b64 && String(c.firma_imagen_b64).startsWith("data:image/")) {
+      fillEmpty(firma, "imagen_b64", c.firma_imagen_b64, filled, "línea de firma");
+    }
+
     if (parametrosText.trim()) {
       const existing = coa.parametros ? textoDesdeFilasTres(coa.parametros) : "";
       const merged = mergeParamStrings(existing, parametrosText);
@@ -177,6 +185,7 @@ export function mergeCoaEnDatos(
     coa.identificacion = ident;
     coa.lote = lote;
     coa.empaque = emp;
+    coa.firma = firma;
     return coa;
   };
 

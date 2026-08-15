@@ -144,6 +144,54 @@ ul.apps li, ul.beneficios li { margin-bottom: 3px; font-size: 11pt; }
 .framed-body { border: 0.75pt solid var(--accent); padding: 6px 8px; }
 
 /* ── Signatura COA ─── */
+.coa-firma {
+  margin-top: 1.1cm;
+  display: flex;
+  justify-content: flex-start;
+  page-break-inside: avoid;
+}
+.coa-firma-box {
+  min-width: 7.5cm;
+  max-width: 9cm;
+}
+.coa-firma-lbl {
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.15cm;
+}
+.coa-firma-espacio {
+  height: 2.4cm;
+  margin-bottom: 0.1cm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+.coa-firma-img {
+  max-width: 6.5cm;
+  max-height: 2.3cm;
+  object-fit: contain;
+  object-position: left bottom;
+}
+.coa-firma-linea {
+  border-top: 0.75pt solid #333;
+  width: 6.5cm;
+  margin-bottom: 0.18cm;
+}
+.coa-firma-nombre {
+  font-size: 10pt;
+  font-weight: 700;
+  color: #212121;
+  line-height: 1.25;
+}
+.coa-firma-cargo,
+.coa-firma-org {
+  font-size: 8.5pt;
+  color: #555;
+  line-height: 1.3;
+}
 
 .cod-verif { margin-top: 0.8cm; font-size: 8.5pt; color: #555; }
 .cod-verif b { color: var(--accent); }
@@ -347,6 +395,21 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
+
+  <div class="coa-firma">
+    <div class="coa-firma-box">
+      <div class="coa-firma-lbl">Revisado y aprobado por</div>
+      <div class="coa-firma-espacio" aria-hidden="true">
+        {% if coa.firma_imagen_src %}
+        <img class="coa-firma-img" src="{{ coa.firma_imagen_src }}" alt="Firma">
+        {% endif %}
+      </div>
+      <div class="coa-firma-linea"></div>
+      {% if coa.firma_nombre %}<div class="coa-firma-nombre">{{ coa.firma_nombre }}</div>{% endif %}
+      {% if coa.firma_cargo %}<div class="coa-firma-cargo">{{ coa.firma_cargo }}</div>{% endif %}
+      {% if coa.firma_organizacion %}<div class="coa-firma-org">{{ coa.firma_organizacion }}</div>{% endif %}
+    </div>
+  </div>
 
   {% if coa.codigo_verificacion %}
   <div class="cod-verif"><b>Código de verificación:</b> {{ coa.codigo_verificacion }}</div>

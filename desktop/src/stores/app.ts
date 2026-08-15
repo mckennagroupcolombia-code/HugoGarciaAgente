@@ -27,6 +27,8 @@ export type Panel =
   | "costos-productos"
   | "centros-costo"
   | "rentabilidad"
+  | "publicidad"
+  | "salud-negocio"
   | "compras-exterior"
   | "productos-siigo"
   | "rrhh"

@@ -465,6 +465,26 @@ def eliminar_pago(pago_id: int) -> None:
         con.execute("DELETE FROM pagos_servicios WHERE id = ?", (pago_id,))
 
 
+def pagos_servicios_en_rango(fecha_inicio: str, fecha_fin: str) -> list[dict]:
+    """
+    Pagos de servicios fijos (arriendo, energía, agua, internet…) realmente
+    desembolsados en el rango dado — a diferencia de `resumen_nomina()`, este
+    es un gasto de caja real con fecha, no un total estático. Usado por
+    app.services.salud_negocio para el costo administrativo semanal/mensual.
+    """
+    _ensure()
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT p.fecha, p.monto, p.servicio_id, s.empresa, s.tipo
+               FROM pagos_servicios p
+               JOIN servicios s ON s.id = p.servicio_id
+               WHERE p.fecha BETWEEN ? AND ?
+               ORDER BY p.fecha""",
+            (fecha_inicio, fecha_fin),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def servicios_proximos_vencimiento(dias: int = 3) -> list[dict]:
     """Retorna servicios cuyo dia_vencimiento cae dentro de `dias` días y sin pago este mes."""
     _ensure()

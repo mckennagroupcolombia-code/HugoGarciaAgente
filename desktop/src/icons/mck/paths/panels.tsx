@@ -263,6 +263,18 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M8 12h2M14 12h2" />
     </>
   ),
+  publicidad: (
+    <>
+      <path d="M5 10v4a2 2 0 0 0 2 2h1l5 4V6L8 10H7a2 2 0 0 0-2 2z" />
+      <path d="M16 9a3 3 0 0 1 0 6" />
+    </>
+  ),
+  "salud-negocio": (
+    <>
+      <path d="M4 14h3l2-5 3 9 2-6 2 3h4" />
+      <path d="M12 5c-1-2-4-2-5 0-1 2 0 4 5 8 5-4 6-6 5-8-1-2-4-2-5 0Z" opacity="0.35" />
+    </>
+  ),
   "control-versiones": (
     <>
       <circle cx="7" cy="6" r="2" />

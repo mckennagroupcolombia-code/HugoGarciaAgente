@@ -252,6 +252,30 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  publicidad: {
+    emoji: "📢",
+    label: "Publicidad",
+    description: "Gasto y retorno de la campaña de Product Ads en MercadoLibre: qué productos queman presupuesto sin vender y cuáles tienen ACOS peligrosamente alto.",
+    tips: [
+      "El indicador 'En zona de riesgo' suma lo gastado en productos con cero ventas o ACOS > 60%.",
+      "Los productos con ACOS > 100% gastaron más en el anuncio de lo que vendieron — pérdida directa, sin necesitar dato de margen.",
+      "'Actualizar' fuerza una consulta en vivo a MeLi (el resto del tiempo usa una caché de 1 hora).",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
+  "salud-negocio": {
+    emoji: "🩺",
+    label: "Salud del negocio",
+    description: "Rentabilidad neta semanal y mensual: ingresos MeLi + web menos costo de producto, comisiones/envío MeLi, gasto en publicidad y costos administrativos/fijos, con una calificación de 0 a 100.",
+    tips: [
+      "El score pondera margen neto (60%), eficiencia de ads por ACOS (20%) y tendencia vs. el período anterior (20%).",
+      "La comisión de MeLi usa la tarifa actual aplicada retroactivamente — no hay forma de recuperar el cobro histórico real por orden.",
+      "'Actualizar' fuerza una consulta en vivo a MeLi y Siigo (el resto del tiempo usa cachés de hasta 1 hora / 24 horas).",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   "compras-exterior": {
     emoji: "🌐",
     label: "Compras exterior",

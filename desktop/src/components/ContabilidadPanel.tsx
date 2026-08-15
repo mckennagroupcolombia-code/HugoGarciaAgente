@@ -19,6 +19,8 @@ const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const LibroMayorPanel = lazy(() => import("./LibroMayorPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
+const PublicidadPanel = lazy(() => import("./PublicidadPanel"));
+const SaludNegocioPanel = lazy(() => import("./SaludNegocioPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
 const StockPanel = lazy(() => import("./StockPanel"));
 
@@ -44,6 +46,10 @@ function renderSubpanel(id: ContabilidadPanelId) {
       return <StockPanel />;
     case "rentabilidad":
       return <RentabilidadPanel />;
+    case "publicidad":
+      return <PublicidadPanel />;
+    case "salud-negocio":
+      return <SaludNegocioPanel />;
     case "compras-exterior":
       return <ComprasExteriorPanel />;
     case "costos-productos":

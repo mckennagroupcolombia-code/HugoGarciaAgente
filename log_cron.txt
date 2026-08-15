@@ -609,3 +609,8 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
  create mode 100644 desktop/src/components/VentasFacturacionPanel.tsx
  create mode 100644 tests/test_coa_documento_match.py
 [2026-08-13 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-13 23:00'
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Notas crédito automáticas: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

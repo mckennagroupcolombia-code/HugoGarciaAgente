@@ -18,5 +18,13 @@
   "compliance_meli": {
     "intervalo_horas": 168,
     "ultima_ejecucion": "2026-08-11T08:30:01"
+  },
+  "resumen_actividad_sede_sur": {
+    "intervalo_horas": 24,
+    "ultima_ejecucion": "2026-08-14T17:18:26"
+  },
+  "publicidad_recomendaciones": {
+    "intervalo_horas": 360.0,
+    "ultima_ejecucion": "2026-08-14T20:10:37"
   }
 }

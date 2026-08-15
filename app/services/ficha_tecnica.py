@@ -1152,6 +1152,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
     ident = (datos_coa.get("identificacion") or {})
     lote = (datos_coa.get("lote") or {})
     emp = (datos_coa.get("empaque") or {})
+    firma = (datos_coa.get("firma") or {})
     parametros_raw = datos_coa.get("parametros") or []
     filas: list[list[str]] = []
     if isinstance(parametros_raw, list):
@@ -1191,6 +1192,14 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "almacenamiento": (emp.get("almacenamiento") or "").strip(),
         "precauciones": (emp.get("precauciones") or "").strip(),
         "observaciones": (emp.get("observaciones") or "").strip(),
+        "firma_nombre": (firma.get("nombre") or "").strip(),
+        "firma_cargo": (firma.get("cargo") or "").strip(),
+        "firma_organizacion": (firma.get("organizacion") or "").strip(),
+        "firma_imagen_src": (
+            str(firma.get("imagen_b64") or firma.get("imagen_src") or "").strip()
+            if str(firma.get("imagen_b64") or firma.get("imagen_src") or "").strip().startswith("data:image/")
+            else ""
+        ),
         "codigo_verificacion": (datos_coa.get("codigo_verificacion") or "").strip(),
     }
 
@@ -1200,6 +1209,7 @@ _COA_CAMPOS_EXCLUSIVOS = (
     "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
     "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
+    "firma_nombre", "firma_cargo", "firma_organizacion", "firma_imagen_src",
     "codigo_verificacion",
 )
 
@@ -1513,7 +1523,8 @@ def listar_archivos_generados() -> list[dict]:
                 "fecha": int(stat.st_mtime),
                 "categoria": categoria,
             })
-    return sorted(resultado, key=lambda x: x["nombre"].lower())
+    # Más recientes primero; nombre como desempate estable
+    return sorted(resultado, key=lambda x: (-x["fecha"], x["nombre"].lower()))
 
 
 def extraer_datos_desde_pdf_ft(path: Path) -> dict:

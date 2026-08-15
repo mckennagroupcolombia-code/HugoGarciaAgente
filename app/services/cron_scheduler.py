@@ -61,6 +61,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Envía al grupo de sistemas el resumen semanal de gasto en modelos de IA.",
         "script": "scripts/resumen_costos_llm_cron.py",
     },
+    "resumen_actividad_sede_sur": {
+        "nombre": "Resumen diario SEDE SUR",
+        "descripcion": "Envía al grupo SEDE SUR un único resumen diario de acciones/solicitudes creadas y completadas, en vez de un mensaje por cada evento. El detalle en vivo queda en el banner Actividad del equipo de /app.",
+        "script": "scripts/resumen_actividad_sede_sur_cron.py",
+    },
     "monitor_importaciones": {
         "nombre": "Monitor comunicaciones importaciones",
         "descripcion": "Busca correos/WhatsApp nuevos de aliados logísticos y los comenta en los tickets activos.",
@@ -70,6 +75,11 @@ JOBS: dict[str, dict[str, str]] = {
         "nombre": "Notas crédito automáticas (MeLi canceladas)",
         "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
         "script": "scripts/emitir_notas_credito_cron.py",
+    },
+    "publicidad_recomendaciones": {
+        "nombre": "Recomendaciones de publicidad MeLi",
+        "descripcion": "Cruza ACOS de Product Ads con rotación real de ventas y avisa qué productos pausar/revisar, y cuáles cambiaron de rotación y deberían moverse entre las campañas Alta/Media/Baja (ticket + WhatsApp). Cadencia por defecto cada 15 días — la rotación se mide sobre 30 días, revisarla más seguido no aporta señal nueva. No mueve ni pausa nada solo — MeLi no expone control por producto vía API.",
+        "script": "scripts/publicidad_recomendaciones_cron.py",
     },
 }
 

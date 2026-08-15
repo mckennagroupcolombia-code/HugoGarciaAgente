@@ -3505,6 +3505,136 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/publicidad/resumen")
+    def api_publicidad_resumen():
+        """Gasto/retorno de Product Ads MeLi con clasificación de riesgo. Ver app/services/meli_ads.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads import obtener_resumen_publicidad
+            data = obtener_resumen_publicidad(dias=dias, refresh=refresh)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/recomendaciones")
+    def api_publicidad_recomendaciones():
+        """Qué pausar/revisar en Product Ads MeLi, ponderado por rotación real. Ver app/services/meli_ads_recomendaciones.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads_recomendaciones import calcular_recomendaciones_publicidad
+            data = calcular_recomendaciones_publicidad(dias=dias, refresh=refresh)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/salud-negocio/resumen")
+    def api_salud_negocio_resumen():
+        """P&L semanal/mensual (ingresos MeLi+web − costo producto − comisiones MeLi − ads − admin) + score. Ver app/services/salud_negocio.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        periodicidad = (request.args.get("periodicidad") or "semana").strip().lower()
+        try:
+            n = int(request.args.get("n") or 8)
+        except ValueError:
+            n = 8
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.salud_negocio import salud_negocio_resumen
+            data = salud_negocio_resumen(periodicidad=periodicidad, n=n, refresh=refresh)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/plan-migracion")
+    def api_publicidad_plan_migracion():
+        """Reparto propuesto en 3 campañas (alta/baja/marca ajena) con parámetros sugeridos. Ver app/services/meli_ads_campanas.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads_campanas import plan_migracion_3_campanas
+            return jsonify(plan_migracion_3_campanas(dias=dias, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/config-grupos", methods=["GET", "POST"])
+    def api_publicidad_config_grupos():
+        """Mapa grupo (alta/baja/marca_ajena) → campaign_id real de MeLi, una vez el operador crea las campañas."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.meli_ads_campanas import guardar_config_grupos, leer_config_grupos
+        if request.method == "GET":
+            return jsonify(leer_config_grupos())
+        try:
+            body = request.get_json(force=True, silent=True) or {}
+            return jsonify(guardar_config_grupos(body))
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/alertas-reasignacion")
+    def api_publicidad_alertas_reasignacion():
+        """Productos cuya rotación actual ya no coincide con la campaña donde están pautados hoy."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads_campanas import calcular_alertas_reasignacion
+            return jsonify(calcular_alertas_reasignacion(dias=dias, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/margenes-reales")
+    def api_publicidad_margenes_reales():
+        """Margen real por producto (SKU MeLi ↔ costo de combo Siigo). Ver app/services/meli_ads_margenes.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads_margenes import obtener_margenes_reales
+            return jsonify(obtener_margenes_reales(dias=dias, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/publicidad/ads-vs-promociones")
+    def api_publicidad_ads_vs_promociones():
+        """Compara costo por unidad en Ads vs. la mejor promoción candidata, con canal recomendado por margen+rotación. Ver app/services/meli_ads_vs_promociones.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.meli_ads_vs_promociones import comparar_canales_publicidad
+            return jsonify(comparar_canales_publicidad(dias=dias, refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
     @app.route("/api/contabilidad/ventas-facturacion")
     def api_contabilidad_ventas_facturacion():
         """
@@ -4622,12 +4752,23 @@ def register_routes(app):
                 '  "humedad": "humedad / loss on drying si aparece fuera de tabla",\n'
                 '  "presentacion": "presentacion o empaque",\n'
                 '  "almacenamiento": "condiciones de almacenamiento",\n'
+                '  "firma_nombre": "nombre legible de quien firma o aprueba el COA",\n'
+                '  "firma_cargo": "cargo o rol legible de quien firma",\n'
+                '  "firma_organizacion": "empresa o laboratorio del firmante",\n'
+                '  "firma_bbox": [ymin, xmin, ymax, xmax],\n'
                 '  "parametros": "lineas Parametro|Especificacion|Resultado separadas por \\n"\n'
                 "}\n\n"
                 "Reglas:\n"
                 "- Omite claves vacias o no visibles.\n"
                 "- nombre_producto: producto analizado, NO el laboratorio emisor. "
                 "Usa el nombre quimico/comercial mas corto y tipico (sin lotes ni fechas).\n"
+                "- Para firma_nombre, firma_cargo y firma_organizacion revisa el bloque "
+                "Signed by, Approved by, Authorized by, Quality Control, firma o sello. "
+                "Extrae solo texto legible; no adivines nombres desde una rubrica ilegible.\n"
+                "- firma_bbox: caja de la RUBRICA manuscrita o firma digital (el trazo), "
+                "NO el nombre impreso debajo. Coordenadas normalizadas 0-1000 en orden "
+                "[ymin, xmin, ymax, xmax] respecto a la pagina/imagen analizada. "
+                "Si no hay firma visible, omite firma_bbox.\n"
                 "- Extrae TODOS los parametros de la tabla.\n"
                 "- Si el documento esta en ingles, traduce textos al espanol; "
                 "manten numeros y unidades. "
@@ -4668,9 +4809,13 @@ def register_routes(app):
                 except Exception:
                     parsed = None
 
+            firma_bbox_raw = None
             if isinstance(parsed, dict):
+                firma_bbox_raw = parsed.get("firma_bbox")
                 for k, v in parsed.items():
-                    if v is None:
+                    if v is None or k == "firma_bbox":
+                        continue
+                    if isinstance(v, (list, dict)):
                         continue
                     s = str(v).strip()
                     if s:
@@ -4687,6 +4832,17 @@ def register_routes(app):
             # Alias frecuentes
             if campos.get("einecs") and not campos.get("einces"):
                 campos["einces"] = campos["einecs"]
+
+            # Recortar la rúbrica / línea de firma si Gemini devolvió bbox
+            if firma_bbox_raw is not None:
+                try:
+                    from app.services.coa_firma import recortar_firma_a_data_url
+
+                    firma_url = recortar_firma_a_data_url(data, mime_type, firma_bbox_raw)
+                    if firma_url:
+                        campos["firma_imagen_b64"] = firma_url
+                except Exception as e_firma:
+                    print(f"⚠️ No se pudo recortar firma del COA: {e_firma}")
 
             archivo_bib = str(campos.get("archivo_biblioteca") or "").strip()
             if archivo_bib and catalogo:
@@ -4712,10 +4868,44 @@ def register_routes(app):
                 "archivo_biblioteca": archivo_bib,
                 "cas": str(campos.get("cas") or "").strip(),
                 "lote": str(campos.get("lote") or "").strip(),
+                "firma_imagen_b64": str(campos.get("firma_imagen_b64") or ""),
                 "campos": campos,
             })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/firma/extraer-trazo", methods=["POST"])
+    @app.route("/api/fichas/firma/extraer-trazo", methods=["POST"])
+    def api_fichas_firma_extraer_trazo():
+        """Deja solo el trazo de una firma (PNG transparente) para el bloque de aprobación."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa_firma import data_url_a_bytes, extraer_trazo_firma
+
+        archivo = request.files.get("imagen") or request.files.get("archivo")
+        data: bytes | None = None
+        mime = "image/png"
+        if archivo and archivo.filename:
+            data = archivo.read()
+            mime = archivo.mimetype or "image/png"
+        else:
+            body = request.get_json(silent=True) or {}
+            decodificado = data_url_a_bytes(str(body.get("imagen_b64") or ""))
+            if decodificado:
+                data, mime = decodificado
+        if not data:
+            return jsonify({
+                "error": "Envíe la imagen en «imagen» (multipart) o «imagen_b64» (data URL)"
+            }), 400
+        try:
+            resultado = extraer_trazo_firma(data, mime)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        if not resultado:
+            return jsonify({
+                "error": "No se detectó un trazo con contraste suficiente; recorte más cerca de la firma"
+            }), 422
+        return jsonify({"ok": True, "imagen_b64": resultado})
 
     @app.route("/app/api/fichas/ft/escanear-imagen", methods=["POST"])
     @app.route("/api/fichas/ft/escanear-imagen", methods=["POST"])

@@ -4020,6 +4020,67 @@ def registrar_tiempo(ticket_id: int, usuario_id: int,
         return True
 
 
+_ACTIVIDAD_EQUIPO_ACCIONES = ("ticket_creado", "estado_cambiado", "comentario_agregado", "compras_delegadas")
+
+_ACTIVIDAD_EQUIPO_VERBOS = {
+    ("estado_cambiado", "resuelto"): "completó",
+    ("estado_cambiado", "en_proceso"): "inició",
+    ("estado_cambiado", "pendiente"): "pausó",
+    ("estado_cambiado", "rechazado"): "rechazó",
+}
+
+
+def actividad_equipo_hoy(limite: int = 60) -> list:
+    """Feed de lo que hizo el equipo hoy en tickets tipo acción/solicitud.
+
+    Lee `logs_auditoria` (ya se llena en cada creación/cambio de estado/comentario,
+    ver `_log`) — no requiere una tabla nueva. Alimenta el banner "Actividad del
+    equipo" en /app, que reemplaza el mensaje instantáneo al grupo SEDE SUR por
+    cada cambio de estado (ver app/routes_tickets.py).
+    """
+    placeholders = ",".join("?" * len(_ACTIVIDAD_EQUIPO_ACCIONES))
+    with _conn() as db:
+        rows = db.execute(
+            f"""
+            SELECT l.id, l.creado_en, l.accion, l.valor_nuevo,
+                   u.nombre AS usuario_nombre,
+                   t.numero AS ticket_numero, t.titulo AS ticket_titulo, t.tipo AS ticket_tipo
+            FROM logs_auditoria l
+            JOIN tickets t ON t.id = l.ticket_id
+            LEFT JOIN usuarios u ON u.id = l.usuario_id
+            WHERE t.tipo IN ('accion', 'solicitud')
+              AND l.accion IN ({placeholders})
+              AND date(l.creado_en) = date('now', 'localtime')
+            ORDER BY l.creado_en DESC
+            LIMIT ?
+            """,
+            (*_ACTIVIDAD_EQUIPO_ACCIONES, limite),
+        ).fetchall()
+
+    eventos = []
+    for r in rows:
+        accion = r["accion"]
+        usuario = r["usuario_nombre"] or "Alguien"
+        if accion == "ticket_creado":
+            verbo = "creó una solicitud" if r["ticket_tipo"] == "solicitud" else "creó una acción"
+        elif accion == "comentario_agregado":
+            verbo = "comentó en"
+        elif accion == "compras_delegadas":
+            verbo = "delegó las compras de"
+        else:
+            verbo = _ACTIVIDAD_EQUIPO_VERBOS.get((accion, r["valor_nuevo"]), "actualizó")
+        eventos.append({
+            "id": r["id"],
+            "creado_en": r["creado_en"],
+            "usuario_nombre": usuario,
+            "accion": accion,
+            "ticket_numero": r["ticket_numero"],
+            "ticket_titulo": r["ticket_titulo"],
+            "resumen": f"{usuario} {verbo} {r['ticket_numero']} — {r['ticket_titulo']}",
+        })
+    return eventos
+
+
 def dashboard_carga() -> list:
     with _conn() as db:
         uids = [r["id"] for r in db.execute("SELECT id FROM usuarios WHERE activo=1").fetchall()]

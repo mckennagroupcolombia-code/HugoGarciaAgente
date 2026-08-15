@@ -166,20 +166,61 @@ def aplicar_datos_a_docx(doc_path: Path, datos: dict) -> None:
     _celda(t9, 2, 1, emp.get("precauciones", ""))
     _celda(t9, 3, 1, emp.get("observaciones", ""))
 
-    # Tabla 13 — código de verificación
-    codigo = (datos.get("codigo_verificacion") or "").strip()
-    if codigo and len(tablas) > 13:
-        cell = tablas[13].rows[0].cells[1]
-        texto = cell.text
-        if "MKG-COA-" in texto:
-            cell.text = re.sub(
-                r"MKG-COA-[A-Z0-9\-]+",
-                codigo,
-                texto,
-                count=1,
-            )
-        elif codigo:
-            cell.text = f"DATOS ADICIONALES\n\nMCKG\n\nCÓDIGO ÚNICO DE VERIFICACIÓN\n{codigo}\nVerificable en:\nwww.mckennagroup.co/verificar"
+    # Tabla 13 — aprobación (firma) + código de verificación
+    if len(tablas) > 13 and tablas[13].rows:
+        row13 = tablas[13].rows[0]
+        # Celda izquierda: espacio reservado para firma manuscrita / digital.
+        # Los datos solo se imprimen cuando fueron extraídos del COA original
+        # o diligenciados explícitamente; nunca se asigna un firmante por defecto.
+        if len(row13.cells) > 0:
+            firma = (datos.get("firma") or {}) if isinstance(datos.get("firma"), dict) else {}
+            nombre = str(firma.get("nombre") or "").strip()
+            cargo = str(firma.get("cargo") or "").strip()
+            org = str(firma.get("organizacion") or "").strip()
+            imagen_b64 = str(firma.get("imagen_b64") or firma.get("imagen_src") or "").strip()
+            lineas_firmante = "\n".join(v for v in (nombre, cargo, org) if v)
+
+            from app.services.coa_firma import data_url_a_bytes
+            from docx.shared import Cm
+            import io as _io
+
+            cell = row13.cells[0]
+            # Vaciar y reconstruir: título → imagen (si hay) → línea → datos
+            cell.text = "REVISADO Y APROBADO POR"
+            # Espacio en blanco / imagen de rúbrica
+            p_img = cell.add_paragraph()
+            decoded = data_url_a_bytes(imagen_b64) if imagen_b64 else None
+            if decoded:
+                raw_img, _mime = decoded
+                try:
+                    run = p_img.add_run()
+                    run.add_picture(_io.BytesIO(raw_img), width=Cm(5.5))
+                except Exception:
+                    p_img.add_run("\n\n\n")
+            else:
+                p_img.add_run("\n\n\n")
+            p_line = cell.add_paragraph()
+            p_line.add_run("______________________________")
+            if lineas_firmante:
+                for linea in lineas_firmante.split("\n"):
+                    cell.add_paragraph().add_run(linea)
+        codigo = (datos.get("codigo_verificacion") or "").strip()
+        if codigo and len(row13.cells) > 1:
+            cell = row13.cells[1]
+            texto = cell.text
+            if "MKG-COA-" in texto:
+                cell.text = re.sub(
+                    r"MKG-COA-[A-Z0-9\-]+",
+                    codigo,
+                    texto,
+                    count=1,
+                )
+            elif codigo:
+                cell.text = (
+                    "DATOS ADICIONALES\n\nMCKG\n\n"
+                    f"CÓDIGO ÚNICO DE VERIFICACIÓN\n{codigo}\n"
+                    "Verificable en:\nwww.mckennagroup.co/verificar"
+                )
 
     doc.save(str(doc_path))
 

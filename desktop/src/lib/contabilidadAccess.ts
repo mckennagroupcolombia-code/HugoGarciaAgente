@@ -11,6 +11,8 @@ export const CONTABILIDAD_PANELS = [
   "libro-mayor",
   "stock",
   "rentabilidad",
+  "publicidad",
+  "salud-negocio",
   "compras-exterior",
   "productos-siigo",
   "costos-productos",
@@ -93,6 +95,8 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.facturacion
       || p.stock
       || p.rentabilidad
+      || p.publicidad
+      || p["salud-negocio"]
       || p["compras-exterior"]
       || p["productos-siigo"]
       || p["costos-productos"]
@@ -134,6 +138,12 @@ export function puedeVerModuloContabilidad(
     return Boolean(
       p.rentabilidad || p.facturas || p.sync || p.facturacion || p["compras-exterior"],
     );
+  }
+  if (seccion === "publicidad") {
+    return Boolean(p.publicidad || p.rentabilidad || p.facturas || p.sync || p.facturacion);
+  }
+  if (seccion === "salud-negocio") {
+    return Boolean(p["salud-negocio"] || p.rentabilidad || p.publicidad || p.facturacion);
   }
   if (seccion === "productos-siigo") {
     return Boolean(p["productos-siigo"] || p.facturas || p.sync || p.facturacion);

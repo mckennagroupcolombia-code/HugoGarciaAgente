@@ -20,7 +20,7 @@ from app.services.tickets_db import (
     crear_ticket, listar_tickets, listar_compras_delegadas, get_ticket, actualizar_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
     renovar_ticket,
-    registrar_tiempo, dashboard_carga, UPLOADS_DIR,
+    registrar_tiempo, dashboard_carga, actividad_equipo_hoy, UPLOADS_DIR,
     crear_mision, listar_misiones, get_mision, actualizar_mision, lanzar_mision,
     eliminar_mision, eliminar_ticket,
     agregar_participante, quitar_participante,
@@ -51,8 +51,6 @@ _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "x
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
 _ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX, TXT"
 
-_GRUPO_SEDE_SUR_WA = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
-
 _NOTIF_CONFIG_PATH = Path(__file__).parent / "data" / "config_notif_wa.json"
 
 def _notif_config_load() -> dict:
@@ -64,14 +62,6 @@ def _notif_config_load() -> dict:
 def _notif_config_save(cfg: dict) -> None:
     _NOTIF_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     _NOTIF_CONFIG_PATH.write_text(json.dumps(cfg, ensure_ascii=False, indent=2))
-
-_ESTADO_EMOJI = {
-    "resuelto":   "✅",
-    "en_proceso": "🔄",
-    "pendiente":  "⏳",
-    "rechazado":  "❌",
-}
-
 
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -200,7 +190,7 @@ def _notificar_nueva_accion_wa(ticket: dict, quien: str) -> None:
     if not _notif_config_load().get("sede_sur_acciones", True):
         return
     import threading
-    from app.utils import enviar_whatsapp_reporte
+    from app.utils import enviar_whatsapp_reporte, jid_grupo_sede_sur_wa
 
     tipo = ticket.get("tipo", "accion")
     emoji = "⚡" if tipo == "accion" else "📋"
@@ -223,33 +213,7 @@ def _notificar_nueva_accion_wa(ticket: dict, quien: str) -> None:
 
     threading.Thread(
         target=enviar_whatsapp_reporte,
-        kwargs={"texto_mensaje": "\n".join(lineas), "numero_destino": _GRUPO_SEDE_SUR_WA},
-        daemon=True,
-    ).start()
-
-
-def _notificar_estado_accion_wa(ticket: dict, nuevo_estado: str, quien: str) -> None:
-    """Envía notificación al grupo SEDE SUR cuando cambia el estado de una acción/solicitud."""
-    if not _notif_config_load().get("sede_sur_acciones", True):
-        return
-    import threading
-    from app.utils import enviar_whatsapp_reporte
-
-    emoji = _ESTADO_EMOJI.get(nuevo_estado, "📋")
-    asignado = ticket.get("asignado_a_nombre") or "Sin asignar"
-    numero = ticket.get("numero", "")
-    titulo = ticket.get("titulo", "")
-
-    if nuevo_estado == "resuelto":
-        texto = f"{emoji} *Acción completada*\n{numero} — {titulo}\n👤 Resuelto por {quien or asignado}"
-    elif nuevo_estado == "en_proceso":
-        texto = f"{emoji} *Acción iniciada*\n{numero} — {titulo}\n👤 Iniciado por {quien or asignado}"
-    else:
-        texto = f"{emoji} *Acción pausada*\n{numero} — {titulo}\n👤 {quien or asignado}"
-
-    threading.Thread(
-        target=enviar_whatsapp_reporte,
-        kwargs={"texto_mensaje": texto, "numero_destino": _GRUPO_SEDE_SUR_WA},
+        kwargs={"texto_mensaje": "\n".join(lineas), "numero_destino": jid_grupo_sede_sur_wa()},
         daemon=True,
     ).start()
 
@@ -631,6 +595,18 @@ def register_tickets_routes(app):
         data = metricas_panel_operadores(fecha)
         mine = next((o for o in data["operadores"] if o["usuario_id"] == uid), None)
         return jsonify({"fecha": data["fecha"], "resumen": mine}), 200
+
+    @app.route("/api/tickets/actividad-equipo", methods=["GET"])
+    @_auth
+    def tickets_actividad_equipo():
+        """Feed de actividad del equipo hoy (acciones/solicitudes) para el banner de /app.
+
+        Reemplaza el mensaje instantáneo al grupo SEDE SUR por cada cambio de
+        estado: eso ahora se ve aquí en tiempo real, y el grupo solo recibe el
+        aviso de ticket nuevo asignado + el resumen diario (ver
+        scripts/resumen_actividad_sede_sur_cron.py).
+        """
+        return jsonify({"eventos": actividad_equipo_hoy()}), 200
 
     @app.route("/api/tickets/admin/metricas-acciones", methods=["GET"])
     @_auth
@@ -1056,8 +1032,6 @@ def register_tickets_routes(app):
                 panel="tickets",
                 detalle={"ticket_id": ticket_id, "tipo": (ticket or {}).get("tipo")},
             )
-        if ticket and ticket.get("tipo") in ("accion", "solicitud") and nuevo_estado in ("resuelto", "en_proceso"):
-            _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
         if ticket and ticket.get("tipo") == "solicitud" and nuevo_estado == "esperando_aprobacion":
             import threading
             from app.services.tickets_notificaciones import notificar_revision_solicitada

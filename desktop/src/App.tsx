@@ -104,6 +104,8 @@ function PanelRouterInner() {
     case "facturacion":
     case "costos-productos":
     case "rentabilidad":
+    case "publicidad":
+    case "salud-negocio":
     case "compras-exterior":
     case "productos-siigo":
     case "rrhh":

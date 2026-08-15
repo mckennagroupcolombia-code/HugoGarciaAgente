@@ -14,6 +14,7 @@ import DocumentoGeneradorTab, {
 } from "./documentos/DocumentoGeneradorTab";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
+import FirmaPegable from "./documentos/FirmaPegable";
 import DocumentosCatalogoTab, {
   type ProductoDocumentacion,
 } from "./documentos/DocumentosCatalogoTab";
@@ -153,12 +154,14 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
     }
   };
 
-  const archivos = (data?.archivos ?? []).filter((a) => {
-    if (a.tipo !== "pdf") return false;
-    const q = busqueda.toLowerCase();
-    if (q && !a.nombre.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const archivos = (data?.archivos ?? [])
+    .filter((a) => {
+      if (a.tipo !== "pdf") return false;
+      const q = busqueda.toLowerCase();
+      if (q && !a.nombre.toLowerCase().includes(q)) return false;
+      return true;
+    })
+    .sort((a, b) => b.fecha - a.fecha || a.nombre.localeCompare(b.nombre, "es"));
 
   return (
     <div className="space-y-4">
@@ -234,7 +237,9 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
               <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide">Documento</th>
               <th className="px-3 py-2.5 text-center text-xs font-semibold text-muted uppercase tracking-wide w-16">Tipo</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-20">Tamaño</th>
-              <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-28">Fecha</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-28" title="Ordenado: más reciente primero">
+                Fecha ↓
+              </th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-28">Acciones</th>
             </tr>
           </thead>
@@ -498,6 +503,10 @@ function CoaTabContent({
   const [almacenamiento, setAlmacenamiento] = useState("");
   const [precauciones, setPrecauciones] = useState("");
   const [observaciones, setObservaciones] = useState("");
+  const [firmaNombre, setFirmaNombre] = useState("");
+  const [firmaCargo, setFirmaCargo] = useState("");
+  const [firmaOrganizacion, setFirmaOrganizacion] = useState("");
+  const [firmaImagenB64, setFirmaImagenB64] = useState("");
   const [codigoVerif, setCodigoVerif] = useState("");
   const [ultimoGenerado, setUltimoGenerado] = useState<GenerarDocResult | null>(null);
 
@@ -512,6 +521,7 @@ function CoaTabContent({
     const ident = (datos.identificacion || {}) as Record<string, string>;
     const lote = (datos.lote || {}) as Record<string, string>;
     const emp = (datos.empaque || {}) as Record<string, string>;
+    const firma = (datos.firma || {}) as Record<string, string>;
     setTitulo(String(datos.titulo || ""));
     setNombreComercial(String(ident.nombre_comercial || ""));
     setReferencia(String(ident.referencia_interna || ""));
@@ -537,6 +547,10 @@ function CoaTabContent({
     setAlmacenamiento(String(emp.almacenamiento || ""));
     setPrecauciones(String(emp.precauciones || ""));
     setObservaciones(String(emp.observaciones || ""));
+    setFirmaNombre(String(firma.nombre || ""));
+    setFirmaCargo(String(firma.cargo || ""));
+    setFirmaOrganizacion(String(firma.organizacion || ""));
+    setFirmaImagenB64(String(firma.imagen_b64 || ""));
     setCodigoVerif(String(datos.codigo_verificacion || ""));
   }, []);
 
@@ -577,12 +591,19 @@ function CoaTabContent({
         precauciones,
         observaciones,
       },
+      firma: {
+        nombre: firmaNombre,
+        cargo: firmaCargo,
+        organizacion: firmaOrganizacion,
+        imagen_b64: firmaImagenB64,
+      },
       codigo_verificacion: codigoVerif,
     }),
     [
       titulo, nombreComercial, referencia, inci, cas, formula, einces, concentracion, grado,
       presentacion, incluye, loteNum, fab, venc, vidaUtil, tamanoLote, pais, fabricante, fechaAnalisis,
-      fechaEmision, parametros, empaque, almacenamiento, precauciones, observaciones, codigoVerif,
+      fechaEmision, parametros, empaque, almacenamiento, precauciones, observaciones,
+      firmaNombre, firmaCargo, firmaOrganizacion, firmaImagenB64, codigoVerif,
     ],
   );
 
@@ -650,6 +671,13 @@ function CoaTabContent({
         <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
         <Field label="Precauciones" value={precauciones} onChange={setPrecauciones} rows={2} />
         <Field label="Observaciones" value={observaciones} onChange={setObservaciones} rows={2} />
+        <p className="text-xs font-medium text-muted">Datos de la firma</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="Nombre del firmante" value={firmaNombre} onChange={setFirmaNombre} />
+          <Field label="Cargo del firmante" value={firmaCargo} onChange={setFirmaCargo} />
+          <Field label="Organización / laboratorio" value={firmaOrganizacion} onChange={setFirmaOrganizacion} />
+        </div>
+        <FirmaPegable value={firmaImagenB64} onChange={setFirmaImagenB64} />
         <Field
           label="Código de verificación (dejar vacío = se genera al registrar el lote)"
           value={codigoVerif}
@@ -1014,11 +1042,19 @@ function CoaSection({
   coaEinces, setCoaEinces,
   coaGrado, setCoaGrado,
   coaParametros, setCoaParametros,
+  coaFirmaNombre, setCoaFirmaNombre,
+  coaFirmaCargo, setCoaFirmaCargo,
+  coaFirmaOrganizacion, setCoaFirmaOrganizacion,
+  coaFirmaImagenB64, setCoaFirmaImagenB64,
   ia,
 }: {
   coaEinces: string; setCoaEinces: (v: string) => void;
   coaGrado: string; setCoaGrado: (v: string) => void;
   coaParametros: string; setCoaParametros: (v: string) => void;
+  coaFirmaNombre: string; setCoaFirmaNombre: (v: string) => void;
+  coaFirmaCargo: string; setCoaFirmaCargo: (v: string) => void;
+  coaFirmaOrganizacion: string; setCoaFirmaOrganizacion: (v: string) => void;
+  coaFirmaImagenB64: string; setCoaFirmaImagenB64: (v: string) => void;
   ia: (campo: string) => { label: string; loading: boolean; onClick: () => void };
   nombreProducto: string;
 }) {
@@ -1082,6 +1118,22 @@ function CoaSection({
             ))}
           </div>
           <Field value={coaGrado} onChange={setCoaGrado} placeholder="O escribe un grado personalizado…" label="Grado personalizado" />
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-medium text-muted">Datos de la firma</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="Nombre del firmante" value={coaFirmaNombre} onChange={setCoaFirmaNombre} />
+          <Field label="Cargo del firmante" value={coaFirmaCargo} onChange={setCoaFirmaCargo} />
+          <Field
+            label="Organización / laboratorio"
+            value={coaFirmaOrganizacion}
+            onChange={setCoaFirmaOrganizacion}
+          />
+        </div>
+        <div className="mt-2">
+          <FirmaPegable value={coaFirmaImagenB64} onChange={setCoaFirmaImagenB64} />
         </div>
       </div>
 
@@ -1257,6 +1309,10 @@ function DocumentoCompletoTabContent({
   const [coaEinces, setCoaEinces] = useState("");
   const [coaGrado, setCoaGrado] = useState("");
   const [coaParametros, setCoaParametros] = useState("");
+  const [coaFirmaNombre, setCoaFirmaNombre] = useState("");
+  const [coaFirmaCargo, setCoaFirmaCargo] = useState("");
+  const [coaFirmaOrganizacion, setCoaFirmaOrganizacion] = useState("");
+  const [coaFirmaImagenB64, setCoaFirmaImagenB64] = useState("");
 
   /* ── SDS: solo campos exclusivos ── */
   const [sdsClasificacion, setSdsClasificacion] = useState("");
@@ -1313,6 +1369,7 @@ function DocumentoCompletoTabContent({
     const coaData = (datos._coa as Record<string, unknown>) || null;
     const sdsData = (datos._sds as Record<string, unknown>) || null;
     const coaIdent = (coaData?.identificacion as Record<string, unknown>) || {};
+    const coaFirma = (coaData?.firma as Record<string, unknown>) || {};
     const sdsIdent = (sdsData?.identificacion as Record<string, unknown>) || {};
 
     const nombreRaw = String(
@@ -1340,6 +1397,10 @@ function DocumentoCompletoTabContent({
       if (coaIdent.einces) setCoaEinces(String(coaIdent.einces));
       if (coaIdent.grado) setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
+      setCoaFirmaNombre(String(coaFirma.nombre || ""));
+      setCoaFirmaCargo(String(coaFirma.cargo || ""));
+      setCoaFirmaOrganizacion(String(coaFirma.organizacion || ""));
+      setCoaFirmaImagenB64(String(coaFirma.imagen_b64 || ""));
     }
 
     if (sdsData) {
@@ -1387,10 +1448,17 @@ function DocumentoCompletoTabContent({
         pais_origen: String(ft.pais_origen || ""),
       },
       parametros: filasTresDesdeTexto(coaParametros),
+      firma: {
+        nombre: coaFirmaNombre,
+        cargo: coaFirmaCargo,
+        organizacion: coaFirmaOrganizacion,
+        imagen_b64: coaFirmaImagenB64,
+      },
     };
   }, [
     nombre, nombreComercial, referencia, inci, cas,
     coaEinces, coaGrado, coaParametros,
+    coaFirmaNombre, coaFirmaCargo, coaFirmaOrganizacion, coaFirmaImagenB64,
   ]);
 
   const buildSdsDatos = useCallback(() => ({
@@ -1818,6 +1886,10 @@ function DocumentoCompletoTabContent({
         coaEinces={coaEinces} setCoaEinces={setCoaEinces}
         coaGrado={coaGrado} setCoaGrado={setCoaGrado}
         coaParametros={coaParametros} setCoaParametros={setCoaParametros}
+        coaFirmaNombre={coaFirmaNombre} setCoaFirmaNombre={setCoaFirmaNombre}
+        coaFirmaCargo={coaFirmaCargo} setCoaFirmaCargo={setCoaFirmaCargo}
+        coaFirmaOrganizacion={coaFirmaOrganizacion} setCoaFirmaOrganizacion={setCoaFirmaOrganizacion}
+        coaFirmaImagenB64={coaFirmaImagenB64} setCoaFirmaImagenB64={setCoaFirmaImagenB64}
         ia={ia}
         nombreProducto={nombre}
       />

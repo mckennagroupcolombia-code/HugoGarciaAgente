@@ -3178,6 +3178,597 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000017909429746": {
+      "shipping_id": "47757599146",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T09:09:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ESPCCRCRV22CM",
+            "nombre": "Espátula Laboratorio Acero Inóxidable",
+            "cantidad": 1.0,
+            "precio_unitario": 12800.0
+          }
+        ],
+        "total": 12800.0,
+        "nombre_cliente": "Carlos Gómez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Transversal 1 A #69-55, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017919922602": {
+      "shipping_id": "47762777536",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T09:45:08",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 105000.0
+          }
+        ],
+        "total": 105000.0,
+        "nombre_cliente": "FELIPE PEÑUELA",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 7 #21-12, Pacho, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017706156074": {
+      "shipping_id": "47661541067",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T10:07:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 2.0,
+            "precio_unitario": 30500.0
+          }
+        ],
+        "total": 61000.0,
+        "nombre_cliente": "socorro Pascuaza",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 3 #SN-SN, Funes, Nariño",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017888184224": {
+      "shipping_id": "47747217049",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T10:12:03",
+      "error": "No puedo emitir factura automática: Kit Pulido Mototool 50 Piezas 9v (MCO3409982116): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017846333786": {
+      "shipping_id": "47727417341",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T10:45:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAGKg",
+            "nombre": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 54000.0
+          }
+        ],
+        "total": 54000.0,
+        "nombre_cliente": "juan nicolas jimenez",
+        "identificacion": "222222222222",
+        "direccion_envio": "CARRERA 15 7-67, Buga, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017872341360": {
+      "shipping_id": "47739572003",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T11:49:41",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 24800.0
+          }
+        ],
+        "total": 24800.0,
+        "nombre_cliente": "Cristian Altamiranda",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 4 Norte 1c-90 4, San Alberto, Cesar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017876536374": {
+      "shipping_id": "47741919892",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T12:16:24",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 20900.0,
+        "nombre_cliente": "Elvira Guerrero",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera carrera 11bis calle 34B #54-SN, Riohacha, Guajira",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017887382850": {
+      "shipping_id": "47746856773",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T12:24:56",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 4.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 83600.0,
+        "nombre_cliente": "Jennifer Paola Mejia Hernandez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle  1 D 20-45, Puerto Colombia, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017889931838": {
+      "shipping_id": "47748290940",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T12:38:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "GTRPLS3ML10UN",
+            "nombre": "Gotero Plastico 3ml - Pipeta Pasteur 10 Unidades",
+            "cantidad": 1.0,
+            "precio_unitario": 12169.0
+          }
+        ],
+        "total": 12169.0,
+        "nombre_cliente": "jhon Lopez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 44 #29b-22, Barranquilla, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017879873578": {
+      "shipping_id": "47743522526",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T15:31:54",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITC30P30mL",
+            "nombre": "Vitamina C Solución Al 30% 30ml Mixta Noche",
+            "cantidad": 1.0,
+            "precio_unitario": 18900.0
+          }
+        ],
+        "total": 18900.0,
+        "nombre_cliente": "Jenniffer Cervantes Perez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Cra. 19b 41-17, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017917177558": {
+      "shipping_id": "47761152849",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T15:35:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "victor jaime rincon Morales",
+        "identificacion": "222222222222",
+        "direccion_envio": "Transv.27#41-30 Apto.101 La Grama #La Misma-000000, Villavicencio, Meta",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017933500680": {
+      "shipping_id": "47769023449",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T15:54:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC250mL",
+            "nombre": "Aceite Ricino Castor Puro 250ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13500.0
+          }
+        ],
+        "total": 13500.0,
+        "nombre_cliente": "Margarita Rosa Mercado Martinez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 19A #86A-42, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017935110416": {
+      "shipping_id": "47769795481",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T16:01:55",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 2.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 41800.0,
+        "nombre_cliente": "Santiago Cañaveral",
+        "identificacion": "222222222222",
+        "direccion_envio": "Diagonal 115 A #70D-95, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017902898126": {
+      "shipping_id": "47754332025",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T16:15:30",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDSAL20P30mL",
+            "nombre": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "Juliana Guataquira",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 26 #08-86, Villavicencio, Meta",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017934672978": {
+      "shipping_id": "47769856878",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T16:24:13",
+      "error": "No puedo emitir factura automática: Citrato De Potasio 500 Gr (MCO616763443): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017926345706": {
+      "shipping_id": "47765545483",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T16:34:56",
+      "error": "No puedo emitir factura automática: Maní Tostado Natural 500 G (MCO1447344989): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017919482700": {
+      "shipping_id": "47762558942",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T16:44:11",
+      "error": "No puedo emitir factura automática: Glicerina Natural Vegetal Usp 500 Ml (MCO595161900): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017926695588": {
+      "shipping_id": "47765974596",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T16:53:49",
+      "error": "No puedo emitir factura automática: C-GOTPLA3mL10UnUN: no existe en Siigo"
+    },
+    "2000017928084010": {
+      "shipping_id": "47766600698",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T16:58:27",
+      "error": "No puedo emitir factura automática: Gelatina Sin Sabor 500 Gr (MCO1276565211): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017914535820": {
+      "shipping_id": "47759865817",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T17:25:24",
+      "error": "No puedo emitir factura automática: Maní Tostado Natural 500 G (MCO1447344989): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017933131580": {
+      "shipping_id": "47769118688",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T17:27:31",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEIJOJ30mL",
+            "nombre": "Aceite De Jojoba",
+            "cantidad": 2.0,
+            "precio_unitario": 27900.0
+          }
+        ],
+        "total": 55800.0,
+        "nombre_cliente": "Constanza hostios",
+        "identificacion": "222222222222",
+        "direccion_envio": "calle 18 #86-55, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017934477324": {
+      "shipping_id": "47769762908",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T17:46:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ESPCCRCRV22CM",
+            "nombre": "Espátula Laboratorio Acero Inóxidable",
+            "cantidad": 6.0,
+            "precio_unitario": 12800.0
+          }
+        ],
+        "total": 76800.0,
+        "nombre_cliente": "Santiago Vega",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 10A #138-32, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017919644898": {
+      "shipping_id": "47762371977",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T17:52:46",
+      "error": "No puedo emitir factura automática: Ácido Cítrico  Usp 500 Gr  N/a (MCO953116239): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017930220132": {
+      "shipping_id": "47767409627",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T18:01:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "LNLN40G",
+            "nombre": "Lanolina Pura  Anti Grietas 40 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 17900.0
+          }
+        ],
+        "total": 17900.0,
+        "nombre_cliente": "Sebastian Jorge Leon Perdomo",
+        "identificacion": "222222222222",
+        "direccion_envio": "Conjunto Residencial Rincón del Parque Carrera 14b 161-54, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017933395168": {
+      "shipping_id": "47769250300",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T18:06:50",
+      "error": "No puedo emitir factura automática: Citrato De Calcio 500gr Ningún (MCO901663592): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000017926606008": {
+      "shipping_id": "47765945964",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T18:14:31",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 105000.0
+          }
+        ],
+        "total": 105000.0,
+        "nombre_cliente": "Harold Andres Castillo Carvajal",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 152a 54-68, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017933920854": {
+      "shipping_id": "47769496972",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:05:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "DSCVDR",
+            "nombre": "Disco De Corte De Diamante Para Mármol, Vidrio, Porcelanato Verde",
+            "cantidad": 1.0,
+            "precio_unitario": 22900.0
+          }
+        ],
+        "total": 22900.0,
+        "nombre_cliente": "Bernardo Dominguez Quintero",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 138 #58-25, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017909838360": {
+      "shipping_id": "47757777552",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:08:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALA100g",
+            "nombre": "Alantoína En Polvo 100gr",
+            "cantidad": 1.0,
+            "precio_unitario": 28000.0
+          }
+        ],
+        "total": 28000.0,
+        "nombre_cliente": "YANETH ROJAS PEREZ",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 112 F #72 C-21, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017934177794": {
+      "shipping_id": "47769355979",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:08:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITZIN500g",
+            "nombre": "Citrato De Zinc 500gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 28900.0
+          }
+        ],
+        "total": 28900.0,
+        "nombre_cliente": "yeimy Marín",
+        "identificacion": "222222222222",
+        "direccion_envio": "Diagonal 46A #51D-23sur, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017899002538": {
+      "shipping_id": "47752415903",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:15:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAGKg",
+            "nombre": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+            "cantidad": 2.0,
+            "precio_unitario": 54000.0
+          }
+        ],
+        "total": 108000.0,
+        "nombre_cliente": "Carolina Espinel",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 18b #28-36, Girón, Santander",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017923792838": {
+      "shipping_id": "47764375307",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T19:16:02",
+      "error": "No puedo emitir factura automática: C-KITACIHIA30mL: no existe en Siigo"
+    },
+    "2000017915071762": {
+      "shipping_id": "47760126477",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:30:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "Jonatan arboleda",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 38 38a sur-13, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017905173356": {
+      "shipping_id": "47755672668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:34:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANKARAMA250g",
+            "nombre": "Manteca De Karité Orgánica Amarilla Sin Refinar 250 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 61900.0
+          }
+        ],
+        "total": 61900.0,
+        "nombre_cliente": "María Monica Toro Fuechtemann",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 35 # 85 - 85, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017909570634": {
+      "shipping_id": "47757657238",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T19:45:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALGSODLACCAL50g",
+            "nombre": "Alginato De Sodio + Lactato De Calcio 50g C/u",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "Laura María Muñoz",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 71 20f-19, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017927805086": {
+      "shipping_id": "47766203083",
+      "estado": "error",
+      "actualizado_en": "2026-08-14T20:13:49",
+      "error": "No puedo emitir factura automática: C-VERMAL30mL: no existe en Siigo"
+    },
+    "2000017921047768": {
+      "shipping_id": "47763346546",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-14T20:30:47",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-INU250g",
+            "nombre": "Inulina Prebiótico Polvo",
+            "cantidad": 3.0,
+            "precio_unitario": 16500.0
+          }
+        ],
+        "total": 49500.0,
+        "nombre_cliente": "Diana Parra",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 37A #68h-31, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   }
 }
