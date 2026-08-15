@@ -1213,6 +1213,148 @@ def obtener_estado_stock_meli() -> list[dict]:
     return items
 
 
+_VENTAS_YTD_CACHE_PATH = os.path.join(
+    os.path.dirname(__file__), "data", "meli_ventas_ytd_cache.json"
+)
+_VENTAS_YTD_CACHE_TTL_S = 6 * 60 * 60  # recorrer el año completo puede tardar 1-2 min
+
+
+def _meli_orders_paid_qty_rango(
+    headers: dict, seller_id, desde: datetime, hasta: datetime
+) -> dict[str, int]:
+    """Unidades vendidas por publicación MeLi (MCO…) en órdenes 'paid' dentro de
+    [desde, hasta]. /orders/search rechaza offset+limit > 10000 en un mismo rango;
+    si se topa con eso, parte el rango de fechas a la mitad y recorre cada mitad
+    por separado, sumando resultados."""
+    url = "https://api.mercadolibre.com/orders/search"
+    params = {
+        "seller": seller_id,
+        "order.date_created.from": desde.strftime("%Y-%m-%dT00:00:00.000-05:00"),
+        "order.date_created.to": hasta.strftime("%Y-%m-%dT23:59:59.000-05:00"),
+        "order.status": "paid",
+        "sort": "date_asc",
+        "limit": 50,
+        "offset": 0,
+    }
+    por_item: dict[str, int] = {}
+    offset = 0
+    while True:
+        params["offset"] = offset
+        r = requests.get(url, headers=headers, params=params, timeout=30)
+        if r.status_code != 200:
+            break
+        data = r.json() or {}
+        results = data.get("results") or []
+        for ord_ in results:
+            for oi in ord_.get("order_items") or []:
+                item = oi.get("item") or {}
+                mid = str(item.get("id") or "").strip().upper()
+                qty = int(oi.get("quantity") or 0)
+                if mid.startswith("MCO") and qty > 0:
+                    por_item[mid] = por_item.get(mid, 0) + qty
+        total = int((data.get("paging") or {}).get("total") or 0)
+        offset += len(results)
+        if offset >= total or not results:
+            break
+        if offset >= 9950:
+            if hasta - desde <= timedelta(days=1):
+                break
+            mitad = desde + (hasta - desde) / 2
+            izquierda = _meli_orders_paid_qty_rango(headers, seller_id, desde, mitad)
+            derecha = _meli_orders_paid_qty_rango(
+                headers, seller_id, mitad + timedelta(seconds=1), hasta
+            )
+            for mid, qty in izquierda.items():
+                por_item[mid] = por_item.get(mid, 0) + qty
+            for mid, qty in derecha.items():
+                por_item[mid] = por_item.get(mid, 0) + qty
+            return por_item
+    return por_item
+
+
+# Cortes de rotación sobre unidades vendidas en lo que va del año (~8 meses a ago-2026).
+ROTACION_BAJA_MAX = 1  # 1 unidad vendida en el año → baja rotación
+ROTACION_MEDIA_MAX = 9  # 2 a 9 unidades → media rotación; 10+ → alta
+
+
+def clasificar_rotacion(unidades_ytd: int) -> str:
+    if unidades_ytd <= 0:
+        return "sin_ventas"
+    if unidades_ytd <= ROTACION_BAJA_MAX:
+        return "baja"
+    if unidades_ytd <= ROTACION_MEDIA_MAX:
+        return "media"
+    return "alta"
+
+
+def obtener_ventas_meli_ytd_por_item(refresh: bool = False) -> dict:
+    """Unidades vendidas por publicación MeLi (MCOxxxxxxxx) desde el 1 de enero
+    del año en curso. Se cachea (TTL algunas horas) porque recorrer el año
+    completo implica varias pasadas por el tope de 10.000 resultados de
+    /orders/search."""
+    now = datetime.now()
+    anio = now.year
+    if not refresh and os.path.isfile(_VENTAS_YTD_CACHE_PATH):
+        try:
+            with open(_VENTAS_YTD_CACHE_PATH, encoding="utf-8") as f:
+                cached = json.load(f)
+            ts = float(cached.get("ts") or 0)
+            if (
+                cached.get("version") == 2
+                and cached.get("anio") == anio
+                and (now.timestamp() - ts) < _VENTAS_YTD_CACHE_TTL_S
+                and isinstance(cached.get("por_item"), dict)
+            ):
+                return {
+                    "anio": anio,
+                    "fuente": "cache",
+                    "actualizado_en": cached.get("actualizado_en"),
+                    "por_item": {k: int(v) for k, v in cached["por_item"].items()},
+                }
+        except Exception:
+            pass
+
+    token = refrescar_token_meli()
+    if not token:
+        raise RuntimeError("Token de Mercado Libre no disponible.")
+    headers = {"Authorization": f"Bearer {token}"}
+    me = requests.get(
+        "https://api.mercadolibre.com/users/me", headers=headers, timeout=20
+    ).json()
+    seller_id = me.get("id")
+    if not seller_id:
+        raise RuntimeError("No se pudo obtener seller_id de MeLi.")
+
+    por_item = _meli_orders_paid_qty_rango(
+        headers, seller_id, datetime(anio, 1, 1), now
+    )
+
+    actualizado_en = now.strftime("%Y-%m-%dT%H:%M:%S")
+    try:
+        os.makedirs(os.path.dirname(_VENTAS_YTD_CACHE_PATH), exist_ok=True)
+        with open(_VENTAS_YTD_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "version": 2,
+                    "ts": now.timestamp(),
+                    "anio": anio,
+                    "actualizado_en": actualizado_en,
+                    "por_item": por_item,
+                },
+                f,
+                ensure_ascii=False,
+            )
+    except Exception as e:
+        print(f"⚠️ [ventas-ytd] No se pudo guardar caché: {e}")
+
+    return {
+        "anio": anio,
+        "fuente": "live",
+        "actualizado_en": actualizado_en,
+        "por_item": por_item,
+    }
+
+
 def ejecutar_sincronizacion_y_reporte_stock():
     """Cruza el stock de Google Sheets con Mercado Libre y envía un reporte de niveles bajos."""
     print("\n💹 [STOCK SYNC] Iniciando escaneo de productos para reporte de stock...")
@@ -1228,16 +1370,48 @@ def ejecutar_sincronizacion_y_reporte_stock():
         sh = gc.open_by_key(SPREADSHEET_ID)
         sheet = sh.worksheet("Hoja 1")
 
-        updates, agotados, criticos = [], [], []
+        try:
+            ventas_ytd = obtener_ventas_meli_ytd_por_item()
+            unidades_ytd_por_item = ventas_ytd["por_item"]
+            anio_actual = ventas_ytd["anio"]
+        except Exception as e:
+            print(f"⚠️ [STOCK SYNC] No se pudo verificar ventas del año, no se filtra: {e}")
+            unidades_ytd_por_item = None
+            anio_actual = datetime.now().year
+
+        updates = []
+        agotados_por_rotacion = {"alta": [], "media": [], "baja": []}
+        criticos_por_rotacion = {"alta": [], "media": [], "baja": []}
+        sin_ventas_excluidos = 0
         for it in items:
             stock = it["stock"]
             nombre = it["nombre"]
-            if stock == 0:
-                agotados.append(f"🚫 {nombre}")
-            elif stock == 1:
-                criticos.append(f"⚠️ {nombre}")
             if it["fila"]:
                 updates.append({"range": f"F{it['fila']}", "values": [[stock]]})
+            if stock not in (0, 1):
+                continue
+            if unidades_ytd_por_item is None:
+                rotacion = "media"  # sin datos de ventas: no se puede clasificar ni excluir
+            else:
+                mid = str(it.get("meli_id") or "").strip().upper()
+                rotacion = clasificar_rotacion(unidades_ytd_por_item.get(mid, 0))
+            if rotacion == "sin_ventas":
+                sin_ventas_excluidos += 1
+                continue
+            destino = agotados_por_rotacion if stock == 0 else criticos_por_rotacion
+            emoji = "🚫" if stock == 0 else "⚠️"
+            destino[rotacion].append(f"{emoji} {nombre}")
+
+        agotados = (
+            agotados_por_rotacion["alta"]
+            + agotados_por_rotacion["media"]
+            + agotados_por_rotacion["baja"]
+        )
+        criticos = (
+            criticos_por_rotacion["alta"]
+            + criticos_por_rotacion["media"]
+            + criticos_por_rotacion["baja"]
+        )
 
         if updates:
             sheet.batch_update(updates)
@@ -1257,17 +1431,33 @@ def ejecutar_sincronizacion_y_reporte_stock():
         except Exception as e:
             print(f"⚠️ [STOCK SYNC] No se pudo propagar stock a la web en el cron diario: {e}")
 
+        def _seccion_por_rotacion(titulo: str, por_rotacion: dict) -> str:
+            total = sum(len(v) for v in por_rotacion.values())
+            if not total:
+                return ""
+            bloque = f"\n\n*{titulo} ({total}):*"
+            etiquetas = {
+                "alta": "🔥 Alta rotación (repón ya)",
+                "media": "🔸 Media rotación",
+                "baja": "🔹 Baja rotación (puede esperar)",
+            }
+            for nivel in ("alta", "media", "baja"):
+                lista = por_rotacion[nivel]
+                if lista:
+                    bloque += f"\n_{etiquetas[nivel]} ({len(lista)}):_\n" + "\n".join(lista)
+            return bloque
+
         reporte = "📊 *ALERTA DE STOCK MCKENNA*\n" + "─" * 25
-        if agotados:
-            reporte += f"\n\n*❌ AGOTADOS ({len(agotados)}):*\n" + "\n".join(
-                agotados[:20]
-            )
-        if criticos:
-            reporte += f"\n\n*⚠️ ÚLTIMA UNIDAD ({len(criticos)}):*\n" + "\n".join(
-                criticos[:20]
-            )
+        reporte += _seccion_por_rotacion("❌ AGOTADOS", agotados_por_rotacion)
+        reporte += _seccion_por_rotacion("⚠️ ÚLTIMA UNIDAD", criticos_por_rotacion)
         if not agotados and not criticos:
             reporte += "\n\n✅ Todo el stock está por encima de 1 unidad."
+        if sin_ventas_excluidos:
+            reporte += (
+                f"\n\n🗑️ _{sin_ventas_excluidos} agotadas/críticas sin ventas en "
+                f"{anio_actual} — excluidas de esta alerta, revisar si eliminar la "
+                "publicación._"
+            )
 
         grupo_inventario = jid_grupo_inventario_wa()
         ok_wa = enviar_whatsapp_reporte(

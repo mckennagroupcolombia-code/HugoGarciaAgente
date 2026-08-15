@@ -65,7 +65,7 @@ def _hay_ticket_abierto(db_path: str) -> bool:
             pass
 
 
-def _crear_ticket(rec: dict, alertas: list[dict] | None = None) -> str | None:
+def _crear_ticket(rec: dict, alertas: dict | None = None) -> str | None:
     """Crea el ticket de acción si no hay uno abierto. Devuelve el número o None."""
     from app.services import tickets_db as _tdb
 
@@ -105,9 +105,21 @@ def _crear_ticket(rec: dict, alertas: list[dict] | None = None) -> str | None:
         for f in top_revisar:
             bloques.append(f"- {f['titulo']} — ${f['costo']:,.0f} COP, ACOS {f['acos']:.1f}%. {f['motivo']}")
     if alertas:
-        bloques.append(f"\n**Reasignar entre campañas ({len(alertas)}):**")
-        for a in alertas[:15]:
-            bloques.append(f"- {a['titulo']} — {a['motivo']}")
+        migrar = alertas.get("migrar_a_campana") or []
+        pausar_camp = alertas.get("pausar_de_campana") or []
+        reasignar = alertas.get("reasignar") or []
+        if migrar:
+            bloques.append(f"\n**Falta migrar a alguna de las 3 campañas ({len(migrar)}):**")
+            for a in migrar[:15]:
+                bloques.append(f"- {a['titulo']} — {a['motivo']} {a.get('permalink') or ''}")
+        if pausar_camp:
+            bloques.append(f"\n**Ya migrados pero sin ninguna venta — pausar, no reasignar ({len(pausar_camp)}):**")
+            for a in pausar_camp[:15]:
+                bloques.append(f"- {a['titulo']} — {a['motivo']} {a.get('permalink') or ''}")
+        if reasignar:
+            bloques.append(f"\n**Cambiaron de rotación, mover de campaña ({len(reasignar)}):**")
+            for a in reasignar[:15]:
+                bloques.append(f"- {a['titulo']} — {a['motivo']}")
     bloques.append("\nDetalle completo en /app → Contabilidad → Publicidad.")
     descripcion = "\n".join(bloques)
 
@@ -126,7 +138,7 @@ def _crear_ticket(rec: dict, alertas: list[dict] | None = None) -> str | None:
     return str(ticket.get("numero") or ticket.get("id") or "")
 
 
-def _mensaje_whatsapp(rec: dict, numero_ticket: str | None, alertas: list[dict] | None = None) -> str:
+def _mensaje_whatsapp(rec: dict, numero_ticket: str | None, alertas: dict | None = None) -> str:
     r = rec["resumen"]
     lineas = [
         "📢 *Publicidad MeLi — revisión de ACOS*",
@@ -143,9 +155,21 @@ def _mensaje_whatsapp(rec: dict, numero_ticket: str | None, alertas: list[dict] 
         for f in top:
             lineas.append(f"• {f['titulo']} — ${f['costo']:,.0f} COP, ACOS {f['acos']:.1f}%")
     if alertas:
-        lineas.append(f"\n🔀 *{len(alertas)}* productos necesitan moverse de campaña (rotación cambió):")
-        for a in alertas[:5]:
-            lineas.append(f"• {a['titulo']} — {a['grupo_actual_nombre']} → {a['grupo_recomendado_nombre']}")
+        migrar = alertas.get("migrar_a_campana") or []
+        pausar_camp = alertas.get("pausar_de_campana") or []
+        reasignar = alertas.get("reasignar") or []
+        if migrar:
+            lineas.append(f"\n📥 *{len(migrar)}* con venta real, falta migrar a una campaña:")
+            for a in migrar[:5]:
+                lineas.append(f"• {a['titulo']} → {a['grupo_recomendado_nombre']}")
+        if pausar_camp:
+            lineas.append(f"\n⏸ *{len(pausar_camp)}* ya migrados sin ninguna venta — pausar, no reasignar:")
+            for a in pausar_camp[:5]:
+                lineas.append(f"• {a['titulo']} ({a['grupo_actual_nombre']})")
+        if reasignar:
+            lineas.append(f"\n🔀 *{len(reasignar)}* cambiaron de rotación, mover de campaña:")
+            for a in reasignar[:5]:
+                lineas.append(f"• {a['titulo']} — {a['grupo_actual_nombre']} → {a['grupo_recomendado_nombre']}")
     if numero_ticket:
         lineas.append(f"\n🏢 Centro de Mando: ticket #{numero_ticket}")
     else:
@@ -169,22 +193,23 @@ def main() -> int:
         print(f"❌ Error calculando recomendaciones de publicidad: {e}")
         return 1
 
-    alertas: list[dict] = []
+    alertas: dict = {}
+    total_alertas = 0
     try:
         from app.services.meli_ads_campanas import calcular_alertas_reasignacion
 
-        alertas_out = calcular_alertas_reasignacion(dias=30, refresh=False)
-        alertas = alertas_out.get("alertas") or []
+        alertas = calcular_alertas_reasignacion(dias=30, refresh=False)
+        total_alertas = int(alertas.get("count") or 0)
     except Exception as e:
-        print(f"⚠️  No se pudieron calcular alertas de reasignación entre campañas: {e}")
+        print(f"⚠️  No se pudieron calcular alertas de campañas (migrar/pausar/reasignar): {e}")
 
     registrar_ejecucion("publicidad_recomendaciones")
 
     r = rec["resumen"]
     print(f"[{datetime.now().isoformat(timespec='seconds')}] publicidad_recomendaciones: "
-          f"pausar={r['pausar']} revisar={r['revisar']} ok={r['ok']} reasignar={len(alertas)}")
+          f"pausar={r['pausar']} revisar={r['revisar']} ok={r['ok']} alertas_campanas={total_alertas}")
 
-    if r["pausar"] == 0 and r["revisar"] == 0 and not alertas:
+    if r["pausar"] == 0 and r["revisar"] == 0 and not total_alertas:
         print("✅ Nada que flaguear — todo dentro de objetivo por rotación y campaña.")
         return 0
 

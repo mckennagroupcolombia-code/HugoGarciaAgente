@@ -14,6 +14,7 @@ import {
   type PublicidadItemConMargen,
   type GrupoCampana,
   type CanalPublicidad,
+  type PublicidadAlertasReasignacion,
 } from "../hooks/usePublicidad";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -707,32 +708,69 @@ function PlanMigracionSeccion({
       </div>
 
       <div className="mt-5 pt-4 border-t border-border">
-        <h4 className="text-xs font-bold text-ink mb-1 uppercase tracking-wide">Alertas de reasignación</h4>
+        <h4 className="text-xs font-bold text-ink mb-1 uppercase tracking-wide">Ajustes pendientes en las campañas reales</h4>
         {!alertas?.configurado ? (
           <p className="text-[11px] text-muted leading-relaxed">
-            Todavía no configuraste el mapeo de arriba — en cuanto lo hagas, aquí aparecerán los productos que
-            cambiaron de rotación y ya no están en la campaña que les corresponde.
+            Todavía no configuraste el mapeo de arriba — en cuanto lo hagas, aquí aparecen 3 cosas: productos que
+            hay que migrar desde la campaña vieja, productos ya migrados que no tienen ninguna venta (pausar,
+            no reasignar), y productos que cambiaron de rotación y ya no están en la campaña que les corresponde.
           </p>
-        ) : alertas.alertas.length === 0 ? (
-          <p className="text-[11px] text-muted">Todo está donde debería — ningún producto necesita moverse por ahora.</p>
         ) : (
-          <div className="rounded-xl border-2 border-border bg-surface overflow-hidden max-h-[360px] overflow-y-auto">
-            {alertas.alertas.map((a) => (
-              <div key={a.item_id} className="border-b border-border last:border-b-0 px-3 py-2.5">
-                {a.permalink ? (
-                  <a href={a.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
-                    {a.titulo}
-                  </a>
-                ) : (
-                  <span className="text-sm font-semibold text-ink">{a.titulo}</span>
-                )}
-                <p className="text-[11px] text-muted mt-1">{a.motivo}</p>
-              </div>
-            ))}
-          </div>
+          <AjustesCampanasTabs alertas={alertas} />
         )}
       </div>
     </div>
+  );
+}
+
+function AjustesCampanasTabs({ alertas }: { alertas: PublicidadAlertasReasignacion }) {
+  const [tab, setTab] = useState<"migrar" | "pausar" | "reasignar">(
+    alertas.migrar_a_campana.length > 0 ? "migrar" : alertas.pausar_de_campana.length > 0 ? "pausar" : "reasignar",
+  );
+
+  const TABS = [
+    { id: "migrar" as const, label: "Falta migrar", n: alertas.migrar_a_campana.length, color: "bg-accent" },
+    { id: "pausar" as const, label: "Pausar (sin venta)", n: alertas.pausar_de_campana.length, color: "bg-danger" },
+    { id: "reasignar" as const, label: "Cambiaron de rotación", n: alertas.reasignar.length, color: "bg-warning" },
+  ];
+
+  const filas = tab === "migrar" ? alertas.migrar_a_campana : tab === "pausar" ? alertas.pausar_de_campana : alertas.reasignar;
+
+  return (
+    <>
+      <div className="flex gap-2 mb-2 flex-wrap">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              tab === t.id ? `${t.color} text-white` : "bg-surface border border-border text-ink-secondary"
+            }`}
+          >
+            {t.label} ({t.n})
+          </button>
+        ))}
+      </div>
+      {filas.length === 0 ? (
+        <p className="text-[11px] text-muted p-2">Nada en esta categoría — buena señal.</p>
+      ) : (
+        <div className="rounded-xl border-2 border-border bg-surface overflow-hidden max-h-[360px] overflow-y-auto">
+          {filas.map((a) => (
+            <div key={a.item_id} className="border-b border-border last:border-b-0 px-3 py-2.5">
+              {a.permalink ? (
+                <a href={a.permalink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ink hover:text-accent">
+                  {a.titulo}
+                </a>
+              ) : (
+                <span className="text-sm font-semibold text-ink">{a.titulo}</span>
+              )}
+              <p className="text-[11px] text-muted mt-1">{a.motivo}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

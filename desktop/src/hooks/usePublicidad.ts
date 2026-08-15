@@ -182,7 +182,7 @@ export function useGuardarConfigGrupos() {
   });
 }
 
-export interface PublicidadAlertaReasignacion extends PublicidadItem {
+export interface PublicidadAlertaReasignar extends PublicidadItem {
   nivel_rotacion: GrupoCampana;
   grupo_actual: GrupoCampana;
   grupo_actual_nombre: string;
@@ -190,9 +190,24 @@ export interface PublicidadAlertaReasignacion extends PublicidadItem {
   motivo: string;
 }
 
+export interface PublicidadAlertaPausar extends PublicidadItem {
+  nivel_rotacion: GrupoCampana;
+  grupo_actual: GrupoCampana;
+  grupo_actual_nombre: string;
+  motivo: string;
+}
+
+export interface PublicidadAlertaMigrar extends PublicidadItem {
+  nivel_rotacion: GrupoCampana;
+  grupo_recomendado_nombre: string;
+  motivo: string;
+}
+
 export interface PublicidadAlertasReasignacion {
   configurado: boolean;
-  alertas: PublicidadAlertaReasignacion[];
+  reasignar: PublicidadAlertaReasignar[];
+  pausar_de_campana: PublicidadAlertaPausar[];
+  migrar_a_campana: PublicidadAlertaMigrar[];
   count?: number;
 }
 

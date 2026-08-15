@@ -162,21 +162,29 @@ def guardar_config_grupos(mapa: dict) -> dict:
     return out
 
 
-# ── Alertas: producto asignado a una campaña que ya no le corresponde ──────
+# ── Alertas: 3 tipos de ajuste sobre las campañas reales ────────────────────
+
+_VENTANA_MUERTO_DIAS = 90  # ventana para "sin ninguna venta reciente" — más larga que los 30d de ACOS/rotación
+
 
 def calcular_alertas_reasignacion(dias: int = 30, refresh: bool = False) -> dict:
     """
-    Una vez configurado el mapa grupo → campaign_id real, compara dónde está
-    HOY cada producto (campaign_id real que devuelve MeLi) contra el grupo
-    que le correspondería según su rotación actual (revisión pensada cada 15
-    días, ver JOBS en app/services/cron_scheduler.py). Si no coinciden, es una
-    señal de que el producto cambió de comportamiento (ej. una baja rotación
-    que empezó a venderse bien) y toca moverlo manualmente en Mercado Ads.
+    Una vez configurado el mapa grupo → campaign_id real, revisa 3 cosas
+    contra el estado real de MeLi (campaign_id de cada producto):
+
+    1. reasignar: está en una de las 3 campañas pero su rotación actual lo
+       ubica en otra (revisión pensada cada 15 días).
+    2. pausar_de_campana: ya está en una de las 3 campañas pero no tiene
+       NINGUNA venta en los últimos 90 días — no debería estar pautado en
+       ninguna campaña, hay que pausarlo directamente en MeLi.
+    3. migrar_a_campana: tiene ventas reales en 90 días pero todavía no está
+       en ninguna de las 3 campañas (sigue en la campaña vieja pausada o sin
+       campaña) — falta migrarlo.
     """
     config = leer_config_grupos()
     mapa = config.get("mapa") or {}
     if not any(mapa.values()):
-        return {"configurado": False, "alertas": []}
+        return {"configurado": False, "reasignar": [], "pausar_de_campana": [], "migrar_a_campana": []}
 
     campaign_id_a_grupo: dict[int, Grupo] = {}
     for grupo, cid in mapa.items():
@@ -184,24 +192,56 @@ def calcular_alertas_reasignacion(dias: int = 30, refresh: bool = False) -> dict
             campaign_id_a_grupo[int(cid)] = grupo  # type: ignore[assignment]
 
     items = _items_con_grupo(dias, refresh)
-    alertas = []
+    ventas_90d = obtener_ventas_meli_por_item(dias=_VENTANA_MUERTO_DIAS, refresh=False)
+    ventas_90d_por_item: dict[str, Any] = ventas_90d.get("por_item") or {}
+
+    reasignar, pausar_de_campana, migrar_a_campana = [], [], []
     for it in items:
         cid = it.get("campaign_id")
-        if cid is None or int(cid) not in campaign_id_a_grupo:
-            continue  # producto aún no asignado a ninguna de las 3 campañas configuradas
-        grupo_actual = campaign_id_a_grupo[int(cid)]
-        grupo_recomendado = it["grupo_recomendado"]
-        if grupo_actual != grupo_recomendado:
-            alertas.append({
+        uds_90d = (ventas_90d_por_item.get(it["item_id"]) or {}).get("unidades", 0)
+        en_campana_nueva = cid is not None and int(cid) in campaign_id_a_grupo
+
+        if en_campana_nueva:
+            grupo_actual = campaign_id_a_grupo[int(cid)]  # type: ignore[index]
+            if uds_90d == 0 and it["costo"] > 0:
+                pausar_de_campana.append({
+                    **it,
+                    "grupo_actual": grupo_actual,
+                    "grupo_actual_nombre": _NOMBRE_GRUPO[grupo_actual],
+                    "motivo": (
+                        f"Está en '{_NOMBRE_GRUPO[grupo_actual]}' gastando ads pero sin ninguna venta en "
+                        f"{_VENTANA_MUERTO_DIAS} días — pausar directamente, no reasignar de campaña."
+                    ),
+                })
+            elif grupo_actual != it["grupo_recomendado"]:
+                reasignar.append({
+                    **it,
+                    "grupo_actual": grupo_actual,
+                    "grupo_actual_nombre": _NOMBRE_GRUPO[grupo_actual],
+                    "grupo_recomendado_nombre": _NOMBRE_GRUPO[it["grupo_recomendado"]],
+                    "motivo": (
+                        f"Está en la campaña '{_NOMBRE_GRUPO[grupo_actual]}' pero su rotación actual "
+                        f"lo ubica en '{_NOMBRE_GRUPO[it['grupo_recomendado']]}'."
+                    ),
+                })
+        elif uds_90d > 0 and it["costo"] > 0:
+            migrar_a_campana.append({
                 **it,
-                "grupo_actual": grupo_actual,
-                "grupo_actual_nombre": _NOMBRE_GRUPO[grupo_actual],
-                "grupo_recomendado_nombre": _NOMBRE_GRUPO[grupo_recomendado],
+                "grupo_recomendado_nombre": _NOMBRE_GRUPO[it["grupo_recomendado"]],
                 "motivo": (
-                    f"Está en la campaña '{_NOMBRE_GRUPO[grupo_actual]}' pero su rotación actual "
-                    f"lo ubica en '{_NOMBRE_GRUPO[grupo_recomendado]}'."
+                    f"Tiene {uds_90d} unidades vendidas en {_VENTANA_MUERTO_DIAS} días pero sigue fuera de las "
+                    f"3 campañas nuevas — falta moverlo a '{_NOMBRE_GRUPO[it['grupo_recomendado']]}'."
                 ),
             })
 
-    alertas.sort(key=lambda a: -a["costo"])
-    return {"configurado": True, "alertas": alertas, "count": len(alertas)}
+    reasignar.sort(key=lambda a: -a["costo"])
+    pausar_de_campana.sort(key=lambda a: -a["costo"])
+    migrar_a_campana.sort(key=lambda a: -a["costo"])
+
+    return {
+        "configurado": True,
+        "reasignar": reasignar,
+        "pausar_de_campana": pausar_de_campana,
+        "migrar_a_campana": migrar_a_campana,
+        "count": len(reasignar) + len(pausar_de_campana) + len(migrar_a_campana),
+    }

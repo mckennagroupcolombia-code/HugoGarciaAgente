@@ -614,3 +614,36 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 3568254] Auto-commit: actualizacion diaria 2026-08-14 23:00
+ 65 files changed, 6859 insertions(+), 612 deletions(-)
+ create mode 100644 app/data/meli_ads_vs_promociones_cache.json
+ create mode 100644 app/data/meli_publicidad_cache.json
+ create mode 100644 app/data/meli_sku_map_cache.json
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/coa_firma.py
+ create mode 100644 app/services/meli_ads.py
+ create mode 100644 app/services/meli_ads_campanas.py
+ create mode 100644 app/services/meli_ads_margenes.py
+ create mode 100644 app/services/meli_ads_recomendaciones.py
+ create mode 100644 app/services/meli_ads_vs_promociones.py
+ create mode 100644 app/services/salud_negocio.py
+ create mode 100644 desktop/src/components/PublicidadPanel.tsx
+ create mode 100644 desktop/src/components/SaludNegocioPanel.tsx
+ create mode 100644 desktop/src/components/TeamActivityBanner.tsx
+ create mode 100644 desktop/src/components/documentos/FirmaPegable.tsx
+ create mode 100644 desktop/src/components/ui/ScoreRing.tsx
+ create mode 100644 desktop/src/hooks/useActividadEquipo.ts
+ create mode 100644 desktop/src/hooks/usePublicidad.ts
+ create mode 100644 desktop/src/hooks/useSaludNegocio.ts
+ create mode 100644 desktop/src/lib/clipboardImage.ts
+ create mode 100644 scripts/publicidad_recomendaciones_cron.py
+ create mode 100644 scripts/resumen_actividad_sede_sur_cron.py
+ create mode 100644 tests/test_coa_firma.py
+ create mode 100644 tests/test_salud_negocio.py
+ create mode 100644 uploads/tickets/75c21a25108440c3bbc643a27dad7adb.png
+ create mode 100644 uploads/tickets/9463bafbab8248fd869c6143f260fabc.png
+ create mode 100644 uploads/tickets/95e8ff11d95444778352110373b58de3.png
+ create mode 100644 uploads/tickets/avatar_10_00411d6443fe.jpg
+ delete mode 100644 uploads/tickets/avatar_10_5ece30811ca4.jpeg
+[2026-08-14 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-14 23:00'
