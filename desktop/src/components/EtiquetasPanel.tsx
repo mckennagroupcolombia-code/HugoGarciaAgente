@@ -5285,25 +5285,30 @@ function TabImprimir({
       guardado = null;
     }
 
-    // Match EAN/SKU solo para asociar producto; el lote NO se sugiere —
-    // el operador diligencia LOT. / EXP. a mano en impresión.
-    let tieneLoteRegistrado = false;
+    // Lote vigente de Fichas Técnicas / COA (historial por SKU). Prioridad sobre
+    // defaults legacy de etiquetas_datos.json para que el lote registrado en la
+    // ficha completa se refleje al imprimir.
+    let loteVigenteNum = "";
+    let vencVigente = "";
     try {
-      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string }> }>(
+      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
         `/api/lotes/${encodeURIComponent(fila.sku)}`,
       );
-      tieneLoteRegistrado = Boolean(rLote.lotes?.[0]?.lote_numero);
+      loteVigenteNum = rLote.lotes?.[0]?.lote_numero ?? "";
+      vencVigente = rLote.lotes?.[0]?.fecha_vencimiento ?? "";
     } catch {
-      /* sin lote registrado o error de red */
+      /* sin lote registrado o error de red: se usa el default legacy */
     }
     setMatchEanPng(
-      tieneLoteRegistrado
+      loteVigenteNum
         ? ({ sku: fila.sku, nombre_producto: fila.nombre ?? fila.sku } as CodigoEan)
         : "sin-match",
     );
 
     const base = studioDatosDesdeCatalogo(fila, guardado);
-    setStudioDatos({ ...base, lote: "", vencimiento: "" });
+    const loteFinal = loteVigenteNum || datos.lote_defecto || base.lote;
+    const vencFinal = vencVigente || datos.vencimiento_defecto || base.vencimiento;
+    setStudioDatos({ ...base, lote: loteFinal, vencimiento: vencFinal });
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
     if (tipo) {
@@ -5331,10 +5336,10 @@ function TabImprimir({
       setVencXPct(LOTE_POS_PCT["center"].x);
       setVencYPct(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
     }
-    setLote(LOTE_PREFIJO);
-    setVencimiento(EXP_PREFIJO);
+    setLote(conPrefijoLote(loteFinal));
+    setVencimiento(conPrefijoExp(vencFinal));
     setVistaImpresion("documento");
-    setIncluirLoteExp(false);
+    setIncluirLoteExp(Boolean(loteFinal || vencFinal));
   }
 
   async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
@@ -5358,14 +5363,31 @@ function TabImprimir({
     setVencYPct(clampLotePct(LOTE_POS_PCT["center"].y + LOTE_EXP_GAP_PCT));
     setMatchEanPng(null);
 
-    // Los PNG sueltos de la biblioteca no traen SKU propio — se asocian por
-    // nombre de archivo contra Códigos EAN (única palabra clave completa y sin
-    // ambigüedad) para poder traer el lote vigente automáticamente.
+    // PNG sin SKU propio: match por título/nombre de archivo → Códigos EAN
+    // (todas las palabras clave del producto, sin ambigüedad) y luego el lote
+    // vigente de la ficha técnica completa registrada para ese SKU.
     const match = mejorCoincidenciaEanPorNombreArchivo(item.nombre, codigosEan);
+    let loteDelMatch = "";
+    let vencDelMatch = "";
     if (match) {
       setSkuActivoImpresion(match.sku);
       setMatchEanPng(match);
-      // No sugerir lote/EXP desde fichas: se diligencia a mano (solo prefijo LOT. / EXP.).
+      try {
+        const r = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+          `/api/lotes/${encodeURIComponent(match.sku)}`,
+        );
+        const vigente = r.lotes?.[0];
+        if (vigente?.lote_numero) {
+          loteDelMatch = vigente.lote_numero;
+          setLote(conPrefijoLote(vigente.lote_numero));
+        }
+        if (vigente?.fecha_vencimiento) {
+          vencDelMatch = vigente.fecha_vencimiento;
+          setVencimiento(conPrefijoExp(vigente.fecha_vencimiento));
+        }
+      } catch {
+        /* sin lote registrado o error de red: se deja para llenar a mano */
+      }
     } else {
       setMatchEanPng("sin-match");
     }
@@ -5387,7 +5409,7 @@ function TabImprimir({
       }));
     }
     setVistaImpresion("documento");
-    setIncluirLoteExp(false);
+    setIncluirLoteExp(Boolean(loteDelMatch || vencDelMatch));
   }
 
   function volverACatalogoPng() {

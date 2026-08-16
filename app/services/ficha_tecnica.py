@@ -593,6 +593,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
     ref = (d.get("referencia") or "").strip() or _valor_en_filas(
         filas_id_legacy, "referencia siigo", "referencia interna", "referencia"
     )
+    # Conservar mayúsculas/minúsculas exactas del código SIIGO (ej. MENCRISg)
     sinonimos = (d.get("sinonimos") or "").strip() or _valor_en_filas(filas_id_legacy, "sinonimos", "sinonimo")
     cas = (d.get("cas") or "").strip() or _valor_en_filas(filas_id_legacy, "cas", "cas #")
     fecha = (d.get("fecha_revision") or "").strip() or _valor_en_filas(
@@ -974,35 +975,21 @@ def guardar_yaml_datos(datos: dict, slug: str | None = None) -> Path:
 FICHAS_PDF_DIR = FICHAS_DIR / "pdf"
 
 
-def _cabezote_src_html(cabezote_id: str | None) -> str | None:
-    """Devuelve data URL base64 del cabezote para el template HTML.
-    Sirve los bytes originales sin re-encodear para preservar calidad;
-    solo convierte si el modo es CMYK o similar."""
+def _imagen_a_data_url(path: Path) -> str | None:
+    """Convierte una imagen local a data URL (preserva bytes si el modo ya es RGB/RGBA)."""
     import base64
 
-    path = resolver_cabezote_path(cabezote_id)
-    if not path:
-        for nombre in ("logo_mckenna.jpg", "mckenna_estandar.jpg", "isotipo_mckenna.png"):
-            candidato = CABEZOTES_DIR / nombre
-            if candidato.is_file():
-                path = candidato
-                break
     if not path or not path.is_file():
         return None
     try:
         raw = path.read_bytes()
         ext = path.suffix.lower()
-
-        # Detectar si necesita conversión de modo (CMYK → RGB)
         with Image.open(io.BytesIO(raw)) as probe:
             modo = probe.mode
-
         if modo in ("RGB", "L", "RGBA", "P"):
-            # Servir bytes originales sin pérdida adicional
             mime = "image/png" if ext == ".png" else "image/jpeg"
             b64 = base64.b64encode(raw).decode()
         else:
-            # CMYK u otro modo: convertir a PNG lossless
             with Image.open(io.BytesIO(raw)) as img:
                 img = img.convert("RGBA" if ext == ".png" else "RGB")
                 buf = io.BytesIO()
@@ -1011,10 +998,67 @@ def _cabezote_src_html(cabezote_id: str | None) -> str | None:
                 img.save(buf, format=fmt, **kw)
             mime = "image/png" if ext == ".png" else "image/jpeg"
             b64 = base64.b64encode(buf.getvalue()).decode()
-
         return f"data:{mime};base64,{b64}"
     except Exception:
         return None
+
+
+def _cabezote_src_html(cabezote_id: str | None) -> str | None:
+    """Devuelve data URL base64 del cabezote para el template HTML.
+    Sirve los bytes originales sin re-encodear para preservar calidad;
+    solo convierte si el modo es CMYK o similar."""
+    path = None
+    try:
+        path = resolver_cabezote_path(cabezote_id)
+    except Exception:
+        path = None
+    if not path:
+        for nombre in (
+            "logo_azul.png",
+            "logo_mckenna.jpg",
+            "mckenna_estandar.jpg",
+            "isotipo_mckenna.png",
+            "logo_gris.png",
+        ):
+            candidato = CABEZOTES_DIR / nombre
+            if candidato.is_file():
+                path = candidato
+                break
+        if not path:
+            for nombre in ("LOGO AZUL.png", "isotipo_final.png", "LOGO GRIS.png"):
+                candidato = DISENO_DIR / nombre
+                if candidato.is_file():
+                    path = candidato
+                    break
+    return _imagen_a_data_url(path) if path else None
+
+
+def _logo_pie_src_html(cabezote_id: str | None = None) -> str | None:
+    """Logo McKenna para la esquina inferior izquierda de cada página del PDF."""
+    candidatos: list[Path] = []
+    try:
+        elegido = resolver_cabezote_path(cabezote_id)
+    except Exception:
+        elegido = None
+    if elegido and elegido.is_file() and elegido.stem.lower().startswith("logo"):
+        candidatos.append(elegido)
+    for nombre in (
+        "logo_azul.png",
+        "logo_gris.png",
+        "logo_morado.png",
+        "logo_amarillo.png",
+        "logo_cafe.png",
+        "logo_mckenna.jpg",
+        "isotipo_mckenna.png",
+    ):
+        candidatos.append(CABEZOTES_DIR / nombre)
+    for nombre in ("LOGO AZUL.png", "isotipo_final.png", "LOGO GRIS.png"):
+        candidatos.append(DISENO_DIR / nombre)
+    for path in candidatos:
+        src = _imagen_a_data_url(path)
+        if src:
+            return src
+    return None
 
 
 def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
@@ -1107,6 +1151,7 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
         "color_acento": color_acento,
         "composicion": composicion,
         "cabezote_src": _cabezote_src_html(cabezote_id),
+        "logo_pie_src": _logo_pie_src_html(cabezote_id),
     }
 
 
@@ -1293,7 +1338,34 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "propiedades": _filas2(datos_sds.get("propiedades")),
         "normativa": (reg.get("normativa") or "").strip(),
         "observaciones": (reg.get("observaciones") or "").strip(),
+        "recomendaciones": _lineas_recomendaciones_sds(datos_sds),
     }
+
+
+def _lineas_recomendaciones_sds(datos_sds: dict) -> list[str]:
+    """Normaliza recomendaciones GHS/SGA del SDS (texto multilínea o lista)."""
+    from app.services.documento_cientifico import _asegurar_punto_final
+
+    raw = datos_sds.get("recomendaciones")
+    if raw is None:
+        pel = datos_sds.get("peligros") or {}
+        raw = pel.get("recomendaciones") if isinstance(pel, dict) else None
+    if raw is None:
+        man = datos_sds.get("manipulacion") or {}
+        raw = man.get("recomendaciones") if isinstance(man, dict) else None
+    lineas: list[str] = []
+    if isinstance(raw, str):
+        lineas = [l.strip() for l in raw.split("\n") if l.strip()]
+    elif isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, str) and item.strip():
+                lineas.append(item.strip())
+            elif isinstance(item, (list, tuple)) and item:
+                if len(item) >= 2 and str(item[1]).strip():
+                    lineas.append(f"{str(item[0]).strip()}: {str(item[1]).strip()}")
+                elif str(item[0]).strip():
+                    lineas.append(str(item[0]).strip())
+    return [_asegurar_punto_final(l) for l in lineas]
 
 
 _SDS_CAMPOS_EXCLUSIVOS = (
@@ -1305,6 +1377,8 @@ _SDS_CAMPOS_EXCLUSIVOS = (
 def _sds_diligenciado(sds_ctx: dict) -> bool:
     """True si el SDS trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((sds_ctx.get(campo) or "").strip() for campo in _SDS_CAMPOS_EXCLUSIVOS):
+        return True
+    if any((linea or "").strip() for linea in (sds_ctx.get("recomendaciones") or [])):
         return True
     for clave in ("composicion", "primeros_auxilios", "propiedades"):
         for fila in sds_ctx.get(clave) or []:
@@ -1340,6 +1414,16 @@ def generar_pdf_completo(
     if coa_ctx and not _coa_diligenciado(coa_ctx):
         coa_ctx = None
     sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
+
+    # GHS/SGA pertenece a SDS: migrar recomendaciones históricas guardadas en FT
+    recs_ft = list(ft_ctx.get("recomendaciones") or [])
+    ft_ctx["recomendaciones"] = []
+    if recs_ft:
+        if sds_ctx is None:
+            sds_ctx = _contexto_sds(datos_sds or {"titulo": titulo})
+        if not (sds_ctx.get("recomendaciones") or []):
+            sds_ctx["recomendaciones"] = recs_ft
+
     if sds_ctx and not _sds_diligenciado(sds_ctx):
         sds_ctx = None
 
@@ -1355,6 +1439,7 @@ def generar_pdf_completo(
         titulo=titulo,
         color_acento=ft_ctx["color_acento"],
         cabezote_src=ft_ctx["cabezote_src"],
+        logo_pie_src=ft_ctx.get("logo_pie_src"),
         ft=ft_ctx,
         coa=coa_ctx,
         sds=sds_ctx,
@@ -1586,7 +1671,8 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
         if ln.startswith("ficha t") or ln == "ficha tecnica":
             continue
         if ln.startswith("ref."):
-            referencia = line[4:].strip()
+            # "Ref. SIIGO: MENCRISg" o "Ref. MENCRISg" — conservar mayúsculas/minúsculas del código
+            referencia = re.sub(r"(?i)^ref\.\s*(siigo\s*:\s*)?", "", line).strip()
             continue
         if line.startswith("CAS:"):
             cas = line[4:].strip()

@@ -1818,6 +1818,13 @@ def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direc
     payload = {
         "document": {"id": 26670}, # ID de Documento para Factura Electrónica de Venta en Siigo
         "date": datetime.now().strftime("%Y-%m-%d"),
+        # Marca el canal — sin esto, esta factura queda indistinguible en
+        # Siigo de una de MeLi o de la web (que sí llevan Pack ID / MCKG-ref
+        # en observations/purchase_order). app.services.salud_negocio la usa
+        # para aproximar ingresos de venta directa por WhatsApp (hallazgo
+        # ago-2026: antes de este cambio, ese canal no dejaba ningún rastro
+        # estructurado — ni aquí ni en ningún otro lado del repo).
+        "observations": "Venta directa WhatsApp (agente IA)",
         "customer": {
             "identification": identificacion,
             "id_type": "13" if len(identificacion) <= 10 else "31", # 13: Cédula, 31: NIT

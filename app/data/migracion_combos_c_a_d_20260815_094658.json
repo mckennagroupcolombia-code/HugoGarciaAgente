@@ -1,0 +1,61 @@
+{
+  "modo": "APLICAR",
+  "ts": "2026-08-15T09:46:58",
+  "total": 1,
+  "ok": 0,
+  "error": 1,
+  "skip": 0,
+  "resultados": [
+    {
+      "ok": false,
+      "code_c": "C-CERABENAT500g",
+      "code_d": "D-CERABENAT500g",
+      "nombre": "CERA DE ABEJAS NATURAL 500g",
+      "product_id": "92750a24-1cfd-422d-bde4-5feaef66db86",
+      "precio": 0.0,
+      "account_group": 1628,
+      "iva": true,
+      "n_comps_orig": 7,
+      "n_comps_nuevo": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "componentes_c": [
+        {
+          "code": "BOLSEGBLAUn",
+          "quantity": 1.0
+        },
+        {
+          "code": "BOLVACL",
+          "quantity": 1.0
+        },
+        {
+          "code": "CERANBENATg",
+          "quantity": 500.0
+        },
+        {
+          "code": "ETQ250g",
+          "quantity": 1.0
+        },
+        {
+          "code": "ETQTRM",
+          "quantity": 1.0
+        },
+        {
+          "code": "VNP20cms",
+          "quantity": 1.0
+        }
+      ],
+      "d_ya_existe": false,
+      "d_id": null,
+      "rename": {
+        "ok": false,
+        "error": "PUT rename 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field value is required\",\"Params\":[\"prices[0].price_list[0].value\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+      }
+    }
+  ]
+}

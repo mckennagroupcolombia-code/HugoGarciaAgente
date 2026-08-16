@@ -647,3 +647,44 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
  create mode 100644 uploads/tickets/avatar_10_00411d6443fe.jpg
  delete mode 100644 uploads/tickets/avatar_10_5ece30811ca4.jpeg
 [2026-08-14 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-14 23:00'
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   132 órdenes canceladas en la ventana.
+⏳ Siigo rate limit listando facturas (página 15); reintento 1/8 en 10s.
+⏳ Siigo rate limit listando facturas (página 15); reintento 2/8 en 1s.
+⏳ Siigo rate limit listando facturas (página 15); reintento 3/8 en 2s.
+⏳ Siigo rate limit listando facturas (página 15); reintento 4/8 en 1s.
+⏳ Siigo rate limit listando facturas (página 15); reintento 5/8 en 1s.
+⏳ Siigo rate limit listando facturas (página 17); reintento 6/8 en 1s.
+⏳ Siigo rate limit listando facturas (página 17); reintento 7/8 en 1s.
+⏳ Siigo rate limit listando facturas (página 17); reintento 8/8 en 1s.
+⚠️ Error obteniendo facturas de Siigo (Página 17): 429 {"Status": 429, "Errors": [{"Code": "requests_limit","Message": "Rate limit is exceeded. Try again in 1 seconds.", "Params": [], "Detail": "Check the API documentation: https://developer.siigo.com/int
+   400 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (388 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69814 -> NC-2-194 (Accepted) — MeLi: ✅
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69767 -> NC-2-195 (Accepted) — MeLi: ✅
+Resumen: 2 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-15T18:00:01] resumen_actividad_sede_sur: 20 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 6 nuevas · 5 completadas · 4 iniciadas
+
+*Por persona:*
+• Gloria Velandia: 2 nuevas, 2 completadas
+• Jenniffer Garcia: 1 nueva, 2 completadas
+• Victor Garcia: 1 nueva, 1 completada
+• Administrador: 1 nueva, 0 completadas
+• Hugo IA: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-15) no es el último día del mes.

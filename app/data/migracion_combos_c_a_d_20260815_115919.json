@@ -1,0 +1,5496 @@
+{
+  "modo": "APLICAR",
+  "ts": "2026-08-15T11:59:19",
+  "total": 226,
+  "stats": {
+    "ok": 216,
+    "error": 10,
+    "skip": 2,
+    "manual_c": 12,
+    "ruta_a": 204,
+    "ruta_b": 15
+  },
+  "resultados": [
+    {
+      "code_c": "C-ACDHIABAJPES85P30m",
+      "code_d": "D-ACDHIABAJPES85P30m",
+      "nombre": "ACIDO HIALURONICO BAJO PESO 85% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACIHIABAJPESmL:type=Combo"
+      ],
+      "ok": true,
+      "skipped": true,
+      "mensaje": "ya migrado"
+    },
+    {
+      "code_c": "C-ACDHIABAJPES85P30mL",
+      "code_d": "D-ACDHIABAJPES85P30mL",
+      "nombre": "ACIDO HIALURONICO BAJO PESO MOLECULAR 30mL",
+      "n_comps": 12,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[10].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACDHIABAJPES85P30mL creado en SIIGO",
+        "siigo_id": "3dc4c817-041a-4ad2-b99e-fa63a6d3cf97",
+        "expansion": [
+          "FOR-ACIHIABAJPESmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACDLAC85P30m",
+      "code_d": "D-ACDLAC85P30m",
+      "nombre": "ACIDO LACTICO 85% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACILAC85PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[10].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": false,
+        "mensaje": "SIIGO HTTP 400: {\"Status\":400,\"Errors\":[{\"Code\":\"invalid_value\",\"Message\":\"Invalid value: quantity\",\"Params\":[\"components[11].quantity\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/invalid_value\"}]}",
+        "siigo_id": null,
+        "expansion": [
+          "FOR-ACILAC85PmL×301 → 3 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": false,
+      "error": "SIIGO HTTP 400: {\"Status\":400,\"Errors\":[{\"Code\":\"invalid_value\",\"Message\":\"Invalid value: quantity\",\"Params\":[\"components[11].quantity\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/invalid_value\"}]}"
+    },
+    {
+      "code_c": "C-ACDLAC85P30mL",
+      "code_d": "D-ACDLAC85P30mL",
+      "nombre": "ACIDO LACTICO 85% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": false,
+        "mensaje": "SIIGO HTTP 400: {\"Status\":400,\"Errors\":[{\"Code\":\"invalid_value\",\"Message\":\"Invalid value: quantity\",\"Params\":[\"components[10].quantity\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/invalid_value\"}]}",
+        "siigo_id": null,
+        "expansion": [
+          "FOR-ACILAC85PmL×301 → 3 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": false,
+      "error": "SIIGO HTTP 400: {\"Status\":400,\"Errors\":[{\"Code\":\"invalid_value\",\"Message\":\"Invalid value: quantity\",\"Params\":[\"components[10].quantity\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/invalid_value\"}]}"
+    },
+    {
+      "code_c": "C-ACDSAL20P30m",
+      "code_d": "D-ACDSAL20P30m",
+      "nombre": "ACIDO SALICILICO 20 % 30mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACDSAL20P30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACDSAL20P30m creado en SIIGO",
+        "siigo_id": "53e47e17-df52-40a8-a7b6-aae62b8ba60a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACDSAL20P30mL",
+      "code_d": "D-ACDSAL20P30mL",
+      "nombre": "ACIDO SALICILICO 20% 30 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACISALmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACDSAL20P30mL creado en SIIGO",
+        "siigo_id": "49dad731-d472-4003-a69f-e217b09704d8",
+        "expansion": [
+          "FOR-ACISALmL×30 → 3 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACEARGAN50mL",
+      "code_d": "D-ACEARGAN50mL",
+      "nombre": "ACEITE ARGAN 50 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEARGAN50mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEARGAN50mL creado en SIIGO",
+        "siigo_id": "5901c61f-e380-48d2-a29f-3a83f4a7a2cd"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEALB5mL",
+      "code_d": "D-ACEESEALB5mL",
+      "nombre": "ACEITE ESENCIAL ALBAHACA 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEALB5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEALB5mL creado en SIIGO",
+        "siigo_id": "d3c8dcf8-f957-4a2d-859e-fc8b068fb6e6"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESECORCED5mL",
+      "code_d": "D-ACEESECORCED5mL",
+      "nombre": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESECORCED5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESECORCED5mL creado en SIIGO",
+        "siigo_id": "aef85955-5889-4c4b-875a-02c751239e7c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEEUC5mL",
+      "code_d": "D-ACEESEEUC5mL",
+      "nombre": "ACEITE ESENCIAL EUCALIPTO 5 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEEUC5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEEUC5mL creado en SIIGO",
+        "siigo_id": "0afb0c11-bf38-4847-8fb3-4e465bc13178"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEHIEBUE5mL",
+      "code_d": "D-ACEESEHIEBUE5mL",
+      "nombre": "ACEITE ESENCIAL HIERBA BUENA 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEHIEBUE5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEHIEBUE5mL creado en SIIGO",
+        "siigo_id": "9cd02d48-5369-4d4b-ae33-54f72eb43f43"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEJAZ5mL",
+      "code_d": "D-ACEESEJAZ5mL",
+      "nombre": "ACEITE ESENCIAL JAZMIN 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEJAZ5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEJAZ5mL creado en SIIGO",
+        "siigo_id": "22b23cd6-00f2-441a-900a-338b78a7fd0d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEJEN5mL",
+      "code_d": "D-ACEESEJEN5mL",
+      "nombre": "ACEITE ESENCIAL JENGIBRE 5mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEJEN5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEJEN5mL creado en SIIGO",
+        "siigo_id": "dbd28efe-7e3d-404f-befa-3e75041c01b1"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESELIM5mL",
+      "code_d": "D-ACEESELIM5mL",
+      "nombre": "ACEITE ESENCIAL LIMON 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESELIM5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESELIM5mL creado en SIIGO",
+        "siigo_id": "dc6bddfc-56b1-45fb-9ddf-7a598fbf45c4"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESEMANZ5mL",
+      "code_d": "D-ACEESEMANZ5mL",
+      "nombre": "ACEITE ESENCIAL MANZANILLA 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEMANZ5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEMANZ5mL creado en SIIGO",
+        "siigo_id": "7583d938-f848-4d38-8198-d50d7b51d3a6"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESENAR5mL",
+      "code_d": "D-ACEESENAR5mL",
+      "nombre": "ACEITE ESENCIAL NARANJA 5 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESENAR5mL"
+      },
+      "create_c": {
+        "ok": false,
+        "mensaje": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}",
+        "siigo_id": null
+      },
+      "ok": false,
+      "error": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}"
+    },
+    {
+      "code_c": "C-ACEESEROM5mL",
+      "code_d": "D-ACEESEROM5mL",
+      "nombre": "ACETE ESENCIAL ROMERO 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESEROM5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESEROM5mL creado en SIIGO",
+        "siigo_id": "ef1d8409-a1d6-4c47-a6fe-851022c2fd7a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESETOM",
+      "code_d": "D-ACEESETOM",
+      "nombre": "ACEITE ESENCIAL TOMILLO 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESETOM"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESETOM creado en SIIGO",
+        "siigo_id": "b380b1c6-2c9c-4062-bb81-79e0221787e0"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESETOM5mL",
+      "code_d": "D-ACEESETOM5mL",
+      "nombre": "Aceite Esencial Tomillo 5mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESETOM5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESETOM5mL creado en SIIGO",
+        "siigo_id": "4f39d872-8ee2-428b-8b71-f39035b9169a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESNMAN5mL",
+      "code_d": "D-ACEESNMAN5mL",
+      "nombre": "ACEITE ESENCIAL MANDARINA 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESNMAN5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESNMAN5mL creado en SIIGO",
+        "siigo_id": "930ce8b7-b3e6-4bfa-b2d6-8613a6d20629"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESNMEN5mL",
+      "code_d": "D-ACEESNMEN5mL",
+      "nombre": "ACEITE ESENCIAL MENTA 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESNMEN5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESNMEN5mL creado en SIIGO",
+        "siigo_id": "b7c27c6c-58a9-4af1-80cc-eac7272c0684"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEESNPIN5mL",
+      "code_d": "D-ACEESNPIN5mL",
+      "nombre": "ACEITE ESENCIAL PINO 5mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEESNPIN5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEESNPIN5mL creado en SIIGO",
+        "siigo_id": "c1b0c46e-ed26-4470-af01-148c0603399d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACEGIR500mL",
+      "code_d": "D-ACEGIR500mL",
+      "nombre": "ACEITE GIRASOL 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ok": false,
+      "error": "Expandir: El componente 'ENVBTR500cc' no existe en Siigo. Créalo primero o verifica el código."
+    },
+    {
+      "code_c": "C-ACEIJOJ30mL",
+      "code_d": "D-ACEIJOJ30mL",
+      "nombre": "ACEITE JOJOBA 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEIJOJ30mL"
+      },
+      "create_c": {
+        "ok": false,
+        "mensaje": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}",
+        "siigo_id": null
+      },
+      "ok": false,
+      "error": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}"
+    },
+    {
+      "code_c": "C-ACEITEATRE5mL",
+      "code_d": "D-ACEITEATRE5mL",
+      "nombre": "ACEITE ARBOL DE TE 5 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACEITEATRE5mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACEITEATRE5mL creado en SIIGO",
+        "siigo_id": "76570ecd-9f6b-4ed4-84dc-5fae6612ac1f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACELIN250mL",
+      "code_d": "D-ACELIN250mL",
+      "nombre": "ACEITE LINAZA 250mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACELIN250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACELIN250mL creado en SIIGO",
+        "siigo_id": "b52a8db3-a40d-4bcf-aed5-82f5d020fe51"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACENEE120mL",
+      "code_d": "D-ACENEE120mL",
+      "nombre": "ACEITE NEEM 120mL",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACENEE120mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACENEE120mL creado en SIIGO",
+        "siigo_id": "146bdfce-a66a-4072-baef-a343e66cf712"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACENEE250mL",
+      "code_d": "D-ACENEE250mL",
+      "nombre": "ACEITE NEEM 250mL",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACENEE250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACENEE250mL creado en SIIGO",
+        "siigo_id": "b2312089-b348-41e8-8bdf-a79a6c4e9b38"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACENEE500mL",
+      "code_d": "D-ACENEE500mL",
+      "nombre": "ACEITE NEEM 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACENEE500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACENEE500mL creado en SIIGO",
+        "siigo_id": "de15d6f8-aa69-4b99-890f-893d25082f19"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACENEE60mL",
+      "code_d": "D-ACENEE60mL",
+      "nombre": "ACEITE NEEM 60mL",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACENEE60mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACENEE60mL creado en SIIGO",
+        "siigo_id": "679b2c07-f166-4719-a660-15610ae8b6b7"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACERIC10mL",
+      "code_d": "D-ACERIC10mL",
+      "nombre": "ACEITE RICINO 10mL",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACERIC10mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACERIC10mL creado en SIIGO",
+        "siigo_id": "0ee2456e-ab15-4a43-b50c-d26cf9a13cf1"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACERIC250mL",
+      "code_d": "D-ACERIC250mL",
+      "nombre": "ACEITE DE RICINO 250mL",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACERIC250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACERIC250mL creado en SIIGO",
+        "siigo_id": "fd696624-2f90-4ca4-ac74-61222442a259"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACERIC500mL",
+      "code_d": "D-ACERIC500mL",
+      "nombre": "ACEITE RICINO 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACERIC500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACERIC500mL creado en SIIGO",
+        "siigo_id": "61044ce8-14a1-4d53-8008-18d4550a51bd"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACETEATRE30mL",
+      "code_d": "D-ACETEATRE30mL",
+      "nombre": "ACEITE ARBOL TE 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACETEATRE30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACETEATRE30mL creado en SIIGO",
+        "siigo_id": "6d79bcc1-1e07-4fd8-b308-556620eb963e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACIAZE10g",
+      "code_d": "D-ACIAZE10g",
+      "nombre": "ACIDO AZELAICO 10g",
+      "n_comps": 7,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACIAZE10g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACIAZE10g creado en SIIGO",
+        "siigo_id": "fdabf303-6fba-4e12-b0dd-7e7f31f96d2c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACICIT250g",
+      "code_d": "D-ACICIT250g",
+      "nombre": "ACIDO CITRICO 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACICIT250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACICIT250g creado en SIIGO",
+        "siigo_id": "65d1ab91-a1df-4796-87d9-a152c92f0505"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACICITR500g",
+      "code_d": "D-ACICITR500g",
+      "nombre": "ACIDO CITRICO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACICITR500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACICITR500g creado en SIIGO",
+        "siigo_id": "28b28b41-9add-4c60-a5d4-5c42a309b7de"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACIDIH10g",
+      "code_d": "D-ACIDIH10g",
+      "nombre": "DIHIDROXIACETONA 10g",
+      "n_comps": 7,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACIDIH10g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACIDIH10g creado en SIIGO",
+        "siigo_id": "04d4a076-4059-4e78-9ba2-6a52c006018d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACIGLI50P30mL",
+      "code_d": "D-ACIGLI50P30mL",
+      "nombre": "ACIDO GLICOLICO 50% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACIGLI50PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[10].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACIGLI50P30mL creado en SIIGO",
+        "siigo_id": "08a69295-5a7b-4c5b-bdfb-795d80bf1533",
+        "expansion": [
+          "FOR-ACIGLI50PmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACIHIAALTPES85P30m",
+      "code_d": "D-ACIHIAALTPES85P30m",
+      "nombre": "ACIDO HIALURONICO ALTO PESO 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACIHIAALTPESmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[10].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACIHIAALTPES85P30m creado en SIIGO",
+        "siigo_id": "91c75f33-c88d-48aa-8484-b9efe5ea9319",
+        "expansion": [
+          "FOR-ACIHIAALTPESmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACIHIAALTPES85P30mL",
+      "code_d": "D-ACIHIAALTPES85P30mL",
+      "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACIHIAALTPES85P30mL creado en SIIGO",
+        "siigo_id": "ea25bcc9-9cb1-4f39-952d-48b140359fc4",
+        "expansion": [
+          "FOR-ACIHIAALTPESmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACIKOJ5P30m",
+      "code_d": "D-ACIKOJ5P30m",
+      "nombre": "ACIDO KOJICO 5% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACIKOJmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[0].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACIKOJ5P30m creado en SIIGO",
+        "siigo_id": "1202bb34-22c3-484d-a5d5-2723f2159ce5",
+        "expansion": [
+          "FOR-ACIKOJmL×1 → 6 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACIKOJ5P30mL",
+      "code_d": "D-ACIKOJ5P30mL",
+      "nombre": "ACIDO KOJICO 5% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-ACIKOJ5P30mL creado en SIIGO",
+        "siigo_id": "e4c11e93-f758-4863-9513-614e366a2b49",
+        "expansion": [
+          "FOR-ACIKOJmL×1 → 6 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-ACIMAL100g",
+      "code_d": "D-ACIMAL100g",
+      "nombre": "ACIDO MALICO 100g",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACIMAL100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACIMAL100g creado en SIIGO",
+        "siigo_id": "994d44a7-3b29-4327-8618-a4a63c508c81"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACIMAN5g",
+      "code_d": "D-ACIMAN5g",
+      "nombre": "ACIDO MANDELICO 5g",
+      "n_comps": 7,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACIMAN5g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACIMAN5g creado en SIIGO",
+        "siigo_id": "cf9faa41-0b47-4c41-91b7-0eef5a0d490c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACISAL100g",
+      "code_d": "D-ACISAL100g",
+      "nombre": "ACISAL100g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACISAL100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACISAL100g creado en SIIGO",
+        "siigo_id": "139128dd-d476-4121-9e3a-e103944e8ab7"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACISAL500g",
+      "code_d": "D-ACISAL500g",
+      "nombre": "ACIDO SALICILICO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACISAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACISAL500g creado en SIIGO",
+        "siigo_id": "ce065119-c29c-4c3e-b93d-0ff70fdd807f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACISAL50g",
+      "code_d": "D-ACISAL50g",
+      "nombre": "ACIDO SALICILICO 50g",
+      "n_comps": 8,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACISAL50g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACISAL50g creado en SIIGO",
+        "siigo_id": "b844bbd4-a048-4f57-97c2-35b988070ad9"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ACITRA10g",
+      "code_d": "D-ACITRA10g",
+      "nombre": "ACIDO TRANEXAMICO 10g",
+      "n_comps": 7,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ACITRA10g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ACITRA10g creado en SIIGO",
+        "siigo_id": "1da4dc5b-e6d2-4a52-815f-51742c3c8cc4"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AGUDES250mL",
+      "code_d": "D-AGUDES250mL",
+      "nombre": "AGUA DESTILADA 250mL",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AGUDES250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AGUDES250mL creado en SIIGO",
+        "siigo_id": "dc680b92-a157-43f8-a2da-bfe29b3f1f47"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AGUDESSOBRpH",
+      "code_d": "D-AGUDESSOBRpH",
+      "nombre": "AGUA DESTILADA 250 mL + pH",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AGUDESSOBRpH"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AGUDESSOBRpH creado en SIIGO",
+        "siigo_id": "c3ff76f5-5d3a-4ba3-acfa-98ec711606fd"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALA100g",
+      "code_d": "D-ALA100g",
+      "nombre": "ALANTOINA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALA100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALA100g creado en SIIGO",
+        "siigo_id": "81fd4590-72a3-4505-983d-610fe5d9b49a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALBHUE500g",
+      "code_d": "D-ALBHUE500g",
+      "nombre": "ALBUMINA DE HUEVO 500g",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALBHUE500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALBHUE500g creado en SIIGO",
+        "siigo_id": "c348b577-6fe5-404f-b7a7-e429a70f970e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALCCET250g",
+      "code_d": "D-ALCCET250g",
+      "nombre": "ALCOHOL CETILICO 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALCCET250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALCCET250g creado en SIIGO",
+        "siigo_id": "f88751f8-d175-4a16-9c67-c9a3f28cd03e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALCCET500g",
+      "code_d": "D-ALCCET500g",
+      "nombre": "ALCOHOL CETILICO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALCCET500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALCCET500g creado en SIIGO",
+        "siigo_id": "4389b2ab-4d64-4e97-825d-7e87bbc09378"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALCCETKg",
+      "code_d": "D-ALCCETKg",
+      "nombre": "ALCOHOL CETILICO Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALCCETKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALCCETKg creado en SIIGO",
+        "siigo_id": "f31dcef2-19d0-4cbc-9196-d0cd1138c00e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALGSODCLOCAL100g",
+      "code_d": "D-ALGSODCLOCAL100g",
+      "nombre": "ALGINATO DE SODIO + CLORURO DE CALCIO 100g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALGSODCLOCAL100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALGSODCLOCAL100g creado en SIIGO",
+        "siigo_id": "21b76ed2-d22f-4019-a160-6f34bfaf9f04"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALGSODLACCAL50g",
+      "code_d": "D-ALGSODLACCAL50g",
+      "nombre": "ALGINATO SODIO LACTATO CALCIO 50g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALGSODLACCAL50g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALGSODLACCAL50g creado en SIIGO",
+        "siigo_id": "8c9261ae-2816-41a8-89b4-f35648ded442"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALMNAT250g",
+      "code_d": "D-ALMNAT250g",
+      "nombre": "ALMENDRA NATURAL 250g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALMNAT250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALMNAT250g creado en SIIGO",
+        "siigo_id": "d43a61ce-6416-4e43-83d6-7dc13954d69e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALMNAT500g",
+      "code_d": "D-ALMNAT500g",
+      "nombre": "ALMENDRA NATURAL 500g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALMNAT500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALMNAT500g creado en SIIGO",
+        "siigo_id": "44317ee6-9701-4229-8bf8-50277ec5d9e1"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALU250g",
+      "code_d": "D-ALU250g",
+      "nombre": "ALULOSA 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALU250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALU250g creado en SIIGO",
+        "siigo_id": "6a2b7c60-3402-49d2-8fa4-482192f2aace"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALU500g",
+      "code_d": "D-ALU500g",
+      "nombre": "ALULOSA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALU500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALU500g creado en SIIGO",
+        "siigo_id": "4384dd6c-a41a-463a-a4b8-9ae3c9ba957a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ALUKg",
+      "code_d": "D-ALUKg",
+      "nombre": "ALULOSA Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ALUKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ALUKg creado en SIIGO",
+        "siigo_id": "90793a0b-9f0e-46df-b303-db263b35d72c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AMIBCA250g",
+      "code_d": "D-AMIBCA250g",
+      "nombre": "AMINOACIDO BCAA 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AMIBCA250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AMIBCA250g creado en SIIGO",
+        "siigo_id": "f5772149-1ca3-44e7-afc0-389806291435"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AMILARG100g",
+      "code_d": "D-AMILARG100g",
+      "nombre": "AMINOACIDO L ARGININA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AMILARG100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AMILARG100g creado en SIIGO",
+        "siigo_id": "29ee4d46-6b22-4e8c-a1a9-0f1b00c80c61"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AMILCAR100g",
+      "code_d": "D-AMILCAR100g",
+      "nombre": "AMINOACIDO L CARNITINA 100g",
+      "n_comps": 10,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AMILCAR100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AMILCAR100g creado en SIIGO",
+        "siigo_id": "2f1d895a-5139-4ea0-b970-f368973ada4d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AMILTRI100g",
+      "code_d": "D-AMILTRI100g",
+      "nombre": "AMIOACIDO L TRIPTOFANO 100g",
+      "n_comps": 10,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-AMILTRI100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-AMILTRI100g creado en SIIGO",
+        "siigo_id": "4ca30757-b5f2-4bb7-825d-0ef70a0c4ec9"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ARADES250g",
+      "code_d": "D-ARADES250g",
+      "nombre": "ARANDANOS DESHIDRATADOS 250g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ARADES250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ARADES250g creado en SIIGO",
+        "siigo_id": "bff905d0-71af-4b75-a085-883c10e8f3bb"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-AZUMMET30mL",
+      "code_d": "D-AZUMMET30mL",
+      "nombre": "AZUL METILENO 30mL",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [
+        "FOR-AZUMETmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[6].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": false,
+        "mensaje": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}",
+        "siigo_id": null,
+        "expansion": [
+          "FOR-AZUMETmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": false,
+      "error": "SIIGO HTTP 429: {\"Status\": 429, \"Errors\": [{\"Code\": \"requests_limit\",\"Message\": \"Rate limit is exceeded. Try again in 1 seconds.\", \"Params\": [], \"Detail\": \"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/requests_limit\"}]}"
+    },
+    {
+      "code_c": "C-BENSOD500",
+      "code_d": "D-BENSOD500",
+      "nombre": "BENZOATO SODIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BENSOD500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BENSOD500 creado en SIIGO",
+        "siigo_id": "0567845c-225b-45d7-ab2d-a0747b09e238"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-BENSOD500g",
+      "code_d": "D-BENSOD500g",
+      "nombre": "BENZOATO DE SODIO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BENSOD500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BENSOD500g creado en SIIGO",
+        "siigo_id": "f38407f8-0f53-48dd-bb48-6d33fdf5ed42"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-BICSOD500g",
+      "code_d": "D-BICSOD500g",
+      "nombre": "BICARBONATO DE SODIO 500g",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BICSOD500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BICSOD500g creado en SIIGO",
+        "siigo_id": "ff4c2894-38c4-4911-b42c-92a46916a846"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-BTMS250g",
+      "code_d": "D-BTMS250g",
+      "nombre": "BTMS 50 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BTMS250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BTMS250g creado en SIIGO",
+        "siigo_id": "7c1d07ab-4c31-4a6d-aefd-7569898f0307"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-BTMS500g",
+      "code_d": "D-BTMS500g",
+      "nombre": "BTMS 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BTMS500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BTMS500g creado en SIIGO",
+        "siigo_id": "311773dd-557e-4baa-a126-128e4558171a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-BTMS50125g",
+      "code_d": "D-BTMS50125g",
+      "nombre": "BTMS 50 125g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-BTMS50125g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-BTMS50125g creado en SIIGO",
+        "siigo_id": "38399173-1ff6-4ed7-9a56-61b270bffd07"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CAF100",
+      "code_d": "D-CAF100",
+      "nombre": "CAFEINA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CAF100"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CAF100 creado en SIIGO",
+        "siigo_id": "50e0e0eb-fdb4-4aad-a42f-7a25bb68c1f5"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CAF100g",
+      "code_d": "D-CAF100g",
+      "nombre": "Cafeina 100g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ok": false,
+      "error": "Expandir: El componente 'ETQ250g' no existe en Siigo. Créalo primero o verifica el código."
+    },
+    {
+      "code_c": "C-CAF500g",
+      "code_d": "D-CAF500g",
+      "nombre": "CAFEINA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CAF500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CAF500g creado en SIIGO",
+        "siigo_id": "35962e9a-005f-40e3-8051-aca08c16f368"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CAFE100g",
+      "code_d": "D-CAFE100g",
+      "nombre": "CAFEINA 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CAFE100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CAFE100g creado en SIIGO",
+        "siigo_id": "298f48d3-8bc1-445c-9501-0c4f5288af59"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CAOARC500g",
+      "code_d": "D-CAOARC500g",
+      "nombre": "CAOLIN ARCILLA 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CAOARC500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CAOARC500g creado en SIIGO",
+        "siigo_id": "8d663f68-8d93-417a-b217-4d7827998e7f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CAOCARCKg",
+      "code_d": "D-CAOCARCKg",
+      "nombre": "CAOLIN ARCILLA Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CAOCARCKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CAOCARCKg creado en SIIGO",
+        "siigo_id": "a5d80df5-eb65-4e1c-84cd-a8922687f72f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CARCAL500g",
+      "code_d": "D-CARCAL500g",
+      "nombre": "CARBONATO CALCIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CARCAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CARCAL500g creado en SIIGO",
+        "siigo_id": "d2e254fe-5e9c-4629-989e-958e5318925c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABENAT500g",
+      "code_d": "D-CERABENAT500g",
+      "nombre": "CERA DE ABEJAS NATURAL 500g",
+      "n_comps": 6,
+      "removidos": [],
+      "warnings": [],
+      "ok": true,
+      "skipped": true,
+      "mensaje": "ya migrado"
+    },
+    {
+      "code_c": "C-CERABEREFAMA500",
+      "code_d": "D-CERABEREFAMA500",
+      "nombre": "CERA ABEJAS REFINADA AMARILLA 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFAMA500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFAMA500 creado en SIIGO",
+        "siigo_id": "d2665edc-e6f1-43aa-b037-caf38e4d073f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFAMA500g",
+      "code_d": "D-CERABEREFAMA500g",
+      "nombre": "Cera Abejas Refinada Amarilla 500g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFAMA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFAMA500g creado en SIIGO",
+        "siigo_id": "ee25f13f-7ad1-4bc8-a05d-48e917170097"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFAMAK",
+      "code_d": "D-CERABEREFAMAK",
+      "nombre": "CERA ABEJAS REFINADA AMARILLA Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFAMAK"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFAMAK creado en SIIGO",
+        "siigo_id": "b62dfff0-8b31-491f-bf5e-e80204409434"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFAMAKg",
+      "code_d": "D-CERABEREFAMAKg",
+      "nombre": "Cera Abejas Refinada Amarilla Kg",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFAMAKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFAMAKg creado en SIIGO",
+        "siigo_id": "22a548df-9ffb-442f-9df6-066ea28eb504"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFBLA",
+      "code_d": "D-CERABEREFBLA",
+      "nombre": "CERA ABEJAS REFINADA BLANCA Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFBLA"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFBLA creado en SIIGO",
+        "siigo_id": "686b8904-af61-40df-bbf6-9c39e36c179f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFBLA500",
+      "code_d": "D-CERABEREFBLA500",
+      "nombre": "CERA ABEJAS REFINADA BLANCA 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFBLA500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFBLA500 creado en SIIGO",
+        "siigo_id": "f1bf7576-d157-4dbc-9330-6670d189eb48"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFBLA500g",
+      "code_d": "D-CERABEREFBLA500g",
+      "nombre": "CERA ABEJAS BLANCA REFINADA 500g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFBLA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFBLA500g creado en SIIGO",
+        "siigo_id": "383acef4-811a-4513-a8b6-265cc048f79b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERABEREFBLAKg",
+      "code_d": "D-CERABEREFBLAKg",
+      "nombre": "Cera ABejas Refinada Kg",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERABEREFBLAKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERABEREFBLAKg creado en SIIGO",
+        "siigo_id": "5cfdabae-8635-4404-b614-cd7819e10ab9"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERCAR250g",
+      "code_d": "D-CERCAR250g",
+      "nombre": "CERA CARNAUBA 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERCAR250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERCAR250g creado en SIIGO",
+        "siigo_id": "d46692a0-95f1-418d-9bd9-a8b996f8e3be"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERCAR500g",
+      "code_d": "D-CERCAR500g",
+      "nombre": "CERA CARNAUBA 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERCAR500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERCAR500g creado en SIIGO",
+        "siigo_id": "b20b43fe-8b1f-4a3e-ba55-82f7d2033c39"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CERCARKg",
+      "code_d": "D-CERCARKg",
+      "nombre": "CERA CARNAUBA Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CERCARKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CERCARKg creado en SIIGO",
+        "siigo_id": "d437c9b3-1862-474d-9d5b-9dc4b53d7d69"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CIA100g",
+      "code_d": "D-CIA100g",
+      "nombre": "CIANOCOBALAMINA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CIA100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CIA100g creado en SIIGO",
+        "siigo_id": "66837660-7441-4b83-8300-9c3769abec4f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITCAL500g",
+      "code_d": "D-CITCAL500g",
+      "nombre": "CITRATO CALCIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITCAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITCAL500g creado en SIIGO",
+        "siigo_id": "1ba4d7db-86a8-40ae-b9c0-dc9304228d4c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITMAG250g",
+      "code_d": "D-CITMAG250g",
+      "nombre": "CITRATO MAGNESIO 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITMAG250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITMAG250g creado en SIIGO",
+        "siigo_id": "12f52e47-41fe-4fb7-a319-076d4b165e25"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITMAG500g",
+      "code_d": "D-CITMAG500g",
+      "nombre": "CITRATO MAGNESIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITMAG500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITMAG500g creado en SIIGO",
+        "siigo_id": "0b154e58-3c0d-4b10-8ece-e2e3be88204a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITMAGKg",
+      "code_d": "D-CITMAGKg",
+      "nombre": "CITRATO MAGNESIO Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITMAGKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITMAGKg creado en SIIGO",
+        "siigo_id": "059fc9a4-a3e3-4fde-8f2d-344047a9f951"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITPOT250g",
+      "code_d": "D-CITPOT250g",
+      "nombre": "CITRATO POTASIO 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITPOT250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITPOT250g creado en SIIGO",
+        "siigo_id": "54b92422-ecf1-4300-b36f-a89e59d59173"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITPOT250gMAG250g",
+      "code_d": "D-CITPOT250gMAG250g",
+      "nombre": "CITRATO POTASIO 250g MAGNESIO 250g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 6.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITPOT250gMAG250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITPOT250gMAG250g creado en SIIGO",
+        "siigo_id": "25299a1d-bdb3-404c-bb42-aa62c095d950"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITPOT500g",
+      "code_d": "D-CITPOT500g",
+      "nombre": "CITRATO POTASIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITPOT500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITPOT500g creado en SIIGO",
+        "siigo_id": "cacfa23f-a6f6-4a46-9196-6ca69ec607a2"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITPOTK",
+      "code_d": "D-CITPOTK",
+      "nombre": "CITRATO POTASIO Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITPOTK"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITPOTK creado en SIIGO",
+        "siigo_id": "0ede604b-0fb3-49c3-b76c-6b6c1fd8380d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITPOTKg",
+      "code_d": "D-CITPOTKg",
+      "nombre": "CITRATO POTASO Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITPOTKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITPOTKg creado en SIIGO",
+        "siigo_id": "321cd920-e271-45ee-b1ae-1f73995e2000"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CITZIN500g",
+      "code_d": "D-CITZIN500g",
+      "nombre": "CITRATO ZINC 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CITZIN500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CITZIN500g creado en SIIGO",
+        "siigo_id": "7c54dc3c-ef22-420e-94b5-07cf65f00f11"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CLOCAL500g",
+      "code_d": "D-CLOCAL500g",
+      "nombre": "CLORURO CALCIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CLOCAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CLOCAL500g creado en SIIGO",
+        "siigo_id": "171a878e-c3b0-44d8-a47b-cae6e6e5f816"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CLOMAGHEXKg",
+      "code_d": "D-CLOMAGHEXKg",
+      "nombre": "CLORURO MAGNESIO HEXAHIDRATADO",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CLOMAGHEXKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CLOMAGHEXKg creado en SIIGO",
+        "siigo_id": "9b3f849e-5e6e-42dd-85af-5dd29e5797b3"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-COCPROBET500m",
+      "code_d": "D-COCPROBET500m",
+      "nombre": "COCOAMIDA PROPIL BETAINA 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-COCPROBET500m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-COCPROBET500m creado en SIIGO",
+        "siigo_id": "d3e199aa-7c81-440d-9a62-75658dc136ba"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-COCPROBET500mL",
+      "code_d": "D-COCPROBET500mL",
+      "nombre": "COCOAMIDA 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-COCPROBET500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-COCPROBET500mL creado en SIIGO",
+        "siigo_id": "ce3bf5ca-ff9a-43d0-b8c8-572dd8c22e04"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-COLHID30m",
+      "code_d": "D-COLHID30m",
+      "nombre": "COLAGENO HIDROLIZADO 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-COLHID30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-COLHID30m creado en SIIGO",
+        "siigo_id": "5c01fe18-b193-4a4c-8487-f0bbb2ecc300"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-COLHID30mL",
+      "code_d": "D-COLHID30mL",
+      "nombre": "COLAGENO HIDROLIZADO 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-COLHID30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-COLHID30mL creado en SIIGO",
+        "siigo_id": "d7e166c5-9e0f-4c89-9c48-f9c68e359e04"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-COLHID500g",
+      "code_d": "D-COLHID500g",
+      "nombre": "COLAGENO POLVO HIDROLIZADO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-COLHID500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-COLHID500g creado en SIIGO",
+        "siigo_id": "7adb2e88-c707-4a56-ab89-3536dd799e19"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CREMON100g",
+      "code_d": "D-CREMON100g",
+      "nombre": "CREATINA MONOHIDRATO 100g",
+      "n_comps": 10,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CREMON100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CREMON100g creado en SIIGO",
+        "siigo_id": "7a591fda-44c1-40ca-9bd1-b68043e23e74"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CREMON250g",
+      "code_d": "D-CREMON250g",
+      "nombre": "CREATINA MONOHIDRATO 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CREMON250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CREMON250g creado en SIIGO",
+        "siigo_id": "77e48f35-b837-4e23-bff7-84c19eba5c64"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CREMON500g",
+      "code_d": "D-CREMON500g",
+      "nombre": "CREATINA MONOHIDRATO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CREMON500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CREMON500g creado en SIIGO",
+        "siigo_id": "9ac7b9a6-0e23-41db-b9e2-7bcff5c1e635"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-CRETAR500g",
+      "code_d": "D-CRETAR500g",
+      "nombre": "CREMOR TARTARO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-CRETAR500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-CRETAR500g creado en SIIGO",
+        "siigo_id": "4c7cf61e-7a16-4914-84c4-ddb0165d15f4"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DEXKg",
+      "code_d": "D-DEXKg",
+      "nombre": "DEXTROSA Kg",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DEXKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DEXKg creado en SIIGO",
+        "siigo_id": "72115f8c-8922-417c-9538-b320123667d8"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DIOTIT500",
+      "code_d": "D-DIOTIT500",
+      "nombre": "DIOXIDO TITANIO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DIOTIT500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DIOTIT500 creado en SIIGO",
+        "siigo_id": "2849f398-65aa-48d5-a831-eb7cb834708e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DIOTIT500g",
+      "code_d": "D-DIOTIT500g",
+      "nombre": "Dioxido Titanio 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DIOTIT500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DIOTIT500g creado en SIIGO",
+        "siigo_id": "b0ef1e1f-8ea0-4b11-bbbc-18ec2fb9cc59"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DPAN50m",
+      "code_d": "D-DPAN50m",
+      "nombre": "DPANTENOL 50mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DPAN50m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DPAN50m creado en SIIGO",
+        "siigo_id": "062f5e44-95da-4515-a47d-88e592ee0e33"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DPAN50mL",
+      "code_d": "D-DPAN50mL",
+      "nombre": "D PANTENOL 50 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DPAN50mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DPAN50mL creado en SIIGO",
+        "siigo_id": "9dd0aafa-1bbd-41b2-b900-c61cc64618e1"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DPAN85P120mL",
+      "code_d": "D-DPAN85P120mL",
+      "nombre": "D PANTENOL 85% 120 mL",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DPAN85P120mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DPAN85P120mL creado en SIIGO",
+        "siigo_id": "89bfd954-a52e-498f-86d6-034450836754"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-DPG500mL",
+      "code_d": "D-DPG500mL",
+      "nombre": "DIPROPILENGLICOL500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-DPG500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-DPG500mL creado en SIIGO",
+        "siigo_id": "82450dc0-4b9e-4ea9-9706-17df1bc72d7e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ELAHID30m",
+      "code_d": "D-ELAHID30m",
+      "nombre": "ELASTINA HIDROLIZADA 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ELAHID30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ELAHID30m creado en SIIGO",
+        "siigo_id": "4a2d1a28-b2c2-4c50-8a79-ae73a4e0ffb2"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ELAHID30mL",
+      "code_d": "D-ELAHID30mL",
+      "nombre": "ELASTINA HIDROLIZADA 30mL",
+      "n_comps": 12,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ELAHID30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ELAHID30mL creado en SIIGO",
+        "siigo_id": "675e9cf1-6e36-4923-9ca3-440b4c78ae92"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EMBPAT30m",
+      "code_d": "D-EMBPAT30m",
+      "nombre": "EMBRION PATO 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EMBPAT30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EMBPAT30m creado en SIIGO",
+        "siigo_id": "a70fc0a5-a35a-4a34-b23f-b4e38c325ae3"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EMBPAT30mL",
+      "code_d": "D-EMBPAT30mL",
+      "nombre": "EMBRION PATO 30 L",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EMBPAT30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EMBPAT30mL creado en SIIGO",
+        "siigo_id": "6dfa6946-e332-47eb-8a76-c28f1a08e4fe"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ESPCCRCRV22CM",
+      "code_d": "D-ESPCCRCRV22CM",
+      "nombre": "ESPATULA DE LABORATORIO 22Cms",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ESPCCRCRV22CM"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ESPCCRCRV22CM creado en SIIGO",
+        "siigo_id": "2742f9aa-78f3-4013-ac5f-0c12d4103dbb"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ESPLBR10CM",
+      "code_d": "D-ESPLBR10CM",
+      "nombre": "ESPATULA 10CMS",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ESPLBR10CM"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ESPLBR10CM creado en SIIGO",
+        "siigo_id": "93c2589c-1908-4f40-8729-1abe0b38f6c8"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-ESPLBR15CM",
+      "code_d": "D-ESPLBR15CM",
+      "nombre": "ESPATULA LABORATORIO 15Cms",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-ESPLBR15CM"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-ESPLBR15CM creado en SIIGO",
+        "siigo_id": "c6f27640-46f0-4963-980a-3b06cc5d69a2"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EXTALOVER30m",
+      "code_d": "D-EXTALOVER30m",
+      "nombre": "EXTRACTO ALOE VERA 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EXTALOVER30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EXTALOVER30m creado en SIIGO",
+        "siigo_id": "83deb443-fbb7-460c-8ee3-0310a70d16c9"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EXTALOVER30mL",
+      "code_d": "D-EXTALOVER30mL",
+      "nombre": "EXTRACTO ALOE VERA 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EXTALOVER30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EXTALOVER30mL creado en SIIGO",
+        "siigo_id": "25054cc1-6427-49fa-83bc-b73247c441a4"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EXTRAMAL500g",
+      "code_d": "D-EXTRAMAL500g",
+      "nombre": "EXTRACTO MALTA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EXTRAMAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EXTRAMAL500g creado en SIIGO",
+        "siigo_id": "bc9344cc-457f-4307-b48a-aefff33264a2"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-EXTTEMATVER100g",
+      "code_d": "D-EXTTEMATVER100g",
+      "nombre": "EXTRACTO TE MATCHA 100g",
+      "n_comps": 10,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-EXTTEMATVER100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-EXTTEMATVER100g creado en SIIGO",
+        "siigo_id": "8cbd779c-03f9-460e-ae1e-f1206520655e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-FLOSECLAV100g",
+      "code_d": "D-FLOSECLAV100g",
+      "nombre": "FLORES SECAS LAVANDA 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-FLOSECLAV100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-FLOSECLAV100g creado en SIIGO",
+        "siigo_id": "16d220d5-bce0-4524-912d-a2aedd4e9c42"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-FRU500g",
+      "code_d": "D-FRU500g",
+      "nombre": "FRUCTOSA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-FRU500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-FRU500g creado en SIIGO",
+        "siigo_id": "7097c8d6-a500-4f5e-a9d7-ede4064fd8ee"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GELSINSAB500",
+      "code_d": "D-GELSINSAB500",
+      "nombre": "GELATINA SIN SABOR 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GELSINSAB500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GELSINSAB500 creado en SIIGO",
+        "siigo_id": "ba351f8d-e431-46d1-8d14-b1f3d12313d1"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GELSINSAB500g",
+      "code_d": "D-GELSINSAB500g",
+      "nombre": "GELATINA SIN SABOR 500g",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GELSINSAB500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GELSINSAB500g creado en SIIGO",
+        "siigo_id": "b92ec5ad-527d-4bc7-8563-35d459b91625"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLICVEG500mL",
+      "code_d": "D-GLICVEG500mL",
+      "nombre": "GLICERINA VEGETAL 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLICVEG500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLICVEG500mL creado en SIIGO",
+        "siigo_id": "c3ea1a63-1dd3-425e-92c9-1044974b8845"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLIVEG250mL",
+      "code_d": "D-GLIVEG250mL",
+      "nombre": "GLICERINA VEGETAL 250g/mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLIVEG250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLIVEG250mL creado en SIIGO",
+        "siigo_id": "784aeeec-ed31-400b-b38b-2d1935d52423"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLIVEGLt",
+      "code_d": "D-GLIVEGLt",
+      "nombre": "GLICERINA VEGETAL Lt",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLIVEGLt"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLIVEGLt creado en SIIGO",
+        "siigo_id": "9f179edc-6ea7-4f1b-b643-f0cc3b5c8960"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLU100",
+      "code_d": "D-GLU100",
+      "nombre": "L GLUTAMINA 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLU100"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLU100 creado en SIIGO",
+        "siigo_id": "8259b407-3eb0-4cef-b180-6509d705ec6c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLU100g",
+      "code_d": "D-GLU100g",
+      "nombre": "GLUTAMINA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLU100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLU100g creado en SIIGO",
+        "siigo_id": "481762a0-05ab-4a05-a491-f712abcaf8eb"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLU2P500mL",
+      "code_d": "D-GLU2P500mL",
+      "nombre": "GLUTARALDEHIDO 2% 500mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [
+        "FOR-GLUTAR2PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-GLU2P500mL creado en SIIGO",
+        "siigo_id": "a597afdd-4bce-417d-a501-08624de017b0",
+        "expansion": [
+          "FOR-GLUTAR2PmL×500 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-GLUMON500g",
+      "code_d": "D-GLUMON500g",
+      "nombre": "GLUTAMATO MONOSODICO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLUMON500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLUMON500g creado en SIIGO",
+        "siigo_id": "59bd4514-2d29-4717-b457-81eb85ed8b8c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GLUMONKg",
+      "code_d": "D-GLUMONKg",
+      "nombre": "GLUTAMATO MONOSODICO Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GLUMONKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GLUMONKg creado en SIIGO",
+        "siigo_id": "0883c1ba-e664-4d5b-941b-18ce5866fa79"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GOMGUA500g",
+      "code_d": "D-GOMGUA500g",
+      "nombre": "GOMA GUAR 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GOMGUA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GOMGUA500g creado en SIIGO",
+        "siigo_id": "9a5e05d6-4a61-4d20-a841-3f7096b96285"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GOMXAN500g",
+      "code_d": "D-GOMXAN500g",
+      "nombre": "GOMA XANTANA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GOMXAN500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GOMXAN500g creado en SIIGO",
+        "siigo_id": "30cb892a-211a-4ed3-9912-04124db0164a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GOMXANKg",
+      "code_d": "D-GOMXANKg",
+      "nombre": "GOMA XANTANA Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GOMXANKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GOMXANKg creado en SIIGO",
+        "siigo_id": "04d41db6-4641-4dbd-a3b1-7032413d50b3"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GRADIG",
+      "code_d": "D-GRADIG",
+      "nombre": "GRAMERA BALANZA DIGITAL",
+      "n_comps": 2,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GRADIG"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GRADIG creado en SIIGO",
+        "siigo_id": "6a529ad5-70c9-44b9-a387-63aa13da50e6"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GUSSED30m",
+      "code_d": "D-GUSSED30m",
+      "nombre": "GUSANO SEDA 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GUSSED30m"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GUSSED30m creado en SIIGO",
+        "siigo_id": "b739df0e-af27-438a-8ffb-dde041178c4b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-GUSSED30mL",
+      "code_d": "D-GUSSED30mL",
+      "nombre": "GUSANO DE SEDA 30 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-GUSSED30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-GUSSED30mL creado en SIIGO",
+        "siigo_id": "42f78de0-1caf-41bb-b046-38c88d0988a4"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-INU250g",
+      "code_d": "D-INU250g",
+      "nombre": "INULINA 250g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-INU250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-INU250g creado en SIIGO",
+        "siigo_id": "e8e687ff-b9c6-4ca4-ae7a-7763084dec6c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-INU500g",
+      "code_d": "D-INU500g",
+      "nombre": "INULINA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-INU500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-INU500g creado en SIIGO",
+        "siigo_id": "4cad8e73-bf75-4dce-b080-d9d2dc405728"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-INUKg",
+      "code_d": "D-INUKg",
+      "nombre": "INULINA Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-INUKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-INUKg creado en SIIGO",
+        "siigo_id": "c6bc3465-3d7b-4a51-a401-5338f74c408f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-KITREPCOS1",
+      "code_d": "D-KITREPCOS1",
+      "nombre": "KIT REPARADOR COSMETICO 1",
+      "n_comps": 14,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 12.0
+        }
+      ],
+      "warnings": [
+        "FOR-VITC20PmL:type=Combo"
+      ],
+      "ok": false,
+      "error": "Expandir: No se pudo resolver el código del componente 'Agua Destilada gL' dentro de 'FOR-ACIHIAALTPESmL'."
+    },
+    {
+      "code_c": "C-KITREPCOS2",
+      "code_d": "D-KITREPCOS2",
+      "nombre": "KIT REPARADOR COSMETICO 2",
+      "n_comps": 14,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 12.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[11].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-KITREPCOS2 creado en SIIGO",
+        "siigo_id": "080f8496-a2cf-4dbe-80d9-e04cf9b195ee",
+        "expansion": [
+          "FOR-ACIHIAALTPESmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-KITREPCOS3",
+      "code_d": "D-KITREPCOS3",
+      "nombre": "KIT REPARADOR COSMETICO 3",
+      "n_comps": 14,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 12.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[12].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-KITREPCOS3 creado en SIIGO",
+        "siigo_id": "d78a230a-1da3-4d1d-b4e1-418cd2540172",
+        "expansion": [
+          "FOR-ACIHIAALTPESmL×30 → 2 componente(s) inventariable(s)",
+          "FOR-ACIGLI50PmL×30 → 2 componente(s) inventariable(s)",
+          "FOR-VITC20PmL×30 → 2 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-LACCAL100g",
+      "code_d": "D-LACCAL100g",
+      "nombre": "LACTATO CALCIO 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-LACCAL100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-LACCAL100g creado en SIIGO",
+        "siigo_id": "719da0b9-23a5-4482-b755-0147c4fb9690"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-LACCAL250g",
+      "code_d": "D-LACCAL250g",
+      "nombre": "LACTATO CALCIO 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-LACCAL250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-LACCAL250g creado en SIIGO",
+        "siigo_id": "0cefb155-d507-4aba-ae48-d3d04b070b04"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-LAN250g",
+      "code_d": "D-LAN250g",
+      "nombre": "LANOLINA 250g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-LAN250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-LAN250g creado en SIIGO",
+        "siigo_id": "9697244c-bf8d-47f5-b830-a55a013f0c46"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-LAN40g",
+      "code_d": "D-LAN40g",
+      "nombre": "LANOLINA 40g",
+      "n_comps": 6,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-LAN40g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-LAN40g creado en SIIGO",
+        "siigo_id": "0da2701d-4184-4a4e-814e-9d0c5d98b599"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-LECSOY500g",
+      "code_d": "D-LECSOY500g",
+      "nombre": "LECITINA SOYA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-LECSOY500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-LECSOY500g creado en SIIGO",
+        "siigo_id": "c8462732-e5c4-4103-9f10-e73c5492d604"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MAL500g",
+      "code_d": "D-MAL500g",
+      "nombre": "MALTODEXTRINA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MAL500g creado en SIIGO",
+        "siigo_id": "acd6490d-ceae-4592-b1eb-5ac37c510ccb"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANCACNAT500g",
+      "code_d": "D-MANCACNAT500g",
+      "nombre": "MANTECA DE CACAO NATURAL 500g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANCACNAT500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANCACNAT500g creado en SIIGO",
+        "siigo_id": "ed9de0b9-f896-4954-a2da-824571caac84"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANCACREF500g",
+      "code_d": "D-MANCACREF500g",
+      "nombre": "MANTECA DE CACAO REFINADA 500g",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANCACREF500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANCACREF500g creado en SIIGO",
+        "siigo_id": "8b83da9a-2612-4b5a-bc31-315f6095d1fe"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANCACREFKg",
+      "code_d": "D-MANCACREFKg",
+      "nombre": "MANTECA CACAO REFINADA Kg",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANCACREFKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANCACREFKg creado en SIIGO",
+        "siigo_id": "7f4473ae-42a1-4f23-8940-221870aabd1b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARAMA250g",
+      "code_d": "D-MANKARAMA250g",
+      "nombre": "MANTECA KARITE AMARILLA 250g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARAMA250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARAMA250g creado en SIIGO",
+        "siigo_id": "b63a3114-4a1d-4ce9-9da4-b8e9e71044af"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARAMA500g",
+      "code_d": "D-MANKARAMA500g",
+      "nombre": "MANTECA KARITE AMARILLA 500g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARAMA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARAMA500g creado en SIIGO",
+        "siigo_id": "66946e14-1b63-473a-ab2f-a38ec8a5afef"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARAMAKg",
+      "code_d": "D-MANKARAMAKg",
+      "nombre": "MANTECA KARITE AMARILLA Kg",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARAMAKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARAMAKg creado en SIIGO",
+        "siigo_id": "1f1945c9-9910-4544-b5ae-140633c8790c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARBLA125g",
+      "code_d": "D-MANKARBLA125g",
+      "nombre": "MANTECA KARITE BLANCA 125g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARBLA125g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARBLA125g creado en SIIGO",
+        "siigo_id": "bb1af004-c346-42f9-b694-4edeb66ee28a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARBLA500g",
+      "code_d": "D-MANKARBLA500g",
+      "nombre": "MANTECA KARITE BLANCA 500g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARBLA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARBLA500g creado en SIIGO",
+        "siigo_id": "0592e43d-e5e6-41da-b679-a89bd0f3b75b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANKARBLAKg",
+      "code_d": "D-MANKARBLAKg",
+      "nombre": "MANTECA KARITE BLANCA Kg",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANKARBLAKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANKARBLAKg creado en SIIGO",
+        "siigo_id": "d8547e24-86c7-463e-ba3e-ea205e80ccfd"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANNATTOS500g",
+      "code_d": "D-MANNATTOS500g",
+      "nombre": "MANI NATURA TOSTADO 500g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANNATTOS500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANNATTOS500g creado en SIIGO",
+        "siigo_id": "1e0f6222-3ac2-4303-8ba5-410e874dbd2f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MANTKARAMA125g",
+      "code_d": "D-MANTKARAMA125g",
+      "nombre": "MANTECA KARITE AMARILLA 125g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MANTKARAMA125g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MANTKARAMA125g creado en SIIGO",
+        "siigo_id": "6b924bff-dd4d-49f2-9201-769ae6f99b1e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MENCRI100",
+      "code_d": "D-MENCRI100",
+      "nombre": "MENTOL CRISTAL 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MENCRI100"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MENCRI100 creado en SIIGO",
+        "siigo_id": "e7183d14-2027-4469-9446-d2dae279bf68"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-MENCRI100g",
+      "code_d": "D-MENCRI100g",
+      "nombre": "MENTOL CRISTAL 100g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-MENCRI100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-MENCRI100g creado en SIIGO",
+        "siigo_id": "fb931d16-91d1-4b3b-891a-a20f5827d377"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-NIA100g",
+      "code_d": "D-NIA100g",
+      "nombre": "NIACINAMIDA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-NIA100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-NIA100g creado en SIIGO",
+        "siigo_id": "ce60c6a4-02bb-4ccc-810c-3652452adaf5"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-NUEBRA250g",
+      "code_d": "D-NUEBRA250g",
+      "nombre": "NUEZ PARTIDA 250g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-NUEBRA250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-NUEBRA250g creado en SIIGO",
+        "siigo_id": "32e76298-efaa-497c-850e-344534b35729"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-NUEBRA500",
+      "code_d": "D-NUEBRA500",
+      "nombre": "NUEZ PARTIDA DEL BRASIL 500g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-NUEBRA500"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-NUEBRA500 creado en SIIGO",
+        "siigo_id": "6a3a7bdd-8bd6-4251-8b8e-f758d6e04b78"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-NUEBRA500g",
+      "code_d": "D-NUEBRA500g",
+      "nombre": "NUEZ PARTIDA 500g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-NUEBRA500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-NUEBRA500g creado en SIIGO",
+        "siigo_id": "c1d3d997-4cba-4a65-8609-f51ab0b7ba3c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-OXIZIN250g",
+      "code_d": "D-OXIZIN250g",
+      "nombre": "OXIDO ZINC 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-OXIZIN250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-OXIZIN250g creado en SIIGO",
+        "siigo_id": "d3b1a7cf-dada-4394-b5b5-6fd1402fc98f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PAP100g",
+      "code_d": "D-PAP100g",
+      "nombre": "PAPAINA 100g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PAP100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PAP100g creado en SIIGO",
+        "siigo_id": "9af8d167-ab12-4779-935a-f67e5131ce73"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PARKg",
+      "code_d": "D-PARKg",
+      "nombre": "PARAFINA Kg",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PARKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PARKg creado en SIIGO",
+        "siigo_id": "3d50a7ff-b449-495f-9487-0e813f73a654"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PISTOS250g",
+      "code_d": "D-PISTOS250g",
+      "nombre": "PISTACHOS TOSTADOS 250g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PISTOS250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PISTOS250g creado en SIIGO",
+        "siigo_id": "7b101af2-a033-4d9b-a8e7-723e6ea60cc6"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PISTOS500g",
+      "code_d": "D-PISTOS500g",
+      "nombre": "PISTACHOS TOSTADOS 500g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PISTOS500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PISTOS500g creado en SIIGO",
+        "siigo_id": "1f2f430c-916d-4eb0-a719-9b9b6bc1d4b3"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-POLTWE20P500mL",
+      "code_d": "D-POLTWE20P500mL",
+      "nombre": "POLISORBATO TWEEN 20 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ok": false,
+      "error": "Expandir: El componente 'OPRMNM4MN' no existe en Siigo. Créalo primero o verifica el código."
+    },
+    {
+      "code_c": "C-POLTWE80P500mL",
+      "code_d": "D-POLTWE80P500mL",
+      "nombre": "POLISORBATO TWEEN 80P 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-POLTWE80P500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-POLTWE80P500mL creado en SIIGO",
+        "siigo_id": "8356df82-43c7-45b2-a4e8-dd9114e71584"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PROAISSOY500g",
+      "code_d": "D-PROAISSOY500g",
+      "nombre": "PROTEINA AISLADA SOYA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PROAISSOY500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PROAISSOY500g creado en SIIGO",
+        "siigo_id": "80775b43-f80e-4b78-a2e6-cd8331058a4b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-PROCONSUE80PKg",
+      "code_d": "D-PROCONSUE80PKg",
+      "nombre": "PROTEINA CONCENTRADA SUERO LECHE 80P Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-PROCONSUE80PKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-PROCONSUE80PKg creado en SIIGO",
+        "siigo_id": "e8ea0f2f-41b4-45b4-9a15-bef952a6f12d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-RET5P30m",
+      "code_d": "D-RET5P30m",
+      "nombre": "RETINOL 5% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-RET5PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[10].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-RET5P30m creado en SIIGO",
+        "siigo_id": "fdacb082-892f-4498-ae51-1abe749d0e88",
+        "expansion": [
+          "FOR-RET5PmL×30 → 3 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-RET5P30mL",
+      "code_d": "D-RET5P30mL",
+      "nombre": "RETINOL 5% 30 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "B",
+      "rename": {
+        "ok": false,
+        "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"product_settings\",\"Message\":\"The code cannot be used, you must verify the product settings\",\"Params\":[\"components[9].code\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/product_settings\"}]}"
+      },
+      "create_d": {
+        "ok": true,
+        "mensaje": "Combo D-RET5P30mL creado en SIIGO",
+        "siigo_id": "c047d509-fc21-4bff-afef-ee9b7af83b08",
+        "expansion": [
+          "FOR-RET5PmL×30 → 3 componente(s) inventariable(s)"
+        ]
+      },
+      "ok": true,
+      "manual_c": true,
+      "mensaje": "D creado/ok; C- no editable por API. Quitar OPRMNM4MN a mano en Siigo Nube."
+    },
+    {
+      "code_c": "C-SABCARAHU100g",
+      "code_d": "D-SABCARAHU100g",
+      "nombre": "SABOR CARNE AHUMADA 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SABCARAHU100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SABCARAHU100g creado en SIIGO",
+        "siigo_id": "71dcedee-c1a2-4385-b38b-c89515bbf479"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SEBCOR150g",
+      "code_d": "D-SEBCOR150g",
+      "nombre": "SEBO CORDERO 150g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SEBCOR150g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SEBCOR150g creado en SIIGO",
+        "siigo_id": "f2b2663b-57ff-486b-b686-62faa6727c4f"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SEMCAL250g",
+      "code_d": "D-SEMCAL250g",
+      "nombre": "SEMILLA DE CALABAZA 250g",
+      "n_comps": 6,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SEMCAL250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SEMCAL250g creado en SIIGO",
+        "siigo_id": "37341735-4676-43fc-bff9-b73ee6b1ea07"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SEMCAL500g",
+      "code_d": "D-SEMCAL500g",
+      "nombre": "SEMILLAS DE CALABAZA 500g",
+      "n_comps": 5,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SEMCAL500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SEMCAL500g creado en SIIGO",
+        "siigo_id": "6e664b07-f2c4-42a4-aa4f-846c8ed9d4fd"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SHA705250mL",
+      "code_d": "D-SHA705250mL",
+      "nombre": "SHAROMIX 705 250 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SHA705250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SHA705250mL creado en SIIGO",
+        "siigo_id": "dcdb5027-2f7b-40ab-917b-a52533033ff7"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SHA705500mL",
+      "code_d": "D-SHA705500mL",
+      "nombre": "SHAROMIX 705 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SHA705500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SHA705500mL creado en SIIGO",
+        "siigo_id": "86cd3fc6-ec52-48f0-98b5-348e15cd1865"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SHA70550mL",
+      "code_d": "D-SHA70550mL",
+      "nombre": "SHAROMIX 705 50mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SHA70550mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SHA70550mL creado en SIIGO",
+        "siigo_id": "8897c4bc-7c4f-450d-9652-b8986f1c1374"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SOR500mL",
+      "code_d": "D-SOR500mL",
+      "nombre": "SORBITOL 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SOR500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SOR500mL creado en SIIGO",
+        "siigo_id": "3fdb4cc9-af5c-4724-b24c-4d1479357288"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SORPOLKg",
+      "code_d": "D-SORPOLKg",
+      "nombre": "SORBITOL POLVO Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SORPOLKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SORPOLKg creado en SIIGO",
+        "siigo_id": "486805d9-548c-4762-8371-8e376c45e958"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SORPOT100g",
+      "code_d": "D-SORPOT100g",
+      "nombre": "SORBATO POTASIO 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ok": false,
+      "error": "Expandir: El componente 'BLSMTL13X21cms' no existe en Siigo. Créalo primero o verifica el código."
+    },
+    {
+      "code_c": "C-SORPOT250",
+      "code_d": "D-SORPOT250",
+      "nombre": "SORBATO POTASIO 250g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SORPOT250"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SORPOT250 creado en SIIGO",
+        "siigo_id": "382e3ae1-f5d4-496d-aeac-29c20b49d66a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SORPOT250g",
+      "code_d": "D-SORPOT250g",
+      "nombre": "SORBATO POTASIO 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SORPOT250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SORPOT250g creado en SIIGO",
+        "siigo_id": "f0c26979-74e9-459e-bdee-7b570701e45b"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SORPOT500g",
+      "code_d": "D-SORPOT500g",
+      "nombre": "SORBATO POTASIO 500g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SORPOT500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SORPOT500g creado en SIIGO",
+        "siigo_id": "74b15687-26b1-46cb-8ddf-355186d26637"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SORPOTKg",
+      "code_d": "D-SORPOTKg",
+      "nombre": "SORBATO POTASIO Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SORPOTKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SORPOTKg creado en SIIGO",
+        "siigo_id": "f6c16cbf-9e08-4495-83b0-7890c46eb8eb"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-SURLECDULKg",
+      "code_d": "D-SURLECDULKg",
+      "nombre": "SUERO LECHE DULCE Kg",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-SURLECDULKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-SURLECDULKg creado en SIIGO",
+        "siigo_id": "13b1bf04-e064-4a5e-a948-298fd68996c7"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TAU250g",
+      "code_d": "D-TAU250g",
+      "nombre": "TAURINA 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TAU250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TAU250g creado en SIIGO",
+        "siigo_id": "e34cd961-695e-44fd-b93a-c5cf982df487"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TEGBET250mL",
+      "code_d": "D-TEGBET250mL",
+      "nombre": "TEGO BETAINA 250mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TEGBET250mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TEGBET250mL creado en SIIGO",
+        "siigo_id": "9bd0f8ea-cfaf-400a-a6b8-5a3d9c27f2a7"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TEGBET500mL",
+      "code_d": "D-TEGBET500mL",
+      "nombre": "TEGO BETAINA COCO 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TEGBET500mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TEGBET500mL creado en SIIGO",
+        "siigo_id": "85d862e1-6c46-44bd-9c51-e7e13404cbee"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TEGBETLt",
+      "code_d": "D-TEGBETLt",
+      "nombre": "TEGO BETAINA DE COCO Lt",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TEGBETLt"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TEGBETLt creado en SIIGO",
+        "siigo_id": "fea4a436-13f5-4362-8364-3d1f6cbb034a"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TENSCI100g",
+      "code_d": "D-TENSCI100g",
+      "nombre": "TENSOACTIVO SCI 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TENSCI100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TENSCI100g creado en SIIGO",
+        "siigo_id": "6ce2b189-7251-4abc-8696-40e191def76e"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TENSCI250g",
+      "code_d": "D-TENSCI250g",
+      "nombre": "TENSOACTIVO SCI 250g",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TENSCI250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TENSCI250g creado en SIIGO",
+        "siigo_id": "40338a68-8bc2-43ee-919d-e8fe87d4027d"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TENSCI500g",
+      "code_d": "D-TENSCI500g",
+      "nombre": "TENSOACTIVO SCI 500g",
+      "n_comps": 7,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TENSCI500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TENSCI500g creado en SIIGO",
+        "siigo_id": "93cdcb49-181f-4386-a6d9-d90a8fe0346c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-TENSCIKg",
+      "code_d": "D-TENSCIKg",
+      "nombre": "TENSO ACTIVO SCI Kg",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-TENSCIKg"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-TENSCIKg creado en SIIGO",
+        "siigo_id": "82d4209b-50ac-48ab-ae3f-f681d8881912"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-URE250g",
+      "code_d": "D-URE250g",
+      "nombre": "UREA 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-URE250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-URE250g creado en SIIGO",
+        "siigo_id": "d6656b1d-ade4-4794-99bf-35a9427d631c"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-URE500g",
+      "code_d": "D-URE500g",
+      "nombre": "UREA 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-URE500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-URE500g creado en SIIGO",
+        "siigo_id": "96886434-c079-446d-aee0-e9391851a843"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VASPRE100mL",
+      "code_d": "D-VASPRE100mL",
+      "nombre": "VASO DE PRECIPITADO 100mL",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VASPRE100mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VASPRE100mL creado en SIIGO",
+        "siigo_id": "f9a96ebf-86dd-49b4-ba8a-6921d31e62da"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VASPRE10mL",
+      "code_d": "D-VASPRE10mL",
+      "nombre": "VASO DE PRECIPITADO 10mL",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VASPRE10mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VASPRE10mL creado en SIIGO",
+        "siigo_id": "57e9056c-9f56-4733-a553-a035dd9b1642"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VASPRE25mL",
+      "code_d": "D-VASPRE25mL",
+      "nombre": "VASO DE PRECIPITADO 25mL",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VASPRE25mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VASPRE25mL creado en SIIGO",
+        "siigo_id": "ffea28ea-a029-4305-90a8-9f8ef311eb02"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VASPRE50mL",
+      "code_d": "D-VASPRE50mL",
+      "nombre": "VASO DE PRECIPITADO 50mL",
+      "n_comps": 5,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 1.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VASPRE50mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VASPRE50mL creado en SIIGO",
+        "siigo_id": "b5428fd0-3ed2-4e55-9a7e-e82653510d57"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VITC30P30mL",
+      "code_d": "D-VITC30P30mL",
+      "nombre": "VITAMINA C 30% 30mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VITC30P30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VITC30P30mL creado en SIIGO",
+        "siigo_id": "d04f2a7c-f8ae-49fd-a1eb-b851dc0d1029"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VITCACIASC100g",
+      "code_d": "D-VITCACIASC100g",
+      "nombre": "ACIDO ASCORBICO 100g",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VITCACIASC100g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VITCACIASC100g creado en SIIGO",
+        "siigo_id": "9102b540-c68c-4cf6-ab96-b153ccd7cd56"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VITCACIASC250g",
+      "code_d": "D-VITCACIASC250g",
+      "nombre": "VITAMINA C ACIDO ASCORBICO 250g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VITCACIASC250g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VITCACIASC250g creado en SIIGO",
+        "siigo_id": "3ecd67b3-b7dc-4920-8b6e-6cae22f306af"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VITCACIASC500g",
+      "code_d": "D-VITCACIASC500g",
+      "nombre": "VITAMINA C ACIDO ASCORBICO 500g",
+      "n_comps": 9,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VITCACIASC500g"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VITCACIASC500g creado en SIIGO",
+        "siigo_id": "b4a3b7bf-53eb-4838-b0ec-82d7f595d3b6"
+      },
+      "ok": true
+    },
+    {
+      "code_c": "C-VITE30mL",
+      "code_d": "D-VITE30mL",
+      "nombre": "VITAMINA E 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "rename": {
+        "ok": true,
+        "mensaje": "Renombrado → D-VITE30mL"
+      },
+      "create_c": {
+        "ok": true,
+        "mensaje": "Combo C-VITE30mL creado en SIIGO",
+        "siigo_id": "5d39adf0-b0c1-4322-921d-f1f9531f1cf7"
+      },
+      "ok": true
+    }
+  ]
+}

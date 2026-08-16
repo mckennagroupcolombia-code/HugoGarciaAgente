@@ -1,0 +1,209 @@
+{
+  "generado_en": "2026-08-15T11:05:51",
+  "criterio": "sin_ventas_6m AND sold_quantity_lifetime==0",
+  "fuente_inventario": "meli_sin_ventas_6m_20260815_105701.json",
+  "procesados": 22,
+  "cerrados_ok": 22,
+  "eliminados_ok": 0,
+  "fallos": 22,
+  "resultados": [
+    {
+      "meli_id": "MCO3525602684",
+      "sku": "",
+      "titulo": "Ventilador Externo Para Portátil Eficiente Led Negro",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO3525602684\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1476590625",
+      "sku": "AS-100",
+      "titulo": "Kit Bomba Y Cámara De Vacio 5 Galones 4cfm 110v",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1476590625\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2116102484",
+      "sku": "AS-24",
+      "titulo": "Parlantes Altavoces 6.5 Pulgadas 200w Skar Audio Premium",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2116102484\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1376442947",
+      "sku": "AS-27",
+      "titulo": "T Pvc 1/2 X 6und Blanco",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1376442947\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1270321571",
+      "sku": "AS-29",
+      "titulo": "Traje Enterizo De Bioprotección Blanco M",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1270321571\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2122459726",
+      "sku": "AS-32",
+      "titulo": "Te 1/2  Color Blanco Paquete X 12 Unidades Pvc",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2122459726\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1379692129",
+      "sku": "AS-34",
+      "titulo": "Ducto En Aluminio Flexible De 8 Pulgadas Ventilacion 7.6 Mt",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1379692129\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1771269244",
+      "sku": "AS-35",
+      "titulo": "Empaque Plástico Airbasket Darnel 1/4 Libra 1200 Und",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1771269244\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1925500948",
+      "sku": "AS-46",
+      "titulo": "Bomba De Diafragma De Presión De Agua Seaflo 12v 3gpm 55psi",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1925500948\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1376378489",
+      "sku": "AS-58",
+      "titulo": "Adaptador Macho Pvc 1/2 X 6und Blanco",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1376378489\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2122453426",
+      "sku": "AS-59",
+      "titulo": "Adaptador Hembra Pvc 1/2 X 6und Blanco",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2122453426\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2249506560",
+      "sku": "AS-82",
+      "titulo": "Prensa Hidráulica Extracción Aceites Industrial 8 Toneladas Plateado 110/220v",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2249506560\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1473520021",
+      "sku": "AS-99",
+      "titulo": "Alfa Network Awus036acs Pentesting Ac600 2.4 Y 5 Ghz",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1473520021\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO4208635856",
+      "sku": "C-COCDESHIL250g",
+      "titulo": "Coco Deshidratado Hilos 250g",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO4208635856\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO4208343872",
+      "sku": "C-COCDESHIL500g",
+      "titulo": "Coco Deshidratado Hilos Puro 500g",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO4208343872\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2863567646",
+      "sku": "C-GOMXAN500g",
+      "titulo": "Goma Xanthan 500g Espesante",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2863567646\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO4280551154",
+      "sku": "C-SEMGIR250g",
+      "titulo": "Semilla De Girasol Pura 250g",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO4280551154\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2636187412",
+      "sku": "CLRMG500G",
+      "titulo": "Cloruro De Magnesio Lb",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2636187412\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1640955780",
+      "sku": "KTFTR6P",
+      "titulo": "Kit  Filtracion De  Aire 6''  Cultivo Plantas Indoor",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1640955780\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2202866630",
+      "sku": "NIGA1/2-18",
+      "titulo": "Niple Galvanizado 1/2 Pulgada X 18 Cm",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2202866630\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO2202917554",
+      "sku": "NIGA1/21-10",
+      "titulo": "Niple Galvanizado 1/2 Pulgada X 10 Cm",
+      "status_antes": "paused",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO2202917554\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    },
+    {
+      "meli_id": "MCO1522162753",
+      "sku": "PNTTRSCBL",
+      "titulo": "Punta 1/4  Para Torsión Cable Alambre Eléctrico Para Taladro",
+      "status_antes": "active",
+      "cerrado": true,
+      "eliminado": false,
+      "error": "delete HTTP 405: {\"cause\":[],\"message\":\"Method DELETE not allowed for /items/MCO1522162753\",\"error\":\"method_not_allowed\",\"status\":405} (quedó closed)"
+    }
+  ]
+}

@@ -646,6 +646,20 @@
       "actualizado_en": "2026-08-12T07:22:19",
       "subida_meli": true,
       "subida_meli_en": "2026-08-13T15:29:47"
+    },
+    "2000017902531822": {
+      "estado": "emitida",
+      "factura": "FV-2-69814",
+      "nc": "NC-2-194",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-15T07:20:49"
+    },
+    "2000014481818717": {
+      "estado": "emitida",
+      "factura": "FV-2-69767",
+      "nc": "NC-2-195",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-15T07:21:01"
     }
   }
 }

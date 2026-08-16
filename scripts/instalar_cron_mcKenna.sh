@@ -43,6 +43,10 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "20 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/emitir_notas_credito_cron.py >>${LOG} 2>&1"
   echo "# Publicidad MeLi: recomendaciones de ACOS por rotación → ticket + WhatsApp (lunes, frecuencia real vía Sistemas → Tareas Programadas)"
   echo "15 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/publicidad_recomendaciones_cron.py >>${LOG} 2>&1"
+  echo "# Reposición alta rotación: informe de cierre de mes a Sede Sur (corre a diario, el propio script valida que sea el último día del mes)"
+  echo "0 20 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/informe_reposicion_mensual_cron.py >>${LOG} 2>&1"
+  echo "# Archiva gasto en ads MeLi antes de que salga de la ventana de 90 días (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "20 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/archivar_gasto_ads_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 

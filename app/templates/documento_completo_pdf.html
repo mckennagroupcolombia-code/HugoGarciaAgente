@@ -64,7 +64,6 @@ body {
   margin-bottom: 0.45cm;
 }
 .hdr-left { flex: 1; }
-.hdr-ref { font-size: 9pt; color: #555; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
 .hdr-pretitulo { font-size: 8pt; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
 .hdr-titulo { font-size: 16pt; font-weight: bold; color: var(--accent); text-transform: uppercase; line-height: 1.2; }
 .hdr-sinonimos { font-size: 7.5pt; color: #666; margin-top: 2px; font-style: italic; }
@@ -196,6 +195,186 @@ ul.apps li, ul.beneficios li { margin-bottom: 3px; font-size: 11pt; }
 .cod-verif { margin-top: 0.8cm; font-size: 8.5pt; color: #555; }
 .cod-verif b { color: var(--accent); }
 sub { font-size: 0.72em; vertical-align: sub; }
+
+/* ── Estética protocolo de calidad ───────────────────── */
+@page {
+  margin: 1.15cm 1.1cm 1.65cm;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  line-height: 1.25;
+  color: #111;
+}
+
+.section-banner {
+  margin: 0;
+  padding: 5px 8px;
+  border: 1.2pt solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font-size: 15pt;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+}
+
+.hdr {
+  display: flex;
+  min-height: 1.65cm;
+  gap: 0;
+  margin: 0 0 0.22cm;
+  padding: 0;
+  border: 1.2pt solid var(--accent);
+  border-top: 0;
+}
+
+.hdr-left {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5px 8px;
+}
+
+.hdr-titulo {
+  color: var(--accent);
+  font-size: 13pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.hdr-sinonimos {
+  color: #333;
+  font-size: 8pt;
+  text-align: center;
+}
+
+.hdr-logo {
+  align-self: center;
+  max-width: 4.2cm;
+  max-height: 1.4cm;
+  margin: 0 8px;
+}
+
+.meta-table {
+  margin: 0 0 0.22cm;
+  color: #111;
+  font-size: 8.5pt;
+  table-layout: fixed;
+}
+
+.meta-table td {
+  width: 50%;
+  min-height: 0.62cm;
+  padding: 4px 6px;
+}
+
+.meta-table b,
+.td-key,
+.td-key-dark,
+.ghs-cat,
+.two-col-key,
+.coa-firma-lbl,
+.cod-verif b {
+  color: var(--accent);
+  background: none;
+}
+
+.sec {
+  margin-top: 0.22cm;
+}
+
+.sec-title {
+  margin: 0;
+  padding: 3px 5px;
+  border: 1pt solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font-size: 9pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.desc-text,
+.sec-body {
+  padding: 6px;
+  border: 1pt solid var(--accent);
+  border-top: 0;
+  font-size: 9pt;
+  line-height: 1.3;
+}
+
+table {
+  font-size: 8.5pt;
+}
+
+td,
+.td-key-dark {
+  border: 1pt solid var(--accent);
+  padding: 3px 5px;
+}
+
+.td-key,
+.td-key-dark {
+  background: none;
+  font-size: 8.5pt;
+}
+
+ul.apps,
+ul.beneficios {
+  margin: 0;
+  padding: 6px 8px 5px 22px;
+  border: 1pt solid var(--accent);
+  border-top: 0;
+}
+
+ul.apps li,
+ul.beneficios li {
+  margin-bottom: 2px;
+  font-size: 9pt;
+}
+
+.ghs-title {
+  margin-bottom: 0;
+}
+
+.ghs-body,
+.framed-body {
+  border: 1pt solid var(--accent);
+  border-top: 0;
+  padding: 0 6px;
+}
+
+.ghs-fila,
+.two-col-fila {
+  border-bottom: 0.5pt solid var(--accent);
+  font-size: 8.5pt;
+}
+
+.coa-firma {
+  margin-top: 0.45cm;
+}
+
+.coa-firma-lbl {
+  font-size: 8pt;
+}
+
+.coa-firma-espacio {
+  height: 1.8cm;
+}
+
+.cod-verif {
+  margin-top: 0.35cm;
+  padding: 5px 7px;
+  border: 1pt solid var(--accent);
+  color: #111;
+  font-size: 8pt;
+}
 </style>
 </head>
 <body>
@@ -208,7 +387,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
 
   <div class="hdr">
     <div class="hdr-left">
-      {% if ft.referencia %}<div class="hdr-ref">Ref. {{ ft.referencia }}</div>{% endif %}
       <div class="hdr-titulo">{{ ft.titulo }}</div>
       {% if ft.sinonimos %}<div class="hdr-sinonimos">{{ ft.sinonimos }}</div>{% endif %}
     </div>
@@ -218,13 +396,21 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
 
   {% if ft.cas or ft.fecha_revision or ft.lote or ft.pais_origen or ft.fabricante %}
-  <div class="meta-strip">
-    {% if ft.cas %}<span><b>CAS:</b> {{ ft.cas }}</span>{% endif %}
-    {% if ft.fecha_revision %}<span><b>Revisión:</b> {{ ft.fecha_revision }}</span>{% endif %}
-    {% if ft.lote %}<span><b>Lote:</b> {{ ft.lote }}</span>{% endif %}
-    {% if ft.pais_origen %}<span><b>País de origen:</b> {{ ft.pais_origen }}</span>{% endif %}
-    {% if ft.fabricante %}<span><b>Fabricante:</b> {{ ft.fabricante }}</span>{% endif %}
-  </div>
+  <table class="meta-table">
+    <tr>
+      <td>{% if ft.cas %}<b>CAS:</b> {{ ft.cas }}{% endif %}</td>
+      <td>{% if ft.fecha_revision %}<b>Revisión:</b> {{ ft.fecha_revision }}{% endif %}</td>
+    </tr>
+    <tr>
+      <td>{% if ft.lote %}<b>Lote:</b> {{ ft.lote }}{% endif %}</td>
+      <td>{% if ft.pais_origen %}<b>País de origen:</b> {{ ft.pais_origen }}{% endif %}</td>
+    </tr>
+    {% if ft.fabricante %}
+    <tr>
+      <td colspan="2"><b>Fabricante:</b> {{ ft.fabricante }}</td>
+    </tr>
+    {% endif %}
+  </table>
   {% endif %}
 
   {% if ft.descripcion %}
@@ -289,25 +475,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if ft.recomendaciones %}
-  <div class="sec ghs-sec">
-    <div class="sec-title ghs-title">&#9888; Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
-    <div class="ghs-body">
-      {% for linea in ft.recomendaciones %}
-      {% set partes = linea.split(':', 1) %}
-      {% if partes|length == 2 %}
-      <div class="ghs-fila">
-        <span class="ghs-cat">{{ partes[0].strip() }}:</span>
-        <span class="ghs-val">{{ partes[1].strip() }}</span>
-      </div>
-      {% else %}
-      <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
 </div>
 
 {# ═══════════════════════════════════════════════════════
@@ -319,7 +486,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
 
   <div class="hdr">
     <div class="hdr-left">
-      {% if coa.referencia %}<div class="hdr-ref">Ref. {{ coa.referencia }}</div>{% endif %}
       <div class="hdr-titulo">{{ coa.titulo }}</div>
     </div>
     {% if cabezote_src %}
@@ -426,7 +592,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
 
   <div class="hdr">
     <div class="hdr-left">
-      {% if sds.referencia %}<div class="hdr-ref">Ref. {{ sds.referencia }}</div>{% endif %}
       <div class="hdr-titulo">{{ sds.titulo }}</div>
     </div>
     {% if cabezote_src %}
@@ -502,6 +667,26 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if sds.manipulacion %}<tr><td class="td-key">Manipulación</td><td>{{ sds.manipulacion }}</td></tr>{% endif %}
       {% if sds.almacenamiento %}<tr><td class="td-key">Almacenamiento</td><td>{{ sds.almacenamiento }}</td></tr>{% endif %}
     </table>
+  </div>
+  {% endif %}
+
+  {# Recomendaciones GHS/SGA #}
+  {% if sds.recomendaciones %}
+  <div class="sec ghs-sec">
+    <div class="sec-title ghs-title">&#9888; Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
+    <div class="ghs-body">
+      {% for linea in sds.recomendaciones %}
+      {% set partes = linea.split(':', 1) %}
+      {% if partes|length == 2 %}
+      <div class="ghs-fila">
+        <span class="ghs-cat">{{ partes[0].strip() }}:</span>
+        <span class="ghs-val">{{ partes[1].strip() }}</span>
+      </div>
+      {% else %}
+      <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
+      {% endif %}
+      {% endfor %}
+    </div>
   </div>
   {% endif %}
 

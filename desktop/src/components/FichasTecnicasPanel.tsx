@@ -626,7 +626,6 @@ function CoaTabContent({
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
-          <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
@@ -677,7 +676,16 @@ function CoaTabContent({
           <Field label="Cargo del firmante" value={firmaCargo} onChange={setFirmaCargo} />
           <Field label="Organización / laboratorio" value={firmaOrganizacion} onChange={setFirmaOrganizacion} />
         </div>
-        <FirmaPegable value={firmaImagenB64} onChange={setFirmaImagenB64} />
+        <FirmaPegable
+          value={firmaImagenB64}
+          onChange={setFirmaImagenB64}
+          firmante={{ nombre: firmaNombre, cargo: firmaCargo, organizacion: firmaOrganizacion }}
+          onDatosFirmante={(d) => {
+            setFirmaNombre(d.nombre);
+            setFirmaCargo(d.cargo);
+            setFirmaOrganizacion(d.organizacion);
+          }}
+        />
         <Field
           label="Código de verificación (dejar vacío = se genera al registrar el lote)"
           value={codigoVerif}
@@ -883,7 +891,6 @@ function SdsTabContent({
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
-          <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
@@ -1133,7 +1140,20 @@ function CoaSection({
           />
         </div>
         <div className="mt-2">
-          <FirmaPegable value={coaFirmaImagenB64} onChange={setCoaFirmaImagenB64} />
+          <FirmaPegable
+            value={coaFirmaImagenB64}
+            onChange={setCoaFirmaImagenB64}
+            firmante={{
+              nombre: coaFirmaNombre,
+              cargo: coaFirmaCargo,
+              organizacion: coaFirmaOrganizacion,
+            }}
+            onDatosFirmante={(d) => {
+              setCoaFirmaNombre(d.nombre);
+              setCoaFirmaCargo(d.cargo);
+              setCoaFirmaOrganizacion(d.organizacion);
+            }}
+          />
         </div>
       </div>
 
@@ -1320,6 +1340,7 @@ function DocumentoCompletoTabContent({
   const [sdsComposicion, setSdsComposicion] = useState("");
   const [sdsPrimeros, setSdsPrimeros] = useState("");
   const [sdsManipulacion, setSdsManipulacion] = useState("");
+  const [sdsRecomendaciones, setSdsRecomendaciones] = useState("");
 
   /* Generación */
   const [loading, setLoading] = useState(false);
@@ -1345,6 +1366,7 @@ function DocumentoCompletoTabContent({
         case "composicion":            setSdsComposicion(v); break;
         case "sds_primeros_auxilios":  setSdsPrimeros(v); break;
         case "sds_manipulacion":       setSdsManipulacion(v); break;
+        case "recomendaciones":        setSdsRecomendaciones(v); break;
         case "coa_einecs":             setCoaEinces(v); break;
         case "coa_grado":              setCoaGrado(v); break;
       }
@@ -1411,7 +1433,12 @@ function DocumentoCompletoTabContent({
       if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
       if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
       if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
+      const recSds = String(sdsData.recomendaciones || peligros.recomendaciones || "");
+      if (recSds.trim()) setSdsRecomendaciones(recSds);
     }
+    // Migrar recomendaciones GHS históricas guardadas en FT → SDS
+    const recFt = String(datos.recomendaciones || "");
+    if (recFt.trim()) setSdsRecomendaciones((prev) => prev.trim() || recFt);
   }, []);
 
   /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
@@ -1473,10 +1500,11 @@ function DocumentoCompletoTabContent({
     composicion: filasTresDesdeTexto(sdsComposicion),
     primeros_auxilios: filasDesdeTexto(sdsPrimeros),
     manipulacion: { manipulacion: sdsManipulacion },
+    recomendaciones: sdsRecomendaciones,
   }), [
     nombre, nombreComercial, referencia, inci, cas,
     sdsClasificacion, sdsPictogramas, sdsComposicion,
-    sdsPrimeros, sdsManipulacion,
+    sdsPrimeros, sdsManipulacion, sdsRecomendaciones,
   ]);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -1646,16 +1674,13 @@ function DocumentoCompletoTabContent({
           onChange={setNombre}
           placeholder="Ej. Ácido cítrico"
         />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
-          <Field
-            label="Número CAS"
-            value={cas}
-            onChange={setCas}
-            placeholder="0000-00-0"
-            actions={<IaBtn {...ia("cas")} />}
-          />
-        </div>
+        <Field
+          label="Número CAS"
+          value={cas}
+          onChange={setCas}
+          placeholder="0000-00-0"
+          actions={<IaBtn {...ia("cas")} />}
+        />
         {sugerirMut.isError && (
           <p className="text-xs text-danger">{(sugerirMut.error as Error).message}</p>
         )}
@@ -1934,6 +1959,14 @@ function DocumentoCompletoTabContent({
           onChange={setSdsManipulacion}
           rows={2}
           actions={<IaBtn {...ia("sds_manipulacion")} />}
+        />
+        <Field
+          label="Recomendaciones para manejo seguro (GHS/SGA)"
+          value={sdsRecomendaciones}
+          onChange={setSdsRecomendaciones}
+          rows={5}
+          placeholder="Se recomienda guardar en envases bien cerrados… Una idea por línea."
+          actions={<IaBtn {...ia("recomendaciones")} />}
         />
       </div>
 

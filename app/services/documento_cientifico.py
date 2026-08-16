@@ -605,10 +605,13 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Responde en 1-2 líneas técnicas. Sin markdown."
         ),
         "modo_uso": (
-            f'Redacta el modo de uso recomendado de "{nombre}" en formulaciones farmacéuticas o cosméticas.\n'
+            f'Redacta el modo de uso recomendado de "{nombre}" para un adulto sano promedio.\n'
             f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: concentración típica, forma de incorporación, temperatura, orden de adición. "
-            "2-4 oraciones técnicas. Sin markdown."
+            "OBLIGATORIO: indica una dosis diaria sugerida en mg o g (elige la unidad más adecuada "
+            "al rango típico del ingrediente), expresada para un adulto sano promedio "
+            "(ej. «500 mg al día», «1–3 g al día», «2 g/día divididos en dos tomas»).\n"
+            "Si aplica, menciona forma de consumo o incorporación breve (con alimentos, en solución, etc.).\n"
+            "2-4 oraciones técnicas, en español. Sin markdown, sin advertencias legales largas."
         ),
         "propiedades_lista": (
             f'Lista los principales beneficios de "{nombre}" como materia prima para formulaciones farmacéuticas y cosméticas.\n'

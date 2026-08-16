@@ -67,12 +67,20 @@ def consultar_devoluciones_meli():
         return f"Error de red consultando Mercado Libre: {e}"
 
 
-def listar_ordenes_meli_por_estado(status: str, dias_atras: int = 90) -> list[dict]:
+def listar_ordenes_meli_por_estado(status: str, dias_atras: int = 90, fecha_hasta: str | None = None) -> list[dict]:
     """
     Todas las órdenes MeLi con el `status` dado (ej. "cancelled", "paid")
     desde hace `dias_atras` días, paginado completo. A diferencia de
     `consultar_devoluciones_meli` (texto, una sola página, pensado para el
     chat), esta devuelve los dicts crudos de la API.
+
+    `fecha_hasta` (YYYY-MM-DD, opcional) acota `order.date_created.to` —
+    IMPORTANTE: `/orders/search` rechaza offset > 10000 (confirmado ago-2026,
+    ver `app.services.salud_negocio`), así que para rangos largos (varios
+    meses) hay que llamar esta función una vez POR RANGO ACOTADO en vez de
+    una sola vez con `dias_atras` grande — de lo contrario la paginación se
+    corta silenciosamente (solo hace `print` del error y devuelve lo
+    acumulado hasta ahí) y el resultado queda truncado sin avisar al llamador.
     """
     token = refrescar_token_meli()
     if not token:
@@ -92,6 +100,8 @@ def listar_ordenes_meli_por_estado(status: str, dias_atras: int = 90) -> list[di
         "limit": 50,
         "offset": 0,
     }
+    if fecha_hasta:
+        params["order.date_created.to"] = f"{fecha_hasta}T23:59:59.999-00:00"
 
     todas: list[dict] = []
     offset = 0
@@ -101,6 +111,15 @@ def listar_ordenes_meli_por_estado(status: str, dias_atras: int = 90) -> list[di
             res = requests.get(url, headers=headers, params=params, timeout=20)
         except requests.RequestException:
             break
+        if res.status_code == 429:
+            # Rate limit — sin este reintento la paginación se corta a mitad de
+            # camino y el llamador recibe una lista truncada sin saberlo
+            # (confirmado ago-2026: pasó en pleno cálculo de salud del negocio).
+            time.sleep(1.5)
+            try:
+                res = requests.get(url, headers=headers, params=params, timeout=20)
+            except requests.RequestException:
+                break
         if res.status_code != 200:
             print(f"⚠️ [MELI] Error listando órdenes '{status}' (offset {offset}): {res.status_code} {res.text[:200]}")
             break

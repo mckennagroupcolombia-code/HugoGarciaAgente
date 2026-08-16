@@ -312,7 +312,7 @@ export default function FichaTecnicaForm({
   externalReferencia,
   hideColorAcento,
   externalColorAcento,
-  hideRecomendaciones,
+  hideRecomendaciones = true,
   onAutoCompletarRef,
 }: {
   productoRef?: string;
@@ -337,7 +337,13 @@ export default function FichaTecnicaForm({
     setState((s) => ({ ...s, ...p }));
   }, []);
 
-  const build = useCallback(() => datosDesdeFormulario(state), [state]);
+  const build = useCallback(() => {
+    const datos = datosDesdeFormulario(state);
+    if (hideRecomendaciones) {
+      datos.recomendaciones = "";
+    }
+    return datos;
+  }, [state, hideRecomendaciones]);
 
   useEffect(() => {
     onBuildDatos(() => build());

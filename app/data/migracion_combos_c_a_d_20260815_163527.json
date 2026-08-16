@@ -1,0 +1,197 @@
+{
+  "modo": "DRY-RUN",
+  "ts": "2026-08-15T16:35:27",
+  "total": 11,
+  "stats": {
+    "ok": 10,
+    "error": 1,
+    "skip": 0,
+    "manual_c": 0,
+    "ruta_a": 5,
+    "ruta_b": 3,
+    "huerfanos_ok": 2,
+    "huerfanos_err": 1
+  },
+  "resultados": [
+    {
+      "code_c": "C-ACDLAC85P30m",
+      "code_d": "D-ACDLAC85P30m",
+      "nombre": "ACIDO LACTICO 85% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACILAC85PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-ACDLAC85P30mL",
+      "code_d": "D-ACDLAC85P30mL",
+      "nombre": "ACIDO LACTICO 85% 30mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-ACEGIR500mL",
+      "code_d": "D-ACEGIR500mL",
+      "nombre": "ACEITE GIRASOL 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-AZUMMET30mL",
+      "code_d": "D-AZUMMET30mL",
+      "nombre": "AZUL METILENO 30mL",
+      "n_comps": 9,
+      "removidos": [],
+      "warnings": [
+        "FOR-AZUMETmL:type=Combo"
+      ],
+      "ruta": "B",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-CAF100g",
+      "code_d": "D-CAF100g",
+      "nombre": "Cafeina 100g",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-KITREPCOS1",
+      "code_d": "D-KITREPCOS1",
+      "nombre": "KIT REPARADOR COSMETICO 1",
+      "n_comps": 14,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 12.0
+        }
+      ],
+      "warnings": [
+        "FOR-ACIHIAALTPESmL:type=Combo",
+        "FOR-VITC20PmL:type=Combo"
+      ],
+      "ruta": "B",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-POLTWE20P500mL",
+      "code_d": "D-POLTWE20P500mL",
+      "nombre": "POLISORBATO TWEEN 20 500mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-SORPOT100g",
+      "code_d": "D-SORPOT100g",
+      "nombre": "SORBATO POTASIO 100g",
+      "n_comps": 8,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 2.0
+        }
+      ],
+      "warnings": [],
+      "ruta": "A",
+      "ok": true,
+      "accion": "dry-run"
+    },
+    {
+      "code_c": "C-ACDKOJDPAL30mL",
+      "code_d": "D-ACDKOJDPAL30mL",
+      "ruta": "H",
+      "nombre": "ACIDO KOJICO D PALMITATO 30mL",
+      "n_comps": 10,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "expansion": [],
+      "ok": true,
+      "accion": "dry-run-huerfano"
+    },
+    {
+      "code_c": "C-ACEESENAR5mL",
+      "code_d": "D-ACEESENAR5mL",
+      "ruta": "H",
+      "nombre": "ACEITE ESENCIAL NARANJA 5 mL",
+      "n_comps": 11,
+      "removidos": [
+        {
+          "code": "OPRMNM4MN",
+          "name": "Operativos Minimos 1 min",
+          "quantity": 3.0
+        }
+      ],
+      "warnings": [],
+      "expansion": [],
+      "ok": true,
+      "accion": "dry-run-huerfano"
+    },
+    {
+      "code_c": "C-ACEIJOJ30mL",
+      "code_d": "D-ACEIJOJ30mL",
+      "ruta": "H",
+      "ok": false,
+      "error": "D-ACEIJOJ30mL no existe"
+    }
+  ]
+}

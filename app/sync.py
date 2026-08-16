@@ -1357,6 +1357,90 @@ def obtener_ventas_meli_ytd_por_item(refresh: bool = False) -> dict:
     }
 
 
+_HISTORIAL_REPOSICION_PATH = os.path.join(
+    os.path.dirname(__file__), "data", "historial_reposicion_stock.json"
+)
+
+
+def _parse_iso_seguro(s: str | None) -> datetime | None:
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
+
+def actualizar_historial_reposicion(eventos: list[tuple[str, str, int]]) -> None:
+    """Registra, por publicación de ALTA rotación, cuándo queda en stock=0 y
+    cuándo vuelve a tener stock>0. Es el insumo del informe mensual de
+    reposición a Sede Sur (scripts/informe_reposicion_mensual_cron.py).
+
+    `eventos` es [(meli_id, nombre, stock_actual), ...] de esta misma corrida,
+    ya filtrados a rotación "alta". Se llama en cada corrida del reporte de
+    stock (diario o manual): compara contra el último stock conocido por SKU
+    para detectar la transición exacta. No hay historial antes de esta fecha
+    (ago-2026) — no existía ningún trackeo de reposición previo."""
+    if not eventos:
+        return
+    try:
+        with open(_HISTORIAL_REPOSICION_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+
+    ultimo_stock: dict[str, int] = data.get("ultimo_stock") or {}
+    abiertos: dict[str, dict] = data.get("eventos_abiertos") or {}
+    cerrados: list[dict] = data.get("eventos_cerrados") or []
+
+    ahora = datetime.now()
+    ahora_iso = ahora.isoformat(timespec="seconds")
+    for mid, nombre, stock in eventos:
+        previo = ultimo_stock.get(mid)
+        if previo is None:
+            pass  # primera vez que se ve este SKU: bootstrap, sin evento
+        elif previo > 0 and stock == 0:
+            abiertos[mid] = {"nombre": nombre, "agotado_en": ahora_iso}
+        elif previo == 0 and stock > 0 and mid in abiertos:
+            abierto = abiertos.pop(mid)
+            agotado_dt = _parse_iso_seguro(abierto.get("agotado_en"))
+            if agotado_dt is not None:
+                cerrados.append({
+                    "meli_id": mid,
+                    "nombre": nombre,
+                    "agotado_en": abierto["agotado_en"],
+                    "repuesto_en": ahora_iso,
+                    "dias": round((ahora - agotado_dt).total_seconds() / 86400, 2),
+                })
+        ultimo_stock[mid] = stock
+
+    limite = ahora - timedelta(days=400)  # el informe solo necesita ~1 año
+    cerrados = [
+        c for c in cerrados
+        if (dt := _parse_iso_seguro(c.get("repuesto_en"))) is None or dt >= limite
+    ]
+
+    try:
+        os.makedirs(os.path.dirname(_HISTORIAL_REPOSICION_PATH), exist_ok=True)
+        tmp = _HISTORIAL_REPOSICION_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "version": 1,
+                    "actualizado_en": ahora_iso,
+                    "ultimo_stock": ultimo_stock,
+                    "eventos_abiertos": abiertos,
+                    "eventos_cerrados": cerrados,
+                },
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+        os.replace(tmp, _HISTORIAL_REPOSICION_PATH)
+    except Exception as e:
+        print(f"⚠️ [reposicion] No se pudo guardar historial: {e}")
+
+
 def ejecutar_sincronizacion_y_reporte_stock():
     """Cruza el stock de Google Sheets con Mercado Libre y envía un reporte de niveles bajos."""
     print("\n💹 [STOCK SYNC] Iniciando escaneo de productos para reporte de stock...")
@@ -1385,24 +1469,38 @@ def ejecutar_sincronizacion_y_reporte_stock():
         agotados_por_rotacion = {"alta": [], "media": [], "baja": []}
         criticos_por_rotacion = {"alta": [], "media": [], "baja": []}
         sin_ventas_excluidos = 0
+        eventos_alta_rotacion: list[tuple[str, str, int]] = []
         for it in items:
             stock = it["stock"]
             nombre = it["nombre"]
+            mid = str(it.get("meli_id") or "").strip().upper()
             if it["fila"]:
                 updates.append({"range": f"F{it['fila']}", "values": [[stock]]})
+            rotacion = (
+                clasificar_rotacion(unidades_ytd_por_item.get(mid, 0))
+                if unidades_ytd_por_item is not None
+                else None
+            )
+            if rotacion == "alta" and mid:
+                # Alimenta el historial de reposición (informe mensual a Sede Sur)
+                # independientemente del stock actual — necesita ver cada corrida
+                # para detectar cuándo cruza a 0 y cuándo vuelve a subir.
+                eventos_alta_rotacion.append((mid, nombre, stock))
             if stock not in (0, 1):
                 continue
-            if unidades_ytd_por_item is None:
+            if rotacion is None:
                 rotacion = "media"  # sin datos de ventas: no se puede clasificar ni excluir
-            else:
-                mid = str(it.get("meli_id") or "").strip().upper()
-                rotacion = clasificar_rotacion(unidades_ytd_por_item.get(mid, 0))
-            if rotacion == "sin_ventas":
+            elif rotacion == "sin_ventas":
                 sin_ventas_excluidos += 1
                 continue
             destino = agotados_por_rotacion if stock == 0 else criticos_por_rotacion
             emoji = "🚫" if stock == 0 else "⚠️"
             destino[rotacion].append(f"{emoji} {nombre}")
+
+        try:
+            actualizar_historial_reposicion(eventos_alta_rotacion)
+        except Exception as e:
+            print(f"⚠️ [STOCK SYNC] No se pudo actualizar historial de reposición: {e}")
 
         agotados = (
             agotados_por_rotacion["alta"]

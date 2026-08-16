@@ -346,6 +346,17 @@ def gasto_ads_por_rango(date_from: str, date_to: str) -> dict:
     solo que con date_from/date_to acotados al bucket en vez de a `dias`.
     Cacheado en memoria por rango exacto (no persiste a disco: son muchos
     rangos pequeños, no vale la pena un archivo por cada uno).
+
+    LÍMITE DURO DE MELI (confirmado ago-2026): `/product_ads/campaigns/search`
+    devuelve 400 "You cannot request metrics with a date greater than 90
+    days" si `date_from` cae fuera de la ventana móvil de 90 días desde hoy —
+    no hay forma de pedir gasto en ads más viejo que eso, sin importar qué
+    tan corto sea el rango. El resultado en ese caso trae `"error"` con
+    costo=0 — EL LLAMADOR DEBE REVISAR `"error"` antes de asumir que el gasto
+    fue cero; un costo=0 sin más contexto es indistinguible de "no hubo
+    gasto" cuando en realidad es "no se puede saber" (bug real que produjo
+    un diagnóstico erróneo la primera vez que se usó esto para rentabilidad
+    histórica, ver `app.services.salud_negocio`).
     """
     key = (date_from, date_to)
     cached = _GASTO_RANGO_CACHE.get(key)
@@ -371,10 +382,23 @@ def gasto_ads_por_rango(date_from: str, date_to: str) -> dict:
 
     costo = sum(float((c.get("metrics") or {}).get("cost") or 0) for c in campanas)
     ventas = sum(float((c.get("metrics") or {}).get("total_amount") or 0) for c in campanas)
+    # "gastó $X pero MeLi aún no atribuyó ninguna venta" (típico en campañas
+    # recién creadas — la atribución tarda) NO es lo mismo que "no hubo
+    # gasto": son casos opuestos, pero como ambos tienen ventas=0, dividir da
+    # el mismo resultado (0%) si no se separan. 0% ACOS se lee como "gasto
+    # perfectamente eficiente" — mostrarlo así cuando en realidad se gastó
+    # plata sin ninguna venta sería el mismo tipo de error que "$0 gastado"
+    # cuando en realidad no había dato (ver aproximación #6 arriba).
+    if ventas:
+        acos = round(costo / ventas * 100, 2)
+    elif costo:
+        acos = None  # gasto real sin ventas atribuidas todavía — no calculable, y no es "0%"
+    else:
+        acos = 0.0  # sin gasto real, nada que evaluar
     resultado = {
         "costo": round(costo, 2),
         "ventas_atribuidas": round(ventas, 2),
-        "acos": round(costo / ventas * 100, 2) if ventas else 0.0,
+        "acos": acos,
     }
     _GASTO_RANGO_CACHE[key] = (now, resultado)
     return resultado

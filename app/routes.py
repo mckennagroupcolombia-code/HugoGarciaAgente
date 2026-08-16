@@ -3546,9 +3546,9 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         periodicidad = (request.args.get("periodicidad") or "semana").strip().lower()
         try:
-            n = int(request.args.get("n") or 8)
+            n = int(request.args.get("n") or 12)
         except ValueError:
-            n = 8
+            n = 12
         refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "si")
         try:
             from app.services.salud_negocio import salud_negocio_resumen
@@ -4587,6 +4587,12 @@ def register_routes(app):
                 datos_para_guardar["_cabezote_id"] = cabezote_id_val
             # Guardar con slug del archivo PDF para que el lookup lo encuentre exactamente
             guardar_yaml_datos(datos_para_guardar, slug=slug_completo)
+            try:
+                from app.services.firmas_guardadas import archivar_firma_desde_datos
+                if datos_coa:
+                    archivar_firma_desde_datos(datos_coa)
+            except Exception:
+                pass
             resultado = generar_pdf_completo(
                 datos_ft,
                 datos_coa=datos_coa,
@@ -4638,6 +4644,12 @@ def register_routes(app):
             if cabezote_id_val:
                 datos_para_guardar["_cabezote_id"] = cabezote_id_val
             path = guardar_yaml_datos(datos_para_guardar, slug=slug_borrador)
+            try:
+                from app.services.firmas_guardadas import archivar_firma_desde_datos
+                if datos_coa:
+                    archivar_firma_desde_datos(datos_coa)
+            except Exception:
+                pass
             log_line(f"✔ borrador FT+COA+SDS: {path.name}")
             return jsonify({
                 "ok": True,
@@ -4709,12 +4721,16 @@ def register_routes(app):
             if catalogo:
                 lineas = "\n".join(f"- {n}" for n in catalogo)
                 catalogo_prompt = (
-                    "\n\nCatalogo de documentos YA existentes en la biblioteca "
-                    "(elige el mas cercano a la materia prima del COA):\n"
+                    "\n\nCatalogo de documentos YA existentes en la biblioteca:\n"
                     f"{lineas}\n"
-                    "Si alguno corresponde, incluye en el JSON "
-                    '"archivo_biblioteca": "nombre exacto de la lista (con .pdf si aparece)". '
-                    "Si ninguno corresponde, omite archivo_biblioteca.\n"
+                    "Solo si alguno es LA MISMA sustancia quimica/materia prima del COA "
+                    "(sinonimos EN/ES permitidos, ej. Erythritol=Eritritol, Cellulose=Celulosa), "
+                    'incluye "archivo_biblioteca" con el nombre EXACTO de la lista. '
+                    "NO elijas el 'mas parecido' ni otra materia prima distinta: "
+                    "Eritritol/Erythritol NO es Celulosa/Cellulose ni Eritrosina/Erythrosine; "
+                    "Acido Citrico NO es Acido Ascorbico; "
+                    "Xilitol NO es Eritritol. Si no hay coincidencia clara de la misma sustancia, "
+                    "omite archivo_biblioteca por completo.\n"
                 )
 
             prompt = (
@@ -4760,8 +4776,15 @@ def register_routes(app):
                 "}\n\n"
                 "Reglas:\n"
                 "- Omite claves vacias o no visibles.\n"
-                "- nombre_producto: producto analizado, NO el laboratorio emisor. "
-                "Usa el nombre quimico/comercial mas corto y tipico (sin lotes ni fechas).\n"
+                "- nombre_producto: SOLO el Product Name / Nombre del producto del ENCABEZADO "
+                "del COA (campo etiquetado Product Name, Product, Nombre). "
+                "Ej. 'Erythritol Crystal' → 'Eritritol' o 'Erythritol'. "
+                "PROHIBIDO inferirlo desde Appearance/Assay, desde el laboratorio, o desde el "
+                "catalogo de la biblioteca. "
+                "'crystalline powder' NO significa Celulosa; Eritritol NO es Eritrosina ni Celulosa. "
+                "No lo sustituyas por otra materia prima del catalogo.\n"
+                "- archivo_biblioteca: solo si el nombre del PDF es la MISMA sustancia que "
+                "nombre_producto. Si dudas, omite la clave.\n"
                 "- Para firma_nombre, firma_cargo y firma_organizacion revisa el bloque "
                 "Signed by, Approved by, Authorized by, Quality Control, firma o sello. "
                 "Extrae solo texto legible; no adivines nombres desde una rubrica ilegible.\n"
@@ -4841,6 +4864,16 @@ def register_routes(app):
                     firma_url = recortar_firma_a_data_url(data, mime_type, firma_bbox_raw)
                     if firma_url:
                         campos["firma_imagen_b64"] = firma_url
+                        # El archivo escaneado es temporal. Archivar la rúbrica aquí
+                        # permite reutilizarla aunque el formulario no llegue a guardarse.
+                        from app.services.firmas_guardadas import guardar_firma
+
+                        guardar_firma(
+                            firma_url,
+                            nombre=str(campos.get("firma_nombre") or ""),
+                            cargo=str(campos.get("firma_cargo") or ""),
+                            organizacion=str(campos.get("firma_organizacion") or ""),
+                        )
                 except Exception as e_firma:
                     print(f"⚠️ No se pudo recortar firma del COA: {e_firma}")
 
@@ -4860,6 +4893,12 @@ def register_routes(app):
                 archivo_bib = exact or ""
             elif not catalogo:
                 archivo_bib = ""  # sin catálogo no validamos sugerencia de archivo
+
+            # No devolver Celulosa/Eritrosina si el Product Name del COA es Eritritol, etc.
+            if archivo_bib and nombre_producto:
+                from app.services.coa_biblioteca_match import validar_archivo_biblioteca
+
+                archivo_bib = validar_archivo_biblioteca(nombre_producto, archivo_bib)
 
             return jsonify({
                 "ok": True,
@@ -4906,6 +4945,54 @@ def register_routes(app):
                 "error": "No se detectó un trazo con contraste suficiente; recorte más cerca de la firma"
             }), 422
         return jsonify({"ok": True, "imagen_b64": resultado})
+
+    @app.route("/app/api/fichas/firmas", methods=["GET"])
+    @app.route("/api/fichas/firmas", methods=["GET"])
+    def api_fichas_firmas_listar():
+        """Firmas ya usadas en otros documentos, para reutilizarlas en cualquier formulario."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.firmas_guardadas import listar_firmas
+
+        try:
+            return jsonify({"ok": True, "firmas": listar_firmas()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/firmas/guardar", methods=["POST"])
+    @app.route("/api/fichas/firmas/guardar", methods=["POST"])
+    def api_fichas_firmas_guardar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.firmas_guardadas import guardar_firma
+
+        body = request.get_json(silent=True) or {}
+        try:
+            firma = guardar_firma(
+                str(body.get("imagen_b64") or ""),
+                nombre=str(body.get("nombre") or ""),
+                cargo=str(body.get("cargo") or ""),
+                organizacion=str(body.get("organizacion") or ""),
+            )
+            return jsonify({"ok": True, "firma": firma})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/firmas/<firma_id>/eliminar", methods=["DELETE"])
+    @app.route("/api/fichas/firmas/<firma_id>/eliminar", methods=["DELETE"])
+    def api_fichas_firmas_eliminar(firma_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.firmas_guardadas import eliminar_firma
+
+        try:
+            if not eliminar_firma(firma_id):
+                return jsonify({"error": "Firma no encontrada"}), 404
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/app/api/fichas/ft/escanear-imagen", methods=["POST"])
     @app.route("/api/fichas/ft/escanear-imagen", methods=["POST"])
@@ -5320,6 +5407,12 @@ def register_routes(app):
                 subir_drive=subir_drive,
                 guardar_yaml=slug_final,
             )
+            if modulo == "coa":
+                try:
+                    from app.services.firmas_guardadas import archivar_firma_desde_datos
+                    archivar_firma_desde_datos(datos)
+                except Exception:
+                    pass
             log_line(f"✔ {modulo} generado: {resultado.get('docx_nombre')}")
             ref = (
                 (datos.get("referencia") or "")

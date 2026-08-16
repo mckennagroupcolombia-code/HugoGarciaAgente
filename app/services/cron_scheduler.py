@@ -76,10 +76,20 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
         "script": "scripts/emitir_notas_credito_cron.py",
     },
+    "informe_reposicion_mensual": {
+        "nombre": "Reposición alta rotación (informe mensual)",
+        "descripcion": "Cierre de mes: cuánto se demoró McKenna en reponer productos de alta rotación (promedio de días, calificación A-D) + qué sigue agotado ahora mismo. Envía a MCKG Sede Sur. El propio script valida que sea el último día del mes.",
+        "script": "scripts/informe_reposicion_mensual_cron.py",
+    },
     "publicidad_recomendaciones": {
         "nombre": "Recomendaciones de publicidad MeLi",
         "descripcion": "Cruza ACOS de Product Ads con rotación real de ventas y avisa qué productos pausar/revisar, y cuáles cambiaron de rotación y deberían moverse entre las campañas Alta/Media/Baja (ticket + WhatsApp). Cadencia por defecto cada 15 días — la rotación se mide sobre 30 días, revisarla más seguido no aporta señal nueva. No mueve ni pausa nada solo — MeLi no expone control por producto vía API.",
         "script": "scripts/publicidad_recomendaciones_cron.py",
+    },
+    "archivar_gasto_ads": {
+        "nombre": "Archivo semanal de gasto en ads",
+        "descripcion": "Guarda en caché el gasto/ACOS de Product Ads de las últimas 12 semanas antes de que MeLi las saque de su ventana de 90 días (límite duro de la plataforma, ni siquiera recuperable desde el panel web de Mercado Ads — confirmado ago-2026). Una vez archivada, una semana no se pierde aunque cambie la fórmula del panel Salud del negocio. Avisa por WhatsApp solo si alguna semana quedó a menos de 10 días del corte sin archivar.",
+        "script": "scripts/archivar_gasto_ads_cron.py",
     },
 }
 

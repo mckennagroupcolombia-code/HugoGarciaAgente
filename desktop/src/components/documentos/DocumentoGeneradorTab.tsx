@@ -821,12 +821,6 @@ export default function DocumentoGeneradorTab({
           />
         )}
 
-        {productoRef && (
-          <p className="text-xs text-emerald-600">
-            Vinculado al producto SIIGO: <code className="font-mono">{productoRef}</code>
-          </p>
-        )}
-
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

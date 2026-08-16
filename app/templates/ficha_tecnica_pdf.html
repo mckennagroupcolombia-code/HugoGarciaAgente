@@ -66,14 +66,6 @@ body {
 
 .hdr-left { flex: 1; }
 
-.hdr-ref {
-  font-size: 12pt;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-bottom: 2px;
-}
-
 .hdr-pretitulo {
   font-size: 9pt;
   font-weight: 600;
@@ -245,14 +237,183 @@ ul.apps li, ul.beneficios li {
 }
 
 .ghs-val { flex: 1; }
+
+/* ── Estética protocolo de calidad ───────────────────── */
+@page {
+  margin: 1.15cm 1.1cm 1.65cm;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  line-height: 1.25;
+  color: #111;
+}
+
+.protocol-title {
+  border: 1.2pt solid var(--accent);
+  padding: 5px 8px;
+  text-align: center;
+  font-size: 16pt;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--accent);
+  background: none;
+}
+
+.hdr {
+  display: flex;
+  min-height: 1.7cm;
+  gap: 0;
+  margin: 0 0 0.22cm;
+  padding: 0;
+  border: 1.2pt solid var(--accent);
+  border-top: 0;
+}
+
+.hdr-left {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5px 8px;
+}
+
+.hdr-pretitulo {
+  display: none;
+}
+
+.hdr-titulo {
+  color: var(--accent);
+  font-size: 13pt;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.hdr-sinonimos {
+  color: #333;
+  font-size: 8pt;
+  text-align: center;
+}
+
+.hdr-logo {
+  align-self: center;
+  max-width: 4.2cm;
+  max-height: 1.45cm;
+  margin: 0 8px;
+}
+
+.meta-table {
+  margin: 0 0 0.22cm;
+  font-size: 8.5pt;
+  color: #111;
+  table-layout: fixed;
+}
+
+.meta-table td {
+  width: 50%;
+  min-height: 0.62cm;
+  padding: 4px 6px;
+}
+
+.meta-table b,
+.td-key,
+.td-key-dark,
+.lote-label,
+.ghs-cat {
+  color: var(--accent);
+  background: none;
+}
+
+.sec {
+  margin-top: 0.22cm;
+}
+
+.sec-title {
+  margin: 0;
+  padding: 3px 5px;
+  border: 1pt solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font-size: 9pt;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.desc-text,
+.sec-body {
+  padding: 6px;
+  border: 1pt solid var(--accent);
+  border-top: 0;
+  font-size: 9pt;
+  line-height: 1.3;
+}
+
+table {
+  font-size: 8.5pt;
+}
+
+td,
+.td-key-dark {
+  border: 1pt solid var(--accent);
+  padding: 3px 5px;
+}
+
+.td-key,
+.td-key-dark {
+  background: none;
+  font-size: 8.5pt;
+}
+
+ul.apps,
+ul.beneficios {
+  margin: 0;
+  padding: 6px 8px 5px 22px;
+  border: 1pt solid var(--accent);
+  border-top: 0;
+}
+
+ul.apps li,
+ul.beneficios li {
+  margin-bottom: 2px;
+  font-size: 9pt;
+}
+
+.ghs-title {
+  margin-bottom: 0;
+}
+
+.ghs-body {
+  border: 1pt solid var(--accent);
+  border-top: 0;
+  padding: 0 6px;
+}
+
+.ghs-fila {
+  border-bottom: 0.5pt solid var(--accent);
+  font-size: 8.5pt;
+}
+
+.lote-box {
+  width: 100%;
+  margin-top: 0.22cm;
+  padding: 5px 7px;
+  border: 1pt solid var(--accent);
+}
+
+.lote-label,
+.lote-valor {
+  font-size: 8.5pt;
+}
 </style>
 </head>
 <body>
 
 <!-- ── Encabezado ── -->
+<div class="protocol-title">Ficha Técnica</div>
 <div class="hdr">
   <div class="hdr-left">
-    {% if referencia %}<div class="hdr-ref">Ref. {{ referencia }}</div>{% endif %}
     <div class="hdr-pretitulo">Ficha Técnica</div>
     <div class="hdr-titulo">{{ titulo }}</div>
     {% if sinonimos %}<div class="hdr-sinonimos">{{ sinonimos }}</div>{% endif %}
@@ -264,12 +425,16 @@ ul.apps li, ul.beneficios li {
 
 <!-- Meta: CAS / fecha / origen / fabricante -->
 {% if cas or fecha_revision or pais_origen or fabricante %}
-<div class="meta-strip">
-  {% if cas %}<span><b>CAS:</b> {{ cas }}</span>{% endif %}
-  {% if fecha_revision %}<span><b>Revisión:</b> {{ fecha_revision }}</span>{% endif %}
-  {% if pais_origen %}<span><b>País de origen:</b> {{ pais_origen }}</span>{% endif %}
-  {% if fabricante %}<span><b>Fabricante:</b> {{ fabricante }}</span>{% endif %}
-</div>
+<table class="meta-table">
+  <tr>
+    <td>{% if cas %}<b>CAS:</b> {{ cas }}{% endif %}</td>
+    <td>{% if fecha_revision %}<b>Revisión:</b> {{ fecha_revision }}{% endif %}</td>
+  </tr>
+  <tr>
+    <td>{% if pais_origen %}<b>País de origen:</b> {{ pais_origen }}{% endif %}</td>
+    <td>{% if fabricante %}<b>Fabricante:</b> {{ fabricante }}{% endif %}</td>
+  </tr>
+</table>
 {% endif %}
 
 <!-- ── Descripción ── -->
@@ -337,26 +502,6 @@ ul.apps li, ul.beneficios li {
     <tr><td>{{ componente }}</td><td>{{ valor }}</td></tr>
     {% endfor %}
   </table>
-</div>
-{% endif %}
-
-<!-- ── Recomendaciones GHS ── -->
-{% if recomendaciones %}
-<div class="sec ghs-sec">
-  <div class="sec-title ghs-title">&#9888; Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
-  <div class="ghs-body">
-    {% for linea in recomendaciones %}
-    {% set partes = linea.split(':', 1) %}
-    {% if partes|length == 2 %}
-    <div class="ghs-fila">
-      <span class="ghs-cat">{{ partes[0].strip() }}:</span>
-      <span class="ghs-val">{{ partes[1].strip() }}</span>
-    </div>
-    {% else %}
-    <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
-    {% endif %}
-    {% endfor %}
-  </div>
 </div>
 {% endif %}
 

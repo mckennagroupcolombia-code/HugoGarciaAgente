@@ -5,13 +5,14 @@ import {
   textoDesdeFilasTres,
 } from "./DocumentoGeneradorTab";
 import { mergeParamStrings, parseParamRows } from "../../lib/coaParametros";
+import {
+  decidirAsociacionCoa,
+  type ArchivoBibliotecaMatch,
+} from "../../lib/coaBibliotecaMatch";
 import CamaraCapturaModal, { abrirCamaraCaptura } from "./CamaraCapturaModal";
 import ImageLightbox from "../ImageLightbox";
 
-interface ArchivoBiblioteca {
-  nombre: string;
-  categoria?: "ft" | "completo";
-}
+type ArchivoBiblioteca = ArchivoBibliotecaMatch;
 
 interface BibliotecaDatosResult {
   tipo: "ft" | "coa" | "sds" | "completo";
@@ -21,89 +22,11 @@ interface BibliotecaDatosResult {
   tiene_datos: boolean;
 }
 
-function normalizarTitulo(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\.(pdf|docx)$/i, "")
-    .replace(
-      /\b(ft|coa|sds|tds|completo|ficha tecnica|certificado de analisis|hoja de datos|msds|usp|bp|nf|fcc|ep|pharma|pharmaceutical|cosmetic|cosmetico|food|grade|grado|anhydrous|anhidro|monohydrate|monohidrato|powder|polvo|crystal|cristales)\b/gi,
-      " ",
-    )
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function tokensTitulo(s: string): string[] {
-  return normalizarTitulo(s).split(/\s+/).filter((t) => t.length > 1);
-}
-
-function tokenCerca(a: string, b: string): boolean {
-  if (a === b || a.includes(b) || b.includes(a)) return true;
-  // Variantes EN/ES (niacinamide/niacinamida, glycerin/glicerina)
-  const n = Math.min(a.length, b.length);
-  return n >= 5 && a.slice(0, 5) === b.slice(0, 5);
-}
-
-/** Devuelve el mejor documento de biblioteca para el nombre de materia prima detectado. */
-export function encontrarDocumentoPorMateriaPrima(
-  archivos: ArchivoBiblioteca[],
-  nombreProducto: string,
-): { archivo: ArchivoBiblioteca; score: number } | null {
-  const query = normalizarTitulo(nombreProducto);
-  if (!query) return null;
-  const qTokens = tokensTitulo(nombreProducto);
-  if (!qTokens.length) return null;
-
-  let best: { archivo: ArchivoBiblioteca; score: number } | null = null;
-
-  for (const a of archivos) {
-    if (!a.nombre.toLowerCase().endsWith(".pdf")) continue;
-    const tituloArchivo = a.nombre.replace(/\.(pdf|docx)$/i, "");
-    const cand = normalizarTitulo(tituloArchivo);
-    if (!cand) continue;
-
-    let score = 0;
-    if (cand === query) score = 100;
-    else if (cand.includes(query) || query.includes(cand)) score = 88;
-    else {
-      const cTokens = tokensTitulo(tituloArchivo);
-      if (!cTokens.length) continue;
-      const overlap = qTokens.filter((t) => cTokens.some((c) => tokenCerca(t, c))).length;
-      const denom = Math.max(qTokens.length, 1);
-      score = Math.round((overlap / denom) * 80);
-      if (overlap >= Math.min(qTokens.length, 2) && overlap / qTokens.length >= 0.6) {
-        score = Math.max(score, 55);
-      } else if (overlap >= 1 && qTokens.length === 1) {
-        score = Math.max(score, 50);
-      }
-    }
-
-    if (a.categoria === "completo") score += 3;
-
-    if (!best || score > best.score) best = { archivo: a, score };
-  }
-
-  if (!best || best.score < 35) return null;
-  return best;
-}
-
-/** Resuelve un nombre sugerido por la IA contra la lista real de PDFs. */
-export function resolverArchivoBiblioteca(
-  archivos: ArchivoBiblioteca[],
-  sugerido: string,
-): ArchivoBiblioteca | null {
-  const s = sugerido.trim();
-  if (!s) return null;
-  const low = s.toLowerCase().replace(/\.pdf$/i, "");
-  const exact = archivos.find((a) => {
-    const n = a.nombre.toLowerCase();
-    return n === s.toLowerCase() || n.replace(/\.pdf$/i, "") === low;
-  });
-  if (exact) return exact;
-  return encontrarDocumentoPorMateriaPrima(archivos, s)?.archivo ?? null;
-}
+export {
+  encontrarDocumentoPorMateriaPrima,
+  resolverArchivoBiblioteca,
+  decidirAsociacionCoa,
+} from "../../lib/coaBibliotecaMatch";
 
 function vacio(v: unknown): boolean {
   return v == null || String(v).trim() === "";
@@ -422,17 +345,9 @@ export default function CoaDocumentosScanner({
           : "";
 
         const sugeridoIa = String(json.archivo_biblioteca || "").trim();
-        let archivoHit =
-          (sugeridoIa && resolverArchivoBiblioteca(archivos, sugeridoIa)) || null;
-        let score: number | null = sugeridoIa && archivoHit ? 95 : null;
-
-        if (!archivoHit && nombreDetectado) {
-          const hit = encontrarDocumentoPorMateriaPrima(archivos, nombreDetectado);
-          if (hit) {
-            archivoHit = hit.archivo;
-            score = hit.score;
-          }
-        }
+        const asociacion = decidirAsociacionCoa(archivos, nombreDetectado, sugeridoIa);
+        const archivoHit = asociacion?.archivo ?? null;
+        const score: number | null = asociacion?.score ?? null;
 
         if (archivoHit) {
           setMateriaPrima(nombreDetectado || archivoHit.nombre.replace(/\.pdf$/i, ""));

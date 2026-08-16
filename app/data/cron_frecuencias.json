@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-08-13T14:20:11"
+    "ultima_ejecucion": "2026-08-15T07:21:01"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,10 +21,18 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-08-14T17:18:26"
+    "ultima_ejecucion": "2026-08-15T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
     "ultima_ejecucion": "2026-08-15T01:50:51"
+  },
+  "informe_reposicion_mensual": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-15T03:03:55"
+  },
+  "archivar_gasto_ads": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-15T05:19:12"
   }
 }
