@@ -267,6 +267,34 @@ def _products_flat(cache: dict) -> list[dict]:
     return out
 
 
+# Campos de la familia que una presentación hija hereda si no tiene los suyos
+# propios (comparten ficha técnica, categoría, etc. — solo cambia tamaño/precio/foto).
+_CAMPOS_HEREDADOS_FAMILIA = ("cat", "cat_color", "desc", "ficha", "solo_vitrina")
+
+
+def _find_raw_por_sku(cache: dict, sku: str) -> Optional[dict]:
+    """
+    Busca un producto por SKU en el cache: primero como entrada de familia
+    (top-level, `_products_flat`), y si no aparece ahí, dentro del listado
+    `combos` de presentaciones anidado en cada familia (ej. C-CREMON500g
+    dentro de la familia "Creatina Monohidrato", cuya SKU líder es
+    C-CREMON100g). Las familias con una sola presentación no anidan nada
+    aparte, así que solo el nivel top-level tiene coincidencia en ese caso.
+    """
+    for p in _products_flat(cache):
+        if (p.get("ref") or p.get("rep_sku", "")) == sku:
+            return p
+    for p in _products_flat(cache):
+        for c in p.get("combos", []) or []:
+            if (c.get("ref") or c.get("rep_sku", "")) == sku:
+                raw = dict(c)
+                for campo in _CAMPOS_HEREDADOS_FAMILIA:
+                    raw.setdefault(campo, p.get(campo))
+                raw["es_presentacion_de"] = p.get("ref") or p.get("rep_sku", "")
+                return raw
+    return None
+
+
 # ── MeLi API helpers ──────────────────────────────────────────────────────
 
 def _meli_token() -> Optional[str]:
@@ -450,8 +478,16 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
         ep = _enrich(p, overrides)
         nombre = ep.get("name", "")
         sku_val = ep.get("ref") or ep.get("rep_sku", "")
-        if buscar and buscar.lower() not in nombre.lower() and buscar.lower() not in sku_val.lower():
-            continue
+        presentaciones_raw = p.get("combos", []) or []
+        if buscar:
+            b = buscar.lower()
+            matches_familia = b in nombre.lower() or b in sku_val.lower()
+            matches_presentacion = any(
+                b in (c.get("name", "") or "").lower() or b in (c.get("ref", "") or "").lower()
+                for c in presentaciones_raw
+            )
+            if not matches_familia and not matches_presentacion:
+                continue
         if categoria and ep.get("cat", "") != categoria:
             continue
         reemplazo = _resumen_reemplazo(compliance_idx.get(sku_val))
@@ -461,6 +497,20 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             meli_url = reemplazo["url_meli"]
         elif meli_id:
             meli_url = _permalink_meli(meli_id)
+        presentaciones = [
+            {
+                "sku": c.get("ref") or c.get("rep_sku", ""),
+                "nombre": c.get("name", ""),
+                "presentacion_label": c.get("presentacion_label", ""),
+                "precio_lista": c.get("lista_num", 0),
+                "precio_web": c.get("precio_num", 0),
+                "meli_id": c.get("meli_id", ""),
+                "meli_url": _permalink_meli(c["meli_id"]) if c.get("meli_id") else "",
+                "stock": c.get("stock"),
+                "buyable": c.get("buyable", True),
+            }
+            for c in presentaciones_raw
+        ]
         items.append({
             "sku": sku_val,
             "nombre": nombre,
@@ -477,6 +527,7 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             "tiene_override": bool(ep.get("_ov")),
             "sync_web": _status_web(ep),
             "sync_meli": _status_meli(ep),
+            "presentaciones": presentaciones,
         })
 
     categorias = sorted({i["categoria"] for i in items if i["categoria"]})
@@ -486,10 +537,7 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
 def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
     cache = _load_cache()
     overrides = _load_overrides()
-    raw = next(
-        (p for p in _products_flat(cache) if (p.get("ref") or p.get("rep_sku", "")) == sku),
-        None,
-    )
+    raw = _find_raw_por_sku(cache, sku)
     if raw is None:
         return None
 
@@ -520,6 +568,7 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
 
     return {
         "sku": sku_val,
+        "es_presentacion_de": ep.get("es_presentacion_de", ""),
         "nombre": ep.get("name", ""),
         "categoria": ep.get("cat", ""),
         "cat_color": ep.get("cat_color", ""),

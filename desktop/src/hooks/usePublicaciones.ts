@@ -25,6 +25,18 @@ export interface MeliComplianceReemplazo {
   nivel_riesgo?: string | null;
 }
 
+export interface PresentacionItem {
+  sku: string;
+  nombre: string;
+  presentacion_label: string;
+  precio_lista: number;
+  precio_web: number;
+  meli_id: string;
+  meli_url?: string;
+  stock: number | null;
+  buyable: boolean;
+}
+
 export interface PublicacionItem {
   sku: string;
   nombre: string;
@@ -40,9 +52,11 @@ export interface PublicacionItem {
   tiene_override: boolean;
   sync_web: SyncStatus;
   sync_meli: SyncStatus;
+  presentaciones?: PresentacionItem[];
 }
 
 export interface PublicacionDetalle extends PublicacionItem {
+  es_presentacion_de?: string;
   precio_str: string;
   precio_meli_str: string;
   foto_url_cache: string;

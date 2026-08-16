@@ -688,3 +688,25 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-15) no es el último día del mes.
+[cursor/wa-metricas-panel 3c01051] Auto-commit: actualizacion diaria 2026-08-15 23:00
+ 63 files changed, 25847 insertions(+), 21556 deletions(-)
+ create mode 100644 Reporte_evolucion_negocio_2025_08_16-2026_08_15.xlsx
+ create mode 100644 Reporte_rendimiento_publicaciones_2025_08_15-2026_08_15.xlsx
+ create mode 100644 app/data/compras_exterior_soportes/20260815_225235_9e047bca_imagen.png.png
+ create mode 100644 app/data/historial_reposicion_stock.json
+ create mode 100644 app/data/meli_eliminadas_sold0_20260815_110551.json
+ create mode 100644 app/data/meli_sin_ventas_6m_20260815_105701.json
+ create mode 100644 app/data/migracion_combos_c_a_d_20260815_094128.json
+ create mode 100644 app/data/migracion_combos_c_a_d_20260815_094658.json
+ create mode 100644 app/data/migracion_combos_c_a_d_20260815_115919.json
+ create mode 100644 app/data/migracion_combos_c_a_d_20260815_163527.json
+ create mode 100644 app/data/salud_negocio_cache.json
+ create mode 100644 app/services/coa_biblioteca_match.py
+ create mode 100644 app/services/firmas_guardadas.py
+ create mode 100644 desktop/scripts/qa-coa-match.mjs
+ create mode 100644 desktop/src/lib/coaBibliotecaMatch.ts
+ create mode 100644 scripts/archivar_gasto_ads_cron.py
+ create mode 100644 scripts/eliminar_publicaciones_sin_ventas_meli.py
+ create mode 100755 scripts/informe_reposicion_mensual_cron.py
+ create mode 100644 scripts/migrar_combos_c_a_d_siigo.py
+[2026-08-15 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-15 23:00'

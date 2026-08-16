@@ -119,97 +119,169 @@ function SyncBadge({
 function ProductoCard({
   item,
   selected,
+  selectedSku,
+  expanded,
   onClick,
+  onToggleExpand,
+  onSelectPresentacion,
 }: {
   item: PublicacionItem;
   selected: boolean;
+  selectedSku: string | null;
+  expanded: boolean;
   onClick: () => void;
+  onToggleExpand: () => void;
+  onSelectPresentacion: (sku: string) => void;
 }) {
   const fotoUrl = item.foto_efectiva ? resolverFotoPreview(item.foto_efectiva) : null;
 
   const webOk = item.sync_web.status === "ok";
   const meliOk = item.sync_meli.status === "linked";
+  const presentaciones = item.presentaciones || [];
+  const tieneVarias = presentaciones.length > 1;
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full rounded-xl border-2 p-3 text-left transition ${
+    <div
+      className={`w-full rounded-xl border-2 transition ${
         selected
           ? "border-accent bg-accent/5"
           : "border-border hover:border-accent/40 hover:bg-surface-hover"
       }`}
     >
-      <div className="flex gap-3">
-        {/* Foto miniatura */}
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
-          {fotoUrl ? (
-            <img
-              src={fotoUrl}
-              alt={item.nombre}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted text-xs">
-              —
-            </div>
-          )}
-        </div>
+      <button onClick={onClick} className="w-full p-3 text-left">
+        <div className="flex gap-3">
+          {/* Foto miniatura */}
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
+            {fotoUrl ? (
+              <img
+                src={fotoUrl}
+                alt={item.nombre}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted text-xs">
+                —
+              </div>
+            )}
+          </div>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-ink">{item.nombre}</p>
-          <p className="text-[11px] text-muted">{item.sku}</p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            <SyncBadge status={item.sync_web} label="Web" compact />
-            <SyncBadge status={item.sync_meli} label="MeLi" compact />
-            {item.tiene_override && (
-              <span className="rounded-full border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                Editado
-              </span>
+          {/* Info */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">{item.nombre}</p>
+            <p className="text-[11px] text-muted">{item.sku}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              <SyncBadge status={item.sync_web} label="Web" compact />
+              <SyncBadge status={item.sync_meli} label="MeLi" compact />
+              {item.tiene_override && (
+                <span className="rounded-full border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                  Editado
+                </span>
+              )}
+              {tieneVarias && (
+                <span className="rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                  {presentaciones.length} presentaciones
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Precio + enlace MeLi */}
+          <div className="shrink-0 text-right space-y-1">
+            <p className="text-sm font-bold text-ink">
+              {item.precio_web > 0
+                ? `$${item.precio_web.toLocaleString("es-CO")}`
+                : "—"}
+            </p>
+            {item.meli_compliance_reemplazo?.url_meli ? (
+              <a
+                href={item.meli_compliance_reemplazo.url_meli}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 rounded border border-teal-300 bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-800 hover:bg-teal-100"
+                title={`Reemplazo compliance · ${item.meli_compliance_reemplazo.estado_actual}`}
+              >
+                ↗ MeLi {item.meli_compliance_reemplazo.estado_actual === "active" ? "✓" : "!"}
+              </a>
+            ) : item.meli_url ? (
+              <a
+                href={item.meli_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                ↗ MeLi
+              </a>
+            ) : null}
+            {!webOk || !meliOk ? (
+              <p className="text-[10px] text-warning">⚠ Incompleto</p>
+            ) : (
+              <p className="text-[10px] text-green-600">✓ Listo</p>
             )}
           </div>
         </div>
+      </button>
 
-        {/* Precio + enlace MeLi */}
-        <div className="shrink-0 text-right space-y-1">
-          <p className="text-sm font-bold text-ink">
-            {item.precio_web > 0
-              ? `$${item.precio_web.toLocaleString("es-CO")}`
-              : "—"}
-          </p>
-          {item.meli_compliance_reemplazo?.url_meli ? (
-            <a
-              href={item.meli_compliance_reemplazo.url_meli}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-0.5 rounded border border-teal-300 bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-800 hover:bg-teal-100"
-              title={`Reemplazo compliance · ${item.meli_compliance_reemplazo.estado_actual}`}
-            >
-              ↗ MeLi {item.meli_compliance_reemplazo.estado_actual === "active" ? "✓" : "!"}
-            </a>
-          ) : item.meli_url ? (
-            <a
-              href={item.meli_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-0.5 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100"
-            >
-              ↗ MeLi
-            </a>
-          ) : null}
-          {!webOk || !meliOk ? (
-            <p className="text-[10px] text-warning">⚠ Incompleto</p>
-          ) : (
-            <p className="text-[10px] text-green-600">✓ Listo</p>
+      {tieneVarias && (
+        <div className="border-t border-border/60 px-3 py-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand();
+            }}
+            className="flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-accent"
+          >
+            <span className={`transition-transform ${expanded ? "rotate-90" : ""}`}>▸</span>
+            {expanded ? "Ocultar presentaciones" : `Ver ${presentaciones.length} presentaciones`}
+          </button>
+
+          {expanded && (
+            <div className="mt-1.5 space-y-1 pb-1">
+              {presentaciones.map((pres) => (
+                <button
+                  key={pres.sku}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectPresentacion(pres.sku);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-xs transition ${
+                    selectedSku === pres.sku
+                      ? "border-accent bg-accent/10"
+                      : "border-border/70 hover:border-accent/40 hover:bg-surface-hover"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="font-semibold text-ink">
+                      {pres.presentacion_label || pres.sku}
+                    </span>
+                    <span className="ml-1.5 text-muted">{pres.sku}</span>
+                  </span>
+                  <span className="ml-2 flex shrink-0 items-center gap-2">
+                    {pres.stock !== null && pres.stock !== undefined && (
+                      <span className={`text-[10px] ${pres.stock > 0 ? "text-muted" : "text-danger"}`}>
+                        stock {pres.stock}
+                      </span>
+                    )}
+                    <span className="font-bold text-ink">
+                      {pres.precio_web > 0 ? `$${pres.precio_web.toLocaleString("es-CO")}` : "—"}
+                    </span>
+                    {pres.meli_id ? (
+                      <span className="text-green-600">●</span>
+                    ) : (
+                      <span className="text-danger">○</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }
 
@@ -802,6 +874,11 @@ export function EditorPanel({
           <p className="text-xs text-muted mt-0.5">
             {data.sku} · {data.categoria}
           </p>
+          {data.es_presentacion_de && data.es_presentacion_de !== data.sku && (
+            <p className="mt-1 inline-flex items-center rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+              Presentación de {data.es_presentacion_de}
+            </p>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -1413,6 +1490,7 @@ export default function PublicacionesPanel() {
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
+  const [expandedSkus, setExpandedSkus] = useState<Set<string>>(new Set());
   const syncAllMut = useSyncWeb();
   const refreshWebMut = useRefreshWeb();
 
@@ -1609,14 +1687,28 @@ export default function PublicacionesPanel() {
                 : "No hay productos en el catálogo. Usa 'Reload SIIGO' para cargar."}
             </p>
           )}
-          {items.map((item) => (
-            <ProductoCard
-              key={item.sku}
-              item={item}
-              selected={selectedSku === item.sku}
-              onClick={() => setSelectedSku(item.sku === selectedSku ? null : item.sku)}
-            />
-          ))}
+          {items.map((item) => {
+            const presSkus = new Set((item.presentaciones || []).map((p) => p.sku));
+            return (
+              <ProductoCard
+                key={item.sku}
+                item={item}
+                selected={selectedSku === item.sku || (!!selectedSku && presSkus.has(selectedSku))}
+                selectedSku={selectedSku}
+                expanded={expandedSkus.has(item.sku)}
+                onClick={() => setSelectedSku(item.sku === selectedSku ? null : item.sku)}
+                onToggleExpand={() =>
+                  setExpandedSkus((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(item.sku)) next.delete(item.sku);
+                    else next.add(item.sku);
+                    return next;
+                  })
+                }
+                onSelectPresentacion={(sku) => setSelectedSku(sku === selectedSku ? null : sku)}
+              />
+            );
+          })}
         </div>
       </div>
 
