@@ -120,17 +120,13 @@ function ProductoCard({
   item,
   selected,
   selectedSku,
-  expanded,
   onClick,
-  onToggleExpand,
   onSelectPresentacion,
 }: {
   item: PublicacionItem;
   selected: boolean;
   selectedSku: string | null;
-  expanded: boolean;
   onClick: () => void;
-  onToggleExpand: () => void;
   onSelectPresentacion: (sku: string) => void;
 }) {
   const fotoUrl = item.foto_efectiva ? resolverFotoPreview(item.foto_efectiva) : null;
@@ -227,58 +223,48 @@ function ProductoCard({
       </button>
 
       {tieneVarias && (
-        <div className="border-t border-border/60 px-3 py-1.5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand();
-            }}
-            className="flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-accent"
-          >
-            <span className={`transition-transform ${expanded ? "rotate-90" : ""}`}>▸</span>
-            {expanded ? "Ocultar presentaciones" : `Ver ${presentaciones.length} presentaciones`}
-          </button>
-
-          {expanded && (
-            <div className="mt-1.5 space-y-1 pb-1">
-              {presentaciones.map((pres) => (
-                <button
-                  key={pres.sku}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectPresentacion(pres.sku);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-xs transition ${
-                    selectedSku === pres.sku
-                      ? "border-accent bg-accent/10"
-                      : "border-border/70 hover:border-accent/40 hover:bg-surface-hover"
-                  }`}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="font-semibold text-ink">
-                      {pres.presentacion_label || pres.sku}
-                    </span>
-                    <span className="ml-1.5 text-muted">{pres.sku}</span>
+        <div className="border-t border-border/60 px-3 py-2">
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
+            {presentaciones.length} presentaciones — clic para editar cada una
+          </p>
+          <div className="space-y-1 pb-0.5">
+            {presentaciones.map((pres) => (
+              <button
+                key={pres.sku}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectPresentacion(pres.sku);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-xs transition ${
+                  selectedSku === pres.sku
+                    ? "border-accent bg-accent/10"
+                    : "border-border/70 hover:border-accent/40 hover:bg-surface-hover"
+                }`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="font-semibold text-ink">
+                    {pres.presentacion_label || pres.sku}
                   </span>
-                  <span className="ml-2 flex shrink-0 items-center gap-2">
-                    {pres.stock !== null && pres.stock !== undefined && (
-                      <span className={`text-[10px] ${pres.stock > 0 ? "text-muted" : "text-danger"}`}>
-                        stock {pres.stock}
-                      </span>
-                    )}
-                    <span className="font-bold text-ink">
-                      {pres.precio_web > 0 ? `$${pres.precio_web.toLocaleString("es-CO")}` : "—"}
+                  <span className="ml-1.5 text-muted">{pres.sku}</span>
+                </span>
+                <span className="ml-2 flex shrink-0 items-center gap-2">
+                  {pres.stock !== null && pres.stock !== undefined && (
+                    <span className={`text-[10px] ${pres.stock > 0 ? "text-muted" : "text-danger"}`}>
+                      stock {pres.stock}
                     </span>
-                    {pres.meli_id ? (
-                      <span className="text-green-600">●</span>
-                    ) : (
-                      <span className="text-danger">○</span>
-                    )}
+                  )}
+                  <span className="font-bold text-ink">
+                    {pres.precio_web > 0 ? `$${pres.precio_web.toLocaleString("es-CO")}` : "—"}
                   </span>
-                </button>
-              ))}
-            </div>
-          )}
+                  {pres.meli_id ? (
+                    <span title="Vinculado a MeLi" className="text-green-600">●</span>
+                  ) : (
+                    <span title="Sin publicación MeLi" className="text-danger">○</span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1490,7 +1476,6 @@ export default function PublicacionesPanel() {
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
-  const [expandedSkus, setExpandedSkus] = useState<Set<string>>(new Set());
   const syncAllMut = useSyncWeb();
   const refreshWebMut = useRefreshWeb();
 
@@ -1695,16 +1680,7 @@ export default function PublicacionesPanel() {
                 item={item}
                 selected={selectedSku === item.sku || (!!selectedSku && presSkus.has(selectedSku))}
                 selectedSku={selectedSku}
-                expanded={expandedSkus.has(item.sku)}
                 onClick={() => setSelectedSku(item.sku === selectedSku ? null : item.sku)}
-                onToggleExpand={() =>
-                  setExpandedSkus((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(item.sku)) next.delete(item.sku);
-                    else next.add(item.sku);
-                    return next;
-                  })
-                }
                 onSelectPresentacion={(sku) => setSelectedSku(sku === selectedSku ? null : sku)}
               />
             );
