@@ -4247,6 +4247,165 @@ def register_routes(app):
             "timestamp": _dt.now().isoformat(),
         })
 
+    # -- Control de Inventario -------------------------------------------------
+    # Capa de visibilidad/acción sobre el stock que ya existe (MeLi = fuente de
+    # verdad, Siigo = solo lectura de referencia) — no reemplaza /api/stock/*,
+    # lo complementa con umbral de "bajo stock" configurable, divergencia
+    # MeLi↔Siigo, checklist de revisión y solicitud de compra/eliminación.
+
+    def _nombre_usuario_panel() -> str:
+        u = _panel_tickets_usuario()
+        return (u or {}).get("nombre") or (u or {}).get("username") or "Equipo"
+
+    @app.route("/api/inventario-control/resumen")
+    @app.route("/app/api/inventario-control/resumen")
+    def api_inventario_control_resumen():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        refresh = (request.args.get("refresh") or "").strip() in ("1", "true", "yes")
+        try:
+            from app.services.inventario_control import resumen_control_inventario
+
+            return jsonify(resumen_control_inventario(refresh=refresh))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/inventario-control/revisar", methods=["POST"])
+    @app.route("/app/api/inventario-control/revisar", methods=["POST"])
+    def api_inventario_control_revisar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        meli_id = str(body.get("meli_id") or "").strip()
+        if not meli_id:
+            return jsonify({"error": "Campo 'meli_id' requerido"}), 400
+        try:
+            from app.services.inventario_control import marcar_revisado
+            from app.panel_activity import log_line
+
+            entrada = marcar_revisado(meli_id, _nombre_usuario_panel())
+            log_line(f"✔ inventario: {meli_id} marcado revisado por {entrada.get('revisado_por')}")
+            return jsonify({"ok": True, **entrada})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/inventario-control/proveedor", methods=["POST"])
+    @app.route("/app/api/inventario-control/proveedor", methods=["POST"])
+    def api_inventario_control_proveedor():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        sku = str(body.get("sku") or "").strip()
+        proveedor = str(body.get("proveedor") or "")
+        notas = str(body.get("notas") or "")
+        if not sku:
+            return jsonify({"error": "Campo 'sku' requerido"}), 400
+        try:
+            from app.services.inventario_control import guardar_proveedor
+            from app.panel_activity import log_line
+
+            entrada = guardar_proveedor(sku, proveedor, notas, _nombre_usuario_panel())
+            log_line(f"✔ inventario: proveedor de {sku} → {entrada.get('proveedor') or '(vacío)'}")
+            return jsonify({"ok": True, **entrada})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/inventario-control/config", methods=["GET", "POST"])
+    @app.route("/app/api/inventario-control/config", methods=["GET", "POST"])
+    def api_inventario_control_config():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.inventario_control import (
+            obtener_config_inventario,
+            establecer_config_inventario,
+        )
+
+        if request.method == "GET":
+            return jsonify(obtener_config_inventario())
+
+        usuario = _panel_tickets_usuario()
+        if usuario is not None:
+            # Sesión de tickets identificada (no el token de sistema): exige admin.
+            from app.services.tickets_db import es_admin_efectivo
+
+            if not es_admin_efectivo(usuario):
+                return jsonify({"error": "Requiere rol administrador"}), 403
+        body = request.get_json(silent=True) or {}
+        try:
+            cfg = establecer_config_inventario(
+                umbral_bajo_stock=body.get("umbral_bajo_stock"),
+                umbral_divergencia_siigo=body.get("umbral_divergencia_siigo"),
+            )
+            return jsonify({"ok": True, **cfg})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/inventario-control/solicitar-compra", methods=["POST"])
+    @app.route("/app/api/inventario-control/solicitar-compra", methods=["POST"])
+    def api_inventario_control_solicitar_compra():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        sku = str(body.get("sku") or "").strip()
+        meli_id = str(body.get("meli_id") or "").strip()
+        nombre = str(body.get("nombre") or "").strip()
+        if not sku and not meli_id:
+            return jsonify({"error": "Campo 'sku' o 'meli_id' requerido"}), 400
+        try:
+            asignado_a = int(body["asignado_a"]) if body.get("asignado_a") else None
+        except (TypeError, ValueError):
+            asignado_a = None
+        try:
+            from app.tools.inventario_tickets import crear_ticket_solicitud_compra
+            from app.panel_activity import log_line
+
+            ok, mensaje = crear_ticket_solicitud_compra(
+                sku=sku,
+                nombre=nombre,
+                meli_id=meli_id,
+                cantidad_sugerida=body.get("cantidad_sugerida"),
+                proveedor=str(body.get("proveedor") or ""),
+                motivo=str(body.get("motivo") or ""),
+                prioridad_alta=bool(body.get("prioridad_alta")),
+                asignado_a=asignado_a,
+            )
+            log_line(f"{'✔' if ok else '✖'} inventario: solicitud de compra {sku or meli_id} — {mensaje}")
+            return jsonify({"ok": ok, "mensaje": mensaje})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/inventario-control/flag-eliminar", methods=["POST"])
+    @app.route("/app/api/inventario-control/flag-eliminar", methods=["POST"])
+    def api_inventario_control_flag_eliminar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        sku = str(body.get("sku") or "").strip()
+        meli_id = str(body.get("meli_id") or "").strip()
+        nombre = str(body.get("nombre") or "").strip()
+        if not sku and not meli_id:
+            return jsonify({"error": "Campo 'sku' o 'meli_id' requerido"}), 400
+        try:
+            from app.tools.inventario_tickets import crear_ticket_baja_publicacion
+            from app.panel_activity import log_line
+
+            ok, mensaje = crear_ticket_baja_publicacion(
+                sku=sku,
+                nombre=nombre,
+                meli_id=meli_id,
+                motivo=str(body.get("motivo") or ""),
+            )
+            log_line(f"{'✔' if ok else '✖'} inventario: flag eliminar {sku or meli_id} — {mensaje}")
+            return jsonify({"ok": ok, "mensaje": mensaje})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/consultar/producto")
     def api_consultar_producto():
         if not _api_token_valido():

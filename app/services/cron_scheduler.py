@@ -91,6 +91,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Guarda en caché el gasto/ACOS de Product Ads de las últimas 12 semanas antes de que MeLi las saque de su ventana de 90 días (límite duro de la plataforma, ni siquiera recuperable desde el panel web de Mercado Ads — confirmado ago-2026). Una vez archivada, una semana no se pierde aunque cambie la fórmula del panel Salud del negocio. Avisa por WhatsApp solo si alguna semana quedó a menos de 10 días del corte sin archivar.",
         "script": "scripts/archivar_gasto_ads_cron.py",
     },
+    "recordatorio_inventario": {
+        "nombre": "Recordatorio semanal de inventario",
+        "descripcion": "Envía al grupo de inventario un resumen de productos que necesitan revisión (agotados/críticos/bajo stock) y apunta a Control de Inventario (/app) — le da al equipo un día fijo de revisión en vez de reponer solo de forma reactiva.",
+        "script": "scripts/recordatorio_inventario_cron.py",
+    },
 }
 
 

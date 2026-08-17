@@ -312,4 +312,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M6 20c1.2-3 3.5-5 6-5s4.8 2 6 5" />
     </>
   ),
+  "control-inventario": (
+    <>
+      <path d="M8 5h8a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+      <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z" />
+      <path d="M9.5 11l1.5 1.5L14.5 9" />
+      <path d="M9 16h6" />
+    </>
+  ),
 };

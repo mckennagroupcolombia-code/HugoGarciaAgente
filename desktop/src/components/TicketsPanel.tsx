@@ -6341,6 +6341,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "webchat",   label: "Chat web" },
                     { id: "preventa",  label: "Preventa MeLi" },
                     { id: "stock",     label: "Stock" },
+                    { id: "control-inventario", label: "Control de Inventario" },
                     { id: "fichas",    label: "Fichas técnicas" },
                     { id: "publicaciones", label: "Publicaciones" },
                     { id: "pedidos",   label: "Pedidos Web" },

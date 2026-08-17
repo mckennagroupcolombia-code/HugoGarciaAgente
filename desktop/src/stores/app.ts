@@ -17,6 +17,7 @@ export type Panel =
   | "postventa"
   | "sync"
   | "stock"
+  | "control-inventario"
   | "fichas"
   | "pedidos"
   | "empaque"

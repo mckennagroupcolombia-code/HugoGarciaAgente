@@ -740,3 +740,19 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-16) no es el último día del mes.
+[cursor/wa-metricas-panel c00b0d3] Auto-commit: actualizacion diaria 2026-08-16 23:00
+ 77 files changed, 111201 insertions(+), 1356 deletions(-)
+ create mode 100644 FOTOS  IMPORTADOS MELI/creatina 1000gr.png
+ create mode 100644 FOTOS  IMPORTADOS MELI/creatina 1000gr2.png
+ create mode 100644 app/data/plantillas_visuales.pre_sin_carpeta_ai_20260816_2024.json
+ create mode 100644 app/data/postventa_stats.db-shm
+ create mode 100644 app/data/postventa_stats.db-wal
+ create mode 100644 app/services/postventa_stats.py
+ create mode 100644 app/services/preventa_metricas.py
+ create mode 100644 desktop/src/components/PostventaEstadisticas.tsx
+ create mode 100644 tests/test_meli_ads_recomendaciones.py
+ create mode 100644 tests/test_postventa_stats.py
+ create mode 100644 tests/test_preventa_metricas.py
+ create mode 100644 tests/test_solicitud_aprobacion_cierre.py
+ create mode 100644 uploads/tickets/468a37fcfcdf45b08529d3627b7071db.jpg
+[2026-08-16 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-16 23:00'

@@ -1465,10 +1465,18 @@ def ejecutar_sincronizacion_y_reporte_stock():
             unidades_ytd_por_item = None
             anio_actual = datetime.now().year
 
+        try:
+            from app.services.inventario_control import obtener_config_inventario
+
+            umbral_bajo_stock = obtener_config_inventario()["umbral_bajo_stock"]
+        except Exception:
+            umbral_bajo_stock = 5
+
         updates = []
         agotados_por_rotacion = {"alta": [], "media": [], "baja": []}
         criticos_por_rotacion = {"alta": [], "media": [], "baja": []}
         sin_ventas_excluidos = 0
+        bajo_stock_count = 0
         eventos_alta_rotacion: list[tuple[str, str, int]] = []
         for it in items:
             stock = it["stock"]
@@ -1486,6 +1494,8 @@ def ejecutar_sincronizacion_y_reporte_stock():
                 # independientemente del stock actual — necesita ver cada corrida
                 # para detectar cuándo cruza a 0 y cuándo vuelve a subir.
                 eventos_alta_rotacion.append((mid, nombre, stock))
+            if 1 < stock < umbral_bajo_stock:
+                bajo_stock_count += 1
             if stock not in (0, 1):
                 continue
             if rotacion is None:
@@ -1557,6 +1567,11 @@ def ejecutar_sincronizacion_y_reporte_stock():
                 f"\n\n🗑️ _{sin_ventas_excluidos} agotadas/críticas sin ventas en "
                 f"{anio_actual} — excluidas de esta alerta, revisar si eliminar la "
                 "publicación._"
+            )
+        if bajo_stock_count:
+            reporte += (
+                f"\n\n🟡 {bajo_stock_count} producto(s) con stock bajo (2–{umbral_bajo_stock - 1} "
+                "uds) — revisar en Control de Inventario (/app)."
             )
 
         grupo_inventario = jid_grupo_inventario_wa()

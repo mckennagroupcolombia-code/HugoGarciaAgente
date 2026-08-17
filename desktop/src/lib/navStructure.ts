@@ -14,6 +14,7 @@ export type NavCategory =
   | "diseno"
   | "docs"
   | "contabilidad"
+  | "inventario"
   | "publicaciones"
   | "placas"
   | "sistemas";
@@ -96,6 +97,12 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     ),
   },
   {
+    id: "inventario",
+    label: "Inventario",
+    hub: true,
+    items: [{ panel: "control-inventario", tier: "core" }],
+  },
+  {
     // Individual (como Diseño / Docs): no agrupado en "Tienda y taller".
     id: "publicaciones",
     label: "Publicaciones",
@@ -137,6 +144,7 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   diseno: "Diseño",
   docs: "Docs técnicos",
   contabilidad: "Contabilidad",
+  inventario: "Inventario",
   publicaciones: "Publicaciones",
   placas: "Placas",
   sistemas: "Sistemas",

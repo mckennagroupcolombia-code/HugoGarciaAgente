@@ -131,6 +131,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "contabilidad",
   },
+  "control-inventario": {
+    emoji: "📋",
+    label: "Inventario",
+    description: "Checklist de productos que necesitan atención: agotados, críticos, con stock bajo o con diferencia frente a bodega. Agrega unidades, pide compra o marca como revisado, todo desde acá.",
+    tips: [
+      "🚫 Agotado / ⚠️ Última unidad / 🟡 Bajo stock — así se ordenan las tarjetas, lo más urgente primero.",
+      "«+ Unidades» actualiza el stock real en MeLi al instante — no hace falta entrar a Mercado Libre.",
+      "«Solicitar compra» crea un ticket en el Centro de Mando para que alguien lo compre y lo reciba.",
+      "Si no hay nada que hacer con un producto, usa «Marcar revisado» — así sabes que ya lo viste esta semana.",
+    ],
+    tier: "core",
+    category: "inventario",
+  },
   etiquetas: {
     emoji: "🏷️",
     label: "Diseño",

@@ -33,6 +33,7 @@ const ConfigurarProductosPanel = lazy(() =>
   })),
 );
 const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
+const InventarioControlPanel = lazy(() => import("./components/InventarioControlPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
 const SitioWebPanel = lazy(() => import("./components/SitioWebPanel"));
 const LogisticaInternacionalPanel = lazy(
@@ -47,7 +48,7 @@ import {
   resetSaveBaseline,
   scheduleSaveUserUiPreferences,
 } from "./lib/userThemeSync";
-import { googleAuthStartUrl, isMcKennaAndroidApp, mckennaAndroidBridge } from "./lib/androidApp";
+import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
@@ -126,6 +127,8 @@ function PanelRouterInner() {
       return <ConfigurarProductosPanel />;
     case "placas-concreto":
       return <PlacasConcretoPanel />;
+    case "control-inventario":
+      return <InventarioControlPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "sitioweb":
@@ -297,11 +300,11 @@ export default function App() {
   const mobileShell = useAppStore((s) => s.mobileShell);
   const setMobileShell = useAppStore((s) => s.setMobileShell);
   const [forceDesktop, setForceDesktop] = useState(
-    () =>
-      (typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1") ||
-      isMcKennaAndroidApp()
+    () => typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1"
   );
-  // Hub simplificado solo en móvil; al abrir paneles → Layout responsive (mobileShell=app).
+  // Hub simplificado por defecto en móvil (incluida la app Android) — el usuario elige
+  // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
+  // Layout responsive (mobileShell=app).
   const showMobile = isMobile && !forceDesktop && mobileShell === "hub";
 
   useEffect(() => {
@@ -447,7 +450,7 @@ export default function App() {
             : undefined
         }
         onExitForceDesktop={
-          forceDesktop && isMobile && !isMcKennaAndroidApp()
+          forceDesktop && isMobile
             ? () => {
                 localStorage.removeItem("mck-force-desktop");
                 setForceDesktop(false);

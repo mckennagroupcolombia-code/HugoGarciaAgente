@@ -47,6 +47,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "0 20 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/informe_reposicion_mensual_cron.py >>${LOG} 2>&1"
   echo "# Archiva gasto en ads MeLi antes de que salga de la ventana de 90 días (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "20 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/archivar_gasto_ads_cron.py >>${LOG} 2>&1"
+  echo "# Recordatorio semanal de inventario: agotados/críticos/bajo stock → Control de Inventario (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "30 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_inventario_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 
