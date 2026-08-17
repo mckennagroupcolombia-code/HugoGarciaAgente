@@ -154,6 +154,44 @@ def registrar_lote(
     if not lote_numero:
         lote_numero = _generar_lote_numero(productos)
 
+    # Guardar/generar un mismo documento puede repetirse para corregir el PDF.
+    # El lote físico no cambia en ese caso: se actualiza su ficha y se evita
+    # duplicarlo en el historial que consume Imprimir etiquetas.
+    existente = next(
+        (
+            lote
+            for lote in reversed(lotes)
+            if (lote.get("lote_numero") or "").strip().lower() == lote_numero.lower()
+        ),
+        None,
+    )
+    if existente is not None:
+        for lote in lotes:
+            lote["vigente"] = False
+        existente.update(
+            {
+                "estado": "sin_cambios",
+                "fabricante": (fabricante or existente.get("fabricante") or "").strip(),
+                "pais_origen": (pais_origen or existente.get("pais_origen") or "").strip(),
+                "fecha_fabricacion": (
+                    fecha_fabricacion or existente.get("fecha_fabricacion") or ""
+                ).strip(),
+                "fecha_vencimiento": (
+                    fecha_vencimiento or existente.get("fecha_vencimiento") or ""
+                ).strip(),
+                "ft_webViewLink": (ft_link or existente.get("ft_webViewLink") or "").strip(),
+                "coa_webViewLink": (coa_link or existente.get("coa_webViewLink") or "").strip(),
+                "codigo_verificacion": (
+                    codigo_verificacion or existente.get("codigo_verificacion") or ""
+                ).strip(),
+                "vigente": True,
+                "registrado_en": _ahora_iso(),
+            }
+        )
+        prod["updated_at"] = _ahora_iso()
+        _guardar_mapa(data)
+        return existente
+
     anterior = lotes[-1] if lotes else None
     if estado not in ESTADOS_VALIDOS:
         estado = _inferir_estado(anterior, lote_numero, fabricante)
@@ -183,6 +221,209 @@ def registrar_lote(
     prod["updated_at"] = _ahora_iso()
     _guardar_mapa(data)
     return entry
+
+
+def _lote_explicito_en_ficha(datos: dict[str, Any]) -> dict[str, str]:
+    """Extrae el lote declarado en FT/COA (no inventa números)."""
+    coa = datos.get("_coa") if isinstance(datos.get("_coa"), dict) else {}
+    lote_coa = coa.get("lote") if isinstance(coa.get("lote"), dict) else {}
+    lote_ft = datos.get("lote")
+    lote_ft = lote_ft if isinstance(lote_ft, str) else ""
+    ident = coa.get("identificacion") if isinstance(coa.get("identificacion"), dict) else {}
+    return {
+        "lote_numero": str(lote_coa.get("numero") or lote_ft or "").strip(),
+        "fabricante": str(lote_coa.get("fabricante") or datos.get("fabricante") or "").strip(),
+        "pais_origen": str(lote_coa.get("pais_origen") or datos.get("pais_origen") or "").strip(),
+        "fecha_fabricacion": str(lote_coa.get("fecha_fabricacion") or "").strip(),
+        "fecha_vencimiento": str(lote_coa.get("fecha_vencimiento") or "").strip(),
+        "codigo_verificacion": str(
+            (coa.get("codigo_verificacion") if isinstance(coa, dict) else "")
+            or datos.get("codigo_verificacion")
+            or ""
+        ).strip(),
+        "nombre": str(
+            ident.get("nombre_comercial")
+            or datos.get("nombre_producto")
+            or datos.get("titulo")
+            or ""
+        ).strip(),
+    }
+
+
+def _parece_lote_autogenerado(lote_numero: str) -> bool:
+    """Lotes cortos tipo GXO765 / NAT455 creados por generar_lotes_faltantes."""
+    return bool(re.fullmatch(r"[A-Z]{3}[0-9]{3}", (lote_numero or "").strip().upper()))
+
+
+def _referencias_para_documento(
+    *,
+    ref: str,
+    nombre: str,
+    catalogo: list[dict[str, str]] | None = None,
+) -> list[str]:
+    """Expande refs genéricas (LACCALg) a las presentaciones reales de etiquetas/Siigo."""
+    catalogo = catalogo if catalogo is not None else _catalogo_productos_para_match()
+    refs_nombre = _resolver_referencias_por_nombre(nombre, catalogo) if nombre else []
+    ref_n = (ref or "").strip()
+    if refs_nombre:
+        # Si la ficha trae una ref inventada/genérica, Imprimir usa los SKU de EAN/Siigo.
+        return refs_nombre
+    return [ref_n] if ref_n else []
+
+
+def registrar_lote_desde_documento(
+    datos_ft: dict[str, Any] | None,
+    datos_coa: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Registra el lote explícito de una FT/COA ya guardada.
+
+    Un documento técnico no debe inventar un lote: solo se sincroniza con el
+    historial que usa Imprimir etiquetas cuando trae el número de lote. El COA
+    tiene prioridad porque conserva fechas y fabricante. Si la referencia de la
+    ficha es genérica (p. ej. LACCALg), se replica el lote en todas las
+    presentaciones del producto en Siigo/Códigos EAN.
+    """
+    ft = datos_ft if isinstance(datos_ft, dict) else {}
+    coa = datos_coa if isinstance(datos_coa, dict) else {}
+    # Permite pasar el YAML completo (con _coa) o FT+COA por separado.
+    if not coa and isinstance(ft.get("_coa"), dict):
+        coa = ft.get("_coa") or {}
+    identificacion = coa.get("identificacion")
+    identificacion = identificacion if isinstance(identificacion, dict) else {}
+    lote_coa = coa.get("lote")
+    lote_coa = lote_coa if isinstance(lote_coa, dict) else {}
+
+    ref = str(
+        identificacion.get("referencia_interna")
+        or coa.get("referencia")
+        or ft.get("referencia")
+        or ""
+    ).strip()
+    lote_ft = ft.get("lote")
+    lote_ft = lote_ft if isinstance(lote_ft, str) else ""
+    lote_numero = str(lote_coa.get("numero") or lote_ft or "").strip()
+    if not lote_numero:
+        return None
+
+    nombre = str(
+        identificacion.get("nombre_comercial")
+        or coa.get("nombre_producto")
+        or coa.get("titulo")
+        or ft.get("nombre_producto")
+        or ft.get("titulo")
+        or ""
+    ).strip()
+    refs = _referencias_para_documento(ref=ref, nombre=nombre)
+    if not refs:
+        return None
+
+    fabricante = str(lote_coa.get("fabricante") or ft.get("fabricante") or "")
+    pais_origen = str(lote_coa.get("pais_origen") or ft.get("pais_origen") or "")
+    fecha_fabricacion = str(lote_coa.get("fecha_fabricacion") or "")
+    fecha_vencimiento = str(lote_coa.get("fecha_vencimiento") or "")
+    codigo = str(coa.get("codigo_verificacion") or "")
+    codigo_compartido = ""
+    ultimo: dict[str, Any] | None = None
+    for referencia in refs:
+        ultimo = registrar_lote(
+            referencia,
+            lote_numero=lote_numero,
+            fabricante=fabricante,
+            pais_origen=pais_origen,
+            fecha_fabricacion=fecha_fabricacion,
+            fecha_vencimiento=fecha_vencimiento,
+            codigo_verificacion=codigo_compartido or codigo,
+            nombre_producto=nombre or None,
+        )
+        codigo_compartido = codigo_compartido or str(ultimo.get("codigo_verificacion") or "")
+    return ultimo
+
+
+def sincronizar_lote_ficha_para_sku(ref: str) -> dict[str, Any] | None:
+    """Si una ficha técnica declara un lote real, lo pone vigente para el SKU
+    de Imprimir (y corrige lotes autogenerados tipo NAT455)."""
+    ref_key = (ref or "").strip()
+    if not ref_key:
+        return None
+
+    from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+
+    if not DATOS_DIR.is_dir():
+        return None
+
+    catalogo = _catalogo_productos_para_match()
+    nombre_sku = ""
+    for item in catalogo:
+        if (item.get("ref") or "").strip().upper() == ref_key.upper():
+            nombre_sku = (item.get("name") or "").strip()
+            break
+    if not nombre_sku:
+        prod = _leer_mapa().get("productos", {}).get(_ref_key(ref_key), {})
+        nombre_sku = str(prod.get("nombre") or "").strip()
+    if not nombre_sku:
+        return None
+
+    mejor: dict[str, Any] | None = None
+    for path in sorted(DATOS_DIR.glob("*.yaml")) + sorted(DATOS_DIR.glob("*.yml")):
+        if path.name.startswith("plantilla") or path.stem.startswith(("coa_", "sds_")):
+            continue
+        try:
+            datos = cargar_datos_desde_archivo(path)
+        except Exception:
+            continue
+        info = _lote_explicito_en_ficha(datos)
+        if not info["lote_numero"]:
+            continue
+        nombre_ficha = info["nombre"]
+        if not nombre_ficha:
+            continue
+        refs = _referencias_para_documento(
+            ref=str(datos.get("referencia") or ""),
+            nombre=nombre_ficha,
+            catalogo=catalogo,
+        )
+        if ref_key.upper() not in {r.upper() for r in refs}:
+            # Match por nombre cuando la ficha aún no resuelve SKUs
+            tokens_sku = set(_tokens_producto_para_match(nombre_sku))
+            tokens_ficha = set(_tokens_producto_para_match(nombre_ficha))
+            if not tokens_ficha or not tokens_ficha.issubset(tokens_sku):
+                if (
+                    nombre_ficha.casefold() not in nombre_sku.casefold()
+                    and nombre_sku.casefold() not in nombre_ficha.casefold()
+                ):
+                    continue
+        mejor = {
+            "datos": datos,
+            "info": info,
+            "mtime": path.stat().st_mtime,
+        }
+        # Preferir documentos completos (ft_coa_sds_*)
+        if path.stem.startswith("ft_coa_sds_"):
+            break
+
+    if not mejor:
+        return None
+
+    info = mejor["info"]
+    vigente = lote_vigente(ref_key)
+    if vigente and (vigente.get("lote_numero") or "").strip() == info["lote_numero"]:
+        return vigente
+    if vigente and not _parece_lote_autogenerado(str(vigente.get("lote_numero") or "")):
+        # Ya hay un lote manual distinto: no pisarlo en silencio desde GET.
+        if (vigente.get("lote_numero") or "").strip() != info["lote_numero"]:
+            # La ficha es la fuente de verdad operativa para etiquetas.
+            pass
+
+    return registrar_lote(
+        ref_key,
+        lote_numero=info["lote_numero"],
+        fabricante=info["fabricante"],
+        pais_origen=info["pais_origen"],
+        fecha_fabricacion=info["fecha_fabricacion"],
+        fecha_vencimiento=info["fecha_vencimiento"],
+        codigo_verificacion=info["codigo_verificacion"],
+        nombre_producto=info["nombre"] or nombre_sku,
+    )
 
 
 def buscar_lote_publico(codigo: str) -> dict[str, Any] | None:
@@ -359,13 +600,14 @@ def generar_lotes_faltantes() -> dict[str, list[dict[str, Any]]]:
             omitidos.append({"archivo": p.name, "motivo": "no se pudo leer el archivo"})
             continue
 
-        nombre = (d.get("nombre_producto") or d.get("titulo") or "").strip()
+        info = _lote_explicito_en_ficha(d)
+        nombre = info["nombre"] or (d.get("nombre_producto") or d.get("titulo") or "").strip()
         referencia = (d.get("referencia") or "").strip()
-        resuelta_por_nombre = False
-        referencias: list[str] = [referencia] if referencia else []
-        if not referencia and nombre and catalogo:
-            referencias = _resolver_referencias_por_nombre(nombre, catalogo)
-            resuelta_por_nombre = bool(referencias)
+        referencias = _referencias_para_documento(ref=referencia, nombre=nombre, catalogo=catalogo)
+        resuelta_por_nombre = bool(nombre) and (
+            not referencia
+            or referencia.upper() not in {r.upper() for r in referencias}
+        )
         if not referencias or not nombre:
             omitidos.append({
                 "archivo": p.name,
@@ -379,25 +621,34 @@ def generar_lotes_faltantes() -> dict[str, list[dict[str, Any]]]:
         # Varias presentaciones (250g/500g/1kg…) del mismo ingrediente
         # comparten un único lote/código — se genera una sola vez y se
         # replica en las demás referencias del mismo grupo.
-        fabricante = (d.get("fabricante") or "").strip()
-        pais_origen = (d.get("pais_origen") or "").strip()
-        lote_compartido: str | None = None
-        codigo_compartido: str | None = None
+        # Si la ficha ya declara un lote real (COA/FT), usarlo en lugar de inventar.
+        fabricante = info["fabricante"] or (d.get("fabricante") or "").strip()
+        pais_origen = info["pais_origen"] or (d.get("pais_origen") or "").strip()
+        lote_compartido: str | None = info["lote_numero"] or None
+        codigo_compartido: str | None = info["codigo_verificacion"] or None
         for referencia in referencias:
             ref_key = referencia.strip().upper()
             if ref_key in vistos:
                 continue
             vistos.add(ref_key)
 
-            if lote_vigente(referencia):
-                omitidos.append({"archivo": p.name, "ref": referencia, "motivo": "ya tiene lote registrado"})
-                continue
+            vigente = lote_vigente(referencia)
+            if vigente:
+                vigente_num = str(vigente.get("lote_numero") or "").strip()
+                if lote_compartido and vigente_num == lote_compartido:
+                    omitidos.append({"archivo": p.name, "ref": referencia, "motivo": "ya tiene lote registrado"})
+                    continue
+                if not lote_compartido or not _parece_lote_autogenerado(vigente_num):
+                    omitidos.append({"archivo": p.name, "ref": referencia, "motivo": "ya tiene lote registrado"})
+                    continue
 
             entry = registrar_lote(
                 referencia,
                 lote_numero=lote_compartido or "",
                 fabricante=fabricante,
                 pais_origen=pais_origen,
+                fecha_fabricacion=info["fecha_fabricacion"],
+                fecha_vencimiento=info["fecha_vencimiento"],
                 nombre_producto=nombre,
                 codigo_verificacion=codigo_compartido or "",
             )

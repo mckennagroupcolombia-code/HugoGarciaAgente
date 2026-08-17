@@ -106,6 +106,8 @@ export interface PlantillaVisualDoc {
   categoria: string;
   /** Ruta de carpeta del Studio (p. ej. "Fragancias/Difusor"); "" = raíz. */
   carpeta?: string;
+  /** Plantilla creada por el pipeline AI (.ai → Studio); vive en la raíz. */
+  origen_ai?: boolean;
   formato: FormatoCanvas;
   fondo: string;
   elementos: ElementoVisual[];

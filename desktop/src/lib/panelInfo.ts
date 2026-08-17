@@ -73,6 +73,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Responde con el botón 'Responder' — se envía directo a MercadoLibre.",
       "Cuanto más rápido respondas, mejor posicionamiento tiene la publicación.",
       "El número rojo en el menú indica cuántas hay sin responder.",
+      "Arriba ves el % de compra: de quienes preguntaron, cuántos compraron ese producto después.",
     ],
     tier: "core",
     category: "atencion",
@@ -82,6 +83,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     label: "Postventa MeLi",
     description: "Mensajes de compradores después de que pagaron: dudas de envío, solicitudes de factura, reclamos. Requieren atención rápida.",
     tips: [
+      "Arriba están motivos de reclamo, tiempos de respuesta y las solicitudes más frecuentes.",
       "Los mensajes de compradores llegan aquí y también al grupo de WhatsApp.",
       "Para responder usa el formulario — se envía por la plataforma de MeLi.",
       "Los RUT para facturación electrónica llegan como archivo adjunto en estos mensajes.",

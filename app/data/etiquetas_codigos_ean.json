@@ -1152,6 +1152,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "fc04d657652a",
+      "sku": "C-ALFARB10g",
+      "nombre_producto": "ALFA ARBUTINA 10g",
+      "numero_producto": 104,
+      "presentacion": "010",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701040102633",
+      "creado_at": "2026-08-16T21:02:40"
+    },
+    {
       "id": "d3c3c7fce082",
       "sku": "C-CAF500g",
       "nombre_producto": "CAFEINA 500g",

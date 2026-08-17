@@ -9,6 +9,27 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-16 19:20 - Postventa: estadísticas de reclamos, tiempos y solicitudes
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - El panel de Postventa MeLi muestra motivos de reclamo, tiempos de respuesta (mediana y tramos SLA) y las solicitudes más frecuentes (factura, envío, ficha, daño, etc.).
+  - Cada mensaje de la cola queda etiquetado (tipo + minutos de espera). Los datos se guardan al llegar, responder u omitir, y al abrir un reclamo MeLi.
+- **Archivos Modificados:**
+  - `app/services/postventa_stats.py`, `app/routes.py`, `app/meli_postventa_notif.py`, `app/meli_reclamos.py`
+  - `PostventaPanel.tsx`, `PostventaEstadisticas.tsx`, `usePostventa.ts`
+  - `tests/test_postventa_stats.py`, `docs/agentic/CONTRACTS.md`
+
+### 2026-08-16 19:15 - Preventa MeLi: porcentaje de compra
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - El panel de Preventa ahora muestra qué porcentaje de quienes preguntaron en Mercado Libre terminaron comprando ese producto (y cuántos compraron cualquier cosa en la tienda).
+  - Separa conversión con respuesta vs. sin respuesta, y un ranking por producto. Las preguntas de las últimas 48 h no entran al % (aún no han tenido tiempo de comprar).
+- **Archivos Modificados:**
+  - `app/services/preventa_metricas.py`, `app/routes.py`, `tests/test_preventa_metricas.py`
+  - `PreventaPanel.tsx`, `usePreventa.ts`, `docs/agentic/CONTRACTS.md`
+
 ### 2026-08-10 13:15 - Studio web: lienzo Clásico igual a la home real
 - **Autor:** Cynthia Ruiz
 - **Tipo de Cambio:** Corrección

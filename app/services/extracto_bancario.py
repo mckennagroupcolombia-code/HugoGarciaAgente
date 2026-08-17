@@ -1244,6 +1244,49 @@ def eliminar_extracto(extracto_id: int) -> bool:
     return True
 
 
+def saldo_bancario_mas_reciente() -> dict[str, Any] | None:
+    """
+    Último saldo conocido para "dinero en cuenta": del extracto más reciente
+    (por periodo_hasta, luego created_at), la línea con `saldo` no nulo de
+    fecha más reciente. None si no hay ningún extracto cargado o ninguna línea
+    trae saldo (algunos CSV/Excel no exponen columna de saldo corrido).
+
+    No hay saldo bancario en vivo en el sistema (ver app/services/contabilidad_core.py,
+    Libro Mayor propio, aún sin rutas conectadas) — este es el proxy real más
+    cercano hoy: tan fresco como el último extracto subido manualmente.
+    """
+    ensure_extracto_tables()
+    with _conn() as con:
+        extracto = con.execute(
+            """SELECT * FROM extractos_bancarios
+               ORDER BY periodo_hasta DESC, created_at DESC, id DESC
+               LIMIT 1"""
+        ).fetchone()
+        if not extracto:
+            return None
+        e = dict(extracto)
+        mov = con.execute(
+            """SELECT fecha, saldo FROM extracto_movimientos
+               WHERE extracto_id = ? AND saldo IS NOT NULL
+               ORDER BY fecha DESC, id DESC
+               LIMIT 1""",
+            (e["id"],),
+        ).fetchone()
+        if not mov:
+            return None
+        m = dict(mov)
+    return {
+        "saldo": float(m["saldo"]),
+        "fecha": m["fecha"],
+        "banco": e.get("banco") or "",
+        "cuenta": e.get("cuenta") or "",
+        "extracto_id": e["id"],
+        "extracto_nombre": (e.get("nombre") or "").strip()
+        or (e.get("banco") or "")
+        or (e.get("archivo_nombre") or f"Extracto #{e['id']}"),
+    }
+
+
 def vincular(extracto_mov_id: int, movimiento_id: str, notas: str = "") -> dict[str, Any]:
     ensure_extracto_tables()
     mid = (movimiento_id or "").strip()

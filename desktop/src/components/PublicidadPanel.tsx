@@ -373,9 +373,14 @@ function AdsVsPromocionesSeccion({ dias }: { dias: number }) {
               label="Desalineados"
               value={String(data.resumen.desalineados)}
               subClass="text-warning font-semibold"
-              title="Canal actual (dónde está pautado/promocionado hoy) no coincide con el recomendado."
+              title="Canal actual (dónde está pautado/promocionado hoy) no coincide con el recomendado — la mayoría son productos que hoy no están ni en ads ni en promoción cuando deberían estar en promoción, no un dato desactualizado."
             />
           </div>
+          {data.resumen.campana_inexistente > 0 && (
+            <p className="text-[10px] text-muted mb-2">
+              Se excluyeron {data.resumen.campana_inexistente} producto(s) con gasto histórico de una campaña que ya no existe en Mercado Ads.
+            </p>
+          )}
 
           <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
             <input
@@ -465,7 +470,7 @@ function AdsVsPromocionesSeccion({ dias }: { dias: number }) {
 function RecomendacionFila({ f }: { f: PublicidadRecomendacionItem }) {
   const nivel = NIVEL_LIMITES[f.nivel_rotacion] ?? NIVEL_LIMITES.baja;
   return (
-    <div className="border-b border-border last:border-b-0 px-3 py-2.5">
+    <div className={`border-b border-border last:border-b-0 px-3 py-2.5 ${!f.activo_en_meli ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
@@ -484,6 +489,14 @@ function RecomendacionFila({ f }: { f: PublicidadRecomendacionItem }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+            {!f.activo_en_meli && (
+              <span
+                className="rounded-full bg-muted/20 px-2 py-0.5 text-[10px] font-bold text-muted"
+                title={`Último estado que reportó MeLi: ${f.status || "no activo"}. La API de MeLi no siempre refleja al instante cambios hechos en las últimas 24-48h en el panel de Mercado Ads — si lo pausaste hace poco y esto no coincide, confía en lo que veas directo en MeLi.`}
+              >
+                Según MeLi, ya no activo ({f.status || "?"})
+              </span>
+            )}
             {f.margen_real ? (
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
                 Margen real
@@ -534,7 +547,7 @@ function RecomendacionesSeccion({ dias }: { dias: number }) {
 
       {!isLoading && !error && data && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-3">
             <StatTile
               label="Pausar"
               value={String(data.resumen.pausar)}
@@ -561,7 +574,26 @@ function RecomendacionesSeccion({ dias }: { dias: number }) {
               value={String(data.resumen.sin_dato_rotacion)}
               title="No aparece en las ventas generales de MeLi del período — se evaluó conservador, como si fuera de baja rotación (solo aplica cuando tampoco hay margen real)."
             />
+            <StatTile
+              label="Ya no activos"
+              value={String(data.resumen.no_activos)}
+              title="De pausar+revisar, cuántos ya están idle/hold/paused en una campaña vigente — siguen en la lista, marcados, para no tener que ir a chequear uno por uno."
+            />
+            {data.resumen.campana_inexistente > 0 && (
+              <StatTile
+                label="De campaña vieja"
+                value={String(data.resumen.campana_inexistente)}
+                subClass="text-muted"
+                title="Tenían gasto histórico pero su campaign_id ya no aparece en Mercado Ads (campaña vieja/eliminada) — no hay dónde ir a verificarlos, se excluyen del listado."
+              />
+            )}
           </div>
+          <p className="text-[10px] text-muted mb-3 leading-relaxed">
+            El estado "activo/pausado" lo reporta la propia API de MeLi — confirmado ago-2026 que a veces
+            tarda 24-48h en reflejar cambios que acabas de hacer en el panel de Mercado Ads. Si pausaste algo
+            hace poco y todavía sale como activo acá, no es un error nuestro: espera un día y actualiza, o
+            verifica directo en MeLi.
+          </p>
 
           <details className="mb-3 text-xs">
             <summary className="cursor-pointer text-ink-secondary font-semibold select-none">

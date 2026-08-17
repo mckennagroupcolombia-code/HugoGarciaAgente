@@ -150,3 +150,38 @@ def test_consultar_por_concepto(extracto_db):
     r2 = extracto_db.consultar_por_concepto("nomina")
     assert r2["cantidad"] == 1
     assert r2["suma_creditos"] == 2_500_000
+
+
+def test_saldo_bancario_mas_reciente_sin_extractos(extracto_db):
+    assert extracto_db.saldo_bancario_mas_reciente() is None
+
+
+def test_saldo_bancario_mas_reciente_toma_ultima_linea_del_extracto_mas_reciente(extracto_db):
+    csv_viejo = (
+        "Fecha;Descripción;Débito;Crédito;Saldo\n"
+        "01/06/2026;MOV VIEJO;100000;;1000000\n"
+    ).encode("utf-8")
+    extracto_db.importar_extracto(csv_viejo, "junio.csv", banco="Bancolombia", cuenta="974")
+
+    csv_reciente = (
+        "Fecha;Descripción;Débito;Crédito;Saldo\n"
+        "01/07/2026;PAGO PROVEEDOR;500000;;6000000\n"
+        "31/07/2026;COBRO IVA;758;;6604054.59\n"
+    ).encode("utf-8")
+    extracto_db.importar_extracto(csv_reciente, "julio.csv", banco="Bancolombia", cuenta="974")
+
+    saldo = extracto_db.saldo_bancario_mas_reciente()
+    assert saldo is not None
+    assert saldo["saldo"] == 6604054.59
+    assert saldo["fecha"] == "2026-07-31"
+    assert saldo["banco"] == "Bancolombia"
+    assert saldo["cuenta"] == "974"
+
+
+def test_saldo_bancario_mas_reciente_none_si_ninguna_linea_trae_saldo(extracto_db):
+    csv_sin_saldo = (
+        "Fecha;Descripción;Débito;Crédito\n"
+        "01/08/2026;PAGO PSE PROVEEDOR;150000;;\n"
+    ).encode("utf-8")
+    extracto_db.importar_extracto(csv_sin_saldo, "agosto.csv", banco="Bancolombia")
+    assert extracto_db.saldo_bancario_mas_reciente() is None

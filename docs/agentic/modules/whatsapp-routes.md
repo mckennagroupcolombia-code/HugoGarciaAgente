@@ -19,6 +19,7 @@ Procesar mensajes entrantes de WhatsApp en Flask principal puerto 8081: comandos
 - Comandos preventa usan `resp ...`; comandos postventa usan `posventa <codigo>: ...`.
 - Postventa generada por IA requiere aprobacion si aplica, no envio directo accidental.
 - Imagen de comprobante crea pendiente y alerta al grupo.
+- Estadísticas de postventa (`app/services/postventa_stats.py`, panel `/app` → Postventa): clasificación por palabras clave (sin LLM). Cierres (responder / omitir / auto / hugo dale ok) deben llamar `marcar_mensaje_cerrado`. Reclamos se registran en `crear_accion_anular_factura_por_reclamo` aunque el ticket ya exista (dedup).
 
 ## Riesgos
 

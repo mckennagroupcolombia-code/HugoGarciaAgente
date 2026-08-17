@@ -8,6 +8,7 @@ import {
   type ProductoPostventa,
 } from "../hooks/usePostventa";
 import { api } from "../api/client";
+import PostventaEstadisticas from "./PostventaEstadisticas";
 
 function cop(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -235,6 +236,8 @@ export default function PostventaPanel() {
         corta recordatorios de WhatsApp.
       </p>
 
+      <PostventaEstadisticas />
+
       {isLoading && <p className="text-base text-muted">Cargando...</p>}
 
       {!isLoading && mensajes.length === 0 && (
@@ -251,10 +254,24 @@ export default function PostventaPanel() {
             key={m.pack_id}
             className="rounded-xl border border-border bg-surface-panel p-3 space-y-3 sm:p-4"
           >
-            <header>
+            <header className="flex flex-wrap items-start justify-between gap-2">
               <p className="text-base font-semibold text-ink break-words [overflow-wrap:anywhere] sm:text-lg">
                 {m.comprador || "Comprador MeLi"}
               </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {m.tipo_solicitud_label && (
+                  <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] font-semibold text-ink">
+                    {m.tipo_solicitud_label}
+                  </span>
+                )}
+                {m.espera_min != null && (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-[11px] tabular-nums text-muted">
+                    {m.espera_min < 60
+                      ? `${Math.round(m.espera_min)} min`
+                      : `${Math.floor(m.espera_min / 60)} h`}
+                  </span>
+                )}
+              </div>
             </header>
 
             {(m.productos_detalle ?? []).length > 0 ? (

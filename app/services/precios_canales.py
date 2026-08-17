@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
+
+import requests
 
 MELI_COMMISSION = float(__import__("os").getenv("MELI_COMMISSION_WEB", "0.165"))
 
@@ -225,3 +228,195 @@ def precios_catalogo_web_desde_siigo(sku: str, lista_siigo: float, nombre: str =
         "envio_gratis_web": False,
         "envio_referencia": p["envio_referencia"],
     }
+
+
+def _obtener_precios_activos_meli(token: str, seller_id: str) -> dict[str, dict]:
+    """
+    {item_id: {"price": float, "sku": str, "title": str}} de todas las
+    publicaciones activas — mismo patrón de paginación/batch que
+    scripts/sincronizar_precios_meli_sheets.py, reutilizado acá para no
+    depender de un script de consola con token sin refrescar.
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    all_item_ids: list[str] = []
+    offset = 0
+    while True:
+        r = requests.get(
+            f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+            params={"status": "active", "limit": 100, "offset": offset},
+            headers=headers,
+            timeout=20,
+        )
+        if r.status_code != 200:
+            break
+        data = r.json() or {}
+        ids = data.get("results") or []
+        all_item_ids.extend(ids)
+        total = int((data.get("paging") or {}).get("total") or 0)
+        offset += 100
+        if offset >= total or not ids:
+            break
+
+    meli_data: dict[str, dict] = {}
+    for i in range(0, len(all_item_ids), 20):
+        batch = all_item_ids[i : i + 20]
+        r = requests.get(
+            "https://api.mercadolibre.com/items",
+            params={"ids": ",".join(batch)},
+            headers=headers,
+            timeout=30,
+        )
+        if r.status_code != 200:
+            continue
+        for entry in r.json() or []:
+            if entry.get("code") != 200:
+                continue
+            item = entry.get("body") or {}
+            item_id = item.get("id") or ""
+            price = item.get("price")
+            if not item_id or price is None:
+                continue
+            sku = (item.get("seller_custom_field") or "").strip()
+            if not sku:
+                for attr in item.get("attributes") or []:
+                    if attr.get("id") == "SELLER_SKU":
+                        sku = (attr.get("value_name") or "").strip()
+                        break
+            if not sku:
+                continue
+            meli_data[item_id] = {"price": float(price), "sku": sku, "title": item.get("title") or ""}
+        time.sleep(0.2)
+
+    return meli_data
+
+
+def reconciliar_precios_meli(
+    dry_run: bool = True, umbral: float = 1.0, skus_permitidos: set[str] | None = None
+) -> dict:
+    """
+    Trae el precio VIVO de cada publicación activa en MeLi (referencia maestra,
+    ver DOCUMENTACION_PRECIOS) y lo cruza contra el precio actual en Siigo por
+    SKU. Cuando difieren más de `umbral`, corrige Siigo → Sheets → Web (en ese
+    orden) usando exactamente la misma fórmula que el editor manual de
+    "Ganancia" (`resolver_precios_multicanal`).
+
+    Por qué existe: el push manual de precios (POST /api/rentabilidad/actualizar-precio)
+    solo se dispara si alguien escribe un precio nuevo en el panel — si el precio
+    se cambió directo en la app/web de MeLi, nada más se entera. Este es el otro
+    sentido: MeLi → el resto.
+
+    dry_run=True (default): solo arma la lista de candidatos, no escribe nada en
+    ningún canal — pensado para revisar antes de aplicar, ya que escribe en el
+    mismo Siigo que usa la facturación electrónica real.
+
+    skus_permitidos: si viene, TODOS los candidatos se siguen reportando (para
+    que el llamador vea el panorama completo), pero solo se aplican los que
+    estén en este set. Confirmado en vivo ago-2026: la corrida sin filtro
+    mezcla diferencias chicas y coherentes (bajada de precio reciente) con
+    otras de 2x-14x que huelen a cruce de SKU equivocado — no todo lo que
+    aparece acá es seguro de aplicar en automático.
+    """
+    from app.services.google_services import _abrir_hoja
+    from app.services.meli import _obtener_seller_id_meli
+    from app.services.siigo import actualizar_precio_combo_siigo, buscar_producto_siigo_por_sku
+    from app.utils import refrescar_token_meli
+
+    resultado: dict = {"dry_run": dry_run, "candidatos": [], "aplicados": 0, "errores": []}
+
+    token = refrescar_token_meli()
+    if not token:
+        resultado["error"] = "No se pudo refrescar el token de MeLi."
+        return resultado
+
+    seller_id = _obtener_seller_id_meli(token)
+    if not seller_id:
+        resultado["error"] = "No se pudo obtener el seller_id de MeLi."
+        return resultado
+
+    meli_data = _obtener_precios_activos_meli(token, seller_id)
+
+    candidatos: list[dict] = []
+    for item_id, info in meli_data.items():
+        sku = info["sku"]
+        siigo_prod = buscar_producto_siigo_por_sku(sku)
+        if not siigo_prod:
+            continue
+        precio_siigo = float(siigo_prod.get("precio") or 0)
+        precio_meli = info["price"]
+        if abs(precio_meli - precio_siigo) <= umbral:
+            continue
+        precios = resolver_precios_multicanal(sku, precio_meli, nombre=info["title"])
+        candidatos.append(
+            {
+                "sku": sku,
+                "item_id": item_id,
+                "nombre": info["title"],
+                "precio_meli": precio_meli,
+                "precio_siigo_antes": precio_siigo,
+                "precio_nuevo": precios["lista"],
+                "precio_web_nuevo": precios["web"],
+            }
+        )
+
+    candidatos.sort(key=lambda c: -abs(c["precio_meli"] - c["precio_siigo_antes"]))
+    resultado["candidatos"] = candidatos
+
+    a_aplicar = (
+        [c for c in candidatos if c["sku"] in skus_permitidos]
+        if skus_permitidos is not None
+        else candidatos
+    )
+
+    if dry_run or not a_aplicar:
+        return resultado
+
+    # 1° Siigo — facturación (precio lista = mismo que MeLi)
+    skus_ok: list[str] = []
+    for c in a_aplicar:
+        r = actualizar_precio_combo_siigo(c["sku"], c["precio_nuevo"])
+        c["siigo_resultado"] = r
+        if r.get("ok"):
+            resultado["aplicados"] += 1
+            skus_ok.append(c["sku"])
+        else:
+            resultado["errores"].append({"sku": c["sku"], "canal": "siigo", "msg": r.get("msg")})
+
+    if not skus_ok:
+        return resultado
+
+    # 2° Sheets — catálogo/PDF, mismo patrón de batch_update que
+    # app/tools/sincronizar_precios.py
+    try:
+        ws = _abrir_hoja()
+        rows = ws.get_all_values()
+        header = [h.strip().upper() for h in rows[0]]
+        idx_sku = next((i for i, h in enumerate(header) if "SKU" in h), 1)
+        idx_prec = next((i for i, h in enumerate(header) if "PRECIO" in h), 4)
+        sku_to_row = {}
+        for row_num, row in enumerate(rows[1:], start=2):
+            s = row[idx_sku].strip() if len(row) > idx_sku else ""
+            if s:
+                sku_to_row[s.upper()] = row_num
+        col_letra = chr(ord("A") + idx_prec)
+        candidatos_ok = {c["sku"]: c for c in candidatos if c["sku"] in skus_ok}
+        batch_data = []
+        for sku, c in candidatos_ok.items():
+            row_num = sku_to_row.get(sku.upper())
+            if row_num:
+                batch_data.append({"range": f"{col_letra}{row_num}", "values": [[int(round(c["precio_nuevo"]))]]})
+        if batch_data:
+            ws.batch_update(batch_data)
+    except Exception as e:
+        resultado["errores"].append({"sku": None, "canal": "sheets", "msg": str(e)})
+
+    # 3° Web — UNA sola llamada para todo el lote (sin "stock" en el payload
+    # solo dispara la reconstrucción del cache desde Siigo, ya actualizado
+    # arriba — no hace falta ni tiene sentido llamarla una vez por SKU).
+    try:
+        from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
+
+        resultado["web_resultado"] = sincronizar_productos_pagina_web([{"sku": s} for s in skus_ok])
+    except Exception as e:
+        resultado["errores"].append({"sku": None, "canal": "web", "msg": str(e)})
+
+    return resultado

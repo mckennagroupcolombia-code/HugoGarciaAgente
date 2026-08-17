@@ -444,9 +444,9 @@ function FichaTecnicaTabContent({
     </DocumentoGeneradorTab>
     <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-2">
       <p className="text-xs text-muted">
-        Guarda el lote de esta ficha técnica en el historial de trazabilidad y genera un código único
-        consultable por el cliente en <code>mckennagroup.co/verificar</code>. Si dejas vacío el campo
-        «Lote» de arriba, se genera solo (4 letras del producto + consecutivo, ej. CITR-001).
+        Al generar la ficha con referencia y lote, se registra automáticamente en el historial de
+        trazabilidad y queda disponible en Imprimir etiquetas. Usa este botón solo para vincular una
+        ficha ya existente. Si dejas vacío el campo «Lote», no se registra automáticamente.
       </p>
       <button
         type="button"
@@ -761,10 +761,10 @@ function RegistrarLoteBoton({
   return (
     <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-2">
       <p className="text-xs text-muted">
-        Guarda este lote en el historial de trazabilidad de <code>{referencia}</code>. Si dejas vacío el
-        campo «No. de lote» de arriba, se genera solo (4 letras del producto + consecutivo, ej.
-        CITR-001). Se genera además un código único para que el cliente lo consulte en{" "}
-        <code>mckennagroup.co/verificar</code> — imprímelo en la etiqueta (Studio Etiquetas).
+        Al generar el COA con número de lote, se vincula automáticamente al historial de{" "}
+        <code>{referencia}</code> y a Imprimir etiquetas. Usa este botón solo para vincular un COA ya
+        existente o corregir el registro. Se genera además un código único para que el cliente lo consulte
+        en <code>mckennagroup.co/verificar</code>.
       </p>
       <button
         type="button"

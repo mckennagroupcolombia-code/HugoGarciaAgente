@@ -141,6 +141,24 @@ def _sufijo_pack(pack_id: str) -> str:
     return sufijo_pack_postventa(pack_id)
 
 
+def _stats_mensaje_recibido(entrada: dict) -> None:
+    try:
+        from app.services.postventa_stats import registrar_mensaje_recibido
+
+        registrar_mensaje_recibido(entrada)
+    except Exception:
+        pass
+
+
+def _stats_mensaje_cerrado(entrada: dict, via: str) -> None:
+    try:
+        from app.services.postventa_stats import marcar_mensaje_cerrado
+
+        marcar_mensaje_cerrado(entrada, via=via)
+    except Exception:
+        pass
+
+
 def _sugerencia_ia_postventa(
     productos_detalle: list, pregunta: str, mensajes: list, seller_id
 ) -> str:
@@ -564,7 +582,9 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                         state["pendientes"][str(pack_id)] = entrada_auto
                         if sufijo and sufijo != str(pack_id):
                             state["pendientes"][sufijo] = entrada_auto
+                        _stats_mensaje_recibido(entrada_auto)
                         if resultado_docs == "auto_enviado":
+                            _stats_mensaje_cerrado(entrada_auto, "auto")
                             notif_auto = (
                                 f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
                                 f"🔢 Código: *{sufijo}*\n"
@@ -616,6 +636,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 # Compatibilidad: comando posventa 0583: sigue resolviendo por sufijo.
                 if sufijo and sufijo != clave_pendiente:
                     state["pendientes"][sufijo] = state["pendientes"][clave_pendiente]
+                _stats_mensaje_recibido(state["pendientes"][clave_pendiente])
 
                 notif = (
                     f"💬 *MENSAJE POSTVENTA MELI*\n\n"

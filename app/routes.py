@@ -373,6 +373,7 @@ def _omitir_pendiente_postventa(codigo: str) -> dict:
     codigo_corto = str(entrada.get("codigo") or codigo).strip()
     _quitar_pendiente_postventa(pack_id, clave_pendiente)
     _marcar_msg_procesado_postventa(msg_id)
+    _stats_cerrar_postventa(entrada, "omitido")
     return {
         "ok": True,
         "omitido": True,
@@ -442,7 +443,24 @@ def _listar_postventa_pendientes_api() -> list[dict]:
             }
         )
     items.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+    try:
+        from app.services.postventa_stats import clasificar_entrada
+
+        for it in items:
+            extra = clasificar_entrada(it)
+            it.update(extra)
+    except Exception:
+        pass
     return items
+
+
+def _stats_cerrar_postventa(entrada: dict | None, via: str) -> None:
+    try:
+        from app.services.postventa_stats import marcar_mensaje_cerrado
+
+        marcar_mensaje_cerrado(entrada or {}, via=via)
+    except Exception:
+        pass
 
 
 def _ejecutar_respuesta_postventa(
@@ -450,6 +468,7 @@ def _ejecutar_respuesta_postventa(
     respuesta: str,
     *,
     notificar_grupo: bool = True,
+    via: str = "whatsapp",
 ) -> dict:
     """
     Envía respuesta postventa a MeLi. Usado por WhatsApp (posventa …) y panel /api.
@@ -505,6 +524,9 @@ def _ejecutar_respuesta_postventa(
 
     exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
     if exito:
+        _stats_cerrar_postventa(
+            entrada or {"pack_id": pack_id, "codigo": codigo}, via
+        )
         _quitar_pendiente_postventa(str(pack_id), clave_pendiente)
         if notificar_grupo:
             enviar_whatsapp_reporte(
@@ -528,6 +550,10 @@ def _ejecutar_respuesta_postventa(
             conv = r_m.json().get("conversation_status") or {}
             cerrada, motivo = meli_postventa_conversacion_cerrada(conv)
             if cerrada:
+                _stats_cerrar_postventa(
+                    entrada or {"pack_id": pack_id, "codigo": codigo},
+                    "cerrada_meli",
+                )
                 _quitar_pendiente_postventa(str(pack_id), clave_pendiente)
                 if notificar_grupo:
                     enviar_whatsapp_reporte(
@@ -2075,6 +2101,7 @@ def register_routes(app):
             # solo en esta memoria, así que el cruce va por archivo).
             comprador_id_sug = None
             clave_pendiente_sug = None
+            entrada_sug = None
             if not (target_order_id and message_to_send):
                 entrada_sug, clave_pendiente_sug = _resolver_entrada_postventa(token_ok)
                 if entrada_sug and (entrada_sug.get("sugerencia_ia") or "").strip():
@@ -2083,12 +2110,20 @@ def register_routes(app):
                     comprador_id_sug = entrada_sug.get("from_id")
 
             if target_order_id and message_to_send:
+                if not entrada_sug:
+                    entrada_sug, clave_pendiente_sug = _resolver_entrada_postventa(
+                        token_ok
+                    )
                 resultado_envio = responder_mensaje_posventa(
                     target_order_id, message_to_send, comprador_id_sug
                 )
                 print(f"Resultado del envío a posventa: {resultado_envio}")
                 sufijo = sufijo_pack_postventa(target_order_id)
                 if resultado_envio:
+                    _stats_cerrar_postventa(
+                        entrada_sug or {"pack_id": target_order_id},
+                        "whatsapp",
+                    )
                     _quitar_pendiente_postventa(
                         str(target_order_id), clave_pendiente_sug
                     )
@@ -3278,6 +3313,23 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/preventa/metricas")
+    def api_preventa_metricas():
+        """% de compra tras preguntar en MeLi (preguntas × órdenes pagadas)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = int(request.args.get("dias", 30))
+        except (TypeError, ValueError):
+            dias = 30
+        forzar = str(request.args.get("refresh") or "").strip() in ("1", "true", "yes")
+        try:
+            from app.services.preventa_metricas import calcular_metricas_preventa
+
+            return jsonify(calcular_metricas_preventa(dias=dias, forzar=forzar))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/postventa/pendientes")
     def api_postventa_pendientes():
         if not _api_token_valido():
@@ -3307,6 +3359,7 @@ def register_routes(app):
             codigo,
             respuesta,
             notificar_grupo=True,
+            via="panel",
         )
         return jsonify(resultado)
 
@@ -3321,6 +3374,19 @@ def register_routes(app):
             return jsonify({"ok": False, "error": "Falta código"}), 400
         resultado = _omitir_pendiente_postventa(codigo)
         return jsonify(resultado)
+
+    @app.route("/api/postventa/estadisticas")
+    def api_postventa_estadisticas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            dias = int(request.args.get("dias") or 30)
+        except (TypeError, ValueError):
+            dias = 30
+        dias = max(0, min(dias, 365))
+        from app.services.postventa_stats import calcular_estadisticas
+
+        return jsonify(calcular_estadisticas(dias=dias))
 
     @app.route("/api/sync/schedule")
     def api_sync_schedule():
@@ -4548,6 +4614,11 @@ def register_routes(app):
                 datos_ft_guardar["_cabezote_id"] = cabezote_id_ft
             guardar_yaml_datos(datos_ft_guardar, slug=slug_auto)
             resultado = generar_pdf_html(datos, cabezote_id=cabezote_id_ft)
+            from app.services.lotes_materia_prima import registrar_lote_desde_documento
+
+            lote_registrado = registrar_lote_desde_documento(datos_ft_guardar)
+            if lote_registrado:
+                resultado["lote_registrado"] = lote_registrado
             log_line(f"✔ ficha PDF: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
@@ -4599,6 +4670,14 @@ def register_routes(app):
                 datos_sds=datos_sds,
                 cabezote_id=body.get("cabezote_id"),
             )
+            from app.services.lotes_materia_prima import registrar_lote_desde_documento
+
+            lote_registrado = registrar_lote_desde_documento(
+                datos_para_guardar,
+                datos_coa,
+            )
+            if lote_registrado:
+                resultado["lote_registrado"] = lote_registrado
             try:
                 from app.services.ficha_tecnica import eliminar_borrador_completo_por_titulo
                 eliminar_borrador_completo_por_titulo(titulo)
@@ -5413,6 +5492,11 @@ def register_routes(app):
                     archivar_firma_desde_datos(datos)
                 except Exception:
                     pass
+                from app.services.lotes_materia_prima import registrar_lote_desde_documento
+
+                lote_registrado = registrar_lote_desde_documento({}, datos)
+                if lote_registrado:
+                    resultado["lote_registrado"] = lote_registrado
             log_line(f"✔ {modulo} generado: {resultado.get('docx_nombre')}")
             ref = (
                 (datos.get("referencia") or "")
@@ -5686,8 +5770,18 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
-            from app.services.lotes_materia_prima import listar_lotes
+            from app.services.lotes_materia_prima import (
+                listar_lotes,
+                sincronizar_lote_ficha_para_sku,
+            )
 
+            # Trae el lote real de la ficha técnica (p. ej. 10032026 de Lactato)
+            # aunque el historial tenga uno autogenerado (NAT455) o la ficha use
+            # una ref genérica (LACCALg) distinta del SKU de la etiqueta.
+            try:
+                sincronizar_lote_ficha_para_sku(ref)
+            except Exception:
+                pass
             return jsonify({"ref": ref.strip().upper(), "lotes": listar_lotes(ref)})
         except Exception as e:
             return jsonify({"error": str(e)}), 500

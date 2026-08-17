@@ -11,7 +11,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Cambio | Leer primero | Archivos ancla | Validar |
 | --- | --- | --- | --- |
 | Webhook MeLi | `docs/agentic/modules/webhook-meli.md` | `webhook_meli.py`, `app/meli_webhook_topics.py`, `preventa_meli.py` | `pytest tests/test_smoke.py`, `python scripts/auditar_scripts_cron.py` |
-| WhatsApp/rutas | `docs/agentic/modules/whatsapp-routes.md` | `app/routes.py`, `modulo_posventa.py`, `app/utils.py` | tests de helpers + auditoria |
+| WhatsApp/rutas | `docs/agentic/modules/whatsapp-routes.md` | `app/routes.py`, `modulo_posventa.py`, `app/utils.py`, `app/services/postventa_stats.py` | tests de helpers + auditoria |
 | Tools Claude / ciclo tool-use | `docs/agentic/modules/core-tools.md` | `app/core.py`, `app/agent/run.py`, `app/agent/tool_dispatcher.py` | import + tool registrado + auditoria |
 | Orquestador agente (AgentRun) | `docs/agentic/modules/agent-orchestrator.md` | `app/agent/run.py`, `app/agent/llm_router.py`, `app/agent/tool_dispatcher.py`, `app/agent/checkpoint_store.py` | `pytest tests/ -q` (96 tests) |
 | Memoria agente (Tricap) | `docs/agentic/modules/agent-orchestrator.md` | `app/memory/working.py`, `app/memory/episodic.py`, `app/memory/semantic.py`, `app/memory/compressor.py` | import + `pytest tests/ -q` |

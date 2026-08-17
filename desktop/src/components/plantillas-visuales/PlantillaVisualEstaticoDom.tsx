@@ -18,8 +18,8 @@ import TextoCirculoDom from "./TextoCirculoDom";
 export interface Props {
   doc: PlantillaVisualDoc;
   /**
-   * 1 = mismo layout que el editor (recomendado con pixelRatio en export).
-   * >1 solo si se captura sin pixelRatio (legado).
+   * 1 = mismo layout que el editor (saltos, justify, métricas).
+   * La resolución 600 DPI se aplica por zoom en el export, no aquí.
    */
   escala?: number;
   /** true en composiciones multi-pasada: el fondo ya lo pintó otro paso. */

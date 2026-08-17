@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Pasada final anti-solapes para la carpeta "Generadas AI" del Studio Visual.
+Pasada final anti-solapes para plantillas generadas por IA del Studio Visual
+(marca origen_ai o carpeta legacy "Generadas AI").
 
 Después de regenerar desde los .ai y de pasar el saneo de compliance, algunos
 textos pueden rozarse (p. ej. las advertencias contra "Desarrollado por", o la
@@ -105,7 +106,8 @@ def main() -> None:
     tocadas = 0
     pendientes: list[str] = []
     for p in data.get("plantillas", []):
-        if (p.get("carpeta") or "") != "Generadas AI" or p["id"] in APROBADOS_IDS:
+        es_ai = bool(p.get("origen_ai")) or (p.get("carpeta") or "") == "Generadas AI"
+        if not es_ai or p["id"] in APROBADOS_IDS:
             continue
         cambios = reconciliar(p)
         if cambios:

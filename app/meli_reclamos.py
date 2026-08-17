@@ -195,6 +195,19 @@ def crear_accion_anular_factura_por_reclamo(resource: str, *, topic: str | None 
     ids = _extract_ids(resource, payload)
     claim_id = ids.get("claim_id") or ""
 
+    try:
+        from app.services.postventa_stats import registrar_reclamo
+
+        registrar_reclamo(
+            claim_id=claim_id,
+            payload=payload if isinstance(payload, dict) else {},
+            topic=topic,
+            pack_id=ids.get("pack_id") or "",
+            order_id=ids.get("order_id") or "",
+        )
+    except Exception:
+        pass
+
     if claim_id and _ticket_ya_existe(_tdb.DB_PATH, claim_id):
         log_json("meli_claim_action_dedup", claim_id=claim_id, resource=(resource or "")[:300])
         return

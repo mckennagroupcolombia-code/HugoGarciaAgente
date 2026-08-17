@@ -4090,6 +4090,90 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000017935821408": {
+      "shipping_id": "47770421754",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-16T07:48:46",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 2.0,
+            "precio_unitario": 18500.0
+          }
+        ],
+        "total": 37000.0,
+        "nombre_cliente": "Lina Paola Bermeo Vargas",
+        "identificacion": "222222222222",
+        "direccion_envio": "Cra. 23 137-17, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017938556126": {
+      "shipping_id": "47771501761",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-16T09:08:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "Liliana Guzman",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 102 #69-22, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017936244758": {
+      "shipping_id": "47770633476",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-16T10:27:38",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDSAL20P30mL",
+            "nombre": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 29900.0
+          }
+        ],
+        "total": 29900.0,
+        "nombre_cliente": "Juana Martinez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 159a #13a-46, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017944487450": {
+      "shipping_id": "47774218039",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-16T15:12:24",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDHIABAJPES85P30mL",
+            "nombre": "Ácido Hialurónico 30ml Bajo Pes Todo Tipo De Piel Día/noche",
+            "cantidad": 1.0,
+            "precio_unitario": 22900.0
+          }
+        ],
+        "total": 22900.0,
+        "nombre_cliente": "Ani casallas",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 10 este # 47-27, Soacha, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   }
 }

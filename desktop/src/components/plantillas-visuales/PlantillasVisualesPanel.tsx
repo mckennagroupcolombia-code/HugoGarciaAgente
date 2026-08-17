@@ -981,7 +981,7 @@ export default function PlantillasVisualesPanel({
                     {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
                     {Math.round(doc.formato.alto_px * previewExport.escala)} px
                     {doc.formato.ancho_mm && doc.formato.alto_mm
-                      ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
+                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
                       : ""}
                     {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
                   </p>
@@ -996,7 +996,7 @@ export default function PlantillasVisualesPanel({
                 </button>
               </div>
               <div
-                className="flex min-h-[240px] flex-1 items-center justify-center overflow-auto p-6"
+                className="flex min-h-[320px] flex-1 items-center justify-center overflow-hidden p-4"
                 style={{
                   backgroundImage:
                     "linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%),linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%)",
@@ -1005,19 +1005,21 @@ export default function PlantillasVisualesPanel({
                   backgroundColor: "#f0f0f0",
                 }}
               >
-                {/* Ancho CSS = px del lienzo (no píxeles nativos del PNG a 600 DPI),
-                    para que tipografía/tamaño coincidan visualmente con el editor. */}
+                {/* El PNG nativo es 600 DPI; aquí se muestra a tamaño de lectura
+                    (llena el modal, misma proporción que el lienzo). Antes se
+                    forzaba ancho_px del editor a 96 DPI (~189 px) y la etiqueta
+                    quedaba diminuta frente al zoom de ajuste. */}
                 <img
                   src={previewExport.url}
                   alt="Vista previa del PNG a descargar"
-                  width={doc.formato.ancho_px}
-                  height={doc.formato.alto_px}
+                  width={Math.round(doc.formato.ancho_px * previewExport.escala)}
+                  height={Math.round(doc.formato.alto_px * previewExport.escala)}
                   className="rounded shadow-lg"
                   style={{
-                    width: Math.min(doc.formato.ancho_px, 720),
-                    maxWidth: "100%",
+                    width: "auto",
                     height: "auto",
-                    maxHeight: "55vh",
+                    maxWidth: "100%",
+                    maxHeight: "min(70vh, 720px)",
                     objectFit: "contain",
                   }}
                 />
@@ -1207,8 +1209,8 @@ export default function PlantillasVisualesPanel({
               Sin plantillas que coincidan con «{buscarDebounced}»
             </p>
             <p className="mt-1 max-w-sm text-sm text-muted">
-              La búsqueda revisa todas las carpetas (incluida Generadas AI). Abajo se
-              muestran las imágenes de la biblioteca que coinciden.
+              La búsqueda revisa todas las carpetas. Abajo se muestran las imágenes
+              de la biblioteca que coinciden.
             </p>
           </div>
         ) : (

@@ -710,3 +710,33 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100755 scripts/informe_reposicion_mensual_cron.py
  create mode 100644 scripts/migrar_combos_c_a_d_siigo.py
 [2026-08-15 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-15 23:00'
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   133 órdenes canceladas en la ventana.
+   3508 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3257 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69836 -> NC-2-196 (Accepted) — MeLi: ✅
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69444 -> NC-2-197 (Accepted) — MeLi: ✅
+Resumen: 2 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-16T18:00:01] resumen_actividad_sede_sur: 14 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 3 nuevas · 9 completadas · 2 iniciadas
+
+*Por persona:*
+• Armando Garcia: 0 nuevas, 9 completadas
+• Cynthia Ruiz: 2 nuevas, 0 completadas
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-16) no es el último día del mes.

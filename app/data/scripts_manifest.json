@@ -15,6 +15,8 @@
     {"path": "scripts/emitir_notas_credito_cron.py", "nota": "Cron diario: notas crédito automáticas para ventas MeLi canceladas con factura ya emitida"},
     {"path": "scripts/informe_reposicion_mensual_cron.py", "nota": "Cron diario (auto-chequea fin de mes): informe de reposición alta rotación a Sede Sur"},
     {"path": "app/tools/monitor_correos_proveedores.py", "nota": "Detección Gmail + creación de ticket 'solicitud' para certificados de retención"},
+    {"path": "app/meli_reclamos.py", "nota": "Reclamos MeLi → ticket nota crédito"},
+    {"path": "app/services/postventa_stats.py", "nota": "Estadísticas postventa: reclamos, tiempos, solicitudes"},
     {"path": "scripts/postventa_cola_meli.py", "nota": "Cola postventa MeLi puntual (list/limpiar/enviar)"},
     {"path": "app/tools/generar_catalogo.py", "nota": "Módulo catálogo PDF"},
     {"path": "scripts/generar_catalogo.py", "nota": "CLI catálogo scripts/"},

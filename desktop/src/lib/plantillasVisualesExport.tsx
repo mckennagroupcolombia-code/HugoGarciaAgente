@@ -30,6 +30,22 @@ function clampEscalaExport(escala: number | undefined): number {
   return Math.max(0.25, Math.min(EXPORT_ESCALA_MAX, s));
 }
 
+/** Chrome rasteriza `zoom` a la resolución de salida; `transform:scale` suele
+ *  ampliar un bitmap 1× (texto borroso). El layout debe seguir a 96 DPI. */
+function soportaZoomCss(): boolean {
+  return typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("zoom", "2");
+}
+
+function aplicarEscalaVisualExport(el: HTMLElement, escala: number): void {
+  if (escala === 1) return;
+  if (soportaZoomCss()) {
+    el.style.zoom = String(escala);
+    return;
+  }
+  el.style.transform = `scale(${escala})`;
+  el.style.transformOrigin = "top left";
+}
+
 function fontFamilyCanvas(fontFamily: string): string {
   if (esFuenteMontserrat(fontFamily || "")) return "Montserrat";
   const raw = (fontFamily || "sans-serif").replace(/"/g, "").trim();
@@ -366,8 +382,10 @@ export async function renderPlantillaToCanvasDom(
 
   const doc = sanitizarAltosTextoPlantilla(docIn);
   const escala = clampEscalaExport(opts?.escala);
-  // DOM idéntico al editor (escala 1); la resolución de impresión va en pixelRatio.
+  // Layout a 1× (idéntico al lienzo: justify, saltos, métricas a 4–10 px).
+  // La resolución de impresión va por zoom visual, no reescribiendo fontSize.
   await asegurarFuentesLienzoEscalado(doc, 1);
+  if (escala !== 1) await asegurarFuentesLienzoEscalado(doc, escala);
 
   const { ancho_px: w, alto_px: h } = doc.formato;
   const forzarOpaco = opts?.forzarFondoOpaco === true;
@@ -403,7 +421,7 @@ export async function renderPlantillaToCanvasDom(
     probe.style.cssText =
       'position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;font-family:"Montserrat",system-ui,sans-serif;font-weight:400;font-size:16px;';
     probe.textContent = "Ag";
-    const pesos = new Set<number>([400, 600, 700]);
+    const pesos = new Set<number>([400, 500, 600, 700]);
     for (const el of doc.elementos) {
       if (el.type === "text" && el.visible !== false) {
         pesos.add(pesoFontWeightCss(el.fontWeight));
@@ -451,15 +469,29 @@ export async function renderPlantillaToCanvasDom(
       // se compone sobre el canvas principal en su lugar dentro del zIndex.
       flushSync(() => {
         raiz.render(
-          <PlantillaVisualEstaticoDom
-            doc={{ ...doc, elementos: run.elementos }}
-            escala={1}
-            fondoTransparente
-          />,
+          <div
+            style={{
+              position: "relative",
+              width: anchoFinal,
+              height: altoFinal,
+              overflow: "hidden",
+              background: "transparent",
+            }}
+          >
+            <div style={{ width: w, height: h, transformOrigin: "top left" }}>
+              <PlantillaVisualEstaticoDom
+                doc={{ ...doc, elementos: run.elementos }}
+                escala={1}
+                fondoTransparente
+              />
+            </div>
+          </div>,
         );
       });
-      const nodo = contenedor.firstElementChild as HTMLElement | null;
-      if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
+      const marco = contenedor.firstElementChild as HTMLElement | null;
+      const lienzo1x = marco?.firstElementChild as HTMLElement | null;
+      if (!marco || !lienzo1x) throw new Error("No se pudo preparar el lienzo para exportar");
+      aplicarEscalaVisualExport(lienzo1x, escala);
 
       try {
         if (document.fonts) await document.fonts.ready;
@@ -467,15 +499,15 @@ export async function renderPlantillaToCanvasDom(
         // Re-embebe desde el nodo real (todas las familias/pesos del tramo).
         let cssTramo = fontEmbedCSS;
         try {
-          const cssNodo = await getFontEmbedCSS(nodo);
+          const cssNodo = await getFontEmbedCSS(lienzo1x);
           if (cssNodo) cssTramo = cssNodo;
         } catch {
           /* usar CSS global del probe */
         }
-        const subCanvas = await toCanvas(nodo, {
-          width: w,
-          height: h,
-          pixelRatio: escala,
+        const subCanvas = await toCanvas(marco, {
+          width: anchoFinal,
+          height: altoFinal,
+          pixelRatio: 1,
           backgroundColor: undefined,
           cacheBust: true,
           imagePlaceholder: IMAGEN_PLACEHOLDER_PX,

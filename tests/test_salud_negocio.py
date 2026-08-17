@@ -357,6 +357,13 @@ def test_salud_negocio_resumen_preserva_ads_archivado_tras_bump_de_version(tmp_p
 
     monkeypatch.setattr("app.services.meli_ads.gasto_ads_por_rango", _ads_rechazado)
     monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
+    monkeypatch.setattr(
+        "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
+        lambda dias=30, refresh=False: {
+            "resumen": {"pausar": 0, "revisar": 0, "costo_pausar": 0.0, "costo_revisar": 0.0}
+        },
+    )
+    monkeypatch.setattr("app.services.extracto_bancario.saldo_bancario_mas_reciente", lambda: None)
 
     resultado = S.salud_negocio_resumen(periodicidad="mes", n=2)  # nueva _CACHE_VERSION -> clave vieja no matchea
 
@@ -406,6 +413,16 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
         lambda fi, ff: [{"monto": 50000.0}],
     )
     monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
+    monkeypatch.setattr(
+        "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
+        lambda dias=30, refresh=False: {
+            "resumen": {"pausar": 2, "revisar": 3, "costo_pausar": 400000.0, "costo_revisar": 150000.0}
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.extracto_bancario.saldo_bancario_mas_reciente",
+        lambda: {"saldo": 6604054.59, "fecha": "2026-07-31", "banco": "", "cuenta": "", "extracto_id": 4, "extracto_nombre": "x"},
+    )
 
     resultado = S.salud_negocio_resumen(periodicidad="semana", n=1)
 
@@ -424,6 +441,27 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
     assert "score" in fila and "calificacion" in fila
     assert resultado["actual"]["inicio"] == fila["inicio"]
     assert resultado["actual"]["utilidad_neta"] == fila["utilidad_neta"]
+    assert resultado["ads_recomendaciones"] == {
+        "pausar": 2, "revisar": 3, "costo_pausar": 400000.0, "costo_revisar": 150000.0,
+    }
+    assert resultado["saldo_bancario"]["saldo"] == 6604054.59
+    assert resultado["saldo_bancario"]["fecha"] == "2026-07-31"
+
+
+def test_resumen_ads_recomendaciones_none_si_publicidad_falla(monkeypatch):
+    def _falla(dias=30, refresh=False):
+        raise RuntimeError("MeLi Ads caído")
+
+    monkeypatch.setattr("app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad", _falla)
+    assert S._resumen_ads_recomendaciones() is None
+
+
+def test_saldo_bancario_none_si_extracto_bancario_falla(monkeypatch):
+    def _falla():
+        raise RuntimeError("DB de contabilidad no disponible")
+
+    monkeypatch.setattr("app.services.extracto_bancario.saldo_bancario_mas_reciente", _falla)
+    assert S._saldo_bancario() is None
 
 
 # ─── Caché en disco de buckets cerrados ────────────────────────────────────
@@ -437,6 +475,13 @@ def _mockear_fuentes_minimas(monkeypatch):
     monkeypatch.setattr(S, "_total_mensual_nomina", lambda: (0.0, "sin_datos"))
     monkeypatch.setattr("app.services.contabilidad_db.pagos_servicios_en_rango", lambda fi, ff: [])
     monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
+    monkeypatch.setattr(
+        "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
+        lambda dias=30, refresh=False: {
+            "resumen": {"pausar": 0, "revisar": 0, "costo_pausar": 0.0, "costo_revisar": 0.0}
+        },
+    )
+    monkeypatch.setattr("app.services.extracto_bancario.saldo_bancario_mas_reciente", lambda: None)
 
 
 def test_salud_negocio_resumen_acepta_periodicidad_dia(monkeypatch, tmp_path):

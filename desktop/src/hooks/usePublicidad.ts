@@ -78,6 +78,7 @@ export interface PublicidadRecomendacionItem extends PublicidadItem {
   rotacion_con_dato: boolean;
   margen_real?: boolean;
   motivo: string;
+  activo_en_meli: boolean;
 }
 
 export interface PublicidadRecomendaciones {
@@ -90,6 +91,8 @@ export interface PublicidadRecomendaciones {
     ok: number;
     sin_dato_rotacion: number;
     con_margen_real: number;
+    no_activos: number;
+    campana_inexistente: number;
     costo_pausar: number;
     costo_revisar: number;
   };
@@ -295,6 +298,7 @@ export interface PublicidadAdsVsPromociones {
     ambos: number;
     desalineados: number;
     errores_consultando_promos: number;
+    campana_inexistente: number;
   };
   productos: PublicidadComparacionCanal[];
 }

@@ -72,7 +72,7 @@ def listar_plantillas(q: str = "", carpeta: str | None = None) -> list[dict]:
     if carpeta is not None:
         if q:
             # Con búsqueda activa se incluye también lo que está DENTRO de las
-            # subcarpetas (p. ej. "Generadas AI" al buscar desde la raíz).
+            # subcarpetas (cualquier carpeta anidada al buscar desde la raíz).
             prefijo = f"{carpeta}/" if carpeta else ""
             items = [
                 p for p in items
@@ -278,6 +278,12 @@ def guardar_plantilla(body: dict) -> dict:
         "created_at": body.get("created_at") or now,
         "updated_at": now,
     }
+    # Conserva la marca del pipeline AI si el cliente no la reenvía.
+    origen_ai = body.get("origen_ai")
+    if origen_ai is None:
+        origen_ai = (existente or {}).get("origen_ai")
+    if origen_ai:
+        entry["origen_ai"] = True
     items = [p for p in todas if p.get("id") != pid]
     items.insert(0, entry)
     _save_all(items)

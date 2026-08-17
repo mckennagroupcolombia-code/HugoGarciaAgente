@@ -10,6 +10,7 @@ from app.services.lotes_materia_prima import (
     listar_lotes,
     lote_vigente,
     registrar_lote,
+    registrar_lote_desde_documento,
 )
 
 
@@ -36,6 +37,81 @@ def test_mismo_lote_se_marca_sin_cambios(tmp_path, monkeypatch) -> None:
     registrar_lote("ref-001", lote_numero="L-001", fabricante="Fabricante A")
     segunda = registrar_lote("ref-001", lote_numero="L-001", fabricante="Fabricante A")
     assert segunda["estado"] == "sin_cambios"
+    assert len(listar_lotes("ref-001")) == 1
+
+
+def test_documento_tecnico_registra_lote_para_imprimir(tmp_path, monkeypatch) -> None:
+    _aislar_mapa(tmp_path, monkeypatch)
+
+    lote = registrar_lote_desde_documento(
+        {"titulo": "Eritritol", "referencia": "ERI-500"},
+        {
+            "titulo": "COA Eritritol",
+            "identificacion": {
+                "referencia_interna": "ERI-500",
+                "nombre_comercial": "Eritritol Crystal",
+            },
+            "lote": {
+                "numero": "525040801",
+                "fecha_vencimiento": "2027-04-07",
+                "fabricante": "Hylen Co., Ltd.",
+            },
+        },
+    )
+
+    assert lote is not None
+    assert lote["lote_numero"] == "525040801"
+    assert lote["fecha_vencimiento"] == "2027-04-07"
+    assert lote_vigente("ERI-500") == lote
+
+
+def test_sincroniza_lote_ficha_lactato_a_sku_etiqueta(tmp_path, monkeypatch) -> None:
+    """Ficha con lote 10032026 y ref genérica LACCALg → SKU real de etiqueta."""
+    import yaml
+
+    import app.services.ficha_tecnica as ficha_tecnica
+    import app.services.lotes_materia_prima as lotes_mp
+    from app.services.lotes_materia_prima import sincronizar_lote_ficha_para_sku
+
+    _aislar_mapa(tmp_path, monkeypatch)
+    datos_dir = tmp_path / "datos"
+    datos_dir.mkdir()
+    monkeypatch.setattr(ficha_tecnica, "DATOS_DIR", datos_dir)
+    monkeypatch.setattr(
+        lotes_mp,
+        "_catalogo_productos_para_match",
+        lambda: [
+            {"ref": "C-LACCAL100g", "name": "LACTATO CALCIO 100g"},
+            {"ref": "C-LACCAL250g", "name": "LACTATO CALCIO 250g"},
+            {"ref": "C-ALGSOLACCAL50g", "name": "ALGINATO DE SODIO + LACTATO DE CALCIO 50g C/U"},
+        ],
+    )
+    # Lote inventado previo (como el NAT455 real) debe ceder ante el de la ficha.
+    registrar_lote("C-LACCAL100g", lote_numero="NAT455", nombre_producto="LACTATO DE CALCIO")
+
+    (datos_dir / "ft_coa_sds_lactato_de_calcio.yaml").write_text(
+        yaml.dump({
+            "titulo": "LACTATO DE CALCIO",
+            "nombre_producto": "LACTATO DE CALCIO",
+            "referencia": "LACCALg",
+            "lote": "10032026",
+            "_tipo": "completo",
+            "_coa": {
+                "titulo": "LACTATO DE CALCIO",
+                "identificacion": {
+                    "nombre_comercial": "LACTATO DE CALCIO",
+                    "referencia_interna": "LACCALg",
+                },
+                "lote": {"numero": "10032026", "pais_origen": "China"},
+            },
+        }),
+        encoding="utf-8",
+    )
+
+    sync = sincronizar_lote_ficha_para_sku("C-LACCAL100g")
+    assert sync is not None
+    assert sync["lote_numero"] == "10032026"
+    assert lote_vigente("C-LACCAL100g")["lote_numero"] == "10032026"
 
 
 def test_mismo_fabricante_lote_distinto_se_marca_actualizado(tmp_path, monkeypatch) -> None:

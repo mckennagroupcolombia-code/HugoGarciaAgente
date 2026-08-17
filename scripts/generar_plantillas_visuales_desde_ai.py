@@ -123,7 +123,11 @@ LADO_MAX_MM = 130
 TOLERANCIA_MM = 2
 # Diferencia máxima de proporción al escalar un master a un formato sin modelo
 MAX_DIF_ASPECTO = 0.30
-CARPETA_DESTINO = "Generadas AI"
+# Raíz del Studio (sin carpeta). Antes era "Generadas AI"; se dejó de agrupar
+# ahí para que las etiquetas generadas se vean junto al resto en la raíz.
+CARPETA_DESTINO = ""
+# Marca para --reemplazar / scripts de mantenimiento (carpeta ya no distingue).
+ORIGEN_AI = True
 
 FONTS_DIR = Path("/usr/share/fonts/truetype/montserrat")
 _FONT_FILES = {
@@ -894,6 +898,7 @@ def construir_plantilla(master: dict, campos: dict, ean: str | None, nombre: str
     p["id"] = uuid.uuid4().hex[:12]
     p["nombre"] = nombre
     p["carpeta"] = CARPETA_DESTINO
+    p["origen_ai"] = ORIGEN_AI
     p.pop("created_at", None)
     p.pop("updated_at", None)
 
@@ -1322,12 +1327,14 @@ def main() -> int:
 
     todas_previas = listar_plantillas()
     existentes = {_norm_nombre(p["nombre"]) for p in todas_previas}
-    # Con --reemplazar, las de la carpeta destino se regeneran conservando su id
-    # — EXCEPTO las plantillas modelo aprobadas del apartado Imprimir.
+    # Con --reemplazar, las generadas por este pipeline se regeneran conservando
+    # su id — EXCEPTO las plantillas modelo aprobadas del apartado Imprimir.
+    # Criterio: marca origen_ai o carpeta legacy "Generadas AI".
     reemplazables: dict[str, str] = {}
     if args.reemplazar:
         for prev in todas_previas:
-            if (prev.get("carpeta") or "") == CARPETA_DESTINO and prev["id"] not in APROBADOS_IDS:
+            es_ai = bool(prev.get("origen_ai")) or (prev.get("carpeta") or "") == "Generadas AI"
+            if es_ai and prev["id"] not in APROBADOS_IDS:
                 clave = _norm_nombre(prev["nombre"])
                 reemplazables[clave] = prev["id"]
                 existentes.discard(clave)
@@ -1351,7 +1358,7 @@ def main() -> int:
         if _norm_nombre(nombre) in existentes:
             motivo = "ya existe plantilla con ese nombre"
             if args.reemplazar:
-                motivo = "plantilla modelo aprobada (Imprimir) o fuera de Generadas AI: no se toca"
+                motivo = "plantilla modelo aprobada (Imprimir) o no marcada origen_ai: no se toca"
             reporte["omitidas"].append({"archivo": f.name, "motivo": motivo})
             continue
         fmt_key, rotada, destino = resolver_formato(f)

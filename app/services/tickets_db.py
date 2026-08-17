@@ -3689,6 +3689,39 @@ def _es_solicitud_etiqueta_ticket(t: dict) -> bool:
     return False
 
 
+def _requiere_aprobacion_del_solicitante(db, t: dict, uid: int) -> bool:
+    """Una solicitud delegada la cierra quien la pidió, no quien la ejecutó.
+
+    Quien la ejecuta la marca lista y queda en `esperando_aprobacion`; el
+    solicitante aprueba o la devuelve. Quedan por fuera:
+
+    - Creadas por la cuenta de servicio del bot o por un usuario inactivo:
+      nadie podría aprobarlas y quedarían abiertas para siempre.
+    - Intervenciones y compras derivadas de otro ticket (`ticket_padre_id`):
+      al cerrarse desbloquean al padre, esperar aprobación detendría el trabajo.
+    - Compras y etiquetas delegadas: su checklist ya debe quedar completo.
+    """
+    if t.get("tipo") != "solicitud":
+        return False
+    if t.get("estado") == "esperando_aprobacion":
+        return False
+    if t.get("asignado_a") != uid:
+        return False
+    if t.get("ticket_padre_id"):
+        return False
+    if (t.get("subtipo") or "").strip() in ("compra", "etiqueta"):
+        return False
+    creador = t.get("creado_por")
+    if not creador or creador == uid:
+        return False
+    row = db.execute(
+        "SELECT username, activo FROM usuarios WHERE id=?", (creador,)
+    ).fetchone()
+    if not row or not row["activo"]:
+        return False
+    return row["username"] != _USERNAME_BOT_SEDE_SUR
+
+
 def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str = "") -> tuple:
     valid = {"pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado"}
     if nuevo_estado not in valid:
@@ -3749,6 +3782,8 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                         (ticket_id,),
                     ).fetchone()["n"]
                     return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
+            if _requiere_aprobacion_del_solicitante(db, t, uid):
+                nuevo_estado = "esperando_aprobacion"
         if nuevo_estado == "rechazado" and nivel < 2:
             # El creador puede rechazar una solicitud que espera su revisión
             rechaza_creador = (

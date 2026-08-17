@@ -25,6 +25,17 @@ Regla de negocio (documentada, ajustable — confirmada con el usuario ago-2026)
   alta rotación (margen 15-50%)  → ADS (protege precio, ya vende solo)
   media/baja rotación (margen 15-50%) → PROMOCIÓN (mueve inventario que no gira,
                                           aprovecha el cofinanciamiento de MeLi si existe)
+
+`resumen.desalineados` NO mide qué tan al día está el dato de ads — mide
+`canal_recomendado != canal_actual`. Confirmado ago-2026 (el operador reportó
+91 desalineados sospechando que eran restos de campañas viejas): tras excluir
+anuncios de campañas que ya no existen (`campana_inexistente`, mismo criterio
+que meli_ads_recomendaciones.py) y corregir `canal_actual_ads` para exigir
+`status=="active"` (no solo costo>0 histórico), el conteo de desalineados
+prácticamente no bajó — porque la gran mayoría son productos que hoy NO
+están en ningún canal pagado (`canal_actual="ninguno"`) cuando el margen/
+rotación dice que deberían estar en promoción: es una oportunidad real de
+negocio, no un error de datos.
 """
 
 from __future__ import annotations
@@ -35,6 +46,7 @@ import time
 from datetime import datetime
 from typing import Any, Literal
 
+from app.services.meli_ads import listar_items_publicidad_completo
 from app.services.meli_ads_margenes import obtener_margenes_reales
 from app.services.rentabilidad import COMISION_MELI_DEFAULT
 from app.sync import obtener_ventas_meli_por_item
@@ -113,6 +125,12 @@ def comparar_canales_publicidad(dias: int = 30, refresh: bool = False) -> dict:
     margenes = obtener_margenes_reales(dias=dias, refresh=False)
     con_margen = margenes.get("con_margen") or []
 
+    # Mismo criterio que meli_ads_recomendaciones.py: un `campaign_id` que ya
+    # no aparece en /campaigns/search es una campaña vieja/eliminada — no hay
+    # ningún lugar real en Mercado Ads donde ir a verificar ese anuncio.
+    completo = listar_items_publicidad_completo(dias=dias, refresh=False)
+    campanas_vigentes = {c["id"] for c in completo["campanas"] if c.get("id") is not None}
+
     ventas = obtener_ventas_meli_por_item(dias=dias, refresh=False)
     ventas_por_item: dict[str, Any] = ventas.get("por_item") or {}
 
@@ -120,9 +138,17 @@ def comparar_canales_publicidad(dias: int = 30, refresh: bool = False) -> dict:
 
     filas = []
     errores_promo = 0
+    campana_inexistente = 0
     for it in con_margen:
+        if it["costo"] > 0 and it.get("campaign_id") not in campanas_vigentes:
+            campana_inexistente += 1
+            continue
         nivel = _nivel_rotacion(it["item_id"], ventas_por_item)
-        canal_actual_ads = it["costo"] > 0
+        # No basta con costo>0 en la ventana: un anuncio ya pausado/idle/hold
+        # (dentro de una campaña vigente) puede tener gasto histórico y
+        # seguir contando como "en ads" — mismo bug ya corregido en
+        # meli_ads_recomendaciones.py (ver docstring de ese módulo, ago-2026).
+        canal_actual_ads = it["costo"] > 0 and it.get("status") == "active"
         try:
             promo_data = promociones_del_item(it["item_id"])
         except Exception:
@@ -184,6 +210,7 @@ def comparar_canales_publicidad(dias: int = 30, refresh: bool = False) -> dict:
         "ambos": sum(1 for f in filas if f["canal_recomendado"] == "ambos"),
         "desalineados": sum(1 for f in filas if not f["coincide"]),
         "errores_consultando_promos": errores_promo,
+        "campana_inexistente": campana_inexistente,
     }
 
     resultado = {

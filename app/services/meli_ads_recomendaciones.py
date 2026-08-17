@@ -25,6 +25,25 @@ app/services/meli_ads_margenes.py), cuando hay margen real conocido para un
 producto se usa ESE límite en vez del de rotación — es más preciso porque
 viene del costo real del combo, no de una regla genérica. La rotación sigue
 siendo el criterio para el resto del catálogo sin margen calculado todavía.
+
+Dos situaciones distintas de "ya no está activo" (confirmado ago-2026, tras
+que el operador reportara ~91 "desalineados"/78 "pausar" con la gran mayoría
+ya resueltos y ~56 de una campaña que ni existe ensuciando el listado):
+
+1. Anuncio pausado/idle/hold DENTRO de una campaña que sigue vigente (ej. el
+   operador ya lo pausó manualmente en Mercado Ads): SÍ se muestra, marcado
+   con `activo_en_meli=False` y ordenado al final de su lista (lo que sigue
+   `active` y de verdad necesita un clic va primero) — el operador pidió
+   verlo así en vez de tener que ir a chequear uno por uno.
+2. Anuncio cuyo `campaign_id` NO aparece en la respuesta actual de
+   /campaigns/search (campaña vieja/eliminada, ej. 298663966): se EXCLUYE
+   del todo (`resumen.campana_inexistente`) — no hay ningún lugar real en
+   Mercado Ads donde ir a verificarlo, mantenerlo en la lista es puro ruido.
+   Confirmado en vivo: el 100% de estos casos ya estaban idle/hold de
+   cualquier forma, nunca "active".
+
+`resumen.no_activos` cuenta solo el caso 1 (visible, marcado) — no incluye
+el caso 2 (excluido).
 """
 
 from datetime import datetime
@@ -108,15 +127,35 @@ def calcular_recomendaciones_publicidad(dias: int = 30, refresh: bool = False) -
     margenes = obtener_margenes_reales(dias=dias, refresh=False)
     margen_por_item: dict[str, dict] = {m["item_id"]: m for m in margenes.get("con_margen") or []}
 
+    # Campañas vigentes según la última respuesta de /campaigns/search —
+    # confirmado ago-2026: ~56 anuncios traían `campaign_id` de una campaña
+    # que YA NO figura ahí (ej. 298663966) y aun así aparecían en
+    # pausar/revisar con gasto histórico dentro de la ventana. A diferencia
+    # de un anuncio pausado DENTRO de una campaña vigente (ver
+    # `activo_en_meli` más abajo — ese sí se muestra, marcado), uno de una
+    # campaña que ya no existe no tiene ningún lugar real donde ir a
+    # verificarlo — se excluye del todo, no solo se marca.
+    campanas_vigentes = {c["id"] for c in completo["campanas"] if c.get("id") is not None}
+
     pausar: list[dict] = []
     revisar: list[dict] = []
     ok_count = 0
     sin_dato_count = 0
     con_margen_real_count = 0
+    no_activo_count = 0
+    campana_inexistente_count = 0
 
     for item in completo["items"]:
         if item["costo"] <= 0:
             continue  # sin gasto en el período, no hay nada que recomendar
+        if item.get("campaign_id") not in campanas_vigentes:
+            campana_inexistente_count += 1
+            continue
+        # No se excluyen los que ya no están "active" en MeLi pero SÍ siguen
+        # en una campaña vigente (idle/hold/paused) — el operador pidió
+        # verlos igual en la lista, con el estado real marcado, para no
+        # tener que ir a revisar uno por uno en Mercado Ads.
+        activo_en_meli = item.get("status") == "active"
         nivel, tiene_dato = _nivel_rotacion(item["item_id"], ventas_por_item)
         if not tiene_dato:
             sin_dato_count += 1
@@ -128,17 +167,23 @@ def calcular_recomendaciones_publicidad(dias: int = 30, refresh: bool = False) -
             ok_count += 1
             continue
         accion, motivo = veredicto
+        if not activo_en_meli:
+            no_activo_count += 1
         fila = {
             **item,
             "nivel_rotacion": nivel,
             "rotacion_con_dato": tiene_dato,
             "margen_real": bool(margen),
             "motivo": motivo,
+            "activo_en_meli": activo_en_meli,
         }
         (pausar if accion == "pausar" else revisar).append(fila)
 
-    pausar.sort(key=lambda f: -f["costo"])
-    revisar.sort(key=lambda f: -f["costo"])
+    # Dentro de cada lista, lo que SÍ sigue activo (necesita que lo pauses)
+    # va primero — lo que ya está pausado/idle/hold queda visible pero al
+    # final, no compite por atención con lo que de verdad requiere un clic.
+    pausar.sort(key=lambda f: (f["activo_en_meli"] is False, -f["costo"]))
+    revisar.sort(key=lambda f: (f["activo_en_meli"] is False, -f["costo"]))
 
     return {
         "generado_en": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -150,6 +195,8 @@ def calcular_recomendaciones_publicidad(dias: int = 30, refresh: bool = False) -
             "ok": ok_count,
             "sin_dato_rotacion": sin_dato_count,
             "con_margen_real": con_margen_real_count,
+            "no_activos": no_activo_count,
+            "campana_inexistente": campana_inexistente_count,
             "costo_pausar": sum(f["costo"] for f in pausar),
             "costo_revisar": sum(f["costo"] for f in revisar),
         },

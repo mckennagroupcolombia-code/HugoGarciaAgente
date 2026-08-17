@@ -1022,7 +1022,8 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": err}), 400
         ticket = get_ticket(ticket_id, request.tickets_usuario)
-        if nuevo_estado == "resuelto":
+        # Estado real: una solicitud delegada pasa a revisión aunque se pida "resuelto"
+        if (ticket or {}).get("estado") == "resuelto":
             from app.services.panel_presencia import log_panel_tarea
 
             tipo_evt = "solicitud_resuelta" if (ticket or {}).get("tipo") == "solicitud" else "ticket_resuelto"

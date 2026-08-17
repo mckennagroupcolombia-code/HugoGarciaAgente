@@ -100,6 +100,13 @@ interface ErrorImpresora {
   codigo?: string;
 }
 
+interface LoteRegistrado {
+  lote_numero?: string;
+  fecha_vencimiento?: string;
+  vigente?: boolean;
+  fabricante?: string;
+}
+
 const CODIGOS_INSTALAR_IMPRESORA = new Set([
   "no_registrada",
   "deshabilitada",
@@ -5049,6 +5056,7 @@ function TabImprimir({
   const [studioDatos, setStudioDatos] = useState<EtiquetaStudioDatos>({ ...ETIQUETA_STUDIO_DEFAULT });
   const [lote, setLote] = useState(LOTE_PREFIJO);
   const [vencimiento, setVencimiento] = useState(EXP_PREFIJO);
+  const [lotesRegistrados, setLotesRegistrados] = useState<LoteRegistrado[]>([]);
   const [lotePos, setLotePos] = useState("center");
   const [loteFont, setLoteFont] = useState(LOTE_FONT_IMPRIMIR_DEFAULT);
   const [loteXPct, setLoteXPct] = useState(LOTE_POS_PCT["center"].x);
@@ -5265,6 +5273,12 @@ function TabImprimir({
     },
   });
 
+  function aplicarLoteRegistrado(loteRegistrado: LoteRegistrado) {
+    setLote(conPrefijoLote(loteRegistrado.lote_numero));
+    setVencimiento(conPrefijoExp(loteRegistrado.fecha_vencimiento));
+    setIncluirLoteExp(Boolean(loteRegistrado.lote_numero || loteRegistrado.fecha_vencimiento));
+  }
+
   async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
     setSkuActivoImpresion(fila.sku);
     setFilaActiva(fila);
@@ -5291,12 +5305,16 @@ function TabImprimir({
     let loteVigenteNum = "";
     let vencVigente = "";
     try {
-      const rLote = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+      const rLote = await api.get<{ lotes: LoteRegistrado[] }>(
         `/api/lotes/${encodeURIComponent(fila.sku)}`,
       );
-      loteVigenteNum = rLote.lotes?.[0]?.lote_numero ?? "";
-      vencVigente = rLote.lotes?.[0]?.fecha_vencimiento ?? "";
+      const lotes = rLote.lotes ?? [];
+      setLotesRegistrados(lotes);
+      const vigente = lotes.find((l) => l.vigente) ?? lotes[0];
+      loteVigenteNum = vigente?.lote_numero ?? "";
+      vencVigente = vigente?.fecha_vencimiento ?? "";
     } catch {
+      setLotesRegistrados([]);
       /* sin lote registrado o error de red: se usa el default legacy */
     }
     setMatchEanPng(
@@ -5355,6 +5373,7 @@ function TabImprimir({
     setRectangulosPlantilla([]);
     setLote(LOTE_PREFIJO);
     setVencimiento(EXP_PREFIJO);
+    setLotesRegistrados([]);
     setLotePos("center");
     setLoteFont(LOTE_FONT_IMPRIMIR_DEFAULT);
     setLoteXPct(LOTE_POS_PCT["center"].x);
@@ -5373,10 +5392,12 @@ function TabImprimir({
       setSkuActivoImpresion(match.sku);
       setMatchEanPng(match);
       try {
-        const r = await api.get<{ lotes: Array<{ lote_numero?: string; fecha_vencimiento?: string }> }>(
+        const r = await api.get<{ lotes: LoteRegistrado[] }>(
           `/api/lotes/${encodeURIComponent(match.sku)}`,
         );
-        const vigente = r.lotes?.[0];
+        const lotes = r.lotes ?? [];
+        setLotesRegistrados(lotes);
+        const vigente = lotes.find((l) => l.vigente) ?? lotes[0];
         if (vigente?.lote_numero) {
           loteDelMatch = vigente.lote_numero;
           setLote(conPrefijoLote(vigente.lote_numero));
@@ -5676,7 +5697,7 @@ function TabImprimir({
                 onChange={(e) => {
                   const on = e.target.checked;
                   setIncluirLoteExp(on);
-                  if (on) {
+                  if (on && loteVacio && expVacio) {
                     setLote(LOTE_PREFIJO);
                     setVencimiento(EXP_PREFIJO);
                   }
@@ -5710,6 +5731,28 @@ function TabImprimir({
                   aria-label="Vencimiento"
                   title="Vencimiento"
                 />
+                {lotesRegistrados.length > 1 && (
+                  <select
+                    value={loteParaEtiqueta(lote)}
+                    onChange={(e) => {
+                      const elegido = lotesRegistrados.find(
+                        (item) => item.lote_numero === e.target.value,
+                      );
+                      if (elegido) aplicarLoteRegistrado(elegido);
+                    }}
+                    className={`${RIB_INP} max-w-[10rem]`}
+                    aria-label="Lote registrado de documentos técnicos"
+                    title="Lote registrado en documentos técnicos"
+                  >
+                    {lotesRegistrados.map((item) => (
+                      <option key={item.lote_numero} value={item.lote_numero ?? ""}>
+                        {item.vigente ? "Vigente · " : ""}
+                        {item.lote_numero || "Sin número"}
+                        {item.fecha_vencimiento ? ` · EXP ${item.fecha_vencimiento}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <div className="flex items-center gap-1" title="Tamaño del texto">
                   <input
                     type="range"

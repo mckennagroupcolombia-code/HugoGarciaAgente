@@ -39,6 +39,20 @@ export interface SaludBucket {
   };
 }
 
+export interface SaludAdsRecomendaciones {
+  pausar: number;
+  revisar: number;
+  costo_pausar: number;
+  costo_revisar: number;
+}
+
+export interface SaludBancario {
+  saldo: number;
+  fecha: string;
+  banco: string;
+  cuenta: string;
+}
+
 export interface SaludNegocioResumen {
   periodicidad: SaludPeriodicidad;
   n: number;
@@ -48,6 +62,8 @@ export interface SaludNegocioResumen {
   tendencia_margen_pp: number | null;
   nomina_mensual: number;
   fuente_nomina: "rrhh_compensaciones" | "contabilidad_empleados" | "sin_datos";
+  ads_recomendaciones: SaludAdsRecomendaciones | null;
+  saldo_bancario: SaludBancario | null;
 }
 
 export function useSaludNegocioResumen(periodicidad: SaludPeriodicidad = "semana", n: number = 8) {

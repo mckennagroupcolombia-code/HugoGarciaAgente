@@ -152,11 +152,13 @@ Endpoints usados por React:
 | `/api/metricas` | GET | - | metricas del dia + token MeLi |
 | `/api/preventa/pendientes` | GET | - | `preguntas`, `total` |
 | `/api/preventa/casos` | GET | - | casos recientes |
+| `/api/preventa/metricas` | GET | `dias` (7–90, default 30), `refresh=1` opcional | conversión pregunta→compra: `resumen.tasa_compra_pct`, `por_respuesta`, `por_producto`, `conversion_explicacion`. Cache ~15 min. |
 | `/api/responder-preventa` | POST | `question_id`, `respuesta` | `ok` o error |
-| `/api/postventa/pendientes` | GET | - | `mensajes`, `total` |
+| `/api/postventa/pendientes` | GET | - | `mensajes`, `total` — cada mensaje puede incluir `tipo_solicitud`, `tipo_solicitud_label`, `espera_min` |
 | `/api/postventa/historial/<pack_id>` | GET | - | `historial` |
 | `/api/responder-postventa` | POST | `codigo`, `respuesta` | `ok` o error |
 | `/api/postventa/omitir` | POST | `codigo` (o `pack_id`) | `ok`, `omitido` — saca de cola sin responder MeLi; corta recordatorios WA |
+| `/api/postventa/estadisticas` | GET | `dias` (7/30/90, default 30; 0 = todo) | `cola`, `tiempos` (mediana/SLA/vía), `solicitudes` (motivos frecuentes), `reclamos.motivos` — SQLite `app/data/postventa_stats.db`; MeLi claims best-effort cache 30 min |
 | `/api/sync/hoy` | POST | - | `status: iniciado` |
 | `/api/sync/10dias` | POST | - | `status: iniciado` |
 | `/api/sync/completo` | POST | - | `status: iniciado` |
@@ -177,6 +179,18 @@ Endpoints usados por React:
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/stock/relacion-codigos/editar` | POST | `meli_id`, `sku_meli?`, `codigo_siigo?`, `vincular_si_sku?` | Actualiza SKU en MeLi (`SELLER_SKU`) y/o vínculo Siigo; al menos un campo de código |
+
+## Centro de Mando — cierre de solicitudes
+
+`PUT /api/tickets/<id>/estado` con `{"estado": "resuelto"}` **puede devolver el ticket en
+`esperando_aprobacion`**: una solicitud delegada la cierra quien la pidió, no quien la ejecutó
+(`tickets_db._requiere_aprobacion_del_solicitante`). Todo cliente debe leer el estado de la
+respuesta en vez de asumir `resuelto`.
+
+Cierran directo (sin revisión): acciones, solicitudes auto-asignadas, las creadas por
+`hugo_ia_bot` o por un usuario inactivo (nadie podría aprobarlas), las intervenciones y compras
+con `ticket_padre_id` (su cierre desbloquea al padre) y los subtipos `compra` / `etiqueta`, cuyo
+checklist ya debe quedar completo.
 
 ## Empaque / evidencia fotográfica (panel Atención)
 

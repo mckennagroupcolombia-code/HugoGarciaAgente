@@ -50,6 +50,7 @@ mckenna_business.db
 memoria_vectorial/
 app/data/relacion_codigos_cache.json
 app/data/meli_cobros_cache.json
+app/data/preventa_metricas_cache.json
 
 # Borradores HTML del agente de conocimiento (CLI opción CIENCIA)
 app/data/ciencia_borradores/
@@ -114,6 +115,7 @@ facturas_descargadas/
 app/data/tickets.db
 app/data/oauth_states_panel.json
 app/data/wa_chats.db
+app/data/postventa_stats.db
 app/data/metricas_diarias.json
 app/data/web_chat_activity.json
 app/data/wa_interactions.json

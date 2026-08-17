@@ -71,6 +71,15 @@ hoy — mejor una cifra aproximada y honesta que ninguna):
      "Venta directa WhatsApp (agente IA)" en `observations` — las facturas
      NUEVAS de este canal quedan 100% identificables desde ese cambio.
 
+  8. "Saldo bancario" (`saldo_bancario`) NO es un saldo en vivo — no existe
+     integración con la API de ningún banco. Es el saldo corrido de la línea
+     más reciente del último extracto bancario subido manualmente (ver
+     `extracto_bancario.saldo_bancario_mas_reciente`), tan fresco como ese
+     último extracto. El Libro Mayor propio (`contabilidad_core.py`) sería la
+     fuente correcta a futuro, pero ago-2026 no tiene ninguna ruta Flask
+     conectada — el panel Libro Mayor de `/app` está roto hoy, sin historial
+     real de movimientos que mostrar.
+
 Caché: un bucket (día, semana o mes) YA CERRADO no cambia — sus órdenes no se
 reescriben — así que su cálculo se guarda en `app/data/salud_negocio_cache.json`
 y no se vuelve a golpear MeLi/Siigo por él. Solo el bucket en curso se
@@ -655,6 +664,37 @@ def _prefetch_gasto_ads(periodicidad: str, rangos: list[dict], cache_disco: dict
 
 # ─── Orquestador ──────────────────────────────────────────────────────────
 
+def _resumen_ads_recomendaciones() -> dict | None:
+    """
+    Snapshot "ahora mismo" de qué publicidad MeLi pausar/revisar — no es parte
+    del P&L histórico por bucket, se recalcula fresco en cada llamada (ya tiene
+    su propio caché interno vía listar_items_publicidad_completo). Envuelto en
+    try/except propio: un fallo en publicidad no debe tumbar Salud del Negocio.
+    """
+    try:
+        from app.services.meli_ads_recomendaciones import calcular_recomendaciones_publicidad
+
+        resumen = calcular_recomendaciones_publicidad(dias=30, refresh=False)["resumen"]
+        return {
+            "pausar": resumen["pausar"],
+            "revisar": resumen["revisar"],
+            "costo_pausar": resumen["costo_pausar"],
+            "costo_revisar": resumen["costo_revisar"],
+        }
+    except Exception:
+        return None
+
+
+def _saldo_bancario() -> dict | None:
+    """Snapshot del último saldo bancario conocido (ver extracto_bancario.py)."""
+    try:
+        from app.services.extracto_bancario import saldo_bancario_mas_reciente
+
+        return saldo_bancario_mas_reciente()
+    except Exception:
+        return None
+
+
 def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bool = False) -> dict:
     """
     Devuelve una fila de P&L por bucket (día, semana o mes) + score de salud, más
@@ -768,4 +808,6 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         "tendencia_margen_pp": tendencia_margen_pp,
         "nomina_mensual": round(total_mensual_nomina, 2),
         "fuente_nomina": fuente_nomina,
+        "ads_recomendaciones": _resumen_ads_recomendaciones(),
+        "saldo_bancario": _saldo_bancario(),
     }

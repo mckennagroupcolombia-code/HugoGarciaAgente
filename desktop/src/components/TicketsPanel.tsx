@@ -12425,6 +12425,7 @@ interface Adjunto {
   nombre_archivo: string;
   nombre_original: string;
   mime?: string | null;
+  creado_por?: number | null;
   creado_por_nombre?: string | null;
   creado_en: string;
   paso_id?: number | null;
@@ -13165,6 +13166,12 @@ function SolicitudCard({
   const puedeEnviarChat = !resuelta && puedeVerChat && !ticket.bloqueado_por;
   const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
   const puedeSubirAdjuntos = (esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta;
+  // El backend manda a revisión del solicitante cuando cierra quien la ejecutó
+  // (tickets_db._requiere_aprobacion_del_solicitante): mismas excepciones aquí.
+  const cierreVaARevision =
+    (ticket.tipo ?? "solicitud") === "solicitud"
+    && esAsignado && !esCreadoPorMi && !esIntervencion
+    && !["compra", "etiqueta"].includes((ticket.subtipo ?? "").trim());
 
   // Pasos/checklist
   const [pasos, setPasos] = useState<Paso[]>([]);
@@ -13579,7 +13586,10 @@ function SolicitudCard({
       setTimeout(() => setMsg(""), 4000);
       return;
     }
-    if (!isMcKennaAndroidApp() && !confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`)) return;
+    const aviso = cierreVaARevision
+      ? `¿Marcar "${ticket.titulo}" como lista?\n\nPasa a revisión de ${ticket.creado_por_nombre ?? "quien la pidió"}, que la cierra al aprobarla.`
+      : `¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`;
+    if (!isMcKennaAndroidApp() && !confirm(aviso)) return;
     setBusy(true);
     try {
       if (guardarComoProcedimiento) {
@@ -14102,6 +14112,16 @@ function SolicitudCard({
       </div>
     );
   }
+
+  const adjuntosEntregaRevision = adjuntos.filter((a) =>
+    a.creado_por != null
+      ? uidEq(a.creado_por, ticket.asignado_a)
+      : a.creado_por_nombre === ticket.asignado_a_nombre,
+  );
+  const comentariosEntregaRevision = comentarios.filter((c) =>
+    uidEq(c.usuario_id, ticket.asignado_a)
+    && !/^\s*📎\s*(imagen|archivo)\s+adjunt[oa]/i.test(c.texto),
+  );
 
   return (
     <div
@@ -15275,7 +15295,11 @@ function SolicitudCard({
                       }`}
                     >
                       <Icon name="check" size={15} weight="bold" />
-                      {bloqueado ? "Listo 🔒" : pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                      {bloqueado
+                        ? "Listo 🔒"
+                        : pasosFaltantes > 0
+                          ? `Listo (${hechos}/${total} pasos)`
+                          : cierreVaARevision ? "Marcar lista" : "Listo"}
                     </button>
                   );
                 })()}
@@ -15405,6 +15429,53 @@ function SolicitudCard({
             🔔 {ticket.asignado_a_nombre ?? "El ejecutor"} completó la solicitud y pide tu revisión
           </p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
+
+          <div className="rounded-xl border border-accent/30 bg-surface p-3 space-y-2">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-ink">
+              Resultado para revisar
+            </p>
+            {comentariosEntregaRevision.map((c) => (
+              <p key={c.id} className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
+            ))}
+            {adjuntosEntregaRevision.map((a) => {
+              const esImagen = (a.mime?.startsWith("image/"))
+                || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+              const url = ticketsUploadUrl(a.nombre_archivo, token);
+              return esImagen ? (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setLightboxUrl(url)}
+                  className="block w-full overflow-hidden rounded-xl border border-border bg-white"
+                  title="Ampliar respuesta"
+                >
+                  <img
+                    src={url}
+                    alt={`Respuesta de ${ticket.asignado_a_nombre ?? "la persona asignada"}`}
+                    className="max-h-80 w-full object-contain"
+                  />
+                  <span className="block border-t border-border bg-surface px-2 py-1 text-xs font-bold text-accent">
+                    Ampliar respuesta 🔍
+                  </span>
+                </button>
+              ) : (
+                <a
+                  key={a.id}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-lg border border-border px-3 py-2 text-xs font-semibold text-accent hover:underline"
+                >
+                  📎 {a.nombre_original}
+                </a>
+              );
+            })}
+            {adjuntosEntregaRevision.length === 0 && comentariosEntregaRevision.length === 0 && (
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                No dejó respuesta escrita ni archivos. Pide ajustes antes de aprobar.
+              </p>
+            )}
+          </div>
 
           {/* Aprobar */}
           <button type="button" disabled={busy} onClick={aprobar}
@@ -18426,7 +18497,12 @@ function NuevaSolicitudWizard({
                   >
                     {u.nombre.charAt(0).toUpperCase()}
                   </span>
-                  {u.nombre}
+                  <span className="flex flex-col items-start leading-tight">
+                    <span>{u.nombre}</span>
+                    {u.username && (
+                      <span className="text-[10px] font-medium text-muted">@{u.username.replace(/^@/, "")}</span>
+                    )}
+                  </span>
                   {asignados.includes(u.id) && <Icon name="check" size={13} weight="bold" />}
                 </button>
               ))}
@@ -18822,8 +18898,8 @@ function HistorialSolicitudCard({
           {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
           {duracionMs !== null && <span>⏱ {_fmtDuracionMs(duracionMs)}</span>}
           {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
-          <span className="ml-auto text-[10px] text-accent/70 group-hover:text-accent transition-colors">
-            Ver detalle →
+          <span className="ml-auto rounded-lg bg-accent/10 px-2 py-1 text-[10px] font-bold text-accent group-hover:bg-accent/20 transition-colors">
+            Ver respuesta y archivos →
           </span>
         </div>
       </button>
@@ -18941,6 +19017,53 @@ function HistorialSolicitudDetalle({
     return map;
   }, [adjuntos]);
 
+  const adjuntosEntrega = useMemo(() => {
+    const delEjecutor = adjuntos.filter((a) =>
+      a.creado_por != null
+        ? uidEq(a.creado_por, t.asignado_a)
+        : a.creado_por_nombre === t.asignado_a_nombre,
+    );
+    // Datos antiguos pueden no traer autor; no ocultar evidencia por eso.
+    return delEjecutor.length > 0 ? delEjecutor : adjuntos;
+  }, [adjuntos, t.asignado_a, t.asignado_a_nombre]);
+
+  const comentariosEntrega = useMemo(
+    () => comentarios.filter((c) =>
+      uidEq(c.usuario_id, t.asignado_a)
+      && !/^\s*📎\s*(imagen|archivo)\s+adjunt[oa]/i.test(c.texto),
+    ),
+    [comentarios, t.asignado_a],
+  );
+
+  function AdjuntoResultado({ a }: { a: Adjunto }) {
+    const [lbUrl, setLbUrl] = useState<string | null>(null);
+    const esImagen = (a.mime?.startsWith("image/"))
+      || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+    const url = ticketsUploadUrl(a.nombre_archivo, token);
+    if (!esImagen) return <AdjuntoLink a={a} />;
+    return (
+      <>
+        {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
+        <button
+          type="button"
+          onClick={() => setLbUrl(url)}
+          className="group w-full overflow-hidden rounded-xl border-2 border-accent/30 bg-surface text-left"
+          title="Abrir respuesta"
+        >
+          <img
+            src={url}
+            alt={`Respuesta de ${a.creado_por_nombre ?? t.asignado_a_nombre ?? "la persona asignada"}`}
+            className="max-h-[28rem] w-full object-contain bg-white"
+          />
+          <span className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
+            <span className="min-w-0 truncate font-semibold text-ink">{a.nombre_original}</span>
+            <span className="shrink-0 font-bold text-accent group-hover:underline">Ampliar 🔍</span>
+          </span>
+        </button>
+      </>
+    );
+  }
+
   function AdjuntoLink({ a }: { a: Adjunto }) {
     const [lbUrl, setLbUrl] = useState<string | null>(null);
     const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
@@ -19026,6 +19149,38 @@ function HistorialSolicitudDetalle({
               <p className="font-semibold text-ink">{t.asignado_a_nombre}</p>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Resultado entregado: debe verse antes que tiempos y actividad. */}
+      <div className={`rounded-2xl border-2 p-4 space-y-3 ${
+        adjuntosEntrega.length > 0 || comentariosEntrega.length > 0
+          ? "border-accent/50 bg-accent/10"
+          : "border-amber-400/50 bg-amber-50/50 dark:bg-amber-950/15"
+      }`}>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-ink">
+            ✅ Resultado entregado por {t.asignado_a_nombre ?? "la persona asignada"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            Esto fue lo que adjuntó o escribió al terminar la solicitud.
+          </p>
+        </div>
+        {comentariosEntrega.map((c) => (
+          <div key={c.id} className="rounded-xl border border-border bg-surface px-3 py-2">
+            <p className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
+            <p className="mt-1 text-[10px] text-muted">{_fmtFechaHist(c.creado_en)}</p>
+          </div>
+        ))}
+        {adjuntosEntrega.length > 0 && (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {adjuntosEntrega.map((a) => <AdjuntoResultado key={a.id} a={a} />)}
+          </div>
+        )}
+        {adjuntosEntrega.length === 0 && comentariosEntrega.length === 0 && (
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            No dejó una respuesta escrita ni archivos como evidencia.
+          </p>
         )}
       </div>
 
@@ -19425,6 +19580,7 @@ function SolicitudesView({
   const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [historialGruposAbiertos, setHistorialGruposAbiertos] = useState<Set<number>>(new Set());
   const [historialChatId, setHistorialChatId] = useState<number | null>(null);
+  const [historialBusqueda, setHistorialBusqueda] = useState("");
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -19579,9 +19735,30 @@ function SolicitudesView({
     return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [enEquipo]);
 
+  const historialFiltrado = useMemo(() => {
+    const q = historialBusqueda.trim().toLowerCase().replace(/^@/, "");
+    if (!q) return historial;
+    return historial.filter((t) => {
+      const uid = t.asignado_a ?? 0;
+      const uname = usuarios.find((u) => u.id === uid)?.username?.replace(/^@/, "") ?? "";
+      const haystack = [
+        t.titulo,
+        t.descripcion,
+        t.numero,
+        t.asignado_a_nombre,
+        t.creado_por_nombre,
+        uname,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [historial, historialBusqueda, usuarios]);
+
   const historialPorAsignado = useMemo(() => {
     const map = new Map<number, { uid: number; nombre: string; items: Ticket[] }>();
-    for (const t of historial) {
+    for (const t of historialFiltrado) {
       const uid = t.asignado_a ?? 0;
       if (!map.has(uid)) map.set(uid, { uid, nombre: t.asignado_a_nombre ?? "Sin asignar", items: [] });
       map.get(uid)!.items.push(t);
@@ -19594,7 +19771,7 @@ function SolicitudesView({
         items: [...g.items].sort((a, b) => ts(b) - ts(a)),
       }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [historial]);
+  }, [historialFiltrado]);
 
   useEffect(() => {
     if (tab !== "historial" || historialPorAsignado.length === 0) return;
@@ -20032,10 +20209,27 @@ function SolicitudesView({
       {/* Vista historial: agrupado por miembro asignado (desplegable) */}
       {tab === "historial" && !loading && !loadingHistorial && historial.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs text-muted flex items-center gap-1">
-            {historial.length} solicitud{historial.length !== 1 ? "es" : ""} completada{historial.length !== 1 ? "s" : ""} o rechazada{historial.length !== 1 ? "s" : ""}
-            <InfoTooltip text="Agrupadas por quien las atendió. Toca el nombre del miembro para desplegar u ocultar sus solicitudes." />
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted flex items-center gap-1">
+              {historialFiltrado.length === historial.length
+                ? `${historial.length} solicitud${historial.length !== 1 ? "es" : ""} completada${historial.length !== 1 ? "s" : ""} o rechazada${historial.length !== 1 ? "s" : ""}`
+                : `${historialFiltrado.length} de ${historial.length} coinciden con la búsqueda`}
+              <InfoTooltip text="Agrupadas por quien las atendió. Solo aparecen resueltas o rechazadas (las activas están en «Enviadas» o «Por resolver»). Busca por nombre, título o número." />
+            </p>
+            <input
+              type="search"
+              value={historialBusqueda}
+              onChange={(e) => setHistorialBusqueda(e.target.value)}
+              placeholder="Buscar: Stella, fórmulas, TKT-…"
+              className="w-full sm:w-64 rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+              aria-label="Buscar en historial de solicitudes"
+            />
+          </div>
+          {historialFiltrado.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted">
+              Ninguna solicitud resuelta coincide con «{historialBusqueda.trim()}».
+            </p>
+          )}
           {historialPorAsignado.map(({ uid, nombre, items }) => {
             const abierto = historialGruposAbiertos.has(uid);
             return (
@@ -20055,6 +20249,10 @@ function SolicitudesView({
                   <Icon name="user" size={13} className="shrink-0 text-muted" />
                   <span className="min-w-0 flex-1 truncate text-xs font-bold uppercase tracking-wide text-ink">
                     {nombre}
+                    {(() => {
+                      const uname = usuarios.find((u) => u.id === uid)?.username?.replace(/^@/, "");
+                      return uname ? ` · @${uname}` : "";
+                    })()}
                   </span>
                   <span className="shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] text-muted">
                     {items.length}

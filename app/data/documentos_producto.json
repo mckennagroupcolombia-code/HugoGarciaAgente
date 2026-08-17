@@ -1926,11 +1926,25 @@
           "codigo_verificacion": "6J6KZC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "10032026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-08-17",
+          "codigo_verificacion": "YNXSYL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-17T01:11:42+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-08-17T01:11:42+00:00"
     },
     "C-LACCAL250G": {
       "ref": "C-LACCAL250G",
@@ -1947,11 +1961,25 @@
           "codigo_verificacion": "6J6KZC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "10032026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-08-17",
+          "codigo_verificacion": "NLSU5D",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-17T01:11:42+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-08-17T01:11:42+00:00"
     },
     "C-MANCACREF500G": {
       "ref": "C-MANCACREF500G",
@@ -3753,11 +3781,25 @@
           "codigo_verificacion": "Y9UDNK",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-08-12T06:29:13+00:00"
+        },
+        {
+          "lote_numero": "10032026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-08-17",
+          "codigo_verificacion": "QFD8LQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-17T01:11:41+00:00"
         }
       ],
-      "updated_at": "2026-08-12T06:29:13+00:00"
+      "updated_at": "2026-08-17T01:11:41+00:00"
     },
     "MANCACREF500G": {
       "ref": "MANCACREF500G",
