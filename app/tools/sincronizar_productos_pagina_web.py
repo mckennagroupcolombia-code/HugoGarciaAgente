@@ -86,7 +86,7 @@ def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
 
 
 def _rebuild_catalogo_web_cache() -> str:
-    """Regenera cache.json del sitio desde combos Siigo (precio web = lista × 0.835)."""
+    """Regenera cache.json del sitio desde combos Siigo (precio web = lista − 10%)."""
     root = Path(__file__).resolve().parents[2]
     site_dir = root / "PAGINA_WEB" / "site"
     if str(root) not in sys.path:

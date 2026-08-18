@@ -76,6 +76,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
         "script": "scripts/emitir_notas_credito_cron.py",
     },
+    "reconciliar_precios_meli": {
+        "nombre": "Sincronización de precios MeLi → Siigo/Web",
+        "descripcion": "Compara el precio vivo de cada publicación activa en MeLi contra Siigo por SKU y corrige Siigo → Sheets → Web donde difieran (MeLi es la referencia maestra). Diferencias >2× (posible SKU cruzado) no se aplican solas, se reportan por WhatsApp para revisión manual en Ganancia (/app).",
+        "script": "scripts/reconciliar_precios_meli_cron.py",
+    },
     "informe_reposicion_mensual": {
         "nombre": "Reposición alta rotación (informe mensual)",
         "descripcion": "Cierre de mes: cuánto se demoró McKenna en reponer productos de alta rotación (promedio de días, calificación A-D) + qué sigue agotado ahora mismo. Envía a MCKG Sede Sur. El propio script valida que sea el último día del mes.",

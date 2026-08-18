@@ -3216,7 +3216,7 @@ def actualizar_costo_componente_siigo(
     }
 
 
-_MELI_COMMISSION_WEB = 0.165
+# Precio web en chat/cotizaciones: misma fórmula que el catálogo (MeLi − 10%).
 
 
 def _skus_excluidos_chat_web() -> set[str]:
@@ -3332,7 +3332,12 @@ def _combo_item_desde_raw(raw: dict) -> dict:
     code = (raw.get("code") or "").strip()
     name = (raw.get("name") or "").strip()
     lista = _precio_lista_siigo_producto(raw)
-    web = lista * (1 - _MELI_COMMISSION_WEB) if lista > 0 else 0.0
+    if lista > 0:
+        from app.services.precios_canales import precios_catalogo_web_desde_siigo
+
+        web = float(precios_catalogo_web_desde_siigo(code, lista, name)["precio_web_num"])
+    else:
+        web = 0.0
     return {
         "ref": code,
         "name": name,

@@ -1404,6 +1404,7 @@ def _fetch_cobros_un_item(meli_id: str, token: str, user_id: int | None = None) 
             "pct_venta_api": pct_api,
             "free_shipping": free_shipping,
             "envio_a_cargo_comprador": not free_shipping,
+            "estado_meli": item.get("status"),
             "fuente": "listing_prices+shipping_options",
         }
     except Exception as e:
@@ -1532,6 +1533,7 @@ def listar_cobros_meli(buscar: str = "", refresh: bool = False) -> dict:
                 "neto_estimado": neto,
                 "free_shipping": cobros.get("free_shipping"),
                 "envio_a_cargo_comprador": cobros.get("envio_a_cargo_comprador"),
+                "estado_meli": cobros.get("estado_meli"),
                 "fuente": cobros.get("fuente"),
                 "error": cobros.get("error"),
             }

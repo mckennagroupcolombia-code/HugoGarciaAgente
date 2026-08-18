@@ -4,20 +4,24 @@ Precios multicanal McKenna.
 Prioridad (cada producto con su propio precio):
   1. MercadoLibre — dicta el precio publicado (referencia maestra).
   2. Siigo — mismo valor que MeLi (es lo que se factura).
-  3. Página web — descuento sobre la referencia para mostrar ahorro al comprar directo;
-     el envío va en un apartado separado en checkout.
+  3. Página web — 10% de descuento sobre la referencia para mostrar ahorro al comprar
+     directo; el envío va en un apartado separado en checkout.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
 
 import requests
 
-MELI_COMMISSION = float(__import__("os").getenv("MELI_COMMISSION_WEB", "0.165"))
+# Descuento comercial de la tienda vs precio publicado en MeLi.
+# Independiente de la comisión real de MeLi (~16.5%, ver rentabilidad.py).
+WEB_DESCUENTO_VS_MELI = float(os.getenv("MELI_COMMISSION_WEB", "0.10"))
+MELI_COMMISSION = WEB_DESCUENTO_VS_MELI  # alias histórico (panel / docs)
 
 _TARIFAS_PATH = Path(__file__).resolve().parents[1] / "data" / "tarifas_interrapidisimo.json"
 
@@ -55,7 +59,7 @@ DOCUMENTACION_PRECIOS = {
             "clave": "web",
             "rol": "Ahorro al comprar directo",
             "descripcion": (
-                "Se aplica un descuento (~16,5%, comisión MeLi evitada) sobre la referencia para "
+                "Se aplica un 10% de descuento sobre el precio publicado en MeLi para "
                 "mostrar al cliente que le sale más barato comprar por mckennagroup.co. "
                 "El envío se calcula en un apartado separado al finalizar el pedido."
             ),
@@ -230,13 +234,137 @@ def precios_catalogo_web_desde_siigo(sku: str, lista_siigo: float, nombre: str =
     }
 
 
+def estado_sincronizacion_precios(buscar: str = "") -> dict:
+    """
+    Estado de sincronización de precios por SKU, solo lectura: MeLi (vivo, vía
+    caché de cobros de Ganancia, ~1h), Siigo (lista actual, caché de costos,
+    ~24h) y Web (lo que el catálogo web está sirviendo AHORA MISMO, desde
+    cache.json — no lo recalcula, para que el operador vea si el TTL de 6h del
+    catálogo web ya alcanzó a reflejar un cambio reciente).
+
+    No escribe nada en ningún canal — pensado para el panel "Verificar
+    precios" de Publicaciones, donde el operador solo necesita ver de un
+    vistazo qué SKU quedó desincronizado. Corregir sigue siendo desde Ganancia
+    (actualizar-precio) o el cron de reconciliar_precios_meli.
+    """
+    from pathlib import Path as _Path
+    import json as _json
+
+    from app.services.rentabilidad import listar_cobros_meli, construir_catalogo_costos
+
+    cobros = listar_cobros_meli(buscar="", refresh=False)
+    # codigo_a_producto usa el SKU con su mayúscula/minúscula exacta de Siigo
+    # (ej. "C-CITMAG500g") — se normaliza a upper() para cruzar sin depender
+    # de que todas las fuentes conserven el mismo casing.
+    codigo_a_producto_raw = (construir_catalogo_costos() or {}).get("codigo_a_producto", {})
+    codigo_a_producto = {k.upper(): v for k, v in codigo_a_producto_raw.items()}
+
+    cache_path = _Path(__file__).resolve().parents[2] / "PAGINA_WEB" / "site" / "data" / "cache.json"
+    try:
+        cache = _json.loads(cache_path.read_text(encoding="utf-8"))
+    except Exception:
+        cache = {}
+    web_por_sku: dict[str, float] = {}
+    for c in cache.get("combos") or []:
+        ref = (c.get("ref") or "").strip().upper()
+        if ref and c.get("precio_num") is not None:
+            web_por_sku[ref] = float(c["precio_num"])
+
+    q = (buscar or "").strip().lower()
+    items: list[dict] = []
+    for c in cobros.get("items") or []:
+        sku = (c.get("sku") or "").strip()
+        if not sku:
+            continue
+        nombre = (c.get("nombre") or sku).strip()
+        if q and q not in sku.lower() and q not in nombre.lower():
+            continue
+
+        precio_meli = c.get("precio_meli")
+        precio_siigo = (codigo_a_producto.get(sku.upper()) or {}).get("precio_lista")
+        precio_web = web_por_sku.get(sku.upper())
+
+        # None = no aplica (el SKU no existe en ese canal — ej. artículos que
+        # solo se venden por MeLi y nunca estuvieron en el catálogo Siigo/web).
+        # Eso no es un error a corregir, así que NO cuenta como desincronizado
+        # — solo True/False cuando hay algo real que comparar en ambos lados.
+        siigo_sincronizado = (
+            None if precio_meli is None or precio_siigo is None
+            else abs(float(precio_meli) - float(precio_siigo)) <= 1
+        )
+        web_esperado = round(float(precio_meli) * (1 - MELI_COMMISSION)) if precio_meli else None
+        web_sincronizado = (
+            None if precio_web is None or web_esperado is None
+            else abs(float(precio_web) - web_esperado) <= 1
+        )
+
+        items.append({
+            "sku": sku,
+            "nombre": nombre,
+            "meli_id": c.get("meli_id"),
+            "meli_estado": c.get("estado_meli"),
+            "precio_meli": precio_meli,
+            "precio_siigo": precio_siigo,
+            "precio_web": precio_web,
+            "web_esperado": web_esperado,
+            "siigo_sincronizado": siigo_sincronizado,
+            "web_sincronizado": web_sincronizado,
+        })
+
+    def _orden(i: dict) -> tuple:
+        desync = (i["siigo_sincronizado"] is False) or (i["web_sincronizado"] is False)
+        return (not desync, (i["nombre"] or "").lower())
+
+    items.sort(key=_orden)
+
+    def _desync(i: dict) -> bool:
+        return i["siigo_sincronizado"] is False or i["web_sincronizado"] is False
+
+    # "Pausado" en MeLi = no se está vendiendo ahora mismo, así que igualarlo
+    # no es urgente (aunque igual conviene corregirlo eventualmente). El
+    # conteo grande del panel separa cuántos de esos desincronizados son
+    # realmente accionables hoy (activos) de los que solo son ruido de fondo.
+    desincronizados = [i for i in items if _desync(i)]
+    desincronizados_activos = [i for i in desincronizados if i["meli_estado"] == "active"]
+
+    return {
+        "items": items,
+        "total": len(items),
+        "desincronizados": len(desincronizados),
+        "desincronizados_activos": len(desincronizados_activos),
+        "actualizado_en": cobros.get("actualizado_en"),
+        "cache_hit": cobros.get("cache_hit"),
+    }
+
+
 def _obtener_precios_activos_meli(token: str, seller_id: str) -> dict[str, dict]:
     """
     {item_id: {"price": float, "sku": str, "title": str}} de todas las
     publicaciones activas — mismo patrón de paginación/batch que
     scripts/sincronizar_precios_meli_sheets.py, reutilizado acá para no
     depender de un script de consola con token sin refrescar.
+
+    El SKU se toma preferentemente del catálogo (Sheets, vía meli_id — mismo
+    mapeo confiable que usa listar_cobros_meli/Ganancia) y solo si el meli_id
+    no está catalogado se cae a seller_custom_field/SELLER_SKU de MeLi. Este
+    campo lo escribe el vendedor a mano en cada publicación y a veces queda
+    con un código viejo/distinto (confirmado ago-2026: "Cera Carnauba 500gr"
+    tenía seller_custom_field="CRCRNLB" en vez de "C-CERCAR500g" — con eso,
+    buscar_producto_siigo_por_sku nunca encontraba el producto y el SKU se
+    saltaba en silencio de la reconciliación, aunque sí aparecía desincronizado
+    en el panel "Verificar precios" de Publicaciones).
     """
+    try:
+        from app.services.rentabilidad import _catalogo_publicaciones_meli
+
+        sku_por_mid = {
+            (c.get("meli_id") or "").strip(): (c.get("sku") or "").strip()
+            for c in _catalogo_publicaciones_meli()
+            if c.get("meli_id") and c.get("sku")
+        }
+    except Exception:
+        sku_por_mid = {}
+
     headers = {"Authorization": f"Bearer {token}"}
     all_item_ids: list[str] = []
     offset = 0
@@ -276,7 +404,9 @@ def _obtener_precios_activos_meli(token: str, seller_id: str) -> dict[str, dict]
             price = item.get("price")
             if not item_id or price is None:
                 continue
-            sku = (item.get("seller_custom_field") or "").strip()
+            sku = sku_por_mid.get(item_id, "")
+            if not sku:
+                sku = (item.get("seller_custom_field") or "").strip()
             if not sku:
                 for attr in item.get("attributes") or []:
                     if attr.get("id") == "SELLER_SKU":
@@ -290,8 +420,18 @@ def _obtener_precios_activos_meli(token: str, seller_id: str) -> dict[str, dict]
     return meli_data
 
 
+def _ratio_precios(a: float, b: float) -> float:
+    lo, hi = min(a, b), max(a, b)
+    if lo <= 0:
+        return float("inf")
+    return hi / lo
+
+
 def reconciliar_precios_meli(
-    dry_run: bool = True, umbral: float = 1.0, skus_permitidos: set[str] | None = None
+    dry_run: bool = True,
+    umbral: float = 1.0,
+    skus_permitidos: set[str] | None = None,
+    ratio_max: float = 2.0,
 ) -> dict:
     """
     Trae el precio VIVO de cada publicación activa en MeLi (referencia maestra,
@@ -315,6 +455,10 @@ def reconciliar_precios_meli(
     mezcla diferencias chicas y coherentes (bajada de precio reciente) con
     otras de 2x-14x que huelen a cruce de SKU equivocado — no todo lo que
     aparece acá es seguro de aplicar en automático.
+
+    ratio_max: si skus_permitidos es None, no aplica candidatos cuyo precio
+    MeLi vs Siigo difiera más de este factor (default 2×). Con lista explícita
+    el operador asume el riesgo.
     """
     from app.services.google_services import _abrir_hoja
     from app.services.meli import _obtener_seller_id_meli
@@ -346,6 +490,7 @@ def reconciliar_precios_meli(
         if abs(precio_meli - precio_siigo) <= umbral:
             continue
         precios = resolver_precios_multicanal(sku, precio_meli, nombre=info["title"])
+        ratio = _ratio_precios(precio_meli, precio_siigo)
         candidatos.append(
             {
                 "sku": sku,
@@ -355,17 +500,19 @@ def reconciliar_precios_meli(
                 "precio_siigo_antes": precio_siigo,
                 "precio_nuevo": precios["lista"],
                 "precio_web_nuevo": precios["web"],
+                "ratio": round(ratio, 2) if ratio != float("inf") else None,
+                "sospechoso": ratio > ratio_max,
             }
         )
 
     candidatos.sort(key=lambda c: -abs(c["precio_meli"] - c["precio_siigo_antes"]))
     resultado["candidatos"] = candidatos
+    resultado["omitidos_ratio"] = [c["sku"] for c in candidatos if c.get("sospechoso")]
 
-    a_aplicar = (
-        [c for c in candidatos if c["sku"] in skus_permitidos]
-        if skus_permitidos is not None
-        else candidatos
-    )
+    if skus_permitidos is not None:
+        a_aplicar = [c for c in candidatos if c["sku"] in skus_permitidos]
+    else:
+        a_aplicar = [c for c in candidatos if not c.get("sospechoso")]
 
     if dry_run or not a_aplicar:
         return resultado

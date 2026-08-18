@@ -124,6 +124,44 @@ export interface GaleriaPublicaciones {
   buscar?: string;
 }
 
+export interface PrecioCanalItem {
+  sku: string;
+  nombre: string;
+  meli_id: string;
+  meli_estado: string | null;
+  precio_meli: number | null;
+  precio_siigo: number | null;
+  precio_web: number | null;
+  web_esperado: number | null;
+  siigo_sincronizado: boolean | null;
+  web_sincronizado: boolean | null;
+}
+
+export interface PreciosCanalesResp {
+  items: PrecioCanalItem[];
+  total: number;
+  desincronizados: number;
+  desincronizados_activos: number;
+  actualizado_en?: string | null;
+  cache_hit?: boolean;
+}
+
+export function usePreciosCanales(buscar = "") {
+  return useQuery<PreciosCanalesResp>({
+    queryKey: ["publicaciones-precios-canales", buscar],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (buscar) params.set("buscar", buscar);
+      const qs = params.toString();
+      return api.get<PreciosCanalesResp>(
+        `/api/publicaciones/precios-canales${qs ? `?${qs}` : ""}`,
+        { timeoutMs: 60_000 },
+      );
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function useGaleriaPublicaciones(buscar = "") {
   return useQuery<GaleriaPublicaciones>({
     queryKey: ["publicaciones-galeria", buscar],

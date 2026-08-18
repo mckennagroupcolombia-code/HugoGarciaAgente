@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ProseTextarea } from "./ProseTextarea";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
+import CompetenciaPreciosPanel from "./CompetenciaPreciosPanel";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import {
   usePublicaciones,
@@ -16,6 +17,7 @@ import {
   useEliminarImagenes,
   useGaleriaPublicaciones,
   useNormalizarImagenesCatalogo,
+  usePreciosCanales,
   type PublicacionItem,
   type SyncStatus,
 } from "../hooks/usePublicaciones";
@@ -1466,9 +1468,316 @@ function GaleriaPublicacionesView({
   );
 }
 
+// ── Catálogo para clientes (link a la tienda web) ──────────────────────────
+
+const SITE_URL = "https://mckennagroup.co";
+
+const LINEAS_CATALOGO: { id: string; nombre: string; color: string }[] = [
+  { id: "cosmetica", nombre: "Cosmética", color: "#990099" },
+  { id: "aceites-ceras-grasas", nombre: "Aceites, ceras y grasas", color: "#FFA500" },
+  { id: "alimentario", nombre: "Alimentario", color: "#1F91DC" },
+  { id: "industria", nombre: "Industria", color: "#5C6570" },
+  { id: "laboratorio", nombre: "Laboratorio", color: "#10173C" },
+  { id: "agro", nombre: "Agro", color: "#359441" },
+];
+
+function CatalogoClienteView() {
+  const [linea, setLinea] = useState<string>("");
+  const [copiado, setCopiado] = useState(false);
+
+  const link = linea ? `${SITE_URL}/catalogo?linea=${linea}` : `${SITE_URL}/catalogo`;
+  const lineaNombre = LINEAS_CATALOGO.find((l) => l.id === linea)?.nombre;
+
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // clipboard puede fallar sin permisos — no bloquea el flujo, el link ya está a la vista
+    }
+  }
+
+  const mensajeWa = encodeURIComponent(
+    `Hola, te comparto el catálogo de McKenna Group${lineaNombre ? ` (línea ${lineaNombre})` : ""} con fotos, presentaciones y precios: ${link}`,
+  );
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-5 py-2">
+      <div>
+        <h3 className="text-base font-bold text-ink">Catálogo para clientes</h3>
+        <p className="mt-1 text-sm text-muted">
+          Un link a la tienda web, siempre con las fotos, presentaciones y precios actuales —
+          reemplaza el PDF que se enviaba antes. Compártelo directo por WhatsApp o cópialo.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-semibold text-ink">Filtrar por línea (opcional)</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setLinea("")}
+            className={`rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition ${
+              linea === ""
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border text-muted hover:border-accent/40"
+            }`}
+          >
+            Catálogo completo
+          </button>
+          {LINEAS_CATALOGO.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setLinea(l.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition ${
+                linea === l.id
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-muted hover:border-accent/40"
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+              {l.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border-2 border-border bg-surface p-4">
+        <p className="mb-1.5 text-xs font-semibold text-ink">
+          {lineaNombre ? `Link — ${lineaNombre}` : "Link — catálogo completo"}
+        </p>
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input px-3 py-2">
+          <code className="min-w-0 flex-1 truncate text-sm text-ink">{link}</code>
+          <button
+            type="button"
+            onClick={copiarLink}
+            className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold text-ink hover:border-accent/40"
+          >
+            {copiado ? "✓ Copiado" : "Copiar"}
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href={`https://wa.me/?text=${mensajeWa}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+          >
+            ✆ Compartir por WhatsApp
+          </a>
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent/40"
+          >
+            ↗ Ver como cliente
+          </a>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted">
+        El catálogo se actualiza solo desde SIIGO (fotos, stock, precios) — para corregir un
+        producto puntual usa la pestaña "Catálogo" de este panel.
+      </p>
+    </div>
+  );
+}
+
+// ── Verificar precios por canal (solo lectura) ─────────────────────────────
+
+function fmtCopCanal(n: number | null): string {
+  if (n === null || n === undefined) return "—";
+  return `$${n.toLocaleString("es-CO")}`;
+}
+
+function VerificarPreciosView() {
+  const [buscar, setBuscar] = useState("");
+  const [q, setQ] = useState("");
+  const { data, isLoading, isFetching, isError, error, refetch } = usePreciosCanales(q);
+  const items = data?.items ?? [];
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="shrink-0">
+        <h3 className="text-base font-bold text-ink">Verificar precios por canal</h3>
+        <p className="mt-1 text-sm text-muted">
+          Mercado Libre es la referencia. Siigo debería tener el mismo precio, y Web un 10%
+          menos. Filas en rojo necesitan revisión — corrige desde{" "}
+          <span className="font-semibold text-ink">Rentabilidad → Ganancia</span>. Las marcadas
+          "Pausado" no se están vendiendo en MeLi ahora mismo, así que igualarlas no es urgente.
+        </p>
+      </div>
+
+      <form
+        className="flex shrink-0 flex-wrap items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setQ(buscar.trim());
+        }}
+      >
+        <input
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          placeholder="Buscar SKU o nombre…"
+          className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+        />
+        <button
+          type="submit"
+          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent/50"
+        >
+          Buscar
+        </button>
+        <button
+          type="button"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent/50 disabled:opacity-40"
+        >
+          {isFetching ? "Actualizando…" : "🔄 Actualizar"}
+        </button>
+      </form>
+
+      {data && (
+        <div className="flex shrink-0 flex-wrap items-center gap-3 text-xs">
+          <span className="text-muted">{data.total} producto(s)</span>
+          <span
+            className={
+              data.desincronizados_activos > 0
+                ? "font-semibold text-danger"
+                : "font-semibold text-green-600"
+            }
+          >
+            {data.desincronizados_activos > 0
+              ? `⚠ ${data.desincronizados_activos} activo(s) desincronizado(s)`
+              : "✓ Activos sincronizados"}
+          </span>
+          {data.desincronizados > data.desincronizados_activos && (
+            <span className="text-muted">
+              + {data.desincronizados - data.desincronizados_activos} pausado(s) en MeLi (no urgente)
+            </span>
+          )}
+          {data.actualizado_en && (
+            <span className="text-muted">
+              Precio MeLi actualizado: {data.actualizado_en}
+              {data.cache_hit ? " (caché)" : ""}
+            </span>
+          )}
+        </div>
+      )}
+
+      {isError && (
+        <p className="shrink-0 text-sm text-danger">
+          {error instanceof Error ? error.message : "Error al cargar"}
+        </p>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-border">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead className="sticky top-0 bg-surface-hover text-left text-[11px] uppercase tracking-wide text-muted">
+            <tr>
+              <th className="px-3 py-2">Producto</th>
+              <th className="px-3 py-2 text-right">MeLi (vivo)</th>
+              <th className="px-3 py-2 text-right">Siigo</th>
+              <th className="px-3 py-2 text-right">Web</th>
+              <th className="px-3 py-2 text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                  Cargando…
+                </td>
+              </tr>
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                  Sin resultados.
+                </td>
+              </tr>
+            ) : (
+              items.map((it) => {
+                // false = mismatch real a corregir · null = el SKU no existe en ese
+                // canal (ej. solo se vende por MeLi) — no es un error, no cuenta.
+                const desync = it.siigo_sincronizado === false || it.web_sincronizado === false;
+                const sinDatos = it.siigo_sincronizado === null && it.web_sincronizado === null;
+                const pausado = it.meli_estado !== null && it.meli_estado !== undefined && it.meli_estado !== "active";
+                return (
+                  <tr
+                    key={it.sku}
+                    className={`border-t border-border/70 ${
+                      desync ? (pausado ? "bg-surface-hover" : "bg-danger/5") : ""
+                    }`}
+                  >
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-ink">{it.nombre}</span>
+                        {pausado && (
+                          <span
+                            title="No se está vendiendo ahora mismo en MeLi — corregirlo no es urgente"
+                            className="rounded-full border border-border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted"
+                          >
+                            Pausado
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono text-[11px] text-muted">{it.sku}</div>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink">
+                      {fmtCopCanal(it.precio_meli)}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right tabular-nums ${
+                        it.siigo_sincronizado === false ? "font-semibold text-danger" : "text-ink"
+                      }`}
+                    >
+                      {fmtCopCanal(it.precio_siigo)}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right tabular-nums ${
+                        it.web_sincronizado === false ? "font-semibold text-danger" : "text-ink"
+                      }`}
+                    >
+                      {fmtCopCanal(it.precio_web)}
+                      {it.web_sincronizado === false && it.web_esperado !== null && (
+                        <div className="text-[10px] font-normal text-muted">
+                          esperado {fmtCopCanal(it.web_esperado)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {desync ? (
+                        <span className="text-danger">⚠</span>
+                      ) : sinDatos ? (
+                        <span title="Solo en MeLi — sin producto en Siigo/Web" className="text-muted">—</span>
+                      ) : (
+                        <span className="text-green-600">✓</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Panel principal ────────────────────────────────────────────────────────
 
-type MainView = "catalogo" | "compliance" | "crear" | "galeria";
+type MainView =
+  | "catalogo"
+  | "compliance"
+  | "crear"
+  | "galeria"
+  | "competencia"
+  | "catalogo-cliente"
+  | "precios";
 
 export default function PublicacionesPanel() {
   const [mainView, setMainView] = useState<MainView>("catalogo");
@@ -1503,7 +1812,7 @@ export default function PublicacionesPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       {/* Switcher de vista principal */}
-      <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface p-1">
+      <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
         <button
           onClick={() => setMainView("catalogo")}
           className={hubTabClass(mainView === "catalogo", "flex-1 justify-center")}
@@ -1515,6 +1824,24 @@ export default function PublicacionesPanel() {
           className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
         >
           <span className={HUB_TAB_LABEL}>🖼 Galería</span>
+        </button>
+        <button
+          onClick={() => setMainView("catalogo-cliente")}
+          className={hubTabClass(mainView === "catalogo-cliente", "flex-1 justify-center")}
+        >
+          <span className={HUB_TAB_LABEL}>🔗 Catálogo cliente</span>
+        </button>
+        <button
+          onClick={() => setMainView("precios")}
+          className={hubTabClass(mainView === "precios", "flex-1 justify-center")}
+        >
+          <span className={HUB_TAB_LABEL}>💲 Verificar precios</span>
+        </button>
+        <button
+          onClick={() => setMainView("competencia")}
+          className={hubTabClass(mainView === "competencia", "flex-1 justify-center")}
+        >
+          <span className={HUB_TAB_LABEL}>⚖ Competencia</span>
         </button>
         <button
           onClick={() => setMainView("compliance")}
@@ -1550,6 +1877,20 @@ export default function PublicacionesPanel() {
         </div>
       )}
 
+      {/* Vista catálogo cliente */}
+      {mainView === "catalogo-cliente" && (
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+          <CatalogoClienteView />
+        </div>
+      )}
+
+      {/* Vista verificar precios */}
+      {mainView === "precios" && (
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-4">
+          <VerificarPreciosView />
+        </div>
+      )}
+
       {/* Vista crear desde cero */}
       {mainView === "crear" && (
         <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
@@ -1561,6 +1902,12 @@ export default function PublicacionesPanel() {
       {mainView === "compliance" && (
         <div className="flex-1 min-h-0">
           <MeliComplianceTab />
+        </div>
+      )}
+
+      {mainView === "competencia" && (
+        <div className="flex-1 min-h-0">
+          <CompetenciaPreciosPanel />
         </div>
       )}
 

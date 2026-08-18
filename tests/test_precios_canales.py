@@ -28,7 +28,8 @@ def test_meli_dicta_siigo_igual():
 
 def test_web_descuento_envio_apartado():
     p = resolver_precios_multicanal("C-CITMAG500g", 40000)
-    assert p["web"] == int(round(40000 * 0.835))
+    assert p["web"] == int(round(40000 * 0.90))
+    assert p["canales"]["web"]["descuento_pct"] == 10
     assert p["envio_web_apartado"] is True
     assert p["canales"]["web"]["envio_apartado"] is True
     assert p["canales"]["web"]["envio_estimado_referencia"] == envio_estimado_por_sku("C-CITMAG500g")
@@ -224,6 +225,43 @@ def test_reconciliar_skus_permitidos_filtra_lo_que_se_aplica(monkeypatch):
     assert resultado["aplicados"] == 1  # pero solo se aplica el permitido
     assert llamadas_siigo_write == [("C-A", 50000)]
     assert {p["sku"] for p in llamadas_web[0]} == {"C-A"}
+
+
+def test_reconciliar_omite_ratio_sospechoso_salvo_lista_explicita(monkeypatch):
+    """Diferencias >2× no se escriben en automático (SKU cruzado)."""
+    monkeypatch.setattr(
+        P,
+        "requests",
+        type("R", (), {"get": staticmethod(_fake_get_meli(
+            [{"results": ["MCO1", "MCO2"], "paging": {"total": 2}}],
+            {
+                "MCO1": _item_body("MCO1", 50000.0, "C-A"),
+                "MCO2": _item_body("MCO2", 700000.0, "C-B"),
+            },
+        ))}),
+    )
+
+    class _FakeWorksheet:
+        def get_all_values(self):
+            return [
+                ["meli_id", "SKU", "", "NOMBRE", "PRECIO"],
+                ["MCO1", "C-A", "", "Producto A", "60000"],
+                ["MCO2", "C-B", "", "Producto B", "80000"],
+            ]
+
+        def batch_update(self, data):
+            pass
+
+    llamadas_siigo_write, llamadas_web = _mockear_dependencias(
+        monkeypatch, siigo_precios={"C-A": 60000.0, "C-B": 80000.0}, ws_mock=_FakeWorksheet(),
+    )
+
+    resultado = reconciliar_precios_meli(dry_run=False)
+
+    assert len(resultado["candidatos"]) == 2
+    assert "C-B" in resultado["omitidos_ratio"]
+    assert resultado["aplicados"] == 1
+    assert llamadas_siigo_write == [("C-A", 50000)]
 
 
 def test_reconciliar_error_en_un_sku_no_detiene_el_resto(monkeypatch):

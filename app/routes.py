@@ -15161,6 +15161,21 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/publicaciones/precios-canales", methods=["GET"])
+    @app.route("/app/api/publicaciones/precios-canales", methods=["GET"])
+    def api_publicaciones_precios_canales():
+        """Solo lectura: precio vivo MeLi vs Siigo (lista) vs Web (lo que sirve
+        el catálogo ahora) por SKU, para verificación visual — ver Publicaciones
+        → Verificar precios. No escribe nada; para corregir usar Ganancia."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.precios_canales import estado_sincronizacion_precios
+        buscar = request.args.get("buscar", "").strip()
+        try:
+            return jsonify(estado_sincronizacion_precios(buscar=buscar))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/publicaciones/galeria", methods=["GET"])
     @app.route("/app/api/publicaciones/galeria", methods=["GET"])
     def api_publicaciones_galeria():
