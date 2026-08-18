@@ -806,3 +806,11 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-17) no es el último día del mes.
+[cursor/wa-metricas-panel d878452] Auto-commit: actualizacion diaria 2026-08-17 23:00
+ 36 files changed, 8297 insertions(+), 629 deletions(-)
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/tools/contenido_video.py
+ create mode 100644 desktop/src/components/ContenidoPanel.tsx
+ create mode 100644 eliminar_marca_agua_video.py
+[2026-08-17 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-17 23:00'

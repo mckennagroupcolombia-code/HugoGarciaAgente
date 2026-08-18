@@ -2962,11 +2962,25 @@
           "codigo_verificacion": "PQY2FL",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:47+00:00"
+        },
+        {
+          "lote_numero": "PROBL20260408",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-08-18",
+          "codigo_verificacion": "MM3ZQQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-18T04:45:00+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:47+00:00"
+      "updated_at": "2026-08-18T04:45:00+00:00"
     },
     "C-MANKAR125G": {
       "ref": "C-MANKAR125G",

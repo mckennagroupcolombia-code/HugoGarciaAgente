@@ -1174,6 +1174,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "17ac0132c3ac",
+      "sku": "C-SCI 250g",
+      "nombre_producto": "SCI 250g",
+      "numero_producto": 106,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701062502633",
+      "creado_at": "2026-08-17T23:11:55"
+    },
+    {
       "id": "580530407414",
       "sku": "C-CAOARC500g",
       "nombre_producto": "CAOLIN ARCILLA 500g",
@@ -1217,6 +1228,17 @@
       "codigo": "7701105002632",
       "creado_at": "2026-07-14T15:35:25",
       "actualizado_at": "2026-07-23T08:49:26"
+    },
+    {
+      "id": "baae1985003e",
+      "sku": "C-SCI 500g",
+      "nombre_producto": "SCI 500g",
+      "numero_producto": 111,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701115002639",
+      "creado_at": "2026-08-17T23:12:25"
     },
     {
       "id": "3b2e13efb2d3",

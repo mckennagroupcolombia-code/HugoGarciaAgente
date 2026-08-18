@@ -1,48 +1,5 @@
 {
-  "pendientes": {
-    "2000017990415330": {
-      "pack_id": "2000017990415330",
-      "codigo": "330",
-      "comprador": "Comprador 1014864148",
-      "from_id": "1014864148",
-      "texto": "Buenas tardes. Agradezco para la generación de factura electrónica a nombre de Doehler Colombia SAS nit 900727953 Correo milena.lopez@doehler.com\nAdjunto RUT",
-      "msg_id": "01a012c1c2077180a956cce5ad53401f",
-      "productos": "  • Mentol Cristal  100gr x1 — $29,500 c/u",
-      "productos_detalle": [
-        {
-          "nombre": "Mentol Cristal  100gr",
-          "cantidad": 1,
-          "precio_unitario": 29500.0
-        }
-      ],
-      "total": "$29,500 COP (pagado)",
-      "fecha_compra": "17/08/2026 10:41 PM",
-      "envio": "Listo para enviar",
-      "sugerencia_ia": "¡Hola veci! Buenas tardes, con gusto le colaboro. 😊\n\nGracias por compartirnos los datos para la factura electrónica. Hemos tomado nota de la siguiente información:\n\n🏢 Razón social: Doehler Colombia SAS\n🔢 NIT: 900727953\n📧 Correo: milena.lopez@doehler.com\n\nEn cuanto al RUT adjunto, lo tendremos en cuenta para el proceso. Nuestro equipo se encargará de gestionar la factura electrónica y la recibirán en el correo indicado. Si tiene alguna duda adicional o necesita algo más, con mucho gusto le ayudamos. ¡Que tenga una excelente tarde! 🙌",
-      "timestamp": "2026-08-17T21:44:59"
-    },
-    "330": {
-      "pack_id": "2000017990415330",
-      "codigo": "330",
-      "comprador": "Comprador 1014864148",
-      "from_id": "1014864148",
-      "texto": "Buenas tardes. Agradezco para la generación de factura electrónica a nombre de Doehler Colombia SAS nit 900727953 Correo milena.lopez@doehler.com\nAdjunto RUT",
-      "msg_id": "01a012c1c2077180a956cce5ad53401f",
-      "productos": "  • Mentol Cristal  100gr x1 — $29,500 c/u",
-      "productos_detalle": [
-        {
-          "nombre": "Mentol Cristal  100gr",
-          "cantidad": 1,
-          "precio_unitario": 29500.0
-        }
-      ],
-      "total": "$29,500 COP (pagado)",
-      "fecha_compra": "17/08/2026 10:41 PM",
-      "envio": "Listo para enviar",
-      "sugerencia_ia": "¡Hola veci! Buenas tardes, con gusto le colaboro. 😊\n\nGracias por compartirnos los datos para la factura electrónica. Hemos tomado nota de la siguiente información:\n\n🏢 Razón social: Doehler Colombia SAS\n🔢 NIT: 900727953\n📧 Correo: milena.lopez@doehler.com\n\nEn cuanto al RUT adjunto, lo tendremos en cuenta para el proceso. Nuestro equipo se encargará de gestionar la factura electrónica y la recibirán en el correo indicado. Si tiene alguna duda adicional o necesita algo más, con mucho gusto le ayudamos. ¡Que tenga una excelente tarde! 🙌",
-      "timestamp": "2026-08-17T21:44:59"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019f6192195275f58a7eae0e071b814f",
     "0196cc48e63d7a6bb2feb63c1e07bf70",
