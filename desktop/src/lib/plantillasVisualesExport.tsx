@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { toCanvas, getFontEmbedCSS } from "html-to-image";
+import { getFontEmbedCSS } from "html-to-image";
 import {
   esFuenteMontserrat,
   pesoFontWeightCss,
@@ -10,6 +10,11 @@ import {
   type PlantillaVisualDoc,
 } from "./plantillasVisuales";
 import { esSrcImagenApi, resolverUrlImagenCanvas } from "./plantillasVisualesImagen";
+import {
+  calcularTextoCirculo,
+  LINE_HEIGHT_DEFECTO,
+  type CirculoPorcion,
+} from "./textoCirculo";
 import PlantillaVisualEstaticoDom from "../components/plantillas-visuales/PlantillaVisualEstaticoDom";
 import TextoArcoSvg, {
   alturaCajaTexto,
@@ -30,20 +35,20 @@ function clampEscalaExport(escala: number | undefined): number {
   return Math.max(0.25, Math.min(EXPORT_ESCALA_MAX, s));
 }
 
-/** Chrome rasteriza `zoom` a la resolución de salida; `transform:scale` suele
- *  ampliar un bitmap 1× (texto borroso). El layout debe seguir a 96 DPI. */
-function soportaZoomCss(): boolean {
-  return typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("zoom", "2");
-}
+type LineaMedida = { texto: string; justificar: boolean };
 
-function aplicarEscalaVisualExport(el: HTMLElement, escala: number): void {
-  if (escala === 1) return;
-  if (soportaZoomCss()) {
-    el.style.zoom = String(escala);
-    return;
-  }
-  el.style.transform = `scale(${escala})`;
-  el.style.transformOrigin = "top left";
+type MedidaTextoExport = {
+  lineas: LineaMedida[];
+  letterSpacing: string;
+};
+
+function aplicarLetterSpacing(
+  ctx: CanvasRenderingContext2D,
+  letterSpacing: string | undefined,
+): void {
+  if (!letterSpacing) return;
+  const ctxLs = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  if (typeof ctxLs.letterSpacing === "string") ctxLs.letterSpacing = letterSpacing;
 }
 
 function fontFamilyCanvas(fontFamily: string): string {
@@ -140,10 +145,6 @@ async function resolverImagenesPlantilla(
   );
   return mapa;
 }
-
-/** PNG transparente de 1×1 — placeholder cuando una imagen no se puede reincrustar al exportar. */
-const IMAGEN_PLACEHOLDER_PX =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=";
 
 /**
  * html-to-image rechaza con el Event nativo `onerror`/`onload` del <img> o del
@@ -253,29 +254,259 @@ function dibujarLineaEnCanvas(
   ctx.restore();
 }
 
-type RunRender = { tipo: "dom" | "canvas"; elementos: ElementoVisual[] };
-
-function esRenderCanvas(el: ElementoVisual): boolean {
-  if (el.type === "line" || el.type === "image") return true;
-  // Arcos: SVG nativo (textPath) rasterizado — no html-to-image ni glifos a mano.
-  if (el.type === "text" && (el.arco ?? 0) !== 0 && el.forma !== "circulo") return true;
-  return false;
+function esTextoPlano(el: ElementoVisual): el is ElementoTexto {
+  return el.type === "text" && el.forma !== "circulo" && (el.arco ?? 0) === 0;
 }
 
-/** Agrupa los elementos visibles (ordenados por zIndex) en tramos contiguos
- * "dom" (texto/rect, vía html-to-image) y "canvas" (línea/imagen/arco). */
-function agruparPorTipoRender(doc: PlantillaVisualDoc): RunRender[] {
-  const ordenados = doc.elementos
-    .filter((el) => el.visible !== false)
-    .sort((a, b) => a.zIndex - b.zIndex);
-  const runs: RunRender[] = [];
-  for (const el of ordenados) {
-    const tipo: RunRender["tipo"] = esRenderCanvas(el) ? "canvas" : "dom";
-    const ultimo = runs[runs.length - 1];
-    if (ultimo && ultimo.tipo === tipo) ultimo.elementos.push(el);
-    else runs.push({ tipo, elementos: [el] });
+function esTextoCirculo(el: ElementoVisual): el is ElementoTexto & { forma: "circulo" } {
+  return el.type === "text" && el.forma === "circulo";
+}
+
+function conRotacionCaja(
+  ctx: CanvasRenderingContext2D,
+  el: ElementoVisual,
+  escala: number,
+  altoCaja: number,
+  pintar: () => void,
+): void {
+  if (!el.rotation) {
+    pintar();
+    return;
   }
-  return runs;
+  const cx = (el.x + el.width / 2) * escala;
+  const cy = (el.y + altoCaja / 2) * escala;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((el.rotation * Math.PI) / 180);
+  ctx.translate(-cx, -cy);
+  pintar();
+  ctx.restore();
+}
+
+/**
+ * Lee los saltos reales del motor CSS (el mismo que el lienzo) carácter a
+ * carácter. html-to-image no sirve aquí: clona a un SVG foreignObject donde
+ * Montserrat suele caer a sans-serif y el párrafo se remaqueta.
+ */
+function medirLineasCajaTexto(caja: HTMLElement, align: ElementoTexto["align"]): LineaMedida[] {
+  const inner =
+    (caja.querySelector("[data-export-text-inner]") as HTMLElement | null) ?? caja;
+  const texto = inner.textContent ?? "";
+  if (!texto) return [{ texto: "", justificar: false }];
+
+  const textNode = inner.firstChild;
+  if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
+    return texto.split("\n").map((t, i, arr) => ({
+      texto: t,
+      justificar: align === "justify" && i < arr.length - 1 && /\s/.test(t.trim()),
+    }));
+  }
+
+  const range = document.createRange();
+  const frags: { ch: string; top: number; isBreak: boolean }[] = [];
+  for (let i = 0; i < texto.length; i++) {
+    const ch = texto[i];
+    if (ch === "\n") {
+      frags.push({ ch, top: -1, isBreak: true });
+      continue;
+    }
+    range.setStart(textNode, i);
+    range.setEnd(textNode, i + 1);
+    const rects = range.getClientRects();
+    const rect = rects.length ? rects[rects.length - 1] : null;
+    frags.push({ ch, top: rect && rect.height > 0 ? Math.round(rect.top * 4) / 4 : -1, isBreak: false });
+  }
+
+  const lineas: LineaMedida[] = [];
+  let buf = "";
+  let top: number | null = null;
+  const flush = (finParrafo: boolean, permitirVacio: boolean) => {
+    if (!buf && !permitirVacio) return;
+    let t = buf.replace(/ +$/g, "");
+    if (!finParrafo) t = t.replace(/^ +/g, "");
+    lineas.push({
+      texto: t,
+      justificar: align === "justify" && !finParrafo && t.trim().includes(" "),
+    });
+    buf = "";
+  };
+
+  for (const f of frags) {
+    if (f.isBreak) {
+      flush(true, true);
+      top = null;
+      continue;
+    }
+    if (top !== null && f.top >= 0 && Math.abs(f.top - top) > 0.6) {
+      flush(false, false);
+    }
+    if (buf === "" && f.top >= 0) top = f.top;
+    buf += f.ch;
+  }
+  flush(true, lineas.length === 0 || buf.length > 0);
+  return lineas.length ? lineas : [{ texto: "", justificar: false }];
+}
+
+async function medirTextosPlantilla(
+  doc: PlantillaVisualDoc,
+): Promise<Map<string, MedidaTextoExport>> {
+  const medidas = new Map<string, MedidaTextoExport>();
+  const textos = doc.elementos.filter(esTextoPlano);
+  if (!textos.length) return medidas;
+
+  const host = document.createElement("div");
+  host.setAttribute("aria-hidden", "true");
+  host.style.cssText =
+    "position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;";
+  document.body.appendChild(host);
+  const raiz = createRoot(host);
+  try {
+    flushSync(() => {
+      raiz.render(
+        <PlantillaVisualEstaticoDom
+          doc={{ ...doc, elementos: textos }}
+          escala={1}
+          fondoTransparente
+        />,
+      );
+    });
+    if (document.fonts) await document.fonts.ready;
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+    for (const el of textos) {
+      const caja = host.querySelector(
+        `[data-export-text-id="${el.id.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`,
+      ) as HTMLElement | null;
+      if (!caja) continue;
+      const inner = caja.querySelector("[data-export-text-inner]") as HTMLElement | null;
+      const letterSpacing = getComputedStyle(inner ?? caja).letterSpacing || "0px";
+      medidas.set(el.id, {
+        lineas: medirLineasCajaTexto(caja, el.align),
+        letterSpacing,
+      });
+    }
+  } finally {
+    raiz.unmount();
+    host.remove();
+  }
+  return medidas;
+}
+
+function dibujarRectEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: Extract<ElementoVisual, { type: "rect" }>,
+  escala: number,
+): void {
+  conRotacionCaja(ctx, el, escala, el.height, () => {
+    const x = el.x * escala;
+    const y = el.y * escala;
+    const w = el.width * escala;
+    const h = el.height * escala;
+    const r = (el.borderRadius || 0) * escala;
+    ctx.fillStyle = el.fill || "transparent";
+    ctx.strokeStyle = el.stroke || "transparent";
+    ctx.lineWidth = (el.strokeWidth || 0) * escala;
+    if (r > 0 && typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      if (el.fill && el.fill !== "transparent") ctx.fill();
+      if (el.stroke && el.strokeWidth > 0) ctx.stroke();
+    } else {
+      if (el.fill && el.fill !== "transparent") ctx.fillRect(x, y, w, h);
+      if (el.stroke && el.strokeWidth > 0) ctx.strokeRect(x, y, w, h);
+    }
+  });
+}
+
+function dibujarTextoMedidoEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: ElementoTexto,
+  medida: MedidaTextoExport,
+  escala: number,
+): void {
+  const boxH = alturaCajaTexto(el);
+  conRotacionCaja(ctx, el, escala, boxH, () => {
+    ctx.save();
+    ctx.scale(escala, escala);
+    ctx.fillStyle = el.color || "#000";
+    ctx.font = fontCssTexto(el);
+    ctx.textBaseline = "top";
+    aplicarLetterSpacing(ctx, medida.letterSpacing);
+    const lh = el.fontSize * (el.lineHeight ?? LINE_HEIGHT_DEFECTO);
+    const halfLeading = (lh - el.fontSize) / 2;
+    const ancho = Math.max(8, el.width || 0);
+    medida.lineas.forEach((linea, i) => {
+      const align = linea.justificar ? "justify" : el.align === "justify" ? "left" : el.align;
+      dibujarLineaTexto(ctx, linea.texto, el.x, el.y + i * lh + halfLeading, ancho, align);
+    });
+    ctx.restore();
+  });
+}
+
+function dibujarTextoCirculoEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: ElementoTexto,
+  escala: number,
+): void {
+  const boxH = alturaCajaTexto(el);
+  conRotacionCaja(ctx, el, escala, boxH, () => {
+    ctx.save();
+    ctx.translate(el.x * escala, el.y * escala);
+    ctx.scale(escala, escala);
+    ctx.font = fontCssTexto(el);
+    aplicarLetterSpacing(ctx, "0px");
+    const holgura = (el.marcoAncho ?? 0) > 0 ? el.fontSize * 0.35 : 0;
+    const porcion: CirculoPorcion = el.circuloPorcion ?? "completo";
+    const layout = calcularTextoCirculo(
+      el.content || "",
+      el.width,
+      el.fontSize,
+      el.lineHeight ?? LINE_HEIGHT_DEFECTO,
+      el.align ?? "left",
+      (s) => ctx.measureText(s).width,
+      holgura,
+      porcion,
+    );
+    if (!layout) {
+      ctx.restore();
+      return;
+    }
+    if ((el.marcoAncho ?? 0) > 0) {
+      const marcoAncho = el.marcoAncho ?? 0;
+      const radioMarco = layout.radio + marcoAncho / 2 + el.fontSize * 0.1;
+      ctx.beginPath();
+      ctx.arc(el.width / 2, layout.radio, radioMarco, 0, Math.PI * 2);
+      ctx.strokeStyle = el.marcoColor || el.color;
+      ctx.lineWidth = marcoAncho;
+      ctx.stroke();
+    }
+    ctx.fillStyle = el.color || "#000";
+    ctx.textBaseline = "middle";
+    const alignLinea = el.align === "justify" ? "center" : el.align ?? "left";
+    for (const l of layout.lineas) {
+      if (l.justificar && l.palabras.length > 1) {
+        const textoAncho = l.anchos.reduce((s, a) => s + a, 0);
+        const espacio = (l.chord - textoAncho) / (l.palabras.length - 1);
+        let cx = l.xIni;
+        for (let i = 0; i < l.palabras.length; i++) {
+          ctx.textAlign = "left";
+          ctx.fillText(l.palabras[i], cx, l.yCenter);
+          cx += l.anchos[i] + espacio;
+        }
+      } else {
+        ctx.textAlign =
+          alignLinea === "right" ? "right" : alignLinea === "center" ? "center" : "left";
+        const x =
+          alignLinea === "right"
+            ? l.xIni + l.chord
+            : alignLinea === "center"
+              ? l.xIni + l.chord / 2
+              : l.xIni;
+        ctx.fillText(l.texto, x, l.yCenter);
+      }
+    }
+    ctx.restore();
+  });
 }
 
 function cargarImagenDesdeSvgBlob(svg: string): Promise<HTMLImageElement> {
@@ -368,11 +599,9 @@ async function dibujarTextoArcoEnCanvas(
 }
 
 /**
- * Renderiza la plantilla montando el mismo DOM/CSS del editor (fuera de
- * pantalla) y lo captura con html-to-image. A diferencia de
- * `renderPlantillaToCanvas` (Canvas 2D con wrap/justify reimplementados a
- * mano), este camino reutiliza el layout de texto real del navegador, por lo
- * que el resultado coincide con lo que se ve en VisualCanvasEditor.
+ * Export a 96 DPI idéntico al lienzo: los saltos de línea se leen del DOM
+ * real (mismo motor CSS que el editor) y se pintan en canvas a la escala de
+ * impresión. Evita html-to-image, que remaquetaba el texto al clonar a SVG.
  */
 export async function renderPlantillaToCanvasDom(
   docIn: PlantillaVisualDoc,
@@ -382,14 +611,13 @@ export async function renderPlantillaToCanvasDom(
 
   const doc = sanitizarAltosTextoPlantilla(docIn);
   const escala = clampEscalaExport(opts?.escala);
-  // Layout a 1× (idéntico al lienzo: justify, saltos, métricas a 4–10 px).
-  // La resolución de impresión va por zoom visual, no reescribiendo fontSize.
   await asegurarFuentesLienzoEscalado(doc, 1);
   if (escala !== 1) await asegurarFuentesLienzoEscalado(doc, escala);
 
   const { ancho_px: w, alto_px: h } = doc.formato;
   const forzarOpaco = opts?.forzarFondoOpaco === true;
   const imagenesResueltas = await resolverImagenesPlantilla(doc);
+  const medidasTexto = await medirTextosPlantilla(doc);
 
   const anchoFinal = Math.max(1, Math.round(w * escala));
   const altoFinal = Math.max(1, Math.round(h * escala));
@@ -399,8 +627,6 @@ export async function renderPlantillaToCanvasDom(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo preparar el lienzo para exportar");
 
-  // El fondo se pinta una sola vez aquí; cada tramo DOM se captura con fondo
-  // transparente para poder ir componiéndolos sin taparse entre sí.
   const fondoTransparenteDoc = !doc.fondo || doc.fondo === "transparent" || doc.fondo === "none";
   if (forzarOpaco) {
     ctx.fillStyle = "#ffffff";
@@ -410,127 +636,55 @@ export async function renderPlantillaToCanvasDom(
     ctx.fillRect(0, 0, anchoFinal, altoFinal);
   }
 
-  const runs = agruparPorTipoRender(doc);
-
-  // Embebe Montserrat (y otras) una vez; sin esto el SVG del export cae a
-  // system-ui y tipografía/tamaño dejan de coincidir con el lienzo.
+  const hayArco = doc.elementos.some(
+    (el) => el.type === "text" && el.visible !== false && (el.arco ?? 0) !== 0 && el.forma !== "circulo",
+  );
   let fontEmbedCSS = "";
-  try {
-    const probe = document.createElement("div");
-    probe.setAttribute("aria-hidden", "true");
-    probe.style.cssText =
-      'position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;font-family:"Montserrat",system-ui,sans-serif;font-weight:400;font-size:16px;';
-    probe.textContent = "Ag";
-    const pesos = new Set<number>([400, 500, 600, 700]);
-    for (const el of doc.elementos) {
-      if (el.type === "text" && el.visible !== false) {
-        pesos.add(pesoFontWeightCss(el.fontWeight));
-      }
+  if (hayArco) {
+    try {
+      const probe = document.createElement("div");
+      probe.setAttribute("aria-hidden", "true");
+      probe.style.cssText =
+        'position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;font-family:"Montserrat",system-ui,sans-serif;font-weight:400;font-size:16px;';
+      probe.textContent = "Ag";
+      document.body.appendChild(probe);
+      if (document.fonts) await document.fonts.ready;
+      fontEmbedCSS = await getFontEmbedCSS(probe);
+      probe.remove();
+    } catch {
+      fontEmbedCSS = "";
     }
-    for (const fw of pesos) {
-      const span = document.createElement("span");
-      span.style.cssText = `font-family:"Montserrat",system-ui,sans-serif;font-weight:${fw};font-size:16px;`;
-      span.textContent = "Ag";
-      probe.appendChild(span);
-    }
-    document.body.appendChild(probe);
-    if (document.fonts) await document.fonts.ready;
-    fontEmbedCSS = await getFontEmbedCSS(probe);
-    probe.remove();
-  } catch {
-    fontEmbedCSS = "";
   }
 
-  // Host en viewport (opacity 0): fuera de pantalla (-99999px) algunos
-  // navegadores no aplican bien tipografías web al foreignObject de html-to-image.
-  const contenedor = document.createElement("div");
-  contenedor.setAttribute("aria-hidden", "true");
-  contenedor.style.cssText =
-    "position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;overflow:hidden;";
-  document.body.appendChild(contenedor);
-  const raiz = createRoot(contenedor);
+  const ordenados = [...doc.elementos]
+    .filter((el) => el.visible !== false)
+    .sort((a, b) => a.zIndex - b.zIndex);
 
   try {
-    for (const run of runs) {
-      if (run.tipo === "canvas") {
-        for (const el of run.elementos) {
-          if (el.type === "line") {
-            dibujarLineaEnCanvas(ctx, el, escala);
-          } else if (el.type === "image") {
-            await dibujarImagenEnCanvas(ctx, el, imagenesResueltas, escala);
-          } else if (el.type === "text") {
-            await dibujarTextoArcoEnCanvas(ctx, el, escala, fontEmbedCSS);
-          }
-        }
-        continue;
-      }
-
-      // Tramo DOM (texto/rect): se captura aparte, con fondo transparente, y
-      // se compone sobre el canvas principal en su lugar dentro del zIndex.
-      flushSync(() => {
-        raiz.render(
-          <div
-            style={{
-              position: "relative",
-              width: anchoFinal,
-              height: altoFinal,
-              overflow: "hidden",
-              background: "transparent",
-            }}
-          >
-            <div style={{ width: w, height: h, transformOrigin: "top left" }}>
-              <PlantillaVisualEstaticoDom
-                doc={{ ...doc, elementos: run.elementos }}
-                escala={1}
-                fondoTransparente
-              />
-            </div>
-          </div>,
-        );
-      });
-      const marco = contenedor.firstElementChild as HTMLElement | null;
-      const lienzo1x = marco?.firstElementChild as HTMLElement | null;
-      if (!marco || !lienzo1x) throw new Error("No se pudo preparar el lienzo para exportar");
-      aplicarEscalaVisualExport(lienzo1x, escala);
-
-      try {
-        if (document.fonts) await document.fonts.ready;
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-        // Re-embebe desde el nodo real (todas las familias/pesos del tramo).
-        let cssTramo = fontEmbedCSS;
-        try {
-          const cssNodo = await getFontEmbedCSS(lienzo1x);
-          if (cssNodo) cssTramo = cssNodo;
-        } catch {
-          /* usar CSS global del probe */
-        }
-        const subCanvas = await toCanvas(marco, {
-          width: anchoFinal,
-          height: altoFinal,
-          pixelRatio: 1,
-          backgroundColor: undefined,
-          cacheBust: true,
-          imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
-          quality: 1,
-          skipAutoScale: true,
-          ...(cssTramo ? { fontEmbedCSS: cssTramo } : {}),
-        });
-        if (subCanvas.width === anchoFinal && subCanvas.height === altoFinal) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(subCanvas, 0, 0);
+    for (const el of ordenados) {
+      if (el.type === "line") {
+        dibujarLineaEnCanvas(ctx, el, escala);
+      } else if (el.type === "image") {
+        await dibujarImagenEnCanvas(ctx, el, imagenesResueltas, escala);
+      } else if (el.type === "rect") {
+        dibujarRectEnCanvas(ctx, el, escala);
+      } else if (el.type === "text") {
+        if (esTextoCirculo(el)) {
+          dibujarTextoCirculoEnCanvas(ctx, el, escala);
+        } else if ((el.arco ?? 0) !== 0) {
+          await dibujarTextoArcoEnCanvas(ctx, el, escala, fontEmbedCSS);
         } else {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(subCanvas, 0, 0, anchoFinal, altoFinal);
+          const medida = medidasTexto.get(el.id) ?? {
+            lineas: [{ texto: el.content || "", justificar: false }],
+            letterSpacing: "0px",
+          };
+          dibujarTextoMedidoEnCanvas(ctx, el, medida, escala);
         }
-      } catch (err) {
-        throw normalizarErrorExportDom(err);
       }
     }
     return canvas;
-  } finally {
-    raiz.unmount();
-    contenedor.remove();
+  } catch (err) {
+    throw normalizarErrorExportDom(err);
   }
 }
 
@@ -598,6 +752,7 @@ function dibujarLineaTexto(
   if (align === "justify" && linea.trim().includes(" ")) {
     const palabras = linea.trim().split(/\s+/);
     if (palabras.length > 1) {
+      ctx.textAlign = "left";
       const textoAncho = palabras.reduce((s, p) => s + ctx.measureText(p).width, 0);
       const espacio = (ancho - textoAncho) / (palabras.length - 1);
       let cx = x;

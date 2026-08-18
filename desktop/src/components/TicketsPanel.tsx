@@ -13355,12 +13355,21 @@ function SolicitudCard({
   });
 
   async function subirAdjuntoTicket(file: File) {
+    await subirAdjuntosTicket([file]);
+  }
+
+  async function subirAdjuntosTicket(files: File[]) {
+    const lista = files.filter(Boolean);
+    if (lista.length === 0) return;
     setSubiendoAdjTicket(true);
     try {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+      for (const file of lista) {
+        const fd = new FormData();
+        fd.append("archivo", file);
+        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+      }
       void cargarAdjuntos();
+      setShowAdjuntos(true);
     } catch { /* no crítico */ } finally {
       setSubiendoAdjTicket(false);
     }
@@ -14654,7 +14663,7 @@ function SolicitudCard({
             </span>
             <div className="flex items-center gap-2">
               {puedeSubirAdjuntos && (
-                <label title="Subir archivo o pegar imagen (Ctrl+V)" className="cursor-pointer flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
+                <label title="Subir uno o varios archivos (galería / PDF)" className="cursor-pointer flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
                   {subiendoAdjTicket
                     ? <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
                     : <span>+ Subir</span>
@@ -14662,10 +14671,11 @@ function SolicitudCard({
                   <input
                     type="file"
                     accept="image/*,.pdf,application/pdf,.doc,.docx"
+                    multiple
                     className="sr-only"
                     onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void subirAdjuntoTicket(f);
+                      const files = Array.from(e.target.files ?? []);
+                      if (files.length) void subirAdjuntosTicket(files);
                       e.target.value = "";
                     }}
                   />
@@ -25227,6 +25237,46 @@ function BotonCamaraEjecucion({ onFile, title = "Tomar foto" }: { onFile: (file:
   );
 }
 
+/** Galería: permite elegir varias fotos de una vez (el botón cámara solo toma 1). */
+function BotonGaleriaEjecucion({
+  onFiles,
+  title = "Elegir varias fotos de la galería",
+}: {
+  onFiles: (files: File[]) => void;
+  title?: string;
+}) {
+  const inputId = useId();
+  return (
+    <>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*,.pdf,application/pdf"
+        multiple
+        className="sr-only"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) onFiles(files);
+          e.target.value = "";
+        }}
+      />
+      <label
+        htmlFor={inputId}
+        className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white transition cursor-pointer"
+        title={title}
+        aria-label={title}
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      </label>
+    </>
+  );
+}
+
 // ── PanelComprasEjecucion ─────────────────────────────────────────────────────
 
 type ItemCompraEjec = {
@@ -25824,6 +25874,10 @@ function EjecucionAccionChat({
 
       <div className="px-4 py-2.5 flex items-end gap-2">
         <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
+        <BotonGaleriaEjecucion
+          onFiles={(files) => { for (const f of files) onFotoSeleccionada(f); }}
+          title="Elegir varias fotos de la galería"
+        />
         <button type="button" onClick={() => setModoCompras(true)} title="Lista de compras"
           className="relative shrink-0 h-11 w-11 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center justify-center transition text-lg">
           🛒
@@ -26834,6 +26888,10 @@ function ResolverActividadChat({
 
       <div className="px-4 py-2.5 flex items-end gap-2">
         <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
+        <BotonGaleriaEjecucion
+          onFiles={(files) => { for (const f of files) onFotoSeleccionada(f); }}
+          title="Elegir varias fotos de la galería"
+        />
         <ProseTextarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)} prose={false}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           onPaste={handlePaste}

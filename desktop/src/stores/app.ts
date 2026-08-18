@@ -42,6 +42,7 @@ export type Panel =
   | "etiquetas"
   | "etiquetas-config"
   | "placas-concreto"
+  | "contenido"
   | "logistica-importaciones"
   | "logistica-embarques"
   | "logistica-aduanas"

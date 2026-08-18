@@ -1,6 +1,139 @@
 {
-  "actualizado_en": "2026-08-16T07:22:13",
+  "actualizado_en": "2026-08-17T07:22:15",
   "indice": {
+    "2000014569318031": {
+      "factura_id": "6b8635c6-22bb-406a-8162-fb244a7f805a",
+      "factura_numero": "FV-2-69945",
+      "factura_fecha": "2026-08-17",
+      "total": 77241.71,
+      "integracion": "astroselling"
+    },
+    "2000014568711377": {
+      "factura_id": "f48cc09b-2b4e-4708-a088-c770ac4fdac9",
+      "factura_numero": "FV-2-69944",
+      "factura_fecha": "2026-08-17",
+      "total": 26061.0,
+      "integracion": "astroselling"
+    },
+    "2000014567615973": {
+      "factura_id": "8984e241-5bba-4347-b0b3-a57d5b3ecf93",
+      "factura_numero": "FV-2-69943",
+      "factura_fecha": "2026-08-17",
+      "total": 52122.0,
+      "integracion": "astroselling"
+    },
+    "2000014566768877": {
+      "factura_id": "e8837f73-350b-4d52-8be4-e6dc66dc5709",
+      "factura_numero": "FV-2-69942",
+      "factura_fecha": "2026-08-16",
+      "total": 61094.6,
+      "integracion": "astroselling"
+    },
+    "2000014566760737": {
+      "factura_id": "ee1474af-71d2-4c1b-b35f-4848f717cd73",
+      "factura_numero": "FV-2-69941",
+      "factura_fecha": "2026-08-16",
+      "total": 57525.79,
+      "integracion": "astroselling"
+    },
+    "2000014565776235": {
+      "factura_id": "0e27c23d-f3a8-4307-8d64-50313fafce10",
+      "factura_numero": "FV-2-69940",
+      "factura_fecha": "2026-08-16",
+      "total": 27251.0,
+      "integracion": "astroselling"
+    },
+    "2000014565636383": {
+      "factura_id": "8bbdc9bd-9f7f-4fc1-ae68-ebd2ed131de6",
+      "factura_numero": "FV-2-69939",
+      "factura_fecha": "2026-08-16",
+      "total": 162841.98,
+      "integracion": "astroselling"
+    },
+    "2000014565578163": {
+      "factura_id": "c6c3c25c-eaf4-4931-bdb4-1dc2b659d2f0",
+      "factura_numero": "FV-2-69938",
+      "factura_fecha": "2026-08-16",
+      "total": 208261.6,
+      "integracion": "astroselling"
+    },
+    "2000014565432699": {
+      "factura_id": "f4afbbae-067c-4f91-9aec-c43ad3b0c1cd",
+      "factura_numero": "FV-2-69937",
+      "factura_fecha": "2026-08-16",
+      "total": 84700.0,
+      "integracion": "astroselling"
+    },
+    "2000014563184951": {
+      "factura_id": "eceb20a9-36e0-4477-aa70-7a6ad1183d1b",
+      "factura_numero": "FV-2-69936",
+      "factura_fecha": "2026-08-16",
+      "total": 22372.0,
+      "integracion": "astroselling"
+    },
+    "2000017931954020": {
+      "factura_id": "5d8be987-19c6-4427-bdc4-ae1211ef58b8",
+      "factura_numero": "FV-2-69935",
+      "factura_fecha": "2026-08-16",
+      "total": 20900.0,
+      "integracion": "astroselling"
+    },
+    "2000014561642457": {
+      "factura_id": "4fbf484e-5741-40f4-86fa-e344d32812de",
+      "factura_numero": "FV-2-69934",
+      "factura_fecha": "2026-08-16",
+      "total": 63153.3,
+      "integracion": "astroselling"
+    },
+    "2000014560363071": {
+      "factura_id": "1eef1cd5-cb38-41b0-a7c8-f9bfde1f132f",
+      "factura_numero": "FV-2-69933",
+      "factura_fecha": "2026-08-16",
+      "total": 40817.0,
+      "integracion": "astroselling"
+    },
+    "2000014559838345": {
+      "factura_id": "89b129c8-325e-4489-88ae-044db69229a7",
+      "factura_numero": "FV-2-69932",
+      "factura_fecha": "2026-08-16",
+      "total": 80386.88,
+      "integracion": "astroselling"
+    },
+    "2000014559724641": {
+      "factura_id": "6da38a51-8180-4b09-ada1-fc6002a34584",
+      "factura_numero": "FV-2-69931",
+      "factura_fecha": "2026-08-16",
+      "total": 91904.66,
+      "integracion": "astroselling"
+    },
+    "2000014559595679": {
+      "factura_id": "b08fc54c-2881-4961-a152-7e461084c90e",
+      "factura_numero": "FV-2-69930",
+      "factura_fecha": "2026-08-16",
+      "total": 29512.0,
+      "integracion": "astroselling"
+    },
+    "2000017962835288": {
+      "factura_id": "9cda4971-f3d3-4208-adf0-51725b9cbc32",
+      "factura_numero": "FV-2-69929",
+      "factura_fecha": "2026-08-16",
+      "total": 15326.01,
+      "integracion": "astroselling"
+    },
+    "2000014558268425": {
+      "factura_id": "bbca2524-c76e-48cf-ad4e-5aa2a6c28311",
+      "factura_numero": "FV-2-69928",
+      "factura_fecha": "2026-08-16",
+      "total": 84014.0,
+      "integracion": "astroselling"
+    },
+    "2000014556573231": {
+      "factura_id": "eced442b-33a8-4956-b3ce-8c73de4a1360",
+      "factura_numero": "FV-2-69927",
+      "factura_fecha": "2026-08-16",
+      "total": 128520.0,
+      "integracion": "astroselling"
+    },
     "2000014414162287": {
       "factura_id": "534fc421-b98b-4d53-8cb3-9cc77c6e6951",
       "factura_numero": "FV-2-69926",
@@ -22525,279 +22658,6 @@
       "factura_numero": "FV-2-66459",
       "factura_fecha": "2026-05-14",
       "total": 20900.0,
-      "integracion": "astroselling"
-    },
-    "2000012974772215": {
-      "factura_id": "40ede16a-6a5e-4be6-a173-f5c53e2f3b91",
-      "factura_numero": "FV-2-66458",
-      "factura_fecha": "2026-05-14",
-      "total": 8050.0,
-      "integracion": "astroselling"
-    },
-    "2000012973791479": {
-      "factura_id": "25ba1fbc-9eef-4fac-b88d-ef1f24631581",
-      "factura_numero": "FV-2-66457",
-      "factura_fecha": "2026-05-13",
-      "total": 73400.0,
-      "integracion": "astroselling"
-    },
-    "2000016425049338": {
-      "factura_id": "e1f33e88-4e82-46e9-815c-fc94ff313519",
-      "factura_numero": "FV-2-66456",
-      "factura_fecha": "2026-05-13",
-      "total": 68900.0,
-      "integracion": "astroselling"
-    },
-    "2000012973287541": {
-      "factura_id": "18ce9b80-25ef-46bd-8b87-5341674c8ac8",
-      "factura_numero": "FV-2-66455",
-      "factura_fecha": "2026-05-13",
-      "total": 114000.0,
-      "integracion": "astroselling"
-    },
-    "2000016424688424": {
-      "factura_id": "4d17b2d4-64d1-4786-8ee1-29fb068d0fd4",
-      "factura_numero": "FV-2-66454",
-      "factura_fecha": "2026-05-13",
-      "total": 31900.0,
-      "integracion": "astroselling"
-    },
-    "2000012972532627": {
-      "factura_id": "26c8c050-e445-44f2-80b6-813630a82c07",
-      "factura_numero": "FV-2-66453",
-      "factura_fecha": "2026-05-13",
-      "total": 40300.0,
-      "integracion": "astroselling"
-    },
-    "2000012972568113": {
-      "factura_id": "2a5ba4ad-7198-492d-95ee-3f996c046cfd",
-      "factura_numero": "FV-2-66452",
-      "factura_fecha": "2026-05-13",
-      "total": 35800.0,
-      "integracion": "astroselling"
-    },
-    "2000012972448313": {
-      "factura_id": "c90dc17a-a547-4d80-8fef-342699850935",
-      "factura_numero": "FV-2-66451",
-      "factura_fecha": "2026-05-13",
-      "total": 62900.0,
-      "integracion": "astroselling"
-    },
-    "2000016423945874": {
-      "factura_id": "31ba2f23-0302-4289-bd45-a845d4254296",
-      "factura_numero": "FV-2-66450",
-      "factura_fecha": "2026-05-13",
-      "total": 29900.0,
-      "integracion": "astroselling"
-    },
-    "2000012972365153": {
-      "factura_id": "3d2c41fe-8c70-4d92-a838-ff4264eb5773",
-      "factura_numero": "FV-2-66449",
-      "factura_fecha": "2026-05-13",
-      "total": 40000.0,
-      "integracion": "astroselling"
-    },
-    "2000012968566727": {
-      "factura_id": "5ad2b46a-c298-49aa-82cb-802f486de8cb",
-      "factura_numero": "FV-2-66448",
-      "factura_fecha": "2026-05-13",
-      "total": 16900.0,
-      "integracion": "astroselling"
-    },
-    "2000016419695116": {
-      "factura_id": "8b47c00d-032f-4f9b-8a74-dc426976121d",
-      "factura_numero": "FV-2-66447",
-      "factura_fecha": "2026-05-13",
-      "total": 38500.0,
-      "integracion": "astroselling"
-    },
-    "2000012967929171": {
-      "factura_id": "bdbf30fe-3337-4f4e-8d67-ff12ece5cc1d",
-      "factura_numero": "FV-2-66446",
-      "factura_fecha": "2026-05-13",
-      "total": 10500.0,
-      "integracion": "astroselling"
-    },
-    "2000016419498648": {
-      "factura_id": "dd174344-23ff-434a-8cc5-1bedea8054b5",
-      "factura_numero": "FV-2-66445",
-      "factura_fecha": "2026-05-13",
-      "total": 29900.0,
-      "integracion": "astroselling"
-    },
-    "2000012967711431": {
-      "factura_id": "794078cd-47d6-44c4-b03b-9f7966a8f909",
-      "factura_numero": "FV-2-66444",
-      "factura_fecha": "2026-05-13",
-      "total": 41300.0,
-      "integracion": "astroselling"
-    },
-    "2000016419226104": {
-      "factura_id": "3e36a238-e5c2-479c-bbb3-481e624d90ae",
-      "factura_numero": "FV-2-66443",
-      "factura_fecha": "2026-05-13",
-      "total": 26400.0,
-      "integracion": "astroselling"
-    },
-    "2000012966369339": {
-      "factura_id": "8f0ae6f9-e72c-43c1-b9ac-30a466cf4ed0",
-      "factura_numero": "FV-2-66442",
-      "factura_fecha": "2026-05-13",
-      "total": 23940.0,
-      "integracion": "astroselling"
-    },
-    "2000012965060837": {
-      "factura_id": "04930cb6-471d-4d7c-8106-a671b033a8c2",
-      "factura_numero": "FV-2-66440",
-      "factura_fecha": "2026-05-13",
-      "total": 77900.0,
-      "integracion": "astroselling"
-    },
-    "2000016416414888": {
-      "factura_id": "e541dcd1-4baa-4954-838b-877b8a92db7b",
-      "factura_numero": "FV-2-66439",
-      "factura_fecha": "2026-05-13",
-      "total": 39000.0,
-      "integracion": "astroselling"
-    },
-    "2000016415161196": {
-      "factura_id": "eedf6808-7aa8-4999-b9c8-31a7a9a56fe3",
-      "factura_numero": "FV-2-66438",
-      "factura_fecha": "2026-05-13",
-      "total": 31600.0,
-      "integracion": "astroselling"
-    },
-    "2000012963314571": {
-      "factura_id": "41811944-1497-4d94-95d3-25ad1817f445",
-      "factura_numero": "FV-2-66437",
-      "factura_fecha": "2026-05-13",
-      "total": 25000.0,
-      "integracion": "astroselling"
-    },
-    "2000012962687567": {
-      "factura_id": "94fe6f35-8960-41a2-8e51-f6bf59af7b4b",
-      "factura_numero": "FV-2-66436",
-      "factura_fecha": "2026-05-13",
-      "total": 31900.0,
-      "integracion": "astroselling"
-    },
-    "2000012962394405": {
-      "factura_id": "7ed4b7aa-e0af-47c8-a063-432e4d04928d",
-      "factura_numero": "FV-2-66435",
-      "factura_fecha": "2026-05-13",
-      "total": 50500.0,
-      "integracion": "astroselling"
-    },
-    "2000016414337802": {
-      "factura_id": "71da9677-8e2a-48ee-a04f-e58152c78d92",
-      "factura_numero": "FV-2-66434",
-      "factura_fecha": "2026-05-13",
-      "total": 27900.0,
-      "integracion": "astroselling"
-    },
-    "2000016413793234": {
-      "factura_id": "f14d9367-2fa6-44eb-a1fa-eab430e2f09b",
-      "factura_numero": "FV-2-66433",
-      "factura_fecha": "2026-05-13",
-      "total": 17900.0,
-      "integracion": "astroselling"
-    },
-    "2000012961758671": {
-      "factura_id": "b0718ea2-7f62-4204-9b44-f10a3e4a2e8d",
-      "factura_numero": "FV-2-66432",
-      "factura_fecha": "2026-05-13",
-      "total": 27900.0,
-      "integracion": "astroselling"
-    },
-    "2000012961311219": {
-      "factura_id": "7d18c8cb-7d5f-43ec-9813-5e7fabad3838",
-      "factura_numero": "FV-2-66431",
-      "factura_fecha": "2026-05-13",
-      "total": 102400.0,
-      "integracion": "astroselling"
-    },
-    "2000016413284506": {
-      "factura_id": "9347f766-5be7-4d83-9ae7-2ffc97a55d46",
-      "factura_numero": "FV-2-66430",
-      "factura_fecha": "2026-05-13",
-      "total": 31900.0,
-      "integracion": "astroselling"
-    },
-    "2000012960884783": {
-      "factura_id": "65398a17-c354-40dc-b300-e1e1f398612f",
-      "factura_numero": "FV-2-66429",
-      "factura_fecha": "2026-05-13",
-      "total": 37000.0,
-      "integracion": "astroselling"
-    },
-    "2000016412509178": {
-      "factura_id": "f8201e34-50e2-4668-aec9-ac6f7345f443",
-      "factura_numero": "FV-2-66428",
-      "factura_fecha": "2026-05-13",
-      "total": 23312.0,
-      "integracion": "astroselling"
-    },
-    "2000016412467330": {
-      "factura_id": "25733e2a-cf55-47d0-a18d-ee7a3b259928",
-      "factura_numero": "FV-2-66427",
-      "factura_fecha": "2026-05-13",
-      "total": 16900.0,
-      "integracion": "astroselling"
-    },
-    "2000012960384993": {
-      "factura_id": "93dc6dd7-ea6b-4e53-b32b-f9a5b4164313",
-      "factura_numero": "FV-2-66426",
-      "factura_fecha": "2026-05-13",
-      "total": 105000.0,
-      "integracion": "astroselling"
-    },
-    "2000012960316787": {
-      "factura_id": "9680b78d-3daa-4b31-b701-da9e91ab5131",
-      "factura_numero": "FV-2-66425",
-      "factura_fecha": "2026-05-13",
-      "total": 13700.0,
-      "integracion": "astroselling"
-    },
-    "2000016411282898": {
-      "factura_id": "d1297ac5-b24d-49e9-9cd7-ea4eef9811c3",
-      "factura_numero": "FV-2-66424",
-      "factura_fecha": "2026-05-13",
-      "total": 23312.0,
-      "integracion": "astroselling"
-    },
-    "2000012959152649": {
-      "factura_id": "8de10669-f157-4f2e-8c0d-f7736ddc512d",
-      "factura_numero": "FV-2-66423",
-      "factura_fecha": "2026-05-13",
-      "total": 13630.0,
-      "integracion": "astroselling"
-    },
-    "2000012958313321": {
-      "factura_id": "cdf82aea-18e0-4547-b1c6-74e6f4af44f5",
-      "factura_numero": "FV-2-66422",
-      "factura_fecha": "2026-05-13",
-      "total": 46624.0,
-      "integracion": "astroselling"
-    },
-    "2000012958132503": {
-      "factura_id": "6f9ec381-cac1-4062-8366-c901855ed3ff",
-      "factura_numero": "FV-2-66421",
-      "factura_fecha": "2026-05-13",
-      "total": 46624.0,
-      "integracion": "astroselling"
-    },
-    "2000016409862972": {
-      "factura_id": "5f3bbe3c-cc39-45e7-938c-00162ca99c3d",
-      "factura_numero": "FV-2-66420",
-      "factura_fecha": "2026-05-13",
-      "total": 108900.0,
-      "integracion": "astroselling"
-    },
-    "2000012957550973": {
-      "factura_id": "b8a5da0b-78c3-4b07-8671-c259ccef3280",
-      "factura_numero": "FV-2-66419",
-      "factura_fecha": "2026-05-13",
-      "total": 31900.0,
       "integracion": "astroselling"
     }
   }

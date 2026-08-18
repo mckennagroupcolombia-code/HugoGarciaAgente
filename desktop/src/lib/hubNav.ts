@@ -20,6 +20,7 @@ export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
   inventario: "listChecks",
   publicaciones: "megaphone",
   placas: "package",
+  contenido: "camera",
   sistemas: "monitor",
 };
 
@@ -34,6 +35,7 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   inventario: "Checklist de stock agotado, crítico o bajo — agrega unidades, pide compra o marca revisado.",
   publicaciones: "Catálogo MeLi / web: fotos, textos, sync y republicar.",
   placas: "Calculadora de dosificación para placas de concreto pulido.",
+  contenido: "Quitar marca de agua estática de un video antes de publicarlo.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
 };
 

@@ -756,3 +756,53 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 tests/test_solicitud_aprobacion_cierre.py
  create mode 100644 uploads/tickets/468a37fcfcdf45b08529d3627b7071db.jpg
 [2026-08-16 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-16 23:00'
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   131 órdenes canceladas en la ventana.
+   3487 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3237 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69898 -> NC-2-198 (Accepted) — MeLi: ✅
+Resumen: 1 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-08-17T07:45:01] resumen_costos_llm:
+💸 *Costos IA vía API — resumen semanal*
+Semana 2026-08-11 → 2026-08-17
+Total: *US$1.15* en 111 llamadas (promedio US$0.16/día)
+Día más alto: 2026-08-13 con US$0.44
+*Por canal:*
+  • WhatsApp/Web clientes: US$1.00
+  • Preventa MeLi: US$0.16
+*Por modelo:*
+  • claude-sonnet-4-6: US$1.15
+
+Límites: alerta US$1.00/día, bloqueo US$3.00/día. Detalle diario en el monitor: http://localhost:3000/monitor
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo de sistemas
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Recomendaciones publicidad MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Archivo de gasto en ads: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+ℹ️ [STOCK] Omitidas 46 publicaciones closed/inactive (ya no operables en MeLi).
+ℹ️ [STOCK] +176 publicaciones pausadas MeLi no listadas en Sheets añadidas al resumen.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+Resumen: agotados=156 criticos=41 bajos=60 divergentes=2
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-08-17T18:00:01] resumen_actividad_sede_sur: 4 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 1 nueva · 1 completada · 1 iniciada
+
+*Por persona:*
+• Administrador: 1 nueva, 0 completadas
+• Gloria Stella: 0 nuevas, 1 completada
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-17) no es el último día del mes.

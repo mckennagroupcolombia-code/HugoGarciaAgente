@@ -3813,6 +3813,9 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         p   = [nuevo_estado]
         if nuevo_estado == "resuelto":
             sql += ", resuelto_en=datetime('now')"
+        elif t["estado"] == "resuelto" and nuevo_estado != "resuelto":
+            # Reapertura (p. ej. seguimiento desde historial): quitar fecha de cierre
+            sql += ", resuelto_en=NULL"
         sql += " WHERE id=?"
         p.append(ticket_id)
         db.execute(sql, p)

@@ -4247,6 +4247,173 @@ def register_routes(app):
             "timestamp": _dt.now().isoformat(),
         })
 
+    # -- Contenido · quitar marca de agua y/o poner audio a un video -----------
+    # Inpainting con OpenCV (app/tools/contenido_video.py) sobre una franja o
+    # región fija del video, y/o reemplazo de la pista de audio (archivo propio
+    # o voz clonada — la síntesis de voz corre aparte en /api/voz/sintetizar,
+    # que reusa el mismo servicio voicebox que Voz IA; el panel sube el WAV
+    # resultante en el campo «audio»). Procesa en hilo daemon; se consulta por
+    # job_id igual que el patrón de plantillas-visuales/texto-sugerir más abajo.
+
+    def _parse_region_form(valor: str | None) -> tuple[int, int, int, int] | None:
+        if not valor:
+            return None
+        try:
+            partes = [int(p.strip()) for p in valor.split(",")]
+        except ValueError:
+            return None
+        if len(partes) != 4 or any(p < 0 for p in partes):
+            return None
+        return (partes[0], partes[1], partes[2], partes[3])
+
+    @app.route("/api/contenido/procesar-video", methods=["POST"])
+    @app.route("/app/api/contenido/procesar-video", methods=["POST"])
+    def api_contenido_procesar_video():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        archivo = request.files.get("video") or request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe el video en el campo multipart «video»"}), 400
+
+        from pathlib import Path as _Path
+        ext = _Path(archivo.filename).suffix or ".mp4"
+        if ext.lower() not in (".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"):
+            return jsonify({"error": f"Formato de video no soportado: {ext}"}), 400
+
+        quitar_marca_agua = (request.form.get("quitar_marca_agua") or "1").strip() != "0"
+        try:
+            alto_marca = int(request.form.get("alto_marca") or 80)
+        except ValueError:
+            alto_marca = 80
+        alto_marca = max(1, min(alto_marca, 2000))
+        region = _parse_region_form(request.form.get("region"))
+
+        audio_modo = (request.form.get("audio_modo") or "original").strip()
+        if audio_modo not in ("original", "sin_audio", "externo"):
+            return jsonify({"error": f"audio_modo inválido: {audio_modo}"}), 400
+
+        audio_bytes = None
+        audio_ext = ".wav"
+        if audio_modo == "externo":
+            audio_archivo = request.files.get("audio")
+            if not audio_archivo or not audio_archivo.filename:
+                return jsonify({"error": "audio_modo='externo' requiere el campo multipart «audio»"}), 400
+            audio_ext = _Path(audio_archivo.filename).suffix or ".wav"
+            audio_bytes = audio_archivo.read()
+            if not audio_bytes:
+                return jsonify({"error": "El archivo de audio llegó vacío"}), 400
+
+        try:
+            contenido = archivo.read()
+            if not contenido:
+                return jsonify({"error": "El archivo llegó vacío"}), 400
+            from app.tools.contenido_video import iniciar_job_procesar_video
+            job_id = iniciar_job_procesar_video(
+                contenido,
+                ext,
+                quitar_marca_agua=quitar_marca_agua,
+                alto_marca=alto_marca,
+                region=region,
+                audio_modo=audio_modo,
+                audio_bytes=audio_bytes,
+                audio_ext=audio_ext,
+            )
+            return jsonify({"ok": True, "status": "processing", "job_id": job_id}), 202
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/contenido/procesar-video/<job_id>", methods=["GET"])
+    @app.route("/app/api/contenido/procesar-video/<job_id>", methods=["GET"])
+    def api_contenido_procesar_video_estado(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.contenido_video import estado_job
+        job = estado_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Trabajo no encontrado o expirado"}), 404
+        resp = {
+            "ok": True,
+            "status": job.get("status"),
+            "frame_actual": job.get("frame_actual") or 0,
+            "total_frames": job.get("total_frames") or 0,
+        }
+        if job.get("status") == "error":
+            resp["error"] = job.get("error") or "Error al procesar el video"
+        if job.get("status") == "done":
+            resp["video_url"] = f"/api/contenido/video/{job_id}"
+        return jsonify(resp)
+
+    @app.route("/api/contenido/procesar-video/<job_id>", methods=["DELETE"])
+    @app.route("/app/api/contenido/procesar-video/<job_id>", methods=["DELETE"])
+    def api_contenido_procesar_video_eliminar(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.contenido_video import eliminar_job
+        eliminar_job(job_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/contenido/video/<job_id>", methods=["GET"])
+    def api_contenido_video_archivo(job_id: str):
+        # Sin Bearer: el <video> del panel no envía Authorization; el job_id
+        # (uuid4 de 16 hex) actúa como capability token, igual que el patrón de
+        # /api/publicaciones/imagen-archivo para <img>.
+        from flask import send_file
+        from app.tools.contenido_video import ruta_salida
+        path = ruta_salida(job_id)
+        if not path:
+            return jsonify({"error": "No encontrado"}), 404
+        descargar = request.args.get("descargar") == "1"
+        return send_file(
+            path,
+            mimetype="video/mp4",
+            as_attachment=descargar,
+            download_name=f"sin_marca_agua_{job_id}.mp4" if descargar else None,
+        )
+
+    @app.route("/api/contenido/audio/mp3", methods=["POST"])
+    @app.route("/app/api/contenido/audio/mp3", methods=["POST"])
+    def api_contenido_audio_mp3():
+        """Convierte un audio (ej. el WAV que devuelve /api/voz/sintetizar) a MP3 con ffmpeg.
+
+        Síncrono a propósito (sin job_id): una conversión de audio de unos
+        segundos tarda menos de un segundo, a diferencia del video con inpainting.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        archivo = request.files.get("audio")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe el audio en el campo multipart «audio»"}), 400
+
+        import shutil as _shutil
+        import subprocess as _sp
+        import tempfile
+        from pathlib import Path as _Path
+        from flask import Response as _Resp
+
+        if _shutil.which("ffmpeg") is None:
+            return jsonify({"error": "ffmpeg no está instalado en el servidor"}), 500
+
+        ext = _Path(archivo.filename).suffix or ".wav"
+        with tempfile.TemporaryDirectory() as tmp:
+            in_path = _Path(tmp) / f"in{ext}"
+            out_path = _Path(tmp) / "out.mp3"
+            archivo.save(in_path)
+            resultado = _sp.run(
+                ["ffmpeg", "-y", "-i", str(in_path), "-codec:a", "libmp3lame", "-b:a", "192k", str(out_path)],
+                capture_output=True, text=True,
+            )
+            if resultado.returncode != 0 or not out_path.is_file():
+                return jsonify({"error": f"ffmpeg falló al convertir a mp3: {resultado.stderr[-1000:]}"}), 500
+            data = out_path.read_bytes()
+
+        return _Resp(
+            data,
+            mimetype="audio/mpeg",
+            headers={"Content-Disposition": 'attachment; filename="voz.mp3"'},
+        )
+
     # -- Control de Inventario -------------------------------------------------
     # Capa de visibilidad/acción sobre el stock que ya existe (MeLi = fuente de
     # verdad, Siigo = solo lectura de referencia) — no reemplaza /api/stock/*,

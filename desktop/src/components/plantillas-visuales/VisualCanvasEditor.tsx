@@ -130,6 +130,8 @@ const NODO_VIS_PX = 6;
 const NODO_HIT_PX = 22;
 const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
 const MARCO_HOVER_CSS = "1px dashed rgba(1, 109, 130, 0.32)";
+/** Espacio reservado para las barras de scroll del viewport del lienzo. */
+const RESERVA_SCROLL_PX = 16;
 
 const CORNERS: { id: ResizeCorner; cursor: string }[] = [
   { id: "nw", cursor: "nw-resize" },
@@ -1718,7 +1720,18 @@ export default function VisualCanvasEditor({
   const aplicarZoomAjuste = useCallback(() => {
     const vp = viewportRef.current;
     if (!vp) return;
-    setZoom(zoomAjusteLienzo(canvasW, canvasH, vp.clientWidth, vp.clientHeight));
+    // Se mide la caja de borde (no clientWidth/Height): esa medida no cambia
+    // cuando aparece o desaparece una barra de scroll. Con clientWidth el zoom
+    // dependía del scroll y el scroll del zoom, así que al crecer la barra de
+    // Descripción MP el lienzo entraba en un bucle visible de parpadeo.
+    const rect = vp.getBoundingClientRect();
+    const next = zoomAjusteLienzo(
+      canvasW,
+      canvasH,
+      rect.width - RESERVA_SCROLL_PX,
+      rect.height - RESERVA_SCROLL_PX,
+    );
+    setZoom((prev) => (Math.abs(prev - next) < 0.005 ? prev : next));
   }, [canvasW, canvasH]);
 
   useEffect(() => {
@@ -1733,12 +1746,17 @@ export default function VisualCanvasEditor({
   useLayoutEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
+    let raf = 0;
     const ro = new ResizeObserver(() => {
       if (zoomManualRef.current) return;
-      aplicarZoomAjuste();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => aplicarZoomAjuste());
     });
     ro.observe(vp);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, [aplicarZoomAjuste]);
 
   const setZoomManual = useCallback((next: number | ((z: number) => number)) => {

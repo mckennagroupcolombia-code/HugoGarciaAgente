@@ -462,6 +462,21 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "placas",
   },
 
+  // ── Contenido (botón individual en el menú) ───────────────────────────────────
+  contenido: {
+    emoji: "🎬",
+    label: "Contenido",
+    description: "Herramientas para preparar video antes de publicarlo. Por ahora: quitar una marca de agua estática (franja o región fija) de un video.",
+    tips: [
+      "Sube el video y ajusta la franja inferior (o una región exacta) donde está la marca.",
+      "El proceso corre en segundo plano — puedes seguir usando el panel mientras termina.",
+      "Se conserva el audio original del video automáticamente.",
+      "Videos largos o en alta resolución tardan más: el inpainting se calcula fotograma a fotograma.",
+    ],
+    tier: "standard",
+    category: "contenido",
+  },
+
   // ── Config ────────────────────────────────────────────────────────────────────
   "etiquetas-config": {
     emoji: "⚙️",

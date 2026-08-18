@@ -33,6 +33,7 @@ const ConfigurarProductosPanel = lazy(() =>
   })),
 );
 const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
+const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
 const InventarioControlPanel = lazy(() => import("./components/InventarioControlPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
 const SitioWebPanel = lazy(() => import("./components/SitioWebPanel"));
@@ -127,6 +128,8 @@ function PanelRouterInner() {
       return <ConfigurarProductosPanel />;
     case "placas-concreto":
       return <PlacasConcretoPanel />;
+    case "contenido":
+      return <ContenidoPanel />;
     case "control-inventario":
       return <InventarioControlPanel />;
     case "publicaciones":

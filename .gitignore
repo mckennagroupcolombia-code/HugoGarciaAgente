@@ -132,3 +132,6 @@ PAGINA_WEB/site/static/uploads/fondos/*
 !PAGINA_WEB/site/static/uploads/fondos/.gitkeep
 
 tmp_reportes_stock/
+
+# Contenido · videos subidos/procesados para quitar marca de agua (runtime, puede pesar)
+contenido_video/

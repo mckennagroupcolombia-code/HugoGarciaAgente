@@ -674,6 +674,13 @@
       "nc": "NC-2-197",
       "subida_meli": true,
       "actualizado_en": "2026-08-16T07:22:37"
+    },
+    "2000014539620069": {
+      "estado": "emitida",
+      "factura": "FV-2-69898",
+      "nc": "NC-2-198",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-17T07:22:27"
     }
   }
 }

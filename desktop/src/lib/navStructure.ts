@@ -17,6 +17,7 @@ export type NavCategory =
   | "inventario"
   | "publicaciones"
   | "placas"
+  | "contenido"
   | "sistemas";
 
 export interface NavItemDef {
@@ -116,6 +117,12 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     items: [{ panel: "placas-concreto", tier: "standard" }],
   },
   {
+    id: "contenido",
+    label: "Contenido",
+    hub: true,
+    items: [{ panel: "contenido", tier: "standard" }],
+  },
+  {
     id: "sistemas",
     label: "Sistemas",
     hub: true,
@@ -147,6 +154,7 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   inventario: "Inventario",
   publicaciones: "Publicaciones",
   placas: "Placas",
+  contenido: "Contenido",
   sistemas: "Sistemas",
 };
 

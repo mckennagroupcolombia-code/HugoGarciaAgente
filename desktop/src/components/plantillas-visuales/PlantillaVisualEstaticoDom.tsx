@@ -10,16 +10,14 @@ import TextoCirculoDom from "./TextoCirculoDom";
 
 /**
  * Render estático (sin interactividad) de una plantilla, con exactamente el
- * mismo DOM/CSS que ve el usuario en VisualCanvasEditor. Se usa para exportar
- * PNG/JPEG capturando este nodo con html-to-image, en vez de reimplementar el
- * layout de texto a mano en un <canvas> — así el archivo exportado coincide
- * con lo que se ve en el editor.
+ * mismo DOM/CSS que ve el usuario en VisualCanvasEditor. El export PNG mide
+ * aquí los saltos de línea reales y los pinta en canvas a 600 DPI.
  */
 export interface Props {
   doc: PlantillaVisualDoc;
   /**
    * 1 = mismo layout que el editor (saltos, justify, métricas).
-   * La resolución 600 DPI se aplica por zoom en el export, no aquí.
+   * La resolución 600 DPI se pinta en canvas a partir de esos saltos.
    */
   escala?: number;
   /** true en composiciones multi-pasada: el fondo ya lo pintó otro paso. */
@@ -76,8 +74,10 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
       );
     }
     return (
-      <div style={estilo}>
-        <div style={{ pointerEvents: "none", width: "100%" }}>{el.content}</div>
+      <div style={estilo} data-export-text-id={el.id}>
+        <div data-export-text-inner="" style={{ pointerEvents: "none", width: "100%" }}>
+          {el.content}
+        </div>
       </div>
     );
   }
@@ -97,11 +97,8 @@ function ElementoEstatico({ el, escala }: { el: ElementoVisual; escala: number }
     );
   }
 
-  // "line" e "image" no se dibujan aquí: html-to-image los rasteriza mal
-  // dentro de su foreignObject (líneas de 1px que se desplazan al escalar,
-  // imágenes cacheadas a la resolución de layout en vez de la nativa). Se
-  // pintan aparte, directo sobre el canvas ya capturado, intercalados por
-  // zIndex con estos pasos DOM (ver renderPlantillaToCanvasDom).
+  // "line" e "image" no se dibujan aquí: el export los pinta directo en
+  // canvas (líneas vectoriales e imágenes a resolución nativa).
   return null;
 }
 
