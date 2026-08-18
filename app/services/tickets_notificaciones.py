@@ -1,11 +1,12 @@
 """
-Notas de voz del supervisor WA a operadores del panel de tickets.
+Mensajes de texto WA del panel de tickets a operadores (antes: notas de voz).
 
 Eventos:
 - Nueva acción/solicitud asignada
 - Compras delegadas asignadas
 - Solicitud emitida resuelta por otro usuario
 - Lista de compras esperada completada
+- Recordatorio del día
 """
 
 from __future__ import annotations
@@ -19,8 +20,8 @@ _REPO = Path(__file__).resolve().parents[2]
 _TELEFONOS_JSON = _REPO / "app" / "data" / "tickets_telefonos_operadores.json"
 
 
-def _voz_habilitada() -> bool:
-    return os.getenv("TICKETS_VOZ_OPERADOR", "1").strip().lower() not in ("0", "false", "no")
+def _notif_habilitada() -> bool:
+    return os.getenv("TICKETS_NOTIF_OPERADOR", "1").strip().lower() not in ("0", "false", "no")
 
 
 def normalizar_telefono_wa(raw: str) -> str:
@@ -81,96 +82,107 @@ def _nombre_usuario(db, uid: int | None) -> str:
     return (row["nombre"] if row else None) or "Operador"
 
 
-def _sintetizar_voz(texto: str) -> tuple[bytes | None, str]:
-    texto = (texto or "").strip()[:280]
-    if not texto:
-        return None, "audio/wav"
-    mime_type = "audio/wav"
-    audio_bytes = None
-    engine = os.getenv("TICKETS_VOZ_TTS_ENGINE", "").strip().lower()
-
-    from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
-    from app.services.tts_qwen3 import qwen3_disponible, sintetizar_qwen3
-
-    cfg: dict = {}
-    try:
-        from app.services.voz_config import leer_config
-        cfg = leer_config() or {}
-    except Exception:
-        pass
-
-    if engine in ("", "voicebox") and voicebox_disponible():
-        try:
-            from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
-            profile = resolver_voicebox_profile({}, cfg)
-            voz_lang = voicebox_language_code(cfg.get("language"))
-            audio_bytes = sintetizar_voicebox(texto, profile_id=profile, language=voz_lang)
-        except Exception as exc:
-            print(f"[tickets-voz] Voicebox: {exc}")
-
-    if audio_bytes is None and engine in ("", "qwen3") and qwen3_disponible():
-        try:
-            audio_bytes = sintetizar_qwen3(
-                texto, speaker=cfg.get("speaker"), language=cfg.get("language"),
-            )
-        except Exception as exc:
-            print(f"[tickets-voz] Qwen3: {exc}")
-
-    if audio_bytes is None:
-        eleven_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
-        eleven_voice = os.getenv("ELEVENLABS_VOICE_ID", "cgSgspJ2msm6clMCkdW9").strip()
-        if eleven_key:
-            import requests as _req
-            try:
-                r = _req.post(
-                    f"https://api.elevenlabs.io/v1/text-to-speech/{eleven_voice}",
-                    headers={"xi-api-key": eleven_key, "Content-Type": "application/json"},
-                    json={
-                        "text": texto,
-                        "model_id": "eleven_multilingual_v2",
-                        "voice_settings": {"stability": 0.45, "similarity_boost": 0.80},
-                    },
-                    timeout=30,
-                )
-                r.raise_for_status()
-                audio_bytes = r.content
-                mime_type = "audio/mpeg"
-            except Exception as exc:
-                print(f"[tickets-voz] ElevenLabs: {exc}")
-
-    return audio_bytes, mime_type
+def _primer_nombre(nombre: str) -> str:
+    return (nombre or "Operador").strip().split(" ")[0]
 
 
-def enviar_nota_voz_operador(usuario_id: int | None, guion: str) -> bool:
-    if not _voz_habilitada():
+# ── Conjugación best-effort del verbo inicial del título a pasado 3ª persona ──
+
+_VERBOS_ACCION_IRREGULARES = {
+    "hacer": "hizo", "decir": "dijo", "poner": "puso", "tener": "tuvo",
+    "dar": "dio", "ir": "fue", "ser": "fue", "venir": "vino",
+    "poder": "pudo", "querer": "quiso", "saber": "supo", "traer": "trajo",
+    "producir": "produjo", "conducir": "condujo", "reponer": "repuso",
+    "corregir": "corrigió", "seguir": "siguió", "pedir": "pidió",
+    "servir": "sirvió", "elegir": "eligió", "sugerir": "sugirió",
+    "repetir": "repitió", "preferir": "prefirió", "sentir": "sintió",
+    "dormir": "durmió", "morir": "murió", "medir": "midió",
+    "despedir": "despidió", "revertir": "revirtió",
+}
+
+_VERBOS_ACCION = {
+    "aprobar", "comprar", "revisar", "enviar", "facturar", "pagar",
+    "actualizar", "generar", "imprimir", "entregar", "confirmar",
+    "cancelar", "corregir", "publicar", "sincronizar", "crear",
+    "registrar", "subir", "descargar", "verificar", "cotizar", "cargar",
+    "programar", "gestionar", "tramitar", "coordinar", "solicitar",
+    "preparar", "alistar", "despachar", "radicar", "renovar", "ajustar",
+    "reponer", "abastecer", "contactar", "llamar", "reunir", "agendar",
+    "notificar", "informar", "autorizar", "validar", "cerrar", "abrir",
+    "resolver", "atender", "responder", "definir", "negociar", "firmar",
+    "elaborar", "diseñar", "etiquetar", "empacar", "transportar", "hacer",
+    "completar", "terminar", "finalizar", "iniciar", "chequear",
+    "comprobar", "subsanar", "surtir", "remitir", "escanear",
+    "digitalizar", "archivar", "organizar", "instalar", "configurar",
+    "activar", "desactivar", "bloquear", "desbloquear", "eliminar",
+    "duplicar", "exportar", "importar", "migrar", "respaldar", "auditar",
+    "monitorear", "supervisar", "delegar", "asignar", "reasignar",
+    "priorizar", "escalar", "pedir", "seguir",
+}
+
+
+def _pasado_3s(infinitivo: str) -> str | None:
+    v = infinitivo.strip().lower()
+    if v in _VERBOS_ACCION_IRREGULARES:
+        return _VERBOS_ACCION_IRREGULARES[v]
+    if v.endswith("ar") and len(v) > 2:
+        return v[:-2] + "ó"
+    if v.endswith(("er", "ir")) and len(v) > 2:
+        stem = v[:-2]
+        if stem and stem[-1] in "aeiou":
+            return stem + "yó"
+        return stem + "ió"
+    return None
+
+
+def _conjugar_titulo_pasado(titulo: str) -> str | None:
+    """Convierte 'Aprobar pago de nómina' -> 'aprobó pago de nómina', si el verbo es reconocido."""
+    partes = (titulo or "").strip().split(None, 1)
+    if not partes:
+        return None
+    infinitivo = partes[0].strip(".,;:").lower()
+    if infinitivo not in _VERBOS_ACCION:
+        return None
+    conjugado = _pasado_3s(infinitivo)
+    if not conjugado:
+        return None
+    resto = partes[1] if len(partes) > 1 else ""
+    return f"{conjugado} {resto}".strip()
+
+
+def _sms_ticket_resuelto(resolvio: str, titulo: str) -> str:
+    frase = _conjugar_titulo_pasado(titulo)
+    if frase:
+        return f"{resolvio} {frase}."
+    return f"{resolvio} resolvió: {titulo}."
+
+
+def enviar_texto_operador(usuario_id: int | None, texto: str) -> bool:
+    if not _notif_habilitada():
         return False
     numero = telefono_operador(usuario_id)
     if not numero:
-        print(f"[tickets-voz] Sin teléfono para usuario {usuario_id}")
+        print(f"[tickets-notif] Sin teléfono para usuario {usuario_id}")
         return False
-    audio, mime = _sintetizar_voz(guion)
-    if not audio:
-        print(f"[tickets-voz] TTS falló para usuario {usuario_id}")
-        return False
-    from app.utils import enviar_voz_supervisor
-    ok = enviar_voz_supervisor(numero, audio, mime)
+    from app.utils import enviar_whatsapp_reporte
+    ok = enviar_whatsapp_reporte(texto.strip(), numero_destino=numero)
     if ok:
-        print(f"[tickets-voz] Enviado a usuario {usuario_id} ({numero[:6]}…)")
+        print(f"[tickets-notif] Enviado a usuario {usuario_id} ({numero[:6]}…)")
     return ok
 
 
-def _programar(usuario_id: int | None, guion: str) -> None:
-    if not usuario_id or not guion.strip():
+def _programar(usuario_id: int | None, texto: str) -> None:
+    if not usuario_id or not texto.strip():
         return
     try:
         from app.observability import spawn_thread
         spawn_thread(
-            enviar_nota_voz_operador,
-            (int(usuario_id), guion),
+            enviar_texto_operador,
+            (int(usuario_id), texto),
             daemon=True,
         )
     except Exception as exc:
-        print(f"[tickets-voz] programar: {exc}")
+        print(f"[tickets-notif] programar: {exc}")
 
 
 def _ticket_row(db, ticket_id: int) -> dict | None:
@@ -204,31 +216,19 @@ def notificar_ticket_creado(ticket_id: int) -> None:
         asig = t.get("asignado_a")
         if not asig or asig == t.get("creado_por"):
             return
+        creador = _primer_nombre(_nombre_usuario(db, t.get("creado_por")))
         subtipo = (t.get("subtipo") or "").strip()
+        titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
+
         if subtipo == "compra":
-            tipo = "compras"
+            texto = f"Compras: {creador} te solicita {titulo}."
         elif subtipo == "etiqueta":
-            tipo = "pedido de etiquetas"
+            texto = f"Etiquetas: {creador} pidió {titulo}."
+        elif t["tipo"] == "solicitud":
+            texto = f"Solicitudes: {creador} te solicita {titulo}."
         else:
-            tipo = "solicitud" if t["tipo"] == "solicitud" else "acción"
-        titulo = (t.get("titulo") or "una tarea").strip()
-        descripcion = (t.get("descripcion") or "").strip()
-        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
-        if subtipo == "etiqueta":
-            guion = (
-                f"Hola. Te llegó un pedido de etiquetas en Impresora · Etiquetas: "
-                f"{titulo}. "
-                + (f"{desc}. " if desc else "")
-                + "Abre el panel Impresora · Etiquetas → pestaña Imprimir."
-            )
-        else:
-            guion = (
-                f"Hola. Te asignaron una nueva {tipo} en el panel: "
-                f"{titulo}. "
-                + (f"{desc}. " if desc else "")
-                + "Revisa solicitudes o acciones cuando puedas."
-            )
-        _programar(asig, guion)
+            texto = f"Acciones: {creador} te asignó {titulo}."
+        _programar(asig, texto)
 
 
 def notificar_compra_delegada(solicitud_id: int) -> None:
@@ -243,12 +243,8 @@ def notificar_compra_delegada(solicitud_id: int) -> None:
         if t.get("ticket_padre_id"):
             p = _ticket_row(db, int(t["ticket_padre_id"]))
             padre = _titulo_corto((p or {}).get("titulo") or "", 40)
-        extra = f" para la acción {padre}." if padre else "."
-        guion = (
-            "Hola. Te delegaron una lista de compras en el panel"
-            f"{extra} Abre solicitudes e inicia las compras cuando estés listo."
-        )
-        _programar(asig, guion)
+        texto = f"Compras: te delegaron la lista para {padre}." if padre else "Compras: te delegaron una lista de compras."
+        _programar(asig, texto)
 
 
 def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
@@ -256,33 +252,21 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
         t = _ticket_row(db, ticket_id)
         if not t:
             return
-        resolvio = _nombre_usuario(db, resolvio_uid)
-        titulo = (t.get("titulo") or "una tarea").strip()
-        descripcion = (t.get("descripcion") or "").strip()
-        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
+        resolvio = _primer_nombre(_nombre_usuario(db, resolvio_uid))
+        titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
         subtipo = (t.get("subtipo") or "").strip()
 
         creador = t.get("creado_por")
         if t["tipo"] == "solicitud" and creador and creador != resolvio_uid:
             if subtipo == "compra":
-                guion = (
-                    f"Hola. {resolvio} ya terminó la lista de compras "
-                    f"de la solicitud {titulo}. "
-                )
+                texto = f"{resolvio} completó las compras de {titulo}."
                 if t.get("ticket_padre_id"):
                     p = _ticket_row(db, int(t["ticket_padre_id"]))
                     if p:
-                        guion += (
-                            f"Puedes continuar la acción "
-                            f"{_titulo_corto(p.get('titulo') or 'pendiente')}."
-                        )
-                else:
-                    guion += "Puedes continuar con tu acción en el panel."
+                        texto += f" Puedes seguir con {_titulo_corto(p.get('titulo') or 'pendiente', 40)}."
             else:
-                guion = f"Hola. {resolvio} ya resolvió tu solicitud: {titulo}."
-                if desc:
-                    guion += f" {desc}."
-            _programar(creador, guion)
+                texto = _sms_ticket_resuelto(resolvio, titulo)
+            _programar(creador, texto)
 
         if subtipo == "compra" and t.get("ticket_padre_id"):
             padre = _ticket_row(db, int(t["ticket_padre_id"]))
@@ -293,12 +277,11 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
                 for uid in esperan:
                     if uid == creador:
                         continue
-                    guion = (
-                        f"Hola. {resolvio} completó la lista de compras que esperabas "
-                        f"para la acción {_titulo_corto(padre.get('titulo') or 'pendiente')}. "
-                        "Ya puedes seguir en el panel."
+                    texto = (
+                        f"{resolvio} completó las compras para "
+                        f"{_titulo_corto(padre.get('titulo') or 'pendiente', 40)}."
                     )
-                    _programar(uid, guion)
+                    _programar(uid, texto)
 
 
 def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
@@ -310,15 +293,10 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
         creador = t.get("creado_por")
         if not creador or creador == resolvio_uid:
             return
-        resolvio = _nombre_usuario(db, resolvio_uid)
-        titulo = (t.get("titulo") or "una tarea").strip()
-        descripcion = (t.get("descripcion") or "").strip()
-        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
-        guion = (
-            f"Hola. {resolvio} completó la solicitud {titulo} y solicita que la revises y apruebes."
-            + (f" {desc}." if desc else "")
-        )
-        _programar(creador, guion)
+        resolvio = _primer_nombre(_nombre_usuario(db, resolvio_uid))
+        titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
+        texto = f"{resolvio} terminó {titulo} y pide tu aprobación."
+        _programar(creador, texto)
 
 
 def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> None:
@@ -328,18 +306,13 @@ def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> N
         t = _ticket_row(db, ticket_id)
         if not t or t["tipo"] not in ("accion", "solicitud"):
             return
-        titulo = (t.get("titulo") or "una tarea").strip()
-        descripcion = (t.get("descripcion") or "").strip()
-        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
-        guion = (
-            f"Hola. Te reasignaron una tarea en el panel: {titulo}."
-            + (f" {desc}." if desc else "")
-        )
-        _programar(nuevo_asignado, guion)
+        titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
+        texto = f"Te reasignaron: {titulo}."
+        _programar(nuevo_asignado, texto)
 
 
 def notificar_recordatorios_hoy(usuario_id: int) -> list[str]:
-    """Envía nota de voz por WhatsApp por cada recordatorio vencido o de hoy.
+    """Envía un mensaje de texto por WhatsApp por cada recordatorio vencido o de hoy.
 
     Retorna lista de títulos notificados.
     """
@@ -355,7 +328,7 @@ def notificar_recordatorios_hoy(usuario_id: int) -> list[str]:
         ).fetchall()
     for row in rows:
         titulo = _titulo_corto(row["titulo"], 60)
-        guion = f"Hola. Tienes un recordatorio para hoy: {titulo}."
-        _programar(usuario_id, guion)
+        texto = f"Recordatorio: {titulo}."
+        _programar(usuario_id, texto)
         notificados.append(row["titulo"])
     return notificados

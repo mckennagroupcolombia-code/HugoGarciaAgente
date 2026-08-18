@@ -173,20 +173,13 @@ export default function TelefonosOperadoresSection({
     }
     setTestingId(u.id);
     try {
-      const r = await fetch("/api/voz/enviar-supervisor", {
+      const r = await ticketsFetch(`/usuarios/${u.id}/probar-notificacion`, token, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          numero,
-          texto: `Hola ${u.nombre.split(" ")[0] || "equipo"}. Esta es una prueba del supervisor McKenna. Tu número quedó configurado correctamente.`,
-        }),
+        body: JSON.stringify({ numero }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || `Error ${r.status}`);
-      flash("ok", `Nota de prueba enviada a ${u.nombre}`);
+      flash("ok", `Mensaje de prueba enviado a ${u.nombre}`);
     } catch (e: unknown) {
       flash("err", e instanceof Error ? e.message : "No se pudo enviar la prueba");
     } finally {
@@ -201,11 +194,11 @@ export default function TelefonosOperadoresSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>📱</span> Teléfonos — notas de voz
+            <span>📱</span> Teléfonos — notificaciones del panel
           </h3>
           <p className="text-xs text-muted mt-0.5 max-w-xl">
-            Número WhatsApp de cada operador. El supervisor envía notas de voz cuando le asignan
-            tareas, resuelven sus solicitudes o terminan listas de compras. Formato Colombia:
+            Número WhatsApp de cada operador. El panel envía un mensaje de texto corto cuando le
+            asignan tareas, resuelven sus solicitudes o terminan listas de compras. Formato Colombia:
             <code className="mx-1 text-[10px] text-ink">573001234567</code>
             o celular de 10 dígitos.
           </p>
@@ -234,7 +227,7 @@ export default function TelefonosOperadoresSection({
 
       {sinTelefonoActivos.length > 0 && (
         <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          {sinTelefonoActivos.length} usuario(s) activo(s) sin teléfono — no recibirán notas de voz.
+          {sinTelefonoActivos.length} usuario(s) activo(s) sin teléfono — no recibirán notificaciones.
         </p>
       )}
 

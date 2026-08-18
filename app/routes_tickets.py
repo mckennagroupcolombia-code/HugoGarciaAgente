@@ -860,6 +860,34 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify({"ok": True}), 200
 
+    @app.route("/api/tickets/usuarios/<int:user_id>/probar-notificacion", methods=["POST"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_probar_notificacion(user_id):
+        from app.services.tickets_notificaciones import (
+            enviar_texto_operador, telefono_operador, normalizar_telefono_wa,
+        )
+        from app.services.tickets_db import get_usuario_by_id
+        usuario = get_usuario_by_id(user_id) or {}
+        nombre = (usuario.get("nombre") or "equipo").strip().split(" ")[0]
+        texto = f"Hola {nombre}. Este es un mensaje de prueba del Centro de Mando — tu número quedó configurado correctamente."
+
+        # Si viene un número explícito (p. ej. aún no guardado en el perfil), se usa ese
+        # en vez del que ya está en la base de datos.
+        body = request.get_json(silent=True) or {}
+        numero_manual = normalizar_telefono_wa(str(body.get("numero") or ""))
+        if numero_manual:
+            from app.utils import enviar_whatsapp_reporte
+            ok = enviar_whatsapp_reporte(texto, numero_destino=numero_manual)
+        else:
+            if not telefono_operador(user_id):
+                return jsonify({"error": "Usuario sin teléfono configurado"}), 400
+            ok = enviar_texto_operador(user_id, texto)
+
+        if not ok:
+            return jsonify({"error": "No se pudo enviar el mensaje de prueba"}), 502
+        return jsonify({"ok": True}), 200
+
     @app.route("/api/tickets/usuarios/<int:user_id>/permisos", methods=["PUT"])
     @_auth
     @_nivel_min(3)

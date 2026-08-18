@@ -6278,7 +6278,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                 <Field label="Correo Google (para login)" type="email" value={form.email || ""} onChange={(v) => setForm({ ...form, email: v })} />
                 <div>
                   <Field
-                    label="WhatsApp (notas de voz)"
+                    label="WhatsApp (notificaciones)"
                     value={form.telefono || ""}
                     onChange={(v) => setForm({ ...form, telefono: v })}
                   />

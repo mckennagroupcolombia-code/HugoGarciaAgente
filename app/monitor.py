@@ -533,7 +533,7 @@ def monitor_loop():
                 def _recordar_acciones():
                     try:
                         from app.services.tickets_db import _conn as _tdb
-                        from app.services.tickets_notificaciones import enviar_nota_voz_operador
+                        from app.services.tickets_notificaciones import enviar_texto_operador
                         with _tdb() as _db:
                             rows = _db.execute(
                                 "SELECT DISTINCT asignado_a FROM tickets "
@@ -541,30 +541,21 @@ def monitor_loop():
                             ).fetchall()
                         for row in rows:
                             uid = row["asignado_a"]
-                            acciones = _db.execute(
-                                "SELECT numero, titulo FROM tickets "
-                                "WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=?",
-                                (uid,),
-                            ).fetchall() if False else []
                             with _tdb() as _db2:
                                 acciones = _db2.execute(
-                                    "SELECT numero, titulo FROM tickets "
+                                    "SELECT titulo FROM tickets "
                                     "WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=? "
                                     "ORDER BY prioridad DESC LIMIT 3",
                                     (uid,),
                                 ).fetchall()
                             if not acciones:
                                 continue
-                            titulos = "; ".join(
-                                f"{a['numero']}: {(a['titulo'] or '')[:40]}" for a in acciones
-                            )
+                            titulos = ", ".join((a["titulo"] or "").strip()[:40] for a in acciones)
                             n = len(acciones)
-                            guion = (
-                                f"Buenos días. Tienes {n} acción{'es' if n > 1 else ''} pendiente{'s' if n > 1 else ''} "
-                                f"en el Centro de Mando: {titulos}. "
-                                "Ábrelas en la pestaña Acciones y márcalas cuando termines."
+                            texto = (
+                                f"Acciones: tienes {n} pendiente{'s' if n > 1 else ''} — {titulos}."
                             )
-                            enviar_nota_voz_operador(uid, guion)
+                            enviar_texto_operador(uid, texto)
                     except Exception as _e:
                         print(f"⚠️ Monitor recordatorio tickets: {_e}")
                 threading.Thread(target=_recordar_acciones, daemon=True).start()
