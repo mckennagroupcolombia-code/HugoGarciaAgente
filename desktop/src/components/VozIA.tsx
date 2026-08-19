@@ -455,6 +455,75 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["voz-config"] }),
   });
 
+  const eliminarPerfilMut = useMutation({
+    mutationFn: (profileId: string) => api.delete(`/api/voz/voicebox/perfiles/${profileId}`),
+    onSuccess: (_data, profileId) => {
+      qc.invalidateQueries({ queryKey: ["voz-config"] });
+      qc.invalidateQueries({ queryKey: ["voz-generaciones"] });
+      if (cfg?.voicebox_profile === profileId) saveMut.mutate({ voicebox_profile: "" });
+    },
+  });
+
+  const { data: tareasActivasData } = useQuery<{ tareas: Array<{ task_id: string; profile_id: string; text_preview: string; started_at: string }> }>({
+    queryKey: ["voz-tareas-activas"],
+    queryFn:  () => api.get("/api/voz/voicebox/tareas-activas"),
+    enabled:  !!cfg?.voicebox_disponible,
+    refetchInterval: 5_000,
+  });
+  const tareasActivas = tareasActivasData?.tareas ?? [];
+
+  const cancelarTareaMut = useMutation({
+    mutationFn: (generationId: string) => api.post(`/api/voz/voicebox/generaciones/${generationId}/cancelar`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["voz-tareas-activas"] });
+      qc.invalidateQueries({ queryKey: ["voz-generaciones"] });
+    },
+  });
+
+  const reiniciarServicioMut = useMutation({
+    mutationFn: () => api.post<{ ok: boolean; error?: string }>("/api/voz/voicebox/reiniciar-servicio", undefined, { timeoutMs: 45_000 }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["voz-config"] });
+      qc.invalidateQueries({ queryKey: ["voz-tareas-activas"] });
+      qc.invalidateQueries({ queryKey: ["voz-generaciones"] });
+    },
+  });
+
+  type VbGeneracion = {
+    id: string; text: string; status: string; error: string | null;
+    created_at: string; duration: number; profile_id: string;
+  };
+  const { data: generacionesData } = useQuery<{ generaciones: VbGeneracion[] }>({
+    queryKey: ["voz-generaciones", cfg?.voicebox_profile],
+    queryFn:  () => api.get(`/api/voz/voicebox/generaciones?profile_id=${cfg?.voicebox_profile ?? ""}&limit=15`),
+    enabled:  !!cfg?.voicebox_disponible && !!cfg?.voicebox_profile,
+  });
+  const generaciones = generacionesData?.generaciones ?? [];
+
+  const eliminarGeneracionMut = useMutation({
+    mutationFn: (generationId: string) => api.delete(`/api/voz/voicebox/generaciones/${generationId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["voz-generaciones"] }),
+  });
+
+  const [reproduciendoGen, setReproduciendoGen] = useState<string | null>(null);
+  const reproducirGeneracion = async (id: string) => {
+    setReproduciendoGen(id);
+    try {
+      const token = _getApiToken();
+      const res = await fetch(`/api/voz/voicebox/generaciones/${id}/audio`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Sin audio");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = audio.onerror = () => { setReproduciendoGen(null); URL.revokeObjectURL(url); };
+      await audio.play();
+    } catch {
+      setReproduciendoGen(null);
+    }
+  };
+
   const [refText, setRefText]           = useState("");
   const [dragOver, setDragOver]         = useState(false);
   const [wakeWordLocal, setWakeWordLocal] = useState("");
@@ -698,34 +767,106 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
       {/* ── Voicebox: clonación de voz ── siempre visible cuando disponible */}
       {cfg.voicebox_disponible && (
         <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-violet-400" />
-            <p className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
-              Voicebox — Clonación de voz
-            </p>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-violet-400" />
+              <p className="text-xs font-semibold text-violet-400 uppercase tracking-wider">
+                Voicebox — Clonación de voz
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm("¿Reiniciar el servicio de voz? Corta cualquier generación en curso (~10-20s de corte).")) {
+                  reiniciarServicioMut.mutate();
+                }
+              }}
+              disabled={reiniciarServicioMut.isPending}
+              title="Si las generaciones se atascan seguido, reiniciar el servicio suele arreglarlo"
+              className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:text-violet-400 hover:border-violet-500/40 transition disabled:opacity-40">
+              {reiniciarServicioMut.isPending ? (
+                <>
+                  <span className="h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                  Reiniciando…
+                </>
+              ) : "🔄 Reiniciar servicio"}
+            </button>
           </div>
+
+          {reiniciarServicioMut.isSuccess && reiniciarServicioMut.data?.ok && (
+            <p className="text-[11px] text-emerald-400">✓ Servicio de voz reiniciado</p>
+          )}
+          {(reiniciarServicioMut.isError || (reiniciarServicioMut.isSuccess && !reiniciarServicioMut.data?.ok)) && (
+            <p className="text-[11px] text-red-400">
+              No se pudo reiniciar: {reiniciarServicioMut.data?.error ?? (reiniciarServicioMut.error as Error)?.message}
+            </p>
+          )}
+
+          {/* Tareas atascadas — generaciones que voicebox reporta en curso de verdad */}
+          {tareasActivas.length > 0 && (
+            <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5">
+              <p className="text-[11px] font-medium text-amber-400">
+                {tareasActivas.length} generación{tareasActivas.length !== 1 ? "es" : ""} en curso en Voicebox
+              </p>
+              {tareasActivas.map((t) => {
+                const segs = Math.max(0, Math.round((Date.now() - new Date(t.started_at + "Z").getTime()) / 1000));
+                return (
+                  <div key={t.task_id} className="flex items-center gap-2 text-[11px]">
+                    <span className="flex-1 truncate text-muted">
+                      «{t.text_preview}» — {segs}s
+                    </span>
+                    {segs > 25 && (
+                      <button onClick={() => cancelarTareaMut.mutate(t.task_id)}
+                        disabled={cancelarTareaMut.isPending}
+                        className="rounded border border-amber-500/40 px-2 py-0.5 text-amber-400 hover:bg-amber-500/10 transition disabled:opacity-40">
+                        Cancelar (atascada)
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="text-[10px] text-amber-400/60">
+                ¿Se atasca seguido? Usa "🔄 Reiniciar servicio" arriba — cancelar no siempre libera la GPU del todo.
+              </p>
+            </div>
+          )}
 
           {/* Perfil activo */}
           <div className="space-y-1">
             <p className="text-[11px] text-muted">Perfil activo (se usa al generar con Voicebox)</p>
-            <select value={cfg.voicebox_profile}
-              onChange={(e) => saveMut.mutate({ voicebox_profile: e.target.value })}
-              className="w-full rounded-lg border border-violet-500/30 bg-surface-hover px-3 py-2 text-sm text-ink focus:outline-none focus:border-violet-500/60">
-              <option value="">Sin perfil (voz base)</option>
-              {(cfg.voicebox_perfiles ?? []).map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select value={cfg.voicebox_profile}
+                onChange={(e) => saveMut.mutate({ voicebox_profile: e.target.value })}
+                className="flex-1 rounded-lg border border-violet-500/30 bg-surface-hover px-3 py-2 text-sm text-ink focus:outline-none focus:border-violet-500/60">
+                <option value="">Sin perfil (voz base)</option>
+                {(cfg.voicebox_perfiles ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              {cfg.voicebox_profile && (
+                <button
+                  onClick={() => {
+                    const nombre = (cfg.voicebox_perfiles ?? []).find((p) => p.id === cfg.voicebox_profile)?.name ?? "este perfil";
+                    if (window.confirm(`¿Borrar el perfil de voz «${nombre}» y todas sus muestras? Esto no se puede deshacer.`)) {
+                      eliminarPerfilMut.mutate(cfg.voicebox_profile);
+                    }
+                  }}
+                  disabled={eliminarPerfilMut.isPending}
+                  title="Borrar este perfil de voz"
+                  className="rounded-lg border border-red-500/30 px-3 text-red-400 hover:bg-red-500/10 transition disabled:opacity-40 text-xs">
+                  {eliminarPerfilMut.isPending ? "…" : "🗑"}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Motor interno */}
           <div className="space-y-1">
             <p className="text-[11px] text-muted">Modelo de síntesis</p>
             <div className="flex flex-wrap gap-2">
-              {(cfg.voicebox_engines ?? ["qwen3","qwen3-0.6b","chatterbox","kokoro"]).map((e) => {
+              {(cfg.voicebox_engines ?? ["qwen3-0.6b"]).map((e) => {
                 const labels: Record<string,string> = {
                   "qwen3": "Qwen3 1.7B (clonación)",
-                  "qwen3-0.6b": "Qwen3 0.6B (rápido)",
+                  "qwen3-0.6b": "Qwen3 0.6B",
                   "chatterbox": "Chatterbox",
                   "chatterbox_turbo": "Chatterbox Turbo",
                   "kokoro": "Kokoro 82M",
@@ -744,7 +885,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
               })}
             </div>
             <p className="text-[10px] text-muted/60">
-              qwen3 1.7B = mejor clonación (modelo ya descargado ✓)
+              Qwen3 0.6B = mejor autenticidad de voz clonada en este caso (probamos 1.7B antes; 0.6B ganó)
             </p>
           </div>
 
@@ -867,6 +1008,44 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
             <p className="text-[11px] text-violet-400/60 italic">
               Crea o selecciona un perfil para agregar muestras de voz
             </p>
+          )}
+
+          {/* Generaciones recientes del perfil — escuchar y borrar las que salieron mal */}
+          {cfg.voicebox_profile && (
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-muted">Generaciones recientes de este perfil</p>
+              {generaciones.length === 0 ? (
+                <p className="text-[11px] text-muted/50 italic">Sin generaciones todavía</p>
+              ) : (
+                <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                  {generaciones.map((g) => (
+                    <div key={g.id}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-surface-hover px-2.5 py-1.5 text-[11px]">
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        g.status === "completed" ? "bg-emerald-400" :
+                        g.status === "failed" || g.status === "error" ? "bg-red-400" :
+                        "bg-amber-400 animate-pulse"
+                      }`} />
+                      <span className="flex-1 truncate text-ink" title={g.text}>{g.text || "(sin texto)"}</span>
+                      {g.status === "completed" && (
+                        <button onClick={() => reproducirGeneracion(g.id)}
+                          disabled={reproduciendoGen === g.id}
+                          title="Reproducir"
+                          className="rounded border border-violet-500/30 px-1.5 py-0.5 text-violet-400 hover:bg-violet-500/10 transition disabled:opacity-40">
+                          {reproduciendoGen === g.id ? "▶…" : "▶"}
+                        </button>
+                      )}
+                      <button onClick={() => eliminarGeneracionMut.mutate(g.id)}
+                        disabled={eliminarGeneracionMut.isPending}
+                        title="Borrar esta generación"
+                        className="rounded border border-red-500/30 px-1.5 py-0.5 text-red-400 hover:bg-red-500/10 transition disabled:opacity-40">
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

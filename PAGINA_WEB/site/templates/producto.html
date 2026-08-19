@@ -3,26 +3,27 @@
 {% block description %}{% if p.get('is_family') %}{{ p.name }} en {{ p.n_presentaciones }} presentaciones desde {{ p.precio }}.{% elif p.get('is_combo') %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}.{% else %}Ficha y referencias de {{ p.name }}. Stock y compra por presentación (combo SIIGO).{% endif %} Despacho a todo Colombia.{% endblock %}
 
 {% block content %}
+<div class="producto-page" style="--cat-accent: {{ color_categoria(p.cat) }}">
 
 <!-- Hero producto -->
-<div class="page-hero" style="--cat-accent: {{ color_categoria(p.cat) }}">
+<div class="page-hero page-hero--producto">
   <div class="inner">
     <span class="hero-badge">{{ p.cat }}</span>
     <h1>{{ p.name }}</h1>
     {% if p.get('is_family') %}
     <p>
       {% if p.n_presentaciones %}{{ p.n_presentaciones }} presentaciones · {% endif %}
-      <strong style="color:var(--green-light)" id="hero-precio">{{ p.precio }}</strong>
+      <strong id="hero-precio">{{ p.precio }}</strong>
       {% if p.selected_combo %}
       · Ref: <span id="hero-ref">{{ p.selected_combo.ref }}</span>
       {% endif %}
     </p>
     {% elif p.get('is_combo') %}
-    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
+    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong>{{ p.precio }}</strong></p>
     {% elif p.solo_vitrina %}
-    <p>Catálogo informativo · <strong style="color:var(--green-light)">{{ p.precio }}</strong> · Compra en presentaciones combo abajo</p>
+    <p>Catálogo informativo · <strong>{{ p.precio }}</strong> · Compra en presentaciones combo abajo</p>
     {% else %}
-    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
+    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong>{{ p.precio }}</strong></p>
     {% endif %}
   </div>
 </div>
@@ -39,7 +40,7 @@
 {% if p.get('is_family') and p.combos %}
 <!-- ═══ Familia: una ficha + botones de presentación ═══ -->
 {% set sel = p.selected_combo or p.combos[0] %}
-<div class="section">
+<div class="section producto-section">
   <div class="producto-detail-grid">
 
     {% set gid = p.slug | replace(' ','') | replace('-','') %}
@@ -91,42 +92,29 @@
         </div>
       </div>
 
-      <div class="producto-specs-grid">
-        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia</div>
-          <div id="spec-ref" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.ref }}</div>
-        </div>
-        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio web</div>
-          <div id="spec-precio" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.precio }}</div>
-        </div>
-        <div style="background:var(--green);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Lista</div>
-          <div id="spec-lista" style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ sel.precio_meli }}</div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:36px;padding:28px 32px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
-        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Precio catálogo web</div>
-        <div style="font-size:3rem;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;">
+      <div class="producto-price-box">
+        <div class="producto-price-box-label">Precio catálogo web</div>
+        <div class="producto-price-box-value">
           <span id="big-precio">{{ sel.precio }}</span>
-          <span id="big-lista" style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">{{ sel.precio_meli }}</span>
+          <span class="producto-price-box-old" id="big-lista">{{ sel.precio_meli }}</span>
         </div>
       </div>
 
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;align-items:center;" id="buy-actions">
-        <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;" id="form-agregar">
+      <div class="producto-actions" id="buy-actions">
+        <form method="POST" action="{{ url_for('carrito_agregar') }}" id="form-agregar">
           <input type="hidden" name="slug" id="cart-slug" value="{{ sel.slug }}">
           <input type="hidden" name="qty" value="1">
-          <button type="submit" class="btn btn-primary btn-lg" id="btn-agregar"
+          <button type="submit" class="btn producto-action-btn" id="btn-agregar"
+                  aria-label="Agregar al carrito" title="Agregar al carrito"
                   {% if not sel.get('buyable', True) %}disabled style="display:none"{% endif %}>
-            <i class="ph ph-shopping-cart"></i>
+            <i class="ph ph-shopping-cart" aria-hidden="true"></i>
             Agregar al carrito
           </button>
         </form>
-        <a href="{{ url_for('checkout') }}" class="btn btn-dark btn-lg" id="btn-comprar"
+        <a href="{{ url_for('checkout') }}" class="btn producto-action-btn" id="btn-comprar"
+           aria-label="Comprar ahora" title="Comprar ahora"
            {% if not sel.get('buyable', True) %}style="display:none"{% endif %}>
-          <i class="ph ph-lock"></i>
+          <i class="ph ph-shopping-bag" aria-hidden="true"></i>
           Comprar ahora
         </a>
         <span class="btn btn-lg badge-agotado" id="btn-agotado"
@@ -137,8 +125,9 @@
         <span class="stock-bajo-nota" id="stock-nota" style="margin:0;{% if not (sel.stock is not none and sel.stock <= 3 and sel.get('buyable', True)) %}display:none{% endif %}">
           Quedan <span id="stock-num">{{ sel.stock }}</span> unidades
         </span>
-        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
-          <i class="ph ph-whatsapp-logo"></i>
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn producto-action-btn"
+           aria-label="WhatsApp" title="WhatsApp">
+          <i class="ph ph-whatsapp-logo" aria-hidden="true"></i>
           WhatsApp
         </a>
       </div>
@@ -214,7 +203,7 @@
 
 {% elif p.get('is_combo') %}
 <!-- ═══ Página de producto COMBO (comprable directo) ═══ -->
-<div class="section">
+<div class="section producto-section">
   <div class="producto-detail-grid">
 
     {% set gid = p.ref | replace(' ','') | replace('-','') %}
@@ -246,41 +235,28 @@
     </div>
 
     <div>
-      <div class="producto-specs-grid">
-        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.ref }}</div>
-        </div>
-        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio web</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio }}</div>
-        </div>
-        <div style="background:var(--green);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Lista</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio_meli }}</div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:36px;padding:28px 32px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
-        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Combo SIIGO · precio catálogo web</div>
-        <div style="font-size:3rem;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;">
+      <div class="producto-price-box">
+        <div class="producto-price-box-label">Combo SIIGO · precio catálogo web</div>
+        <div class="producto-price-box-value">
           {{ p.precio }}
-          <span style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">{{ p.precio_meli }}</span>
+          <span class="producto-price-box-old">{{ p.precio_meli }}</span>
         </div>
       </div>
 
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;align-items:center;">
+      <div class="producto-actions">
         {% if p.get('buyable', True) %}
-        <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;">
+        <form method="POST" action="{{ url_for('carrito_agregar') }}">
           <input type="hidden" name="slug" value="{{ p.slug }}">
           <input type="hidden" name="qty" value="1">
-          <button type="submit" class="btn btn-primary btn-lg">
-            <i class="ph ph-shopping-cart"></i>
+          <button type="submit" class="btn producto-action-btn"
+                  aria-label="Agregar al carrito" title="Agregar al carrito">
+            <i class="ph ph-shopping-cart" aria-hidden="true"></i>
             Agregar al carrito
           </button>
         </form>
-        <a href="{{ url_for('checkout') }}" class="btn btn-dark btn-lg">
-          <i class="ph ph-lock"></i>
+        <a href="{{ url_for('checkout') }}" class="btn producto-action-btn"
+           aria-label="Comprar ahora" title="Comprar ahora">
+          <i class="ph ph-shopping-bag" aria-hidden="true"></i>
           Comprar ahora
         </a>
         {% if p.stock is not none and p.stock <= 3 %}
@@ -292,8 +268,9 @@
           Agotado temporalmente
         </span>
         {% endif %}
-        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
-          <i class="ph ph-whatsapp-logo"></i>
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn producto-action-btn"
+           aria-label="WhatsApp" title="WhatsApp">
+          <i class="ph ph-whatsapp-logo" aria-hidden="true"></i>
           WhatsApp
         </a>
       </div>
@@ -318,7 +295,7 @@
 
 {% else %}
 <!-- ═══ VITRINA (familia legacy): foto, descripción, ficha; compra solo combos ═══ -->
-<div class="section">
+<div class="section producto-section">
   <div class="producto-detail-grid">
 
     {% set gid = p.ref | replace(' ','') | replace('-','') %}
@@ -359,22 +336,7 @@
     </div>
 
     <div>
-      <div class="producto-specs-grid">
-        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia guía</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.rep_sku or p.ref }}</div>
-        </div>
-        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio orientativo</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio }}</div>
-        </div>
-        <div style="background:var(--green);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Compra</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">Combo</div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:28px;padding:24px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
+      <div class="producto-price-box">
         <p style="margin:0;font-size:0.9rem;color:var(--text-muted);line-height:1.6;">
           Esta ficha agrupa varias presentaciones históricas del catálogo. El precio final y la facturación corresponden a la
           <strong>presentación tipo combo</strong> registrada en SIIGO (mismo SKU en MeLi cuando aplique).
@@ -422,7 +384,7 @@
       {% for r in p.referencias %}
       <div style="background:#fff;border:1.5px solid var(--green-pale);padding:20px 24px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-weight:700;">{{ r.name }}</div>
+          <div class="product-line-name" style="font-weight:700;">{{ r.name }}</div>
           <div style="font-size:0.85rem;color:var(--text-muted);">Ref. {{ r.ref }}{% if r.precio != '—' %} · {{ r.precio }} web ref.{% endif %}</div>
         </div>
         {% if r.meli_id %}
@@ -448,15 +410,16 @@
       {% for c in p.combos %}
       <div style="border:1.5px solid var(--green-pale);padding:24px;background:var(--green-ultra);display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-weight:800;font-size:1.1rem;">{{ c.name }}</div>
+          <div class="product-line-name" style="font-weight:800;font-size:1.1rem;">{{ c.name }}</div>
           <div style="font-size:0.9rem;color:var(--text-muted);margin-top:6px;">SKU: {{ c.ref }} · {{ c.precio }}</div>
         </div>
         <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline-flex;">
           <input type="hidden" name="slug" value="{{ c.slug }}">
           <input type="hidden" name="qty" value="1">
           <input type="hidden" name="next" value="{{ request.url }}">
-          <button type="submit" class="btn btn-primary btn-sm">
-            <i class="ph ph-shopping-cart"></i> Agregar al carrito
+          <button type="submit" class="btn btn-primary btn-sm btn-icon-only"
+                  aria-label="Agregar al carrito" title="Agregar al carrito">
+            <i class="ph ph-shopping-cart" aria-hidden="true"></i>
           </button>
         </form>
       </div>
@@ -473,109 +436,27 @@
 </div>
 {% endif %}
 
-<!-- ═══ FICHA TÉCNICA (biblioteca completa o legado JSON) ═══ -->
+<!-- ═══ Documentación técnica (solo descargas) ═══ -->
 {% if doc_completo %}
 <div style="border-top:2px solid var(--green-pale);background:#fff;">
-  <div class="section">
-    <div style="margin-bottom:32px;">
+  <div class="section producto-docs-section">
+    <div class="producto-docs-header">
       <span class="section-eyebrow">Documentación técnica</span>
-      <h2 class="section-title">Ficha <em>Técnica</em></h2>
+      <h2 class="section-title">Documentos <em>disponibles</em></h2>
     </div>
     {% with doc=doc_completo %}
-      {% include "_documento_tecnico.html" %}
+      {% include "_documento_tecnico_descargas.html" %}
     {% endwith %}
   </div>
 </div>
 {% elif p.ficha %}
 <div style="border-top:2px solid var(--green-pale);background:#fff;">
-  <div class="section">
-    <div style="margin-bottom:40px;">
+  <div class="section producto-docs-section">
+    <div class="producto-docs-header">
       <span class="section-eyebrow">Documentación técnica</span>
-      <h2 class="section-title">Ficha <em>Técnica</em></h2>
+      <h2 class="section-title">Documentos <em>disponibles</em></h2>
     </div>
-
-    <div class="producto-ficha-grid">
-
-      <div>
-        {% if p.ficha.identidad %}
-        <div style="margin-bottom:32px;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
-            Identificación del producto
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            {% for fila in p.ficha.identidad %}
-            <tr style="border-bottom:1px solid var(--green-pale);">
-              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
-              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
-            </tr>
-            {% endfor %}
-          </table>
-        </div>
-        {% endif %}
-
-        {% if p.ficha.propiedades %}
-        <div style="margin-bottom:32px;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
-            Propiedades físico-químicas
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            {% for fila in p.ficha.propiedades %}
-            <tr style="border-bottom:1px solid var(--green-pale);">
-              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
-              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
-            </tr>
-            {% endfor %}
-          </table>
-        </div>
-        {% endif %}
-
-        {% if p.ficha.microbiologia %}
-        <div>
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
-            Especificaciones microbiológicas
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
-            {% for fila in p.ficha.microbiologia %}
-            <tr style="border-bottom:1px solid var(--green-pale);">
-              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
-              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
-            </tr>
-            {% endfor %}
-          </table>
-        </div>
-        {% endif %}
-
-      </div>
-
-      <div>
-        {% for sec in p.ficha.secciones %}
-        {% set sec_norm = sec.titulo|lower %}
-        {% if "físico" not in sec_norm and "quimic" not in sec_norm and "microbi" not in sec_norm %}
-        <div style="margin-bottom:28px;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:10px;">
-            {{ sec.titulo }}
-          </div>
-          {% if sec['items']|length == 1 %}
-          <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;margin:0;">{{ sec['items'][0] }}</p>
-          {% else %}
-          <ul style="margin:0;padding-left:16px;">
-            {% for item in sec['items'] %}
-            <li style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;margin-bottom:4px;">{{ item }}</li>
-            {% endfor %}
-          </ul>
-          {% endif %}
-        </div>
-        {% endif %}
-        {% endfor %}
-
-        {% if p.ficha.descripcion and not p.ficha.secciones %}
-        <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;">{{ p.ficha.descripcion }}</p>
-        {% endif %}
-      </div>
-
-    </div>
-
-    <div class="warning-box" style="margin-top:32px;">
+    <div class="warning-box">
       <strong>¿Necesitas el certificado de análisis (CoA) o la ficha de seguridad (MSDS)?</strong><br>
       Abre el <strong>chat</strong> (icono abajo a la derecha), indica la referencia <strong>{{ p.ref }}</strong>
       y te compartimos enlaces si están en archivo; si no, déjanos tu correo en el mismo chat.
@@ -583,7 +464,6 @@
       <a href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, solicito COA y ficha de seguridad de ' ~ p.name ~ ' Ref ' ~ p.ref)|urlencode }}"
          target="_blank" rel="noopener">WhatsApp</a> para seguimiento con un asesor.
     </div>
-
   </div>
 </div>
 {% elif not p.get('is_combo') %}
@@ -635,6 +515,7 @@
 </div>
 {% endif %}
 
+</div>
 {% endblock %}
 
 {% block scripts %}

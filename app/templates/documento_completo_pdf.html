@@ -379,9 +379,11 @@ ul.beneficios li {
 </head>
 <body>
 
+{# seccion_sola: 'ft' | 'coa' | 'sds' — omitir para documento completo #}
 {# ═══════════════════════════════════════════════════════
    SECCIÓN 1 — FICHA TÉCNICA (TDS)
 ═══════════════════════════════════════════════════════ #}
+{% if not seccion_sola or seccion_sola == 'ft' %}
 <div class="doc-section">
   <div class="section-banner">Ficha Técnica (TDS)</div>
 
@@ -476,11 +478,12 @@ ul.beneficios li {
   {% endif %}
 
 </div>
+{% endif %}
 
 {# ═══════════════════════════════════════════════════════
    SECCIÓN 2 — CERTIFICADO DE ANÁLISIS (COA)
 ═══════════════════════════════════════════════════════ #}
-{% if coa %}
+{% if coa and (not seccion_sola or seccion_sola == 'coa') %}
 <div class="doc-section">
   <div class="section-banner">Certificado de Análisis (COA)</div>
 
@@ -586,7 +589,7 @@ ul.beneficios li {
 {# ═══════════════════════════════════════════════════════
    SECCIÓN 3 — HOJA DE DATOS DE SEGURIDAD (SDS)
 ═══════════════════════════════════════════════════════ #}
-{% if sds %}
+{% if sds and (not seccion_sola or seccion_sola == 'sds') %}
 <div class="doc-section">
   <div class="section-banner">Hoja de Datos de Seguridad (SDS/MSDS) — Sistema GHS</div>
 

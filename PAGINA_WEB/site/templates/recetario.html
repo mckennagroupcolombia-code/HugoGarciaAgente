@@ -4,31 +4,27 @@
 
 {% block content %}
 
-<!-- Hero -->
-<div class="page-hero">
+<div class="page-hero page-hero--guides">
   <div class="inner">
-    <span class="hero-badge">Principios activos · Grado farmacológico</span>
-    <h1>Recetas con <em>principios activos</em> reales.</h1>
-    <p style="color:var(--text-muted);font-size:1rem;max-width:480px;line-height:1.8;margin-top:12px;">
-      Formulaciones para cosmética, nutrición, perfumería y cuidado del hogar usando
-      las materias primas de McKenna Group. Escala cualquier receta al gramaje que necesitas.
-    </p>
+    <h1>Recetas con <em>principios activos</em> reales</h1>
+    <p>Formulaciones para cosmética, nutrición, perfumería y cuidado del hogar. Escala cualquier receta al gramaje que necesitas.</p>
   </div>
 </div>
 
-<!-- Pills de categoría -->
-<div class="rec-nav" id="rec-nav">
-  <span class="rec-pill active" data-cat="all">Todas</span>
-  <span class="rec-pill" data-cat="cosmetica">Cosmética</span>
-  <span class="rec-pill" data-cat="nutricion">Nutrición</span>
-  <span class="rec-pill" data-cat="perfumeria">Perfumería</span>
-  <span class="rec-pill" data-cat="hogar">Hogar</span>
+<div class="section guides-page recetario-page">
+
+  <div class="rec-nav" id="rec-nav">
+    <span class="rec-pill active" data-cat="all">Todas</span>
+    <span class="rec-pill" data-cat="cosmetica">Cosmética</span>
+    <span class="rec-pill" data-cat="nutricion">Nutrición</span>
+    <span class="rec-pill" data-cat="perfumeria">Perfumería</span>
+    <span class="rec-pill" data-cat="hogar">Hogar</span>
+  </div>
+
+  <div class="guides-grid rec-grid" id="rec-grid"></div>
+
 </div>
 
-<!-- Grid de recetas -->
-<div class="rec-grid" id="rec-grid"></div>
-
-<!-- Overlay + Modal -->
 <div class="rec-overlay" id="rec-overlay">
   <div class="rec-modal" id="rec-modal"></div>
 </div>
@@ -39,6 +35,8 @@
 <script>
 var RECETAS = {{ recetas | tojson }};
 var CAT_LABELS = {cosmetica:'Cosmética',nutricion:'Nutrición',perfumeria:'Perfumería',hogar:'Hogar'};
+var CAT_ACCENTS = {cosmetica:'#143D36',nutricion:'#1E5C51',perfumeria:'#2E8B7A',hogar:'#0C6069'};
+var CAT_ICONS = {cosmetica:'sparkle',nutricion:'leaf',perfumeria:'flower',hogar:'house'};
 
 function initials(s){
   return s.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
@@ -47,7 +45,6 @@ function fmtQ(n){
   return n >= 10 ? Math.round(n) : parseFloat(n.toFixed(2));
 }
 
-/* ── Cards ─────────────────────────────────────────────── */
 function renderCards(list){
   var g = document.getElementById('rec-grid');
   if(!list.length){
@@ -55,26 +52,31 @@ function renderCards(list){
     return;
   }
   g.innerHTML = list.map(function(r){
-    return '<div class="rec-card reveal" data-id="'+r.id+'">'
-      +'<div class="rec-card-top">'
-        +'<div class="rec-avatar">'+initials(r.title)+'</div>'
-        +'<div class="rec-card-cat">'+CAT_LABELS[r.cat]+'</div>'
-        +'<div class="rec-card-title">'+r.title+'<br><em>'+r.title2+'</em></div>'
-        +'<div class="rec-card-desc">'+r.desc+'</div>'
-      +'</div>'
-      +'<div class="rec-card-bottom">'
-        +'<div class="rec-tags">'+r.tags.map(function(t){return '<span class="rec-tag">'+t+'</span>';}).join('')+'</div>'
-        +'<span class="rec-arrow"><i class="ph ph-arrow-right"></i></span>'
+    var accent = CAT_ACCENTS[r.cat] || '#143D36';
+    var icon = CAT_ICONS[r.cat] || 'flask';
+    return '<div class="guide-card rec-card reveal" data-id="'+r.id+'" style="--guide-accent:'+accent+';">'
+      +'<div class="guide-card-body">'
+        +'<div class="guide-card-head">'
+          +'<div class="guide-card-icon-wrap"><i class="ph ph-'+icon+'"></i></div>'
+          +'<div class="guide-card-badges">'
+            +r.tags.map(function(t){return '<span class="guide-tag">'+t+'</span>';}).join('')
+          +'</div>'
+        +'</div>'
+        +'<div class="guide-card-cat">'+CAT_LABELS[r.cat]+'</div>'
+        +'<h3 class="guide-card-title">'+r.title+' <em>'+r.title2+'</em></h3>'
+        +'<p class="guide-card-desc">'+r.desc+'</p>'
+        +'<div class="guide-card-footer">'
+          +'<span class="guide-card-products"><i class="ph ph-scales"></i> '+r.base+' '+r.unidad+'</span>'
+          +'<span class="guide-card-cta">Ver receta <i class="ph ph-arrow-right"></i></span>'
+        +'</div>'
       +'</div>'
     +'</div>';
   }).join('');
 
-  /* Scroll reveal */
   document.querySelectorAll('.rec-card.reveal').forEach(function(el,i){
-    setTimeout(function(){ el.classList.add('visible'); }, i * 60);
+    setTimeout(function(){ el.classList.add('visible'); }, i * 50);
   });
 
-  /* Clicks en cards */
   document.querySelectorAll('.rec-card').forEach(function(el){
     el.addEventListener('click', function(){
       openModal(parseInt(el.dataset.id));
@@ -82,7 +84,6 @@ function renderCards(list){
   });
 }
 
-/* ── Filtro ─────────────────────────────────────────────── */
 document.querySelectorAll('.rec-pill').forEach(function(pill){
   pill.addEventListener('click', function(){
     document.querySelectorAll('.rec-pill').forEach(function(p){ p.classList.remove('active'); });
@@ -92,7 +93,6 @@ document.querySelectorAll('.rec-pill').forEach(function(pill){
   });
 });
 
-/* ── Modal ──────────────────────────────────────────────── */
 var curReceta = null, curScale = 1;
 
 function openModal(id){
@@ -115,6 +115,10 @@ function rescale(val){
 
 function buildModal(){
   var r = curReceta, s = curScale;
+  var accent = CAT_ACCENTS[r.cat] || '#143D36';
+  var modal = document.getElementById('rec-modal');
+  modal.style.setProperty('--rec-accent', accent);
+
   var ings = r.ings.map(function(i){
     return '<div class="rec-ing-row">'
       +'<div class="rec-ing-avatar">'+initials(i.n)+'</div>'
@@ -136,11 +140,11 @@ function buildModal(){
     +'</div>';
   }).join('');
 
-  document.getElementById('rec-modal').innerHTML =
+  modal.innerHTML =
     '<div class="rec-modal-hero">'
       +'<button class="rec-modal-close" id="rec-close-btn"><i class="ph ph-x"></i></button>'
       +'<div class="rec-modal-eyebrow">'+CAT_LABELS[r.cat]+' · McKenna Group</div>'
-      +'<div class="rec-modal-title">'+r.title+'<br><em>'+r.title2+'</em></div>'
+      +'<div class="rec-modal-title">'+r.title+' <em>'+r.title2+'</em></div>'
     +'</div>'
     +'<div class="rec-modal-body">'
       +'<div class="rec-scale-box">'
@@ -154,7 +158,7 @@ function buildModal(){
       + pasos
       +'<div class="rec-section-label">Consejo profesional</div>'
       +'<div class="rec-tip-box">'
-        +'<span class="rec-tip-icon">TIP</span>'
+        +'<span class="rec-tip-icon"><i class="ph ph-lightbulb"></i></span>'
         +'<div class="rec-tip-text">'+r.tip+'</div>'
       +'</div>'
     +'</div>';
@@ -163,17 +167,13 @@ function buildModal(){
   document.getElementById('rec-scale-input').addEventListener('change', function(){ rescale(this.value); });
 }
 
-/* Cerrar al click fuera del modal */
 document.getElementById('rec-overlay').addEventListener('click', function(e){
   if(e.target === this) closeModal();
 });
-
-/* Cerrar con ESC */
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape') closeModal();
 });
 
-/* Init */
 renderCards(RECETAS);
 </script>
 {% endblock %}

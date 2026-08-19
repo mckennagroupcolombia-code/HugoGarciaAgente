@@ -88,7 +88,17 @@ def _poll_and_download(gen_id: str, max_espera: float = _TIMEOUT_GEN) -> bytes:
             raise RuntimeError(f"voicebox generation failed: {hd.get('error')}")
         time.sleep(_POLL_INTERVAL)
     else:
-        raise TimeoutError("voicebox: timeout esperando generación")
+        # No basta con darnos por vencidos: si solo dejamos de esperar, el job
+        # sigue corriendo "huérfano" en la GPU de voicebox y choca con el siguiente
+        # intento (incidente 2026-08-19: el cliente se rindió a los 70s, liberó el
+        # lock, y el siguiente clic arrancó una segunda generación mientras la
+        # primera —abandonada, no cancelada— seguía viva). Cancelar aquí libera
+        # la GPU de verdad en vez de solo dejar de mirar.
+        try:
+            _req.post(f"{_BASE}/generate/{gen_id}/cancel", timeout=_TIMEOUT_SHORT)
+        except Exception:
+            pass
+        raise TimeoutError("voicebox: timeout esperando generación (cancelada)")
 
     ar = _req.get(f"{_BASE}/audio/{gen_id}", timeout=_TIMEOUT_GEN)
     ar.raise_for_status()
@@ -242,3 +252,78 @@ def estado_modelos_voicebox() -> list[dict]:
         return r.json().get("models", [])
     except Exception:
         return []
+
+
+def listar_generaciones_voicebox(profile_id: str = "", limit: int = 30) -> list[dict]:
+    """Historial de generaciones (para poder escuchar/borrar las que salieron mal)."""
+    params: dict = {"limit": limit}
+    if profile_id:
+        params["profile_id"] = profile_id
+    r = _req.get(f"{_BASE}/history", params=params, timeout=_TIMEOUT_SHORT)
+    r.raise_for_status()
+    data = r.json()
+    return data.get("items", data) if isinstance(data, dict) else data
+
+
+def eliminar_generacion_voicebox(generation_id: str) -> None:
+    """Borra una generación (audio) puntual del historial de voicebox."""
+    r = _req.delete(f"{_BASE}/history/{generation_id}", timeout=_TIMEOUT_SHORT)
+    r.raise_for_status()
+
+
+def limpiar_generaciones_fallidas_voicebox() -> dict:
+    """Limpia de un solo golpe todas las generaciones marcadas como fallidas."""
+    r = _req.delete(f"{_BASE}/history/failed", timeout=_TIMEOUT_SHORT)
+    r.raise_for_status()
+    return r.json() if r.content else {}
+
+
+def tareas_activas_voicebox() -> list[dict]:
+    """Generaciones que voicebox reporta como realmente en curso ahora mismo.
+
+    Sirve para detectar una generación atascada (ver también cancelar_generacion_voicebox)
+    sin depender del estado "generating" que puede quedar huérfano en /history.
+    """
+    r = _req.get(f"{_BASE}/tasks/active", timeout=_TIMEOUT_SHORT)
+    r.raise_for_status()
+    return r.json().get("generations", [])
+
+
+def cancelar_generacion_voicebox(generation_id: str) -> None:
+    """Cancela una generación en curso en voicebox (p. ej. una que quedó atascada).
+
+    Si esa generación es la que tiene tomado _gen_lock (petición interactiva en curso),
+    su poll la verá "failed"/"cancelled" en el siguiente ciclo (~1.5s) y liberará el
+    lock por su cuenta, en vez de agotar el max_espera completo.
+    """
+    r = _req.post(f"{_BASE}/generate/{generation_id}/cancel", timeout=_TIMEOUT_SHORT)
+    r.raise_for_status()
+
+
+def reiniciar_servicio_voicebox(espera_max: float = 40.0) -> dict:
+    """Reinicia voicebox-tts.service (systemd) y espera a que vuelva a responder.
+
+    Motivo: el proceso de voicebox acumula uso de CPU/hilos durante sesiones largas
+    (medido en producción 2026-08-19: tras ~2h de uso, ~97% CPU promedio y 150+
+    hilos; generaciones que tardaban 5-20s pasaron a 70-90s+ y empezaron a agotar
+    max_espera en cadena) — un reinicio limpio del servicio lo resuelve. No es un
+    bug de nuestra integración: es degradación del proceso de voicebox mismo.
+    Requiere sudo NOPASSWD para systemctl (ya configurado en este host).
+    """
+    import subprocess
+    try:
+        subprocess.run(
+            ["sudo", "systemctl", "restart", "voicebox-tts"],
+            timeout=15, check=True, capture_output=True, text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        return {"ok": False, "error": f"systemctl restart falló: {(exc.stderr or str(exc)).strip()[:300]}"}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+    deadline = time.time() + espera_max
+    while time.time() < deadline:
+        time.sleep(2)
+        if voicebox_disponible():
+            return {"ok": True}
+    return {"ok": False, "error": "El servicio no respondió tras reiniciar (revisa journalctl -u voicebox-tts)"}

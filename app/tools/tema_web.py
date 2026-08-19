@@ -129,10 +129,7 @@ TEMA_WEB_DEFAULTS: dict = {
     "clasico": {
         "colores": copy.deepcopy(COLORES_CLASICO_DEFAULT),
         "fondos": {k: "" for k in FONDOS_CLASICO_KEYS},
-        "anuncio": (
-            "Materias primas farmacéuticas y cosméticas certificadas | "
-            "Bogotá, Colombia · Lun–Vie 8:00–17:30"
-        ),
+        "anuncio": "Bienvenidos · Horario de atención Lun–Vie 8:00–17:30",
         "hero": {
             "badge": "Materias Primas Certificadas · Colombia",
             "titulo_l1": "Materias primas",

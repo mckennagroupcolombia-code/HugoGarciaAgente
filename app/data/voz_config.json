@@ -7,6 +7,6 @@
   "ref_audio_path": "",
   "wake_word": "victor",
   "listen_memory": true,
-  "voicebox_profile": "2ebe1978-e7cc-43e9-a6a6-16a8185cef08",
-  "voicebox_engine": "qwen3"
+  "voicebox_profile": "108a2a8e-8c57-4b05-8c20-0a37c2df5c9b",
+  "voicebox_engine": "qwen3-0.6b"
 }

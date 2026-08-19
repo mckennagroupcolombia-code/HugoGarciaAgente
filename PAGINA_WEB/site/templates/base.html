@@ -40,7 +40,7 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260819f">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260819v">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -124,12 +124,11 @@ fbq('track','PageView');
 <!-- Barra anuncio -->
 <div class="announcement-bar" style="{{ LCHROME.estilos.get('anuncio', '') }}">
   {% if TEMA_ACTIVO == 'pureza' and TW.anuncio %}
-  🌿 {{ TW.anuncio }}
+  {{ TW.anuncio }}
   {% elif TEMA_ACTIVO == 'clasico' and TC.anuncio %}
-  🌿 {{ TC.anuncio }}
+  {{ TC.anuncio }}
   {% else %}
-  🌿 Materias primas farmacéuticas y cosméticas certificadas &nbsp;|&nbsp;
-  <strong>Bogotá, Colombia</strong> &nbsp;·&nbsp; Lun–Vie 8:00–17:30
+  Bienvenidos · Horario de atención Lun–Vie 8:00–17:30
   {% endif %}
 </div>
 {% endif %}

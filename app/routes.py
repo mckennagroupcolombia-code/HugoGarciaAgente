@@ -9367,7 +9367,11 @@ def register_routes(app):
             "idiomas":             ["Spanish","English","Chinese","Japanese","Korean","German","French","Italian","Russian"],
             "voicebox_disponible": voicebox_ok,
             "voicebox_perfiles":   listar_perfiles_voicebox() if voicebox_ok else [],
-            "voicebox_engines":    ["qwen3","qwen3-0.6b","chatterbox","kokoro"],
+            # Solo Qwen3 0.6B: conserva mejor la autenticidad de la voz clonada
+            # que 1.7B/chatterbox/kokoro (decisión 2026-08-19). Esos motores
+            # siguen instalados en el backend voicebox compartido con la app
+            # nativa (Tauri) — solo no los ofrecemos desde este panel.
+            "voicebox_engines":    ["qwen3-0.6b"],
         })
 
     @app.route("/api/voz/config", methods=["POST"])
@@ -9615,6 +9619,83 @@ def register_routes(app):
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 
+    @app.route("/api/voz/voicebox/perfiles/<profile_id>", methods=["DELETE"])
+    def api_voz_voicebox_eliminar_perfil(profile_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import eliminar_perfil_voicebox
+        try:
+            eliminar_perfil_voicebox(profile_id)
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/generaciones", methods=["GET"])
+    def api_voz_voicebox_generaciones():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import listar_generaciones_voicebox
+        profile_id = (request.args.get("profile_id") or "").strip()
+        limit = min(int(request.args.get("limit", 30) or 30), 100)
+        try:
+            return jsonify({"generaciones": listar_generaciones_voicebox(profile_id, limit)})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/generaciones/<generation_id>", methods=["DELETE"])
+    def api_voz_voicebox_eliminar_generacion(generation_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import eliminar_generacion_voicebox
+        try:
+            eliminar_generacion_voicebox(generation_id)
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/generaciones/<generation_id>/cancelar", methods=["POST"])
+    def api_voz_voicebox_cancelar_generacion(generation_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import cancelar_generacion_voicebox
+        try:
+            cancelar_generacion_voicebox(generation_id)
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/generaciones/<generation_id>/audio", methods=["GET"])
+    def api_voz_voicebox_generacion_audio(generation_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import requests as _req
+        from app.services.tts_voicebox import _BASE as _VB_BASE
+        try:
+            r = _req.get(f"{_VB_BASE}/audio/{generation_id}", timeout=15)
+            r.raise_for_status()
+            from flask import Response as _R
+            return _R(r.content, content_type="audio/wav")
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/tareas-activas", methods=["GET"])
+    def api_voz_voicebox_tareas_activas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import tareas_activas_voicebox
+        try:
+            return jsonify({"tareas": tareas_activas_voicebox()})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/reiniciar-servicio", methods=["POST"])
+    def api_voz_voicebox_reiniciar_servicio():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import reiniciar_servicio_voicebox
+        resultado = reiniciar_servicio_voicebox()
+        return jsonify(resultado), (200 if resultado.get("ok") else 500)
+
     @app.route("/api/voz/notificaciones")
     def api_voz_notificaciones_get():
         if not _api_token_valido():
@@ -9736,7 +9817,8 @@ def register_routes(app):
                 profile  = resolver_voicebox_profile({}, cfg)
                 voz_lang = voicebox_language_code(cfg.get("language"))
                 audio_bytes = sintetizar_voicebox_interactivo(
-                    texto, profile_id=profile, language=voz_lang, max_espera=70.0,
+                    texto, profile_id=profile, engine=cfg.get("voicebox_engine", "qwen3-0.6b"),
+                    language=voz_lang, max_espera=70.0,
                 )
             except Exception as exc:
                 print(f"[voz-supervisor] Voicebox falló: {exc}")
@@ -10371,7 +10453,8 @@ def register_routes(app):
                 profile  = resolver_voicebox_profile({}, cfg)
                 voz_lang = voicebox_language_code(cfg.get("language"))
                 audio_bytes = sintetizar_voicebox_interactivo(
-                    texto, profile_id=profile, language=voz_lang, max_espera=70.0,
+                    texto, profile_id=profile, engine=cfg.get("voicebox_engine", "qwen3-0.6b"),
+                    language=voz_lang, max_espera=70.0,
                 )
             except Exception as exc:
                 print(f"[sup-voz] Voicebox: {exc}")

@@ -37,7 +37,7 @@
       {% for o in orders %}
       <div class="cart-row" style="padding:24px 0;align-items:flex-start;flex-wrap:wrap;gap:12px;">
         <div style="flex:1;min-width:200px;">
-          <div class="cart-name">{{ o['reference'] }}</div>
+          <div class="cart-name" style="text-transform:none;">{{ o['reference'] }}</div>
           <div class="cart-ref">{{ o['created_at'][:10] }}</div>
           {% set ss = o['shipping_status'] or 'preparing' %}
           <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">

@@ -756,11 +756,10 @@ export default function ClasicoLayoutCanvas({
               className="px-6 py-[9px] text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-white/90"
               style={{ background: pal.acento }}
             >
-              🌿{" "}
               {textBlock(
                 "anuncio",
                 clasico.anuncio ||
-                  "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
+                  "Bienvenidos · Horario de atención Lun–Vie 8:00–17:30",
                 "inline",
                 "span",
               )}

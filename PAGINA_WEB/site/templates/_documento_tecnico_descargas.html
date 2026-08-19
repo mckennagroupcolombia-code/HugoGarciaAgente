@@ -1,0 +1,32 @@
+{# Botones de descarga — sin vista previa inline del documento. #}
+{% set pdf = doc.pdf_nombre %}
+{% set accent = doc.color_acento or 'var(--cat-accent, var(--green))' %}
+
+<div class="producto-docs" style="--doc-accent: {{ accent }};">
+  <a class="btn producto-doc-btn"
+     href="{{ url_for('documento_tecnico_pdf', filename=pdf, seccion='ft') }}"
+     target="_blank" rel="noopener">
+    <i class="ph ph-file-text" aria-hidden="true"></i>
+    Ficha técnica
+  </a>
+
+  {% if doc.coa %}
+  <a class="btn producto-doc-btn"
+     href="{{ url_for('documento_tecnico_pdf', filename=pdf, seccion='coa') }}"
+     target="_blank" rel="noopener">
+    <i class="ph ph-certificate" aria-hidden="true"></i>
+    Certificado de análisis
+  </a>
+  {% endif %}
+
+  {% if doc.sds %}
+  <a class="btn producto-doc-btn"
+     href="{{ url_for('documento_tecnico_pdf', filename=pdf, seccion='sds') }}"
+     target="_blank" rel="noopener">
+    <i class="ph ph-shield-warning" aria-hidden="true"></i>
+    Hoja de seguridad
+  </a>
+  {% endif %}
+</div>
+
+<p class="producto-docs-nota">Documentos con marca de agua McKenna Group. Uso informativo para formuladores.</p>

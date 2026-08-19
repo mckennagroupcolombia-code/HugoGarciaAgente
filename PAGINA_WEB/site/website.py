@@ -43,8 +43,13 @@ from app.tools.web_pedidos import (
 )
 from app.services.siigo import listar_productos_combo_siigo, buscar_producto_siigo_por_sku
 from app.services.precios_canales import WEB_DESCUENTO_VS_MELI as MELI_COMMISSION
-from app.services.documentos_web import buscar_documento_completo_web
+from app.services.documentos_web import (
+    buscar_documento_completo_web,
+    buscar_documento_por_pdf_nombre,
+    generar_pdf_seccion_web,
+)
 from app.services.ficha_tecnica import ruta_archivo_biblioteca_segura
+from app.services.pdf_watermark import aplicar_marca_agua_pdf
 
 from flask import (
     Flask,
@@ -77,7 +82,7 @@ FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 11      # v11 = precio web = MeLi − 10% (antes −16.5% comisión)
+CATALOG_CACHE_VERSION = 12      # v12 = sinónimos SIIGO (árbol de té 5mL / 30mL)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -1088,6 +1093,8 @@ def _norm_family_key(nombre: str) -> str:
         n = "aceite girasol"
     if "aceite" in n and "linaza" in n:
         n = "aceite linaza"
+    if re.search(r"arbol\s+(de\s+)?te\b", n) or "tea tree" in n:
+        n = "aceite arbol de te"
     return n
 
 
@@ -1133,6 +1140,7 @@ def _name_derived_stem(nombre_clean: str) -> str | None:
         "acido estearico": "ACIDESTEARICO",
         "aceite girasol": "GIRASOL",
         "aceite linaza": "LINAZA",
+        "aceite arbol de te": "ARBOLDETE",
         "citrato magnesio sal": "CITRATOMAGSAL",
         "bisglicinato magnesio": "BISGLICINATOMG",
         "alcohol cetilico": "ALCOHOLCETILICO",
@@ -1215,6 +1223,10 @@ def _sku_family_stem(sku: str) -> str | None:
             ("OILRCN", "RICINO"),
             ("OILRC", "RICINO"),
             ("OILCAS", "RICINO"),
+            ("C-ACEITEATRE", "ARBOLDETE"),
+            ("C-ACETEATRE", "ARBOLDETE"),
+            ("ACEITEATRE", "ARBOLDETE"),
+            ("ACETEATRE", "ARBOLDETE"),
             ("CRCRN", "CERACARNAUBA"),
             ("BCARNA", "CERAABEJA"),
             ("LNLN", "LANOLINA"),
@@ -1302,6 +1314,7 @@ _CANONICAL_FAMILY_TITLE = {
     "ACIDESTEARICO": "Ácido esteárico",
     "GIRASOL": "Aceite de girasol",
     "LINAZA": "Aceite de linaza",
+    "ARBOLDETE": "Aceite esencial de árbol de té",
     "HIALURONICO": "Ácido hialurónico",
     "NEEM": "Aceite de neem",
     "RICINO": "Aceite de ricino",
@@ -1370,6 +1383,7 @@ def _canonical_family_slug(stem: str) -> str | None:
         "ACIDESTEARICO": "acido-estearico",
         "GIRASOL": "aceite-girasol",
         "LINAZA": "aceite-linaza",
+        "ARBOLDETE": "aceite-arbol-de-te",
         "ACIDMALICO": "acido-malico",
         "CLORUROMAGNESIO": "cloruro-magnesio",
         "CITRATOPOTASIO": "citrato-potasio",
@@ -1485,6 +1499,14 @@ def _presentation_family_key(nombre: str) -> str:
         if not re.search(r"citrat|magnesio", n):
             pct = re.search(r"(\d+[.,]?\d*\s*%)", n)
             n = "acido ascorbico" + (f" {re.sub(r'\s+', '', pct.group(1))}" if pct else "")
+    # SIIGO deja unidades sueltas ("… TE mL") y omite/agrega "de".
+    n = re.sub(
+        r"\s+(ml|mls|cc|g|gr|gramos?|kg|kilos?|l|lt|lts|litros?|lb|lbs|oz|onzas?)\s*$",
+        "",
+        n,
+    )
+    if re.search(r"arbol\s+(de\s+)?te\b", n) or re.search(r"\btea\s*tree\b", n):
+        n = "aceite arbol de te"
     return n
 
 
@@ -1845,6 +1867,7 @@ def _display_family_name(nombre: str, sku_stem: str | None = None) -> str:
         "aceite ricino": "Aceite de ricino",
         "aceite girasol": "Aceite de girasol",
         "aceite linaza": "Aceite de linaza",
+        "aceite arbol de te": "Aceite esencial de árbol de té",
         "acido citrico": "Ácido cítrico",
         "acido estearico": "Ácido esteárico",
         "citrato magnesio sal": "Citrato de magnesio",
@@ -2788,11 +2811,53 @@ def imagen_producto_catalogo(filename: str):
 
 @app.route("/documentos-tecnicos/<path:filename>")
 def documento_tecnico_pdf(filename: str):
-    """PDF completo (FT+COA+SDS) publicado desde la biblioteca local."""
-    path = ruta_archivo_biblioteca_segura(filename)
-    if not path:
-        abort(404)
-    return send_from_directory(path.parent, path.name, as_attachment=False, mimetype="application/pdf")
+    """PDF técnico (completo o por sección) con marca de agua al servir."""
+    seccion = (request.args.get("seccion") or "").strip().lower()
+    nombre_seguro = os.path.basename(filename or "")
+    doc = None
+
+    if seccion in ("ft", "coa", "sds"):
+        doc = buscar_documento_por_pdf_nombre(nombre_seguro)
+        if not doc:
+            abort(404)
+        if seccion == "coa" and not doc.get("coa"):
+            abort(404)
+        if seccion == "sds" and not doc.get("sds"):
+            abort(404)
+        try:
+            pdf_bytes = generar_pdf_seccion_web(doc, seccion)
+        except Exception as e:
+            log.warning("PDF sección %s (%s): %s", seccion, nombre_seguro, e)
+            abort(404)
+    else:
+        path = ruta_archivo_biblioteca_segura(nombre_seguro)
+        if not path:
+            abort(404)
+        pdf_bytes = path.read_bytes()
+
+    try:
+        pdf_bytes = aplicar_marca_agua_pdf(pdf_bytes)
+    except Exception as e:
+        log.warning("Marca de agua PDF (%s): %s", nombre_seguro, e)
+
+    titulo = (doc or {}).get("titulo") or Path(nombre_seguro).stem
+    if seccion == "ft":
+        dl_name = f"Ficha Tecnica - {titulo}.pdf"
+    elif seccion == "coa":
+        dl_name = f"COA - {titulo}.pdf"
+    elif seccion == "sds":
+        dl_name = f"Hoja de Seguridad - {titulo}.pdf"
+    else:
+        dl_name = nombre_seguro
+
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{dl_name}"',
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 @app.route("/")

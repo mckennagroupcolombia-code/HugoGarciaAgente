@@ -264,8 +264,7 @@ function ensureFondosMap(
 const CLASICO_DEFAULTS: TemaWebConfig["clasico"] = {
   colores: { ...COLORES_CLASICO_DEFAULT },
   fondos: { ...FONDOS_CLASICO_DEFAULT },
-  anuncio:
-    "Materias primas farmacéuticas y cosméticas certificadas | Bogotá, Colombia · Lun–Vie 8:00–17:30",
+  anuncio: "Bienvenidos · Horario de atención Lun–Vie 8:00–17:30",
   hero: {
     badge: "Materias Primas Certificadas · Colombia",
     titulo_l1: "Materias primas",

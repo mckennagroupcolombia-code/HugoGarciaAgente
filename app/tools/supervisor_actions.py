@@ -24,7 +24,6 @@ _RECORDATORIOS_PATH  = os.path.join(_REPO, "app", "data", "recordatorios_program
 _BOT_URL = "http://localhost:3000"
 
 # Perfil Voicebox activo para TTS (Hugo Garcia)
-_VOICEBOX_URL     = os.getenv("VOICEBOX_URL", "http://localhost:17493")
 _VOICEBOX_PROFILE = "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23"  # Hugo Garcia
 
 
@@ -91,37 +90,26 @@ def _resolver_contacto(nombre: str) -> tuple[str, str] | tuple[None, None]:
 
 
 # ── TTS con Voicebox/Qwen3 (voz clonada Hugo Garcia) ──────────────────────────
+# Antes este módulo tenía su propio cliente HTTP directo a voicebox, sin el
+# _gen_lock de app.services.tts_voicebox — dos "Hugo envía nota de voz..." (o un
+# recordatorio programado + un envío inmediato) casi al tiempo podían disparar dos
+# /generate concurrentes y trabarse igual que el incidente del panel (2026-08-18/19).
+# Reutilizar sintetizar_voicebox_interactivo() cierra ese hueco desde un solo lugar.
 
 def _tts_voicebox(texto: str) -> bytes:
-    """Genera WAV con Voicebox usando el perfil Hugo Garcia (Qwen3 1.7B)."""
-    payload = {
-        "profile_id": _VOICEBOX_PROFILE,
-        "text":       texto,
-        "language":   "es",
-        "engine":     "qwen",
-        "model_size": "1.7B",
-    }
-    r = _req.post(f"{_VOICEBOX_URL}/generate", json=payload, timeout=300)
-    r.raise_for_status()
-    gen_id = r.json()["id"]
+    """Genera WAV con Voicebox usando el perfil Hugo Garcia (Qwen3 0.6B).
 
-    import time
-    deadline = time.time() + 300
-    while time.time() < deadline:
-        hr = _req.get(f"{_VOICEBOX_URL}/history/{gen_id}", timeout=10)
-        hr.raise_for_status()
-        st = hr.json().get("status", "")
-        if st == "completed":
-            break
-        if st in ("failed", "error"):
-            raise RuntimeError(f"Voicebox falló: {hr.json().get('error')}")
-        time.sleep(1.5)
-    else:
-        raise TimeoutError("Voicebox: timeout esperando generación")
-
-    ar = _req.get(f"{_VOICEBOX_URL}/audio/{gen_id}", timeout=60)
-    ar.raise_for_status()
-    return ar.content  # WAV bytes
+    0.6B conserva mejor la autenticidad de la voz clonada que 1.7B para este
+    perfil (decisión 2026-08-19, tras comparar ambos).
+    """
+    from app.services.tts_voicebox import sintetizar_voicebox_interactivo
+    return sintetizar_voicebox_interactivo(
+        texto,
+        profile_id=_VOICEBOX_PROFILE,
+        engine="qwen3-0.6b",
+        language="es",
+        max_espera=70.0,
+    )
 
 
 def _wav_to_ogg_opus(wav_bytes: bytes) -> bytes:

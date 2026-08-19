@@ -9,6 +9,30 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-18 23:21 - Sitio: barra de anuncio solo bienvenida y horario
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La franja superior quedó en «Bienvenidos · Horario de atención Lun–Vie 8:00–17:30», sin el texto de materias primas ni Bogotá.
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `PAGINA_WEB/site/data/tema_web.json`, `PAGINA_WEB/site/templates/base.html`, `desktop/src/components/SitioWebPanel.tsx`, `desktop/src/components/studio-web/ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 23:17 - Catálogo: acento de título y líneas por categoría
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El título de cada sección, el divisor y el borde de las tarjetas usan el color de esa línea (p. ej. naranja en Aceites esenciales), no el verde genérico.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/templates/tienda.html`, `PAGINA_WEB/site/templates/base.html`
+
+### 2026-08-18 22:56 - Catálogo: árbol de té agrupado
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - 5 mL y 30 mL de árbol de té quedan en una sola ficha (SIIGO los nombraba distinto: «ARBOL DE TE» vs «ARBOL TE»).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py`, `tests/test_presentaciones_web.py`
+
 ### 2026-08-18 22:26 - Sitio: título y Agregar con acento de categoría
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Corrección

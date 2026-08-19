@@ -8,7 +8,9 @@ type Vista = "video" | "audio";
 type ModoZona = "franja" | "region";
 type AudioModo = "original" | "sin_audio" | "archivo" | "voz_clonada";
 
-const VOICEBOX_ENGINES = ["qwen3", "qwen3-0.6b", "chatterbox", "kokoro"] as const;
+// Solo Qwen3 0.6B: conserva mejor la autenticidad de la voz clonada que
+// 1.7B/chatterbox/kokoro para este uso (decisión 2026-08-19, ver VozIA.tsx).
+const VOICEBOX_ENGINES = ["qwen3-0.6b"] as const;
 const TEXTO_VOZ_MAX = 1200;
 
 interface Rect {

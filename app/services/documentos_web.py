@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+import io
 import time
 import unicodedata
 from pathlib import Path
@@ -164,6 +165,62 @@ def _score_match(doc: dict, nombre_norm: str, palabras_prod: list[str], ref_u: s
     if len(palabras_doc) >= 2 and set(palabras_doc[:2]).issubset(set(palabras_prod)):
         score += 80
     return score
+
+
+def buscar_documento_por_pdf_nombre(nombre_pdf: str) -> dict | None:
+    """Documento completo indexado por nombre de archivo PDF en biblioteca."""
+    nombre = os.path.basename((nombre_pdf or "").strip())
+    if not nombre:
+        return None
+    for doc in _cargar_indice():
+        if doc.get("pdf_nombre") == nombre:
+            return doc
+    return None
+
+
+def generar_pdf_seccion_web(doc: dict, seccion: str) -> bytes:
+    """Genera PDF de una sección (ft/coa/sds) desde el contexto web."""
+    from jinja2 import Environment, FileSystemLoader
+    from weasyprint import HTML
+
+    seccion = (seccion or "").strip().lower()
+    if seccion not in ("ft", "coa", "sds"):
+        raise ValueError(f"Sección no soportada: {seccion}")
+
+    ft = doc.get("ft") or {}
+    coa = doc.get("coa") if seccion == "coa" else None
+    sds = doc.get("sds") if seccion == "sds" else None
+    if seccion == "coa" and not coa:
+        raise ValueError("COA no disponible")
+    if seccion == "sds" and not sds:
+        raise ValueError("SDS no disponible")
+
+    titulo = (doc.get("titulo") or ft.get("titulo") or "").strip()
+    color_acento = doc.get("color_acento") or ft.get("color_acento") or "#069DC2"
+
+    import re as _re
+
+    def _formula_sub(val: str) -> str:
+        return _re.sub(r"(\d+)", r"<sub>\1</sub>", str(val or ""))
+
+    tpl_dir = Path(__file__).resolve().parents[1] / "templates"
+    env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
+    env.filters["formula_sub"] = _formula_sub
+    tpl = env.get_template("documento_completo_pdf.html")
+    html_str = tpl.render(
+        titulo=titulo,
+        color_acento=color_acento,
+        cabezote_src=ft.get("cabezote_src"),
+        logo_pie_src=ft.get("logo_pie_src"),
+        ft=ft,
+        coa=coa,
+        sds=sds,
+        seccion_sola=seccion,
+    )
+
+    buf = io.BytesIO()
+    HTML(string=html_str, base_url=str(tpl_dir)).write_pdf(buf)
+    return buf.getvalue()
 
 
 def buscar_documento_completo_web(nombre: str, ref: str = "") -> dict | None:

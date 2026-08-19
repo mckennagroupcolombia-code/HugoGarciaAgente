@@ -10,6 +10,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "PAGINA_WEB" / "sit
 import website as web  # noqa: E402
 
 
+def test_presentation_family_key_arbol_de_te_sinonimos():
+    assert web._presentation_family_key("ACEITE ARBOL DE TE 5 mL") == "aceite arbol de te"
+    assert web._presentation_family_key("ACEITE ARBOL TE 30mL") == "aceite arbol de te"
+    assert web._presentation_family_key("ACEITE DE ARBOL DE TE mL") == "aceite arbol de te"
+    assert web._presentation_family_key("ESENCIAL ARBOL DE TE 5mL") == "aceite arbol de te"
+
+
 def test_presentation_family_key_strips_size_keeps_concentration():
     assert web._presentation_family_key("ACEITE NEEM 250mL") == "aceite neem"
     assert web._presentation_family_key("ACEITE NEEM 60mL") == "aceite neem"
@@ -170,6 +177,21 @@ def test_ascorbico_y_vitamina_c_misma_familia():
     }
     assert len(singles) == 1
     assert singles[0]["ref"] == "C-VITC30P30mL"
+
+
+def test_agrupar_arbol_de_te_misma_familia():
+    combos = [
+        _combo("ACEITE ARBOL DE TE 5 mL", "C-ACEITEATRE5mL", "c-aceiteatre5ml", 14500, cat="Aceites"),
+        _combo("ACEITE ARBOL TE 30mL", "C-ACETEATRE30mL", "c-aceteatre30ml", 28000, cat="Aceites"),
+    ]
+    used = {c["slug"] for c in combos}
+    cards = web._agrupar_combos_por_presentacion(combos, used)
+    assert len(cards) == 1
+    fam = cards[0]
+    assert fam["is_family"] is True
+    assert fam["n_presentaciones"] == 2
+    assert {c["ref"] for c in fam["combos"]} == {"C-ACEITEATRE5mL", "C-ACETEATRE30mL"}
+    assert "árbol" in fam["name"].lower() or "arbol" in fam["name"].lower()
 
 
 def test_variante_color_no_comparte_titulo_canonico():

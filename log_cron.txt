@@ -875,3 +875,32 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-18) no es el último día del mes.
+[cursor/wa-metricas-panel 4f17307] Auto-commit: actualizacion diaria 2026-08-18 23:00
+ 135 files changed, 10487 insertions(+), 2062 deletions(-)
+ create mode 100644 PAGINA_WEB/site/templates/_documento_tecnico.html
+ create mode 100644 app/data/gmail_oauth_meta.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/routes_gmail_oauth.py
+ create mode 100644 app/services/creditos_adquiridos.py
+ create mode 100644 app/services/documentos_web.py
+ create mode 100644 app/tools/analisis_competencia_precios.py
+ create mode 100644 desktop/src/components/CompetenciaPreciosPanel.tsx
+ create mode 100644 desktop/src/components/CreditosAdquiridosPanel.tsx
+ create mode 100644 desktop/src/components/DolarHoraGadget.tsx
+ create mode 100644 desktop/src/components/GmailOAuthPanel.tsx
+ create mode 100644 desktop/src/hooks/useCompetenciaPrecios.ts
+ create mode 100644 desktop/src/hooks/useDolarHora.ts
+ create mode 100644 docs/agentic/modules/competencia-precios.md
+ create mode 100644 scripts/analisis_competencia_precios_cron.py
+ create mode 100644 tests/test_analisis_competencia_precios.py
+ create mode 100644 tests/test_creditos_adquiridos.py
+ create mode 100644 tests/test_documentos_web.py
+ create mode 100644 tests/test_etiquetas_circular_margen.py
+ create mode 100644 uploads/tickets/136374d4e82640ac9dbd860fbdc4c5a4.jpg
+ create mode 100644 uploads/tickets/30a6e16d24384614a73d3017ce4f9d53.pdf
+ create mode 100644 uploads/tickets/739d1e03722d4045be4e2e0085145d92.jpg
+ create mode 100644 uploads/tickets/7f916acac88f4a55a585ba106d578754.jpg
+ create mode 100644 uploads/tickets/cfe4c41b14624fbea4e60bbf65214578.png
+ create mode 100644 uploads/tickets/f7d0c9f47f0946cab8a78f97b47c17f3.png
+[2026-08-18 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-18 23:00'

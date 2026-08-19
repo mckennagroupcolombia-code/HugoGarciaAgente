@@ -11928,7 +11928,7 @@ async function hablarHugoTts(apiToken: string, texto: string): Promise<boolean> 
   const payload = JSON.stringify({
     texto: texto.trim(),
     motor: "voicebox",
-    voicebox_engine: "qwen3",
+    voicebox_engine: "qwen3-0.6b",
     voicebox_profile: HUGO_VOICEBOX_PROFILE,
     language: "Spanish",
   });
@@ -11985,7 +11985,7 @@ async function warmAlarmCache(apiToken: string): Promise<boolean> {
       body: JSON.stringify({
         texto: "Pilas, veci: tiene una tarea en proceso.",
         motor: "voicebox",
-        voicebox_engine: "qwen3",
+        voicebox_engine: "qwen3-0.6b",
         voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
         language: "Spanish",
       }),
@@ -12061,7 +12061,7 @@ async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<vo
         body: JSON.stringify({
           texto,
           motor: "voicebox",
-          voicebox_engine: "qwen3",
+          voicebox_engine: "qwen3-0.6b",
           voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
           language: "Spanish",
         }),

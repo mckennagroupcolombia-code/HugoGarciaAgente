@@ -63,7 +63,12 @@ _DEFAULTS: dict = {
     "wake_word":        "hugo",
     "listen_memory":    True,
     "voicebox_profile": "",
-    "voicebox_engine":  "qwen3",
+    # Único motor que dejamos habilitado en el panel: Qwen3-TTS 0.6B conserva
+    # mejor la autenticidad de la voz clonada que 1.7B para este uso (decisión
+    # del usuario 2026-08-19, tras comparar ambos). Los demás modelos (1.7B,
+    # chatterbox, kokoro) siguen instalados en el backend voicebox compartido
+    # — solo dejamos de ofrecerlos desde nuestro panel.
+    "voicebox_engine":  "qwen3-0.6b",
 }
 
 _ENGINES_VALIDOS = {"qwen3", "voicebox", "elevenlabs", "browser"}
