@@ -48,6 +48,7 @@ from typing import Any, Literal
 
 from app.services.meli_ads import listar_items_publicidad_completo
 from app.services.meli_ads_margenes import obtener_margenes_reales
+from app.services.politica_publicidad import modo_saneamiento
 from app.services.rentabilidad import COMISION_MELI_DEFAULT
 from app.sync import obtener_ventas_meli_por_item
 
@@ -72,6 +73,13 @@ def _nivel_rotacion(item_id: str, ventas_por_item: dict) -> str:
 def _canal_recomendado(margen_neto_pct: float, nivel: str) -> Canal:
     if margen_neto_pct < _UMBRAL_MARGEN_MINIMO:
         return "ninguno"
+    if modo_saneamiento():
+        # Política vigente (ver app.services.politica_publicidad): mientras
+        # esté activa, nunca recomendar "ads" ni "ambos" así el margen/rotación
+        # sean altos — no se sigue confiando en cuánta venta "atribuida a ads"
+        # por MeLi era realmente incremental. Toda la venta con margen
+        # suficiente se empuja a Promoción en su lugar.
+        return "promocion"
     if margen_neto_pct >= _UMBRAL_MARGEN_AMBOS and nivel == "alta":
         return "ambos"
     if nivel == "alta":
@@ -95,7 +103,9 @@ def _cargar_cache() -> dict | None:
     try:
         with open(_CACHE_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        if (time.time() - float(data.get("_ts") or 0)) < _CACHE_TTL_S:
+        if (time.time() - float(data.get("_ts") or 0)) < _CACHE_TTL_S and data.get(
+            "_modo_pub"
+        ) == ("saneamiento" if modo_saneamiento() else "normal"):
             return data
     except Exception:
         pass
@@ -219,6 +229,7 @@ def comparar_canales_publicidad(dias: int = 30, refresh: bool = False) -> dict:
         "total_evaluados": len(filas),
         "resumen": resumen,
         "productos": filas,
+        "_modo_pub": "saneamiento" if modo_saneamiento() else "normal",
     }
     _guardar_cache(resultado)
     return resultado

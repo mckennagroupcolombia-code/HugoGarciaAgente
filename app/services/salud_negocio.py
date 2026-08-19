@@ -685,6 +685,20 @@ def _resumen_ads_recomendaciones() -> dict | None:
         return None
 
 
+def _politica_publicidad() -> dict:
+    """Política vigente de Ads vs Promoción (ver app.services.politica_publicidad) —
+    se expone acá para que el panel de Salud del Negocio muestre, cuando esté
+    activa, que el gasto en ads bajo/cero es una decisión deliberada y no un
+    hueco de datos (mismo espíritu que `ads_disponible` más arriba: nunca
+    mostrar "$0" sin decir por qué)."""
+    try:
+        from app.services.politica_publicidad import leer_politica_publicidad
+
+        return leer_politica_publicidad()
+    except Exception:
+        return {}
+
+
 def _saldo_bancario() -> dict | None:
     """Snapshot del último saldo bancario conocido (ver extracto_bancario.py)."""
     try:
@@ -810,4 +824,5 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         "fuente_nomina": fuente_nomina,
         "ads_recomendaciones": _resumen_ads_recomendaciones(),
         "saldo_bancario": _saldo_bancario(),
+        "politica_publicidad": _politica_publicidad(),
     }

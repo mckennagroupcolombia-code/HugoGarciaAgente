@@ -342,6 +342,17 @@ def agregar_item_a_promocion(
                 "offer_id (candidato) requerido para este tipo de promoción"
             )
         body["offer_id"] = oid
+        # Algunas campañas SMART (ej. "Ofertas Relámpago") sí exigen fechas
+        # propias aunque el modo de opt-in sea offer_id — confirmado ago-2026:
+        # MeLi rechaza con "START_DATE - The start date cannot be null" si se
+        # omiten. El candidato ya las trae en `promociones_del_item` cuando
+        # aplica; se reenvían tal cual si el caller las pasó.
+        sd = (start_date or "").strip()
+        fd = (finish_date or "").strip()
+        if sd:
+            body["start_date"] = sd
+        if fd:
+            body["finish_date"] = fd
 
     r = requests.post(
         f"{MELI_API}/seller-promotions/items/{meli_id}",

@@ -1,0 +1,6 @@
+{
+  "modo": "saneamiento",
+  "desde": "2026-08-18",
+  "motivo": "Factura de servicios MeLi del 25-ago: $23.750.770 pendientes de pago, 99.7% cargos de publicidad (comision y envio ya se habian descontado en tiempo real de cada venta; publicidad se factura aparte, a mes vencido, en un solo bloque). ACOS real confirmado insostenible con margen real (hasta 242% en productos evaluados), 66% del gasto de ads de 30 dias marcado pausar/revisar por el motor de recomendaciones. Decision del operador: no seguir confiando en las ventas 'atribuidas a ads' que reporta MeLi (esa atribucion sobreestima cuanto de esa venta era realmente incremental) y priorizar Promociones (MeLi cofinancia parte del descuento) mientras se reconstruye el colchon de caja. Las 3 campanas de Product Ads (Alta/Media/Baja Rotacion) se pausaron manualmente en el panel de Mercado Ads el 18-ago (la API no tiene permiso de escritura sobre campanas, confirmado ese mismo dia).",
+  "revertir": "Borrar este archivo o cambiar 'modo' a cualquier valor distinto de 'saneamiento' vuelve al criterio normal de margen+rotacion en app/services/meli_ads_vs_promociones.py."
+}
