@@ -123,6 +123,35 @@
     if (ago) ago.style.display = buyable ? 'none' : 'flex';
   });
 
+  /* ── Carrusel destacados (inicio) ───────────────────── */
+  document.querySelectorAll('[data-carousel]').forEach(function (root) {
+    var track = root.querySelector('[data-carousel-track]');
+    var prev = root.querySelector('[data-carousel-prev]');
+    var next = root.querySelector('[data-carousel-next]');
+    if (!track || !prev || !next) return;
+
+    function paso() {
+      var slide = track.querySelector('.dest-slide');
+      if (!slide) return track.clientWidth;
+      var gap = parseFloat(getComputedStyle(track).gap) || 16;
+      return slide.getBoundingClientRect().width + gap;
+    }
+    function sync() {
+      var max = Math.max(0, track.scrollWidth - track.clientWidth - 2);
+      prev.disabled = track.scrollLeft <= 2;
+      next.disabled = track.scrollLeft >= max;
+    }
+    prev.addEventListener('click', function () {
+      track.scrollBy({ left: -paso(), behavior: 'smooth' });
+    });
+    next.addEventListener('click', function () {
+      track.scrollBy({ left: paso(), behavior: 'smooth' });
+    });
+    track.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
+  });
+
   /* ── Smooth anchors ─────────────────────────────────── */
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {

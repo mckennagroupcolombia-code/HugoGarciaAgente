@@ -32,13 +32,12 @@
     padding: 80px 0 64px;
     position: relative;
     overflow: hidden;
+    background: #fff;
+    border-bottom: 1px solid var(--gd-pale);
+    border-left: 6px solid var(--gd-accent, var(--gd-green));
   }
   .gd-hero::before {
-    content: '';
-    position: absolute; top: -140px; left: -140px;
-    width: 560px; height: 560px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(46,139,122,.25) 0%, transparent 65%);
-    animation: gd-pulse 7s ease-in-out infinite;
+    display: none;
   }
   @keyframes gd-pulse {
     0%,100% { transform: scale(1); opacity:.8; }
@@ -51,32 +50,32 @@
   }
   .gd-back {
     display: inline-flex; align-items: center; gap: 8px;
-    color: rgba(255,255,255,.55); font-size: .78rem; font-weight: 600;
+    color: var(--gd-muted); font-size: .78rem; font-weight: 600;
     letter-spacing: 2px; text-decoration: none; text-transform: uppercase;
     transition: color .2s; margin-bottom: 36px;
   }
-  .gd-back::before { content: ''; width: 28px; height: 2px; background: var(--gd-light); transition: width .3s; }
-  .gd-back:hover { color: #fff; }
+  .gd-back::before { content: ''; width: 28px; height: 2px; background: var(--gd-accent, var(--gd-light)); transition: width .3s; }
+  .gd-back:hover { color: var(--gd-deep); }
   .gd-back:hover::before { width: 44px; }
   .gd-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
   .gd-tag {
     display: inline-block; padding: 4px 14px; border-radius: 20px;
-    border: 1.5px solid rgba(255,255,255,.3); color: rgba(255,255,255,.8);
+    border: 1.5px solid var(--gd-accent, var(--gd-green)); color: var(--gd-accent, var(--gd-green));
     font-size: .7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
   }
   .gd-hero-title {
-    font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 800; color: #fff;
+    font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 800; color: var(--gd-text);
     line-height: 1.05; margin-bottom: 18px; letter-spacing: -1px;
   }
-  .gd-hero-title em { font-style: italic; font-weight: 300; color: var(--gd-light); }
-  .gd-hero-desc { color: rgba(255,255,255,.65); font-size: 1rem; max-width: 520px; line-height: 1.85; }
+  .gd-hero-title em { font-style: italic; font-weight: 300; color: var(--gd-accent, var(--gd-green)); }
+  .gd-hero-desc { color: var(--gd-soft); font-size: 1rem; max-width: 520px; line-height: 1.85; }
   .gd-hero-meta { display: flex; gap: 24px; margin-top: 26px; flex-wrap: wrap; }
   .gd-hero-meta span {
     display: flex; align-items: center; gap: 7px;
-    color: rgba(255,255,255,.45); font-size: .78rem; font-weight: 600; letter-spacing: .5px;
+    color: var(--gd-muted); font-size: .78rem; font-weight: 600; letter-spacing: .5px;
   }
   .gd-hero-icon-wrap {
-    font-size: 9rem; color: rgba(255,255,255,.05); flex-shrink: 0; display: none;
+    font-size: 9rem; color: color-mix(in srgb, var(--gd-accent, var(--gd-green)) 12%, #fff); flex-shrink: 0; display: none;
   }
   @media(min-width:900px) { .gd-hero-icon-wrap { display: block; } }
 
@@ -117,11 +116,10 @@
     max-width: 1200px; margin: 0 auto; padding-left: 64px; padding-right: 64px;
   }
   .gd-intro-grid {
-    display: grid; grid-template-columns: 180px 1fr; gap: 48px; align-items: start;
+    display: grid; grid-template-columns: 1fr; gap: 0; align-items: start;
   }
   .gd-intro-num {
-    font-size: 96px; font-weight: 800; line-height: 1;
-    color: var(--gd-pale); letter-spacing: -4px; position: relative; top: -8px;
+    display: none;
   }
   .gd-intro-title {
     font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800;
@@ -210,8 +208,7 @@
     padding: 40px 28px; height: 100%;
   }
   .gd-sec-num-big {
-    font-size: 96px; font-weight: 800; line-height: 1;
-    color: rgba(255,255,255,.08); letter-spacing: -4px; margin-bottom: 16px;
+    display: none;
   }
   .gd-sec-label {
     font-size: .65rem; font-weight: 700; letter-spacing: 3px;
@@ -331,27 +328,27 @@
   }
 
   /* ══════════════════════════════
-     MÁS GUÍAS (dark panel)
+     MÁS GUÍAS
   ══════════════════════════════ */
   .gd-more-section {
-    background: var(--gd-deep); padding: 72px 64px;
+    background: #fff; padding: 72px 64px; border-top: 1px solid var(--gd-pale);
   }
   .gd-more-inner { max-width: 1200px; margin: 0 auto; }
   .gd-more-title {
-    font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 800; color: #fff;
+    font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 800; color: var(--gd-text);
     margin-bottom: 10px; letter-spacing: -0.5px; line-height: 1.1;
   }
-  .gd-more-title em { font-style: italic; font-weight: 300; color: var(--gd-light); }
-  .gd-more-lead { color: rgba(255,255,255,.55); font-size: .95rem; max-width: 480px; margin-bottom: 40px; line-height: 1.8; }
-  .gd-more-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+  .gd-more-title em { font-style: italic; font-weight: 300; color: var(--gd-green); }
+  .gd-more-lead { color: var(--gd-soft); font-size: .95rem; max-width: 480px; margin-bottom: 40px; line-height: 1.8; }
+  .gd-more-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .gd-more-card {
-    background: rgba(255,255,255,.05); padding: 32px 28px;
-    border: 1px solid rgba(78,179,160,.18); transition: background .3s;
+    background: #fff; padding: 32px 28px;
+    border: 1px solid var(--gd-pale); transition: background .3s, border-color .3s;
     text-decoration: none; display: block;
   }
-  .gd-more-card:hover { background: rgba(255,255,255,.1); }
-  .gd-more-card h3 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px; line-height: 1.3; }
-  .gd-more-card p { font-size: .85rem; color: rgba(255,255,255,.55); line-height: 1.7; margin: 0; }
+  .gd-more-card:hover { background: var(--gd-ultra); border-color: var(--gd-green); }
+  .gd-more-card h3 { font-size: 1.05rem; font-weight: 700; color: var(--gd-text); margin-bottom: 8px; line-height: 1.3; }
+  .gd-more-card p { font-size: .85rem; color: var(--gd-soft); line-height: 1.7; margin: 0; }
 
   /* ══════════════════════════════
      REFERENCIAS
@@ -394,7 +391,6 @@
     .gd-acid-body { padding: 36px 32px; }
     .gd-acid-body .protocol-grid { grid-template-columns: 1fr; }
     .gd-intro-grid { grid-template-columns: 1fr; gap: 0; }
-    .gd-intro-num { font-size: 64px; margin-bottom: 8px; }
     .gd-more-section { padding: 56px 32px; }
     .gd-more-grid { grid-template-columns: 1fr; }
     .gd-refs-section { padding: 56px 32px; }
@@ -417,7 +413,7 @@
 <!-- ═══════════════════════════════════════════════════
      HERO
 ════════════════════════════════════════════════════ -->
-<section class="gd-hero" style="background:{{ g.color }};">
+<section class="gd-hero" style="--gd-accent: {{ g.color }};">
   <div class="gd-hero-inner">
     <div>
       <a href="/guias" class="gd-back"><i class="ph ph-arrow-left"></i> Todas las guías</a>
@@ -457,7 +453,6 @@
 ════════════════════════════════════════════════════ -->
 <div class="gd-intro">
   <div class="gd-intro-grid">
-    <div class="gd-intro-num">00</div>
     <div>
       <h2 class="gd-intro-title">Guía técnica de <em>uso</em></h2>
       <p class="gd-intro-lead">{{ g.desc }}</p>
@@ -514,7 +509,6 @@
   {% set colors = ['color-mid', '', 'color-med', 'color-mid', '', 'color-med'] %}
   <div class="gd-acid-sidebar {{ colors[loop.index0 % 6] }}">
     <div class="gd-sec-num-sidebar">
-      <div class="gd-sec-num-big">{{ sec.num }}</div>
       <div class="gd-sec-label">Sección</div>
       <div class="gd-sec-title-side">{{ sec.titulo }}</div>
     </div>

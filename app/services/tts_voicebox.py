@@ -27,13 +27,26 @@ Mapeo nombres internos del panel → parámetros de la API:
 from __future__ import annotations
 import os
 import time
+import threading
 import requests as _req
 
 _BASE          = os.getenv("VOICEBOX_URL", "http://localhost:17493")
-_TIMEOUT_GEN   = 300   # TTS puede tardar en primera carga de modelos
+_TIMEOUT_GEN   = 300   # TTS puede tardar en primera carga de modelos (llamadas en background, no HTTP interactivo)
 _TIMEOUT_POLL  = 10
 _TIMEOUT_SHORT = 5
 _POLL_INTERVAL = 1.5   # segundos entre polls de /history
+
+# Voicebox no serializa sus propias generaciones: dos /generate concurrentes
+# en la misma GPU se traban entre sí y pueden quedar "generating" indefinidamente
+# (visto en producción 2026-08-18: dos jobs simultáneos nunca terminaron, causando
+# HTTP 524 en cadena porque cada reintento del cliente sumaba otro job concurrente).
+# Este lock serializa las síntesis del proceso Flask; quien no consigue el lock
+# de inmediato debe fallar rápido (VoiceboxOcupado) en vez de encolarse a ciegas.
+_gen_lock = threading.Lock()
+
+
+class VoiceboxOcupado(Exception):
+    """Ya hay una síntesis de voicebox en curso en este proceso."""
 
 
 # ── engine name mapping ────────────────────────────────────────────────────
@@ -58,12 +71,12 @@ def voicebox_disponible() -> bool:
         return False
 
 
-def _poll_and_download(gen_id: str) -> bytes:
+def _poll_and_download(gen_id: str, max_espera: float = _TIMEOUT_GEN) -> bytes:
     """Espera a que una generación termine y descarga el WAV.
 
     Usa GET /history/{id} (JSON) en lugar del endpoint SSE /generate/{id}/status.
     """
-    deadline = time.time() + _TIMEOUT_GEN
+    deadline = time.time() + max_espera
     while time.time() < deadline:
         hr = _req.get(f"{_BASE}/history/{gen_id}", timeout=_TIMEOUT_POLL)
         hr.raise_for_status()
@@ -87,12 +100,18 @@ def sintetizar_voicebox(
     profile_id: str = "",
     engine: str = "",
     language: str = "es",
+    max_espera: float = _TIMEOUT_GEN,
 ) -> bytes:
     """
     Genera audio WAV usando voicebox.
 
     Con profile_id: POST /generate con engine=qwen (clonación desde muestras del perfil).
     Sin profile_id: POST /speak con voz base.
+
+    max_espera: tope en segundos para esperar la generación (ver _poll_and_download).
+    Los llamadores HTTP interactivos deben usar un tope corto (<100s, límite de
+    Cloudflare) — usar sintetizar_voicebox_interactivo() en vez de esta función
+    directamente para eso.
     """
     from app.services.voz_config import voicebox_language_code
     lang = voicebox_language_code(language)
@@ -127,7 +146,33 @@ def sintetizar_voicebox(
         r.raise_for_status()
         gen_id = r.json()["id"]
 
-    return _poll_and_download(gen_id)
+    return _poll_and_download(gen_id, max_espera=max_espera)
+
+
+def sintetizar_voicebox_interactivo(
+    texto: str,
+    profile_id: str = "",
+    engine: str = "",
+    language: str = "es",
+    max_espera: float = 70.0,
+    espera_lock: float = 3.0,
+) -> bytes:
+    """
+    Igual que sintetizar_voicebox(), pero serializa las llamadas con _gen_lock
+    y falla rápido si ya hay otra síntesis en curso, en vez de dejar que dos
+    generaciones concurrentes se traben mutuamente en la GPU (ver comentario junto
+    a _gen_lock). Pensada para el endpoint HTTP interactivo /api/voz/sintetizar,
+    donde Cloudflare corta la conexión a los 100 s (error 524) si no hay respuesta.
+    """
+    if not _gen_lock.acquire(timeout=espera_lock):
+        raise VoiceboxOcupado("Ya hay una síntesis de voz en curso, espera un momento.")
+    try:
+        return sintetizar_voicebox(
+            texto, profile_id=profile_id, engine=engine, language=language,
+            max_espera=max_espera,
+        )
+    finally:
+        _gen_lock.release()
 
 
 def listar_perfiles_voicebox() -> list[dict]:

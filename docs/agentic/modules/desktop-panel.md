@@ -17,10 +17,14 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Vite usa base `/app/`.
 - Produccion sirve `desktop/dist` desde Flask.
 - Mutaciones pueden usar `/app/api/...` para evitar proxies que devuelven HTML.
+- GET del panel empieza en `/api` y reintenta `/app/api` si llega HTML: el endpoint Flask debe existir en **ambos** prefijos. El catch-all SPA `/app/<path>` no puede servir `index.html` para `/app/api/*`.
 - Auth usa Bearer `CHAT_API_TOKEN`.
 - Preferencias UI (`preferencias_ui.panel`): `mode`, `fontSans`, `accentRgb`, `radius`, `skin` (variantes visibles `matrix` | `sakura` | `barbie`; `clasica`/`atelier` se mapean a Sakura), `fontScale`, `menuScale`, `colors` (menú/títulos/cajas), `customThemes` (hasta 12 temas del usuario).
 - Cambios en endpoint deben reflejarse en hook/tipo UI.
 - Panel `empaque` (Atención): ventas MeLi/web/WA + fotos en `/api/empaque/*`; permiso `permisos_secciones.empaque`.
+- Publicaciones → pestaña **Competencia**: `GET/POST /api/meli/competencia-precios*`.
+- Inicio (Agenda y Métricas): gadget USD/COP horario `GET /api/inicio/dolar-hora`; clic amplia el gráfico.
+- Contabilidad → **Créditos adquiridos**: `GET/POST /api/contabilidad/creditos*`; tasa EA o N.A.M.V., cuota y amortización.
 
 ## Riesgos
 

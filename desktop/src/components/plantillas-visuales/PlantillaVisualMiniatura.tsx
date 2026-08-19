@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { miniaturaLienzoPx, type PlantillaVisualDoc } from "../../lib/plantillasVisuales";
+import { miniaturaLienzoPx, esLienzoCircular, type PlantillaVisualDoc } from "../../lib/plantillasVisuales";
 import { renderPlantillaToCanvas } from "../../lib/plantillasVisualesExport";
 
 const cache = new Map<string, string>();
@@ -73,9 +73,12 @@ export default function PlantillaVisualMiniatura({
     };
   }, [doc, maxAncho, maxAlto]);
 
+  const circular = esLienzoCircular(doc);
   return (
     <div
-      className={`overflow-hidden rounded-sm shadow-lg ring-1 ring-black/20 transition group-hover:ring-accent/40 ${className}`}
+      className={`overflow-hidden shadow-lg ring-1 ring-black/20 transition group-hover:ring-accent/40 ${
+        circular ? "rounded-full" : "rounded-sm"
+      } ${className}`}
       style={{
         width: thumb.width,
         height: thumb.height,

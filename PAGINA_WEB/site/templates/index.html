@@ -10,6 +10,29 @@
 {{- n.icono if n.icono else fallback -}}
 {%- endmacro %}
 
+{% macro caja_por_que_elegirnos(H, Kit) -%}
+<div class="hero-kit-box">
+  {% if not LAYOUT_CLASICO.nodos.get('hero.kit_label', {}).get('hidden') %}
+  <div class="hero-right-label" style="{{ nodo_style('hero.kit_label') }}">{{ H.kit_label or 'Por qué elegirnos' }}</div>
+  {% endif %}
+  <div class="kit-items">
+    {% for item in Kit %}
+    {% set kitn = LAYOUT_CLASICO.nodos.get('hero.kit.' ~ loop.index0, {}) %}
+    {% if not kitn.get('hidden') %}
+    <div class="kit-item" style="{{ nodo_style('hero.kit.' ~ loop.index0) }}">
+      <div class="kit-dot dot-{{ loop.index }}"><i class="ph ph-{{ icono_nodo('hero.kit.' ~ loop.index0 ~ '.icono', item.icono or 'circle') }}"></i></div>
+      <div class="kit-info">
+        <h3 style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.titulo') }}">{{ item.titulo }}</h3>
+        <p style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.texto') }}">{{ item.texto }}</p>
+      </div>
+      <span class="kit-val" style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.valor') }}">{{ item.valor }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{%- endmacro %}
+
 {% block content %}
 {% set H = TC.hero if TC else {} %}
 {% set Kit = H.kit if H.kit else [] %}
@@ -27,13 +50,18 @@
 <!-- ════════════════════════════════════════════════════════
      HERO — split layout
 ════════════════════════════════════════════════════════ -->
-<section class="hero" style="order:{{ LAYOUT_CLASICO.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
+{% set foto_izq = LAYOUT_CLASICO.nodos.get('hero.foto_izq', {}) %}
+{% set foto_der = LAYOUT_CLASICO.nodos.get('hero.foto_der', {}) %}
+{# Solo el nodo foto: FONDOS.hero_* ya es el fondo CSS del panel (si se repite = doble imagen). #}
+{% set src_izq = foto_izq.get('backgroundImage') %}
+{% set src_der = foto_der.get('backgroundImage') %}
+{% set src_izq = src_izq if (src_izq and src_izq != FONDOS.hero_izq and not foto_izq.get('hidden')) else none %}
+{% set src_der = src_der if (src_der and src_der != FONDOS.hero_der and not foto_der.get('hidden')) else none %}
+{% set src_visual = src_der or src_izq %}
+<section class="hero{% if src_visual %} hero--foto{% endif %}" style="order:{{ LAYOUT_CLASICO.orden_map.hero | default(0) }};{{ nodo_style('hero') }}">
 
   <div class="hero-left">
-    {% if not LAYOUT_CLASICO.nodos.get('hero.badge', {}).get('hidden') %}
-    <span class="hero-badge" style="{{ nodo_style('hero.badge') }}">🌿 {{ H.badge or 'Materias Primas Certificadas · Colombia' }}</span>
-    {% endif %}
-
+    <div class="hero-copy">
     <h1 class="hero-title">
       {% if not LAYOUT_CLASICO.nodos.get('hero.titulo_l1', {}).get('hidden') %}
       <span style="{{ nodo_style('hero.titulo_l1') }}">{{ H.titulo_l1 or 'Materias primas' }}</span><br>
@@ -42,7 +70,7 @@
       <em style="{{ nodo_style('hero.titulo_em') }}">{{ H.titulo_em or 'certificadas' }}</em><br>
       {% endif %}
       {% if not LAYOUT_CLASICO.nodos.get('hero.titulo_l2', {}).get('hidden') %}
-      <span style="{{ nodo_style('hero.titulo_l2') }}">{{ H.titulo_l2 or 'para tu industria' }}</span>
+      <span class="hero-title-l2" style="{{ nodo_style('hero.titulo_l2') }}">{{ H.titulo_l2 or 'para tu industria' }}</span>
       {% endif %}
     </h1>
 
@@ -51,6 +79,7 @@
       {{ H.subtitulo or 'Farmacéuticas, cosméticas y nutracéuticas.' }}
     </p>
     {% endif %}
+    </div>
 
     <div class="hero-cta">
       {% if not LAYOUT_CLASICO.nodos.get('hero.cta_principal', {}).get('hidden') %}
@@ -65,7 +94,7 @@
       {% endif %}
       {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario', {}).get('hidden') %}
       <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización"
-         target="_blank" rel="noopener" class="btn btn-ghost btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
+         target="_blank" rel="noopener" class="btn btn-primary btn-lg" style="{{ nodo_style('hero.cta_secundario') }}">
         {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario.icono', {}).get('hidden') %}
         <i class="ph ph-{{ icono_nodo('hero.cta_secundario.icono', 'whatsapp-logo') }}" style="{{ nodo_style('hero.cta_secundario.icono') }}"></i>
         {% endif %}
@@ -75,38 +104,16 @@
       </a>
       {% endif %}
     </div>
-    {% set foto_izq = LAYOUT_CLASICO.nodos.get('hero.foto_izq', {}) %}
-    {# Solo el nodo foto: FONDOS.hero_izq ya es el fondo CSS del panel (si se repite = doble imagen). #}
-    {% set src_izq = foto_izq.get('backgroundImage') %}
-    {% if src_izq and src_izq != FONDOS.hero_izq and not foto_izq.get('hidden') %}
-    <img class="hero-foto" src="{{ src_izq }}" alt="" style="{{ nodo_style('hero.foto_izq') }}">
-    {% endif %}
   </div>
 
+  {% if src_visual %}
+  <div class="hero-mid">
+    <img class="hero-foto hero-foto-fill" src="{{ src_visual }}" alt="">
+  </div>
+  {% endif %}
+
   <div class="hero-right">
-    {% if not LAYOUT_CLASICO.nodos.get('hero.kit_label', {}).get('hidden') %}
-    <div class="hero-right-label" style="{{ nodo_style('hero.kit_label') }}">{{ H.kit_label or 'Por qué elegirnos' }}</div>
-    {% endif %}
-    <div class="kit-items">
-      {% for item in Kit %}
-      {% set kitn = LAYOUT_CLASICO.nodos.get('hero.kit.' ~ loop.index0, {}) %}
-      {% if not kitn.get('hidden') %}
-      <div class="kit-item" style="{{ nodo_style('hero.kit.' ~ loop.index0) }}">
-        <div class="kit-dot dot-{{ loop.index }}"><i class="ph ph-{{ icono_nodo('hero.kit.' ~ loop.index0 ~ '.icono', item.icono or 'circle') }}"></i></div>
-        <div class="kit-info">
-          <h3 style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.titulo') }}">{{ item.titulo }}</h3>
-          <p style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.texto') }}">{{ item.texto }}</p>
-        </div>
-        <span class="kit-val" style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.valor') }}">{{ item.valor }}</span>
-      </div>
-      {% endif %}
-      {% endfor %}
-    </div>
-    {% set foto_der = LAYOUT_CLASICO.nodos.get('hero.foto_der', {}) %}
-    {% set src_der = foto_der.get('backgroundImage') %}
-    {% if src_der and src_der != FONDOS.hero_der and not foto_der.get('hidden') %}
-    <img class="hero-foto" src="{{ src_der }}" alt="" style="{{ nodo_style('hero.foto_der') }}">
-    {% endif %}
+    {{ caja_por_que_elegirnos(H, Kit) }}
   </div>
 
 </section>
@@ -136,19 +143,29 @@
 <!-- CATEGORÍAS -->
 <div class="cats-section" style="order:{{ LAYOUT_CLASICO.orden_map.categorias | default(2) }};{{ nodo_style('categorias') }}">
   <div class="cats-inner">
-    <div class="section reveal" style="padding: 0; max-width: none;">
-      <div class="section-header reveal">
-        <div class="section-number">01</div>
-        <div>
-          <span class="section-eyebrow" style="{{ nodo_style('categorias.eyebrow') }}">{{ Cat.eyebrow or 'Nuestro Portafolio' }}</span>
-          <h2 class="section-title" style="color:#fff;">
-            <span style="{{ nodo_style('categorias.titulo') }}">{{ Cat.titulo or 'Explora por' }}</span>
-            <em style="{{ nodo_style('categorias.titulo_em') }}">{{ Cat.titulo_em or 'Categoría' }}</em>
-          </h2>
-          <p class="section-lead" style="color:rgba(255,255,255,0.65);{{ nodo_style('categorias.texto') }}">
-            {{ Cat.texto or '' }}
-          </p>
-        </div>
+    {% set ICONOS_LINEA = {
+      'aceites-ceras-grasas': 'drop',
+      'agro': 'plant',
+      'alimentario': 'bowl-food',
+      'cosmetica': 'sparkle',
+      'industria': 'factory',
+      'laboratorio': 'flask',
+    } %}
+    <div class="cats-head reveal">
+      <div>
+        <span class="section-eyebrow" style="{{ nodo_style('categorias.eyebrow') }}">{{ Cat.eyebrow or 'Nuestro Portafolio' }}</span>
+        <h2 class="section-title">
+          <span style="{{ nodo_style('categorias.titulo') }}">{{ Cat.titulo or 'Explora por' }}</span>
+          <em style="{{ nodo_style('categorias.titulo_em') }}">{{ Cat.titulo_em or 'Categoría' }}</em>
+        </h2>
+      </div>
+      <div class="cats-head-aside">
+        <p class="section-lead" style="{{ nodo_style('categorias.texto') }}">
+          {{ Cat.texto or '' }}
+        </p>
+        <a href="{{ url_for('catalogo') }}" class="btn btn-primary">
+          Ver catálogo completo <i class="ph ph-arrow-right"></i>
+        </a>
       </div>
     </div>
 
@@ -157,17 +174,17 @@
       <a href="{{ url_for('catalogo', linea=L.id) }}"
          class="cat-card reveal reveal-delay-{{ loop.index0 % 4 }}"
          style="--cat-accent: {{ L.color }}">
-        <div class="cat-card-dot"></div>
-        <h3>{{ L.name }}</h3>
-        <p>{{ L.n_productos }} producto{% if L.n_productos != 1 %}s{% endif %}</p>
+        <span class="cat-card-icon" aria-hidden="true">
+          <i class="ph ph-{{ ICONOS_LINEA.get(L.id, 'circle') }}"></i>
+        </span>
+        <span class="cat-card-copy">
+          <h3>{{ L.name }}</h3>
+          <p>{{ L.n_productos }} producto{% if L.n_productos != 1 %}s{% endif %}</p>
+        </span>
+        <span class="cat-card-count">{{ L.n_productos }}</span>
+        <i class="ph ph-arrow-right cat-card-go" aria-hidden="true"></i>
       </a>
       {% endfor %}
-    </div>
-
-    <div style="margin-top:40px;text-align:center;position:relative;z-index:1;">
-      <a href="{{ url_for('catalogo') }}" class="btn btn-ghost btn-lg">
-        Ver catálogo completo <i class="ph ph-arrow-right"></i>
-      </a>
     </div>
   </div>
 </div>
@@ -175,11 +192,10 @@
 
 {% if sec == 'destacados' and Sec.destacados != false and not LAYOUT_CLASICO.nodos.get('destacados', {}).get('hidden') %}
 <!-- PRODUCTOS DESTACADOS -->
-<div style="background: var(--green-ultra);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
-  <div class="section">
-    <div class="section-header reveal">
-      <div class="section-number">02</div>
-      <div>
+<div class="dest-section" style="background: var(--white);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
+  <div class="section dest-inner" data-carousel>
+    <div class="dest-head reveal">
+      <div class="dest-head-copy">
         <span class="section-eyebrow" style="{{ nodo_style('destacados.eyebrow') }}">{{ Dest.eyebrow or 'Productos' }}</span>
         <h2 class="section-title">
           <span style="{{ nodo_style('destacados.titulo') }}">{{ Dest.titulo or 'Selección' }}</span>
@@ -189,20 +205,25 @@
           {{ Dest.texto or '' }}
         </p>
       </div>
+      <div class="dest-head-actions">
+        <a href="{{ url_for('catalogo') }}" class="dest-all">Ver catálogo</a>
+        <button type="button" class="dest-nav" data-carousel-prev aria-label="Productos anteriores">
+          <i class="ph ph-caret-left"></i>
+        </button>
+        <button type="button" class="dest-nav" data-carousel-next aria-label="Productos siguientes">
+          <i class="ph ph-caret-right"></i>
+        </button>
+      </div>
     </div>
 
-    <div class="shop-grid shop-grid-4 reveal">
+    <div class="dest-track" data-carousel-track>
       {% for p in featured %}
-      {% with show_trust_tema=false, check_buyable=false, card_delay=(loop.index0 % 4) %}
-      {% include "_shop_card.html" %}
-      {% endwith %}
+      <div class="dest-slide">
+        {% with show_trust_tema=false, check_buyable=false, card_delay=(loop.index0 % 4) %}
+        {% include "_shop_card.html" %}
+        {% endwith %}
+      </div>
       {% endfor %}
-    </div>
-
-    <div style="text-align:center;margin-top:48px;">
-      <a href="{{ url_for('catalogo') }}" class="btn btn-dark btn-lg">
-        Ver todos los productos <i class="ph ph-arrow-right"></i>
-      </a>
     </div>
   </div>
 </div>
@@ -213,14 +234,13 @@
 <div class="banner-dark" style="order:{{ LAYOUT_CLASICO.orden_map.cta | default(4) }};{{ nodo_style('cta') }}">
   <div class="banner-dark-inner">
     <div class="section-header reveal" style="margin-bottom:48px;">
-      <div class="section-number" style="color:rgba(255,255,255,0.08);">03</div>
       <div>
-        <span class="section-eyebrow" style="color:var(--green-light);{{ nodo_style('cta.eyebrow') }}">{{ Cta.eyebrow or 'Atención Personalizada' }}</span>
-        <h2 class="section-title" style="color:#fff;">
+        <span class="section-eyebrow" style="{{ nodo_style('cta.eyebrow') }}">{{ Cta.eyebrow or 'Atención Personalizada' }}</span>
+        <h2 class="section-title">
           <span style="{{ nodo_style('cta.titulo') }}">{{ Cta.titulo or '¿Necesitas una' }}</span>
           <em style="{{ nodo_style('cta.titulo_em') }}">{{ Cta.titulo_em or 'cotización' }}</em>?
         </h2>
-        <p class="section-lead" style="color:rgba(255,255,255,0.65);{{ nodo_style('cta.texto') }}">
+        <p class="section-lead" style="{{ nodo_style('cta.texto') }}">
           {{ Cta.texto or '' }}
         </p>
       </div>

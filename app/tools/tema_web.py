@@ -65,11 +65,13 @@ _ORDEN_CLASICO = [
 ]
 
 # Paleta Clásico → variables CSS --green* / --text-* del sitio publicado.
+# Lienzo tipo catálogo B2B (Sigma-Aldrich): página blanca, color solo en acentos.
+_FONDO_CIAN_LEGADO = "#e3fcff"
 COLORES_CLASICO_DEFAULT = {
     "acento": "#0c6069",
     "acento_oscuro": "#045159",
     "acento_claro": "#6aacb3",
-    "fondo": "#e3fcff",
+    "fondo": "#ffffff",
     "fondo_oscuro": "#022d33",
     "tinta": "#022d33",
 }
@@ -86,20 +88,20 @@ FONDOS_CLASICO_KEYS = ("pagina", "hero_izq", "hero_der", "categorias", "cta")
 FONDOS_PUREZA_KEYS = ("pagina", "hero", "categorias", "cta")
 _FONDOS_OVERLAY = {
     "hero_izq": (
-        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 42%, transparent), "
-        "color-mix(in srgb, var(--green-deep) 78%, transparent))"
+        "linear-gradient(180deg, color-mix(in srgb, var(--white, #fff) 55%, transparent), "
+        "color-mix(in srgb, var(--white, #fff) 82%, transparent))"
     ),
     "hero_der": (
-        "linear-gradient(180deg, color-mix(in srgb, var(--green-ultra) 30%, transparent), "
-        "color-mix(in srgb, var(--green-ultra) 70%, transparent))"
+        "linear-gradient(180deg, color-mix(in srgb, var(--white, #fff) 40%, transparent), "
+        "color-mix(in srgb, var(--white, #fff) 78%, transparent))"
     ),
     "categorias": (
-        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 48%, transparent), "
-        "color-mix(in srgb, var(--green-deep) 80%, transparent))"
+        "linear-gradient(180deg, color-mix(in srgb, var(--white, #fff) 50%, transparent), "
+        "color-mix(in srgb, var(--white, #fff) 84%, transparent))"
     ),
     "cta": (
-        "linear-gradient(180deg, color-mix(in srgb, var(--green-deep) 50%, transparent), "
-        "color-mix(in srgb, var(--green-deep) 82%, transparent))"
+        "linear-gradient(180deg, color-mix(in srgb, var(--white, #fff) 50%, transparent), "
+        "color-mix(in srgb, var(--white, #fff) 84%, transparent))"
     ),
     "hero": (
         "linear-gradient(180deg, color-mix(in srgb, var(--pz-fondo, #f8f6f1) 45%, transparent), "
@@ -122,7 +124,7 @@ TEMA_WEB_DEFAULTS: dict = {
     },
     "layout_clasico": {
         "orden": list(_ORDEN_CLASICO),
-        "nodos": {},
+        "nodos": {"hero.badge": {"hidden": True}, "cta": {"hidden": True}},
     },
     "clasico": {
         "colores": copy.deepcopy(COLORES_CLASICO_DEFAULT),
@@ -222,7 +224,7 @@ TEMA_WEB_DEFAULTS: dict = {
             "features": True,
             "categorias": True,
             "destacados": True,
-            "cta": True,
+            "cta": False,
         },
     },
     "pureza": {
@@ -364,6 +366,9 @@ def _normalizar_colores(raw, defaults: dict) -> dict:
         hx = _sanitize_hex(raw.get(key))
         if hx:
             out[key] = hx
+    # El cian #e3fcff era el lienzo anterior; ya no se usa como fondo de página.
+    if out.get("fondo") == _FONDO_CIAN_LEGADO and defaults.get("fondo") != _FONDO_CIAN_LEGADO:
+        out["fondo"] = defaults["fondo"]
     return out
 
 
@@ -553,6 +558,12 @@ def _normalizar_layout(layout: dict | None, orden_default: list[str] | None = No
                 n["splitPct"] = int(round(float(sp)))
             if n:
                 nodos_out[kid] = n
+    # Inicio Clásico: el recuadro «Materias primas certificadas» no se muestra.
+    if orden_base == _ORDEN_CLASICO and "hero.badge" not in nodos_out:
+        nodos_out["hero.badge"] = {"hidden": True}
+    # Inicio Clásico: sin banner «¿Necesitas una cotización?».
+    if orden_base == _ORDEN_CLASICO and "cta" not in nodos_out:
+        nodos_out["cta"] = {"hidden": True}
     return {"orden": orden, "nodos": nodos_out}
 
 
@@ -750,10 +761,12 @@ def resolver_colores_clasico_css(cfg: dict | None = None) -> dict:
         clasico.get("colores") if isinstance(clasico, dict) else None,
         COLORES_CLASICO_DEFAULT,
     )
-    acento, fondo, tinta, claro = c["acento"], c["fondo"], c["tinta"], c["acento_claro"]
+    acento, tinta, claro = c["acento"], c["tinta"], c["acento_claro"]
     return {
         **c,
-        "green_pale": f"color-mix(in srgb, {acento} 22%, {fondo})",
+        "white": "#ffffff",
+        "off_white": "#f5f6f7",
+        "green_pale": "color-mix(in srgb, #64748b 12%, #ffffff)",
         "text_muted": f"color-mix(in srgb, {tinta} 55%, {claro})",
         "border": f"color-mix(in srgb, {acento} 18%, transparent)",
     }

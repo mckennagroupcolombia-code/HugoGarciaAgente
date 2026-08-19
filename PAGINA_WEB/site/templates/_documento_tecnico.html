@@ -1,0 +1,332 @@
+{# Documento técnico completo (FT + COA + SDS) con estética de la biblioteca. #}
+{% set ft = doc.ft %}
+{% set coa = doc.coa %}
+{% set sds = doc.sds %}
+{% set accent = doc.color_acento or '#069DC2' %}
+
+<div class="doc-protocol" style="--doc-accent: {{ accent }};">
+  <div class="doc-protocol-toolbar">
+    <nav class="doc-protocol-tabs" aria-label="Secciones del documento técnico">
+      <a href="#doc-ft">Ficha Técnica</a>
+      {% if coa %}<a href="#doc-coa">Certificado de Análisis</a>{% endif %}
+      {% if sds %}<a href="#doc-sds">Hoja de Seguridad</a>{% endif %}
+    </nav>
+    {% if doc.pdf_nombre %}
+    <a class="doc-protocol-download" href="{{ url_for('documento_tecnico_pdf', filename=doc.pdf_nombre) }}" target="_blank" rel="noopener">
+      Descargar PDF
+    </a>
+    {% endif %}
+  </div>
+
+  {# ── Ficha Técnica ── #}
+  <section id="doc-ft" class="doc-protocol-paper">
+    <div class="protocol-title">Ficha Técnica</div>
+    <div class="hdr">
+      <div class="hdr-left">
+        <div class="hdr-titulo">{{ ft.titulo }}</div>
+        {% if ft.sinonimos %}<div class="hdr-sinonimos">{{ ft.sinonimos }}</div>{% endif %}
+      </div>
+      <img class="hdr-logo" src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group">
+    </div>
+
+    {% if ft.cas or ft.fecha_revision or ft.lote or ft.pais_origen or ft.fabricante %}
+    <table class="meta-table">
+      <tr>
+        <td>{% if ft.cas %}<b>CAS:</b> {{ ft.cas }}{% endif %}</td>
+        <td>{% if ft.fecha_revision %}<b>Revisión:</b> {{ ft.fecha_revision }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td>{% if ft.lote %}<b>Lote:</b> {{ ft.lote }}{% elif ft.pais_origen %}<b>País de origen:</b> {{ ft.pais_origen }}{% endif %}</td>
+        <td>{% if ft.lote and ft.pais_origen %}<b>País de origen:</b> {{ ft.pais_origen }}{% elif ft.fabricante %}<b>Fabricante:</b> {{ ft.fabricante }}{% endif %}</td>
+      </tr>
+      {% if ft.fabricante and (ft.lote and ft.pais_origen) %}
+      <tr>
+        <td colspan="2"><b>Fabricante:</b> {{ ft.fabricante }}</td>
+      </tr>
+      {% endif %}
+    </table>
+    {% endif %}
+
+    {% if ft.descripcion %}
+    <div class="sec">
+      <div class="sec-title">Descripción</div>
+      <div class="desc-text">{{ ft.descripcion }}</div>
+    </div>
+    {% endif %}
+
+    {% if ft.propiedades %}
+    <div class="sec">
+      <div class="sec-title">Características físico-químicas</div>
+      <table>
+        {% for label, value in ft.propiedades %}
+        <tr><td class="td-key">{{ label }}</td><td>{{ value }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if ft.propiedades_extra %}
+    <div class="sec">
+      <div class="sec-title">Beneficios</div>
+      <ul class="beneficios">
+        {% for label, value in ft.propiedades_extra %}
+        <li>{% if value %}<span class="beneficio-label">{{ label }}:</span> {{ value }}{% else %}{{ label }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if ft.aplicaciones %}
+    <div class="sec">
+      <div class="sec-title">Aplicaciones</div>
+      <ul class="apps">
+        {% for app in ft.aplicaciones %}
+        <li>{{ app }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if ft.modo_uso %}
+    <div class="sec">
+      <div class="sec-title">Modo de uso</div>
+      <div class="desc-text">{{ ft.modo_uso }}</div>
+    </div>
+    {% endif %}
+
+    {% if ft.composicion %}
+    <div class="sec">
+      <div class="sec-title">Composición</div>
+      <table>
+        <tr>
+          <td class="td-key-dark" style="width:55%">Componente</td>
+          <td class="td-key-dark">% / Concentración</td>
+        </tr>
+        {% for componente, valor in ft.composicion %}
+        <tr><td>{{ componente }}</td><td>{{ valor }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ── COA ── #}
+  {% if coa %}
+  <section id="doc-coa" class="doc-protocol-paper">
+    <div class="protocol-title">Certificado de Análisis (COA)</div>
+    <div class="hdr">
+      <div class="hdr-left">
+        <div class="hdr-titulo">{{ coa.titulo or ft.titulo }}</div>
+      </div>
+      <img class="hdr-logo" src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group">
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Identificación del producto</div>
+      <table>
+        {% if coa.nombre_comercial %}<tr><td class="td-key">Nombre comercial</td><td>{{ coa.nombre_comercial }}</td></tr>{% endif %}
+        {% if coa.inci %}<tr><td class="td-key">INCI / Nombre químico</td><td>{{ coa.inci }}</td></tr>{% endif %}
+        {% if coa.cas %}<tr><td class="td-key">N.º CAS</td><td>{{ coa.cas }}</td></tr>{% endif %}
+        {% if coa.formula %}<tr><td class="td-key">Fórmula molecular</td><td>{% if coa.formula_html %}{{ coa.formula_html|safe }}{% else %}{{ coa.formula }}{% endif %}</td></tr>{% endif %}
+        {% if coa.einces %}<tr><td class="td-key">EINECS</td><td>{{ coa.einces }}</td></tr>{% endif %}
+        {% if coa.concentracion %}<tr><td class="td-key">Concentración</td><td>{{ coa.concentracion }}</td></tr>{% endif %}
+        {% if coa.grado %}<tr><td class="td-key">Grado</td><td>{{ coa.grado }}</td></tr>{% endif %}
+        {% if coa.presentacion %}<tr><td class="td-key">Presentación</td><td>{{ coa.presentacion }}</td></tr>{% endif %}
+        {% if coa.incluye %}<tr><td class="td-key">Incluye</td><td>{{ coa.incluye }}</td></tr>{% endif %}
+      </table>
+    </div>
+
+    {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.fabricante %}
+    <div class="sec">
+      <div class="sec-title">Información de lote</div>
+      <table>
+        {% if coa.lote_numero %}<tr><td class="td-key">N.º de lote</td><td>{{ coa.lote_numero }}</td></tr>{% endif %}
+        {% if coa.lote_fab %}<tr><td class="td-key">Fecha de fabricación</td><td>{{ coa.lote_fab }}</td></tr>{% endif %}
+        {% if coa.lote_venc %}<tr><td class="td-key">Fecha de vencimiento</td><td>{{ coa.lote_venc }}</td></tr>{% endif %}
+        {% if coa.vida_util %}<tr><td class="td-key">Vida útil</td><td>{{ coa.vida_util }}</td></tr>{% endif %}
+        {% if coa.tamano_lote %}<tr><td class="td-key">Tamaño del lote</td><td>{{ coa.tamano_lote }}</td></tr>{% endif %}
+        {% if coa.pais_origen %}<tr><td class="td-key">País de origen</td><td>{{ coa.pais_origen }}</td></tr>{% endif %}
+        {% if coa.fabricante %}<tr><td class="td-key">Fabricante original</td><td>{{ coa.fabricante }}</td></tr>{% endif %}
+        {% if coa.fecha_analisis %}<tr><td class="td-key">Fecha de análisis</td><td>{{ coa.fecha_analisis }}</td></tr>{% endif %}
+        {% if coa.fecha_emision %}<tr><td class="td-key">Fecha de emisión</td><td>{{ coa.fecha_emision }}</td></tr>{% endif %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if coa.parametros %}
+    <div class="sec">
+      <div class="sec-title">Parámetros de análisis</div>
+      <table>
+        <tr>
+          <td class="td-key-dark" style="width:40%">Parámetro</td>
+          <td class="td-key-dark" style="width:30%">Especificación</td>
+          <td class="td-key-dark">Resultado</td>
+        </tr>
+        {% for fila in coa.parametros %}
+        <tr>
+          <td>{{ fila[0] if fila|length > 0 }}</td>
+          <td>{{ fila[1] if fila|length > 1 }}</td>
+          <td>{{ fila[2] if fila|length > 2 }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if coa.empaque or coa.almacenamiento or coa.precauciones %}
+    <div class="sec">
+      <div class="sec-title">Empaque y almacenamiento</div>
+      <table>
+        {% if coa.empaque %}<tr><td class="td-key">Empaque original</td><td>{{ coa.empaque }}</td></tr>{% endif %}
+        {% if coa.almacenamiento %}<tr><td class="td-key">Almacenamiento</td><td>{{ coa.almacenamiento }}</td></tr>{% endif %}
+        {% if coa.precauciones %}<tr><td class="td-key">Precauciones</td><td>{{ coa.precauciones }}</td></tr>{% endif %}
+        {% if coa.observaciones %}<tr><td class="td-key">Observaciones</td><td>{{ coa.observaciones }}</td></tr>{% endif %}
+      </table>
+    </div>
+    {% endif %}
+
+    <div class="coa-firma">
+      <div class="coa-firma-box">
+        <div class="coa-firma-lbl">Revisado y aprobado por</div>
+        <div class="coa-firma-espacio">
+          {% if coa.firma_imagen_src %}
+          <img class="coa-firma-img" src="{{ coa.firma_imagen_src }}" alt="Firma">
+          {% endif %}
+        </div>
+        <div class="coa-firma-linea"></div>
+        {% if coa.firma_nombre %}<div class="coa-firma-nombre">{{ coa.firma_nombre }}</div>{% endif %}
+        {% if coa.firma_cargo %}<div class="coa-firma-cargo">{{ coa.firma_cargo }}</div>{% endif %}
+        {% if coa.firma_organizacion %}<div class="coa-firma-org">{{ coa.firma_organizacion }}</div>{% endif %}
+      </div>
+    </div>
+
+    {% if coa.codigo_verificacion %}
+    <div class="cod-verif"><b>Código de verificación:</b> {{ coa.codigo_verificacion }}</div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {# ── SDS ── #}
+  {% if sds %}
+  <section id="doc-sds" class="doc-protocol-paper">
+    <div class="protocol-title">Hoja de Datos de Seguridad (SDS/MSDS) — Sistema GHS</div>
+    <div class="hdr">
+      <div class="hdr-left">
+        <div class="hdr-titulo">{{ sds.titulo or ft.titulo }}</div>
+      </div>
+      <img class="hdr-logo" src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group">
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Sección 1 — Identificación del producto</div>
+      <table>
+        {% if sds.nombre_comercial %}<tr><td class="td-key">Nombre comercial</td><td>{{ sds.nombre_comercial }}</td></tr>{% endif %}
+        {% if sds.inci %}<tr><td class="td-key">INCI / Nombre químico</td><td>{{ sds.inci }}</td></tr>{% endif %}
+        {% if sds.cas %}<tr><td class="td-key">N.º CAS</td><td>{{ sds.cas }}</td></tr>{% endif %}
+        {% if sds.formula %}<tr><td class="td-key">Fórmula molecular</td><td>{% if sds.formula_html %}{{ sds.formula_html|safe }}{% else %}{{ sds.formula }}{% endif %}</td></tr>{% endif %}
+        {% if sds.usos %}<tr><td class="td-key">Usos recomendados</td><td>{{ sds.usos }}</td></tr>{% endif %}
+        {% if sds.telefono %}<tr><td class="td-key">Teléfono emergencias</td><td>{{ sds.telefono }}</td></tr>{% endif %}
+      </table>
+    </div>
+
+    {% if sds.clasificacion or sds.pictogramas %}
+    <div class="sec">
+      <div class="sec-title">Sección 2 — Identificación de peligros (GHS)</div>
+      {% if sds.clasificacion %}
+      <div class="desc-text"><b>Clasificación:</b> {{ sds.clasificacion }}</div>
+      {% endif %}
+      {% if sds.pictogramas %}
+      <div class="desc-text"><b>Pictogramas / Frases H-P:</b><br>{{ sds.pictogramas }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if sds.composicion %}
+    <div class="sec">
+      <div class="sec-title">Sección 3 — Composición / Información sobre componentes</div>
+      <table>
+        <tr>
+          <td class="td-key-dark" style="width:60%">Componente</td>
+          <td class="td-key-dark">Concentración</td>
+        </tr>
+        {% for fila in sds.composicion %}
+        <tr>
+          <td>{{ fila[0] if fila|length > 0 }}</td>
+          <td>{{ fila[1] if fila|length > 1 }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if sds.primeros_auxilios %}
+    <div class="sec">
+      <div class="sec-title">Sección 4 — Primeros auxilios</div>
+      <div class="framed-body">
+        {% for caso, instruccion in sds.primeros_auxilios %}
+        <div class="two-col-fila">
+          <span class="two-col-key">{{ caso }}:</span>
+          <span class="two-col-val">{{ instruccion }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sds.manipulacion or sds.almacenamiento %}
+    <div class="sec">
+      <div class="sec-title">Sección 7 — Manipulación y almacenamiento</div>
+      <table>
+        {% if sds.manipulacion %}<tr><td class="td-key">Manipulación</td><td>{{ sds.manipulacion }}</td></tr>{% endif %}
+        {% if sds.almacenamiento %}<tr><td class="td-key">Almacenamiento</td><td>{{ sds.almacenamiento }}</td></tr>{% endif %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% if sds.recomendaciones %}
+    <div class="sec">
+      <div class="sec-title">Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
+      <div class="ghs-body">
+        {% for linea in sds.recomendaciones %}
+        {% set partes = linea.split(':', 1) %}
+        {% if partes|length == 2 %}
+        <div class="ghs-fila">
+          <span class="ghs-cat">{{ partes[0].strip() }}:</span>
+          <span class="ghs-val">{{ partes[1].strip() }}</span>
+        </div>
+        {% else %}
+        <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sds.propiedades %}
+    <div class="sec">
+      <div class="sec-title">Sección 9 — Propiedades físicas y químicas</div>
+      <div class="framed-body">
+        {% for nombre_prop, valor in sds.propiedades %}
+        <div class="two-col-fila">
+          <span class="two-col-key">{{ nombre_prop }}:</span>
+          <span class="two-col-val">{{ valor }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sds.normativa or sds.observaciones %}
+    <div class="sec">
+      <div class="sec-title">Sección 15 — Normativa y regulación</div>
+      <table>
+        {% if sds.normativa %}<tr><td class="td-key">Normativa aplicable</td><td>{{ sds.normativa }}</td></tr>{% endif %}
+        {% if sds.observaciones %}<tr><td class="td-key">Observaciones</td><td>{{ sds.observaciones }}</td></tr>{% endif %}
+      </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <p class="doc-protocol-foot">Esta información está basada en la documentación expedida por el proveedor.</p>
+</div>

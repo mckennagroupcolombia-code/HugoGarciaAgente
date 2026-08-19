@@ -8,6 +8,7 @@ export const CONTABILIDAD_PANELS = [
   "sync",
   "facturas",
   "ingresos-egresos",
+  "creditos-adquiridos",
   "libro-mayor",
   "stock",
   "rentabilidad",
@@ -104,6 +105,8 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.operativos
       || p.impuestos
       || p.servicios
+      || p["ingresos-egresos"]
+      || p["creditos-adquiridos"]
       || p["libro-mayor"],
   );
 }
@@ -165,6 +168,16 @@ export function puedeVerModuloContabilidad(
   if (seccion === "ingresos-egresos") {
     return Boolean(
       p["ingresos-egresos"] || p.facturas || p.sync || p.facturacion || p.rentabilidad,
+    );
+  }
+  if (seccion === "creditos-adquiridos") {
+    return Boolean(
+      p["creditos-adquiridos"]
+        || p["ingresos-egresos"]
+        || p.facturas
+        || p.sync
+        || p.facturacion
+        || p.rentabilidad,
     );
   }
   if (seccion === "libro-mayor") {

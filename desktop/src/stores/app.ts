@@ -37,6 +37,7 @@ export type Panel =
   | "impuestos"
   | "servicios"
   | "ingresos-egresos"
+  | "creditos-adquiridos"
   | "libro-mayor"
   | "tickets"
   | "etiquetas"
@@ -50,6 +51,7 @@ export type Panel =
   | "logistica-seguimiento"
   | "control-versiones"
   | "meli-oauth"
+  | "gmail-oauth"
   | "tareas-programadas"
   | "settings"
   | "perfil";

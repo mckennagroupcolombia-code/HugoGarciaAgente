@@ -3,7 +3,7 @@
 Sincroniza precios desde MercadoLibre → Google Sheets → invalida cache web
 
 Regla: precio_sheets = precio_base_meli (sin envío, sin comisiones agregadas)
-La web aplica después su propio descuento del 16.5% (comisión MeLi).
+La web aplica después su propio descuento del 10% frente al precio de MeLi.
 
 Uso:
   source venv/bin/activate

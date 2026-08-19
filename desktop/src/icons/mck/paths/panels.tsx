@@ -184,6 +184,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M4 9h16" />
     </>
   ),
+  "creditos-adquiridos": (
+    <>
+      <rect x="3" y="7" width="18" height="12" rx="2" />
+      <path d="M3 11h18" />
+      <circle cx="8" cy="15" r="1.2" />
+      <path d="M14 14.2h4M16 13.2v4" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />
@@ -297,6 +305,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M6 8h12v3a6 6 0 0 1-12 0V8Z" />
       <path d="M12 17v2" />
       <path d="M9 21h6" />
+    </>
+  ),
+  "gmail-oauth": (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 6.5 8 6 8-6" />
     </>
   ),
   settings: (

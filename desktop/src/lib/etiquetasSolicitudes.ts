@@ -20,7 +20,7 @@ export interface LineaPedidoEtiqueta {
 
 const TIPOS_ETIQUETA = [
   "30 mL", "5 mL", "125 g", "250 g", "1 Lt",
-  "100 g", "Lactato", "Circular", "Circular 70", "5 g", "54mm",
+  "100 g", "Lactato", "Circular", "Circular 50", "Circle 50", "CIRCLE", "Circular 70", "5 g", "54mm",
 ];
 
 function normalizarTextoEtiqueta(s: string): string {
@@ -42,6 +42,8 @@ export function inferirTipoEtiqueta(texto: string): string | undefined {
   if (/\b54\s*mm\b/i.test(texto)) return "54mm";
   if (/lactato/i.test(texto)) return "Lactato";
   if (/circular\s*70/i.test(texto)) return "Circular 70";
+  if (/(?:circular|circle)\s*50/i.test(texto)) return "Circular 50";
+  if (/\bcircle\b/i.test(texto)) return "CIRCLE";
   if (/circular/i.test(texto)) return "Circular";
   if (/\b1\s*lt\b/i.test(texto)) return "1 Lt";
   return undefined;

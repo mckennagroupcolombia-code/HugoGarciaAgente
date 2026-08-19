@@ -18,6 +18,7 @@ Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo 
 - Venta MeLi: leer stock post-venta en MeLi y propagar a web.
 - Venta web: leer stock web post-venta y propagar a MeLi.
 - Siigo solo factura; no gobierna stock.
+- Precio web = precio publicado en MeLi × 0.90 (10% de descuento comercial). Siigo replica el precio MeLi.
 - Sincronizaciones largas deben correr en hilo o proceso controlado.
 
 ## Riesgos

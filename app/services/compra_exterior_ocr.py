@@ -570,7 +570,7 @@ Reglas CRÍTICAS:
 - NUNCA uses la presentación como cantidad:
   "Elastina 30 ml × 50" → nombre "Elastina 30 ml", cantidad 50
   "Urea 125g" sin cantidad de impresión → nombre "Urea 125 g", cantidad 1
-- Presentaciones típicas: 30 mL, 5 mL, 125 g, 250 g, 100 g, 5 g, 1 Lt, Circular, Circular 70, Lactato, 54mm.
+- Presentaciones típicas: 30 mL, 5 mL, 125 g, 250 g, 100 g, 5 g, 1 Lt, Circular, Circular 50, Circular 70, Lactato, 54mm.
 - Omite saludos, precios y texto de relleno.
 - Si hay varias líneas, incluye todas. Sin duplicar.
 - Sin markdown. Solo JSON.

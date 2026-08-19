@@ -21,12 +21,32 @@ def _reset(tmp_path, monkeypatch) -> None:
 def test_defaults_incluyen_colores_clasico(tmp_path, monkeypatch) -> None:
     _reset(tmp_path, monkeypatch)
     cfg = tw.cargar_tema_web(force=True)
-    assert cfg["clasico"]["colores"]["fondo"] == "#e3fcff"
+    assert cfg["clasico"]["colores"]["fondo"] == "#ffffff"
     assert cfg["clasico"]["colores"]["fondo_oscuro"] == "#022d33"
     assert cfg["clasico"]["colores"]["acento"] == "#0c6069"
     css = tw.resolver_colores_clasico_css(cfg)
-    assert css["fondo"] == "#e3fcff"
+    assert css["fondo"] == "#ffffff"
+    assert css["white"] == "#ffffff"
+    assert css["off_white"] == "#f5f6f7"
     assert "color-mix" in css["green_pale"]
+
+
+def test_white_no_sigue_al_fondo_tinte(tmp_path, monkeypatch) -> None:
+    _reset(tmp_path, monkeypatch)
+    tw.guardar_tema_web({"clasico": {"colores": {"fondo": "#FFF8E7"}}})
+    css = tw.resolver_colores_clasico_css(tw.cargar_tema_web(force=True))
+    assert css["fondo"] == "#fff8e7"
+    assert css["white"] == "#ffffff"
+
+
+def test_cian_legado_se_migra_a_blanco(tmp_path, monkeypatch) -> None:
+    _reset(tmp_path, monkeypatch)
+    tw.TEMA_WEB_FILE.write_text(
+        json.dumps({"clasico": {"colores": {"fondo": "#e3fcff"}}}),
+        encoding="utf-8",
+    )
+    cfg = tw.cargar_tema_web(force=True)
+    assert cfg["clasico"]["colores"]["fondo"] == "#ffffff"
 
 
 def test_guardar_colores_clasico_valida_hex(tmp_path, monkeypatch) -> None:
@@ -56,17 +76,17 @@ def test_restaurar_clasico_devuelve_colores_default(tmp_path, monkeypatch) -> No
     tw.guardar_tema_web({"clasico": {"colores": {"fondo": "#111111"}}})
     assert tw.cargar_tema_web(force=True)["clasico"]["colores"]["fondo"] == "#111111"
     restaurado = tw.restaurar_tema_clasico()
-    assert restaurado["clasico"]["colores"]["fondo"] == "#e3fcff"
+    assert restaurado["clasico"]["colores"]["fondo"] == "#ffffff"
 
 
 def test_preview_colores_no_publica(tmp_path, monkeypatch) -> None:
     _reset(tmp_path, monkeypatch)
-    tw.guardar_tema_web({"clasico": {"colores": {"fondo": "#e3fcff"}}})
+    tw.guardar_tema_web({"clasico": {"colores": {"fondo": "#fff8e7"}}})
     pub = tw.TEMA_WEB_FILE.read_text(encoding="utf-8")
     tw.guardar_tema_preview({"clasico": {"colores": {"fondo": "#ffeecc"}}})
     assert tw.TEMA_WEB_FILE.read_text(encoding="utf-8") == pub
     draft = tw.cargar_tema_preview(force=True)
     assert draft["clasico"]["colores"]["fondo"] == "#ffeecc"
     publicado = tw.cargar_tema_web(force=True)
-    assert publicado["clasico"]["colores"]["fondo"] == "#e3fcff"
-    assert json.loads(pub)["clasico"]["colores"]["fondo"] == "#e3fcff"
+    assert publicado["clasico"]["colores"]["fondo"] == "#fff8e7"
+    assert json.loads(pub)["clasico"]["colores"]["fondo"] == "#fff8e7"

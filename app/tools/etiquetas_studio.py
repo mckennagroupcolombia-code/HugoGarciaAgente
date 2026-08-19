@@ -275,6 +275,9 @@ _TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
     ("100 g", 69.0, 51.0),
     ("Lactato", 38.0, 140.0),
     ("Circular", 55.0, 55.0),
+    ("Circular 50", 50.0, 50.0),
+    ("Circle 50", 50.0, 50.0),
+    ("CIRCLE", 50.0, 50.0),
     ("Circular 70", 70.0, 70.0),
     ("5 g", 50.0, 42.0),
     ("54mm", 54.0, 58.0),
@@ -668,3 +671,114 @@ def guardar_diagramacion_formato(tipo_etiqueta: str, datos: dict) -> dict:
     all_data[tipo] = payload
     _save_diagramacion_formatos(all_data)
     return payload
+
+
+# Título en arco (p. ej. MANTECA KARITÉ) no puede llegar al filo: ~3,5 mm
+# simétricos. No sumar extra arriba: eso mete tinta en el gap y la Epson
+# salta etiquetas (avanza 2 en blanco e imprime 1).
+MARGEN_SEGURO_CIRCULAR_MM = 3.5
+# Troqueles reales del rollo. Un lienzo "Personalizado"/"CIRCLE" 53–54 mm
+# NO existe: es diámetro 50 + gap (pitch 2.12"). Diecut_Gap + esa página
+# = doble avance (2 etiquetas en blanco).
+_TROQUELES_CIRCULARES_MM = (50.0, 55.0, 70.0)
+# 2" circle: die 50 mm + gap ≈ 53.9 mm (2.12 in). Incluir ese pitch en 50 mm.
+_PITCH_CIRCULAR_50_MAX_MM = 54.5
+
+
+def es_tipo_etiqueta_circular(
+    tipo: str | None,
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+) -> bool:
+    """Troquel redondo: Circular / Circular 50 / Circle 50 / Circular 70, o cuadrado 50–56 mm."""
+    t = (tipo or "").strip().lower()
+    if "circular" in t or "circle" in t:
+        return True
+    try:
+        w = float(ancho_mm or 0)
+        h = float(alto_mm or 0)
+    except (TypeError, ValueError):
+        return False
+    if w <= 0 or h <= 0 or abs(w - h) > 1.0:
+        return False
+    return 48.0 <= w <= 57.0
+
+
+def mm_troquel_circular(
+    tipo: str | None,
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+) -> tuple[float, float] | None:
+    """Diámetro físico del rollo (50 / 55 / 70). None si no es circular."""
+    if not es_tipo_etiqueta_circular(tipo, ancho_mm, alto_mm):
+        return None
+    t = (tipo or "").strip().lower()
+    if "70" in t:
+        return 70.0, 70.0
+    if "50" in t:
+        return 50.0, 50.0
+    try:
+        d = (float(ancho_mm or 0) + float(alto_mm or 0)) / 2.0
+    except (TypeError, ValueError):
+        d = 0.0
+    if d > 0:
+        # CIRCLE 2.12" (53.9 mm) y Personalizado 53 mm = rollo 50 mm, no 55.
+        # El nombre "circle"/"circular" sin número no debe forzar 55 mm.
+        if d <= _PITCH_CIRCULAR_50_MAX_MM:
+            return _TROQUELES_CIRCULARES_MM[0], _TROQUELES_CIRCULARES_MM[0]
+        if d <= 62.5:
+            return _TROQUELES_CIRCULARES_MM[1], _TROQUELES_CIRCULARES_MM[1]
+        return _TROQUELES_CIRCULARES_MM[2], _TROQUELES_CIRCULARES_MM[2]
+    if t in {"circular", "circle"}:
+        return 55.0, 55.0
+    return _TROQUELES_CIRCULARES_MM[0], _TROQUELES_CIRCULARES_MM[0]
+
+
+def dims_pagina_impresion_mm(
+    tipo: str | None,
+    ancho_mm: float | int | None,
+    alto_mm: float | int | None,
+) -> tuple[float, float] | None:
+    """mm a mandar a CUPS/PDF: circular se ajusta al troquel; el resto se respeta."""
+    snap = mm_troquel_circular(tipo, ancho_mm, alto_mm)
+    if snap:
+        return snap
+    try:
+        w = float(ancho_mm or 0)
+        h = float(alto_mm or 0)
+    except (TypeError, ValueError):
+        return None
+    if w > 0 and h > 0:
+        return w, h
+    return None
+
+
+def page_size_cups_mm(ancho: float, alto: float) -> str:
+    """Custom.50x50mm — el PPD rechaza Custom.50.0x50.0mm y cae a ~6\" (3 etiquetas)."""
+
+    def _fmt(v: float) -> str:
+        r = round(float(v), 2)
+        if abs(r - round(r)) < 0.001:
+            return str(int(round(r)))
+        return f"{r:.2f}".rstrip("0").rstrip(".")
+
+    return f"Custom.{_fmt(ancho)}x{_fmt(alto)}mm"
+
+
+def caja_imagen_pdf_etiqueta(
+    page_w: float,
+    page_h: float,
+    tipo: str | None = None,
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+    margen_mm: float | None = None,
+) -> tuple[float, float, float, float]:
+    """Caja (x, y, w, h) en puntos PDF. En circular deja margen simétrico para el troquel."""
+    if not es_tipo_etiqueta_circular(tipo, ancho_mm, alto_mm):
+        return 0.0, 0.0, page_w, page_h
+    from reportlab.lib.units import mm as rl_mm
+
+    m = float(margen_mm if margen_mm is not None else MARGEN_SEGURO_CIRCULAR_MM) * float(rl_mm)
+    w = max(1.0, page_w - 2.0 * m)
+    h = max(1.0, page_h - 2.0 * m)
+    return m, m, w, h

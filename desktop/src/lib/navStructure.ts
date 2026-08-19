@@ -132,6 +132,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },
       { panel: "meli-oauth", tier: "advanced" },
+      { panel: "gmail-oauth", tier: "advanced" },
       { panel: "tareas-programadas", tier: "advanced" },
     ],
   },

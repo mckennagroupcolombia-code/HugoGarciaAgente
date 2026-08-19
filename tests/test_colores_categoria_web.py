@@ -40,12 +40,12 @@ def test_lineas_desde_catalogo_cuenta_fichas():
     ]
     lineas = web.lineas_desde_catalogo(catalog)
     assert [L["id"] for L in lineas] == [
-        "cosmetica",
         "aceites-ceras-grasas",
+        "agro",
         "alimentario",
+        "cosmetica",
         "industria",
         "laboratorio",
-        "agro",
     ]
     by_id = {L["id"]: L for L in lineas}
     assert by_id["aceites-ceras-grasas"]["n_productos"] == 2

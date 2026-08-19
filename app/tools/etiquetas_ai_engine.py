@@ -3007,7 +3007,7 @@ def _ajustar_svg_al_formato_impresion(svg: str, datos: dict, meta: dict) -> str:
             meta["export_area"] = area_out
     meta["ancho_mm"] = w_mm
     meta["alto_mm"] = h_mm
-    return _encajar_svg_en_marco_formato(svg_work, w_mm, h_mm)
+    return _encajar_svg_en_marco_formato(svg_work, w_mm, h_mm, tipo=tipo)
 
 
 _ESCALA_BASE_CAMPO: dict[str, float] = {
@@ -3031,6 +3031,11 @@ _FORMATO_DIM_MM: dict[str, tuple[int, int]] = {
     "30 mL": (101, 38),
     "50 mL": (101, 38),
     "1 Kg": (76, 66),
+    "Circular": (55, 55),
+    "Circular 50": (50, 50),
+    "Circle 50": (50, 50),
+    "CIRCLE": (50, 50),
+    "Circular 70": (70, 70),
 }
 
 _REFERENCIA_AI_500G = "UREA 500g.ai"
@@ -3094,7 +3099,12 @@ def _recortar_svg_etiqueta_ai(svg: str) -> tuple[str, list[float] | None]:
     return _ajustar_viewbox_export(svg, {"export_area": area}), area
 
 
-def _encajar_svg_en_marco_formato(svg: str, ancho_mm: float, alto_mm: float) -> str:
+def _encajar_svg_en_marco_formato(
+    svg: str,
+    ancho_mm: float,
+    alto_mm: float,
+    tipo: str | None = None,
+) -> str:
     """Centra el arte recortado dentro del marco del formato de impresión (mm)."""
     m = re.search(r'viewBox="([^"]+)"', svg)
     if not m:
@@ -3106,6 +3116,15 @@ def _encajar_svg_en_marco_formato(svg: str, ancho_mm: float, alto_mm: float) -> 
     if aw <= 0 or ah <= 0 or ancho_mm <= 0 or alto_mm <= 0:
         return svg
     scale = min(ancho_mm / aw, alto_mm / ah)
+    from app.tools.etiquetas_studio import (
+        MARGEN_SEGURO_CIRCULAR_MM,
+        es_tipo_etiqueta_circular,
+    )
+
+    if es_tipo_etiqueta_circular(tipo, ancho_mm, alto_mm):
+        inner_w = max(1.0, ancho_mm - 2.0 * MARGEN_SEGURO_CIRCULAR_MM)
+        inner_h = max(1.0, alto_mm - 2.0 * MARGEN_SEGURO_CIRCULAR_MM)
+        scale = min(inner_w / aw, inner_h / ah)
     ox = (ancho_mm - aw * scale) / 2.0
     oy = (alto_mm - ah * scale) / 2.0
     open_m = re.search(r"(<svg[^>]*>)", svg, re.I | re.S)
@@ -3407,6 +3426,7 @@ def escanear_diagramacion_plantilla(
             ),
             w_mm,
             h_mm,
+            tipo=tipo,
         )
     )
 
@@ -3483,6 +3503,7 @@ def preview_diagramacion_plantilla(
             ),
             w_mm,
             h_mm,
+            tipo=tipo,
         )
     )
 

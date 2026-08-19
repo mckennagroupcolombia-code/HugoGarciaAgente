@@ -41,6 +41,7 @@ Ver ficha completa: `docs/agentic/modules/agent-orchestrator.md`
 - `GeminiProvider` y `OllamaProvider` no soportan tool-use; el router los salta si se necesitan tools.
 - Preventa MeLi con ficha usa Gemini en servicio separado (`app/services/meli_preventa.py`), sin pasar por AgentRun.
 - Tool nueva debe estar importada y registrada en `todas_las_herramientas` en `app/core.py`.
+- Más vendidos MeLi (solo cuenta propia): `analizar_competencia_precios` — no consulta marketplace ajeno.
 - No ejecutar sync sin intención explícita del usuario.
 - File tools se restringen en producción con `AGENTE_RESTRICT_FILE_TOOLS` o `FLASK_ENV=production`.
 - El checkpoint se guarda ANTES de continuar el ciclo, no al final del turno.

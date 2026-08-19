@@ -814,3 +814,64 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 desktop/src/components/ContenidoPanel.tsx
  create mode 100644 eliminar_marca_agua_video.py
 [2026-08-17 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-17 23:00'
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   130 órdenes canceladas en la ventana.
+   3482 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3231 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-69901 -> NC-2-199 (Accepted) — MeLi: ✅
+Resumen: 1 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+[monitor_correos_certificados_retencion] ERROR: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+🔎 Monitor comunicaciones importaciones — ejecución real
+Tickets activos de importaciones: 0
+⚠️ Gmail no disponible (No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py) — se omite la revisión de correo.
+✅ Total hallazgos nuevos: 0
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Reporte enviado a WhatsApp con éxito.
+[meli_compliance_monitor] revisadas=14 activas=9 problemas=5 alertas_wa=3
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-18T18:00:01] resumen_actividad_sede_sur: 75 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 24 nuevas · 23 completadas · 22 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 14 nuevas, 15 completadas
+• Victor Garcia: 5 nuevas, 5 completadas
+• Gloria Stella: 3 nuevas, 3 completadas
+• Administrador: 2 nuevas, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-18) no es el último día del mes.

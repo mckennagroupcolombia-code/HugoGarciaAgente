@@ -138,6 +138,39 @@ export function mmToPx(mm: number, dpi = CANVAS_DPI): number {
   return Math.round((mm / 25.4) * dpi);
 }
 
+/** Troquel circular: formato llamado Circular, o lienzo cuadrado con círculo de fondo. */
+export function esLienzoCircular(
+  doc: Pick<PlantillaVisualDoc, "formato" | "elementos">,
+): boolean {
+  const f = doc.formato;
+  const blob = `${f.tipo_etiqueta || ""} ${f.nombre || ""} ${f.id || ""}`;
+  if (/circ(?:ular|le)/i.test(blob)) return true;
+  const w = f.ancho_px || 0;
+  const h = f.alto_px || 0;
+  if (w < 24 || h < 24) return false;
+  if (Math.abs(w - h) > Math.max(2, Math.min(w, h) * 0.06)) return false;
+  const mm = f.ancho_mm ?? 0;
+  const altoMm = f.alto_mm ?? 0;
+  if (mm > 0 && altoMm > 0 && Math.abs(mm - altoMm) <= 1 && mm >= 48 && mm <= 57) {
+    return true;
+  }
+  return (doc.elementos || []).some((el) => {
+    if (el.type !== "rect") return false;
+    const side = Math.min(el.width, el.height);
+    if (side < Math.min(w, h) * 0.82) return false;
+    return (el.borderRadius || 0) >= side / 2 - 1;
+  });
+}
+
+/** Margen interior del troquel (~3,5 mm): Epson + cuchilla + tildes (É) del título en arco. */
+export function margenSeguroCircularPx(formato: FormatoCanvas): number {
+  const dpi = formato.dpi || CANVAS_DPI;
+  const diametroMm = Math.min(formato.ancho_mm || 0, formato.alto_mm || 0);
+  const mm =
+    diametroMm > 0 ? Math.min(4.2, Math.max(3.5, diametroMm * 0.07)) : 3.5;
+  return Math.max(10, (mm / 25.4) * dpi);
+}
+
 /** Zoom para que el lienzo ocupe ~85 % del viewport del editor. */
 export function zoomAjusteLienzo(
   anchoPx: number,

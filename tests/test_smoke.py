@@ -560,6 +560,79 @@ def test_serve_spa_rejects_post():
         assert c.post("/app", follow_redirects=False).status_code == 405
 
 
+def test_missing_app_api_returns_json_not_spa_html():
+    """GET /app/api/<inexistente> no debe servir index.html: el panel espera JSON."""
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        r = c.get("/app/api/ruta-que-no-existe")
+        assert r.status_code == 404
+        assert r.is_json
+        assert r.get_json().get("error") == "Ruta no encontrada"
+        preview = r.get_data(as_text=True).lstrip()
+        assert not preview.startswith("<")
+
+
+def test_api_salud_negocio_resumen_json_en_ambos_prefijos(monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok-salud")
+    fake = {
+        "periodicidad": "dia",
+        "n": 1,
+        "generado_en": "2026-08-18T00:00:00",
+        "buckets": [],
+        "actual": None,
+        "tendencia_margen_pp": None,
+        "nomina_mensual": 0,
+        "fuente_nomina": "sin_datos",
+        "ads_recomendaciones": None,
+        "saldo_bancario": None,
+    }
+    monkeypatch.setattr(
+        "app.services.salud_negocio.salud_negocio_resumen",
+        lambda **_kw: fake,
+    )
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok-salud"}
+    with app.test_client() as c:
+        for path in (
+            "/api/salud-negocio/resumen?periodicidad=dia&n=1",
+            "/app/api/salud-negocio/resumen?periodicidad=dia&n=1",
+        ):
+            r = c.get(path, headers=hdr)
+            assert r.status_code == 200, path
+            assert r.is_json, path
+            assert r.get_json()["periodicidad"] == "dia"
+
+
+def test_api_competencia_precios_json_en_ambos_prefijos(monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok-comp")
+    fake = {"ok": True, "vacio": True, "productos": [], "resumen": None}
+    monkeypatch.setattr(
+        "app.tools.analisis_competencia_precios.obtener_ultimo_analisis_competencia",
+        lambda: fake,
+    )
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok-comp"}
+    with app.test_client() as c:
+        assert c.get("/api/meli/competencia-precios").status_code == 401
+        for path in ("/api/meli/competencia-precios", "/app/api/meli/competencia-precios"):
+            r = c.get(path, headers=hdr)
+            assert r.status_code == 200, path
+            assert r.is_json, path
+            assert r.get_json()["vacio"] is True
+
+
 def test_api_5s_workspace_get_put_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
     from app.services import cinco_s as m5

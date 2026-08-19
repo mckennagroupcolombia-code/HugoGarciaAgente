@@ -104,6 +104,7 @@ const FUENTE_LABEL: Record<string, string> = {
   cuenta_cobro_correo: "Cuenta de cobro (correo)",
   operativos_impuestos: "Impuestos",
   operativos_servicios: "Servicios (operativos)",
+  creditos_adquiridos: "Créditos adquiridos",
 };
 
 type RowView =
@@ -616,13 +617,15 @@ export default function IngresosEgresosPanel() {
               onClick={() => fileRef.current?.click()}
               className="rounded-lg border-2 border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
             >
-              {uploadBusy ? "Guardando…" : "Guardar extracto"}
+              {uploadBusy ? "Subiendo…" : "Subir extracto desde mi computador"}
             </button>
           </div>
           <p className="text-[11px] text-muted">
-            Encabezados típicos: Fecha, Descripción, Débito, Crédito (o Valor). Separador ; o ,.
-            Si el PDF de Bancolombia no se lee como texto, el sistema intenta leerlo con IA (puede
-            tardar unos segundos).
+            Elige el archivo Excel/CSV/PDF del extracto desde tu computador (el que descargaste o
+            generaste tú mismo) — se sube apenas lo seleccionas, no se trae de ningún lado
+            automáticamente. Encabezados típicos: Fecha, Descripción, Débito, Crédito (o Valor).
+            Separador ; o ,. Si el PDF de Bancolombia no se lee como texto, el sistema intenta
+            leerlo con IA (puede tardar unos segundos).
           </p>
           {uploadMsg && (
             <p
@@ -886,6 +889,7 @@ export default function IngresosEgresosPanel() {
           <option value="todas">Todas las fuentes</option>
           <option value="operativos_impuestos">Impuestos</option>
           <option value="operativos_servicios">Servicios (operativos)</option>
+          <option value="creditos_adquiridos">Créditos adquiridos</option>
           <option value="compra_gmail">Pago factura compra</option>
           <option value="compra_exterior">Compra exterior</option>
           <option value="meli_venta">Venta MeLi</option>
@@ -896,6 +900,7 @@ export default function IngresosEgresosPanel() {
                 ![
                   "operativos_impuestos",
                   "operativos_servicios",
+                  "creditos_adquiridos",
                   "compra_gmail",
                   "compra_exterior",
                   "meli_venta",

@@ -1,6 +1,104 @@
 {
   "archivos": [
     {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260818_163726.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260818_163726.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260818_163726.pdf",
+      "subido_at": "2026-08-18T16:37:27",
+      "bytes": 367171
+    },
+    {
+      "nombre": "MANTECA_KARITE_125g_6.25x_2.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_6.25x_2.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_6.25x_2.pdf",
+      "subido_at": "2026-08-18T15:46:30",
+      "bytes": 335892
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_150850.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_150850.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_150850.pdf",
+      "subido_at": "2026-08-18T15:08:50",
+      "bytes": 325575
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135910.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135910.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135910.pdf",
+      "subido_at": "2026-08-18T13:59:10",
+      "bytes": 325561
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135844.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135844.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135844.pdf",
+      "subido_at": "2026-08-18T13:58:44",
+      "bytes": 325561
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135639.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135639.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2_20260818_135639.pdf",
+      "subido_at": "2026-08-18T13:56:39",
+      "bytes": 325561
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_2.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_2.pdf",
+      "subido_at": "2026-08-18T13:55:26",
+      "bytes": 325561
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260818_135055.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260818_135055.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260818_135055.pdf",
+      "subido_at": "2026-08-18T13:50:55",
+      "bytes": 343758
+    },
+    {
+      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x.pdf",
+      "subido_at": "2026-08-18T13:50:21",
+      "bytes": 343758
+    },
+    {
+      "nombre": "MANTECA_KARITE_125g_BLANCA_6.25x_20260818_134016.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260818_134016.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260818_134016.pdf",
+      "subido_at": "2026-08-18T13:40:17",
+      "bytes": 383445
+    },
+    {
+      "nombre": "MANTECA_KARITE_125g_BLANCA_6.25x_20260818_133617.pdf",
+      "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260818_133617.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_BLANCA_6.25x_20260818_133617.pdf",
+      "subido_at": "2026-08-18T13:36:17",
+      "bytes": 383445
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260818_121626.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121626.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121626.pdf",
+      "subido_at": "2026-08-18T12:16:26",
+      "bytes": 298707
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260818_121602.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121602.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121602.pdf",
+      "subido_at": "2026-08-18T12:16:02",
+      "bytes": 298707
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260818_121511.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121511.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260818_121511.pdf",
+      "subido_at": "2026-08-18T12:15:11",
+      "bytes": 298707
+    },
+    {
       "nombre": "MANTECA_KARITE_125g_6.25x.pdf",
       "ruta": "Etiquetas McKenna/MANTECA_KARITE_125g_6.25x.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_125g_6.25x.pdf",
@@ -1301,104 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095757.pdf",
       "subido_at": "2026-07-15T09:57:57",
       "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095735.pdf",
-      "subido_at": "2026-07-15T09:57:35",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260715_095720.pdf",
-      "subido_at": "2026-07-15T09:57:20",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x.pdf",
-      "subido_at": "2026-07-15T09:56:33",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095425.pdf",
-      "subido_at": "2026-07-15T09:54:25",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095402.pdf",
-      "subido_at": "2026-07-15T09:54:02",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095339.pdf",
-      "subido_at": "2026-07-15T09:53:39",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095313.pdf",
-      "subido_at": "2026-07-15T09:53:13",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095248.pdf",
-      "subido_at": "2026-07-15T09:52:48",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095222.pdf",
-      "subido_at": "2026-07-15T09:52:22",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095130.pdf",
-      "subido_at": "2026-07-15T09:51:30",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095045.pdf",
-      "subido_at": "2026-07-15T09:50:45",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095023.pdf",
-      "subido_at": "2026-07-15T09:50:23",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_095006.pdf",
-      "subido_at": "2026-07-15T09:50:06",
-      "bytes": 612563
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260715_094948.pdf",
-      "subido_at": "2026-07-15T09:49:48",
-      "bytes": 612563
     }
   ]
 }

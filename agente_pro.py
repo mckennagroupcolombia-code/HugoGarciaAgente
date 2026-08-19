@@ -86,6 +86,12 @@ def create_app():
         print(f"⚠️ Conexión MeLi (OAuth): {e}")
 
     try:
+        from app.routes_gmail_oauth import register_gmail_oauth_routes
+        register_gmail_oauth_routes(app)
+    except Exception as e:
+        print(f"⚠️ Conexión Gmail (OAuth): {e}")
+
+    try:
         from app.routes_importaciones import register_importaciones_routes
         register_importaciones_routes(app)
     except Exception as e:

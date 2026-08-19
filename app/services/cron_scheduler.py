@@ -101,6 +101,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Envía al grupo de inventario un resumen de productos que necesitan revisión (agotados/críticos/bajo stock) y apunta a Control de Inventario (/app) — le da al equipo un día fijo de revisión en vez de reponer solo de forma reactiva.",
         "script": "scripts/recordatorio_inventario_cron.py",
     },
+    "competencia_precios": {
+        "nombre": "Más vendidos MeLi (solo cuenta propia)",
+        "descripcion": "Lista nuestros más vendidos y el precio publicado nuestro. No consulta el marketplace ni otros vendedores (MeLi lo prohíbe por API; no hacemos scraping).",
+        "script": "scripts/analisis_competencia_precios_cron.py",
+    },
 }
 
 

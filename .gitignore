@@ -51,6 +51,8 @@ memoria_vectorial/
 app/data/relacion_codigos_cache.json
 app/data/meli_cobros_cache.json
 app/data/preventa_metricas_cache.json
+app/data/analisis_competencia_precios.json
+app/data/competencia_observaciones_manual.json
 
 # Borradores HTML del agente de conocimiento (CLI opción CIENCIA)
 app/data/ciencia_borradores/

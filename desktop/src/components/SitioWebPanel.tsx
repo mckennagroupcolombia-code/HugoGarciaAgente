@@ -176,7 +176,7 @@ const COLOR_LABEL_PUREZA: Record<string, string> = {
 
 const COLOR_LABEL_CLASICO: Record<string, string> = {
   fondo: "Fondo claro de página",
-  fondo_oscuro: "Fondo oscuro (hero, footer, categorías)",
+  fondo_oscuro: "Fondo oscuro (footer)",
   acento: "Acento (botones, enlaces, barra)",
   acento_oscuro: "Acento oscuro (hover)",
   acento_claro: "Acento claro (títulos en itálica)",
@@ -508,7 +508,7 @@ function LiveSwatch({
   variante?: TemaId;
 }) {
   const acento = colores.acento || "#0c6069";
-  const fondo = colores.fondo || (variante === "clasico" ? "#e3fcff" : "#f8f6f1");
+  const fondo = colores.fondo || (variante === "clasico" ? "#ffffff" : "#f8f6f1");
   const tinta = colores.tinta || (variante === "clasico" ? "#022d33" : "#1c2b2a");
   const barra = variante === "clasico" ? colores.fondo_oscuro || tinta : tinta;
   const oro = colores.destacado || colores.acento_claro || "#b9862f";
@@ -1446,15 +1446,6 @@ export default function SitioWebPanel() {
                   </Seccion>
 
                   <Seccion titulo="Hero del home" defaultOpen>
-                    <Campo
-                      label="Badge"
-                      value={cl.hero.badge}
-                      onChange={(v) =>
-                        mutar((d) => {
-                          d.clasico.hero.badge = v;
-                        })
-                      }
-                    />
                     <div className="grid gap-4 md:grid-cols-3">
                       <Campo
                         label="Título línea 1"

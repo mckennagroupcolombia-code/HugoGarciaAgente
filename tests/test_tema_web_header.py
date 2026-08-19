@@ -155,7 +155,7 @@ def test_css_header_nav_flex_como_el_lienzo() -> None:
 
 
 def test_css_header_no_recorta_login_en_desktop() -> None:
-    """Buscar/WA se ocultan antes; hamburguesa a 1100px evita cortar Iniciar sesión."""
+    """Buscar se oculta a 1200px; hamburguesa a 1100px. Iconos WA/cuenta/carrito quedan visibles."""
     from pathlib import Path
 
     css = (Path(__file__).resolve().parents[1] / "PAGINA_WEB/site/static/css/main.css").read_text(
@@ -168,7 +168,7 @@ def test_css_header_no_recorta_login_en_desktop() -> None:
     assert i1200 < i1100 < i900
     bloque_1200 = css[i1200:i1100]
     assert ".header-search { display: none; }" in bloque_1200
-    assert ".btn-wa-header { display: none; }" in bloque_1200
+    assert ".btn-wa-header { display: none; }" not in bloque_1200
     bloque_1100 = css[i1100:i900]
     assert ".main-nav { display: none; }" in bloque_1100
     assert ".menu-toggle { display: flex; }" in bloque_1100

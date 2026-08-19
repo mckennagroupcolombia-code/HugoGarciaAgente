@@ -126,6 +126,34 @@ def get_gmail_service():
             token.write(creds.to_json())
     return build("gmail", "v1", credentials=creds)
 
+def estado_token_gmail() -> dict:
+    """Estado del token de Gmail sin lanzar excepciones ni borrar el archivo.
+
+    Para checks frecuentes (poll del panel/dashboard) — a diferencia de
+    get_gmail_service(), nunca elimina TOKEN_GMAIL_PATH: un error transitorio
+    de red durante un refresh pasivo no debe forzar una reautorización manual.
+    """
+    if not os.path.exists(TOKEN_GMAIL_PATH):
+        return {"valido": False, "motivo": "sin token"}
+    try:
+        creds = Credentials.from_authorized_user_file(TOKEN_GMAIL_PATH, SCOPES)
+    except Exception as e:
+        return {"valido": False, "motivo": f"token corrupto: {e}"[:200]}
+    if creds.valid:
+        return {"valido": True, "expira": creds.expiry.isoformat() if creds.expiry else None}
+    if creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+        except Exception as e:
+            return {"valido": False, "motivo": str(e)[:200]}
+        try:
+            with open(TOKEN_GMAIL_PATH, "w") as f:
+                f.write(creds.to_json())
+        except OSError:
+            pass
+        return {"valido": True, "expira": creds.expiry.isoformat() if creds.expiry else None}
+    return {"valido": False, "motivo": "expirado sin refresh_token"}
+
 def extraer_datos_xml_dian(xml_content):
     """Extrae datos de una factura electrónica (XML DIAN UBL 2.1)."""
     try:

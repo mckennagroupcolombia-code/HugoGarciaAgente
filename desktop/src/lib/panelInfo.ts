@@ -176,6 +176,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "Edita fichas, fotos y vínculo MeLi desde el catálogo.",
       "Usa Republicar MeLi / Crear desde cero para altas por política.",
+      "Competencia: ranking propio + precios que el equipo anota a ojo abriendo MeLi en el navegador.",
     ],
     tier: "standard",
     category: "publicaciones",
@@ -340,11 +341,24 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "contabilidad",
   },
+  "creditos-adquiridos": {
+    emoji: "🏦",
+    label: "Créditos adquiridos",
+    description:
+      "Préstamos, leasing y créditos de proveedores: tasa de interés anual, cuota, plazo, saldo y tabla de amortización.",
+    tips: [
+      "La cuota se calcula con el sistema francés (cuota fija), alemán (capital fijo) o solo interés.",
+      "EA es efectiva anual; N.A.M.V. es nominal anual mes vencido, la más común en bancos colombianos.",
+      "Cada pago de cuota entra al libro de Ingresos / Egresos como egreso.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   "ingresos-egresos": {
     emoji: "📒",
     label: "Ingresos / Egresos",
     description:
-      "Tabla contable por fecha: ventas Siigo, MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos y servicios operativos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
+      "Tabla contable por fecha: ventas Siigo, MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos, servicios operativos y cuotas de créditos adquiridos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
     tips: [
       "Filtra por rango de fechas y por fuente (MeLi, Siigo, web, compras, cuentas de cobro, operativos).",
       "Mismo concepto el mismo día → una casilla con sumatoria; clic para desplegar el detalle.",
@@ -424,6 +438,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Si la app de MeLi queda 'INACTIVA', preguntas/órdenes/posventa/envíos dejan de llegar en silencio — reconecta aquí.",
       "El Client Secret nunca se muestra de vuelta por seguridad; solo indica si ya hay uno guardado.",
       "Después de activar, recuerda revisar en developers.mercadolibre.com que el Callback URL y los tópicos (questions, orders_v2, messages, shipments) sigan habilitados — eso no se puede hacer desde aquí.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
+  "gmail-oauth": {
+    emoji: "📧",
+    label: "Conexión Gmail",
+    description: "Estado en tiempo real y reautorización con un clic del acceso OAuth a mckenna.group.colombia@gmail.com — usado por facturas de compra (Gmail) y búsquedas de correo.",
+    tips: [
+      "Si el token de Gmail se desautoriza, la sincronización de facturas de compra desde Gmail deja de funcionar en silencio — revisa el badge 'Token Gmail' en el Dashboard.",
+      "Antes de usar 'Generar link de autorización' por primera vez, agrega el Redirect URI que muestra el panel en Google Cloud Console (paso único, no automatizable).",
+      "A diferencia de MeLi, no hay que copiar/pegar ningún código: al aceptar en Google, el servidor completa la conexión solo y el estado se actualiza en unos segundos.",
     ],
     tier: "advanced",
     category: "sistemas",

@@ -40,7 +40,7 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260809p">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260819f">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -65,10 +65,10 @@ fbq('track','PageView');
     --green-dark:   {{ COLORES_CL.acento_oscuro | default('#045159') }};
     --green-deep:   {{ COLORES_CL.fondo_oscuro | default('#022D33') }};
     --green-light:  {{ COLORES_CL.acento_claro | default('#6aacb3') }};
-    --green-ultra:  {{ COLORES_CL.fondo | default('#e3fcff') }};
-    --green-pale:   {{ COLORES_CL.green_pale | default('#c0f0f5') }};
-    --white:        {{ COLORES_CL.fondo | default('#e3fcff') }};
-    --off-white:    {{ COLORES_CL.fondo | default('#e3fcff') }};
+    --green-ultra:  {{ COLORES_CL.fondo | default('#ffffff') }};
+    --green-pale:   {{ COLORES_CL.green_pale | default('color-mix(in srgb, #64748b 12%, #ffffff)') }};
+    --white:        {{ COLORES_CL.white | default('#ffffff') }};
+    --off-white:    {{ COLORES_CL.off_white | default('#f5f6f7') }};
     --text-dark:    {{ COLORES_CL.tinta | default('#022D33') }};
     --text-mid:     {{ COLORES_CL.acento_oscuro | default('#045159') }};
     --text-soft:    {{ COLORES_CL.acento | default('#0c6069') }};
@@ -85,6 +85,12 @@ fbq('track','PageView');
     --pz-destacado:     {{ TW.colores.destacado | default('#b9862f') }};
   }
   {% endif %}
+  /* Tipografía del sitio: Regular. Sin bold, semibold ni cursiva. */
+  body,
+  body *:not(.ph):not([class^="ph-"]) {
+    font-weight: 400 !important;
+    font-style: normal !important;
+  }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 {% block head %}{% endblock %}
@@ -183,11 +189,6 @@ fbq('track','PageView');
           <a href="{{ url_for('contacto') }}" style="{{ LCHROME.estilos.get('header.nav.contacto', '') }}">Contacto</a>
         </li>
         {% endif %}
-        {% if not LCHROME.nodos.get('header.nav.cuenta', {}).get('hidden') %}
-        <li class="{% if request.endpoint in ['mis_pedidos','cuenta_entrar','auth_google_start','auth_google_callback'] %}active{% endif %}">
-          <a href="{{ account_nav_href }}" style="{{ LCHROME.estilos.get('header.nav.cuenta', '') }}">{{ account_nav_label }}</a>
-        </li>
-        {% endif %}
         {% if show_admin_pedidos_link %}
         <li class="{% if request.endpoint and 'admin_pedido' in request.endpoint %}active{% endif %}">
           <a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a>
@@ -197,7 +198,7 @@ fbq('track','PageView');
     </nav>
     {% endif %}
 
-    <!-- Acciones: buscar + carrito + WhatsApp (agrupadas a la derecha) -->
+    <!-- Acciones: WhatsApp + cuenta + carrito (solo iconos) -->
     <div class="header-actions">
       {% if not LCHROME.nodos.get('header.search', {}).get('hidden') %}
       <div class="header-search" style="{{ LCHROME.estilos.get('header.search', '') }}">
@@ -205,9 +206,23 @@ fbq('track','PageView');
         <input type="search" id="header-search-input" placeholder="Buscar producto..." autocomplete="off">
       </div>
       {% endif %}
-      <!-- Carrito -->
+      {% if not LCHROME.nodos.get('header.btn_wa', {}).get('hidden') %}
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
+         target="_blank" rel="noopener" class="header-icon btn-wa-header"
+         style="{{ LCHROME.estilos.get('header.btn_wa', '') }}"
+         title="WhatsApp" aria-label="WhatsApp">
+        <i class="ph ph-whatsapp-logo"></i>
+      </a>
+      {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.cuenta', {}).get('hidden') %}
+      <a href="{{ account_nav_href }}" class="header-icon header-account-link"
+         style="{{ LCHROME.estilos.get('header.nav.cuenta', '') }}"
+         title="{{ account_nav_label }}" aria-label="{{ account_nav_label }}">
+        <i class="ph ph-user"></i>
+      </a>
+      {% endif %}
       <div class="cart-icon-wrap">
-        <a href="{{ url_for('carrito') }}" class="cart-icon-link" title="Carrito">
+        <a href="{{ url_for('carrito') }}" class="header-icon cart-icon-link" title="Carrito" aria-label="Carrito">
           <i class="ph ph-shopping-cart"></i>
         </a>
         {% set cart_count = session.get('cart', {})|length %}
@@ -215,13 +230,6 @@ fbq('track','PageView');
         <span class="cart-count">{{ cart_count }}</span>
         {% endif %}
       </div>
-      {% if not LCHROME.nodos.get('header.btn_wa', {}).get('hidden') %}
-      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
-         target="_blank" rel="noopener" class="btn-wa-header" style="{{ LCHROME.estilos.get('header.btn_wa', '') }}">
-        <i class="ph ph-whatsapp-logo"></i>
-        WhatsApp
-      </a>
-      {% endif %}
     </div>
 
     <!-- Hamburger -->
@@ -382,7 +390,7 @@ fbq('track','PageView');
   <i class="ph ph-arrow-up"></i>
 </a>
 
-<script src="{{ url_for('static', filename='js/main.js') }}?v=20260808c"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}?v=20260818a"></script>
 {% block scripts %}{% endblock %}
 
 {% if META_PIXEL_ID %}

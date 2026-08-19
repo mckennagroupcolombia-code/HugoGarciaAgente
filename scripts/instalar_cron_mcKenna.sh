@@ -41,6 +41,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "15 8 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/monitor_comunicaciones_importaciones.py >>${LOG} 2>&1"
   echo "# Notas crédito automáticas: ventas MeLi canceladas con factura ya emitida (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "20 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/emitir_notas_credito_cron.py >>${LOG} 2>&1"
+  echo "# Sincronización de precios MeLi → Siigo/Web: precio vivo de MeLi corrige Siigo/Sheets/Web donde difieran (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "0 7,15 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reconciliar_precios_meli_cron.py >>${LOG} 2>&1"
   echo "# Publicidad MeLi: recomendaciones de ACOS por rotación → ticket + WhatsApp (lunes, frecuencia real vía Sistemas → Tareas Programadas)"
   echo "15 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/publicidad_recomendaciones_cron.py >>${LOG} 2>&1"
   echo "# Reposición alta rotación: informe de cierre de mes a Sede Sur (corre a diario, el propio script valida que sea el último día del mes)"
@@ -49,6 +51,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "20 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/archivar_gasto_ads_cron.py >>${LOG} 2>&1"
   echo "# Recordatorio semanal de inventario: agotados/críticos/bajo stock → Control de Inventario (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "30 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_inventario_cron.py >>${LOG} 2>&1"
+  echo "# Más vendidos MeLi (solo cuenta propia; no consulta marketplace ajeno)"
+  echo "0 9 * * 1 cd ${REPO} && AGENTE_COMPETENCIA_PRECIOS_QUIET=1 ${PYTHON} ${REPO}/scripts/analisis_competencia_precios_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 

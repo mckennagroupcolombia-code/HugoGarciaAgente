@@ -1061,7 +1061,12 @@ def _logo_pie_src_html(cabezote_id: str | None = None) -> str | None:
     return None
 
 
-def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
+def _contexto_html(
+    datos: dict,
+    cabezote_id: str | None = None,
+    *,
+    incluir_cabezote: bool = True,
+) -> dict:
     """Transforma datos normalizados en variables para el template Jinja2."""
     d = normalizar_datos_ficha(datos)
 
@@ -1150,8 +1155,8 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
         "lote": lote,
         "color_acento": color_acento,
         "composicion": composicion,
-        "cabezote_src": _cabezote_src_html(cabezote_id),
-        "logo_pie_src": _logo_pie_src_html(cabezote_id),
+        "cabezote_src": _cabezote_src_html(cabezote_id) if incluir_cabezote else None,
+        "logo_pie_src": _logo_pie_src_html(cabezote_id) if incluir_cabezote else None,
     }
 
 

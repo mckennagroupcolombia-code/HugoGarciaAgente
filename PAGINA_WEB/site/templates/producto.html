@@ -473,8 +473,20 @@
 </div>
 {% endif %}
 
-<!-- ═══ FICHA TÉCNICA (vitrina y legacy) ═══ -->
-{% if p.ficha %}
+<!-- ═══ FICHA TÉCNICA (biblioteca completa o legado JSON) ═══ -->
+{% if doc_completo %}
+<div style="border-top:2px solid var(--green-pale);background:#fff;">
+  <div class="section">
+    <div style="margin-bottom:32px;">
+      <span class="section-eyebrow">Documentación técnica</span>
+      <h2 class="section-title">Ficha <em>Técnica</em></h2>
+    </div>
+    {% with doc=doc_completo %}
+      {% include "_documento_tecnico.html" %}
+    {% endwith %}
+  </div>
+</div>
+{% elif p.ficha %}
 <div style="border-top:2px solid var(--green-pale);background:#fff;">
   <div class="section">
     <div style="margin-bottom:40px;">

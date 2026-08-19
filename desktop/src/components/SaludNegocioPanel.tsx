@@ -39,6 +39,12 @@ const N_OPCIONES: Record<SaludPeriodicidad, number[]> = {
   mes: [12],
 };
 
+const UNIDAD_N: Record<SaludPeriodicidad, string> = {
+  dia: "días",
+  semana: "semanas",
+  mes: "meses",
+};
+
 // ── Series de costo (orden fijo, mismo criterio categórico en todo el panel) ──
 
 type CostKey = "costo_producto" | "comisiones_meli" | "gasto_ads" | "costos_admin";
@@ -607,7 +613,7 @@ export default function SaludNegocioPanel() {
               >
                 {N_OPCIONES[periodicidad].map((opt) => (
                   <option key={opt} value={opt}>
-                    Últimas {opt} {periodicidad === "semana" ? "semanas" : "meses"}
+                    Últimas {opt} {UNIDAD_N[periodicidad]}
                   </option>
                 ))}
               </select>

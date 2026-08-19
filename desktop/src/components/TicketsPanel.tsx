@@ -24,6 +24,7 @@ import {
 } from "./QuestBoardStickyFrame";
 import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLayout";
 import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
+import DolarHoraGadget from "./DolarHoraGadget";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs } from "./Cronometro";
@@ -4143,6 +4144,8 @@ function CentroMandoHome({
         </h2>
       </div>
 
+      <DolarHoraGadget />
+
       {tieneAtajos && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {verStock && (
@@ -6355,6 +6358,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "sync",          label: "Sincronización" },
                     { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
                     { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
+                    { id: "creditos-adquiridos", label: "Créditos adquiridos" },
                     { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
                     { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios" },
                     { id: "rrhh",          label: "RRHH · Compensaciones" },

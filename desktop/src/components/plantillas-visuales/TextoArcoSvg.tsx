@@ -1,4 +1,10 @@
-import { pesoFontWeightCss, type ElementoTexto, type PlantillaVisualDoc } from "../../lib/plantillasVisuales";
+import {
+  esLienzoCircular,
+  margenSeguroCircularPx,
+  pesoFontWeightCss,
+  type ElementoTexto,
+  type PlantillaVisualDoc,
+} from "../../lib/plantillasVisuales";
 
 /**
  * Texto sobre un arco (SVG textPath). Modelo simple:
@@ -57,20 +63,80 @@ export function alturaCajaTexto(el: ElementoTexto, topeArtboard = 4000): number 
   return Math.max(el.height, Math.ceil(el.fontSize * lh) + 4);
 }
 
+/**
+ * Recoge un título en arco para que las letras queden dentro del círculo
+ * imprimible. El troquel corta todo lo que se sale del diámetro; el editor
+ * muestra un cuadrado y eso no se nota hasta la impresión.
+ */
+export function ajustarArcoAZonaSeguraCircular(
+  el: ElementoTexto,
+  canvasW: number,
+  canvasH: number,
+  margenPx: number,
+): ElementoTexto {
+  const arco = el.arco ?? 0;
+  if (arco === 0 || el.forma === "circulo") return el;
+  const geo = geometriaArco(el.width, el.fontSize, arco);
+  if (geo.R <= 0) return el;
+
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const rDie = Math.min(canvasW, canvasH) / 2;
+  const rSafe = Math.max(20, rDie - margenPx);
+  // 1.25 cubre tildes (KARITÉ) que 0.9 dejaba fuera del troquel al imprimir.
+  const ascent = el.fontSize * 1.25;
+  const cyLocal = geo.up ? el.fontSize + geo.R : el.fontSize + geo.sag - geo.R;
+  const pcx = el.x + el.width / 2;
+  const pcy = el.y + cyLocal;
+  const rOuter = geo.R + ascent;
+  const dist = Math.hypot(pcx - cx, pcy - cy);
+  if (dist + rOuter <= rSafe + 0.4) return el;
+
+  const rMax = Math.max(18, rSafe - ascent);
+  const newW = Math.abs(arco) >= 100 ? 2 * rMax : Math.min(el.width, 2 * rMax);
+  const newGeo = geometriaArco(newW, el.fontSize, arco);
+  if (newGeo.R <= 0) return el;
+  const newCyLocal = newGeo.up
+    ? el.fontSize + newGeo.R
+    : el.fontSize + newGeo.sag - newGeo.R;
+  return {
+    ...el,
+    width: newW,
+    height: Math.max(8, Math.ceil(newGeo.altoTotal)),
+    x: cx - newW / 2,
+    y: cy - newCyLocal,
+  };
+}
+
 /** Reescribe altos absurdos (measure bug) y sincroniza arcos/círculos. */
 export function sanitizarAltosTextoPlantilla(doc: PlantillaVisualDoc): PlantillaVisualDoc {
   const tope = Math.max(doc.formato.ancho_px || 0, doc.formato.alto_px || 0, 1);
+  const circular = esLienzoCircular(doc);
+  const margen = circular ? margenSeguroCircularPx(doc.formato) : 0;
   let changed = false;
   const elementos = doc.elementos.map((el) => {
     if (el.type !== "text") return el;
-    const nextH = alturaCajaTexto(el, tope);
-    if (Math.abs(nextH - el.height) < 0.51) return el;
-    const esArco = (el.arco ?? 0) !== 0 && el.forma !== "circulo";
-    const esCirculo = el.forma === "circulo";
-    const corrupto = !Number.isFinite(el.height) || el.height > tope * 4 || el.height > el.fontSize * 80;
-    if (!esArco && !esCirculo && !corrupto) return el;
+    let next = el;
+    if (circular && (el.arco ?? 0) !== 0 && el.forma !== "circulo") {
+      const ajustado = ajustarArcoAZonaSeguraCircular(el, doc.formato.ancho_px, doc.formato.alto_px, margen);
+      if (
+        ajustado.x !== el.x ||
+        ajustado.y !== el.y ||
+        ajustado.width !== el.width ||
+        ajustado.height !== el.height
+      ) {
+        changed = true;
+        next = ajustado;
+      }
+    }
+    const nextH = alturaCajaTexto(next, tope);
+    if (Math.abs(nextH - next.height) < 0.51) return next;
+    const esArco = (next.arco ?? 0) !== 0 && next.forma !== "circulo";
+    const esCirculo = next.forma === "circulo";
+    const corrupto = !Number.isFinite(next.height) || next.height > tope * 4 || next.height > next.fontSize * 80;
+    if (!esArco && !esCirculo && !corrupto) return next;
     changed = true;
-    return { ...el, height: nextH };
+    return { ...next, height: nextH };
   });
   return changed ? { ...doc, elementos } : doc;
 }

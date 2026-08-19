@@ -172,9 +172,9 @@ export const SECTION_LABEL_CLASICO: Record<string, string> = {
   "header.nav.blog": "Botón Blog",
   "header.nav.nosotros": "Botón Nosotros",
   "header.nav.contacto": "Botón Contacto",
-  "header.nav.cuenta": "Botón Iniciar sesión",
+  "header.nav.cuenta": "Icono iniciar sesión",
   "header.search": "Buscador",
-  "header.btn_wa": "Botón WhatsApp",
+  "header.btn_wa": "Icono WhatsApp",
   "hero.foto_izq": "Imagen izquierda",
   "hero.foto_der": "Imagen derecha",
   "hero.cta_principal": "Botón Comprar (caja)",
@@ -812,7 +812,7 @@ export default function ClasicoLayoutCanvas({
                 className="min-w-0 flex-1"
               >
                 <ul className="flex flex-nowrap items-center justify-end gap-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#0c6069]">
-                  {HEADER_NAV_ITEMS.map((item) =>
+                  {HEADER_NAV_ITEMS.filter((item) => item.id !== "header.nav.cuenta").map((item) =>
                     nodoOf(layout, item.id).hidden ? null : (
                       <li key={item.id}>
                         <EditableNode
@@ -860,10 +860,7 @@ export default function ClasicoLayoutCanvas({
                 />
               </EditableNode>
               )}
-              <div className="flex shrink-0 items-center gap-4">
-                <span className="inline-flex p-1.5 text-[#0c6069]" title="Carrito" aria-hidden>
-                  <i className="ph ph-shopping-cart text-[1.4rem] leading-none" />
-                </span>
+              <div className="flex shrink-0 items-center gap-1">
               {!nodoOf(layout, "header.btn_wa").hidden && (
               <EditableNode
                 id="header.btn_wa"
@@ -872,28 +869,41 @@ export default function ClasicoLayoutCanvas({
                 layout={layout}
                 onSelect={onSelect}
                 onDragStart={beginDrag}
-                className="studio-hover-target inline-flex shrink-0 items-center gap-1.5 rounded text-[10px] font-bold uppercase tracking-wide text-white"
-                style={{
-                  background: pal.acento,
-                  padding: `${nodoOf(layout, "header.btn_wa").padY ?? 9}px ${nodoOf(layout, "header.btn_wa").padX ?? 20}px`,
-                  ...(nodoOf(layout, "header.btn_wa").fontSize
-                    ? { fontSize: nodoOf(layout, "header.btn_wa").fontSize }
-                    : {}),
-                }}
+                className="studio-hover-target inline-flex p-1.5 text-[#0c6069]"
+                title="WhatsApp"
               >
-                <i className="ph ph-whatsapp-logo text-sm" />
-                WhatsApp
+                <i className="ph ph-whatsapp-logo text-[1.4rem] leading-none" />
               </EditableNode>
               )}
+              {!nodoOf(layout, "header.nav.cuenta").hidden && (
+              <EditableNode
+                id="header.nav.cuenta"
+                selected={selectedIds.includes("header.nav.cuenta")}
+                primary={selectedId === "header.nav.cuenta"}
+                layout={layout}
+                onSelect={onSelect}
+                onDragStart={beginDrag}
+                className="studio-hover-target inline-flex p-1.5 text-[#0c6069]"
+                title="Iniciar sesión"
+              >
+                <i className="ph ph-user text-[1.4rem] leading-none" />
+              </EditableNode>
+              )}
+                <span className="inline-flex p-1.5 text-[#0c6069]" title="Carrito" aria-hidden>
+                  <i className="ph ph-shopping-cart text-[1.4rem] leading-none" />
+                </span>
               </div>
               </div>
             </EditableNode>
             )}
-            {/* Tamaños = main.css .hero (42px / justify-center). No subir a 80px. */}
+            {/* Tamaños = main.css .hero (54px / space-between). No subir a 80px. */}
             <div ref={heroSplitRef} className="relative min-h-[680px] min-w-0 overflow-hidden">
               <div
-                className="grid min-h-[680px] min-w-0"
+                className="mx-auto grid min-h-[680px] w-full min-w-0 max-w-[1280px]"
                 style={{
+                  boxSizing: "border-box",
+                  paddingLeft: 32,
+                  paddingRight: 32,
                   gridTemplateColumns: `minmax(0, ${heroSplitPct(nodoOf(layout, "hero"))}%) minmax(0, ${
                     100 - heroSplitPct(nodoOf(layout, "hero"))
                   }%)`,
@@ -903,56 +913,38 @@ export default function ClasicoLayoutCanvas({
               <ZonaFondoDrop
                 label="imagen izquierda"
                 mostrarBoton={false}
-                className="group relative flex min-w-0 flex-col justify-center overflow-hidden text-white"
+                className="group relative flex min-w-0 flex-col justify-between overflow-hidden"
                 style={{
-                  padding: "56px 48px",
-                  backgroundColor: pal.fondoOscuro,
+                  padding: "72px 32px 56px 0",
+                  backgroundColor: pal.fondo,
+                  color: pal.tinta,
                   ...estiloFondoImagen(
                     fondos.hero_izq,
                     assetBase,
-                    "linear-gradient(180deg, rgba(2,45,51,.45), rgba(2,45,51,.78))",
+                    "linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.82))",
                   ),
                 }}
                 onUrl={(url) => ponerFondoPanel("hero_izq", url)}
               >
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -left-[80px] -top-[80px] h-[320px] w-[320px] rounded-full"
-                  style={{
-                    background: "radial-gradient(circle, rgba(46,139,122,0.3) 0%, transparent 65%)",
-                  }}
-                />
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -bottom-12 -right-10 h-[220px] w-[220px] rounded-full"
-                  style={{
-                    background: "radial-gradient(circle, rgba(77,179,160,0.12) 0%, transparent 65%)",
-                  }}
-                />
-                <div className="relative z-[1] space-y-0">
-                  {textBlock(
-                    "hero.badge",
-                    `🌿 ${H.badge}`,
-                    "mb-8 inline-block w-fit border-[1.5px] border-[#4eb3a0]/70 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#d4f4f0]",
-                    "div",
-                  )}
-                  <h1 className="mb-6 text-[42px] font-extrabold leading-[1.08] tracking-[-1px]">
+                <div className="relative z-[1] max-w-xl">
+                  <h1 className="mb-5 text-[54px] font-extrabold leading-[1.08] tracking-[-1px]">
                     {textBlock("hero.titulo_l1", H.titulo_l1, "block", "span")}
                     <em
                       className="block font-light italic"
-                      style={{ color: pal.acentoClaro, fontWeight: 300 }}
+                      style={{ color: pal.acento, fontWeight: 300 }}
                     >
                       {textBlock("hero.titulo_em", H.titulo_em, "italic", "span")}
                     </em>
-                    {textBlock("hero.titulo_l2", H.titulo_l2, "block", "span")}
+                    {textBlock("hero.titulo_l2", H.titulo_l2, "block whitespace-nowrap", "span")}
                   </h1>
                   {textBlock(
                     "hero.subtitulo",
                     H.subtitulo,
-                    "mb-10 max-w-[380px] text-[15px] font-normal leading-[1.8] text-white/70",
+                    "max-w-[440px] text-[16px] font-normal leading-[1.8] text-[#3a7e87]",
                     "p",
                   )}
-                  <div className="flex flex-wrap gap-4">
+                </div>
+                <div className="relative z-[1] mt-10 inline-flex w-max max-w-full flex-col items-stretch gap-4 [&>*]:min-w-full [&>*]:justify-center">
                     {ctaBtn("hero.cta_principal", H.cta_principal, {
                       icon: "storefront",
                       background: pal.acento,
@@ -960,24 +952,23 @@ export default function ClasicoLayoutCanvas({
                     })}
                     {ctaBtn("hero.cta_secundario", H.cta_secundario, {
                       icon: "whatsapp-logo",
-                      background: "transparent",
-                      borderColor: "rgba(255,255,255,0.35)",
+                      background: pal.acento,
+                      borderColor: pal.acento,
                     })}
-                  </div>
-                  {fotoBloque("hero.foto_izq")}
                 </div>
+                {fotoBloque("hero.foto_izq")}
               </ZonaFondoDrop>
               <ZonaFondoDrop
                 label="imagen derecha"
                 mostrarBoton={false}
                 className="group relative flex min-w-0 flex-col justify-center overflow-hidden"
                 style={{
-                  padding: "56px 48px",
+                  padding: "56px 0 56px 16px",
                   backgroundColor: pal.fondo,
                   ...estiloFondoImagen(
                     fondos.hero_der,
                     assetBase,
-                    "linear-gradient(180deg, rgba(227,252,255,.35), rgba(227,252,255,.72))",
+                    "linear-gradient(180deg, rgba(255,255,255,.4), rgba(255,255,255,.78))",
                   ),
                 }}
                 onUrl={(url) => ponerFondoPanel("hero_der", url)}
@@ -1151,12 +1142,12 @@ export default function ClasicoLayoutCanvas({
             label="imagen"
             className="relative p-8"
             style={{
-              backgroundColor: pal.fondoOscuro,
-              color: "#fff",
+              backgroundColor: pal.fondo,
+              color: pal.tinta,
               ...estiloFondoImagen(
                 fondos.categorias,
                 assetBase,
-                "linear-gradient(180deg, rgba(2,45,51,.5), rgba(2,45,51,.8))",
+                "linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,.84))",
               ),
             }}
             onUrl={(url) =>
@@ -1165,16 +1156,23 @@ export default function ClasicoLayoutCanvas({
               })
             }
           >
-            {sectionHeader("categorias", clasico.categorias, true)}
+            {sectionHeader("categorias", clasico.categorias, false)}
             <div className="grid gap-2 md:grid-cols-3">
               {LINEAS_CATALOGO.map((c) => (
                 <div
                   key={c.id}
                   data-studio-guide={`cat-${c.id}`}
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold"
-                  style={{ borderLeft: `3px solid ${c.color}`, color: c.color }}
+                  className="flex items-center gap-3 rounded-lg border bg-white px-3 py-3 text-sm font-semibold"
+                  style={{ borderColor: "#e6e8ea", borderLeft: `3px solid ${c.color}`, color: pal.tinta }}
                 >
-                  {c.name}
+                  <span
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base"
+                    style={{ background: `${c.color}22`, color: c.color }}
+                  >
+                    ●
+                  </span>
+                  <span className="min-w-0 flex-1">{c.name}</span>
+                  <span className="text-base font-extrabold" style={{ color: c.color }}>→</span>
                 </div>
               ))}
             </div>
@@ -1186,12 +1184,16 @@ export default function ClasicoLayoutCanvas({
           id,
           <div className="p-8" style={{ background: pal.fondo }}>
             {sectionHeader("destacados", clasico.destacados)}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="mb-2 flex justify-end gap-1">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded border text-[#0c6069]" style={{ borderColor: pal.acento }}>‹</span>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded border text-[#0c6069]" style={{ borderColor: pal.acento }}>›</span>
+            </div>
+            <div className="flex gap-3 overflow-hidden">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
                   data-studio-guide={`dest-${i}`}
-                  className="h-28 rounded-xl border bg-white/80"
+                  className="h-28 min-w-[22%] flex-1 rounded-xl border bg-white/80"
                   style={{ borderColor: "rgba(12,96,105,0.15)" }}
                 />
               ))}
@@ -1206,12 +1208,12 @@ export default function ClasicoLayoutCanvas({
             label="imagen"
             className="relative space-y-4 p-10"
             style={{
-              backgroundColor: pal.fondoOscuro,
-              color: "#fff",
+              backgroundColor: pal.fondo,
+              color: pal.tinta,
               ...estiloFondoImagen(
                 fondos.cta,
                 assetBase,
-                "linear-gradient(180deg, rgba(2,45,51,.5), rgba(2,45,51,.82))",
+                "linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,.84))",
               ),
             }}
             onUrl={(url) =>
@@ -1223,12 +1225,12 @@ export default function ClasicoLayoutCanvas({
             {textBlock(
               "cta.eyebrow",
               clasico.cta.eyebrow,
-              "text-[10px] font-semibold uppercase tracking-widest text-[#7DDDD0]",
+              "text-[10px] font-semibold uppercase tracking-widest text-[#0c6069]",
               "div",
             )}
-            <h2 className="flex flex-wrap items-baseline gap-x-2 text-2xl font-extrabold leading-none">
+            <h2 className="flex flex-wrap items-baseline gap-x-2 text-2xl font-extrabold leading-none text-[#022D33]">
               {textBlock("cta.titulo", clasico.cta.titulo, "leading-none", "span")}
-              <em className="font-light italic leading-none text-[#6aacb3]">
+              <em className="font-light italic leading-none text-[#0c6069]">
                 {textBlock("cta.titulo_em", clasico.cta.titulo_em, "leading-none not-italic", "span")}
               </em>
               ?
@@ -1236,7 +1238,7 @@ export default function ClasicoLayoutCanvas({
             {textBlock(
               "cta.texto",
               clasico.cta.texto,
-              "max-w-xl text-sm text-white/65",
+              "max-w-xl text-sm text-[#3a7e87]",
               "p",
             )}
             <div className="flex flex-wrap gap-3">
@@ -1247,7 +1249,8 @@ export default function ClasicoLayoutCanvas({
               })}
               {ctaBtn("cta.boton_contacto", clasico.cta.boton_contacto, {
                 background: "transparent",
-                borderColor: "rgba(255,255,255,0.30)",
+                borderColor: pal.acento,
+                color: pal.acento,
               })}
             </div>
           </ZonaFondoDrop>,

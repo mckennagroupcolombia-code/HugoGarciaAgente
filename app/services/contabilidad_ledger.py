@@ -4,7 +4,7 @@ Libro de ingresos / egresos para Contabilidad.
 Fuentes:
 - Ingresos: Siigo + MeLi + página web (orders.db)
 - Egresos: compras Gmail + cobros MeLi + impuestos + servicios +
-  cuentas de cobro del correo (honorarios/contabilidad)
+  cuentas de cobro del correo (honorarios/contabilidad) + cuotas de créditos adquiridos
 
 Las fuentes remotas (Siigo / MeLi) corren en paralelo con presupuesto de tiempo
 para que el panel no se quede en "Cargando…" indefinidamente.
@@ -250,6 +250,43 @@ def _egresos_impuestos(desde: str, hasta: str) -> list[dict]:
                 monto=monto,
                 referencia=str(p.get("referencia") or p.get("id") or ""),
                 contraparte=str(p.get("entidad") or "DIAN"),
+            )
+        )
+    return out
+
+
+def _egresos_creditos(desde: str, hasta: str) -> list[dict]:
+    try:
+        from app.services.creditos_adquiridos import pagos_en_rango
+
+        pagos = pagos_en_rango(desde, hasta)
+    except Exception:
+        return []
+    out = []
+    for p in pagos:
+        monto = float(p.get("monto") or 0)
+        if monto <= 0:
+            continue
+        nro = p.get("numero_cuota")
+        nombre = p.get("nombre") or "Crédito"
+        concepto = f"Cuota crédito · {nombre}"
+        if nro:
+            concepto = f"{concepto} #{nro}"
+        extra = {
+            "capital": float(p.get("capital") or 0),
+            "intereses": float(p.get("intereses") or 0),
+            "extras": float(p.get("extras") or 0),
+        }
+        out.append(
+            _row(
+                fecha=p.get("fecha") or "",
+                tipo="egreso",
+                fuente="creditos_adquiridos",
+                concepto=concepto,
+                monto=monto,
+                referencia=str(p.get("comprobante") or p.get("id") or ""),
+                contraparte=str(p.get("acreedor") or ""),
+                extra=extra,
             )
         )
     return out
@@ -665,6 +702,7 @@ def armar_libro(
     movimientos.extend(_egresos_compras(desde, hasta))
     movimientos.extend(_egresos_compras_exterior(desde, hasta))
     movimientos.extend(_egresos_impuestos(desde, hasta))
+    movimientos.extend(_egresos_creditos(desde, hasta))
     srv_rows, cobro_rows = _egresos_servicios_y_cobros(desde, hasta)
     movimientos.extend(srv_rows)
     movimientos.extend(cobro_rows)

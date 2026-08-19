@@ -5,6 +5,7 @@ import {
   esFuenteMontserrat,
   pesoFontWeightCss,
   EXPORT_ESCALA_MAX,
+  esLienzoCircular,
   type ElementoTexto,
   type ElementoVisual,
   type PlantillaVisualDoc,
@@ -681,6 +682,16 @@ export async function renderPlantillaToCanvasDom(
           dibujarTextoMedidoEnCanvas(ctx, el, medida, escala);
         }
       }
+    }
+    if (esLienzoCircular(doc)) {
+      const r = (Math.min(w, h) / 2) * escala;
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.beginPath();
+      ctx.arc((w * escala) / 2, (h * escala) / 2, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     }
     return canvas;
   } catch (err) {

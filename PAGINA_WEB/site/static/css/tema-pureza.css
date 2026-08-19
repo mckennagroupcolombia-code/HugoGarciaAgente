@@ -75,7 +75,6 @@ body.tema-pureza .header-search input {
   border: 1px solid var(--border);
   border-radius: var(--studio-radio-btn, 999px);
 }
-body.tema-pureza .btn-wa-header { border-radius: var(--studio-radio-btn, 999px); }
 
 /* ── Botones ─────────────────────────────────────────────── */
 body.tema-pureza .btn { border-radius: var(--studio-radio-btn, 999px); }

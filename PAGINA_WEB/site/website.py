@@ -42,6 +42,9 @@ from app.tools.web_pedidos import (
     check_and_finalize_processing_invoices,
 )
 from app.services.siigo import listar_productos_combo_siigo, buscar_producto_siigo_por_sku
+from app.services.precios_canales import WEB_DESCUENTO_VS_MELI as MELI_COMMISSION
+from app.services.documentos_web import buscar_documento_completo_web
+from app.services.ficha_tecnica import ruta_archivo_biblioteca_segura
 
 from flask import (
     Flask,
@@ -74,13 +77,9 @@ FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 10      # v10 = agrupa título/sinónimo + dedupe presentación (C- vs sin C-)
+CATALOG_CACHE_VERSION = 11      # v11 = precio web = MeLi − 10% (antes −16.5% comisión)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
-
-# Comisión real de MercadoLibre Colombia (~16.5%)
-# Precio público = MeLi = Siigo lista. Web = referencia × (1 - comisión); envío en apartado checkout.
-MELI_COMMISSION = 0.165
 
 SIIGO_PHOTO_REQUIRED_SKUS = {
     "C-ACITRA10G",
@@ -272,12 +271,12 @@ CATEGORY_MAP = [
 # Seis líneas comerciales oficiales (acento en textos cortos y líneas).
 # Industria: gris (sin hex de marca) → slate #5C6570, legible sobre crema y oscuro.
 LINEAS_OFICIALES: tuple[tuple[str, str, str], ...] = (
-    ("cosmetica", "Cosmética", "#990099"),
     ("aceites-ceras-grasas", "Aceites, ceras y grasas", "#FFA500"),
+    ("agro", "Agro", "#359441"),
     ("alimentario", "Alimentario", "#1F91DC"),
+    ("cosmetica", "Cosmética", "#990099"),
     ("industria", "Industria", "#5C6570"),
     ("laboratorio", "Laboratorio", "#10173C"),
-    ("agro", "Agro", "#359441"),
 )
 CAT_COLOR_DEFAULT = "#5C6570"  # Industria / fallback
 
@@ -2308,8 +2307,8 @@ def get_catalog(force=False) -> list:
                 _catalog_cache.update({"data": raw, "ts": now})
                 log.info(f"Catálogo cargado desde cache ({int(age/60)} min)")
                 return raw
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("No se pudo leer cache de catálogo: %s", e)
 
     try:
         data, combo_flat = leer_catalogo()
@@ -2787,6 +2786,15 @@ def imagen_producto_catalogo(filename: str):
     return send_from_directory(ROOT / "IMAGENES_PRODUCTOS_CATALOGO", filename)
 
 
+@app.route("/documentos-tecnicos/<path:filename>")
+def documento_tecnico_pdf(filename: str):
+    """PDF completo (FT+COA+SDS) publicado desde la biblioteca local."""
+    path = ruta_archivo_biblioteca_segura(filename)
+    if not path:
+        abort(404)
+    return send_from_directory(path.parent, path.name, as_attachment=False, mimetype="application/pdf")
+
+
 @app.route("/")
 def index():
     catalog   = get_catalog()
@@ -2794,14 +2802,14 @@ def index():
     featured  = []
     for s in catalog:
         featured.extend(s["products"][:2])
-        if len(featured) >= 8:
+        if len(featured) >= 12:
             break
     plantilla = "index_pureza.html" if tema_web_activo() == "pureza" else "index.html"
     return render_template(plantilla,
         catalog=catalog,
         cats=cats,
         lineas=lineas_desde_catalogo(catalog),
-        featured=featured[:8])
+        featured=featured[:12])
 
 
 @app.route("/tienda")
@@ -2937,11 +2945,23 @@ def producto(slug):
         if x.get("slug") != my_slug and x.get("family_slug", x.get("slug")) != my_family
     ][:4]
     fotos = _fotos_de_producto(p)
+    sel = p.get("selected_combo") or {}
+    nombres = []
+    for n in (sel.get("name"), p.get("name"), p.get("nombre_original")):
+        if n and n not in nombres:
+            nombres.append(n)
+    ref = p.get("ref") or sel.get("ref") or ""
+    doc_completo = None
+    for n in nombres:
+        doc_completo = buscar_documento_completo_web(n, ref)
+        if doc_completo:
+            break
     return render_template("producto.html",
         p=p,
         fotos=fotos,
         relacionados=relacionados,
-        wa=wa_link(p))
+        wa=wa_link(p),
+        doc_completo=doc_completo)
 
 
 @app.route("/nosotros")
@@ -4145,7 +4165,22 @@ _maintenance_thread.start()
 
 if __name__ == "__main__":
     init_db()
-    log.info("Cargando catálogo inicial...")
-    get_catalog()
-    log.info("Website McKenna Group iniciando en puerto 8082")
-    app.run(host="0.0.0.0", port=8083, debug=False)
+
+    def _calentar_catalogo() -> None:
+        try:
+            log.info("Cargando catálogo inicial...")
+            get_catalog()
+        except Exception as e:
+            log.warning("Catálogo inicial: %s", e)
+        try:
+            from app.services.documentos_web import listar_documentos_completos_web
+            n = len(listar_documentos_completos_web())
+            log.info("Documentos técnicos de biblioteca listos: %s", n)
+        except Exception as e:
+            log.warning("Índice documentos web: %s", e)
+
+    threading.Thread(target=_calentar_catalogo, daemon=True, name="catalog-warm").start()
+    log.info("Website McKenna Group iniciando en puerto 8083")
+    # threaded=True: el servidor de desarrollo atiende varias peticiones a la vez.
+    # Si el catálogo o las fichas tardan, Cloudflare no debe ver el origen caído.
+    app.run(host="0.0.0.0", port=8083, debug=False, threaded=True)

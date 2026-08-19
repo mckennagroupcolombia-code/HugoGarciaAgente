@@ -11,6 +11,7 @@ Skills son contexto modular cargado bajo demanda. Primero esta matriz; si un mod
 | Agregar tool Claude | `core-tools` | `docs/agentic/modules/core-tools.md` | tool importado + registrado + auditoria |
 | Cambiar stock/facturas | `sync-stock` | `docs/agentic/modules/sync-stock.md` | mocks de MeLi/web/Siigo |
 | Cambiar panel React | `desktop-panel` | `docs/agentic/modules/desktop-panel.md` | `npm run qa:full` |
+| Competencia precios MeLi | `competencia-precios` | `docs/agentic/modules/competencia-precios.md` | tests puros + smoke API |
 | Cambiar systemd/ops | `ops-systemd` | `docs/agentic/modules/ops-systemd.md` | diagnostico en host |
 | Agregar tests/CI | `backend-qa` | esta matriz + `tests/conftest.py` | `pytest` + workflow |
 | Revisar diff/PR | `guardian-review` | `docs/agentic/modules/guardian-review.md` | modo reporte, no bloqueante al inicio |
@@ -25,6 +26,7 @@ Skills son contexto modular cargado bajo demanda. Primero esta matriz; si un mod
 | `core-tools` | Claude, tool-use, herramienta nueva, prompt | `explore` + `review` | `app/core.py` |
 | `sync-stock` | stock, factura, Siigo, MeLi sync, web sync | `explore` + `verify` | `app/sync.py`, `app/services/meli.py` |
 | `desktop-panel` | React, panel, `/app`, hook, Vite | `explore` + `verify` | `desktop/src/api/client.ts`, `app/routes.py` |
+| `competencia-precios` | competencia, precios MeLi, más vendidos, títulos similares | `explore` | `app/tools/analisis_competencia_precios.py` |
 | `ops-systemd` | systemd, nohup, puerto, servicio, cloudflared | `explore` | `scripts/systemd/*`, `start.sh` |
 | `backend-qa` | pytest, CI, smoke, auditoria | `verify` | `.github/workflows/*`, `tests/*` |
 | `guardian-review` | review, PR, commit, pre-commit, gga | `review` | hooks git, `.github/workflows/*` |

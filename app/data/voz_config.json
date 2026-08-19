@@ -5,8 +5,8 @@
   "clone_enabled": false,
   "ref_text": "",
   "ref_audio_path": "",
-  "wake_word": "hugo",
+  "wake_word": "victor",
   "listen_memory": true,
-  "voicebox_profile": "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
+  "voicebox_profile": "2ebe1978-e7cc-43e9-a6a6-16a8185cef08",
   "voicebox_engine": "qwen3"
 }

@@ -765,13 +765,13 @@ def generar_respuesta_con_ficha(
         bloques_extra = f"\n{bloques_extra}\n"
 
     regla_presentaciones = (
-        "7. Si el cliente pregunta por otros tamaños/presentaciones, precios, o cómo "
+        "8. Si el cliente pregunta por otros tamaños/presentaciones, precios, o cómo "
         "comprar, ofrécele también las OTRAS PRESENTACIONES listadas arriba con su "
         "enlace (son publicaciones nuestras del mismo producto). Usa SOLO esa lista "
         "para precios y enlaces de otras presentaciones — no inventes tamaños que "
         "no estén ahí."
         if otras_presentaciones.strip()
-        else "7. Si el cliente pregunta por otros tamaños o presentaciones y no tienes "
+        else "8. Si el cliente pregunta por otros tamaños o presentaciones y no tienes "
         "una lista de otras publicaciones, invítalo a revisar nuestras demás "
         "publicaciones en Mercado Libre, sin inventar tamaños ni precios."
     )
@@ -797,6 +797,7 @@ REGLAS:
 4. MÁXIMO 2000 caracteres (límite de Mercado Libre).
 5. NO menciones que tienes una "ficha técnica" — habla naturalmente.
 6. NUNCA menciones INVIMA, registro sanitario, resoluciones ni normativa legal, aunque el cliente pregunte por eso — limítate a describir el producto como materia prima para formulación.
+7. Si el cliente te compartió datos de contacto o de envío (teléfono, celular, correo, dirección, cédula, redes sociales, etc.), NUNCA los repitas ni transcribas en tu respuesta, aunque él los haya escrito primero. Agradece el dato de forma genérica ("gracias por la información, ya quedó registrada") sin citar el número/dirección/dato literal — Mercado Libre puede interpretar que el vendedor repite datos de contacto como intercambio de información fuera de la plataforma, incluso si el comprador los envió primero.
 {regla_presentaciones}
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""

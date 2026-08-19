@@ -9,6 +9,7 @@ export interface Metricas {
   mensajes_posventa?: number;
   pagos_confirmados?: number;
   token_meli?: boolean;
+  token_gmail?: boolean;
   web_chat_interacciones_hoy?: number;
   web_chat_sin_revisar?: number;
   web_chat_activas_24h?: number;

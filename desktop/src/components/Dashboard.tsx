@@ -5,6 +5,7 @@ import { usePanelMetricas, usePanelMiResumen } from "../hooks/usePanelMetricas";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { esAdminPanel } from "../lib/adminAccess";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
+import DolarHoraGadget from "./DolarHoraGadget";
 import type { IllustrationTone } from "../icons/IllustrationIcon";
 import type { UiIconName } from "../icons";
 
@@ -85,6 +86,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <DolarHoraGadget />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <IllustrationIcon name="chartBar" size={40} tone="sky" className="mck-illus-icon--hoverable hidden sm:block" />
@@ -157,6 +160,7 @@ export default function Dashboard() {
             <ServiceBadge name="Google Sheets" ok={status.servicios.google} />
             <ServiceBadge name="Siigo ERP" ok={status.servicios.siigo} />
             <ServiceBadge name="Token MeLi" ok={m?.token_meli ?? false} />
+            <ServiceBadge name="Token Gmail" ok={m?.token_gmail ?? false} />
           </div>
         </section>
       )}

@@ -772,7 +772,7 @@ function payloadDesdeFormularioEtiqueta(
 
 const ETIQUETAS_LISTA = [
   "30 mL", "5 mL", "125 g", "250 g", "1 Lt",
-  "100 g", "Lactato", "Circular", "Circular 70", "5 g", "54mm",
+  "100 g", "Lactato", "Circular", "Circular 50", "Circle 50", "CIRCLE", "Circular 70", "5 g", "54mm",
 ];
 
 /** Ancho × alto mm (misma tabla que Flask _ETIQUETAS). */
@@ -780,7 +780,7 @@ const ETIQUETAS_MM: Record<string, [number, number]> = {
   "30 mL": [102, 38], "5 mL": [66, 22], "125 g": [70, 70],
   "250 g": [76, 66], "1 Lt": [108, 76],
   "100 g": [69, 51], Lactato: [38, 140], Circular: [55, 55],
-  "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
+  "Circular 50": [50, 50], "Circle 50": [50, 50], CIRCLE: [50, 50], "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
 };
 
 const TAMANO_TEXTO_PT_MIN = 3;
@@ -1909,10 +1909,18 @@ function expParaEtiqueta(val: string | undefined): string | undefined {
 }
 
 const FORMAS = [
-  { label: "Troquelada — gap", value: "Diecut_Gap" },
-  { label: "Troquelada — marca negra", value: "Diecut_Blackmark" },
-  { label: "Continua — sin detección", value: "Contlabel_no_detection" },
+  { label: "Gap", value: "Diecut_Gap" },
+  { label: "Marca negra", value: "Diecut_Blackmark" },
+  { label: "Continua", value: "Contlabel_no_detection" },
 ];
+
+function esFormatoCircularImpresion(formato: { nombre: string; anchoMm: number; altoMm: number }): boolean {
+  const n = (formato.nombre || "").trim().toLowerCase();
+  if (n.includes("circular") || n.includes("circle")) return true;
+  const w = formato.anchoMm;
+  const h = formato.altoMm;
+  return w > 0 && h > 0 && Math.abs(w - h) <= 1 && w >= 48 && w <= 57;
+}
 
 const CALIDADES = [
   { label: "Borrador (máx. velocidad)", value: "MaxSpeed" },
@@ -5416,18 +5424,24 @@ function TabImprimir({
     const tipo = (item.tipo_etiqueta || "").trim();
     if (tipo) {
       const [anchoMm, altoMm] = mmParaTipoEtiqueta(tipo, TIPOS_ETIQUETA_DEFAULT);
-      setFormato({
+      const next = {
         nombre: tipo,
         anchoMm: item.ancho_mm ?? anchoMm,
         altoMm: item.alto_mm ?? altoMm,
-      });
+      };
+      setFormato(next);
       setRotacion(rotacionDefaultEtiqueta(tipo));
+      if (esFormatoCircularImpresion(next)) setForma("Diecut_Gap");
     } else if (item.ancho_mm != null && item.alto_mm != null && item.ancho_mm > 0 && item.alto_mm > 0) {
-      setFormato((f) => ({
-        nombre: f.nombre,
-        anchoMm: item.ancho_mm!,
-        altoMm: item.alto_mm!,
-      }));
+      setFormato((f) => {
+        const next = {
+          nombre: f.nombre,
+          anchoMm: item.ancho_mm!,
+          altoMm: item.alto_mm!,
+        };
+        if (esFormatoCircularImpresion(next)) setForma("Diecut_Gap");
+        return next;
+      });
     }
     setVistaImpresion("documento");
     setIncluirLoteExp(Boolean(loteDelMatch || vencDelMatch));
@@ -5472,6 +5486,7 @@ function TabImprimir({
     ]);
     setErrorImpresion(null);
 
+    const formaImpresion = esFormatoCircularImpresion(formato) ? "Diecut_Gap" : forma;
     if (pngImpresion) {
       void (async () => {
         setPreparandoPngImpresion(true);
@@ -5494,9 +5509,9 @@ function TabImprimir({
 
           imprimirMut.mutate({
             producto: formato.nombre,
-            ancho_mm: formato.anchoMm,
-            alto_mm: formato.altoMm,
-            forma,
+            ancho_mm: Number(res.ancho_mm) > 0 ? Number(res.ancho_mm) : formato.anchoMm,
+            alto_mm: Number(res.alto_mm) > 0 ? Number(res.alto_mm) : formato.altoMm,
+            forma: formaImpresion,
             calidad,
             rotacion,
             cantidad,
@@ -5526,7 +5541,7 @@ function TabImprimir({
       producto: formato.nombre,
       ancho_mm: formato.anchoMm,
       alto_mm: formato.altoMm,
-      forma,
+      forma: formaImpresion,
       calidad,
       rotacion,
       cantidad,

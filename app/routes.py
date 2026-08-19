@@ -3088,6 +3088,12 @@ def register_routes(app):
             except Exception:
                 data["token_meli"] = False
             try:
+                from app.tools.sincronizar_facturas_de_compra_siigo import estado_token_gmail
+
+                data["token_gmail"] = bool(estado_token_gmail().get("valido"))
+            except Exception:
+                data["token_gmail"] = False
+            try:
                 from app.web_chat_activity import get_summary as _get_web_chat_summary
 
                 web_chat_summary = _get_web_chat_summary()
@@ -3605,6 +3611,9 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    # Duplicar bajo /app/api/…: el catch-all GET /app/<path> sirve index.html
+    # (HTML). El cliente del panel reintenta /app/api si /api no trae JSON.
+    @app.route("/app/api/salud-negocio/resumen")
     @app.route("/api/salud-negocio/resumen")
     def api_salud_negocio_resumen():
         """P&L semanal/mensual (ingresos MeLi+web − costo producto − comisiones MeLi − ads − admin) + score. Ver app/services/salud_negocio.py."""
@@ -7758,6 +7767,129 @@ def register_routes(app):
             return jsonify({"ok": False, "error": "No encontrado"}), 404
         return jsonify({"ok": True})
 
+    # ── Créditos adquiridos (préstamos / leasing) ─────────────────────────────
+
+    @app.route("/api/contabilidad/creditos", methods=["GET"])
+    @app.route("/app/api/contabilidad/creditos", methods=["GET"])
+    def api_creditos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.creditos_adquiridos import listar_creditos, resumen
+
+        return jsonify({"creditos": listar_creditos(), "resumen": resumen()})
+
+    @app.route("/api/contabilidad/creditos/simular", methods=["POST"])
+    @app.route("/app/api/contabilidad/creditos/simular", methods=["POST"])
+    def api_creditos_simular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        from app.services.creditos_adquiridos import simular
+
+        return jsonify(simular(data))
+
+    @app.route("/api/contabilidad/creditos", methods=["POST"])
+    @app.route("/app/api/contabilidad/creditos", methods=["POST"])
+    def api_creditos_create():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.creditos_adquiridos import crear_credito
+
+            credito = crear_credito(data)
+            return jsonify({"ok": True, "credito": credito})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/contabilidad/creditos/<int:credito_id>", methods=["GET"])
+    @app.route("/app/api/contabilidad/creditos/<int:credito_id>", methods=["GET"])
+    def api_creditos_get(credito_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.creditos_adquiridos import obtener_credito
+
+        credito = obtener_credito(credito_id, con_tabla=True)
+        if not credito:
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        return jsonify({"ok": True, "credito": credito})
+
+    @app.route("/api/contabilidad/creditos/<int:credito_id>", methods=["PATCH", "POST"])
+    @app.route("/app/api/contabilidad/creditos/<int:credito_id>", methods=["PATCH", "POST"])
+    def api_creditos_update(credito_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.creditos_adquiridos import actualizar_credito
+
+            credito = actualizar_credito(credito_id, data)
+            return jsonify({"ok": True, "credito": credito})
+        except KeyError:
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/contabilidad/creditos/<int:credito_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/creditos/<int:credito_id>", methods=["DELETE"])
+    def api_creditos_delete(credito_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.creditos_adquiridos import eliminar_credito
+
+        ok = eliminar_credito(credito_id)
+        if not ok:
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/api/contabilidad/creditos/<int:credito_id>/pagos", methods=["POST"])
+    @app.route("/app/api/contabilidad/creditos/<int:credito_id>/pagos", methods=["POST"])
+    def api_creditos_pago_create(credito_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.creditos_adquiridos import registrar_pago
+
+            pago = registrar_pago(credito_id, data)
+            return jsonify({"ok": True, "pago": pago})
+        except KeyError:
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/contabilidad/creditos/pagos/<int:pago_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/creditos/pagos/<int:pago_id>", methods=["DELETE"])
+    def api_creditos_pago_delete(pago_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.creditos_adquiridos import eliminar_pago as eliminar_pago_credito
+
+        ok = eliminar_pago_credito(pago_id)
+        if not ok:
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/api/inicio/dolar-hora", methods=["GET"])
+    @app.route("/app/api/inicio/dolar-hora", methods=["GET"])
+    def api_inicio_dolar_hora():
+        """Precio USD→COP horario (mercado) + TRM BanRep para el gadget de Inicio."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.trm import obtener_dolar_hora
+
+        force = (request.args.get("force") or "").strip().lower() in ("1", "true", "si", "sí")
+        data = obtener_dolar_hora(force=force)
+        if data.get("error"):
+            return jsonify(data), 502
+        return jsonify(data)
+
     @app.route("/api/contabilidad/ingresos-egresos", methods=["GET"])
     @app.route("/app/api/contabilidad/ingresos-egresos", methods=["GET"])
     def api_contabilidad_ingresos_egresos():
@@ -9329,46 +9461,53 @@ def register_routes(app):
         voz_lang = voicebox_language_code(body.get("language") or cfg.get("language"))
 
         # ── Motor 1: Voicebox (Qwen3-TTS — clonación de voz Hugo) ───────────
-        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        from app.services.tts_voicebox import (
+            voicebox_disponible, sintetizar_voicebox_interactivo, VoiceboxOcupado,
+        )
         import time as _time
         if engine == "voicebox":
-            # Si el servicio no responde ahora, esperar hasta 30 s antes de rendirse.
-            # Voicebox puede estar cargando el modelo en el primer arranque del día.
+            # Si el servicio no responde ahora, esperar hasta 8 s antes de rendirse.
+            # Voicebox puede estar cargando el modelo en el primer arranque del día
+            # (la carga del modelo en sí la cubre sintetizar_voicebox_interactivo,
+            # que reporta status "loading_model" mientras hace polling — este
+            # bloque solo cubre que el proceso FastAPI todavía no esté arriba).
             if not voicebox_disponible():
-                _esperas = [3, 5, 8, 14]   # segundos entre reintentos (total ≤ 30 s)
-                for _w in _esperas:
+                for _w in (3, 5):   # total ≤ 8 s
                     _time.sleep(_w)
                     if voicebox_disponible():
                         break
                 else:
-                    # Agotados los reintentos: solo falla si el motor fue forzado
                     if motor_forzado == "voicebox":
                         return jsonify({"error": "Voicebox no disponible tras reintentos"}), 503
             if voicebox_disponible():
-                _ultimo_exc: Exception | None = None
-                for _intento in range(3):  # hasta 3 intentos de síntesis
-                    try:
-                        audio = sintetizar_voicebox(
-                            texto,
-                            profile_id=voicebox_profile,
-                            engine=voicebox_engine,
-                            language=voz_lang,
-                        )
-                        return _R(
-                            audio,
-                            content_type="audio/wav",
-                            headers={
-                                "X-TTS-Motor": "voicebox-clone",
-                                "X-TTS-Profile": voicebox_profile,
-                            },
-                        )
-                    except Exception as exc:
-                        _ultimo_exc = exc
-                        print(f"[Voz] Voicebox intento {_intento+1}/3 falló ({voicebox_profile}): {exc}")
-                        if _intento < 2:
-                            _time.sleep(3)
-                if motor_forzado == "voicebox":
-                    return jsonify({"error": f"Voicebox falló tras 3 intentos: {_ultimo_exc}"}), 500
+                # Un solo intento, serializado y con tope corto: Cloudflare (bot.mckennagroup.co)
+                # corta la conexión a los 100 s (HTTP 524). Reintentar aquí solo apilaría
+                # generaciones concurrentes sobre la misma GPU y las trabaría entre sí
+                # (incidente 2026-08-18: dos jobs concurrentes quedaron colgados sin terminar).
+                try:
+                    audio = sintetizar_voicebox_interactivo(
+                        texto,
+                        profile_id=voicebox_profile,
+                        engine=voicebox_engine,
+                        language=voz_lang,
+                        max_espera=70.0,
+                    )
+                    return _R(
+                        audio,
+                        content_type="audio/wav",
+                        headers={
+                            "X-TTS-Motor": "voicebox-clone",
+                            "X-TTS-Profile": voicebox_profile,
+                        },
+                    )
+                except VoiceboxOcupado as exc:
+                    print(f"[Voz] Voicebox ocupado ({voicebox_profile}): {exc}")
+                    if motor_forzado == "voicebox":
+                        return jsonify({"error": str(exc)}), 429
+                except Exception as exc:
+                    print(f"[Voz] Voicebox falló ({voicebox_profile}): {exc}")
+                    if motor_forzado == "voicebox":
+                        return jsonify({"error": f"Voicebox falló: {exc}"}), 500
 
         # ── Motor 2: Qwen3 TTS local (GPU) ────────────────────────────────
         if engine in ("qwen3", "auto") and qwen3_disponible():
@@ -9588,7 +9727,7 @@ def register_routes(app):
         audio_bytes = None
         mime_type   = "audio/wav"
 
-        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox_interactivo
         from app.services.tts_qwen3    import qwen3_disponible, sintetizar_qwen3
 
         if engine == "voicebox" and voicebox_disponible():
@@ -9596,7 +9735,9 @@ def register_routes(app):
                 from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
                 profile  = resolver_voicebox_profile({}, cfg)
                 voz_lang = voicebox_language_code(cfg.get("language"))
-                audio_bytes = sintetizar_voicebox(texto, profile_id=profile, language=voz_lang)
+                audio_bytes = sintetizar_voicebox_interactivo(
+                    texto, profile_id=profile, language=voz_lang, max_espera=70.0,
+                )
             except Exception as exc:
                 print(f"[voz-supervisor] Voicebox falló: {exc}")
 
@@ -10221,7 +10362,7 @@ def register_routes(app):
         audio_bytes = None
         mime_type   = "audio/wav"
 
-        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox_interactivo
         from app.services.tts_qwen3    import qwen3_disponible, sintetizar_qwen3
 
         if engine == "voicebox" and voicebox_disponible():
@@ -10229,7 +10370,9 @@ def register_routes(app):
                 from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
                 profile  = resolver_voicebox_profile({}, cfg)
                 voz_lang = voicebox_language_code(cfg.get("language"))
-                audio_bytes = sintetizar_voicebox(texto, profile_id=profile, language=voz_lang)
+                audio_bytes = sintetizar_voicebox_interactivo(
+                    texto, profile_id=profile, language=voz_lang, max_espera=70.0,
+                )
             except Exception as exc:
                 print(f"[sup-voz] Voicebox: {exc}")
 
@@ -11244,6 +11387,7 @@ def register_routes(app):
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
         "250 g": (76, 66), "1 Lt": (108, 76),
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
+        "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (50, 50),
         "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
     }
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
@@ -11291,17 +11435,24 @@ def register_routes(app):
         return _default_etiquetas_tipos() if fallback_default else []
 
     def _load_etiquetas_tipos() -> list:
+        loaded: list = []
         try:
             with open(_ETIQUETAS_TIPOS_PATH, encoding="utf-8") as f:
                 data = json.load(f)
             tipos = data.get("tipos") if isinstance(data, dict) else None
             if isinstance(tipos, list) and tipos:
-                return _normalizar_tipos_etiquetas(tipos)
+                loaded = _normalizar_tipos_etiquetas(tipos)
         except FileNotFoundError:
             pass
         except Exception:
             pass
-        return _default_etiquetas_tipos()
+        if not loaded:
+            return _default_etiquetas_tipos()
+        # Formatos nuevos (p. ej. Circular 50) aunque el JSON aún no los tenga.
+        by_name = {t["nombre"]: t for t in loaded}
+        for t in _default_etiquetas_tipos():
+            by_name.setdefault(t["nombre"], t)
+        return sorted(by_name.values(), key=lambda t: str(t["nombre"]).lower())
 
     def _save_etiquetas_tipos(tipos: list) -> tuple[list | None, str | None]:
         if not isinstance(tipos, list) or not tipos:
@@ -14978,7 +15129,16 @@ def register_routes(app):
                     "error": f"Formato desconocido: {producto}. Indica ancho_mm y alto_mm.",
                 }), 400
 
+        from app.tools.etiquetas_studio import (
+            dims_pagina_impresion_mm,
+            es_tipo_etiqueta_circular,
+            page_size_cups_mm,
+        )
+
         ancho, alto = dims
+        snapped = dims_pagina_impresion_mm(producto, ancho, alto)
+        if snapped:
+            ancho, alto = snapped
         max_ancho, max_alto = _ETIQUETAS_MAX_MM
         if ancho > max_ancho or alto > max_alto:
             return jsonify({
@@ -14996,6 +15156,17 @@ def register_routes(app):
         m_left = round(offset_h * 2.83465, 2)
 
         log_lines = []
+        if snapped and (float(dims[0]) != float(ancho) or float(dims[1]) != float(alto)):
+            log_lines.append(
+                f"Troquel circular: {dims[0]:g}×{dims[1]:g} mm → {ancho:g}×{alto:g} mm "
+                "(PageSize = diámetro, sin gap)"
+            )
+        if es_tipo_etiqueta_circular(producto, ancho, alto) and forma_val == "Diecut_Blackmark":
+            forma_val = "Diecut_Gap"
+            log_lines.append(
+                "Circular: sensor Marca negra → Gap (el rollo 2\" no tiene marca; "
+                "Blackmark avanza etiquetas en blanco)"
+            )
         tmp_pdf = None
         elioud_suspendido = False
         try:
@@ -15084,7 +15255,7 @@ def register_routes(app):
             cmd = [
                 "lp", "-d", _PRINTER_NAME,
                 "-n", str(cantidad),
-                "-o", f"PageSize=Custom.{ancho}x{alto}mm",
+                "-o", f"PageSize={page_size_cups_mm(ancho, alto)}",
                 "-o", f"MediaForm={forma_val}",
                 "-o", f"PrintQuality={calidad_val}",
                 "-o", f"page-top={m_top}",
@@ -15867,6 +16038,82 @@ def register_routes(app):
             "urls": urls,
             "archivos": resultados,
         })
+
+    # ── Competencia de precios MeLi (más vendidos vs títulos similares) ─────
+
+    @app.route("/app/api/meli/competencia-precios", methods=["GET"])
+    @app.route("/api/meli/competencia-precios", methods=["GET"])
+    def api_meli_competencia_precios_ultimo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import obtener_ultimo_analisis_competencia
+
+        return jsonify(obtener_ultimo_analisis_competencia())
+
+    @app.route("/app/api/meli/competencia-precios/analizar", methods=["POST"])
+    @app.route("/api/meli/competencia-precios/analizar", methods=["POST"])
+    def api_meli_competencia_precios_analizar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import ejecutar_analisis_competencia
+
+        body = request.get_json(silent=True) or {}
+        try:
+            top_n = int(body.get("top_n") or 12)
+        except (TypeError, ValueError):
+            top_n = 12
+        try:
+            dias = int(body.get("dias") or 30)
+        except (TypeError, ValueError):
+            dias = 30
+        consulta = (body.get("consulta") or "").strip()
+        enviar_wa = bool(body.get("whatsapp") or body.get("enviar_whatsapp"))
+        try:
+            return jsonify(ejecutar_analisis_competencia(
+                top_n=top_n,
+                dias=dias,
+                consulta=consulta,
+                usar_cache=False,
+                enviar_whatsapp=enviar_wa,
+            ))
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "productos": []}), 500
+
+    @app.route("/app/api/meli/competencia-precios/observacion", methods=["POST"])
+    @app.route("/api/meli/competencia-precios/observacion", methods=["POST"])
+    def api_meli_competencia_precios_observacion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import registrar_observacion_manual
+
+        body = request.get_json(silent=True) or {}
+        try:
+            out = registrar_observacion_manual(
+                item_id=body.get("item_id") or "",
+                precio=body.get("precio"),
+                vendedor=body.get("vendedor") or "",
+                titulo=body.get("titulo") or "",
+                permalink=body.get("permalink") or "",
+                notas=body.get("notas") or "",
+            )
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify(out), (200 if out.get("ok") else 400)
+
+    @app.route("/app/api/meli/competencia-precios/observacion", methods=["DELETE"])
+    @app.route("/api/meli/competencia-precios/observacion", methods=["DELETE"])
+    def api_meli_competencia_precios_observacion_del():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import eliminar_observacion_manual
+
+        body = request.get_json(silent=True) or {}
+        obs_id = (body.get("id") or request.args.get("id") or "").strip()
+        try:
+            out = eliminar_observacion_manual(obs_id)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify(out), (200 if out.get("ok") else 400)
 
     # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
 
@@ -17289,9 +17536,17 @@ REGLAS:
                 modo = im.mode
                 tiene_alpha = "A" in modo or (modo == "P" and "transparency" in (im.info or {}))
 
+            from app.tools.etiquetas_studio import caja_imagen_pdf_etiqueta, dims_pagina_impresion_mm
+
             ancho_mm = meta.get("ancho_mm")
             alto_mm = meta.get("alto_mm")
+            tipo_mm = meta.get("tipo_etiqueta")
             if ancho_mm and alto_mm and float(ancho_mm) > 0 and float(alto_mm) > 0:
+                snapped_pdf = dims_pagina_impresion_mm(tipo_mm, ancho_mm, alto_mm)
+                if snapped_pdf:
+                    ancho_mm, alto_mm = snapped_pdf
+                    meta["ancho_mm"] = round(float(ancho_mm), 2)
+                    meta["alto_mm"] = round(float(alto_mm), 2)
                 page_w = float(ancho_mm) * float(_rl_mm)
                 page_h = float(alto_mm) * float(_rl_mm)
             elif w_px > 0 and h_px > 0:
@@ -17306,13 +17561,21 @@ REGLAS:
             if tiene_alpha:
                 c.setFillColorRGB(1, 1, 1)
                 c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+            img_x, img_y, img_w, img_h = caja_imagen_pdf_etiqueta(
+                page_w,
+                page_h,
+                meta.get("tipo_etiqueta"),
+                meta.get("ancho_mm"),
+                meta.get("alto_mm"),
+            )
             c.drawImage(
                 _rl_ImageReader(ruta_png),
-                0,
-                0,
-                width=page_w,
-                height=page_h,
-                preserveAspectRatio=False,
+                img_x,
+                img_y,
+                width=img_w,
+                height=img_h,
+                preserveAspectRatio=True,
+                anchor="c",
                 mask="auto",
             )
             c.save()
@@ -18862,6 +19125,10 @@ REGLAS:
     @app.route("/app", methods=["GET", "HEAD"], strict_slashes=False)
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])
     def serve_spa(path=""):
+        # /app/api/* que no tiene ruta Flask propia no debe caer al index.html:
+        # el panel espera JSON y muestra "el servidor devolvió HTML".
+        if path == "api" or path.startswith("api/"):
+            return jsonify({"error": "Ruta no encontrada"}), 404
         if not os.path.isdir(_SPA_DIR):
             return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404
         resp = send_from_directory(_SPA_DIR, "index.html")

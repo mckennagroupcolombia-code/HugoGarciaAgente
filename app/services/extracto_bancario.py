@@ -224,7 +224,7 @@ def _find_col(headers: list[str], aliases: tuple[str, ...]) -> int | None:
     return None
 
 
-def _parse_fecha(val: Any) -> str:
+def _parse_fecha(val: Any, periodo_hasta: tuple[int, int] | None = None) -> str:
     if val is None:
         return ""
     if isinstance(val, datetime):
@@ -239,6 +239,18 @@ def _parse_fecha(val: Any) -> str:
             d = base + timedelta(days=float(s))
             return d.strftime("%Y-%m-%d")
         except Exception:
+            pass
+    # D/M o D/MM sin año (p. ej. extracto Bancolombia "1/07"): usa el año del
+    # bloque DESDE/HASTA del encabezado general del extracto.
+    m_corto = re.fullmatch(r"(\d{1,2})[/\-.](\d{1,2})", s)
+    if m_corto and periodo_hasta:
+        try:
+            dia, mes = int(m_corto.group(1)), int(m_corto.group(2))
+            anio_hasta, mes_hasta = periodo_hasta
+            anio = anio_hasta - 1 if mes > mes_hasta else anio_hasta
+            if 1 <= dia <= 31 and 1 <= mes <= 12:
+                return f"{anio:04d}-{mes:02d}-{dia:02d}"
+        except ValueError:
             pass
     # 01 Ago 2026 / 1-AGO-26 / 01/agosto/2026
     m_mes = re.match(
@@ -341,9 +353,27 @@ def _infer_tipo_from_texto(tipo_raw: str, monto: float) -> str:
     return "debito" if monto < 0 else "credito"
 
 
+def _extraer_periodo_hasta(matrix: list[list[Any]]) -> tuple[int, int] | None:
+    """Busca el bloque DESDE/HASTA del encabezado general (formato Bancolombia)
+    y devuelve (año, mes) de HASTA — usado para completar fechas de movimiento
+    que vienen sin año (p. ej. "1/07")."""
+    for i, row in enumerate(matrix[:20]):
+        norms = [_norm_header(str(c or "")) for c in row]
+        if "desde" in norms and "hasta" in norms:
+            idx_hasta = norms.index("hasta")
+            if i + 1 < len(matrix):
+                sig = matrix[i + 1]
+                val = sig[idx_hasta] if idx_hasta < len(sig) else None
+                m = re.match(r"(\d{4})[/-](\d{1,2})[/-]\d{1,2}", str(val or "").strip())
+                if m:
+                    return int(m.group(1)), int(m.group(2))
+    return None
+
+
 def _rows_from_matrix(matrix: list[list[Any]]) -> list[dict[str, Any]]:
     if not matrix:
         return []
+    periodo_hasta = _extraer_periodo_hasta(matrix)
     # Buscar fila de encabezados (primera con ≥2 celdas texto)
     header_idx = 0
     for i, row in enumerate(matrix[:15]):
@@ -378,7 +408,7 @@ def _rows_from_matrix(matrix: list[list[Any]]) -> list[dict[str, Any]]:
                 return None
             return row[idx]
 
-        fecha = _parse_fecha(cell(i_fecha))
+        fecha = _parse_fecha(cell(i_fecha), periodo_hasta)
         if not fecha:
             continue
         desc = str(cell(i_desc) or "").strip()[:220]

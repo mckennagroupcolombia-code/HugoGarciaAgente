@@ -9,6 +9,295 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-18 22:26 - Sitio: título y Agregar con acento de categoría
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - En cada tarjeta, el nombre del producto y el botón Agregar usan el color de acento de su categoría, en semi bold.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/_shop_card.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 22:12 - Inicio: sin banner de cotización
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Se quitó del inicio la sección «¿Necesitas una cotización?» (WhatsApp + formulario).
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `PAGINA_WEB/site/data/tema_web.json`
+
+### 2026-08-18 22:07 - Sitio: etiqueta de categoría solo trazo
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La caja de categoría queda sin fondo: borde y texto en el acento de la línea.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 22:02 - Sitio: etiqueta de categoría con acento
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La caja de categoría en la tarjeta (p. ej. «Aceites esenciales») usa el color de acento de esa línea, no el verde genérico.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 21:58 - Sitio: títulos de Aceites con acento de categoría
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Los nombres de productos de Aceites y Aceites esenciales usan el color de acento de esa línea (naranja).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/_shop_card.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 21:38 - Inicio: estética del carrusel destacados
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Cabecera en una sola banda: título + texto a la izquierda, «Ver catálogo» y flechas redondas a la derecha.
+  - Tarjetas más compactas (sin hueco interno) y se asoma el siguiente producto, para que se lea como carrusel.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 21:30 - Inicio: destacados en carrusel
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Selección Destacada» pasa a carrusel (4 productos a la vista, flechas para ver más).
+  - Título a la izquierda; texto, «Ver todos» y flechas a la derecha, para ocupar el hueco en blanco.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/static/js/main.js`, `PAGINA_WEB/site/website.py`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 21:08 - Inicio: portafolio sin hueco en blanco
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - En «Explora por Categoría» el título queda a la izquierda y el texto + botón de catálogo a la derecha.
+  - Las 6 tarjetas son filas (icono, nombre, cantidad) y ocupan el ancho, sin el vacío de antes.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 17:06 - Sitio: retícula de márgenes
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Header, inicio, catálogo y pie comparten el mismo margen (`--page-gutter` / `--page-inline`).
+  - El logo queda alineado con «Materias primas…»; los iconos de la derecha con la caja «Por qué elegirnos».
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/templates/base.html`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 16:54 - Inicio: silueta un poco más grande
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La ilustración del centro pasa de 115% a 130% para ocupar más del espacio vacío.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/templates/base.html`
+
+### 2026-08-18 16:51 - Inicio: «para tu industria» en un renglón
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La tercera línea del título («para tu industria») ya no se parte en dos.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 16:45 - Inicio: silueta 15% más grande
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La ilustración del centro del inicio queda un 15% más grande y centrada, para ocupar el espacio en blanco.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/templates/base.html`
+
+### 2026-08-18 16:44 - Inicio: CTAs del mismo ancho
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Comprar ahora» y «Pedir cotización» quedan con el mismo ancho (el del texto más largo).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/templates/base.html`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 16:40 - Inicio: botones CTA iguales
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Comprar ahora» y «Pedir cotización» quedan con el mismo estilo sólido (fondo verde, texto blanco).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 16:33 - Sitio: silueta alineada con el título
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La ilustración de la científica sube al mismo alto que el texto de la izquierda (ya no queda pegada abajo).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 16:30 - Sitio: silueta al centro del hero
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La ilustración de la científica quedó en el espacio en blanco del medio; la caja «Por qué elegirnos» sigue a la derecha.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 16:22 - Etiquetas circulares: ya no saltan 2 en blanco
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La Epson recibía 53 mm (troquel 50 + gap) y avanzaba dos etiquetas vacías por cada una impresa. Ahora el PDF y CUPS usan 50×50 mm (`Custom.50x50mm`).
+  - El título en arco queda 3,5 mm dentro del círculo, sin empujarlo hacia el gap.
+- **Archivos Modificados:**
+  - `app/tools/etiquetas_studio.py`, `app/routes.py`, `app/tools/etiquetas_ai_engine.py`, `desktop/src/components/EtiquetasPanel.tsx`
+
+### 2026-08-18 16:20 - Sitio: caja «Por qué elegirnos» a la derecha, solo trazo
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Por qué elegirnos» volvió al panel derecho, como recuadro de esquinas redondeadas, línea de trazo y sin fondo.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 16:16 - Sitio: vuelve la caja «Por qué elegirnos»
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La caja «Por qué elegirnos» volvió al inicio: debajo de los botones, a la izquierda; la ilustración sigue llenando el panel derecho.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 16:05 - Sitio: hero usa toda la altura
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El bloque de inicio reparte título arriba y botones abajo; la ilustración llena el panel derecho a toda altura (ya no queda un hueco blanco).
+  - Si hay foto, no se muestra la lista «Por qué elegirnos» encima del dibujo.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/index.html`, `PAGINA_WEB/site/static/css/main.css`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 15:55 - Sitio: header solo iconos WA / cuenta / carrito
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - WhatsApp, iniciar sesión y carrito quedan como iconos simples, sin texto ni botón relleno.
+  - El menú móvil y el pie conservan el texto de cuenta / WhatsApp.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/base.html`, `PAGINA_WEB/site/static/css/main.css`, Studio `ClasicoLayoutCanvas.tsx`
+
+### 2026-08-18 15:50 - Contabilidad: créditos adquiridos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Nueva pestaña en Contabilidad para préstamos, leasing y créditos de proveedores.
+  - Calcula cuota con tasa anual (EA o N.A.M.V.), plazo, sistema francés/alemán/solo interés y seguro por cuota.
+  - Permite registrar pagos (reparte capital e intereses) y ver la tabla de amortización. Las cuotas entran al libro de Ingresos / Egresos.
+- **Archivos Modificados:**
+  - `app/services/creditos_adquiridos.py`, `app/routes.py`, `app/services/contabilidad_ledger.py`
+  - `CreditosAdquiridosPanel.tsx`, `contabilidadAccess.ts`, permisos en Ajustes / usuarios
+
+### 2026-08-18 15:42 - Sitio: tipografía Regular, sin bold ni cursiva
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Todo el sitio público usa Montserrat Regular (400). Se desactivaron bold, semibold y cursiva (títulos, botones, `<em>`).
+  - Los iconos Phosphor no se tocan.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/templates/base.html`, `PAGINA_WEB/site/static/css/main.css`
+
+### 2026-08-18 15:35 - Sitio: sin números decorativos 01 / 02 / 03
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Se quitaron los números gigantes de sección (01, 02, 03, 00, ★) en inicio, tienda, guías, nosotros, contacto y fichas de guía.
+  - Los títulos de cada bloque quedan alineados a la izquierda, sin la columna vacía.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/static/css/main.css`, templates index/tienda/guias/nosotros/contacto/guia_detalle/catalogo_pdf
+
+### 2026-08-18 15:15 - Inicio: sin recuadro «certificadas · Colombia»
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Se quitó del hero de inicio el recuadro «Materias primas certificadas · Colombia».
+  - El nodo queda oculto por defecto; el título y los botones del hero siguen igual.
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `PAGINA_WEB/site/templates/index.html`
+
+### 2026-08-18 14:45 - Competencia MeLi a ojo en el navegador
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Publicaciones → Competencia cada más vendido tiene un botón que abre el listado de MeLi en el navegador del operador (no scraping).
+  - Se puede anotar el precio visto (vendedor y link opcionales). El veredicto “a revisar / más baratos” sale de esas anotaciones, no de la API ajena.
+- **Archivos Modificados:**
+  - `app/tools/analisis_competencia_precios.py`, `app/routes.py`
+  - `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`
+
+### 2026-08-18 14:20 - Sitio web: lienzo blanco tipo catálogo B2B
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - La página pública deja el fondo cian/teal y usa lienzo blanco (referencia Sigma-Aldrich): color solo en botones, enlaces y acento de línea comercial.
+  - Hero, categorías, cabeceras de tienda/blog y CTAs pasan a fondo blanco con texto oscuro. El footer sigue oscuro.
+  - `--white` ya no copia el token de fondo; el cian legado `#e3fcff` se migra a blanco.
+- **Archivos Modificados:**
+  - `app/tools/tema_web.py`, `PAGINA_WEB/site/static/css/main.css`, `templates/base.html` + home/tienda/guías
+  - `desktop/src/lib/webLayoutStudio.ts`, `ClasicoLayoutCanvas.tsx`, `SitioWebPanel.tsx`
+  - `tests/test_tema_web_colores.py`, `tests/test_hero_clasico_css.py`
+
+### 2026-08-18 13:20 - Gadget dólar hora USD/COP en Inicio
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Inicio (Agenda y Métricas) aparece un gadget con el precio del dólar en COP, actualización horaria y mini gráfico.
+  - Al hacer clic se abre el gráfico grande (hora o TRM diaria). Si el mercado no responde, usa la TRM BanRep.
+- **Archivos Modificados:**
+  - `app/services/trm.py`, `app/routes.py`, `tests/test_trm.py`
+  - `desktop/src/components/DolarHoraGadget.tsx`, `useDolarHora.ts`, `Dashboard.tsx`, `TicketsPanel.tsx`
+
+
+### 2026-08-18 13:15 - Competencia MeLi: sin scraping ni search ajena
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Se dejó de llamar a la búsqueda de marketplace y a ítems de otros vendedores (MeLi responde 403 y penaliza recolección).
+  - La pestaña Competencia solo lista nuestros más vendidos y el precio McKenna. El cron ya no manda WhatsApp de “competencia”.
+- **Archivos Modificados:**
+  - `app/tools/analisis_competencia_precios.py`, `scripts/analisis_competencia_precios_cron.py`
+  - `CompetenciaPreciosPanel.tsx`, `docs/agentic/modules/competencia-precios.md`
+
+### 2026-08-18 12:45 - Fichas técnicas completas en la página de producto
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - La sección Documentación técnica / Ficha Técnica de cada producto carga el documento completo de la biblioteca (FT + COA + SDS) cuando ya existe el PDF `FT COA SDS …`.
+  - Se muestra con la estética de protocolo de calidad del PDF (bordes, encabezado, tablas) y enlace para descargar el original.
+- **Archivos Modificados:**
+  - `app/services/documentos_web.py`, `app/services/ficha_tecnica.py`, `PAGINA_WEB/site/website.py`
+  - `PAGINA_WEB/site/templates/producto.html`, `_documento_tecnico.html`, `main.css`
+  - `tests/test_documentos_web.py`
+
+
+### 2026-08-18 12:20 - Agente de competencia de precios MeLi
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Agente que toma los más vendidos de McKenna en Mercado Libre y busca publicaciones de otros vendedores cuyo título se relaciona con el nuestro.
+  - Compara precio (y precio por 100 g/ml si hay presentación). Visible en Publicaciones → Competencia, en el chat de Hugo (`analizar_competencia_precios`) y en cron semanal con alerta WhatsApp solo si estamos más caros.
+- **Archivos Modificados:**
+  - `app/tools/analisis_competencia_precios.py`, `app/core.py`, `app/routes.py`, `app/services/cron_scheduler.py`
+  - `CompetenciaPreciosPanel.tsx`, `PublicacionesPanel.tsx`, `useCompetenciaPrecios.ts`
+  - `scripts/analisis_competencia_precios_cron.py`, `tests/test_analisis_competencia_precios.py`
+
+### 2026-08-18 11:50 - Salud del negocio: JSON en /app/api y etiqueta Diario
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El panel ya no muestra "el servidor devolvió HTML" al calcular Salud del negocio: `/app/api/salud-negocio/resumen` existe y el catch-all del SPA no sirve `index.html` en `/app/api/*`.
+  - En vista diaria el selector dice "Últimas 90 días" (antes decía "meses").
+- **Archivos Modificados:**
+  - `app/routes.py`, `SaludNegocioPanel.tsx`, `tests/test_smoke.py`
+  - `docs/agentic/modules/desktop-panel.md`, `docs/agentic/CONTRACTS.md`
+
 ### 2026-08-16 19:20 - Postventa: estadísticas de reclamos, tiempos y solicitudes
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Nueva funcionalidad

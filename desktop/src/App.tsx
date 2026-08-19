@@ -25,6 +25,7 @@ const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
 const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPanel"));
 const MeliOAuthPanel = lazy(() => import("./components/MeliOAuthPanel"));
+const GmailOAuthPanel = lazy(() => import("./components/GmailOAuthPanel"));
 const TareasProgramadasPanel = lazy(() => import("./components/TareasProgramadasPanel"));
 const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
 const ConfigurarProductosPanel = lazy(() =>
@@ -95,6 +96,8 @@ function PanelRouterInner() {
       return <ControlVersionesPanel />;
     case "meli-oauth":
       return <MeliOAuthPanel />;
+    case "gmail-oauth":
+      return <GmailOAuthPanel />;
     case "tareas-programadas":
       return <TareasProgramadasPanel />;
     case "preventa":
@@ -113,6 +116,7 @@ function PanelRouterInner() {
     case "rrhh":
     case "operativos":
     case "ingresos-egresos":
+    case "creditos-adquiridos":
     case "libro-mayor":
     case "stock":
       return <ContabilidadPanel />;

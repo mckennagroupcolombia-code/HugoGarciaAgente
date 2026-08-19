@@ -42,6 +42,8 @@ import {
   zoomAjusteLienzo,
   pesoFontWeightCss,
   nuevoGroupId,
+  esLienzoCircular,
+  margenSeguroCircularPx,
   type AlineacionObjetos,
   type ElementoTexto,
   type ElementoVisual,
@@ -64,7 +66,7 @@ import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import BarraContenidoTexto from "./BarraContenidoTexto";
 import TextoCapaLienzo from "./TextoCapaLienzo";
-import { geometriaArco, alturaCajaTexto } from "./TextoArcoSvg";
+import { geometriaArco, alturaCajaTexto, ajustarArcoAZonaSeguraCircular } from "./TextoArcoSvg";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
 
@@ -949,7 +951,7 @@ export default function VisualCanvasEditor({
     );
     const pos = posicionArcoEnArtboard(canvasW, canvasH, boxW, boxH, 0);
     const base = elementoTextoDefecto(pos.x, pos.y);
-    const el: ElementoTexto = {
+    let el: ElementoTexto = {
       ...base,
       content: "NOMBRE DEL PRODUCTO",
       width: boxW,
@@ -966,6 +968,14 @@ export default function VisualCanvasEditor({
       rotation: 0,
       zIndex: maxZ + 1,
     };
+    if (esLienzoCircular(doc)) {
+      el = ajustarArcoAZonaSeguraCircular(
+        el,
+        canvasW,
+        canvasH,
+        margenSeguroCircularPx(doc.formato),
+      );
+    }
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
   };
@@ -1049,7 +1059,7 @@ export default function VisualCanvasEditor({
           rotation,
         );
 
-    patchElemento(seleccionado.id, {
+    let patch: Partial<ElementoTexto> = {
       arco,
       arcoGrados: undefined,
       arcoPosicion: undefined,
@@ -1065,7 +1075,24 @@ export default function VisualCanvasEditor({
             ? seleccionado.marcoAncho
             : 1.5
           : seleccionado.marcoAncho ?? 0,
-    });
+    };
+    if (esLienzoCircular(doc) && arco !== 0) {
+      const ajustado = ajustarArcoAZonaSeguraCircular(
+        { ...seleccionado, ...patch, type: "text" },
+        canvasW,
+        canvasH,
+        margenSeguroCircularPx(doc.formato),
+      );
+      patch = {
+        ...patch,
+        width: ajustado.width,
+        height: ajustado.height,
+        x: ajustado.x,
+        y: ajustado.y,
+      };
+    }
+
+    patchElemento(seleccionado.id, patch);
   };
 
   const agregarRect = () => {
@@ -1702,6 +1729,11 @@ export default function VisualCanvasEditor({
 
   const canvasW = doc.formato.ancho_px;
   const canvasH = doc.formato.alto_px;
+  const lienzoCircular = useMemo(() => esLienzoCircular(doc), [doc]);
+  const margenCircularPx = useMemo(
+    () => (lienzoCircular ? margenSeguroCircularPx(doc.formato) : 0),
+    [doc.formato, lienzoCircular],
+  );
   const pasteboard = useMemo(
     () => margenPasteboard(doc.elementos, canvasW, canvasH),
     [doc.elementos, canvasW, canvasH],
@@ -2214,12 +2246,13 @@ export default function VisualCanvasEditor({
             >
               {/* Artboard (área de trabajo) */}
               <div
-                className="pointer-events-none absolute rounded-sm shadow-2xl ring-1 ring-black/20"
+                className="pointer-events-none absolute shadow-2xl ring-1 ring-black/20"
                 style={{
                   left: pasteboard,
                   top: pasteboard,
                   width: canvasW,
                   height: canvasH,
+                  borderRadius: lienzoCircular ? "50%" : 2,
                   backgroundColor: fondoTransparente ? undefined : doc.fondo,
                   backgroundImage: fondoTransparente
                     ? "repeating-conic-gradient(#cbd5e1 0% 25%, #f8fafc 0% 50%)"
@@ -2227,6 +2260,42 @@ export default function VisualCanvasEditor({
                   backgroundSize: fondoTransparente ? "10px 10px" : undefined,
                 }}
               />
+              {lienzoCircular && (
+                <svg
+                  className="pointer-events-none absolute z-[8]"
+                  width={canvasW}
+                  height={canvasH}
+                  style={{ left: pasteboard, top: pasteboard }}
+                  aria-hidden
+                >
+                  <defs>
+                    <mask id={`pv-die-${doc.id}`}>
+                      <rect width={canvasW} height={canvasH} fill="#fff" />
+                      <circle
+                        cx={canvasW / 2}
+                        cy={canvasH / 2}
+                        r={Math.min(canvasW, canvasH) / 2}
+                        fill="#000"
+                      />
+                    </mask>
+                  </defs>
+                  <rect
+                    width={canvasW}
+                    height={canvasH}
+                    fill="rgba(15,23,42,0.38)"
+                    mask={`url(#pv-die-${doc.id})`}
+                  />
+                  <circle
+                    cx={canvasW / 2}
+                    cy={canvasH / 2}
+                    r={Math.max(8, Math.min(canvasW, canvasH) / 2 - margenCircularPx)}
+                    fill="none"
+                    stroke="rgba(1,109,130,0.85)"
+                    strokeDasharray="5 4"
+                    strokeWidth="0.9"
+                  />
+                </svg>
+              )}
               {/* Cuadrícula solo sobre el artboard */}
               <div
                 className="pointer-events-none absolute"
@@ -2571,6 +2640,11 @@ export default function VisualCanvasEditor({
             </div>
           </div>
           </div>
+          {lienzoCircular && (
+            <p className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 rounded-full border border-accent/40 bg-surface-panel/95 px-3 py-1 text-[10px] font-semibold text-ink shadow">
+              Troquel circular · no cruzar la línea punteada al imprimir
+            </p>
+          )}
 
           {ghsAbierto && (
             <div className="absolute bottom-4 left-14 z-40 max-h-[min(420px,70vh)] overflow-auto rounded-lg border border-border bg-surface-panel shadow-xl">

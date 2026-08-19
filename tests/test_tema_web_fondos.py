@@ -172,3 +172,6 @@ def test_index_no_repite_fondo_como_img_hero() -> None:
     assert "or FONDOS.hero_der" not in html
     assert "src_izq != FONDOS.hero_izq" in html
     assert "src_der != FONDOS.hero_der" in html
+    assert "hero-foto-fill" in html
+    assert "hero.badge" not in html
+    assert "Materias Primas Certificadas" not in html

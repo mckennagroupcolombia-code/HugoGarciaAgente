@@ -150,6 +150,7 @@ Endpoints usados por React:
 | --- | --- | --- | --- |
 | `/api/status` | GET | - | `estado`, `servicios`, `version` |
 | `/api/metricas` | GET | - | metricas del dia + token MeLi |
+| `/api/inicio/dolar-hora` | GET | query `force=1?` | Gadget Inicio: USD→COP horario (Yahoo) + TRM BanRep; `{valor, cambio_pct, serie_hora, serie_dia, trm_oficial}` |
 | `/api/preventa/pendientes` | GET | - | `preguntas`, `total` |
 | `/api/preventa/casos` | GET | - | casos recientes |
 | `/api/preventa/metricas` | GET | `dias` (7–90, default 30), `refresh=1` opcional | conversión pregunta→compra: `resumen.tasa_compra_pct`, `por_respuesta`, `por_producto`, `conversion_explicacion`. Cache ~15 min. |
@@ -257,6 +258,38 @@ Prefijos: `/api/contabilidad/*` y `/app/api/contabilidad/*`.
 | `/api/contabilidad/extractos/candidatos` | GET | Bearer | Query `fecha`, `tipo` (ingreso\|egreso), `monto` → líneas sin vincular cercanas. |
 
 Persistencia: tablas `extractos_bancarios`, `extracto_movimientos`, `extracto_vinculos` en `app/data/contabilidad.db`. Archivos en `app/data/extractos_bancarios/`.
+
+## Contabilidad — Créditos adquiridos
+
+Prefijos: `/api/contabilidad/creditos*` y `/app/api/contabilidad/creditos*`. Auth Bearer.
+
+| Endpoint | Método | Notas |
+| --- | --- | --- |
+| `/api/contabilidad/creditos` | GET | Lista + `resumen` (deuda vigente, cuota mensual consolidada, próximo vencimiento). |
+| `/api/contabilidad/creditos` | POST | Alta. Body: `nombre`, `monto_original`, `plazo_meses`, `tasa_anual_pct`, `tipo_tasa` (`EA`\|`NA_MV`), `sistema` (`frances`\|`aleman`\|`interes_solo`), `periodicidad`, `cuota_pactada?`, `seguro_cuota?`, fechas, acreedor. |
+| `/api/contabilidad/creditos/simular` | POST | Mismos campos financieros → `cuota`, `n_cuotas`, `total_pagar`, `total_intereses`, `tabla`. No persiste. |
+| `/api/contabilidad/creditos/<id>` | GET/PATCH/DELETE | Detalle incluye `tabla` de amortización y `pagos`. |
+| `/api/contabilidad/creditos/<id>/pagos` | POST | Registra cuota. Si no vienen `capital`/`intereses`, se reparte con la tasa del periodo sobre el saldo. |
+| `/api/contabilidad/creditos/pagos/<pago_id>` | DELETE | Quita un pago y reabre el crédito si estaba `pagado`. |
+
+Persistencia: tablas `creditos_adquiridos` y `creditos_pagos` en `app/data/contabilidad.db`. Los pagos entran al libro de ingresos/egresos con fuente `creditos_adquiridos`.
+
+## Salud del negocio
+
+`GET /api/salud-negocio/resumen` y el mismo path bajo `/app/api/salud-negocio/resumen` (el SPA catch-all no debe servir HTML aquí).
+
+Query: `periodicidad=dia|semana|mes`, `n` (tope 120/26/24), `refresh=1` opcional. Auth Bearer.
+
+## Competencia de precios MeLi
+
+Auth Bearer. Prefijos `/api` y `/app/api`. No muta precios; solo lee MeLi y persiste `app/data/analisis_competencia_precios.json`.
+
+- `GET /api/meli/competencia-precios` — último ranking propio + observaciones anotadas a ojo.
+- `POST /api/meli/competencia-precios/analizar` — body `{top_n, dias, consulta}`. Solo cuenta McKenna.
+- `POST /api/meli/competencia-precios/observacion` — body `{item_id, precio, vendedor?, permalink?, titulo?, notas?}`. El servidor **no** visita el permalink.
+- `DELETE /api/meli/competencia-precios/observacion?id=` — quita una anotación.
+
+Tool Claude: `analizar_competencia_precios` (texto compacto). Cron: `scripts/analisis_competencia_precios_cron.py` (job `competencia_precios`).
 
 ## 5S Panel
 

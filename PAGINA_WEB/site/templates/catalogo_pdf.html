@@ -189,18 +189,15 @@
     }
     .section-header {
       display: grid;
-      grid-template-columns: 28mm 1fr;
-      gap: 7mm;
+      grid-template-columns: 1fr;
+      gap: 0;
       align-items: start;
       padding: 0 0 8mm;
       border-bottom: 2px solid var(--green);
       margin-bottom: 8mm;
     }
     .section-number {
-      font-size: 28pt;
-      font-weight: 800;
-      line-height: .8;
-      color: rgba(12,96,105,.16);
+      display: none;
     }
     .section-title {
       margin: 0;
@@ -489,7 +486,6 @@
   {% for section in sections %}
   <section class="section">
     <div class="section-header">
-      <div class="section-number">{{ "%02d"|format(loop.index) }}</div>
       <div>
         <span class="eyebrow">Categoría</span>
         <h2 class="section-title">{{ section.name }} <em>({{ section.products|length }})</em></h2>

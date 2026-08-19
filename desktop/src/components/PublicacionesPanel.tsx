@@ -1473,12 +1473,12 @@ function GaleriaPublicacionesView({
 const SITE_URL = "https://mckennagroup.co";
 
 const LINEAS_CATALOGO: { id: string; nombre: string; color: string }[] = [
-  { id: "cosmetica", nombre: "Cosmética", color: "#990099" },
   { id: "aceites-ceras-grasas", nombre: "Aceites, ceras y grasas", color: "#FFA500" },
+  { id: "agro", nombre: "Agro", color: "#359441" },
   { id: "alimentario", nombre: "Alimentario", color: "#1F91DC" },
+  { id: "cosmetica", nombre: "Cosmética", color: "#990099" },
   { id: "industria", nombre: "Industria", color: "#5C6570" },
   { id: "laboratorio", nombre: "Laboratorio", color: "#10173C" },
-  { id: "agro", nombre: "Agro", color: "#359441" },
 ];
 
 function CatalogoClienteView() {
