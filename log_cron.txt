@@ -963,3 +963,39 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-19) no es el último día del mes.
+[cursor/wa-metricas-panel 6cb777e] Auto-commit: actualizacion diaria 2026-08-19 23:00
+ 102 files changed, 10766 insertions(+), 11429 deletions(-)
+ create mode 100644 PAGINA_WEB/site/data/catalogo_extra_siigo.json
+ create mode 100644 PAGINA_WEB/site/templates/_prod_gallery.html
+ create mode 100644 app/data/eliminar_combos_d_20260819_190719.json
+ create mode 100644 app/data/eliminar_combos_d_20260819_192136.json
+ delete mode 100644 desktop/src/components/SitioWebPanel.tsx
+ delete mode 100644 desktop/src/components/studio-web/AlignmentGuidesOverlay.tsx
+ delete mode 100644 desktop/src/components/studio-web/ClasicoLayoutCanvas.tsx
+ delete mode 100644 desktop/src/components/studio-web/FondoImagenField.tsx
+ delete mode 100644 desktop/src/components/studio-web/HojasCapitulo.tsx
+ delete mode 100644 desktop/src/components/studio-web/StudioDeleteContext.tsx
+ delete mode 100644 desktop/src/components/studio-web/StudioDesplegables.tsx
+ delete mode 100644 desktop/src/components/studio-web/StudioSelectionChrome.tsx
+ delete mode 100644 desktop/src/components/studio-web/WebLayoutCanvas.tsx
+ delete mode 100644 desktop/src/lib/studioAlignmentGuides.ts
+ delete mode 100644 desktop/src/lib/studioEliminar.ts
+ delete mode 100644 desktop/src/lib/studioSelectSimilar.ts
+ delete mode 100644 desktop/src/lib/studioSelectionBox.ts
+ delete mode 100644 desktop/src/lib/studioUndo.ts
+ delete mode 100644 desktop/src/lib/webLayoutStudio.ts
+ create mode 100644 importaciones_productos/F2867 codigos siigo.xml
+ create mode 100644 scripts/cargar_meli_catalogo_web.py
+ create mode 100644 scripts/eliminar_combos_d_siigo.py
+ create mode 100644 tests/test_publicaciones_sitios.py
+ delete mode 100644 tests/test_studio_alignment_guides.py
+ delete mode 100644 tests/test_studio_flechas.py
+ delete mode 100644 tests/test_studio_selection_box.py
+ delete mode 100644 tests/test_studio_web_toolbar_actions.py
+ delete mode 100644 tests/test_tema_web_preview.py
+ create mode 100644 uploads/tickets/0d0e3cdbfb4b4b19876834448ced8233.png
+ create mode 100644 uploads/tickets/21b092566d4342c8b9cf73ff7bba273b.docx
+ create mode 100644 uploads/tickets/3400824fb9854fd4af99e648d04ff395.png
+ create mode 100644 uploads/tickets/4016fce6233d41a3bd762de0746e3f70.png
+ create mode 100644 uploads/tickets/f8261d8dc9744e508485268317cb6b3d.docx
+[2026-08-19 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-19 23:00'
