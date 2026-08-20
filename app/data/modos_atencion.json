@@ -27,7 +27,7 @@
       "ultimo_mensaje": "Ok"
     }
   },
-  "bot_global_activo": false,
+  "bot_global_activo": true,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

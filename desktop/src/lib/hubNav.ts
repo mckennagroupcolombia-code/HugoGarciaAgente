@@ -29,7 +29,7 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   inicio: "Agenda del equipo y métricas del día.",
   atencion: "Preventa MeLi, postventa, pedidos web y evidencia de empaque.",
   canales: "Chat IA, WhatsApp y chat de la página web.",
-  diseno: "Etiquetas, Studio visual, impresión y Studio web de mckennagroup.co.",
+  diseno: "Etiquetas, Studio visual e impresión.",
   docs: "Fichas técnicas e información científica de ingredientes.",
   contabilidad: "Facturas, sync MeLi↔Siigo, stock, rentabilidad y más.",
   inventario: "Checklist de stock agotado, crítico o bajo — agrega unidades, pide compra o marca revisado.",

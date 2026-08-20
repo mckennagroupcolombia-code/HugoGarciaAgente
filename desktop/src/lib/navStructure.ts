@@ -72,10 +72,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "diseno",
     label: "Diseño",
     hub: true,
-    items: [
-      { panel: "etiquetas", tier: "core" },
-      { panel: "sitioweb", tier: "standard" },
-    ],
+    items: [{ panel: "etiquetas", tier: "core" }],
   },
   {
     id: "docs",

@@ -147,11 +147,11 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   etiquetas: {
     emoji: "🏷️",
     label: "Diseño",
-    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio visual y Studio web.",
+    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio visual.",
     tips: [
       "Selecciona el producto, el lote y la fecha de vencimiento antes de imprimir.",
       "El formato más usado es la etiqueta de 50×30mm para frascos pequeños.",
-      "Usa Studio visual para plantillas de etiquetas y Studio web para mckennagroup.co.",
+      "Usa Studio visual para plantillas de etiquetas.",
     ],
     tier: "core",
     category: "diseno",
@@ -172,32 +172,14 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   publicaciones: {
     emoji: "📢",
     label: "Publicaciones",
-    description: "Catálogo MeLi y tienda web: fotos, textos, sync y republicar publicaciones.",
+    description: "Gestiona cada ficha en Mercado Libre y en la tienda web, y cómo se muestra en ambos sitios.",
     tips: [
-      "Edita fichas, fotos y vínculo MeLi desde el catálogo.",
+      "En Catálogo abre un producto: la pestaña Sitios compara la ficha web (familia + presentaciones) con cada publicación MeLi.",
+      "La tienda solo lista SKUs con ID MeLi. Pausar en MeLi no los saca de la web; Ocultar en la tienda los deja en vitrina.",
       "Usa Republicar MeLi / Crear desde cero para altas por política.",
-      "Competencia: ranking propio + precios que el equipo anota a ojo abriendo MeLi en el navegador.",
     ],
     tier: "standard",
     category: "publicaciones",
-  },
-
-  sitioweb: {
-    emoji: "🎨",
-    label: "Studio web",
-    description:
-      "Pestaña de Diseño: edita la apariencia de mckennagroup.co solo desde esta app (colores, tipografía, densidad, textos y tema publicado). La página pública no tiene editor.",
-    tips: [
-      "Pestaña Lienzo: selecciona textos/iconos/secciones, arrástralos o muévelos con las flechas (Shift = 10 px). Agranda con la esquina azul; doble clic edita. Ctrl+Z deshace.",
-      "Header: clic en cada botón del menú (Inicio, Catálogo…) o en WhatsApp para editarlo solo. El grupo «Menú» aplica a todos. Inspector: tamaño, fuente, hover y animación.",
-      "Botones Comprar / Cotización: clic en el borde de la caja, en el icono o en el texto — cada uno se edita aparte (tamaño, color, icono Phosphor).",
-      "Al redimensionar, el recuadro azul es el botón y debajo ves el tamaño real en px (como queda en el sitio, da igual el zoom del lienzo).",
-      "Fondos del hero: arrastra la línea vertical ⟷ entre el panel oscuro y el claro para achicar uno y agrandar el otro.",
-      "Tokens = colores/fondos en el rail izquierdo; Textos = formularios; el lienzo queda siempre al centro.",
-      "Panel derecho estrecho (arrastrable), como Studio Visual. Guardar/Publicar publican a los visitantes.",
-    ],
-    tier: "standard",
-    category: "diseno",
   },
 
   // ── Finanzas ─────────────────────────────────────────────────────────────────

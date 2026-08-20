@@ -1,0 +1,40 @@
+{# Galería: gid, fotos, alt; opcional placeholder_icon (ph-package por defecto) #}
+{% set gal_alt = alt if alt is defined else (p.name if p is defined else '') %}
+{% set gal_icon = placeholder_icon if placeholder_icon is defined else 'ph-package' %}
+<div class="prod-gallery" id="gallery-{{ gid }}">
+  {% if fotos %}
+  <div class="prod-gallery-stage">
+    <div class="prod-gallery-track">
+      {% for foto in fotos %}
+      <div class="prod-slide{% if loop.first %} active{% endif %}">
+        <img src="{{ foto }}" alt="{{ gal_alt }}"
+             loading="{% if loop.first %}eager{% else %}lazy{% endif %}">
+      </div>
+      {% endfor %}
+    </div>
+    {% if fotos | length > 1 %}
+    <button class="prod-arrow prod-arrow-prev" onclick="prodSlide('{{ gid }}',-1)" aria-label="Anterior">&#8249;</button>
+    <button class="prod-arrow prod-arrow-next" onclick="prodSlide('{{ gid }}', 1)" aria-label="Siguiente">&#8250;</button>
+    <div class="prod-dots">
+      {% for _ in fotos %}
+      <button class="prod-dot{% if loop.first %} active{% endif %}"
+              onclick="prodSlideTo('{{ gid }}', {{ loop.index0 }})" aria-label="Foto {{ loop.index }}"></button>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% if fotos | length > 1 %}
+  <div class="prod-thumbs" role="tablist" aria-label="Fotos del producto">
+    {% for foto in fotos %}
+    <button type="button" class="prod-thumb{% if loop.first %} active{% endif %}"
+            onclick="prodSlideTo('{{ gid }}', {{ loop.index0 }})"
+            aria-label="Ver foto {{ loop.index }}">
+      <img src="{{ foto }}" alt="">
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="prod-gallery-placeholder"><i class="{{ gal_icon }}"></i></div>
+  {% endif %}
+</div>

@@ -4665,125 +4665,6 @@ def register_routes(app):
         resultado = asignar_autor_recap(indice, body.get("autor") or "")
         return jsonify(resultado), (200 if resultado.get("ok") else 400)
 
-    # ── Tema visual del sitio web público (mckennagroup.co) ──────────────────
-    # Config compartida en PAGINA_WEB/site/data/tema_web.json; website.py (8083)
-    # la relee por mtime, así que los cambios aplican sin reiniciar el sitio.
-
-    @app.route("/app/api/web/tema", methods=["GET", "PUT", "POST"])
-    @app.route("/api/web/tema", methods=["GET", "PUT", "POST"])
-    def api_web_tema():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        from app.tools.tema_web import (
-            TEMAS_VALIDOS,
-            cargar_tema_web,
-            guardar_tema_web,
-            restaurar_diseno,
-            restaurar_layout,
-            restaurar_layout_clasico,
-            restaurar_tema_clasico,
-            restaurar_tema_pureza,
-        )
-
-        if request.method == "GET":
-            return jsonify({
-                "config": cargar_tema_web(),
-                "temas": list(TEMAS_VALIDOS),
-                "site_url": "https://mckennagroup.co",
-                "preview_url": os.environ.get("WEB_PREVIEW_URL", "http://127.0.0.1:8083"),
-            })
-
-        body = request.get_json(silent=True) or {}
-        if body.get("accion") == "restaurar":
-            return jsonify({
-                "config": restaurar_tema_pureza(),
-                "mensaje": "Contenido del tema Pureza restaurado a los valores por defecto",
-            })
-        if body.get("accion") == "restaurar_clasico":
-            return jsonify({
-                "config": restaurar_tema_clasico(),
-                "mensaje": "Contenido del tema Clásico restaurado a los valores por defecto",
-            })
-        if body.get("accion") == "restaurar_diseno":
-            return jsonify({
-                "config": restaurar_diseno(),
-                "mensaje": "Tokens del Studio de diseño restaurados",
-            })
-        if body.get("accion") == "restaurar_layout":
-            return jsonify({
-                "config": restaurar_layout(),
-                "mensaje": "Lienzo visual restaurado (posición y escala)",
-            })
-        if body.get("accion") == "restaurar_layout_clasico":
-            return jsonify({
-                "config": restaurar_layout_clasico(),
-                "mensaje": "Lienzo Clásico restaurado (posición y escala)",
-            })
-        try:
-            nuevo = guardar_tema_web(body.get("config") or {})
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        return jsonify({"config": nuevo, "mensaje": "Tema del sitio guardado"})
-
-    @app.route("/app/api/web/tema/preview", methods=["PUT", "DELETE"])
-    @app.route("/api/web/tema/preview", methods=["PUT", "DELETE"])
-    def api_web_tema_preview():
-        """Borrador del iframe del Studio. No publica el sitio."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        from app.tools.tema_web import (
-            borrar_tema_preview,
-            guardar_tema_preview,
-        )
-
-        if request.method == "DELETE":
-            borrar_tema_preview()
-            return jsonify({"ok": True, "mensaje": "Borrador de vista previa eliminado"})
-        body = request.get_json(silent=True) or {}
-        try:
-            draft = guardar_tema_preview(body.get("config") or {})
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        return jsonify({"ok": True, "config": draft, "mensaje": "Vista previa actualizada"})
-
-    @app.route("/app/api/web/tema/fondo", methods=["POST"])
-    @app.route("/api/web/tema/fondo", methods=["POST"])
-    def api_web_tema_fondo_subir():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        from app.tools.tema_web_fondos import guardar_fondo
-
-        archivo = request.files.get("archivo") or request.files.get("file")
-        try:
-            item = guardar_fondo(archivo)
-        except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
-        except Exception as exc:
-            return jsonify({"error": str(exc)}), 500
-        return jsonify({"ok": True, **item})
-
-    @app.route("/app/api/web/tema/fondos", methods=["GET"])
-    @app.route("/api/web/tema/fondos", methods=["GET"])
-    def api_web_tema_fondos_listar():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        from app.tools.tema_web_fondos import listar_fondos
-
-        return jsonify({"ok": True, "fondos": listar_fondos()})
-
-    @app.route("/api/web/tema/fondo-archivo/<filename>", methods=["GET"])
-    @app.route("/app/api/web/tema/fondo-archivo/<filename>", methods=["GET"])
-    @app.route("/static/uploads/fondos/<filename>", methods=["GET"])
-    @app.route("/app/static/uploads/fondos/<filename>", methods=["GET"])
-    def api_web_tema_fondo_archivo(filename):
-        """Preview del Studio en :8081 (mismas fotos que sirve el sitio en :8083)."""
-        from app.tools.tema_web_fondos import ruta_fondo_segura
-
-        path = ruta_fondo_segura(filename)
-        if path is None:
-            return jsonify({"error": "No encontrado"}), 404
-        return send_from_directory(str(path.parent), path.name)
-
     def _titulo_documento_datos(datos: dict | None) -> str:
         if not isinstance(datos, dict):
             return ""
@@ -11470,7 +11351,7 @@ def register_routes(app):
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
         "250 g": (76, 66), "1 Lt": (108, 76),
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
-        "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (50, 50),
+        "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
         "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
     }
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
@@ -12684,29 +12565,39 @@ def register_routes(app):
         ancho: int,
         alto: int,
         log_lines: list,
+        usar_elpu: bool = True,
     ) -> None:
-        """Sincroniza calidad en elpu; Gap va solo por CUPS MediaForm (no tocar formDetectionType)."""
+        """Sincroniza PageSize/MediaForm en CUPS. elpu solo en USB (SMB no lo soporta)."""
         import subprocess as _sp
 
-        cal_elpu = _MAPEO_CALIDAD_ELPU.get(calidad_val)
-        deteccion = _MAPEO_FORM_DETECTION_ELPU.get(forma_val)
-        opts: list[str] = []
-        if cal_elpu:
-            opts.append(f"printQuality={cal_elpu}")
-        if deteccion:
-            opts.append(f"formDetectionType={deteccion}")
-        if opts:
-            salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=True)
-            if not salida:
-                salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=False)
-            if salida and not _salida_elpu_fallo(salida):
-                log_lines.append(f"elpu: {', '.join(opts)}")
+        if usar_elpu:
+            cal_elpu = _MAPEO_CALIDAD_ELPU.get(calidad_val)
+            deteccion = _MAPEO_FORM_DETECTION_ELPU.get(forma_val)
+            opts: list[str] = []
+            if cal_elpu:
+                opts.append(f"printQuality={cal_elpu}")
+            if deteccion:
+                opts.append(f"formDetectionType={deteccion}")
+            if opts:
+                salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=True)
+                if not salida:
+                    salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=False)
+                if salida and not _salida_elpu_fallo(salida):
+                    log_lines.append(f"elpu: {', '.join(opts)}")
         try:
+            from app.tools.etiquetas_studio import page_size_cups_mm as _ps_cups
+
+            page = _ps_cups(ancho, alto)
             _sp.run(
-                ["lpoptions", "-p", _PRINTER_NAME, "-o", f"MediaForm={forma_val}"],
+                [
+                    "lpoptions", "-p", _PRINTER_NAME,
+                    "-o", f"PageSize={page}",
+                    "-o", f"PageRegion={page}",
+                    "-o", f"MediaForm={forma_val}",
+                ],
                 capture_output=True, text=True, timeout=8,
             )
-            log_lines.append(f"CUPS: MediaForm={forma_val} ({ancho}×{alto} mm)")
+            log_lines.append(f"CUPS: PageSize={page} MediaForm={forma_val}")
         except Exception:
             pass
 
@@ -15329,24 +15220,34 @@ def register_routes(app):
 
             if modo_red:
                 log_lines.append("elpu: omitido (impresora en Windows remoto)")
+                _preparar_medio_elpu_etiquetas(
+                    forma_val, calidad_val, ancho, alto, log_lines, usar_elpu=False,
+                )
             else:
                 _preparar_medio_elpu_etiquetas(forma_val, calidad_val, ancho, alto, log_lines)
                 _ejecutar_elpu_offset_etiquetas(offset_v, log_lines)
                 _suspender_elioud_impresion_etiquetas()
                 elioud_suspendido = True
 
+            page_cups = page_size_cups_mm(ancho, alto)
             cmd = [
                 "lp", "-d", _PRINTER_NAME,
                 "-n", str(cantidad),
-                "-o", f"PageSize={page_size_cups_mm(ancho, alto)}",
+                "-o", f"PageSize={page_cups}",
+                "-o", f"PageRegion={page_cups}",
+                "-o", f"media={page_cups}",
                 "-o", f"MediaForm={forma_val}",
                 "-o", f"PrintQuality={calidad_val}",
                 "-o", f"page-top={m_top}",
                 "-o", f"page-left={m_left}",
                 "-o", f"orientation-requested={orientacion}",
-                "-o", "fit-to-page",
+                "-o", "print-scaling=none",
                 pdf_a_imprimir,
             ]
+            log_lines.append(
+                f"lp opts: PageSize={page_cups} MediaForm={forma_val} "
+                f"scaling=none (sin fit-to-page)"
+            )
             r_lp = _sp.run(cmd, capture_output=True, text=True, timeout=30)
             salida_lp = (r_lp.stdout + r_lp.stderr).strip()
             log_lines.append(f"lp: {salida_lp or 'OK'}")
@@ -15404,14 +15305,16 @@ def register_routes(app):
     # ── Publicaciones (editor de catálogo) ────────────────────────────────────
 
     @app.route("/api/publicaciones", methods=["GET"])
+    @app.route("/app/api/publicaciones", methods=["GET"])
     def api_publicaciones_list():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.publicaciones import listar_publicaciones
         buscar = request.args.get("buscar", "").strip()
         categoria = request.args.get("categoria", "").strip()
+        canal = request.args.get("canal", "").strip()
         try:
-            return jsonify(listar_publicaciones(buscar=buscar, categoria=categoria))
+            return jsonify(listar_publicaciones(buscar=buscar, categoria=categoria, canal=canal))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -15539,6 +15442,7 @@ def register_routes(app):
         return send_from_directory(str(base), safe)
 
     @app.route("/api/publicaciones/<sku>", methods=["GET"])
+    @app.route("/app/api/publicaciones/<sku>", methods=["GET"])
     def api_publicacion_detalle(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -15553,6 +15457,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/publicaciones/<sku>", methods=["PUT"])
+    @app.route("/app/api/publicaciones/<sku>", methods=["PUT"])
     def api_publicacion_update(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -15564,6 +15469,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/publicaciones/<sku>/sync-web", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/sync-web", methods=["POST"])
     def api_publicacion_sync_web(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -15576,6 +15482,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/publicaciones/sync-web-all", methods=["POST"])
+    @app.route("/app/api/publicaciones/sync-web-all", methods=["POST"])
     def api_publicaciones_sync_web_all():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -15588,6 +15495,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/publicaciones/<sku>/sync-meli", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/sync-meli", methods=["POST"])
     def api_publicacion_sync_meli(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -15601,7 +15509,32 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/publicaciones/<sku>/estado-meli", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/estado-meli", methods=["POST"])
+    def api_publicacion_estado_meli(sku: str):
+        """Pausa o activa la publicación MeLi vinculada al SKU."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import cambiar_estado_meli_sku
+        body = request.get_json(silent=True) or {}
+        estado = str(body.get("estado") or body.get("status") or "").strip().lower()
+        if estado not in ("active", "paused"):
+            return jsonify({"error": "Campo 'estado' debe ser active o paused"}), 400
+        try:
+            from app.panel_activity import log_line
+            res = cambiar_estado_meli_sku(sku, estado)
+            if res.get("ok"):
+                log_line(
+                    f"✔ publicaciones {sku} MeLi {res.get('meli_id')}: "
+                    f"{res.get('estado_anterior')} → {res.get('estado')}"
+                )
+                return jsonify(res)
+            return jsonify(res), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/publicaciones/refresh-web", methods=["POST"])
+    @app.route("/app/api/publicaciones/refresh-web", methods=["POST"])
     def api_publicaciones_refresh_web():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401

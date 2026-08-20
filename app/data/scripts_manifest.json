@@ -15,7 +15,7 @@
     {"path": "scripts/analisis_competencia_precios_cron.py", "nota": "Cron semanal análisis competencia de precios MeLi"},
     {"path": "scripts/monitor_correos_certificados_retencion_cron.py", "nota": "Cron diario: correos de proveedores → solicitud certificado retención a Cynthia"},
     {"path": "scripts/emitir_notas_credito_cron.py", "nota": "Cron diario: notas crédito automáticas para ventas MeLi canceladas con factura ya emitida"},
-    {"path": "scripts/reconciliar_precios_meli_cron.py", "nota": "Cron 2x/día: precio vivo de MeLi corrige Siigo/Sheets/Web donde difieran"},
+    {"path": "scripts/cargar_meli_catalogo_web.py", "nota": "Cruza publicaciones MeLi → catálogo web clasificado"},
     {"path": "scripts/informe_reposicion_mensual_cron.py", "nota": "Cron diario (auto-chequea fin de mes): informe de reposición alta rotación a Sede Sur"},
     {"path": "app/tools/monitor_correos_proveedores.py", "nota": "Detección Gmail + creación de ticket 'solicitud' para certificados de retención"},
     {"path": "app/meli_reclamos.py", "nota": "Reclamos MeLi → ticket nota crédito"},

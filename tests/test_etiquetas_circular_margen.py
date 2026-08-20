@@ -38,12 +38,14 @@ def test_personalizado_53_imprime_como_circular_50():
     assert dims_pagina_impresion_mm("250 g", 76, 66) == (76.0, 66.0)
 
 
-def test_circle_2_12_in_imprime_como_circular_50():
-    """PNG CIRCLE 53.9 mm (2.12 in) es pitch 50 + gap; PageSize 55 mm avanza 2 blancas."""
-    assert mm_troquel_circular("CIRCLE", 53.9, 53.9) == (50.0, 50.0)
-    assert dims_pagina_impresion_mm("CIRCLE", 53.9, 53.9) == (50.0, 50.0)
-    assert mm_troquel_circular("circle", 53.8, 53.8) == (50.0, 50.0)
-    assert page_size_cups_mm(*dims_pagina_impresion_mm("CIRCLE", 53.9, 53.9)) == "Custom.50x50mm"
+def test_circle_2_12_in_imprime_a_53_9_mm():
+    """CIRCLE 2.12 in = 53.9 mm de troquel; no recortar a Circular 50."""
+    assert mm_troquel_circular("CIRCLE", 53.9, 53.9) == (53.9, 53.9)
+    assert dims_pagina_impresion_mm("CIRCLE", 53.9, 53.9) == (53.9, 53.9)
+    assert mm_troquel_circular("circle", 53.8, 53.8) == (53.8, 53.8)
+    assert mm_troquel_circular("CIRCLE") == (53.9, 53.9)
+    assert page_size_cups_mm(*dims_pagina_impresion_mm("CIRCLE", 53.9, 53.9)) == "Custom.53.9x53.9mm"
+    assert mm_troquel_circular("Circle 50", 53.9, 53.9) == (50.0, 50.0)
     assert mm_troquel_circular("Circular", 55, 55) == (55.0, 55.0)
 
 

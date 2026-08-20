@@ -32,13 +32,9 @@ def test_estilo_nodo_fuente_y_transicion() -> None:
 
 def test_normalizar_header_nodos(tmp_path, monkeypatch) -> None:
     pub = tmp_path / "tema_web.json"
-    prev = tmp_path / "tema_web_preview.json"
     monkeypatch.setattr(tw, "TEMA_WEB_FILE", pub)
-    monkeypatch.setattr(tw, "TEMA_WEB_PREVIEW_FILE", prev)
     tw._cache = {}
     tw._cache_mtime = None
-    tw._preview_cache = None
-    tw._preview_mtime = None
 
     tw.guardar_tema_web(
         {
@@ -77,13 +73,9 @@ def test_normalizar_header_nodos(tmp_path, monkeypatch) -> None:
 
 def test_estilo_boton_nav_individual(tmp_path, monkeypatch) -> None:
     pub = tmp_path / "tema_web.json"
-    prev = tmp_path / "tema_web_preview.json"
     monkeypatch.setattr(tw, "TEMA_WEB_FILE", pub)
-    monkeypatch.setattr(tw, "TEMA_WEB_PREVIEW_FILE", prev)
     tw._cache = {}
     tw._cache_mtime = None
-    tw._preview_cache = None
-    tw._preview_mtime = None
 
     assert "header.nav.inicio" in tw.HEADER_NAV_BTN_IDS
     tw.guardar_tema_web(

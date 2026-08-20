@@ -2161,12 +2161,3 @@ html[data-mck-skin="barbie"] aside.mck-sidebar {
     transform: none;
   }
 }
-
-/* Studio web: hover de botones del header (tokens --studio-hover-* / --studio-tr). */
-.studio-hover-target {
-  transition: color var(--studio-tr, 0.25s), background var(--studio-tr, 0.25s);
-}
-.studio-hover-target:hover {
-  color: var(--studio-hover-color, inherit);
-  background: var(--studio-hover-bg, transparent);
-}

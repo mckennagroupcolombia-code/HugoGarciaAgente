@@ -1,4 +1,4 @@
-"""Imágenes de fondo del Studio → sitio (upload + tema_web.json)."""
+"""Imágenes de fondo del sitio (upload + tema_web.json)."""
 
 from __future__ import annotations
 
@@ -16,13 +16,9 @@ PNG_MIN = b"\x89PNG\r\n\x1a\n" + b"\x00" * 40
 
 def _reset_tema(tmp_path, monkeypatch) -> None:
     pub = tmp_path / "tema_web.json"
-    prev = tmp_path / "tema_web_preview.json"
     monkeypatch.setattr(tw, "TEMA_WEB_FILE", pub)
-    monkeypatch.setattr(tw, "TEMA_WEB_PREVIEW_FILE", prev)
     tw._cache = {}
     tw._cache_mtime = None
-    tw._preview_cache = None
-    tw._preview_mtime = None
 
 
 class _FakeFile:

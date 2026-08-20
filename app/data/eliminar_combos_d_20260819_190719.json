@@ -1,0 +1,1731 @@
+{
+  "modo": "APLICAR",
+  "ts": "2026-08-19T19:07:19",
+  "total": 219,
+  "stats": {
+    "deleted": 33,
+    "inactivated": 0,
+    "error": 186
+  },
+  "resultados": [
+    {
+      "code": "D-ACDHIABAJPES85P30m",
+      "id": "371d713b-4a3f-4dcf-accd-3919181a9ee7",
+      "nombre": "ACIDO HIALURONICO BAJO PESO 85% 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACDHIABAJPES85P30mL",
+      "id": "3dc4c817-041a-4ad2-b99e-fa63a6d3cf97",
+      "nombre": "ACIDO HIALURONICO BAJO PESO MOLECULAR 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACDKOJDPAL30mL",
+      "id": "9b51f3a2-361a-420b-8b9e-4808641042b8",
+      "nombre": "ACIDO KOJICO D PALMITATO 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACDSAL20P30m",
+      "id": "05820bac-7f32-4281-a46b-b65e8054a63c",
+      "nombre": "ACIDO SALICILICO 20 % 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACDSAL20P30mL",
+      "id": "49dad731-d472-4003-a69f-e217b09704d8",
+      "nombre": "ACIDO SALICILICO 20% 30 mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACEARGAN50mL",
+      "id": "4f304916-f606-4266-b779-d8ac50dffe26",
+      "nombre": "ACEITE ARGAN 50 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEALB5mL",
+      "id": "9ddae410-5edc-45ef-914b-6e423f8736ba",
+      "nombre": "ACEITE ESENCIAL ALBAHACA 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESECORCED5mL",
+      "id": "9422e57f-2728-46b3-942b-0cec36ec88a8",
+      "nombre": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEEUC5mL",
+      "id": "3f0a2e20-a9fb-44b7-9119-2521b4d51a61",
+      "nombre": "ACEITE ESENCIAL EUCALIPTO 5 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEHIEBUE5mL",
+      "id": "6aa40397-21c3-4870-99ec-a667e1db3f90",
+      "nombre": "ACEITE ESENCIAL HIERBA BUENA 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEJAZ5mL",
+      "id": "48dfdd20-32c3-418e-8e40-cbe0a11fe71c",
+      "nombre": "ACEITE ESENCIAL JAZMIN 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEJEN5mL",
+      "id": "8079ea23-373a-467d-8af1-8864a28b7f1e",
+      "nombre": "ACEITE ESENCIAL JENGIBRE 5mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACEESELIM5mL",
+      "id": "54974138-a743-43e1-84c3-c326f911d55e",
+      "nombre": "ACEITE ESENCIAL LIMON 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEMANZ5mL",
+      "id": "9126538e-3286-4882-a4fa-afaf53f3f0b5",
+      "nombre": "ACEITE ESENCIAL MANZANILLA 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESENAR5mL",
+      "id": "db1391d9-8d53-4586-a015-340b27701ea4",
+      "nombre": "ACEITE ESENCIAL NARANJA 5 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESEROM5mL",
+      "id": "83a6a691-c431-4da6-ae5c-bc72b868169c",
+      "nombre": "ACETE ESENCIAL ROMERO 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESETOM",
+      "id": "dd1376de-4bc8-46d7-a1b3-699f2348af33",
+      "nombre": "ACEITE ESENCIAL TOMILLO 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESETOM5mL",
+      "id": "74405e31-a321-4997-bb03-9db93c0c08cb",
+      "nombre": "Aceite Esencial Tomillo 5mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACEESNMAN5mL",
+      "id": "f35613ae-bd74-4295-ad4c-53be5b74feb5",
+      "nombre": "ACEITE ESENCIAL MANDARINA 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESNMEN5mL",
+      "id": "2059fa2e-ec18-4176-b0e8-a821ec907d6d",
+      "nombre": "ACEITE ESENCIAL MENTA 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEESNPIN5mL",
+      "id": "ffe9fb7d-9f19-4550-8d09-c9a0ab67e97d",
+      "nombre": "ACEITE ESENCIAL PINO 5mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEIJOJ30mL",
+      "id": "3cb86425-6a67-440f-9b8c-1c63f7a4f946",
+      "nombre": "ACEITE JOJOBA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACEITEATRE5mL",
+      "id": "47937291-5130-494e-b078-81f69f6f5ac8",
+      "nombre": "ACEITE ARBOL DE TE 5 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACELIN250mL",
+      "id": "2f4c4513-94e3-4399-a4d0-18ee40c00b07",
+      "nombre": "ACEITE LINAZA 250mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACENEE120mL",
+      "id": "49abfdba-09a7-4b9f-8fe0-c4a9177f796f",
+      "nombre": "ACEITE NEEM 120mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACENEE250mL",
+      "id": "cd81ecc2-e617-4f8f-95a3-83842d034c72",
+      "nombre": "ACEITE NEEM 250mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACENEE500mL",
+      "id": "b20f6a2a-f65e-4bda-bcab-409b1c885253",
+      "nombre": "ACEITE NEEM 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACENEE60mL",
+      "id": "da9e6b6e-40a5-4823-b030-0ea1afe82e26",
+      "nombre": "ACEITE NEEM 60mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACERIC10mL",
+      "id": "2738322c-7588-4adf-b699-1a581fb6612d",
+      "nombre": "ACEITE RICINO 10mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACERIC250mL",
+      "id": "690900b2-adf5-4532-8346-0ddf208e535e",
+      "nombre": "ACEITE DE RICINO 250mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACERIC500mL",
+      "id": "5d7a108c-ff64-4e48-84c2-85fdc9e0cd42",
+      "nombre": "ACEITE RICINO 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACETEATRE30mL",
+      "id": "1f9abc51-cc33-4747-90ae-fdac58ebc9f6",
+      "nombre": "ACEITE ARBOL TE 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACIAZE10g",
+      "id": "91dfe903-905d-4261-9a57-3c67dae86a91",
+      "nombre": "ACIDO AZELAICO 10g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACICIT250g",
+      "id": "340b0c68-bc1f-49c6-b4b8-8113c6f1128d",
+      "nombre": "ACIDO CITRICO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACICITR500g",
+      "id": "37a361f7-7132-4e8f-a258-f46d472fc991",
+      "nombre": "ACIDO CITRICO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACIDIH10g",
+      "id": "d0f8ac32-9ddf-402a-84c7-0078bb351c81",
+      "nombre": "DIHIDROXIACETONA 10g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIGLI50P30mL",
+      "id": "08a69295-5a7b-4c5b-bdfb-795d80bf1533",
+      "nombre": "ACIDO GLICOLICO 50% 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIHIAALTPES85P30m",
+      "id": "91c75f33-c88d-48aa-8484-b9efe5ea9319",
+      "nombre": "ACIDO HIALURONICO ALTO PESO 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIHIAALTPES85P30mL",
+      "id": "ea25bcc9-9cb1-4f39-952d-48b140359fc4",
+      "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIKOJ5P30m",
+      "id": "1202bb34-22c3-484d-a5d5-2723f2159ce5",
+      "nombre": "ACIDO KOJICO 5% 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIKOJ5P30mL",
+      "id": "e4c11e93-f758-4863-9513-614e366a2b49",
+      "nombre": "ACIDO KOJICO 5% 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ACIMAL100g",
+      "id": "e37687c2-f896-421c-bec6-9c46eae93ae1",
+      "nombre": "ACIDO MALICO 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACIMAN5g",
+      "id": "1760d5b0-0e4b-4eda-9ca6-eadc2508eaa6",
+      "nombre": "ACIDO MANDELICO 5g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACISAL100g",
+      "id": "2478a4cb-2660-47c6-96a4-9570d871347c",
+      "nombre": "ACISAL100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACISAL500g",
+      "id": "1593a380-3583-402c-aadc-29e05deac004",
+      "nombre": "ACIDO SALICILICO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACISAL50g",
+      "id": "09bc2c48-af84-43a6-9b5f-8c8210d6608e",
+      "nombre": "ACIDO SALICILICO 50g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ACITRA10g",
+      "id": "96229161-a133-4954-b5b8-a9823c4b1a05",
+      "nombre": "ACIDO TRANEXAMICO 10g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AGUDES250mL",
+      "id": "e4b01903-f508-4f1d-b958-162e79be70b4",
+      "nombre": "AGUA DESTILADA 250mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AGUDESSOBRpH",
+      "id": "45296bf6-0614-45c4-8ffc-7c467a8d9993",
+      "nombre": "AGUA DESTILADA 250 mL + pH",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALA100g",
+      "id": "4e4841ef-289d-4f9d-9cdc-fa75c7dba882",
+      "nombre": "ALANTOINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALBHUE500g",
+      "id": "2c85b9e0-5126-4bee-9ea8-7cc13980a4ad",
+      "nombre": "ALBUMINA DE HUEVO 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ALCCET250g",
+      "id": "1b697411-1a83-455a-9015-769997c30848",
+      "nombre": "ALCOHOL CETILICO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALCCET500g",
+      "id": "50bc4972-d4da-4b00-858a-7df6cb644fbc",
+      "nombre": "ALCOHOL CETILICO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALCCETKg",
+      "id": "6f247def-7fd5-439c-822a-34331a5c6559",
+      "nombre": "ALCOHOL CETILICO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALGSODCLOCAL100g",
+      "id": "d6c442ec-53a8-4171-bba6-c1d147f742e8",
+      "nombre": "ALGINATO DE SODIO + CLORURO DE CALCIO 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALGSODLACCAL50g",
+      "id": "39139b72-e399-4c93-8d78-b62b3e370a04",
+      "nombre": "ALGINATO SODIO LACTATO CALCIO 50g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALMNAT250g",
+      "id": "ca75ba76-90e5-4d92-93ef-8985cbce4c1e",
+      "nombre": "ALMENDRA NATURAL 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALMNAT500g",
+      "id": "60995481-e46d-45a5-83f4-422c5f3182a0",
+      "nombre": "ALMENDRA NATURAL 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALU250g",
+      "id": "a74ff074-c52b-4fe1-82bc-28c455dae34d",
+      "nombre": "ALULOSA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALU500g",
+      "id": "615d8819-7794-450e-80a0-186d1ab5455d",
+      "nombre": "ALULOSA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ALUKg",
+      "id": "c68d0067-feb4-4164-a251-4d3d9eb2bd51",
+      "nombre": "ALULOSA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AMIBCA250g",
+      "id": "021944a2-7cd7-497d-becc-ec45a0a038dd",
+      "nombre": "AMINOACIDO BCAA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AMILARG100g",
+      "id": "87a9fe77-7973-47f5-b6d1-17de95df522b",
+      "nombre": "AMINOACIDO L ARGININA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AMILCAR100g",
+      "id": "881c1eef-ae1e-4c2b-b3ac-e9827853d53a",
+      "nombre": "AMINOACIDO L CARNITINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-AMILTRI100g",
+      "id": "bb1ada62-df85-4afe-9078-6ac1fa1731ef",
+      "nombre": "AMIOACIDO L TRIPTOFANO 100g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ARADES250g",
+      "id": "56d14e7f-7470-4f27-bfdd-94094efc75ee",
+      "nombre": "ARANDANOS DESHIDRATADOS 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BENSOD500",
+      "id": "886a06b4-d234-4c58-8855-d3623cd2f148",
+      "nombre": "BENZOATO SODIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BENSOD500g",
+      "id": "134f79a2-461a-4d59-8751-fedc8cba9ca8",
+      "nombre": "BENZOATO DE SODIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BICSOD500g",
+      "id": "b353c0ad-282e-40ba-bbf4-1f0404bd9f79",
+      "nombre": "BICARBONATO DE SODIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BTMS250g",
+      "id": "1bcb3449-34c3-4478-95f3-9b94d6853d8d",
+      "nombre": "BTMS 50 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BTMS500g",
+      "id": "8ea02fe6-cd90-4b2e-bf5f-d5586e1f4c3a",
+      "nombre": "BTMS 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-BTMS50125g",
+      "id": "07ba6247-97b7-41e9-b7cb-eab8ee0df425",
+      "nombre": "BTMS 50 125g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CAF100",
+      "id": "2359ff2f-1a8e-4884-afdd-ffc41a2c5bf7",
+      "nombre": "CAFEINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CAF500g",
+      "id": "87773f4e-b500-411e-9121-b261ac7e51db",
+      "nombre": "CAFEINA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CAFE100g",
+      "id": "39e166a9-bb04-4965-a09c-c1dbf15df48c",
+      "nombre": "CAFEINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CAOARC500g",
+      "id": "d96f86b5-cdf8-43c4-ae22-d440174bd3f2",
+      "nombre": "CAOLIN ARCILLA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CAOCARCKg",
+      "id": "f6e11fec-048c-42e2-abc6-f4d2913d3907",
+      "nombre": "CAOLIN ARCILLA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CARCAL500g",
+      "id": "97ee3250-4241-4052-9041-b3e0839e0587",
+      "nombre": "CARBONATO CALCIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABENAT500g",
+      "id": "92750a24-1cfd-422d-bde4-5feaef66db86",
+      "nombre": "CERA DE ABEJAS NATURAL 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFAMA500",
+      "id": "f3a60d70-3b3e-4b6e-807d-e52eb6daeb2b",
+      "nombre": "CERA ABEJAS REFINADA AMARILLA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFAMA500g",
+      "id": "937225a7-3061-497c-99cd-c0fe96961e3d",
+      "nombre": "Cera Abejas Refinada Amarilla 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFAMAK",
+      "id": "1b5d3280-1d18-42b5-880f-4655886f61f4",
+      "nombre": "CERA ABEJAS REFINADA AMARILLA Kg",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-CERABEREFAMAKg",
+      "id": "c7faae13-6dda-4324-8ddf-73c4a0476ec7",
+      "nombre": "Cera Abejas Refinada Amarilla Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFBLA",
+      "id": "aa3f0cc5-80db-4670-a88f-02ef1d36dc8b",
+      "nombre": "CERA ABEJAS REFINADA BLANCA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFBLA500",
+      "id": "a7ab54a3-b30e-4d50-9654-e7e54003a916",
+      "nombre": "CERA ABEJAS REFINADA BLANCA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFBLA500g",
+      "id": "dfd4ae10-250b-44c8-aba7-75debc397b4f",
+      "nombre": "CERA ABEJAS BLANCA REFINADA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERABEREFBLAKg",
+      "id": "7d719ec2-ddfc-42d4-b71a-9c5af6ce86cc",
+      "nombre": "Cera ABejas Refinada Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERCAR250g",
+      "id": "5279a3f8-e9b2-4655-ad96-51db66256585",
+      "nombre": "CERA CARNAUBA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERCAR500g",
+      "id": "e448c9a1-0d10-41c9-9585-3aa71a2c6192",
+      "nombre": "CERA CARNAUBA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CERCARKg",
+      "id": "028b08b4-cf3b-47a0-83f8-c6da17427fc8",
+      "nombre": "CERA CARNAUBA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CIA100g",
+      "id": "6b2a2522-37fb-4621-a0e8-d0720ae13d5a",
+      "nombre": "CIANOCOBALAMINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITCAL500g",
+      "id": "456034bd-6250-415a-8b8d-3c870b043541",
+      "nombre": "CITRATO CALCIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITMAG250g",
+      "id": "f84e3bee-40cf-406b-bd4c-1903d2be47f3",
+      "nombre": "CITRATO MAGNESIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITMAG500g",
+      "id": "240de97a-eeb9-4f88-bd24-6c6e6c9d9c67",
+      "nombre": "CITRATO MAGNESIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITMAGKg",
+      "id": "f79cdbe7-fcaf-414a-9cee-c92553b32924",
+      "nombre": "CITRATO MAGNESIO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITPOT250g",
+      "id": "373a25e0-63cd-46b8-92c5-c1d5cf15ec05",
+      "nombre": "CITRATO POTASIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITPOT250gMAG250g",
+      "id": "9467a7d7-3e9f-4151-a83c-878ca24c82ee",
+      "nombre": "CITRATO POTASIO 250g MAGNESIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITPOT500g",
+      "id": "5974e190-f418-40b3-8893-dbf738fc723d",
+      "nombre": "CITRATO POTASIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITPOTK",
+      "id": "79a41a5e-4264-4a0f-b6b7-1da2918d1dc1",
+      "nombre": "CITRATO POTASIO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITPOTKg",
+      "id": "66890ba7-4c3d-4e79-9287-d83b4aa9b831",
+      "nombre": "CITRATO POTASO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CITZIN500g",
+      "id": "313ec4ec-6768-486b-a1ba-4f8096922d0e",
+      "nombre": "CITRATO ZINC 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CLOCAL500g",
+      "id": "56f25bc8-dc2b-46f6-89e7-a857da2da350",
+      "nombre": "CLORURO CALCIO 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-CLOMAGHEXKg",
+      "id": "67a24fe8-bc6b-4256-9b86-e0a2e234fe7d",
+      "nombre": "CLORURO MAGNESIO HEXAHIDRATADO",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-COCPROBET500m",
+      "id": "523a318d-abff-4c2d-b73b-332f27aeea9b",
+      "nombre": "COCOAMIDA PROPIL BETAINA 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-COCPROBET500mL",
+      "id": "fc9d71fe-802f-4800-810d-a8a804b30cb7",
+      "nombre": "COCOAMIDA 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-COLHID30m",
+      "id": "28f328be-a86b-456b-9c83-55a065319181",
+      "nombre": "COLAGENO HIDROLIZADO 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-COLHID30mL",
+      "id": "05e80176-1a62-4fb3-9e3d-1422123a2ccd",
+      "nombre": "COLAGENO HIDROLIZADO 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-COLHID500g",
+      "id": "2b5eb498-fd37-4878-b0fa-d5cede9635cf",
+      "nombre": "COLAGENO POLVO HIDROLIZADO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CREMON100g",
+      "id": "5715757d-219d-427d-9020-bf7dbdbeee7f",
+      "nombre": "CREATINA MONOHIDRATO 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CREMON250g",
+      "id": "f54bf75c-3137-4de5-a701-68c6a1b6e203",
+      "nombre": "CREATINA MONOHIDRATO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CREMON500g",
+      "id": "8d42e3dd-cca5-41fe-adc2-2480e62124ba",
+      "nombre": "CREATINA MONOHIDRATO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-CRETAR500g",
+      "id": "9c898df4-797d-43cc-b730-ab26d0ad5b4e",
+      "nombre": "CREMOR TARTARO 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-DEXKg",
+      "id": "3ed8134a-9328-474f-94cc-0847c167fa68",
+      "nombre": "DEXTROSA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DIOTIT500",
+      "id": "28e24891-c2c8-479a-b4bf-bff025579364",
+      "nombre": "DIOXIDO TITANIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DIOTIT500g",
+      "id": "38f0a369-0d78-4acd-b1ec-a4a75d2dc5e8",
+      "nombre": "Dioxido Titanio 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DPAN50m",
+      "id": "f1d83319-9950-4119-8f16-b329bd4d7504",
+      "nombre": "DPANTENOL 50mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DPAN50mL",
+      "id": "353bce4f-9ac4-4590-93a1-a241a5379ff6",
+      "nombre": "D PANTENOL 50 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DPAN85P120mL",
+      "id": "d7933fc9-c86b-448c-836d-cdf651b59f58",
+      "nombre": "D PANTENOL 85% 120 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-DPG500mL",
+      "id": "2dda76b8-b1ca-4ad8-87cf-1b58745a6100",
+      "nombre": "DIPROPILENGLICOL500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ELAHID30m",
+      "id": "82e278e4-4204-443d-a892-567fca15fe23",
+      "nombre": "ELASTINA HIDROLIZADA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ELAHID30mL",
+      "id": "1a77f13a-e71c-4cdf-ae30-8795ea1318d9",
+      "nombre": "ELASTINA HIDROLIZADA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-EMBPAT30m",
+      "id": "ef7c58dd-8400-4e95-ac96-df58cf9f62c9",
+      "nombre": "EMBRION PATO 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-EMBPAT30mL",
+      "id": "ba41e79a-305d-4aa9-b91a-55adde893258",
+      "nombre": "EMBRION PATO 30 L",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-ESPCCRCRV22CM",
+      "id": "b877d87e-4af7-4cab-a81f-d1e164029888",
+      "nombre": "ESPATULA DE LABORATORIO 22Cms",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ESPLBR10CM",
+      "id": "1f3e81b5-f924-4b2d-834b-937d6c6129b5",
+      "nombre": "ESPATULA 10CMS",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-ESPLBR15CM",
+      "id": "20185680-1411-4aa6-8a52-c48580c1e95d",
+      "nombre": "ESPATULA LABORATORIO 15Cms",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-EXTALOVER30m",
+      "id": "b24bd5a3-e5b9-410e-ae2d-48dd64bfbf94",
+      "nombre": "EXTRACTO ALOE VERA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-EXTALOVER30mL",
+      "id": "b3ed903c-86de-478c-851b-4a76222b90a1",
+      "nombre": "EXTRACTO ALOE VERA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-EXTRAMAL500g",
+      "id": "12bd6ec7-b9c7-4d0e-a927-448dc08d6af2",
+      "nombre": "EXTRACTO MALTA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-EXTTEMATVER100g",
+      "id": "ab3d2d4f-469a-49c3-b5ef-4ff494b19f52",
+      "nombre": "EXTRACTO TE MATCHA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-FLOSECLAV100g",
+      "id": "57339037-904d-4079-b525-69590a97f019",
+      "nombre": "FLORES SECAS LAVANDA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-FRU500g",
+      "id": "5ddd83cb-a5d1-4b27-871b-70d1ede10360",
+      "nombre": "FRUCTOSA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GELSINSAB500",
+      "id": "8027474d-bf43-43f6-8f01-7ef958d43fa1",
+      "nombre": "GELATINA SIN SABOR 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GELSINSAB500g",
+      "id": "bab9e06a-2bc1-411e-abfe-edfa3df9de62",
+      "nombre": "GELATINA SIN SABOR 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLICVEG500mL",
+      "id": "07a2acac-2a17-4d76-96fa-44fa271b528b",
+      "nombre": "GLICERINA VEGETAL 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLIVEG250mL",
+      "id": "9c91eaec-2ad2-44d4-9bde-dfe9f1ca205b",
+      "nombre": "GLICERINA VEGETAL 250g/mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLIVEGLt",
+      "id": "91a7047a-113f-4491-bb98-44392b8f99ff",
+      "nombre": "GLICERINA VEGETAL Lt",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLU100",
+      "id": "52f078df-3bb1-434d-ad36-db6764fffa4c",
+      "nombre": "L GLUTAMINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLU100g",
+      "id": "6b9bb0c5-6bfd-4214-b887-91bf3284ed11",
+      "nombre": "GLUTAMINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GLU2P500mL",
+      "id": "a597afdd-4bce-417d-a501-08624de017b0",
+      "nombre": "GLUTARALDEHIDO 2% 500mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-GLUMON500g",
+      "id": "10441c2c-7bbc-4626-9da3-87ac185c6b89",
+      "nombre": "GLUTAMATO MONOSODICO 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-GLUMONKg",
+      "id": "828cba67-3321-4281-ab24-b58ab13ff03f",
+      "nombre": "GLUTAMATO MONOSODICO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GOMGUA500g",
+      "id": "88683b19-eeda-469e-8fb0-fe5943d047cb",
+      "nombre": "GOMA GUAR 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GOMXAN500g",
+      "id": "d101f5fd-eeb8-4a43-aacf-837d25c053e4",
+      "nombre": "GOMA XANTANA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GOMXANKg",
+      "id": "4ed0cae3-ba08-4d6b-be4f-b2ecf039b11b",
+      "nombre": "GOMA XANTANA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GRADIG",
+      "id": "d5a70fed-b53e-40a2-8cf3-f7e347b4ddae",
+      "nombre": "GRAMERA BALANZA DIGITAL",
+      "delete_error": "503: upstream connect error or disconnect/reset before headers. reset reason: connection termination",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GUSSED30m",
+      "id": "73954175-333a-4a1a-9993-7fdbdd9743f0",
+      "nombre": "GUSANO SEDA 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-GUSSED30mL",
+      "id": "7e52b723-055f-4ec8-a13d-d680f92d0774",
+      "nombre": "GUSANO DE SEDA 30 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-INU250g",
+      "id": "2d4ecf27-10d7-47f1-9a0e-d906bd4517a2",
+      "nombre": "INULINA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-INU500g",
+      "id": "8ffba431-fb92-42ab-91d7-5fdb09151f12",
+      "nombre": "INULINA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-INUKg",
+      "id": "d6bd68cb-ca77-4cc8-ab5c-3b1ab04295d7",
+      "nombre": "INULINA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-KITREPCOS2",
+      "id": "080f8496-a2cf-4dbe-80d9-e04cf9b195ee",
+      "nombre": "KIT REPARADOR COSMETICO 2",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-KITREPCOS3",
+      "id": "d78a230a-1da3-4d1d-b4e1-418cd2540172",
+      "nombre": "KIT REPARADOR COSMETICO 3",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-LACCAL100g",
+      "id": "a6ad9d43-8f6b-4a44-b11b-e6780f18206a",
+      "nombre": "LACTATO CALCIO 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-LACCAL250g",
+      "id": "f86b923b-2cd8-496f-951e-3c4191114b35",
+      "nombre": "LACTATO CALCIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-LAN250g",
+      "id": "edcad827-dc4c-4ef2-adf8-afd49e85c0ab",
+      "nombre": "LANOLINA 250g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-LAN40g",
+      "id": "0e8e04ae-f7a1-4ce2-96cf-89d2af7693c1",
+      "nombre": "LANOLINA 40g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-LECSOY500g",
+      "id": "aff5c1a2-0215-44de-9f1c-6b94f1734c16",
+      "nombre": "LECITINA SOYA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MAL500g",
+      "id": "1ab5da68-5537-4475-a984-7c541641ac4d",
+      "nombre": "MALTODEXTRINA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANCACNAT500g",
+      "id": "9b9110ac-2f3f-49ac-912f-2fbb6644c0c2",
+      "nombre": "MANTECA DE CACAO NATURAL 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANCACREF500g",
+      "id": "38a558db-3ffb-46f0-bb03-294aff3d94a5",
+      "nombre": "MANTECA DE CACAO REFINADA 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-MANCACREFKg",
+      "id": "06799427-7b3f-47e9-b064-f21f1a86f384",
+      "nombre": "MANTECA CACAO REFINADA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARAMA250g",
+      "id": "c47c51a5-22c2-46df-b359-5737f88eedc7",
+      "nombre": "MANTECA KARITE AMARILLA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARAMA500g",
+      "id": "7cf4b364-1bda-4784-940d-47f1a9aa7acd",
+      "nombre": "MANTECA KARITE AMARILLA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARAMAKg",
+      "id": "6b4eed9e-2c4b-4a88-9c9d-6e471a3c4a1c",
+      "nombre": "MANTECA KARITE AMARILLA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARBLA125g",
+      "id": "f16bf337-4963-47c0-b6e2-5ce1acd31756",
+      "nombre": "MANTECA KARITE BLANCA 125g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARBLA500g",
+      "id": "e017aa19-c640-447c-8fe6-aff27c634759",
+      "nombre": "MANTECA KARITE BLANCA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANKARBLAKg",
+      "id": "c23b189b-d9dd-40df-89e7-4a02dbcefd47",
+      "nombre": "MANTECA KARITE BLANCA Kg",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-MANNATTOS500g",
+      "id": "600362f3-46fc-47b6-b301-8defe35c80e0",
+      "nombre": "MANI NATURA TOSTADO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MANTKARAMA125g",
+      "id": "f16283c7-0b31-47c6-a56e-09d42b0194fd",
+      "nombre": "MANTECA KARITE AMARILLA 125g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MENCRI100",
+      "id": "1577c57b-59e6-4fe2-b970-80a16b4227e0",
+      "nombre": "MENTOL CRISTAL 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-MENCRI100g",
+      "id": "9e214d03-14d3-4749-ac49-9706bb4785de",
+      "nombre": "MENTOL CRISTAL 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-NIA100g",
+      "id": "d4ffef7c-90b2-471a-a360-d9cf17297b4c",
+      "nombre": "NIACINAMIDA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-NUEBRA250g",
+      "id": "93e701e0-6fc3-4454-90f5-1264d3b0ee82",
+      "nombre": "NUEZ PARTIDA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-NUEBRA500",
+      "id": "affc62ea-7083-4450-885c-2d7be131ed41",
+      "nombre": "NUEZ PARTIDA DEL BRASIL 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-NUEBRA500g",
+      "id": "5e6cc636-47bc-49d9-a2cd-a76064906f62",
+      "nombre": "NUEZ PARTIDA 500g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-OXIZIN250g",
+      "id": "0252fd37-9f63-4b67-8f51-27c65ab3a745",
+      "nombre": "OXIDO ZINC 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PAP100g",
+      "id": "362f067d-ab4e-428f-a22b-20c8c7a8cb78",
+      "nombre": "PAPAINA 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PARKg",
+      "id": "f15370a0-fb94-4393-9a37-335a5974950e",
+      "nombre": "PARAFINA Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PISTOS250g",
+      "id": "e38f8e49-18c0-4b8f-a3f2-50d16188c4ab",
+      "nombre": "PISTACHOS TOSTADOS 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PISTOS500g",
+      "id": "e13c0a5a-fdda-4ef9-b5e9-401b9eaa715d",
+      "nombre": "PISTACHOS TOSTADOS 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-POLTWE80P500mL",
+      "id": "3359e94f-6c8a-4b8c-b6f7-7376bfbcfcf9",
+      "nombre": "POLISORBATO TWEEN 80P 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PROAISSOY500g",
+      "id": "1ffbe5a6-b913-4ec0-8fb7-ec96995ef78d",
+      "nombre": "PROTEINA AISLADA SOYA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-PROCONSUE80PKg",
+      "id": "02780f24-6d56-4311-b6a5-3bc8cad7fb80",
+      "nombre": "PROTEINA CONCENTRADA SUERO LECHE 80P Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-RET5P30m",
+      "id": "fdacb082-892f-4498-ae51-1abe749d0e88",
+      "nombre": "RETINOL 5% 30mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-RET5P30mL",
+      "id": "c047d509-fc21-4bff-afef-ee9b7af83b08",
+      "nombre": "RETINOL 5% 30 mL",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-SABCARAHU100g",
+      "id": "314f6e41-255c-4cc5-8230-e8e952bea8e9",
+      "nombre": "SABOR CARNE AHUMADA 100g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-SEBCOR150g",
+      "id": "85d154f1-f855-4c97-beb2-fa2ed506bb86",
+      "nombre": "SEBO CORDERO 150g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SEMCAL250g",
+      "id": "8f097f13-f714-4d95-ac3a-00595f76f5cc",
+      "nombre": "SEMILLA DE CALABAZA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SEMCAL500g",
+      "id": "07de4e0f-c36a-4c49-b970-a2c3c836ab73",
+      "nombre": "SEMILLAS DE CALABAZA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SHA705250mL",
+      "id": "3720d250-fb49-444d-bd99-8260feac03b1",
+      "nombre": "SHAROMIX 705 250 mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SHA705500mL",
+      "id": "232bd137-097c-479a-9c24-d89eb5674394",
+      "nombre": "SHAROMIX 705 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SHA70550mL",
+      "id": "9e7cf83e-44c8-44bd-94b9-2746e95a23b7",
+      "nombre": "SHAROMIX 705 50mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SOR500mL",
+      "id": "5cc7508a-babb-4643-9827-972902c091f1",
+      "nombre": "SORBITOL 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SORPOLKg",
+      "id": "fb300b3c-5204-4353-be42-a9934aaeb8e2",
+      "nombre": "SORBITOL POLVO Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SORPOT250",
+      "id": "0078c89d-07bf-497d-830d-e5fbdc35123a",
+      "nombre": "SORBATO POTASIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SORPOT250g",
+      "id": "0fcc96fc-8f34-40f4-b188-9f6e0ccb1e2a",
+      "nombre": "SORBATO POTASIO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SORPOT500g",
+      "id": "9a705aaf-3508-472c-97e8-6afa88af5feb",
+      "nombre": "SORBATO POTASIO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-SORPOTKg",
+      "id": "97325808-e98a-4cfb-aceb-c0015378655e",
+      "nombre": "SORBATO POTASIO Kg",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-SURLECDULKg",
+      "id": "1333251d-581a-41cc-8b2b-17f46d5b427a",
+      "nombre": "SUERO LECHE DULCE Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TAU250g",
+      "id": "5a953f43-b0a7-450c-8dda-c750d8e0818a",
+      "nombre": "TAURINA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TEGBET250mL",
+      "id": "1432ffe0-12b4-4e65-b893-f5eb3134ccae",
+      "nombre": "TEGO BETAINA 250mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TEGBET500mL",
+      "id": "a39a086a-4176-45b6-9d89-092ba9d5264b",
+      "nombre": "TEGO BETAINA COCO 500mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TEGBETLt",
+      "id": "e1ac4b36-9ad0-4a75-a41d-6b3f286d8eed",
+      "nombre": "TEGO BETAINA DE COCO Lt",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TENSCI100g",
+      "id": "ff1167cc-820c-4912-a3a5-6d83df7788a0",
+      "nombre": "TENSOACTIVO SCI 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TENSCI250g",
+      "id": "a4da13dc-96f4-48f9-987e-1231f9f08783",
+      "nombre": "TENSOACTIVO SCI 250g",
+      "ok": true,
+      "accion": "eliminado"
+    },
+    {
+      "code": "D-TENSCI500g",
+      "id": "d4dabdc3-75b3-4a06-901c-637890cd399c",
+      "nombre": "TENSOACTIVO SCI 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-TENSCIKg",
+      "id": "ed6be5b3-4e33-4520-9fc2-288eb6b1b0cb",
+      "nombre": "TENSO ACTIVO SCI Kg",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-URE250g",
+      "id": "3c360d37-7481-4fb1-b35a-ffebe115e449",
+      "nombre": "UREA 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-URE500g",
+      "id": "ff880a7b-789e-48e5-8be9-2ead13b7145c",
+      "nombre": "UREA 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VASPRE100mL",
+      "id": "f4763bfa-c5a9-4f66-8176-11eedcb380cc",
+      "nombre": "VASO DE PRECIPITADO 100mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VASPRE10mL",
+      "id": "5cd2b0da-4720-4cee-b176-f7e44447f137",
+      "nombre": "VASO DE PRECIPITADO 10mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VASPRE25mL",
+      "id": "09dbca2e-0c0a-4e6b-8785-ee2baa739471",
+      "nombre": "VASO DE PRECIPITADO 25mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VASPRE50mL",
+      "id": "0d63547c-7dd7-49c5-9253-02da7ff27293",
+      "nombre": "VASO DE PRECIPITADO 50mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VITC30P30mL",
+      "id": "abffcf18-779e-4448-92a9-bddbf01bb100",
+      "nombre": "VITAMINA C 30% 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VITCACIASC100g",
+      "id": "e4f7a067-4214-494c-bd44-4162322dfed2",
+      "nombre": "ACIDO ASCORBICO 100g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VITCACIASC250g",
+      "id": "f2ba1872-dbca-4cdc-aac8-363dd0dff68f",
+      "nombre": "VITAMINA C ACIDO ASCORBICO 250g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VITCACIASC500g",
+      "id": "476a7ce2-6731-4b79-9eef-1566b36995dc",
+      "nombre": "VITAMINA C ACIDO ASCORBICO 500g",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    },
+    {
+      "code": "D-VITE30mL",
+      "id": "ec5cb0b7-fdb5-4858-a2f7-60ee90f956a1",
+      "nombre": "VITAMINA E 30mL",
+      "delete_error": "400: {\"Status\":400,\"Errors\":[{\"Code\":\"delete_not_allowed\",\"Message\":\"The product cannot be deleted because it is being used in other fields or entities\",\"Params\":[\"id\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/delete_not_allowed\"",
+      "ok": false,
+      "error": "PUT 400: {\"Status\":400,\"Errors\":[{\"Code\":\"parameter_required\",\"Message\":\"The field components is required\",\"Params\":[\"components\"],\"Detail\":\"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_required\"}]}"
+    }
+  ]
+}

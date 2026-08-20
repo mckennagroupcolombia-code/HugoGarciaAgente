@@ -163,34 +163,4 @@
     });
   });
 
-  /* ── Studio web: tokens en vivo desde el iframe del panel ─ */
-  if (document.body.getAttribute('data-studio-live') === '1') {
-    function origenStudioOk(origin) {
-      try {
-        var host = new URL(origin).hostname.toLowerCase();
-        return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
-      } catch (err) {
-        return false;
-      }
-    }
-    window.addEventListener('message', function (ev) {
-      var data = ev.data;
-      if (!data || data.type !== 'mck-studio-live') return;
-      if (!origenStudioOk(ev.origin)) return;
-      var css = data.css || {};
-      var root = document.documentElement;
-      var body = document.body;
-      Object.keys(css).forEach(function (k) {
-        if (typeof css[k] !== 'string') return;
-        root.style.setProperty(k, css[k]);
-        body.style.setProperty(k, css[k]);
-      });
-      if (typeof data.tagline === 'string') {
-        document.querySelectorAll('.brand-text span').forEach(function (el) {
-          el.textContent = data.tagline;
-        });
-      }
-    });
-  }
-
 })();

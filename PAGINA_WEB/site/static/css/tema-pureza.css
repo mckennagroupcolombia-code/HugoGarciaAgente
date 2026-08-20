@@ -36,7 +36,7 @@ body.tema-pureza {
   color: var(--pz-tinta);
 }
 
-/* ── Tipografía display (editable desde Studio vía --studio-font-display) ─ */
+/* ── Tipografía display (token --studio-font-display) ─ */
 body.tema-pureza h1,
 body.tema-pureza h2,
 body.tema-pureza .section-title,

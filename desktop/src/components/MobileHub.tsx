@@ -639,7 +639,6 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
           { panel: "stock" as Panel, label: "Stock" },
           { panel: "control-inventario" as Panel, label: "Inventario" },
           { panel: "etiquetas" as Panel, label: "Diseño" },
-          { panel: "sitioweb" as Panel, label: "Studio web" },
           { panel: "fichas" as Panel, label: "Docs técnicos" },
           { panel: "facturacion" as Panel, label: "Contabilidad" },
         ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (

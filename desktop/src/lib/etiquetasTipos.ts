@@ -19,7 +19,7 @@ export const TIPOS_ETIQUETA_DEFAULT: TipoEtiqueta[] = [
   { nombre: "Circular", ancho_mm: 55, alto_mm: 55 },
   { nombre: "Circular 50", ancho_mm: 50, alto_mm: 50 },
   { nombre: "Circle 50", ancho_mm: 50, alto_mm: 50 },
-  { nombre: "CIRCLE", ancho_mm: 50, alto_mm: 50 },
+  { nombre: "CIRCLE", ancho_mm: 53.9, alto_mm: 53.9 },
   { nombre: "Circular 70", ancho_mm: 70, alto_mm: 70 },
   { nombre: "5 g", ancho_mm: 50, alto_mm: 42 },
   { nombre: "54mm", ancho_mm: 54, alto_mm: 58 },

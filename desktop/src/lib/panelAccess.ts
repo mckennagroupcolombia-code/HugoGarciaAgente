@@ -25,7 +25,6 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas", "empaque"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
-  if (seccion === "sitioweb" && p.publicaciones) return true;
   return Boolean(p[seccion]);
 }
 

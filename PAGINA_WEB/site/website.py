@@ -23,9 +23,7 @@ import site_auth
 from app.api_auth import normalize_api_token, bearer_token_from_request
 from app.web_chat_activity import record_interaction
 from app.tools.tema_web import (
-    cargar_tema_preview,
     cargar_tema_web,
-    host_permite_studio_preview,
     resolver_colores_clasico_css,
     resolver_diseno_css,
     resolver_fondos_css,
@@ -80,9 +78,10 @@ CACHE_FILE  = Path(__file__).parent / "data/cache.json"
 FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
+EXTRA_SIIGO_WEB_FILE = Path(__file__).parent / "data/catalogo_extra_siigo.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 12      # v12 = sinónimos SIIGO (árbol de té 5mL / 30mL)
+CATALOG_CACHE_VERSION = 15      # v15 = tienda solo con publicaciones MeLi (activas o pausadas)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -554,11 +553,34 @@ def _score_nombre_producto(nombre_combo: str, titulo_meli: str) -> float:
     return round((coverage * 0.6 + jaccard * 0.25 + qty_score * 0.15) * 100, 1)
 
 
+MELI_PHOTOS_MAX = 12
+
+
+def _normalize_photo_urls(urls, limit: int = MELI_PHOTOS_MAX) -> list[str]:
+    """Dedup conservando orden. Acepta strings o dicts estilo MeLi pictures."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in urls or []:
+        if isinstance(raw, dict):
+            url = (raw.get("secure_url") or raw.get("url") or "").strip()
+        else:
+            url = str(raw or "").strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append(url)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _meli_item_photos(item: dict, limit: int = MELI_PHOTOS_MAX) -> list[str]:
+    return _normalize_photo_urls(item.get("pictures") or [], limit=limit)
+
+
 def _meli_item_photo(item: dict) -> str:
-    pics = item.get("pictures") or []
-    if not pics:
-        return ""
-    return (pics[0].get("secure_url") or pics[0].get("url") or "").strip()
+    photos = _meli_item_photos(item, limit=1)
+    return photos[0] if photos else ""
 
 
 def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
@@ -617,10 +639,10 @@ def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
                 "https://api.mercadolibre.com/items",
                 params={
                     "ids": ",".join(item_ids[i:i + 20]),
-                    "attributes": "id,title,seller_custom_field,attributes,pictures",
+                    "attributes": "id,title,seller_custom_field,attributes,pictures,price,status",
                 },
                 headers=headers,
-                timeout=20,
+                timeout=40,
             )
             if res.status_code != 200:
                 continue
@@ -628,11 +650,14 @@ def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
                 body = entry.get("body") or {}
                 if entry.get("code") != 200 or not body:
                     continue
-                photo = _meli_item_photo(body)
-                if not photo:
-                    continue
+                photos = _meli_item_photos(body)
                 body["_seller_sku"] = _extract_meli_sku(body)
-                body["_photo"] = photo
+                body["_photos"] = photos
+                body["_photo"] = photos[0] if photos else ""
+                try:
+                    body["_price"] = float(body.get("price") or 0)
+                except (TypeError, ValueError):
+                    body["_price"] = 0.0
                 items.append(body)
         except Exception as e:
             log.warning("MeLi fotos combos: error batch items: %s", e)
@@ -688,113 +713,307 @@ def _meli_ids_por_skus(token: str, skus: list[str]) -> dict[str, str]:
     return out
 
 
+def _indice_meli_por_sku(items: list[dict]) -> tuple[dict, dict]:
+    by_sku: dict[str, list] = defaultdict(list)
+    by_compact: dict[str, list] = defaultdict(list)
+    for item in items:
+        sku = (item.get("_seller_sku") or "").strip().upper()
+        if not sku:
+            continue
+        by_sku[sku].append(item)
+        ck = _compact_sku_for_photo(sku)
+        if ck:
+            by_compact[ck].append(item)
+    return by_sku, by_compact
+
+
+def _identidades_compatibles(nombre_combo: str, titulo_meli: str) -> bool:
+    """Mismo producto (jazmín ≠ limón). Título o nombre vacío no cuenta como match."""
+    a = _identidad_nombre_catalogo(nombre_combo)
+    b = _identidad_nombre_catalogo(titulo_meli)
+    if not a or not b:
+        return False
+    return a == b
+
+
+def _item_meli_activo(item: dict) -> bool:
+    return (item.get("status") or "").strip().lower() == "active"
+
+
+def _elegir_item_por_identidad(cands: list[dict], nombre: str) -> dict | None:
+    if not cands:
+        return None
+    compat = [it for it in cands if _identidades_compatibles(nombre, it.get("title") or "")]
+    if not compat:
+        return None
+    activos = [it for it in compat if _item_meli_activo(it)]
+    pool = activos if activos else compat
+    ids = {it.get("id") for it in pool}
+    if len(ids) > 1:
+        if len(activos) == 1:
+            return activos[0]
+        return None
+    return pool[0]
+
+
+def _meli_item_para_combo(code: str, by_sku: dict, by_compact: dict, nombre: str = "") -> tuple[dict | None, str]:
+    """SKU exacto o alias compacto, solo si el título MeLi es el mismo producto."""
+    u = (code or "").strip().upper()
+    if not u:
+        return None, ""
+    exact = list(by_sku.get(u) or [])
+    if exact:
+        item = _elegir_item_por_identidad(exact, nombre)
+        return (item, "sku") if item else (None, "")
+    ck = _compact_sku_for_photo(u)
+    cands = list(by_compact.get(ck) or [])
+    item = _elegir_item_por_identidad(cands, nombre)
+    if not item:
+        return None, ""
+    sku_u = (item.get("_seller_sku") or "").strip().upper()
+    return item, ("sku" if sku_u == u else "sku_alias")
+
+
+def _meli_item_por_identidad_unica(nombre_combo: str, items: list[dict]) -> tuple[dict | None, str]:
+    """Una sola publicación MeLi con los mismos tokens distintivos (y tamaño si ambos lo traen)."""
+    ident = _identidad_nombre_catalogo(nombre_combo)
+    tam = _cantidades_match_producto(nombre_combo)
+    if not ident:
+        return None, ""
+    hits = []
+    for item in items:
+        if _identidad_nombre_catalogo(item.get("title") or "") != ident:
+            continue
+        qty_m = _cantidades_match_producto(item.get("title") or "")
+        if tam and qty_m and not (tam & qty_m):
+            continue
+        hits.append(item)
+    item = _elegir_item_por_identidad(hits, nombre_combo)
+    return (item, "identity") if item else (None, "")
+
+
+def _aplicar_precio_maestro_meli(combo: dict, precio_meli: float) -> None:
+    """Lista tachada = MeLi vivo; web = 10% menos. No usa el precio SIIGO."""
+    from app.services.precios_canales import resolver_precios_multicanal
+
+    try:
+        ref = float(precio_meli or 0)
+    except (TypeError, ValueError):
+        return
+    if ref <= 0:
+        return
+    px = resolver_precios_multicanal(combo.get("ref") or "", ref, nombre=combo.get("name") or "")
+    combo["lista_num"] = px["lista"]
+    combo["precio_meli_num"] = px["meli"]
+    combo["precio_meli"] = _fmt_precio(px["meli"])
+    combo["precio_num"] = px["web"]
+    combo["precio"] = _fmt_precio(px["web"])
+    combo["ahorro_num"] = px["ahorro_web_vs_meli"]
+    combo["ahorro"] = _fmt_precio(px["ahorro_web_vs_meli"])
+
+
+def _identidad_nombre_catalogo(texto: str) -> frozenset[str]:
+    stop = {
+        "aceite", "esencial", "esenciales", "mckenna", "group", "puro", "pura",
+        "para", "difusor", "masajes", "aromaterapia", "herbal", "cosmetico",
+        "cosmetica", "envio", "gratis", "nacional", "todo", "tipo", "piel",
+        "ml", "gr", "kg", "gramos", "combo", "kit",
+    }
+    toks = []
+    for t in _normalizar_match_producto(texto).split():
+        if t in stop or len(t) < 3 or t.isdigit():
+            continue
+        if re.fullmatch(r"\d+(ml|gr|g|kg)", t):
+            continue
+        toks.append(t)
+    return frozenset(toks)
+
+
 def fetch_meli_combo_photo_map(token: str, combos: list[dict]) -> dict[str, dict]:
     """
-    Retorna {SKU combo SIIGO: {photo, meli_id, match_type, score}}.
-    Prioridad: SKU exacto MeLi; fallback por nombre solo si es confiable.
+    Retorna {SKU combo SIIGO: {photo, photos, meli_id, match_type, score, price}}.
+    Solo SKU exacto o alias compacto — el match por nombre cruzaba aceites esenciales.
     """
     if not token or not combos:
         return {}
     items = _fetch_meli_active_items_for_photos(token)
-    by_sku = {
-        (item.get("_seller_sku") or "").strip().upper(): item
-        for item in items
-        if (item.get("_seller_sku") or "").strip()
-    }
-    by_compact_sku = {
-        _compact_sku_for_photo(item.get("_seller_sku") or ""): item
-        for item in items
-        if _compact_sku_for_photo(item.get("_seller_sku") or "")
-    }
+    by_sku, by_compact = _indice_meli_por_sku(items)
     out: dict[str, dict] = {}
-    exact = compact = fallback = family = 0
+    exact = compact = 0
     for combo in combos:
         code = (combo.get("ref") or combo.get("code") or "").strip()
         if not code:
             continue
-        item = by_sku.get(code.upper())
-        match_type = "sku"
-        if item:
-            out[code.upper()] = {
-                "photo": item.get("_photo", ""),
-                "meli_id": item.get("id", ""),
-                "match_type": match_type,
-                "score": 100.0,
-            }
+        item, match_type = _meli_item_para_combo(code, by_sku, by_compact, combo.get("name") or "")
+        if not item:
+            continue
+        photos = list(item.get("_photos") or [])
+        photo = item.get("_photo", "") or (photos[0] if photos else "")
+        rec = {
+            "photo": photo,
+            "photos": photos or ([photo] if photo else []),
+            "meli_id": item.get("id", ""),
+            "match_type": match_type,
+            "score": 100.0 if match_type == "sku" else 98.0,
+            "price": item.get("_price") or 0,
+            "title": item.get("title") or "",
+        }
+        out[code.upper()] = rec
+        if match_type == "sku":
             exact += 1
-            continue
-        item = by_compact_sku.get(_compact_sku_for_photo(code))
-        if item:
-            out[code.upper()] = {
-                "photo": item.get("_photo", ""),
-                "meli_id": item.get("id", ""),
-                "match_type": "sku_alias",
-                "score": 98.0,
-            }
+        else:
             compact += 1
-            continue
-
-        ranked = sorted(
-            (
-                (_score_nombre_producto(combo.get("name", ""), item.get("title", "")), item)
-                for item in items
-            ),
-            key=lambda x: x[0],
-            reverse=True,
-        )
-        best_score, best_item = ranked[0] if ranked else (0.0, {})
-        second_score = ranked[1][0] if len(ranked) > 1 else 0.0
-        if best_score >= 72 and (best_score - second_score) >= 8:
-            out[code.upper()] = {
-                "photo": best_item.get("_photo", ""),
-                "meli_id": best_item.get("id", ""),
-                "match_type": "name",
-                "score": best_score,
-            }
-            fallback += 1
-
+    # Mismo aceite por título (SKU mal cargado en MeLi). Varios SKU SIIGO del
+    # mismo producto pueden compartir la publicación; no se reutiliza un ítem
+    # de *otra* identidad.
+    name_n = 0
     for combo in combos:
         code = (combo.get("ref") or combo.get("code") or "").strip().upper()
         if not code or code in out:
             continue
-        combo_core = _core_photo_tokens(combo.get("name", ""))
-        if not combo_core:
+        item, ident_kind = _meli_item_por_identidad_unica(combo.get("name") or "", items)
+        if not item:
             continue
-        candidates = []
-        for item in items:
-            title_core = _core_photo_tokens(item.get("title", ""))
-            if not title_core:
-                continue
-            overlap = combo_core & title_core
-            coverage = len(overlap) / len(combo_core)
-            if combo_core.issubset(title_core):
-                score = 95.0
-            elif len(combo_core) == 1 and overlap:
-                score = 88.0
-            elif coverage >= 0.66 and len(overlap) >= 2:
-                score = round(82.0 + coverage * 10.0, 1)
-            else:
-                continue
-            candidates.append((score, item))
-        candidates.sort(key=lambda x: x[0], reverse=True)
-        if candidates:
-            best_score, best_item = candidates[0]
-            out[code] = {
-                "photo": best_item.get("_photo", ""),
-                "meli_id": best_item.get("id", ""),
-                "match_type": "family",
-                "score": best_score,
-            }
-            family += 1
+        photos = list(item.get("_photos") or [])
+        photo = item.get("_photo", "") or (photos[0] if photos else "")
+        out[code] = {
+            "photo": photo,
+            "photos": photos or ([photo] if photo else []),
+            "meli_id": item.get("id", ""),
+            "match_type": ident_kind,
+            "score": 90.0,
+            "price": item.get("_price") or 0,
+            "title": item.get("title") or "",
+        }
+        name_n += 1
+        compact += 1
     log.info(
-        "Fotos combos MeLi: %s por SKU exacto, %s por alias SKU, %s por nombre, %s por familia, %s sin foto",
+        "Fotos/precios MeLi por SKU: %s exactos, %s alias, %s sin publicación vinculable",
         exact,
         compact,
-        fallback,
-        family,
         max(0, len(combos) - len(out)),
     )
     return out
+
+
+def aplicar_precios_meli_a_combos(combo_flat: list[dict], photo_map: dict[str, dict]) -> int:
+    """Pone precio MeLi vivo y 10% web solo si el vínculo es el mismo producto."""
+    n = 0
+    ok = {"sku", "sku_alias", "identity"}
+    for combo in combo_flat:
+        code_u = (combo.get("ref") or "").strip().upper()
+        rec = photo_map.get(code_u) or {}
+        match = rec.get("match_type") or ""
+        if match in ok:
+            if rec.get("meli_id"):
+                combo["meli_id"] = rec["meli_id"]
+            if rec.get("title"):
+                combo["meli_title"] = rec["title"]
+            if rec.get("photo"):
+                combo["photo"] = rec["photo"]
+                combo["photo_match_type"] = match
+                combo["photo_match_score"] = rec.get("score", 100)
+            photos = _normalize_photo_urls(rec.get("photos") or ([rec.get("photo")] if rec.get("photo") else []))
+            if photos:
+                combo["photos"] = photos
+            if rec.get("price"):
+                _aplicar_precio_maestro_meli(combo, rec["price"])
+                n += 1
+        elif combo.get("photo_match_type") in ("name", "family"):
+            combo["meli_id"] = ""
+            combo["meli_title"] = ""
+            combo["photo"] = ""
+            combo["photos"] = []
+            combo["photo_match_type"] = ""
+            combo["photo_match_score"] = 0
+    return n
+
+
+def _fetch_meli_pictures_by_ids(token: str, item_ids: list[str]) -> dict[str, list[str]]:
+    """Batch GET /items → {meli_id: [urls CDN en orden de la publicación]}."""
+    if not token or not item_ids:
+        return {}
+    headers = {"Authorization": f"Bearer {token}"}
+    unique: list[str] = []
+    seen: set[str] = set()
+    for iid in item_ids:
+        i = (iid or "").strip()
+        if i and i not in seen:
+            seen.add(i)
+            unique.append(i)
+    out: dict[str, list[str]] = {}
+    for i in range(0, len(unique), 20):
+        batch = unique[i:i + 20]
+        try:
+            res = requests.get(
+                "https://api.mercadolibre.com/items",
+                params={"ids": ",".join(batch), "attributes": "id,pictures"},
+                headers=headers,
+                timeout=20,
+            )
+            if res.status_code != 200:
+                log.warning("MeLi galería: batch offset %s respondió %s", i, res.status_code)
+                continue
+            for entry in res.json():
+                if entry.get("code") != 200:
+                    continue
+                body = entry.get("body") or {}
+                mid = (body.get("id") or "").strip()
+                photos = _meli_item_photos(body)
+                if mid and photos:
+                    out[mid] = photos
+        except Exception as e:
+            log.warning("MeLi galería: error batch: %s", e)
+    return out
+
+
+def _combos_necesitan_galeria_meli(combos: list[dict]) -> bool:
+    for c in combos or []:
+        if (c.get("meli_id") or "").strip() and not (c.get("photos") or []):
+            return True
+    return False
+
+
+def _enriquecer_galeria_meli_en_combos(combos: list[dict], token: str | None = None) -> int:
+    """Rellena combo['photos'] con todas las pictures de la publicación MeLi vinculada."""
+    pendientes = [
+        c for c in (combos or [])
+        if (c.get("meli_id") or "").strip() and not (c.get("photos") or [])
+    ]
+    if not pendientes:
+        return 0
+    token = token if token is not None else get_meli_token()
+    if not token:
+        return 0
+    by_id = _fetch_meli_pictures_by_ids(token, [c["meli_id"] for c in pendientes])
+    n = 0
+    for c in pendientes:
+        photos = by_id.get((c.get("meli_id") or "").strip()) or []
+        if not photos:
+            continue
+        c["photos"] = photos
+        if not (c.get("photo") or "").strip():
+            c["photo"] = photos[0]
+        n += 1
+    log.info("Galería MeLi: %s/%s combos con fotos completas", n, len(pendientes))
+    return n
+
+
+def _hidratar_galeria_si_falta(data: list, combos: list) -> tuple[list, list]:
+    filtrados = _filtrar_combos_publicados_meli(combos)
+    rebuild = len(filtrados) != len(combos or [])
+    combos = filtrados
+    n = 0
+    if _combos_necesitan_galeria_meli(combos):
+        n = _enriquecer_galeria_meli_en_combos(combos)
+    if not n and not rebuild:
+        return data, combos
+    data = _catalog_sections_from_combos(combos)
+    try:
+        _persistir_cache_catalogo(data, combos)
+    except Exception as e:
+        log.warning("No se pudo guardar galería MeLi en cache: %s", e)
+    return data, combos
 
 
 # ══════════════════════════════════════════════════════════
@@ -1710,6 +1929,9 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
             "buyable": c.get("buyable", True),
             "presentacion_label": c.get("presentacion_label", ""),
             "photo": c.get("photo", ""),
+            "photos": _normalize_photo_urls(
+                c.get("photos") or ([c.get("photo")] if c.get("photo") else [])
+            ),
             "meli_id": c.get("meli_id", ""),
         })
 
@@ -1734,6 +1956,10 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
         "envio_referencia": rep.get("envio_referencia"),
         "precio_canal_label": "Directo web",
         "photo": rep.get("photo", "") or next((c.get("photo") for c in annotated if c.get("photo")), ""),
+        "photos": _normalize_photo_urls(
+            rep.get("photos")
+            or ([rep.get("photo")] if rep.get("photo") else [])
+        ),
         "meli_id": rep.get("meli_id", ""),
         "cat": rep.get("cat", "Otros"),
         "cat_color": color_categoria(rep.get("cat")),
@@ -1750,6 +1976,13 @@ def _build_family_card(combos: list[dict], used_slugs: set[str]) -> dict:
         "photo_match_type": rep.get("photo_match_type", ""),
         "photo_match_score": rep.get("photo_match_score", 0),
     }
+    if not family.get("photos") and family.get("photo"):
+        family["photos"] = [family["photo"]]
+    if not family.get("photos"):
+        for c in combo_summaries:
+            if c.get("photos"):
+                family["photos"] = list(c["photos"])
+                break
     return family
 
 
@@ -1958,9 +2191,36 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
     n = _normalizar_match_producto(nombre_clean)
     if "aceite esencial" in n or n.startswith("aceite arbol") or "esencial" in n:
         return "Aceites Esenciales"
+    if "bomba de vacio" in n or "bomba de vacío" in n:
+        return "Otros"
     if "azul metileno" in n or "glutaraldehido" in n:
         return "Antisépticos"
-    if n.startswith("aceite ") or n.startswith("acete ") or " sebo " in f" {n} ":
+    if (
+        "betaina" in n
+        or "tensosil" in n
+        or "tensioactivo sci" in n
+        or n.startswith("sci ")
+        or "lanette" in n
+    ):
+        return "Emulsionantes y Surfactantes"
+    if ("dioxido" in n and "titanio" in n) or "oxido zinc" in n or "oxido de zinc" in n:
+        return "Arcillas"
+    if "sucralosa" in n:
+        return "Edulcorantes"
+    if re.search(
+        r"\bl (triptofano|teanina|isoleucina|histidina|carnitina|arginina|prolina)\b",
+        n,
+    ):
+        return "Suplementarios"
+    if "citrato" in n and "potasio" in n:
+        return "Sales Minerales"
+    if "sulfato" in n and ("hierro" in n or "ferroso" in n or "cobre" in n):
+        return "Minerales"
+    if "colorante" in n:
+        return "Saborizantes"
+    if "gotero" in n or "beaker" in n or "revolvedor" in n or "envase de vidrio" in n:
+        return "Equipos y Materiales"
+    if n.startswith("aceite ") or n.startswith("acete ") or " sebo " in f" {n} " or n.startswith("sebo "):
         return "Aceites"
     if n.startswith("acido ") or " vitamina c " in f" {n} " or n.startswith("vitamina c"):
         return "Ácidos"
@@ -2147,6 +2407,7 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "envio_referencia": px["envio_referencia"],
         "precio_canal_label": "Directo web",
         "photo": "",
+        "photos": [],
         "meli_id": "",
         "cat": cat,
         "cat_color": color_categoria(cat),
@@ -2157,6 +2418,203 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "buyable": True if stock_web is None else stock_web > 0,
         "is_combo": True,
     }
+
+
+CATS_MATERIA_PRIMA_WEB = {
+    "Ácidos",
+    "Aceites Esenciales",
+    "Aceites",
+    "Ceras y Mantecas",
+    "Emulsionantes y Surfactantes",
+    "Humectantes",
+    "Arcillas",
+    "Sales Minerales",
+    "Minerales",
+    "Vitaminas",
+    "Suplementarios",
+    "Excipientes",
+    "Conservantes",
+    "Edulcorantes",
+    "Principios Activos",
+    "Kits",
+    "Equipos y Materiales",
+    "Agrícola",
+    "Saborizantes",
+    "Antisépticos",
+}
+
+_RX_MELI_NO_CATALOGO_WEB = re.compile(
+    r"disco de corte|extensi[oó]n el[eé]ctrica|flanche|grifer[ií]a|"
+    r"lijadora|extrusor|artillery|bomba de vac[ií]o|broca|"
+    r"taladro|soldadura|fabricador de hielo|tazon|bowls?|"
+    r"calefacci[oó]n|palanca de cambios|perilla|"
+    r"regulador de tanque|injerto germinacion|clonador",
+    re.I,
+)
+
+
+def categoria_publicacion_web(sku: str, titulo: str) -> str | None:
+    """Categoría web si la publicación MeLi es materia prima / insumo de laboratorio."""
+    titulo = titulo or ""
+    if _RX_MELI_NO_CATALOGO_WEB.search(titulo):
+        return None
+    n = _normalizar_match_producto(titulo)
+    if "bomba de vacio" in n:
+        return None
+    cat = _combo_category_from_siigo(sku or "", titulo)
+    if cat not in CATS_MATERIA_PRIMA_WEB:
+        return None
+    if cat == "Kits" and not re.search(
+        r"beaker|laboratorio|alginato|hialuron|ácido|acido", titulo, re.I
+    ):
+        return None
+    return cat
+
+
+def _siigo_raw_por_sku(sku: str) -> dict | None:
+    from app.services.siigo import PARTNER_ID, _obtener_producto_siigo_por_codigo, autenticar_siigo
+
+    token = autenticar_siigo()
+    if not token or not (sku or "").strip():
+        return None
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    return _obtener_producto_siigo_por_codigo(sku.strip(), headers)
+
+
+def incorporar_publicaciones_meli_al_catalogo(items: list[dict], combos: list[dict] | None = None) -> dict:
+    """
+    Cruza publicaciones MeLi con SIIGO y suma al catálogo web las que se
+    pueden clasificar (materia prima / lab). No mete ferretería ni kits ajenos.
+    `items`: sku_meli, titulo, meli_id, photo (opcional).
+    """
+    if combos is None:
+        if CACHE_FILE.exists():
+            raw = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            combos = list(raw.get("combos") or [])
+        else:
+            combos = []
+    by_sku = {(c.get("ref") or "").strip().upper(): c for c in combos if c.get("ref")}
+    by_compact: dict[str, dict] = {}
+    for c in combos:
+        ck = _compact_sku_for_photo(c.get("ref") or "")
+        if ck and ck not in by_compact:
+            by_compact[ck] = c
+
+    added: list[str] = []
+    updated: list[str] = []
+    omitidas: list[str] = []
+    sin_siigo: list[dict] = []
+    vistos: set[str] = set()
+
+    for it in items:
+        sku = (it.get("sku_meli") or it.get("sku") or "").strip()
+        titulo = it.get("titulo") or it.get("title") or ""
+        cat = categoria_publicacion_web(sku, titulo)
+        if not cat:
+            omitidas.append(sku or (it.get("meli_id") or ""))
+            continue
+        if not sku:
+            omitidas.append(it.get("meli_id") or titulo[:40])
+            continue
+        su = sku.upper()
+        existing = by_sku.get(su)
+        if not existing:
+            ck = _compact_sku_for_photo(su)
+            existing = by_compact.get(ck) if ck else None
+        photo = (it.get("photo") or it.get("_photo") or "").strip()
+        photos = _normalize_photo_urls(it.get("photos") or it.get("_photos") or [])
+        if not photos and photo:
+            photos = [photo]
+        mid = (it.get("meli_id") or it.get("id") or "").strip()
+        if existing:
+            changed = False
+            if photo and not (existing.get("photo") or "").strip():
+                existing["photo"] = photo
+                existing["photo_match_type"] = "meli_sku"
+                changed = True
+            if photos and not (existing.get("photos") or []):
+                existing["photos"] = photos
+                changed = True
+            if mid and not (existing.get("meli_id") or "").strip():
+                existing["meli_id"] = mid
+                changed = True
+            if (existing.get("cat") or "Otros") == "Otros":
+                existing["cat"] = cat
+                existing["cat_color"] = color_categoria(cat)
+                changed = True
+            if changed and su not in updated and su not in added:
+                updated.append(existing.get("ref") or su)
+            continue
+        if su in vistos:
+            continue
+        vistos.add(su)
+        raw = _siigo_raw_por_sku(sku)
+        d = _combo_dict_desde_siigo_raw(raw) if raw else None
+        if not d:
+            sin_siigo.append({"sku": sku, "titulo": titulo, "meli_id": mid, "cat": cat})
+            continue
+        d["cat"] = cat
+        d["cat_color"] = color_categoria(cat)
+        if photo:
+            d["photo"] = photo
+            d["photo_match_type"] = "meli_sku"
+            d["photo_match_score"] = 100.0
+        if photos:
+            d["photos"] = photos
+        if mid:
+            d["meli_id"] = mid
+        combos.append(d)
+        by_sku[d["ref"].upper()] = d
+        ck = _compact_sku_for_photo(d["ref"])
+        if ck:
+            by_compact[ck] = d
+        added.append(d["ref"])
+
+    _guardar_skus_extra_web(added)
+    sections = _catalog_sections_from_combos(combos)
+    _rebuild_product_index(sections, combos)
+    now = time.time()
+    _catalog_cache.update({"data": sections, "ts": now})
+    _persistir_cache_catalogo(sections, combos)
+    lineas = lineas_desde_catalogo(sections)
+    return {
+        "ok": True,
+        "agregadas": added,
+        "actualizadas": updated,
+        "omitidas": len(omitidas),
+        "sin_siigo": sin_siigo,
+        "fichas": sum(len(s.get("products") or []) for s in sections),
+        "combos": len(combos),
+        "lineas": {L["name"]: L["n_productos"] for L in lineas},
+    }
+
+
+def _cargar_skus_extra_web() -> list[str]:
+    try:
+        raw = json.loads(EXTRA_SIIGO_WEB_FILE.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        if isinstance(raw, dict):
+            return [str(x).strip() for x in (raw.get("skus") or []) if str(x).strip()]
+    except Exception:
+        pass
+    return []
+
+
+def _guardar_skus_extra_web(nuevos: list[str]) -> None:
+    seen: set[str] = set()
+    out: list[str] = []
+    for s in _cargar_skus_extra_web() + list(nuevos or []):
+        u = s.strip().upper()
+        if not u or u in seen:
+            continue
+        seen.add(u)
+        out.append(s.strip())
+    EXTRA_SIIGO_WEB_FILE.parent.mkdir(exist_ok=True)
+    EXTRA_SIIGO_WEB_FILE.write_text(
+        json.dumps({"skus": out}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def leer_catalogo() -> tuple[list, list]:
@@ -2170,6 +2628,16 @@ def leer_catalogo() -> tuple[list, list]:
             combos_by_code[d["ref"].upper()] = d
 
     combo_flat = list(combos_by_code.values())
+    for sku_extra in _cargar_skus_extra_web():
+        if sku_extra.upper() in combos_by_code:
+            continue
+        raw_extra = _siigo_raw_por_sku(sku_extra)
+        d_extra = _combo_dict_desde_siigo_raw(raw_extra) if raw_extra else None
+        if d_extra:
+            combos_by_code[d_extra["ref"].upper()] = d_extra
+            combo_flat.append(d_extra)
+            log.info("SKU extra MeLi/web incorporado: %s", d_extra["ref"])
+
     token = get_meli_token()
     photo_map = fetch_meli_combo_photo_map(token, combo_flat)
     siigo_photo_overrides = _load_siigo_photo_overrides()
@@ -2183,29 +2651,33 @@ def leer_catalogo() -> tuple[list, list]:
     for combo in sorted(combo_flat, key=lambda p: (p.get("cat", ""), p.get("name", ""))):
         code_u = combo["ref"].upper()
         siigo_photo = siigo_photo_overrides.get(code_u, "")
+        rec = photo_map.get(code_u) or {}
+        meli_photos = _normalize_photo_urls(rec.get("photos") or ([rec.get("photo")] if rec.get("photo") else []))
         if siigo_photo:
             combo["photo"] = siigo_photo
             combo["photo_match_type"] = "siigo"
             combo["photo_match_score"] = 100.0
-            photo = photo_map.get(code_u) or {}
-            if photo.get("match_type") in ("sku", "sku_alias"):
+            combo["photos"] = meli_photos or [siigo_photo]
+            photo = rec
+            if photo.get("match_type") in ("sku", "sku_alias", "identity"):
                 combo["meli_id"] = photo.get("meli_id", "")
             else:
                 combo["meli_id"] = meli_id_by_sku.get(code_u, "") or meli_id_by_sku.get(
                     combo["ref"], "",
                 )
-        elif code_u in SIIGO_PHOTO_REQUIRED_SKUS:
+        elif code_u in SIIGO_PHOTO_REQUIRED_SKUS and not rec:
             combo["photo"] = ""
+            combo["photos"] = []
             combo["meli_id"] = ""
             combo["photo_match_type"] = "siigo_missing"
             combo["photo_match_score"] = 0.0
         else:
-            photo = photo_map.get(code_u) or {}
-            if photo:
-                combo["photo"] = photo.get("photo", "")
-                combo["meli_id"] = photo.get("meli_id", "")
-                combo["photo_match_type"] = photo.get("match_type", "")
-                combo["photo_match_score"] = photo.get("score", 0.0)
+            if rec:
+                combo["photo"] = rec.get("photo", "")
+                combo["photos"] = meli_photos
+                combo["meli_id"] = rec.get("meli_id", "")
+                combo["photo_match_type"] = rec.get("match_type", "")
+                combo["photo_match_score"] = rec.get("score", 0.0)
 
         base_slug = combo["slug"] or _slug_from_key(combo["ref"].lower())
         slug = base_slug
@@ -2217,12 +2689,43 @@ def leer_catalogo() -> tuple[list, list]:
         combo["slug"] = slug
         combo["family_slug"] = slug
 
+    aplicar_precios_meli_a_combos(combo_flat, photo_map)
+    _enriquecer_galeria_meli_en_combos(combo_flat, token)
+
+    n_siigo = len(combo_flat)
+    combo_flat = _filtrar_combos_publicados_meli(combo_flat)
+    log.info(
+        "Catálogo web solo MeLi: %s/%s combos SIIGO tienen publicación (se ocultan %s)",
+        len(combo_flat), n_siigo, n_siigo - len(combo_flat),
+    )
+
     result = _catalog_sections_from_combos(combo_flat)
     return result, combo_flat
 
 
+def _meli_id_publicacion(valor) -> str:
+    mid = str(valor or "").strip().upper()
+    return mid if mid.startswith("MCO") else ""
+
+
+def _combo_publicado_en_meli(combo: dict) -> bool:
+    """La tienda solo muestra SKUs con publicación MeLi (activa o pausada)."""
+    return bool(_meli_id_publicacion((combo or {}).get("meli_id")))
+
+
+def _filtrar_combos_publicados_meli(combos: list[dict]) -> list[dict]:
+    return [c for c in (combos or []) if _combo_publicado_en_meli(c)]
+
+
 def _catalog_sections_from_combos(combo_flat: list[dict]) -> list[dict]:
     """Arma secciones de tienda agrupando mismo título / distintas presentaciones."""
+    n_in = len(combo_flat or [])
+    combo_flat = _filtrar_combos_publicados_meli(combo_flat)
+    if n_in and len(combo_flat) != n_in:
+        log.info(
+            "Secciones web: %s combos con publicación MeLi (omitidos %s sin MeLi)",
+            len(combo_flat), n_in - len(combo_flat),
+        )
     used_slugs = {str(c.get("slug") or "") for c in combo_flat if c.get("slug")}
     catalog_cards = _agrupar_combos_por_presentacion(combo_flat, used_slugs)
     families_by_cat: dict[str, list] = defaultdict(list)
@@ -2259,15 +2762,18 @@ def _catalog_sections_from_combos(combo_flat: list[dict]) -> list[dict]:
 
 
 def _try_regroup_cached_combos(raw: dict) -> list | None:
-    """Reagrupa fichas desde combos ya cacheados (sin llamar SIIGO/MeLi)."""
+    """Reagrupa fichas desde combos ya cacheados (sin SIIGO; fotos MeLi si faltan)."""
     combos = raw.get("combos")
     if not isinstance(combos, list) or not combos:
         return None
+    combos = _filtrar_combos_publicados_meli(combos)
+    raw["combos"] = combos
+    if not combos:
+        return None
+    _enriquecer_galeria_meli_en_combos(combos)
     data = _catalog_sections_from_combos(combos)
     try:
-        payload = {"sections": data, "combos": combos, "version": CATALOG_CACHE_VERSION}
-        CACHE_FILE.parent.mkdir(exist_ok=True)
-        CACHE_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+        _persistir_cache_catalogo(data, combos)
     except Exception as e:
         log.warning("No se pudo reescribir cache agrupado: %s", e)
     return data
@@ -2277,10 +2783,101 @@ def _try_regroup_cached_combos(raw: dict) -> list | None:
 #  CACHE
 # ══════════════════════════════════════════════════════════
 _catalog_cache = {"data": None, "ts": 0}
+_catalog_lock = threading.Lock()
+
+
+def _catalog_tiene_fichas(data) -> bool:
+    if not isinstance(data, list) or not data:
+        return False
+    return any(isinstance(s, dict) and s.get("products") for s in data)
+
+
+def _persistir_cache_catalogo(data: list, combo_flat: list) -> None:
+    if not _catalog_tiene_fichas(data) or not combo_flat:
+        log.warning(
+            "No se guarda cache vacío (%s categorías, %s combos) — se conserva el archivo anterior",
+            len(data or []),
+            len(combo_flat or []),
+        )
+        return
+    CACHE_FILE.parent.mkdir(exist_ok=True)
+    payload = {"sections": data, "combos": combo_flat, "version": CATALOG_CACHE_VERSION}
+    CACHE_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+    log.info("Cache guardado en disco")
+
+
+def _aplicar_stock_en_item(item: dict, sku_u: str, n: int) -> bool:
+    touched = False
+    if str(item.get("ref") or "").strip().upper() == sku_u:
+        item["stock"] = n
+        item["buyable"] = n > 0
+        touched = True
+    if str(item.get("rep_sku") or "").strip().upper() == sku_u:
+        item["stock"] = n
+        if not item.get("is_family"):
+            item["buyable"] = n > 0
+        touched = True
+    for c in item.get("combos") or []:
+        if str(c.get("ref") or "").strip().upper() == sku_u:
+            c["stock"] = n
+            c["buyable"] = n > 0
+            touched = True
+    if item.get("is_family") and item.get("combos"):
+        item["buyable"] = any(c.get("buyable", True) for c in item["combos"])
+    return touched
+
+
+def _parchar_stock_en_catalogo_cache(sku: str, stock: int) -> None:
+    """Actualiza stock en memoria y disco sin reconstruir desde SIIGO."""
+    sku_u = (sku or "").strip().upper()
+    n = max(0, int(stock))
+    if not sku_u:
+        return
+    data = _catalog_cache.get("data") or []
+    for s in data:
+        for p in s.get("products") or []:
+            _aplicar_stock_en_item(p, sku_u, n)
+    for c in _combo_products:
+        _aplicar_stock_en_item(c, sku_u, n)
+    pidx = _product_index.get(sku_u.lower())
+    if pidx:
+        _aplicar_stock_en_item(pidx, sku_u, n)
+    if not CACHE_FILE.exists():
+        return
+    try:
+        raw = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if not isinstance(raw, dict):
+        return
+    changed = False
+    for s in raw.get("sections") or []:
+        for p in s.get("products") or []:
+            if _aplicar_stock_en_item(p, sku_u, n):
+                changed = True
+    for c in raw.get("combos") or []:
+        if _aplicar_stock_en_item(c, sku_u, n):
+            changed = True
+    if changed:
+        try:
+            CACHE_FILE.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            log.warning("No se pudo parchar stock en cache.json: %s", e)
+
+
+def _invalidar_stock_catalogo_sin_borrar_cache(sku: str | None = None, stock: int | None = None) -> None:
+    """Tras un cambio de stock: parchea la ficha, no borra cache.json (eso vació la tienda)."""
+    if sku is not None and stock is not None:
+        _parchar_stock_en_catalogo_cache(sku, stock)
+    elif sku is not None:
+        n = obtener_stock_web(sku)
+        if n is not None:
+            _parchar_stock_en_catalogo_cache(sku, n)
 
 
 def _rebuild_product_index(data: list, combo_flat: list) -> None:
     global _combo_products, _product_index
+    combo_flat = _filtrar_combos_publicados_meli(combo_flat)
     _combo_products = combo_flat
     _product_index = {}
     for s in data:
@@ -2296,9 +2893,17 @@ def _rebuild_product_index(data: list, combo_flat: list) -> None:
 
 
 def get_catalog(force=False) -> list:
-    global _catalog_cache
+    with _catalog_lock:
+        return _get_catalog_locked(force)
+
+
+def _get_catalog_locked(force=False) -> list:
     now = time.time()
-    if not force and _catalog_cache["data"] and (now - _catalog_cache["ts"]) < CACHE_TTL:
+    if (
+        not force
+        and _catalog_tiene_fichas(_catalog_cache["data"])
+        and (now - _catalog_cache["ts"]) < CACHE_TTL
+    ):
         return _catalog_cache["data"]
 
     if not force and CACHE_FILE.exists():
@@ -2308,7 +2913,7 @@ def get_catalog(force=False) -> list:
             if isinstance(raw, dict) and "sections" in raw:
                 if raw.get("version") != CATALOG_CACHE_VERSION:
                     data = _try_regroup_cached_combos(raw)
-                    if data is not None:
+                    if data is not None and _catalog_tiene_fichas(data):
                         combos = raw.get("combos", [])
                         _rebuild_product_index(data, combos)
                         _catalog_cache.update({"data": data, "ts": now})
@@ -2318,14 +2923,15 @@ def get_catalog(force=False) -> list:
                             CATALOG_CACHE_VERSION,
                         )
                         return data
-                elif age < CACHE_TTL:
-                    data = raw["sections"]
+                elif age < CACHE_TTL and _catalog_tiene_fichas(raw.get("sections")):
                     combos = raw.get("combos", [])
+                    data = raw["sections"]
+                    data, combos = _hidratar_galeria_si_falta(data, combos)
                     _rebuild_product_index(data, combos)
                     _catalog_cache.update({"data": data, "ts": now})
                     log.info(f"Catálogo cargado desde cache ({int(age/60)} min)")
                     return data
-            elif isinstance(raw, list) and age < CACHE_TTL:
+            elif isinstance(raw, list) and age < CACHE_TTL and _catalog_tiene_fichas(raw):
                 _rebuild_product_index(raw, [])
                 _catalog_cache.update({"data": raw, "ts": now})
                 log.info(f"Catálogo cargado desde cache ({int(age/60)} min)")
@@ -2335,16 +2941,27 @@ def get_catalog(force=False) -> list:
 
     try:
         data, combo_flat = leer_catalogo()
+        if not _catalog_tiene_fichas(data):
+            log.error("SIIGO devolvió catálogo vacío; se conserva el cache anterior")
+            if _catalog_tiene_fichas(_catalog_cache["data"]):
+                return _catalog_cache["data"]
+            if CACHE_FILE.exists():
+                try:
+                    raw = json.loads(CACHE_FILE.read_text())
+                    if isinstance(raw, dict) and _catalog_tiene_fichas(raw.get("sections")):
+                        _rebuild_product_index(raw["sections"], raw.get("combos", []))
+                        _catalog_cache.update({"data": raw["sections"], "ts": now})
+                        return raw["sections"]
+                except Exception:
+                    pass
+            return _catalog_cache["data"] or []
         _rebuild_product_index(data, combo_flat)
         _catalog_cache.update({"data": data, "ts": now})
-        CACHE_FILE.parent.mkdir(exist_ok=True)
-        payload = {"sections": data, "combos": combo_flat, "version": CATALOG_CACHE_VERSION}
-        CACHE_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
-        log.info("Cache guardado en disco")
+        _persistir_cache_catalogo(data, combo_flat)
         return data
     except Exception as e:
         log.error(f"Error construyendo catálogo: {e}")
-        if _catalog_cache["data"]:
+        if _catalog_tiene_fichas(_catalog_cache["data"]):
             return _catalog_cache["data"]
         if CACHE_FILE.exists():
             try:
@@ -2352,18 +2969,19 @@ def get_catalog(force=False) -> list:
                 if isinstance(raw, dict) and "sections" in raw:
                     if raw.get("version") != CATALOG_CACHE_VERSION:
                         data = _try_regroup_cached_combos(raw)
-                        if data is None:
+                        if data is None or not _catalog_tiene_fichas(data):
                             raise ValueError("cache de catálogo obsoleto")
                         _rebuild_product_index(data, raw.get("combos", []))
                         return data
-                    _rebuild_product_index(raw["sections"], raw.get("combos", []))
-                    return raw["sections"]
-                if isinstance(raw, list):
+                    if _catalog_tiene_fichas(raw["sections"]):
+                        _rebuild_product_index(raw["sections"], raw.get("combos", []))
+                        return raw["sections"]
+                if isinstance(raw, list) and _catalog_tiene_fichas(raw):
                     _rebuild_product_index(raw, [])
                     return raw
             except Exception:
                 pass
-        return []
+        return _catalog_cache["data"] or []
 
 
 def get_all_products(catalog=None) -> list:
@@ -2739,13 +3357,9 @@ def _inject_site_auth():
 
 
 # ── Tema visual del sitio (clásico / pureza) ──────────────────────────
-# Editable desde el Panel de Operaciones (/app → Sitio Web); config compartida
-# en data/tema_web.json vía app/tools/tema_web.py.
+# Config en data/tema_web.json vía app/tools/tema_web.py.
 
 def _cfg_tema_request() -> dict:
-    """Tema publicado, o borrador del Studio si el iframe local lo pide."""
-    if session.get("studio_preview") and host_permite_studio_preview(request.host):
-        return cargar_tema_preview()
     return cargar_tema_web()
 
 
@@ -2760,18 +3374,7 @@ def tema_web_activo() -> str:
 def _tema_preview_override():
     """?vista_tema=pureza|clasico permite previsualizar un tema solo en esta
     sesión de navegador sin cambiar el tema activo para el público.
-    ?vista_tema=auto vuelve al tema configurado.
-    ?studio_preview=1 (solo localhost) aplica el borrador del Studio.
-    ?_studio=… marca el embed del panel para live-tokens vía postMessage."""
-    local = host_permite_studio_preview(request.host)
-    if request.args.get("_studio") is not None and local:
-        session["studio_embed"] = True
-    sp = request.args.get("studio_preview")
-    if sp is not None and local:
-        if str(sp).strip() == "1":
-            session["studio_preview"] = True
-        elif str(sp).strip().lower() in ("0", "off", "auto", ""):
-            session.pop("studio_preview", None)
+    ?vista_tema=auto vuelve al tema configurado."""
     v = request.args.get("vista_tema")
     if v is None:
         return
@@ -2785,9 +3388,6 @@ def _tema_preview_override():
 @app.context_processor
 def _inject_tema_web():
     cfg = _cfg_tema_request()
-    local = host_permite_studio_preview(request.host)
-    studio_preview = bool(session.get("studio_preview") and local)
-    studio_live = bool(local and (session.get("studio_embed") or studio_preview or session.get("vista_tema")))
     return {
         "TEMA_ACTIVO": tema_web_activo(),
         "TW": cfg.get("pureza", {}),
@@ -2799,8 +3399,6 @@ def _inject_tema_web():
         "LAYOUT": resolver_layout_ctx(cfg),
         "LAYOUT_CLASICO": resolver_layout_ctx(cfg, key="layout_clasico"),
         "TEMA_PREVIEW": session.get("vista_tema") or "",
-        "STUDIO_PREVIEW": studio_preview,
-        "STUDIO_LIVE": studio_live,
     }
 
 
@@ -2932,7 +3530,7 @@ def catalogo():
 
 
 def _fotos_de_producto(p: dict) -> list[str]:
-    """Devuelve la lista de URLs de imagen del producto usando overrides si existen."""
+    """Galería del producto: override del panel, si no todas las fotos MeLi, si no la principal."""
     sku = (p.get("ref") or p.get("rep_sku") or "").strip()
     try:
         raw = json.loads(PUB_OVERRIDES_FILE.read_text(encoding="utf-8"))
@@ -2942,7 +3540,10 @@ def _fotos_de_producto(p: dict) -> list[str]:
             return [f"/imagenes-productos-catalogo/{fn}" for fn in imagenes]
     except Exception:
         pass
-    foto = p.get("photo", "")
+    photos = _normalize_photo_urls(p.get("photos") or [])
+    if photos:
+        return photos
+    foto = (p.get("photo") or "").strip()
     return [foto] if foto else []
 
 
@@ -2997,6 +3598,11 @@ def producto(slug):
         p["buyable"] = selected.get("buyable", True)
         if selected.get("photo"):
             p["photo"] = selected["photo"]
+        sel_photos = _normalize_photo_urls(
+            selected.get("photos") or ([selected.get("photo")] if selected.get("photo") else [])
+        )
+        if sel_photos:
+            p["photos"] = sel_photos
         if selected.get("meli_id"):
             p["meli_id"] = selected["meli_id"]
 
@@ -3282,13 +3888,18 @@ def api_refresh():
 
 
 def _procesar_pedido_pagado_y_refrescar_catalogo(ref: str) -> None:
-    """Efectos de pago aprobado + invalida el cache del catálogo (el stock local pudo bajar)."""
+    """Efectos de pago aprobado; actualiza stock en el cache sin borrarlo."""
     process_order_paid_side_effects(ref)
-    _catalog_cache["ts"] = 0
+    order = get_order_by_reference(ref) or {}
     try:
-        CACHE_FILE.unlink()
-    except FileNotFoundError:
-        pass
+        data = json.loads(order.get("items_json") or "{}")
+    except Exception:
+        data = {}
+    items = data.get("items") or []
+    for it in items if isinstance(items, list) else []:
+        sku = (it.get("sku") or it.get("ref") or "").strip()
+        if sku:
+            _invalidar_stock_catalogo_sin_borrar_cache(sku)
 
 
 def _web_api_key_valida() -> bool:
@@ -3311,19 +3922,14 @@ def api_actualizar_stock_producto(sku: str):
     if stock is None:
         return jsonify({"error": "Campo 'stock' requerido"}), 400
     try:
-        set_stock_web(sku, int(stock))
+        n = int(stock)
+        set_stock_web(sku, n)
     except (TypeError, ValueError):
         return jsonify({"error": "Campo 'stock' debe ser numérico"}), 400
-    # Invalida cache en memoria Y en disco (ambos se consultan en `get_catalog`) para
-    # que la próxima visita reconstruya el catálogo con el stock nuevo sin esperar el
-    # TTL de 6h. No reconstruye aquí mismo — sería carísimo repetido 278 veces en una
-    # sincronización masiva; queda perezoso hasta la próxima solicitud real.
-    _catalog_cache["ts"] = 0
-    try:
-        CACHE_FILE.unlink()
-    except FileNotFoundError:
-        pass
-    return jsonify({"ok": True, "sku": sku, "stock": max(0, int(stock))})
+    # Parchea stock en el cache; no borra cache.json (eso disparaba un rebuild
+    # SIIGO y, si la API fallaba, dejaba la tienda en 0 productos).
+    _invalidar_stock_catalogo_sin_borrar_cache(sku, n)
+    return jsonify({"ok": True, "sku": sku, "stock": max(0, n)})
 
 
 # ══════════════════════════════════════════════════════════

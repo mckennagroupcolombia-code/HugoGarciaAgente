@@ -18,8 +18,12 @@ import {
   useGaleriaPublicaciones,
   useNormalizarImagenesCatalogo,
   usePreciosCanales,
+  useEstadoMeli,
   type PublicacionItem,
+  type PublicacionDetalle,
   type SyncStatus,
+  type VistaSitios,
+  type PresentacionSitio,
 } from "../hooks/usePublicaciones";
 
 // ── URLs de imagen del catálogo (panel) ────────────────────────────────────
@@ -178,6 +182,11 @@ function ProductoCard({
                   Editado
                 </span>
               )}
+              {item.oculto_web && (
+                <span className="rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                  Oculto web
+                </span>
+              )}
               {tieneVarias && (
                 <span className="rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
                   {presentaciones.length} presentaciones
@@ -193,6 +202,18 @@ function ProductoCard({
                 ? `$${item.precio_web.toLocaleString("es-CO")}`
                 : "—"}
             </p>
+            {item.url_web ? (
+              <a
+                href={item.url_web}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-800 hover:bg-green-100"
+                title={item.visible_web ? "Cómo se ve en la tienda" : "Ficha web (puede no estar visible)"}
+              >
+                ↗ Web
+              </a>
+            ) : null}
             {item.meli_compliance_reemplazo?.url_meli ? (
               <a
                 href={item.meli_compliance_reemplazo.url_meli}
@@ -760,6 +781,306 @@ function ImagenesTab({
 }
 
 
+function fmtCopSitio(n: number | null | undefined): string {
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
+  return `$${Number(n).toLocaleString("es-CO")}`;
+}
+
+function FotoSitio({ src, alt }: { src: string; alt: string }) {
+  const url = src ? resolverFotoPreview(src) : "";
+  return (
+    <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface-hover">
+      {url ? (
+        <img
+          src={url}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted">Sin foto</div>
+      )}
+    </div>
+  );
+}
+
+function SitiosTab({
+  sku,
+  data,
+  ocultoWeb,
+  onToggleOculto,
+}: {
+  sku: string;
+  data: PublicacionDetalle;
+  ocultoWeb: boolean;
+  onToggleOculto: (v: boolean) => void;
+}) {
+  const estadoMut = useEstadoMeli();
+  const vista: VistaSitios | undefined = data.vista_sitios;
+  const web = vista?.web;
+  const meli = vista?.meli;
+  const filas: PresentacionSitio[] = vista?.presentaciones?.length
+    ? vista.presentaciones
+    : [];
+
+  const estadoMeli = (meli?.estado || "").toLowerCase();
+  const meliActivo = estadoMeli === "active";
+  const meliPausado = estadoMeli === "paused";
+  const tieneMeli = Boolean(meli?.item_id || data.meli_id_efectivo);
+
+  return (
+    <div className="space-y-5">
+      <p className="text-xs text-muted">
+        Misma ficha, dos vitrinas: en la web se agrupa por familia (botones de presentación);
+        en Mercado Libre cada presentación es una publicación aparte. La tienda solo lista
+        SKUs con ID MeLi vinculado.
+      </p>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {/* Web */}
+        <div className="rounded-xl border border-green-200 bg-green-50/40 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-sm font-bold text-ink">Página web</h4>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                web?.visible
+                  ? "border-green-300 bg-green-100 text-green-800"
+                  : "border-border bg-surface text-muted"
+              }`}
+            >
+              {web?.visible ? (web.vitrina ? "Vitrina" : "Visible") : "No se muestra"}
+            </span>
+          </div>
+          <div className="flex gap-3">
+            <FotoSitio src={web?.foto || data.foto_efectiva} alt={web?.nombre || data.nombre} />
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm font-semibold leading-tight text-ink">{web?.nombre || data.nombre}</p>
+              <p className="text-[11px] text-muted">
+                {web?.categoria || data.categoria}
+                {web?.linea ? ` · ${web.linea}` : ""}
+              </p>
+              <p className="text-sm font-bold text-ink">
+                {web?.es_familia && (web?.n_presentaciones || 0) > 1
+                  ? `Desde ${fmtCopSitio(web.precio)}`
+                  : fmtCopSitio(web?.precio ?? data.precio_web)}
+              </p>
+              {filas.length > 1 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {filas.map((f) => (
+                    <span
+                      key={f.sku}
+                      title={f.sku}
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                        f.aparece_en_web
+                          ? "border-green-300 bg-white text-green-800"
+                          : "border-border bg-surface text-muted line-through"
+                      }`}
+                    >
+                      {f.web.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {web?.motivo_oculto && (
+            <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-2.5 py-1.5 text-[11px] text-yellow-800">
+              {web.motivo_oculto}
+            </p>
+          )}
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-white/80 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={ocultoWeb}
+              onChange={(e) => onToggleOculto(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-accent"
+            />
+            <span>
+              <span className="block text-xs font-semibold text-ink">Ocultar en la tienda</span>
+              <span className="block text-[11px] text-muted">Queda en vitrina, sin botón de compra. Recuerda Guardar y ↑ Web.</span>
+            </span>
+          </label>
+          {web?.url && (
+            <a
+              href={web.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-green-800 underline"
+            >
+              Ver como cliente ↗
+            </a>
+          )}
+        </div>
+
+        {/* MeLi */}
+        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-sm font-bold text-ink">Mercado Libre</h4>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                meliActivo
+                  ? "border-blue-300 bg-blue-100 text-blue-800"
+                  : meliPausado
+                    ? "border-yellow-300 bg-yellow-100 text-yellow-800"
+                    : "border-border bg-surface text-muted"
+              }`}
+            >
+              {tieneMeli ? (estadoMeli || "Vinculado") : "Sin vincular"}
+            </span>
+          </div>
+          <div className="flex gap-3">
+            <FotoSitio src={meli?.foto || data.foto_efectiva} alt={meli?.titulo || data.nombre} />
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm font-semibold leading-tight text-ink">
+                {meli?.titulo || data.nombre}
+              </p>
+              <p className="font-mono text-[11px] text-muted">{meli?.item_id || data.meli_id_efectivo || "—"}</p>
+              <p className="text-sm font-bold text-ink">{fmtCopSitio(meli?.precio)}</p>
+              {meli?.stock != null && (
+                <p className="text-[11px] text-muted">Stock {meli.stock}</p>
+              )}
+            </div>
+          </div>
+          {tieneMeli ? (
+            <div className="flex flex-wrap gap-2">
+              {meli?.permalink && (
+                <a
+                  href={meli.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-800 underline"
+                >
+                  Ver publicación ↗
+                </a>
+              )}
+              {(meliActivo || meliPausado || estadoMeli === "") && (
+                <button
+                  type="button"
+                  disabled={estadoMut.isPending}
+                  onClick={() =>
+                    void estadoMut.mutateAsync({
+                      sku,
+                      estado: meliActivo ? "paused" : "active",
+                    })
+                  }
+                  className="rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-40"
+                >
+                  {estadoMut.isPending
+                    ? "…"
+                    : meliActivo
+                      ? "Pausar en MeLi"
+                      : "Activar en MeLi"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted">
+              Vincula el ID MCO en la pestaña MeLi para gestionar esta publicación.
+            </p>
+          )}
+          {estadoMut.isSuccess && (
+            <p className="text-xs text-green-700">
+              ✓ {estadoMut.data?.mensaje || `Estado: ${estadoMut.data?.estado}`}
+            </p>
+          )}
+          {estadoMut.isError && (
+            <p className="text-xs text-danger">{estadoMut.error.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="mb-2 text-sm font-bold text-ink">Relación de presentaciones</h4>
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[560px] text-xs">
+            <thead className="bg-surface-hover text-left text-[10px] uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-3 py-2">SKU</th>
+                <th className="px-3 py-2">En la web</th>
+                <th className="px-3 py-2">En Mercado Libre</th>
+                <th className="px-3 py-2 text-right">MeLi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-6 text-center text-muted">
+                    Sin presentaciones en caché.
+                  </td>
+                </tr>
+              )}
+              {filas.map((f) => {
+                const est = (f.meli.estado || "").toLowerCase();
+                return (
+                  <tr key={f.sku} className="border-t border-border/70">
+                    <td className="px-3 py-2">
+                      <div className="font-semibold text-ink">{f.web.label}</div>
+                      <div className="font-mono text-[10px] text-muted">{f.sku}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      {f.aparece_en_web ? (
+                        <span className="text-green-700">
+                          Botón {f.web.label} · {fmtCopSitio(f.web.precio)}
+                        </span>
+                      ) : f.web.vitrina ? (
+                        <span className="text-yellow-700">Vitrina, sin compra</span>
+                      ) : (
+                        <span className="text-muted">No aparece (falta MeLi)</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {f.meli.item_id ? (
+                        <div>
+                          <div className="text-ink">{f.meli.titulo || f.nombre}</div>
+                          <div className="font-mono text-[10px] text-muted">{f.meli.item_id}</div>
+                        </div>
+                      ) : (
+                        <span className="text-muted">Sin publicación</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {f.meli.permalink ? (
+                        <a
+                          href={f.meli.permalink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mr-2 text-blue-700 underline"
+                        >
+                          ↗
+                        </a>
+                      ) : null}
+                      {f.meli.item_id && (est === "active" || est === "paused") && (
+                        <button
+                          type="button"
+                          disabled={estadoMut.isPending}
+                          onClick={() =>
+                            void estadoMut.mutateAsync({
+                              sku: f.sku,
+                              estado: est === "active" ? "paused" : "active",
+                            })
+                          }
+                          className="text-[10px] font-semibold text-blue-800 hover:underline disabled:opacity-40"
+                        >
+                          {est === "active" ? "Pausar" : "Activar"}
+                        </button>
+                      )}
+                      {est && f.meli.item_id ? (
+                        <div className="text-[10px] capitalize text-muted">{est}</div>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Panel de edición ───────────────────────────────────────────────────────
 
 export function EditorPanel({
@@ -773,7 +1094,9 @@ export function EditorPanel({
   layout?: string;
   onEstadoMarcado?: (estado: "" | "omitir" | "por_publicar") => void;
 }) {
-  const { data, isLoading, error, refetch } = usePublicacionDetalle(sku);
+  const [tab, setTab] = useState<"general" | "sitios" | "imagenes" | "meli" | "ficha">("sitios");
+  const liveMeli = tab === "sitios" || tab === "meli";
+  const { data, isLoading, error, refetch } = usePublicacionDetalle(sku, liveMeli);
   const guardarMut = useGuardarPublicacion();
   const syncWebMut = useSyncWeb(sku);
   const syncMeliMut = useSyncMeli(sku);
@@ -787,7 +1110,6 @@ export function EditorPanel({
   >([]);
   const [stockMeli, setStockMeli] = useState("");
   const [saved, setSaved] = useState(false);
-  const [tab, setTab] = useState<"general" | "imagenes" | "meli" | "ficha">("general");
 
   useEffect(() => {
     if (!data) return;
@@ -799,7 +1121,7 @@ export function EditorPanel({
     setSaved(false);
   }, [data]);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -951,24 +1273,35 @@ export function EditorPanel({
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-border bg-surface p-1">
-        {(["general", "imagenes", "meli", "ficha"] as const).map((t) => (
+        {(["sitios", "general", "imagenes", "meli", "ficha"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={hubTabClass(tab === t, "flex-1 justify-center")}
           >
             <span className={HUB_TAB_LABEL}>
-              {t === "general"
-                ? "General"
-                : t === "imagenes"
-                  ? "Imágenes"
-                  : t === "meli"
-                    ? "MeLi"
-                    : "Ficha"}
+              {t === "sitios"
+                ? "Sitios"
+                : t === "general"
+                  ? "General"
+                  : t === "imagenes"
+                    ? "Imágenes"
+                    : t === "meli"
+                      ? "MeLi"
+                      : "Ficha"}
             </span>
           </button>
         ))}
       </div>
+
+      {tab === "sitios" && (
+        <SitiosTab
+          sku={sku}
+          data={data}
+          ocultoWeb={ocultoWeb}
+          onToggleOculto={setOcultoWeb}
+        />
+      )}
 
       {/* Tab: General */}
       {tab === "general" && (
@@ -1784,6 +2117,7 @@ export default function PublicacionesPanel() {
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [canalFiltro, setCanalFiltro] = useState("");
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
   const syncAllMut = useSyncWeb();
   const refreshWebMut = useRefreshWeb();
@@ -1797,17 +2131,31 @@ export default function PublicacionesPanel() {
   const { data, isLoading, error, refetch } = usePublicaciones(
     buscarDebounced,
     categoriaFiltro,
+    canalFiltro,
   );
 
   const items = data?.items ?? [];
   const categorias = data?.categorias ?? [];
+  const resumen = data?.resumen;
+  const totalOk = resumen?.listos ?? 0;
+  const webIncompleto = resumen?.falta_web ?? 0;
+  const sinMeli = resumen?.sin_meli ?? 0;
+  const noEnTienda = resumen?.no_en_tienda ?? 0;
 
-  // Contadores de estado
-  const totalOk = items.filter(
-    (i) => i.sync_web.status === "ok" && i.sync_meli.status === "linked",
-  ).length;
-  const webIncompleto = items.filter((i) => i.sync_web.status !== "ok").length;
-  const sinMeli = items.filter((i) => i.sync_meli.status === "no_listing").length;
+  const filtroAyuda =
+    canalFiltro === "ambos"
+      ? "Solo los que ya tienen ficha completa en la tienda y publicación en Mercado Libre."
+      : canalFiltro === "falta_web"
+        ? "Les falta foto o texto en la ficha de la tienda. No dice nada de Mercado Libre."
+        : canalFiltro === "sin_meli"
+          ? "No tienen publicación en Mercado Libre. La tienda tampoco los vende: solo lista lo que está en MeLi."
+          : canalFiltro === "no_en_tienda"
+            ? "No aparecen para comprar en mckennagroup.co: los ocultaron o no tienen ID de MeLi."
+            : "Toca un recuadro para filtrar. Los números no cambian: son el total del catálogo.";
+
+  function toggleCanal(id: string) {
+    setCanalFiltro((prev) => (prev === id ? "" : id));
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -1918,21 +2266,71 @@ export default function PublicacionesPanel() {
       <div
         className={`flex flex-col gap-3 lg:w-[420px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
       >
-        {/* Resumen de estado */}
+        {/* Resumen = filtros (un solo juego, sin pastillas duplicadas) */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-center">
+          <button
+            type="button"
+            onClick={() => toggleCanal("ambos")}
+            title="Tienen foto y texto en la tienda, y ya están en Mercado Libre"
+            className={`rounded-xl border p-3 text-center transition ${
+              canalFiltro === "ambos"
+                ? "border-green-500 bg-green-100 ring-2 ring-green-400"
+                : "border-green-200 bg-green-50 hover:border-green-400"
+            }`}
+          >
             <p className="text-lg font-black text-green-700">{totalOk}</p>
-            <p className="text-[11px] font-semibold text-green-600">Listos</p>
-          </div>
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-center">
+            <p className="text-[11px] font-semibold text-green-600">En web y MeLi</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleCanal("falta_web")}
+            title="A la ficha de la tienda le falta foto o descripción"
+            className={`rounded-xl border p-3 text-center transition ${
+              canalFiltro === "falta_web"
+                ? "border-yellow-500 bg-yellow-100 ring-2 ring-yellow-400"
+                : "border-yellow-200 bg-yellow-50 hover:border-yellow-400"
+            }`}
+          >
             <p className="text-lg font-black text-yellow-700">{webIncompleto}</p>
-            <p className="text-[11px] font-semibold text-yellow-600">Web incompleta</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
+            <p className="text-[11px] font-semibold text-yellow-600">Falta foto o texto</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleCanal("sin_meli")}
+            title="No hay publicación en Mercado Libre"
+            className={`rounded-xl border p-3 text-center transition ${
+              canalFiltro === "sin_meli"
+                ? "border-gray-500 bg-gray-200 ring-2 ring-gray-400"
+                : "border-gray-200 bg-gray-50 hover:border-gray-400"
+            }`}
+          >
             <p className="text-lg font-black text-gray-600">{sinMeli}</p>
-            <p className="text-[11px] font-semibold text-gray-500">Sin MeLi</p>
-          </div>
+            <p className="text-[11px] font-semibold text-gray-500">Sin Mercado Libre</p>
+          </button>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => toggleCanal("no_en_tienda")}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+              canalFiltro === "no_en_tienda"
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border text-muted hover:border-accent/40 hover:text-ink"
+            }`}
+          >
+            No se ven en la tienda{noEnTienda ? ` (${noEnTienda})` : ""}
+          </button>
+          {canalFiltro && (
+            <button
+              type="button"
+              onClick={() => setCanalFiltro("")}
+              className="text-[11px] font-semibold text-accent underline"
+            >
+              Ver todos
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] leading-snug text-muted">{filtroAyuda}</p>
 
         {/* Acciones globales */}
         <div className="flex gap-2">

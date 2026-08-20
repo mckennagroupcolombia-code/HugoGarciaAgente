@@ -102,34 +102,6 @@
 </div>
 {% endfor %}
 
-<!-- ════════════════════════════════════════════════════════
-     CTA FINAL
-════════════════════════════════════════════════════════ -->
-<section class="cat-cta-section" style="margin-top:32px;">
-  <div class="cat-cta-inner">
-    <div>
-      <span class="hero-badge" style="margin-bottom:28px;">Atención Personalizada</span>
-      <h2 class="cat-cta-title">
-        ¿No encuentras<br><em>lo que buscas?</em>
-      </h2>
-      <p class="cat-cta-lead">
-        Tenemos más de 300 referencias. Cuéntanos qué necesitas y
-        nuestro equipo técnico te asesora sin costo.
-      </p>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:40px;">
-        <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20busco%20una%20materia%20prima%20específica"
-           target="_blank" rel="noopener" class="btn btn-wa btn-lg">
-          <i class="ph ph-whatsapp-logo"></i>
-          Consultar por WhatsApp
-        </a>
-        <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg">
-          Enviar consulta
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
-
 {% endblock %}
 
 {% block scripts %}

@@ -3034,7 +3034,7 @@ _FORMATO_DIM_MM: dict[str, tuple[int, int]] = {
     "Circular": (55, 55),
     "Circular 50": (50, 50),
     "Circle 50": (50, 50),
-    "CIRCLE": (50, 50),
+    "CIRCLE": (53.9, 53.9),
     "Circular 70": (70, 70),
 }
 

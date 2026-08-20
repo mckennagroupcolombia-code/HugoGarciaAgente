@@ -54,7 +54,7 @@ def test_lineas_desde_catalogo_cuenta_fichas():
     assert by_id["aceites-ceras-grasas"]["color"] == "#FFA500"
 
 
-def test_seccion_catalogo_lleva_color_de_linea():
+def test_seccion_catalogo_omite_sin_publicacion_meli():
     combos = [
         {
             "name": "ACEITE NEEM 60mL",
@@ -72,6 +72,32 @@ def test_seccion_catalogo_lleva_color_de_linea():
             "cat_color": "#FFA500",
             "photo": "",
             "meli_id": "",
+            "desc": "",
+            "ficha": None,
+            "is_combo": True,
+        }
+    ]
+    assert web._catalog_sections_from_combos(combos) == []
+
+
+def test_seccion_catalogo_lleva_color_de_linea():
+    combos = [
+        {
+            "name": "ACEITE NEEM 60mL",
+            "ref": "C-NEEM60",
+            "slug": "c-neem60",
+            "precio": "$10.000",
+            "precio_meli": "$12.000",
+            "precio_num": 10000,
+            "lista_num": 12000,
+            "ahorro": "$2.000",
+            "ahorro_num": 2000,
+            "stock": 5,
+            "buyable": True,
+            "cat": "Aceites",
+            "cat_color": "#FFA500",
+            "photo": "",
+            "meli_id": "MCO1",
             "desc": "",
             "ficha": None,
             "is_combo": True,

@@ -9,6 +9,45 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-19 17:40 - Catálogo: gestionar MeLi y web y cómo se muestran
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Publicaciones → Catálogo, al abrir un producto la pestaña Sitios muestra lado a lado la ficha de mckennagroup.co (familia, línea, presentaciones) y la publicación de Mercado Libre (título, estado, precio).
+  - Tabla de relación: cada presentación (60 mL, 250 mL, etc.) vs su listing MeLi. Se puede pausar/activar MeLi y ocultar en la tienda.
+  - Filtros del listado: Web+MeLi, sin MeLi, no visible en web, incompletos, ocultos. Enlaces ↗ Web y ↗ MeLi en cada tarjeta.
+- **Archivos Modificados:**
+  - `app/services/publicaciones.py`, `app/routes.py`, `desktop/src/components/PublicacionesPanel.tsx`, `desktop/src/hooks/usePublicaciones.ts`, `tests/test_publicaciones_sitios.py`
+
+### 2026-08-19 17:40 - Se quitó el Studio web
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - El panel de operaciones ya no tiene la pestaña Studio web (lienzo de mckennagroup.co).
+  - El sitio público sigue con el tema publicado en `tema_web.json`; no hay editor ni APIs de preview/publicar desde `/app`.
+  - Quien tenía Studio web abierto pasa a Diseño → Etiquetas. Studio visual de etiquetas no se tocó.
+- **Archivos Modificados:**
+  - `desktop/src/components/SitioWebPanel.tsx` (eliminado), `desktop/src/components/studio-web/` (eliminado), `desktop/src/App.tsx`, `Layout.tsx`, `DisenoNavTabs.tsx`, `app/routes.py`, `app/tools/tema_web.py`, `PAGINA_WEB/site/website.py`
+
+### 2026-08-19 17:20 - Sitio: solo productos publicados en MeLi
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La tienda deja de mostrar combos SIIGO que no tengan publicación en MercadoLibre (activa o pausada).
+  - En una familia, solo quedan las presentaciones que sí están en MeLi; el resto no aparece ni por URL.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py`, `tests/test_presentaciones_web.py`, `tests/test_colores_categoria_web.py`
+
+### 2026-08-19 16:40 - Sitio: galería completa de fotos MeLi
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - La ficha de producto en la tienda muestra **todas** las fotos de la publicación MeLi (no solo la primera), con flechas, puntos y miniaturas.
+  - Al cambiar de presentación en una familia, la galería pasa a las fotos de ese SKU.
+  - El cache del catálogo se enriquece desde MeLi sin reconstruir SIIGO; override del panel (`imagenes_web`) sigue ganando si existe.
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/_prod_gallery.html`, `PAGINA_WEB/site/templates/producto.html`, `PAGINA_WEB/site/templates/base.html`, `PAGINA_WEB/site/static/css/main.css`, `tests/test_presentaciones_web.py`
+
 ### 2026-08-18 23:21 - Sitio: barra de anuncio solo bienvenida y horario
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Corrección

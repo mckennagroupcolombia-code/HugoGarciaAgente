@@ -40,7 +40,7 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260819v">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260819z">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -100,16 +100,12 @@ fbq('track','PageView');
 </script>
 {% endblock %}
 </head>
-<body class="tema-{{ TEMA_ACTIVO | default('clasico') }}"{% if STUDIO_LIVE %} data-studio-live="1"{% endif %}>
+<body class="tema-{{ TEMA_ACTIVO | default('clasico') }}">
 {% set account_nav_href = url_for('cuenta_entrar') if (google_oauth_ready and not customer_logged_in) else url_for('mis_pedidos') %}
 {% set account_nav_label = 'Iniciar sesión' if (google_oauth_ready and not customer_logged_in) else 'Mis pedidos' %}
 {% set show_admin_pedidos_link = admin_panel_enabled and admin_orders_session_ok %}
 
-{% if STUDIO_PREVIEW %}
-<div style="background:#0c6069;color:#f5e9d0;text-align:center;padding:6px 16px;font-size:0.72rem;letter-spacing:1px;">
-  👁 Borrador del Studio (no publicado) · los visitantes siguen viendo el tema guardado
-</div>
-{% elif TEMA_PREVIEW %}
+{% if TEMA_PREVIEW %}
 <div style="background:#1c2b2a;color:#f5e9d0;text-align:center;padding:6px 16px;font-size:0.72rem;letter-spacing:1px;">
   👁 Vista previa del tema <strong style="text-transform:uppercase;">{{ TEMA_PREVIEW }}</strong> (solo tú la ves) ·
   <a href="?vista_tema=auto" style="color:#fff;text-decoration:underline;">volver al tema publicado</a>
@@ -302,7 +298,7 @@ fbq('track','PageView');
     <div class="footer-brand">
       <div style="color:#fff;font-size:1.1rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:20px;">
         McKenna Group
-        <span style="display:block;font-weight:400;font-size:0.6rem;letter-spacing:2.5px;color:var(--green-light);text-transform:uppercase;">S.A.S.</span>
+        <span style="display:block;font-weight:400;font-size:0.6rem;letter-spacing:2.5px;color:rgba(255,255,255,0.8);text-transform:uppercase;">S.A.S.</span>
       </div>
       <p>Materias primas farmacéuticas y cosméticas de alta calidad. Más de 15 años al servicio de la industria colombiana.</p>
       <div class="footer-social">
@@ -361,15 +357,8 @@ fbq('track','PageView');
       </p>
       <p>
         <i class="ph ph-envelope icon"></i>
-        <a href="mailto:ventas@mckennagroup.co" style="color:rgba(255,255,255,0.6)">ventas@mckennagroup.co</a>
+        <a href="mailto:ventas@mckennagroup.co">ventas@mckennagroup.co</a>
       </p>
-      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
-         target="_blank" rel="noopener"
-         class="btn btn-wa btn-sm"
-         style="margin-top:16px;display:inline-flex;">
-        <i class="ph ph-whatsapp-logo"></i>
-        Escribir por WhatsApp
-      </a>
     </div>
 
   </div>

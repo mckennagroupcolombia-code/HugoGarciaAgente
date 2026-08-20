@@ -277,7 +277,7 @@ _TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
     ("Circular", 55.0, 55.0),
     ("Circular 50", 50.0, 50.0),
     ("Circle 50", 50.0, 50.0),
-    ("CIRCLE", 50.0, 50.0),
+    ("CIRCLE", 53.9, 53.9),
     ("Circular 70", 70.0, 70.0),
     ("5 g", 50.0, 42.0),
     ("54mm", 54.0, 58.0),
@@ -677,12 +677,12 @@ def guardar_diagramacion_formato(tipo_etiqueta: str, datos: dict) -> dict:
 # simétricos. No sumar extra arriba: eso mete tinta en el gap y la Epson
 # salta etiquetas (avanza 2 en blanco e imprime 1).
 MARGEN_SEGURO_CIRCULAR_MM = 3.5
-# Troqueles reales del rollo. Un lienzo "Personalizado"/"CIRCLE" 53–54 mm
-# NO existe: es diámetro 50 + gap (pitch 2.12"). Diecut_Gap + esa página
-# = doble avance (2 etiquetas en blanco).
+# Troqueles: Circular 50 (50 mm), CIRCLE 2.12" (53.9 mm), Circular 55, Circular 70.
+# CIRCLE 2.12" es el diámetro del rollo; no recortarlo a 50 mm.
 _TROQUELES_CIRCULARES_MM = (50.0, 55.0, 70.0)
-# 2" circle: die 50 mm + gap ≈ 53.9 mm (2.12 in). Incluir ese pitch en 50 mm.
-_PITCH_CIRCULAR_50_MAX_MM = 54.5
+_CIRCLE_212_MM = 53.9
+# Personalizado ~53 mm (sin nombre CIRCLE) ≈ 50 mm de troquel + gap.
+_PITCH_CIRCULAR_50_MAX_MM = 53.5
 
 
 def es_tipo_etiqueta_circular(
@@ -709,29 +709,37 @@ def mm_troquel_circular(
     ancho_mm: float | int | None = None,
     alto_mm: float | int | None = None,
 ) -> tuple[float, float] | None:
-    """Diámetro físico del rollo (50 / 55 / 70). None si no es circular."""
+    """Diámetro físico del rollo (50 / 53.9 CIRCLE 2.12\" / 55 / 70). None si no es circular."""
     if not es_tipo_etiqueta_circular(tipo, ancho_mm, alto_mm):
         return None
     t = (tipo or "").strip().lower()
-    if "70" in t:
-        return 70.0, 70.0
-    if "50" in t:
-        return 50.0, 50.0
     try:
         d = (float(ancho_mm or 0) + float(alto_mm or 0)) / 2.0
     except (TypeError, ValueError):
         d = 0.0
-    if d > 0:
-        # CIRCLE 2.12" (53.9 mm) y Personalizado 53 mm = rollo 50 mm, no 55.
-        # El nombre "circle"/"circular" sin número no debe forzar 55 mm.
-        if d <= _PITCH_CIRCULAR_50_MAX_MM:
-            return _TROQUELES_CIRCULARES_MM[0], _TROQUELES_CIRCULARES_MM[0]
-        if d <= 62.5:
-            return _TROQUELES_CIRCULARES_MM[1], _TROQUELES_CIRCULARES_MM[1]
-        return _TROQUELES_CIRCULARES_MM[2], _TROQUELES_CIRCULARES_MM[2]
-    if t in {"circular", "circle"}:
+    if "70" in t:
+        return 70.0, 70.0
+    if "50" in t:
+        return 50.0, 50.0
+    # CIRCLE / circle = rollo 2.12 in (53.9 mm). No es Circular 50 ni Circular 55.
+    if t == "circle":
+        lado = round(d, 1) if 52.0 <= d <= 55.0 else _CIRCLE_212_MM
+        return lado, lado
+    if t == "circular":
+        if d > 0:
+            if d <= 52.5:
+                return 50.0, 50.0
+            if d <= 62.5:
+                return 55.0, 55.0
+            return 70.0, 70.0
         return 55.0, 55.0
-    return _TROQUELES_CIRCULARES_MM[0], _TROQUELES_CIRCULARES_MM[0]
+    if d > 0:
+        if d <= _PITCH_CIRCULAR_50_MAX_MM:
+            return 50.0, 50.0
+        if d <= 62.5:
+            return 55.0, 55.0
+        return 70.0, 70.0
+    return 50.0, 50.0
 
 
 def dims_pagina_impresion_mm(

@@ -222,3 +222,259 @@ def test_dedupe_solo_alias_no_crea_familia():
     assert only["ref"] == "C-DEXKg"
     assert combos[0]["canonical_pres_slug"] == "c-dexkg"
     assert combos[0]["has_siblings"] is False
+
+
+def test_catalog_tiene_fichas():
+    assert web._catalog_tiene_fichas([]) is False
+    assert web._catalog_tiene_fichas([{"name": "X", "products": []}]) is False
+    assert web._catalog_tiene_fichas([{"name": "X", "products": [{"ref": "A"}]}]) is True
+
+
+def test_aplicar_stock_en_familia():
+    fam = {
+        "is_family": True,
+        "ref": "C-NEEM250",
+        "rep_sku": "C-NEEM250",
+        "stock": 3,
+        "buyable": True,
+        "combos": [
+            {"ref": "C-NEEM60", "stock": 5, "buyable": True},
+            {"ref": "C-NEEM250", "stock": 3, "buyable": True},
+        ],
+    }
+    assert web._aplicar_stock_en_item(fam, "C-NEEM60", 0) is True
+    assert fam["combos"][0]["buyable"] is False
+    assert fam["combos"][1]["buyable"] is True
+    assert fam["buyable"] is True
+    web._aplicar_stock_en_item(fam, "C-NEEM250", 0)
+    assert fam["buyable"] is False
+
+
+def test_categoria_publicacion_web_materia_prima():
+    assert web.categoria_publicacion_web("C-ACEESEMEN5mL", "Aceite Esencial De Menta") == "Aceites Esenciales"
+    assert web.categoria_publicacion_web("C-CERCARNKg", "Cera Carnauba Kg") == "Ceras y Mantecas"
+    assert web.categoria_publicacion_web("C-TEGBET500ML", "Betaina De Coco 500ml") == "Emulsionantes y Surfactantes"
+    assert web.categoria_publicacion_web("C-SUC100g", "Sucralosa 100gr") == "Edulcorantes"
+    assert web.categoria_publicacion_web("KTBKRLAB", "Kit Vasos Laboratorio Beakers") == "Equipos y Materiales"
+
+
+def test_categoria_publicacion_web_excluye_ferreteria():
+    assert web.categoria_publicacion_web("DSCVDR", "Disco De Corte De Diamante") is None
+    assert web.categoria_publicacion_web("EXTELC5MTS", "Extensión Eléctrica Profesional") is None
+    assert web.categoria_publicacion_web("PERR", "Perilla De Palanca De Cambios") is None
+    assert web.categoria_publicacion_web("OILBMBVC", "Aceite Para Bomba De Vacío Premium") is None
+    assert web.categoria_publicacion_web("KTEXTART18PZS", "Repuestos Extrusor Artillery") is None
+
+
+def test_meli_item_para_combo_no_cruza_por_nombre():
+    limon = {"id": "MCO1", "_seller_sku": "C-ACEESELIM5mL", "title": "Aceite Esencial De Limon", "_price": 21900}
+    jen = {"id": "MCO2", "_seller_sku": "C-ACEESEJEN5mL", "title": "Aceite Esencial De Jengibre", "_price": 17500}
+    by_sku, by_c = web._indice_meli_por_sku([limon, jen])
+    item, kind = web._meli_item_para_combo("C-ACEESELIM5mL", by_sku, by_c, "ACEITE ESENCIAL LIMON 5mL")
+    assert kind == "sku"
+    assert item["id"] == "MCO1"
+    item2, _ = web._meli_item_para_combo("C-ACEESEJEN5mL", by_sku, by_c, "ACEITE ESENCIAL JENGIBRE 5mL")
+    assert item2["id"] == "MCO2"
+
+
+def test_identidad_esencial_no_mezcla_jazmin_limon():
+    j = web._identidad_nombre_catalogo("ACEITE ESENCIAL JAZMIN 5mL")
+    l = web._identidad_nombre_catalogo("Aceite Esencial De Limon")
+    assert "jazmin" in j
+    assert "limon" in l
+    assert j != l
+
+
+def test_sku_meli_cruzado_se_descarta_si_el_titulo_es_otro_aceite():
+    jen = {"id": "MCO2", "_seller_sku": "C-ACEESELIM5mL", "title": "Aceite Esencial De Jengibre", "_price": 17500}
+    lim = {"id": "MCO3", "_seller_sku": "C-ACEESENLIM5mL", "title": "Aceite Esencial De Limon", "_price": 21900}
+    by_sku, by_c = web._indice_meli_por_sku([jen, lim])
+    item, kind = web._meli_item_para_combo("C-ACEESELIM5mL", by_sku, by_c, "ACEITE ESENCIAL LIMON 5mL")
+    assert item is None
+    assert kind == ""
+
+
+def test_titulo_vacio_no_toma_precio_de_otro_sku():
+    ghost = {"id": "MCO9", "_seller_sku": "OILESNLMN5ML", "title": "", "_price": 19000, "status": "active"}
+    by_sku, by_c = web._indice_meli_por_sku([ghost])
+    item, kind = web._meli_item_para_combo("OILESNLMN5mL", by_sku, by_c, "Aceite Esencial Limon 5 mL")
+    assert item is None
+    assert kind == ""
+
+
+def test_identidad_unica_no_usa_publicacion_de_otro_aceite():
+    jazmin = {
+        "id": "MCOJ",
+        "_seller_sku": "OILESNLMN5ML",
+        "title": "Aceite Esencial De Jazmin",
+        "_price": 19000,
+        "status": "active",
+    }
+    item, kind = web._meli_item_por_identidad_unica("ACEITE ESENCIAL LIMON 5mL", [jazmin])
+    assert item is None
+    limon = {
+        "id": "MCOL",
+        "_seller_sku": "C-ACEESENLIM5mL",
+        "title": "Aceite Esencial De Limon",
+        "_price": 21900,
+        "status": "paused",
+    }
+    item, kind = web._meli_item_por_identidad_unica("ACEITE ESENCIAL LIMON 5mL", [jazmin, limon])
+    assert kind == "identity"
+    assert item["id"] == "MCOL"
+
+
+def test_aplicar_precio_maestro_meli_10pct():
+    combo = {"ref": "C-ACEESELIM5mL", "name": "ACEITE ESENCIAL LIMON 5mL"}
+    web._aplicar_precio_maestro_meli(combo, 21900)
+    assert combo["lista_num"] == 21900
+    assert combo["precio_meli_num"] == 21900
+    assert combo["precio_num"] == 19710
+    assert combo["ahorro_num"] == 2190
+
+
+def test_combo_publicado_en_meli_requiere_mco():
+    assert web._combo_publicado_en_meli({"meli_id": "MCO123"})
+    assert web._combo_publicado_en_meli({"meli_id": "mco999"})
+    assert not web._combo_publicado_en_meli({"meli_id": ""})
+    assert not web._combo_publicado_en_meli({"meli_id": "MLA123"})
+    assert not web._combo_publicado_en_meli({})
+
+
+def test_catalogo_web_solo_publicaciones_meli():
+    combos = [
+        _combo("ACEITE NEEM 60mL", "C-NEEM60", "c-neem60", 10000, cat="Aceites"),
+        _combo(
+            "ACEITE NEEM 250mL",
+            "C-NEEM250",
+            "c-neem250",
+            25000,
+            cat="Aceites",
+            meli_id="MCO1",
+            photo="https://a.jpg",
+        ),
+        _combo("UREA COSMETICA 250g", "C-UREA250", "c-urea250", 15000),
+    ]
+    sections = web._catalog_sections_from_combos(combos)
+    refs = []
+    for s in sections:
+        for p in s["products"]:
+            if p.get("is_family"):
+                refs.extend(c["ref"] for c in p["combos"])
+            else:
+                refs.append(p["ref"])
+    assert refs == ["C-NEEM250"]
+    assert len(sections) == 1
+    assert not sections[0]["products"][0].get("is_family")
+
+
+def test_meli_item_photos_todas_las_urls():
+    item = {
+        "pictures": [
+            {"secure_url": "https://a.jpg"},
+            {"url": "http://b.jpg"},
+            {"secure_url": "https://a.jpg"},
+            {},
+            {"secure_url": "https://c.jpg"},
+        ]
+    }
+    assert web._meli_item_photos(item) == ["https://a.jpg", "http://b.jpg", "https://c.jpg"]
+    assert web._meli_item_photo(item) == "https://a.jpg"
+
+
+def test_fotos_de_producto_usa_galeria_completa():
+    p = {
+        "ref": "C-TESTGALERIA999",
+        "photo": "https://a.jpg",
+        "photos": ["https://a.jpg", "https://b.jpg", "https://c.jpg"],
+    }
+    assert web._fotos_de_producto(p) == ["https://a.jpg", "https://b.jpg", "https://c.jpg"]
+
+
+def test_fotos_de_producto_fallback_foto_unica():
+    assert web._fotos_de_producto({"ref": "C-TESTGALERIA998", "photo": "https://a.jpg"}) == ["https://a.jpg"]
+    assert web._fotos_de_producto({"ref": "C-TESTGALERIA997"}) == []
+
+
+def test_fotos_de_producto_override_panel(tmp_path, monkeypatch):
+    import json
+
+    f = tmp_path / "ov.json"
+    f.write_text(
+        json.dumps({"C-TESTGALERIA996": {"imagenes_web": ["local1.png", "local2.png"]}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(web, "PUB_OVERRIDES_FILE", f)
+    p = {"ref": "C-TESTGALERIA996", "photos": ["https://a.jpg"]}
+    assert web._fotos_de_producto(p) == [
+        "/imagenes-productos-catalogo/local1.png",
+        "/imagenes-productos-catalogo/local2.png",
+    ]
+
+
+def test_familia_copia_galeria_en_presentaciones():
+    combos = [
+        _combo(
+            "ACEITE NEEM 60mL",
+            "C-NEEM60",
+            "c-neem60",
+            10000,
+            cat="Aceites",
+            photo="https://a.jpg",
+            photos=["https://a.jpg", "https://b.jpg"],
+        ),
+        _combo(
+            "ACEITE NEEM 250mL",
+            "C-NEEM250",
+            "c-neem250",
+            25000,
+            cat="Aceites",
+            photo="https://c.jpg",
+            photos=["https://c.jpg", "https://d.jpg"],
+        ),
+    ]
+    used = {c["slug"] for c in combos}
+    cards = web._agrupar_combos_por_presentacion(combos, used)
+    fam = cards[0]
+    by_ref = {c["ref"]: c for c in fam["combos"]}
+    assert by_ref["C-NEEM60"]["photos"] == ["https://a.jpg", "https://b.jpg"]
+    assert by_ref["C-NEEM250"]["photos"] == ["https://c.jpg", "https://d.jpg"]
+
+
+def test_enriquecer_galeria_meli_rellena_photos(monkeypatch):
+    combos = [
+        {"ref": "C-X", "meli_id": "MCO1", "photo": "https://a.jpg"},
+        {"ref": "C-Y", "meli_id": "MCO2", "photos": ["https://ya.jpg"]},
+        {"ref": "C-Z", "meli_id": "", "photo": ""},
+    ]
+    monkeypatch.setattr(
+        web,
+        "_fetch_meli_pictures_by_ids",
+        lambda token, ids: {"MCO1": ["https://a.jpg", "https://b.jpg", "https://c.jpg"]},
+    )
+    monkeypatch.setattr(web, "get_meli_token", lambda: "tok")
+    n = web._enriquecer_galeria_meli_en_combos(combos)
+    assert n == 1
+    assert combos[0]["photos"] == ["https://a.jpg", "https://b.jpg", "https://c.jpg"]
+    assert combos[1]["photos"] == ["https://ya.jpg"]
+
+
+def test_aplicar_precios_copia_photos_meli():
+    combo = {"ref": "C-TESTPX", "name": "Producto test", "photo_match_type": ""}
+    photo_map = {
+        "C-TESTPX": {
+            "match_type": "sku",
+            "photo": "https://a.jpg",
+            "photos": ["https://a.jpg", "https://b.jpg"],
+            "meli_id": "MCO1",
+            "title": "Producto test",
+            "price": 10000,
+            "score": 100,
+        }
+    }
+    web.aplicar_precios_meli_a_combos([combo], photo_map)
+    assert combo["photos"] == ["https://a.jpg", "https://b.jpg"]
+    assert combo["photo"] == "https://a.jpg"
+    assert combo["meli_id"] == "MCO1"
+
+

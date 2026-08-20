@@ -73,7 +73,7 @@ export default function Layout({
       ? "flex min-h-0 flex-col overflow-hidden px-3 pt-3 sm:px-5 sm:pt-4 lg:px-10 lg:pt-5"
       : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-10 lg:py-6"
     : isHub
-    ? panel === "sitioweb" || studioEtiquetasFill
+    ? studioEtiquetasFill
       ? "flex min-h-0 flex-col overflow-hidden"
       : "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
     : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8";
@@ -140,12 +140,6 @@ export default function Layout({
                   </p>
                 )}
               </div>
-              {panel === "sitioweb" && (
-                <div
-                  id="studio-web-chrome-top"
-                  className="hidden min-w-0 flex-1 items-center gap-1 sm:flex"
-                />
-              )}
             </div>
 
             {!isHub && advanced && (
@@ -182,7 +176,7 @@ export default function Layout({
                   <InicioNavTabs />
                 </div>
               )}
-              {panel !== "sitioweb" && <TemasHeaderButton />}
+              <TemasHeaderButton />
               <ThemeModeToggle />
             </div>
           </div>
@@ -204,14 +198,6 @@ export default function Layout({
               )}
             </div>
           )}
-          {panel === "sitioweb" && (
-            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
-              <div
-                id="studio-web-chrome"
-                className="flex min-w-0 flex-1 items-center gap-1"
-              />
-            </div>
-          )}
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -219,7 +205,6 @@ export default function Layout({
             {isHub && !isCentroMando ? (
               sectionId === "contabilidad" ||
               sectionId === "publicaciones" ||
-              panel === "sitioweb" ||
               studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>
@@ -233,7 +218,7 @@ export default function Layout({
               <PanelTransition>{children}</PanelTransition>
             )}
           </div>
-          {isAdmin && !hubIntegrado && panel !== "stock" && panel !== "sitioweb" && !studioEtiquetasFill && (
+          {isAdmin && !hubIntegrado && panel !== "stock" && !studioEtiquetasFill && (
             <div className="hidden shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm md:block lg:px-8">
               <ActivityLog />
             </div>

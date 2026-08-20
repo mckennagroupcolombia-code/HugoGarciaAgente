@@ -7,13 +7,9 @@ from app.tools import tema_web as tw
 
 def test_split_pct_persiste_y_emite_vars(tmp_path, monkeypatch) -> None:
     pub = tmp_path / "tema_web.json"
-    prev = tmp_path / "tema_web_preview.json"
     monkeypatch.setattr(tw, "TEMA_WEB_FILE", pub)
-    monkeypatch.setattr(tw, "TEMA_WEB_PREVIEW_FILE", prev)
     tw._cache = {}
     tw._cache_mtime = None
-    tw._preview_cache = None
-    tw._preview_mtime = None
 
     tw.guardar_tema_web(
         {

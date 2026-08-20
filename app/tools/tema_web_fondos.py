@@ -1,4 +1,4 @@
-"""Imágenes de fondo del Studio web → sitio público (static/uploads/fondos)."""
+"""Imágenes de fondo del sitio público (static/uploads/fondos)."""
 
 from __future__ import annotations
 

@@ -780,7 +780,7 @@ const ETIQUETAS_MM: Record<string, [number, number]> = {
   "30 mL": [102, 38], "5 mL": [66, 22], "125 g": [70, 70],
   "250 g": [76, 66], "1 Lt": [108, 76],
   "100 g": [69, 51], Lactato: [38, 140], Circular: [55, 55],
-  "Circular 50": [50, 50], "Circle 50": [50, 50], CIRCLE: [50, 50], "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
+  "Circular 50": [50, 50], "Circle 50": [50, 50], CIRCLE: [53.9, 53.9], "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
 };
 
 const TAMANO_TEXTO_PT_MIN = 3;

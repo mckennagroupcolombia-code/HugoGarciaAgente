@@ -22,7 +22,6 @@ export type Panel =
   | "pedidos"
   | "empaque"
   | "publicaciones"
-  | "sitioweb"
   | "facturacion"
   | "facturas"
   | "costos-productos"
@@ -176,6 +175,7 @@ function normalizePanel(panel: Panel): Panel {
   let next = panel === "tickets" ? "hugo" : panel;
   if ((next as string) === LOGISTICA_PANEL_LEGACY) next = "logistica-importaciones";
   if ((next as string) === CONTABILIDAD_PANEL_OCULTO) next = "facturacion";
+  if ((next as string) === "sitioweb") next = "etiquetas";
   const contab = normalizarPanelContabilidad(next);
   if (contab) next = contab;
   return next;
@@ -285,6 +285,7 @@ export const useAppStore = create<AppState>()(
         if (s.panel === LOGISTICA_PANEL_LEGACY) s.panel = "logistica-importaciones";
         if (s.panel === CONTABILIDAD_PANEL_OCULTO) s.panel = "facturacion";
         if (s.panel === "sync" || s.panel === "facturas") s.panel = "facturacion";
+        if (s.panel === "sitioweb") s.panel = "etiquetas";
         if (version < 2) {
           if (!s.centroMandoView) s.centroMandoView = "home";
           if (!s.mobileTab) s.mobileTab = "home";
@@ -295,7 +296,7 @@ export const useAppStore = create<AppState>()(
         }
         return s as unknown as AppState;
       },
-      version: 3,
+      version: 4,
       onRehydrateStorage: () => (state) => {
         const hash = readNavHash();
         if (hash?.panel && state) {
@@ -316,6 +317,7 @@ export const useAppStore = create<AppState>()(
         }
         state?.setHasHydrated(true);
         if (state) {
+          state.panel = normalizePanel(state.panel);
           syncNavHash(
             state.panel,
             state.panel === "hugo" || state.panel === "tickets"

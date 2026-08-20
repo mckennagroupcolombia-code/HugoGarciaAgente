@@ -170,16 +170,16 @@ Endpoints usados por React:
 | `/api/sync/aprendizaje` | POST | - | `status: iniciado` |
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
-| `/api/web/tema` | GET/PUT | PUT `{ config }` o `{ accion }` | Tema publicado (`tema_web.json`). PUT publica el sitio. `config.clasico.colores` / `config.pureza.colores` paletas hex. `config.clasico.fondos` / `config.pureza.fondos` URLs `/static/uploads/fondos/…`. Nodos de layout pueden llevar `backgroundImage` |
-| `/api/web/tema/preview` | PUT/DELETE | PUT `{ config }` | Borrador del iframe Studio (`tema_web_preview.json`). No publica. Solo localhost + `?studio_preview=1` |
-| `/api/web/tema/fondo` | POST | multipart `archivo` (JPG/PNG/WEBP/GIF ≤ 4 MB) | `{ ok, url, filename, bytes }` — guarda en `PAGINA_WEB/site/static/uploads/fondos/` |
-| `/api/web/tema/fondo-archivo/<archivo>` | GET | — | Sirve el JPG/PNG (preview Studio en :8081; el sitio público usa `/static/uploads/fondos/…` en :8083) |
-| `/api/web/tema/fondos` | GET | — | `{ ok, fondos: [{url, filename}] }` últimos 80 |
 | `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo; omite closed/inactive) |
 | `/api/stock/ventas-30d` | GET | `dias?` (default 30), `refresh?` | `por_item[meli_id]{unidades,ordenes,monto,ritmo_diario,nivel}`, `ordenes`, caché ~30 min |
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
 | `/api/stock/relacion-codigos/editar` | POST | `meli_id`, `sku_meli?`, `codigo_siigo?`, `vincular_si_sku?` | Actualiza SKU en MeLi (`SELLER_SKU`) y/o vínculo Siigo; al menos un campo de código |
+| `/api/publicaciones` | GET | `buscar`, `categoria`, `canal` (`todos`\|`ambos`\|`falta_web`\|`sin_meli`\|`no_en_tienda`) | `items`, `resumen` (conteos estables), `categorias` |
+| `/api/publicaciones/<sku>` | GET | `live_meli=1` opcional | Detalle + `vista_sitios` `{web, meli, presentaciones}` (cómo se ve en tienda vs listing) |
+| `/api/publicaciones/<sku>/estado-meli` | POST | `estado`: `active`\|`paused` | Pausa/activa la publicación MeLi vinculada |
+
+También existen bajo `/app/api/publicaciones*`. La tienda web **solo muestra SKUs con `meli_id` MCO**; `oculto_web` los deja en vitrina sin compra.
 
 ## Centro de Mando — cierre de solicitudes
 

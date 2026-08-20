@@ -904,3 +904,62 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 uploads/tickets/cfe4c41b14624fbea4e60bbf65214578.png
  create mode 100644 uploads/tickets/f7d0c9f47f0946cab8a78f97b47c17f3.png
 [2026-08-18 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-18 23:00'
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-GELSIL250g GEL SILICA 250g
+INFO: Combo SIIGO omitido sin precio público: C-GOTPLA3mL10Un GOTERO PLASTICO 3mL 10 Un
+INFO: Combo SIIGO omitido sin precio público: GOTVID10mLX12Un GOTERO VIDRIO 10 mL x 12 Un
+INFO: Combo SIIGO omitido sin precio público: FOR-ACISALmL FORMULA ACIDO SALICILICO 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-VITC20PmL FORMULA VITAMINA C 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-AZUMETmL AZUL METILENO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-GLUTAR2PmL GLUTARALDEHIDO 2% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIABAJPESmL ACIDO HIALURINICO BAJO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIAALTPESmL ACIDO HIALURONICO ALTO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIKOJmL ACIDO KOJICO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACILAC85PmL ACIDO LACTICO 85% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIGLI50PmL ACIDO GLICOLICO 50% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-RET5PmL RETINOL 5% mL
+INFO: Fotos combos MeLi: 160 por SKU exacto, 11 por alias SKU, 151 por nombre, 99 por familia, 42 sin foto
+INFO: Catálogo listo: 18 categorías, 162 fichas (43 con varias presentaciones), 463 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ SIIGO products API: 500 para SKU C-ACISAL500g
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+   23 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 14 | Sospechosos (>2×): 7
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   129 órdenes canceladas en la ventana.
+   3487 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3243 packs con factura).
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Sin novedades que reportar (nada emitido, nada roto).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-19T18:00:01] resumen_actividad_sede_sur: 82 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 26 nuevas · 18 completadas · 22 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 8 nuevas, 8 completadas
+• Gloria Stella: 8 nuevas, 6 completadas
+• Victor Garcia: 4 nuevas, 3 completadas
+• Administrador: 4 nuevas, 0 completadas
+• Cynthia Ruiz: 1 nueva, 1 completada
+• Armando Garcia: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-19) no es el último día del mes.

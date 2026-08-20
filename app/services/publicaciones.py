@@ -11,6 +11,42 @@ from typing import Optional
 from urllib.parse import quote
 
 _MELI_SITE_PREFIX = "MCO"
+_SITE_URL = "https://mckennagroup.co"
+
+# Líneas comerciales (mismo contrato que PAGINA_WEB/site/website.py).
+_LINEAS_OFICIALES: tuple[tuple[str, str, str], ...] = (
+    ("aceites-ceras-grasas", "Aceites, ceras y grasas", "#FFA500"),
+    ("agro", "Agro", "#359441"),
+    ("alimentario", "Alimentario", "#1F91DC"),
+    ("cosmetica", "Cosmética", "#990099"),
+    ("industria", "Industria", "#5C6570"),
+    ("laboratorio", "Laboratorio", "#10173C"),
+)
+_CAT_A_LINEA: dict[str, str] = {
+    "Ácidos": "Cosmética",
+    "Emulsionantes y Surfactantes": "Cosmética",
+    "Humectantes": "Cosmética",
+    "Arcillas": "Cosmética",
+    "Vitaminas": "Cosmética",
+    "Principios Activos": "Cosmética",
+    "Aceites Esenciales": "Aceites, ceras y grasas",
+    "Aceites": "Aceites, ceras y grasas",
+    "Ceras y Mantecas": "Aceites, ceras y grasas",
+    "Sales Minerales": "Alimentario",
+    "Suplementarios": "Alimentario",
+    "Excipientes": "Alimentario",
+    "Edulcorantes": "Alimentario",
+    "Saborizantes": "Alimentario",
+    "Minerales": "Industria",
+    "Conservantes": "Industria",
+    "Antisépticos": "Industria",
+    "Otros": "Industria",
+    "Kits": "Laboratorio",
+    "Equipos y Materiales": "Laboratorio",
+    "Herramientas": "Laboratorio",
+    "Agrícola": "Agro",
+    "Mascotas": "Agro",
+}
 
 _APP_DIR = Path(__file__).parent.parent          # app/
 _REPO_DIR = _APP_DIR.parent                      # /home/mckg/mi-agente
@@ -456,9 +492,242 @@ def _status_meli(ep: dict) -> dict:
     return {"status": "linked", "mensaje": "Vinculado", "item_id": mid}
 
 
+def _linea_info(cat: str) -> dict:
+    """Línea comercial a partir de la subcategoría de la ficha web."""
+    raw = (cat or "").strip()
+    nombre = raw if any(raw == n for _, n, _ in _LINEAS_OFICIALES) else _CAT_A_LINEA.get(raw, "Industria")
+    for lid, n, color in _LINEAS_OFICIALES:
+        if n == nombre or lid == raw:
+            return {"id": lid, "nombre": n, "color": color}
+    return {"id": "industria", "nombre": "Industria", "color": "#5C6570"}
+
+
+def _url_producto_web(slug: str) -> str:
+    s = (slug or "").strip().strip("/")
+    return f"{_SITE_URL}/producto/{s}" if s else ""
+
+
+def _url_catalogo_web(cat: str = "", linea_id: str = "") -> str:
+    if linea_id:
+        return f"{_SITE_URL}/catalogo?linea={linea_id}"
+    if cat:
+        from urllib.parse import quote as _q
+        return f"{_SITE_URL}/catalogo?cat={_q(cat)}"
+    return f"{_SITE_URL}/catalogo"
+
+
+def _meli_permalink(item_id: str, permalink: str = "") -> str:
+    pl = (permalink or "").strip()
+    if pl:
+        return pl
+    mid = normalizar_meli_item_id(item_id)
+    return f"https://articulo.mercadolibre.com.co/{mid}" if mid else ""
+
+
+def _aparece_en_tienda_web(meli_id: str, oculto_web: bool) -> bool:
+    """La tienda solo lista SKUs con MCO; oculto_web los deja en vitrina sin compra."""
+    mid = normalizar_meli_item_id(meli_id)
+    return bool(mid.startswith(_MELI_SITE_PREFIX)) and not oculto_web
+
+
+def _resumen_meli_live(item: Optional[dict], item_id: str = "") -> dict:
+    body = item or {}
+    mid = normalizar_meli_item_id(str(body.get("id") or item_id or ""))
+    pics = body.get("pictures") or []
+    foto = ""
+    if pics:
+        foto = (pics[0].get("secure_url") or pics[0].get("url") or "").strip()
+    status = str(body.get("status") or "").lower()
+    return {
+        "item_id": mid,
+        "titulo": body.get("title") or "",
+        "estado": status,
+        "precio": body.get("price"),
+        "stock": body.get("available_quantity"),
+        "permalink": _meli_permalink(mid, body.get("permalink") or ""),
+        "foto": foto,
+        "condicion": body.get("condition") or "",
+        "listing_type_id": body.get("listing_type_id") or "",
+        "categoria_meli": body.get("category_id") or "",
+    }
+
+
+def _meli_fetch_items(item_ids: list[str]) -> dict[str, dict]:
+    """Batch GET /items?ids=… → {MCO…: body}."""
+    token = _meli_token()
+    ids = []
+    for raw in item_ids:
+        mid = normalizar_meli_item_id(str(raw or ""))
+        if mid and mid not in ids:
+            ids.append(mid)
+    if not token or not ids:
+        return {}
+    out: dict[str, dict] = {}
+    headers = {"Authorization": f"Bearer {token}"}
+    for i in range(0, len(ids), 20):
+        batch = ids[i : i + 20]
+        try:
+            r = _req.get(
+                "https://api.mercadolibre.com/items",
+                params={"ids": ",".join(batch)},
+                headers=headers,
+                timeout=18,
+            )
+            if r.status_code != 200:
+                continue
+            for entry in r.json() or []:
+                if entry.get("code") != 200:
+                    continue
+                body = entry.get("body") or {}
+                mid = normalizar_meli_item_id(str(body.get("id") or ""))
+                if mid:
+                    out[mid] = body
+        except Exception:
+            pass
+    return out
+
+
+def _filas_presentacion_sitios(
+    product: dict,
+    overrides: dict,
+    meli_live_by_id: Optional[dict] = None,
+) -> list[dict]:
+    """Una fila por presentación (o la ficha sola) con cómo se ve en web y en MeLi."""
+    live_map = meli_live_by_id or {}
+    combos = list(product.get("combos") or [])
+    if not combos:
+        combos = [product]
+    filas = []
+    for c in combos:
+        sku = c.get("ref") or c.get("rep_sku") or ""
+        ov = overrides.get(sku, {})
+        mid = normalizar_meli_item_id(ov.get("meli_item_id") or c.get("meli_id") or "")
+        live = _resumen_meli_live(live_map.get(mid), mid) if mid else _resumen_meli_live(None, "")
+        oculto = bool(ov.get("oculto_web") or c.get("solo_vitrina"))
+        filas.append({
+            "sku": sku,
+            "nombre": c.get("name") or "",
+            "presentacion_label": c.get("presentacion_label") or "",
+            "precio_web": c.get("precio_num", 0),
+            "precio_lista": c.get("lista_num", 0),
+            "foto_web": ov.get("foto_url") or c.get("photo") or "",
+            "slug": c.get("slug") or "",
+            "meli_id": mid,
+            "oculto_web": oculto,
+            "buyable": bool(c.get("buyable", True)) and not oculto,
+            "aparece_en_web": _aparece_en_tienda_web(mid, oculto),
+            "web": {
+                "nombre": c.get("name") or "",
+                "label": c.get("presentacion_label") or c.get("name") or sku,
+                "precio": c.get("precio_num", 0),
+                "visible": _aparece_en_tienda_web(mid, oculto),
+                "vitrina": oculto,
+                "url": _url_producto_web(product.get("slug") or product.get("family_slug") or c.get("slug") or ""),
+            },
+            "meli": live,
+        })
+    return filas
+
+
+def _vista_sitios(
+    ep: dict,
+    filas: list[dict],
+    *,
+    meli_live: Optional[dict] = None,
+) -> dict:
+    """Cómo se muestra la ficha en la tienda web vs las publicaciones MeLi."""
+    ov = ep.get("_ov") or {}
+    cat = ep.get("cat") or ""
+    linea = _linea_info(cat)
+    slug = ep.get("slug") or ep.get("family_slug") or ""
+    mid = ep.get("meli_id_efectivo") or ""
+    oculto = bool(ov.get("oculto_web") or ep.get("solo_vitrina"))
+    aparece = _aparece_en_tienda_web(mid, oculto) or any(f.get("aparece_en_web") for f in filas)
+    live = _resumen_meli_live(meli_live, mid)
+    n_pres = len(filas)
+    return {
+        "web": {
+            "nombre": ep.get("name") or "",
+            "categoria": cat,
+            "linea": linea["nombre"],
+            "linea_id": linea["id"],
+            "linea_color": linea["color"],
+            "slug": slug,
+            "url": _url_producto_web(slug),
+            "url_catalogo": _url_catalogo_web(cat, linea["id"]),
+            "precio": ep.get("precio_num", 0),
+            "precio_str": ep.get("precio") or "",
+            "foto": ep.get("foto_efectiva") or ep.get("photo") or "",
+            "descripcion": (ep.get("descripcion_efectiva") or "")[:280],
+            "visible": aparece,
+            "vitrina": oculto,
+            "buyable": bool(ep.get("buyable", True)) and not oculto,
+            "es_familia": n_pres > 1,
+            "n_presentaciones": n_pres,
+            "motivo_oculto": (
+                "Marcado oculto en el panel (vitrina, sin compra)"
+                if oculto
+                else (
+                    "La tienda no lo muestra: no hay publicación MeLi vinculada"
+                    if not aparece
+                    else ""
+                )
+            ),
+        },
+        "meli": live,
+        "presentaciones": filas,
+    }
+
+
+def _canal_filtro_ok(item: dict, canal: str) -> bool:
+    c = (canal or "").strip().lower()
+    if not c or c in ("todos", "all"):
+        return True
+    web_ok = (item.get("sync_web") or {}).get("status") == "ok"
+    meli_st = (item.get("sync_meli") or {}).get("status")
+    meli_ok = meli_st == "linked"
+    visible = bool(item.get("visible_web"))
+    if c in ("ambos", "web_meli", "listos"):
+        return web_ok and meli_ok
+    if c in ("sin_meli", "solo_web"):
+        return not meli_ok
+    if c in ("falta_web", "web_incompleta"):
+        return not web_ok
+    if c in ("no_en_tienda", "sin_web", "ocultos", "oculto_web"):
+        return not visible
+    if c in ("incompletos", "incompleto"):
+        return not (web_ok and meli_ok)
+    return True
+
+
+def _resumen_canales(items: list[dict]) -> dict:
+    listos = 0
+    falta_web = 0
+    sin_meli = 0
+    no_en_tienda = 0
+    for it in items:
+        web_ok = (it.get("sync_web") or {}).get("status") == "ok"
+        meli_ok = (it.get("sync_meli") or {}).get("status") == "linked"
+        if web_ok and meli_ok:
+            listos += 1
+        if not web_ok:
+            falta_web += 1
+        if not meli_ok:
+            sin_meli += 1
+        if not it.get("visible_web"):
+            no_en_tienda += 1
+    return {
+        "total": len(items),
+        "listos": listos,
+        "falta_web": falta_web,
+        "sin_meli": sin_meli,
+        "no_en_tienda": no_en_tienda,
+    }
+
+
 # ── API pública ─────────────────────────────────────────────────────────────
 
-def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
+def listar_publicaciones(buscar: str = "", categoria: str = "", canal: str = "") -> dict:
     cache = _load_cache()
     overrides = _load_overrides()
     products = _products_flat(cache)
@@ -511,12 +780,24 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             }
             for c in presentaciones_raw
         ]
-        items.append({
+        ov = ep.get("_ov") or {}
+        oculto_web = bool(ov.get("oculto_web") or ep.get("solo_vitrina"))
+        slug = ep.get("slug") or ep.get("family_slug") or ""
+        linea = _linea_info(ep.get("cat", ""))
+        visible_web = False if oculto_web else (
+            _aparece_en_tienda_web(meli_id, False)
+            or any(_aparece_en_tienda_web(p.get("meli_id") or "", False) for p in presentaciones)
+        )
+        item = {
             "sku": sku_val,
             "nombre": nombre,
             "categoria": ep.get("cat", ""),
             "cat_color": ep.get("cat_color", ""),
-            "slug": ep.get("slug", ""),
+            "linea": linea["nombre"],
+            "linea_id": linea["id"],
+            "slug": slug,
+            "url_web": _url_producto_web(slug),
+            "url_catalogo": _url_catalogo_web(ep.get("cat", ""), linea["id"]),
             "precio_lista": ep.get("lista_num", 0),
             "precio_web": ep.get("precio_num", 0),
             "foto_efectiva": ep.get("foto_efectiva", ""),
@@ -525,13 +806,25 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             "meli_compliance_reemplazo": reemplazo,
             "estado_meli_config": ep.get("estado_meli_config", ""),
             "tiene_override": bool(ep.get("_ov")),
+            "oculto_web": oculto_web,
+            "visible_web": visible_web,
+            "n_presentaciones": len(presentaciones) or 1,
             "sync_web": _status_web(ep),
             "sync_meli": _status_meli(ep),
             "presentaciones": presentaciones,
-        })
+        }
+        items.append(item)
 
     categorias = sorted({i["categoria"] for i in items if i["categoria"]})
-    return {"items": items, "total": len(items), "categorias": categorias}
+    resumen = _resumen_canales(items)
+    if canal:
+        items = [i for i in items if _canal_filtro_ok(i, canal)]
+    return {
+        "items": items,
+        "total": len(items),
+        "categorias": categorias,
+        "resumen": resumen,
+    }
 
 
 def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
@@ -550,8 +843,6 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
         )
 
     meli_live = None
-    if live_meli and ep.get("meli_id_efectivo"):
-        meli_live = _meli_fetch_item(ep["meli_id_efectivo"])
 
     reemplazo = None
     meli_url = ""
@@ -566,13 +857,53 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
         if ep.get("meli_id_efectivo"):
             meli_url = f"https://articulo.mercadolibre.com.co/{ep['meli_id_efectivo']}"
 
+    familia = raw
+    if ep.get("es_presentacion_de"):
+        padre = next(
+            (p for p in _products_flat(cache)
+             if (p.get("ref") or p.get("rep_sku", "")) == ep["es_presentacion_de"]),
+            None,
+        )
+        if padre:
+            familia = padre
+    meli_ids = []
+    for c in (familia.get("combos") or [familia]):
+        sku_c = c.get("ref") or c.get("rep_sku") or ""
+        mid_c = normalizar_meli_item_id(
+            (overrides.get(sku_c) or {}).get("meli_item_id") or c.get("meli_id") or "",
+        )
+        if mid_c:
+            meli_ids.append(mid_c)
+    if ep.get("meli_id_efectivo"):
+        meli_ids.append(ep["meli_id_efectivo"])
+    live_map: dict[str, dict] = {}
+    if live_meli:
+        live_map = _meli_fetch_items(meli_ids)
+        mid_eff = ep.get("meli_id_efectivo") or ""
+        if mid_eff:
+            meli_live = live_map.get(mid_eff)
+    filas = _filas_presentacion_sitios(familia, overrides, live_map)
+    ep_web = dict(ep)
+    ep_web["name"] = familia.get("name") or ep.get("name")
+    ep_web["slug"] = familia.get("slug") or familia.get("family_slug") or ep.get("slug")
+    ep_web["cat"] = familia.get("cat") or ep.get("cat")
+    ep_web["precio_num"] = familia.get("precio_num", ep.get("precio_num", 0))
+    ep_web["precio"] = familia.get("precio") or ep.get("precio") or ""
+    vista = _vista_sitios(ep_web, filas, meli_live=meli_live)
+    linea = _linea_info(ep.get("cat", ""))
+    slug = ep.get("slug") or ep.get("family_slug") or familia.get("slug") or ""
+
     return {
         "sku": sku_val,
         "es_presentacion_de": ep.get("es_presentacion_de", ""),
         "nombre": ep.get("name", ""),
         "categoria": ep.get("cat", ""),
         "cat_color": ep.get("cat_color", ""),
-        "slug": ep.get("slug", ""),
+        "linea": linea["nombre"],
+        "linea_id": linea["id"],
+        "slug": slug,
+        "url_web": _url_producto_web(slug),
+        "url_catalogo": _url_catalogo_web(ep.get("cat", ""), linea["id"]),
         "precio_lista": ep.get("lista_num", 0),
         "precio_web": ep.get("precio_num", 0),
         "precio_str": ep.get("precio", ""),
@@ -588,18 +919,34 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
         "meli_item_id_cache": ep.get("meli_id", ""),
         "meli_item_id_override": ov.get("meli_item_id", ""),
         "meli_id_efectivo": ep.get("meli_id_efectivo", ""),
-        "meli_url": meli_url,
+        "meli_url": meli_url or vista["meli"].get("permalink") or "",
         "meli_compliance_reemplazo": reemplazo,
         "meli_live": meli_live,
-        "en_vitrina": ep.get("solo_vitrina", False),
-        "buyable": ep.get("buyable", True),
+        "en_vitrina": ep.get("solo_vitrina", False) or bool(ov.get("oculto_web")),
+        "buyable": ep.get("buyable", True) and not bool(ov.get("oculto_web")),
         "is_combo": ep.get("is_combo", False),
         "oculto_web": ov.get("oculto_web", False),
+        "visible_web": vista["web"]["visible"],
         "tiene_override": bool(ov),
         "override_updated_at": ov.get("updated_at"),
         "sync_web": _status_web(ep),
         "sync_meli": _status_meli(ep),
+        "vista_sitios": vista,
     }
+
+
+def cambiar_estado_meli_sku(sku: str, nuevo_estado: str) -> dict:
+    """Pausa o activa la publicación MeLi vinculada al SKU."""
+    mid = _meli_id_efectivo_sku(sku, live_lookup=True)
+    if not mid:
+        return {"ok": False, "error": "Sin publicación MeLi vinculada", "sku": sku}
+    from app.services.meli import cambiar_estado_publicacion_meli
+    res = cambiar_estado_publicacion_meli(mid, nuevo_estado)
+    res["sku"] = sku
+    res["meli_id"] = mid
+    if "error" not in res and not res.get("ok"):
+        res["error"] = res.get("mensaje") or "No se pudo cambiar el estado"
+    return res
 
 
 def actualizar_publicacion(sku: str, campos: dict) -> dict:

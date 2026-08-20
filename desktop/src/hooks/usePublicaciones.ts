@@ -37,12 +37,77 @@ export interface PresentacionItem {
   buyable: boolean;
 }
 
+export interface VistaMeliSitio {
+  item_id: string;
+  titulo: string;
+  estado: string;
+  precio: number | null;
+  stock: number | null;
+  permalink: string;
+  foto: string;
+  condicion?: string;
+  listing_type_id?: string;
+  categoria_meli?: string;
+}
+
+export interface PresentacionSitio {
+  sku: string;
+  nombre: string;
+  presentacion_label: string;
+  precio_web: number;
+  precio_lista: number;
+  foto_web: string;
+  slug: string;
+  meli_id: string;
+  oculto_web: boolean;
+  buyable: boolean;
+  aparece_en_web: boolean;
+  web: {
+    nombre: string;
+    label: string;
+    precio: number;
+    visible: boolean;
+    vitrina: boolean;
+    url: string;
+  };
+  meli: VistaMeliSitio;
+}
+
+export interface VistaSitios {
+  web: {
+    nombre: string;
+    categoria: string;
+    linea: string;
+    linea_id: string;
+    linea_color: string;
+    slug: string;
+    url: string;
+    url_catalogo: string;
+    precio: number;
+    precio_str: string;
+    foto: string;
+    descripcion: string;
+    visible: boolean;
+    vitrina: boolean;
+    buyable: boolean;
+    es_familia: boolean;
+    n_presentaciones: number;
+    motivo_oculto: string;
+  };
+  meli: VistaMeliSitio;
+  presentaciones: PresentacionSitio[];
+}
+
 export interface PublicacionItem {
   sku: string;
   nombre: string;
   categoria: string;
   cat_color: string;
+  linea?: string;
+  linea_id?: string;
   slug: string;
+  url_web?: string;
+  url_catalogo?: string;
   precio_lista: number;
   precio_web: number;
   foto_efectiva: string;
@@ -50,6 +115,9 @@ export interface PublicacionItem {
   meli_url?: string;
   meli_compliance_reemplazo?: MeliComplianceReemplazo | null;
   tiene_override: boolean;
+  oculto_web?: boolean;
+  visible_web?: boolean;
+  n_presentaciones?: number;
   sync_web: SyncStatus;
   sync_meli: SyncStatus;
   presentaciones?: PresentacionItem[];
@@ -74,23 +142,33 @@ export interface PublicacionDetalle extends PublicacionItem {
   buyable: boolean;
   is_combo: boolean;
   oculto_web: boolean;
+  visible_web?: boolean;
   tiene_override: boolean;
   override_updated_at: string | null;
+  vista_sitios?: VistaSitios;
 }
 
 export interface ListaPublicaciones {
   items: PublicacionItem[];
   total: number;
   categorias: string[];
+  resumen?: {
+    total: number;
+    listos: number;
+    falta_web: number;
+    sin_meli: number;
+    no_en_tienda: number;
+  };
 }
 
-export function usePublicaciones(buscar = "", categoria = "") {
+export function usePublicaciones(buscar = "", categoria = "", canal = "") {
   return useQuery<ListaPublicaciones>({
-    queryKey: ["publicaciones", buscar, categoria],
+    queryKey: ["publicaciones", buscar, categoria, canal],
     queryFn: () => {
       const params = new URLSearchParams();
       if (buscar) params.set("buscar", buscar);
       if (categoria) params.set("categoria", categoria);
+      if (canal) params.set("canal", canal);
       return api.get<ListaPublicaciones>(`/api/publicaciones?${params}`);
     },
     staleTime: 30_000,
@@ -236,6 +314,25 @@ export function useSyncMeli(sku: string) {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["publicacion", sku] });
+    },
+  });
+}
+
+export function useEstadoMeli() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sku, estado }: { sku: string; estado: "active" | "paused" }) =>
+      api.post<{
+        ok: boolean;
+        estado?: string;
+        estado_anterior?: string;
+        mensaje?: string;
+        error?: string;
+        meli_id?: string;
+      }>(`/api/publicaciones/${sku}/estado-meli`, { estado }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["publicacion", vars.sku] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
     },
   });
 }
