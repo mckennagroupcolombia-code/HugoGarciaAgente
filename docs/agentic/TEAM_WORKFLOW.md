@@ -32,7 +32,19 @@ Commits atómicos con Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:
 
 ## 3. Recap obligatorio al terminar una tarea
 
-Al finalizar cualquier tarea, refactorización o bloque de cambios importante, agregar una entrada en **`docs/team-recaps.md`** (anteponer arriba del historial, entrada más reciente primero) con esta plantilla exacta:
+**Regla sin excepciones:** toda sesión de IA (Claude Code, Cursor o cualquier otra) en la que un
+programador trabaje sobre este repositorio a través de la interfaz — panel `/app`, sitio público,
+backend, lo que sea — termina con una entrada nueva en `docs/team-recaps.md` antes de darse por
+terminada. No es un "si alcanza el tiempo" ni depende de que la tarea "parezca grande": el dueño
+del proyecto revisa `/app` → Sistemas → Control de Versiones → **Cambios recientes** (primera
+sección del panel, ya no una pestaña secundaria) para saber qué pasó en cada sesión, y si el recap
+no está, esa sesión es invisible para él aunque el código sí haya cambiado. Si una sesión hizo
+varias tareas independientes, un recap por tarea; si terminó sin cambios de código (solo
+investigación/respuesta), no aplica.
+
+Al finalizar cualquier tarea, refactorización o bloque de cambios, agregar una entrada en
+**`docs/team-recaps.md`** (anteponer arriba del historial, entrada más reciente primero) con esta
+plantilla exacta:
 
 ```markdown
 ### [Fecha y Hora] - [Título Corto del Cambio]
@@ -52,10 +64,16 @@ Reglas:
 
 ## 4. Visualización en el panel
 
-`/app` → hub **Sistemas** (modo avanzado) → **Control de Versiones**:
+`/app` → hub **Sistemas** (modo avanzado) → **Control de Versiones**. Página única (ya no son
+pestañas separadas), en este orden fijo:
 
-- Pestaña "Árbol de commits": grafo de nodos (cladograma) del historial real de git, vía `GET /api/git/log`.
-- Pestaña "Recaps del equipo": tarjetas con cada entrada de `docs/team-recaps.md`, vía `GET /api/team-recaps`.
+1. **Cambios recientes** (arriba, lo primero que se ve al abrir): tarjetas con cada entrada de
+   `docs/team-recaps.md`, vía `GET /api/team-recaps`.
+2. **Árbol de commits** (abajo, para quien quiera el detalle técnico): grafo de nodos (cladograma)
+   del historial real de git, vía `GET /api/git/log`.
+
+El orden es intencional: el dueño del proyecto quiere ver primero qué cambió (recaps), no el grafo
+de git. No revertir a pestañas ni invertir el orden sin pedirlo explícitamente.
 
 Detalle de componentes en `docs/agentic/CONTRACTS.md` y `desktop/src/components/ControlVersionesPanel.tsx`.
 
@@ -63,4 +81,4 @@ Detalle de componentes en `docs/agentic/CONTRACTS.md` y `desktop/src/components/
 
 - No usar `git commit --amend` sobre commits ya empujados a un remoto compartido.
 - No forzar `git pull`/`git push --force` sobre una rama con trabajo ajeno sin avisar.
-- El recap no es opcional para tareas de tamaño mediano/grande; para fixes triviales de una línea no es obligatorio, pero sí recomendable si afecta comportamiento visible.
+- El recap no es opcional. Toda sesión que cambie código en este repo agrega su entrada en `docs/team-recaps.md`, sin importar el tamaño de la tarea — ver sección 3.

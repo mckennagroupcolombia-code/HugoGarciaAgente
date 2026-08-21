@@ -1,6 +1,6 @@
 # Recaps del Equipo
 
-Registro corto y visual de cada tarea/sesión de trabajo con la IA sobre este repositorio: qué se implementó, quién lo hizo y qué archivos tocó. Se muestra en el panel `/app` → Sistemas → **Control de Versiones** (pestaña "Recaps del equipo"), leído por `app/tools/team_recaps.py` vía `GET /api/team-recaps`.
+Registro corto y visual de cada tarea/sesión de trabajo con la IA sobre este repositorio: qué se implementó, quién lo hizo y qué archivos tocó. Se muestra en el panel `/app` → Sistemas → **Control de Versiones**, sección "Cambios recientes" (arriba, antes del árbol de commits), leído por `app/tools/team_recaps.py` vía `GET /api/team-recaps`.
 
 No reemplaza otros registros existentes, que tienen propósito distinto:
 
@@ -8,6 +8,14 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 - `docs/agentic/DECISIONS.md` — decisiones de metodología/arquitectura agentic.
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
+
+### 2026-08-20 22:43 - Control de Versiones: Cambios recientes arriba, sin pestañas
+- **Autor:** Claude Code
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - El panel dejó de separar "Árbol de commits" y "Recaps del equipo" en pestañas: ahora es una sola página, con **Cambios recientes** arriba (lo primero que se ve al abrir el panel) y el árbol de commits debajo, para quien quiera el detalle técnico.
+  - Se reforzó `docs/agentic/TEAM_WORKFLOW.md`: el recap en `docs/team-recaps.md` deja de ser opcional para "tareas pequeñas" — toda sesión de IA (Claude Code, Cursor u otra) que cambie código en este repo agrega su entrada antes de terminar.
+- **Archivos Modificados:** `desktop/src/components/ControlVersionesPanel.tsx`, `docs/agentic/TEAM_WORKFLOW.md`, `docs/team-recaps.md`
 
 ### 2026-08-20 22:35 - Inicio: ruta de origen en vivo, actividad real y banners promo
 - **Autor:** Claude Code

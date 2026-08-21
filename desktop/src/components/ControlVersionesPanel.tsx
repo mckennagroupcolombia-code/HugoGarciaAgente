@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { asignarAutorCommit, useGitLog, type GitAutoCommitEstado } from "../hooks/useGitLog";
 import { asignarAutorRecap, useTeamRecaps, type TeamRecap } from "../hooks/useTeamRecaps";
 import { layoutCommitGraph, type GraphEdge, type LaidOutCommit } from "../lib/gitGraphLayout";
-import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 // Desarrolladores conocidos del proyecto (cuenta git compartida): usado para
 // el selector "¿Quién hizo esto?" en commits y recaps. Coincide con
@@ -42,30 +41,6 @@ function inicialesAutor(autor: string): string {
 
 function esAutoCommit(asunto: string): boolean {
   return /^auto-commit:/i.test(asunto.trim());
-}
-
-// ── Tab bar (mismo patrón que SupervisorPanel) ───────────────────────────────
-
-type Tab = "commits" | "recaps";
-
-function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "commits", label: "Árbol de commits" },
-    { id: "recaps", label: "Recaps del equipo" },
-  ];
-  return (
-    <div className="flex gap-1 rounded-xl border border-border bg-surface-panel p-1 mb-4">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          className={hubTabClass(active === t.id, "flex-1 justify-center")}
-        >
-          <span className={HUB_TAB_LABEL}>{t.label}</span>
-        </button>
-      ))}
-    </div>
-  );
 }
 
 function formatFecha(iso: string): string {
@@ -716,21 +691,27 @@ function TabRecaps() {
 // ── Panel principal ────────────────────────────────────────────────────────
 
 export default function ControlVersionesPanel() {
-  const [tab, setTab] = useState<Tab>("commits");
-
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-4">
+    <div className="mx-auto max-w-5xl space-y-8">
+      <div>
         <h2 className="text-lg font-semibold text-ink">Control de Versiones</h2>
         <p className="text-xs text-muted mt-0.5">
           Historial de git del repositorio, recaps por desarrollador y auto-commits programados
         </p>
       </div>
 
-      <TabBar active={tab} onChange={setTab} />
+      {/* Cambios recientes primero: es lo que el equipo necesita ver de un
+          vistazo al abrir el panel. El árbol de commits (más técnico) queda
+          debajo, para quien quiera profundizar. */}
+      <section>
+        <h3 className="text-sm font-semibold text-ink mb-3">📋 Cambios recientes</h3>
+        <TabRecaps />
+      </section>
 
-      {tab === "commits" && <TabCommits />}
-      {tab === "recaps" && <TabRecaps />}
+      <section>
+        <h3 className="text-sm font-semibold text-ink mb-3">🌳 Árbol de commits</h3>
+        <TabCommits />
+      </section>
     </div>
   );
 }
