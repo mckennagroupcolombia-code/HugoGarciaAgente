@@ -1,0 +1,65 @@
+{#
+  "¿A dónde hemos llegado?" — cobertura geográfica REAL (departamento +
+  municipio), acumulada de tienda web + MercadoLibre. `cobertura` viene de
+  website.py:_calcular_cobertura(). Web es todo el histórico de orders.db;
+  MeLi se alimenta aparte por app/tools/cobertura_meli.py (cron diario, ver
+  scripts/actualizar_cobertura_meli_cron.py) porque no hay endpoint agregado
+  barato para pedirlo en vivo — así que crece día a día desde que ese cron
+  empezó a correr, no es historial completo desde siempre. Lista, sin mapa
+  ilustrado: solo departamentos ordenados por pedidos, con acordeón a los
+  municipios reales dentro de cada uno.
+#}
+<section class="coverage-section">
+  <div class="section">
+    <div class="coverage-head reveal">
+      <span class="section-eyebrow">Cobertura nacional</span>
+      <h2 class="section-title">¿A dónde hemos <em>llegado</em>?</h2>
+      <p class="section-lead">
+        Departamentos y municipios con pedidos reales ya despachados. Toca uno
+        para ver el detalle.
+      </p>
+      <div class="coverage-stats">
+        <div>
+          <span class="coverage-stat-val">{{ cobertura.n_departamentos }}<span class="coverage-stat-of">/{{ cobertura.total_departamentos }}</span></span>
+          <span class="coverage-stat-label">departamentos alcanzados</span>
+        </div>
+        <div>
+          <span class="coverage-stat-val">{{ cobertura.n_municipios }}<span class="coverage-stat-of">/{{ cobertura.total_municipios }}</span></span>
+          <span class="coverage-stat-label">municipios y ciudades de Colombia con pedidos</span>
+        </div>
+      </div>
+      <p class="coverage-nota">
+        Cuenta municipios y ciudades (DIVIPOLA); no discrimina aún corregimientos
+        ni veredas dentro de cada uno.
+      </p>
+    </div>
+
+    {% if cobertura.n_departamentos > 0 %}
+    <div class="coverage-list reveal">
+      {% for d in cobertura.departamentos %}
+      <div class="coverage-depto">
+        <button type="button" class="coverage-depto-btn" aria-expanded="false" aria-controls="cv-{{ loop.index }}">
+          <span class="coverage-depto-bar" style="--peso:{{ d.peso }};"></span>
+          <span class="coverage-depto-name">{{ d.departamento }}</span>
+          <span class="coverage-depto-count">{{ d.n_municipios }} municipio{% if d.n_municipios != 1 %}s{% endif %} · {{ d.n_pedidos }} pedido{% if d.n_pedidos != 1 %}s{% endif %}</span>
+          <i class="ph ph-caret-down coverage-depto-caret" aria-hidden="true"></i>
+        </button>
+        <ul id="cv-{{ loop.index }}" class="coverage-depto-municipios" hidden>
+          {% for m in d.municipios %}
+          <li>
+            <span>{{ m.municipio }}</span>
+            <span class="coverage-depto-municipio-n">{{ m.n_pedidos }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="coverage-empty reveal">
+      <i class="ph ph-map-trifold" aria-hidden="true"></i>
+      <p>Estamos armando la cobertura con los pedidos ya despachados. Vuelve pronto.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>

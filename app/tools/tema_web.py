@@ -49,6 +49,7 @@ _ORDEN_PUREZA = [
     "actividad_vivo",
     "banners_promo",
     "ruta_origen",
+    "cobertura",
     "metricas",
     "trazabilidad",
     "pilares",
@@ -62,6 +63,7 @@ _ORDEN_CLASICO = [
     "banners_promo",
     "features",
     "ruta_origen",
+    "cobertura",
     "categorias",
     "destacados",
     "cta",
@@ -228,6 +230,7 @@ TEMA_WEB_DEFAULTS: dict = {
             "actividad_vivo": True,
             "banners_promo": True,
             "ruta_origen": True,
+            "cobertura": True,
         },
     },
     "pureza": {
@@ -321,6 +324,7 @@ TEMA_WEB_DEFAULTS: dict = {
             "actividad_vivo": True,
             "banners_promo": True,
             "ruta_origen": True,
+            "cobertura": True,
         },
     },
 }

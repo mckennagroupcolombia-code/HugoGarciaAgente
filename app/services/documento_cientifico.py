@@ -453,25 +453,84 @@ _CAMPOS_ORACION_CORTA = {
 }
 
 
+_PARAMETROS_COA_BASE: tuple[tuple[str, str], ...] = (
+    ("Aspecto", "Conforme a especificación del proveedor"),
+    ("Identificación", "Positiva / Cumple"),
+    ("Ensayo / Pureza", "Según especificación del proveedor"),
+    ("Pérdida por secado", "Según especificación del proveedor"),
+    ("pH (solución acuosa)", "Según especificación del proveedor"),
+    ("Metales pesados", "Según especificación del proveedor"),
+    ("Arsénico", "Según especificación del proveedor"),
+    ("Recuento de aerobios totales", "Según especificación del proveedor"),
+    ("Hongos y levaduras", "Según especificación del proveedor"),
+    ("Escherichia coli", "Ausente"),
+    ("Salmonella spp.", "Ausente"),
+)
+
+
+def plantilla_parametros_coa() -> str:
+    """Tabla COA usable sin IA: especificación genérica, resultado Conforme."""
+    return "\n".join(f"{p}|{e}|Conforme" for p, e in _PARAMETROS_COA_BASE)
+
+
 def normalizar_filas_parametros_coa(texto: str) -> str:
-    """Deja solo filas Parámetro|Especificación|Resultado; descarta encabezados y markdown."""
+    """Deja solo filas Parámetro|Especificación|Resultado; acepta markdown, viñetas y 'campo: valor'."""
     lineas: list[str] = []
     for cruda in (texto or "").splitlines():
-        ln = cruda.strip().strip("|")
+        ln = cruda.strip().lstrip("-*•").strip()
+        ln = re.sub(r"^\d+[\.)]\s*", "", ln)
+        ln = ln.replace("│", "|").replace("\t", "|")
+        ln = ln.strip().strip("|")
         if not ln or ln.startswith("#"):
             continue
         if set(ln) <= set("-|: "):
             continue
-        partes = [p.strip() for p in ln.split("|")]
+        partes = [p.strip() for p in ln.split("|") if p.strip()]
         if len(partes) < 2:
-            continue
-        clave = partes[0].lower()
-        if clave in {"parametro", "parámetro", "parameter"}:
+            m = re.split(r"\s*[:—–-]\s+", ln, maxsplit=1)
+            if len(m) == 2 and m[0].strip() and m[1].strip():
+                partes = [m[0].strip(), m[1].strip(), "Conforme"]
+            else:
+                continue
+        clave = re.sub(r"\s+", " ", partes[0]).strip().lower()
+        if clave in {"parametro", "parámetro", "parameter", "parametros", "parámetros"}:
             continue
         while len(partes) < 3:
             partes.append("Conforme")
+        if not partes[2]:
+            partes[2] = "Conforme"
         lineas.append("|".join(partes[:3]))
     return "\n".join(lineas)
+
+
+def sugerir_parametros_coa(nombre: str) -> dict[str, Any]:
+    """Gemini primero; si falla o el formato no sirve, plantilla típica (nunca vacío)."""
+    nombre = (nombre or "").strip() or "el producto"
+    prompt = (
+        f"{_PROMPT_BASE}\n"
+        f'Sugiere la tabla de un CERTIFICADO DE ANÁLISIS (COA) para "{nombre}" '
+        "grado cosmético/farmacéutico.\n"
+        "Formato ESTRICTO: una fila por línea, exactamente:\n"
+        "Parámetro|Especificación|Conforme\n"
+        "6 a 12 parámetros (aspecto, identificación, ensayo/pureza, humedad, pH, "
+        "metales pesados, microbiología si aplica).\n"
+        "Especificación: rango típico publicado (ej. ≥ 99.0 %, Polvo blanco, ≤ 0.5 %).\n"
+        "Tercera columna SIEMPRE: Conforme. NO invente resultados de un ensayo real.\n"
+        "Sin markdown, sin encabezados, sin numeración, sin texto extra."
+    )
+    try:
+        bruto = _sintetizar_texto(prompt)
+        filas = normalizar_filas_parametros_coa(bruto)
+        if filas:
+            return {"ok": True, "campo": "coa_parametros", "valor": filas, "origen": "gemini"}
+    except Exception:
+        pass
+    return {
+        "ok": True,
+        "campo": "coa_parametros",
+        "valor": plantilla_parametros_coa(),
+        "origen": "plantilla",
+    }
 
 
 def _asegurar_punto_final(texto: str) -> str:
@@ -501,6 +560,10 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     campo = (campo or "").strip().lower()
     if campo not in _CAMPOS_PERMITIDOS:
         raise ValueError(f"Campo no soportado: {campo}")
+
+    # ── COA parámetros: Gemini directo (sin PubMed) + plantilla si falla ────
+    if campo == "coa_parametros":
+        return sugerir_parametros_coa(nombre)
 
     # ── Sinónimos: Gemini Flash directo, sin PubChem (evita timeouts de red) ────
     if campo == "sinonimos":
@@ -722,17 +785,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Ejemplos: Grado Farmacéutico USP/NF, Grado Cosmético, Grado Alimentario FCC, Grado Reactivo ACS.\n"
             "Responde en UNA línea concisa. Sin markdown."
         ),
-        "coa_parametros": (
-            f'Sugiere la tabla de parámetros de un CERTIFICADO DE ANÁLISIS (COA) para "{nombre}" '
-            "grado cosmético/farmacéutico, según especificaciones típicas de literatura y fichas de proveedor.\n"
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Formato ESTRICTO: una fila por línea como \"Parámetro|Especificación|Resultado\".\n"
-            "6 a 12 parámetros relevantes (aspecto, identificación, ensayo/pureza, humedad, pH, "
-            "metales pesados, residuales, microbiología si aplica).\n"
-            "Especificación: rango o criterio típico publicado (ej. ≥ 99.0 %, Polvo blanco, Cumple).\n"
-            "Resultado: escriba \"Conforme\" — NO invente números de un ensayo de laboratorio real.\n"
-            "Sin markdown, sin encabezados, sin numeración."
-        ),
     }
 
     prompt_texto = _PROMPTS.get(campo)
@@ -744,10 +796,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":
         valor = _asegurar_punto_final_lineas(valor)
-    elif campo == "coa_parametros":
-        valor = normalizar_filas_parametros_coa(valor)
-        if not valor:
-            raise RuntimeError("La IA no devolvió filas de parámetros COA utilizables")
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 

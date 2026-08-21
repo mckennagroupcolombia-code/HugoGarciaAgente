@@ -13,11 +13,12 @@ export interface DolarHora {
   hora: string;
   cambio_abs: number;
   cambio_pct: number;
-  fuente: "yahoo" | "banrep" | string;
+  fuente: "banrep" | string;
   fuente_label: string;
   trm_oficial: number | null;
   trm_fecha: string | null;
   trm_fuente: string | null;
+  /** Vacío: el gráfico horario es TradingView en el panel. */
   serie_hora: DolarPunto[];
   serie_dia: DolarPunto[];
   cache_ttl_s: number;

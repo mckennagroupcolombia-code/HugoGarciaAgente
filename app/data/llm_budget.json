@@ -1,16 +1,16 @@
 {
  "fecha": "2026-08-20",
- "gasto_usd": 0.39618,
- "llamadas": 31,
+ "gasto_usd": 0.401025,
+ "llamadas": 33,
  "por_modelo": {
   "claude-sonnet-4-6": 0.3852,
-  "gemini-2.5-flash": 0.010959,
-  "gemini-2.5-pro": 2.1e-05
+  "gemini-2.5-flash": 0.015783,
+  "gemini-2.5-pro": 4.2e-05
  },
  "por_contexto": {
   "cliente_chat": 0.348618,
-  "meli_preventa": 0.036603,
-  "ft_escanear_url": 0.010959
+  "meli_preventa": 0.036624,
+  "ft_escanear_url": 0.015783
  },
  "alerta_enviada": false,
  "historial": [

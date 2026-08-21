@@ -97,6 +97,12 @@
 </div>
 {% endif %}
 
+{% if sec == 'cobertura' and TW.secciones.cobertura != false %}
+<div style="order:{{ LAYOUT.orden_map.cobertura | default(4) }};">
+  {% include "_cobertura.html" %}
+</div>
+{% endif %}
+
 {% if sec == 'metricas' and TW.secciones.metricas %}
 <div class="pz-metrics" style="order:{{ LAYOUT.orden_map.metricas | default(1) }};{{ nodo_style('metricas') }}">
   {% for m in TW.metricas %}

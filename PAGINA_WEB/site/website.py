@@ -9,7 +9,7 @@ import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets, hmac
 from typing import Any
 from pathlib import Path
 from collections import defaultdict, Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ROOT = Path(__file__).resolve().parent.parent.parent   # /home/mckg/mi-agente
 _SITE_DIR = Path(__file__).resolve().parent
@@ -32,6 +32,12 @@ from app.tools.tema_web import (
 from app.tools.stock_web import obtener_stock_web, set_stock_web
 from app.tools.origen_materias import cargar_origen_materias, resolver_pais_sku
 from app.tools.banners_web import banners_vigentes
+from app.tools.colombia_geo import (
+    COLOMBIA_DATA,
+    TOTAL_DEPARTAMENTOS,
+    TOTAL_MUNICIPIOS,
+    resolver_departamento_municipio,
+)
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -135,43 +141,6 @@ from app.services.tarifas_envio import (
 
 def cotizar_envio_web(ciudad: str, depto: str, cart: dict) -> dict:
     return _cotizar_envio_ir(ciudad, depto, peso_kg=peso_carrito_kg(cart))
-
-# Datos geográficos Colombia
-COLOMBIA_DATA = {
-  "Amazonas":["Leticia","Puerto Nariño","El Encanto","La Chorrera","La Pedrera","La Victoria","Mirití-Paraná","Puerto Alegría","Puerto Arica","Puerto Santander","Tarapacá"],
-  "Antioquia":["Medellín","Bello","Itagüí","Envigado","Sabaneta","Rionegro","Apartadó","Turbo","Caucasia","Chigorodó","Copacabana","La Ceja","La Estrella","Marinilla","Caldas","Barbosa","Girardota","El Bagre","Andes","Fredonia","Jericó","Santa Bárbara","Abejorral","Abriaquí","Alejandría","Amagá","Amalfi","Angelópolis","Angostura","Anorí","Anzá","Arboletes","Argelia","Armenia","Betulia","Briceño","Buriticá","Cáceres","Caicedo","Campamento","Cañasgordas","Caracolí","Caramanta","Carepa","Carolina del Príncipe","Cisneros","Cocorná","Concepción","Concordia","Dabeiba","Don Matías","Ebéjico","El Carmen de Viboral","El Peñol","El Retiro","El Santuario","Entrerríos","Frontino","Giraldo","Gómez Plata","Granada","Guadalupe","Guarne","Guatapé","Heliconia","Hispania","Ituango","Jardín","La Pintada","La Unión","Liborina","Maceo","Montebello","Murindó","Mutatá","Nariño","Necoclí","Nechí","Olaya","Peque","Pueblorrico","Puerto Berrío","Puerto Nare","Puerto Triunfo","Remedios","Sabanalarga","Salgar","San Andrés de Cuerquia","San Carlos","San Francisco","San Jerónimo","San José de la Montaña","San Juan de Urabá","San Luis","San Pedro de los Milagros","San Pedro de Urabá","San Rafael","San Roque","San Vicente Ferrer","Santa Rosa de Osos","Santo Domingo","Segovia","Sonsón","Sopetrán","Tamesis","Tarazá","Tarso","Titiribí","Toledo","Uramita","Urrao","Valdivia","Valparaíso","Vegachí","Venecia","Vigía del Fuerte","Yalí","Yarumal","Yolombó","Yondó","Zaragoza"],
-  "Arauca":["Arauca","Arauquita","Cravo Norte","Fortul","Puerto Rondón","Saravena","Tame"],
-  "Atlántico":["Barranquilla","Soledad","Malambo","Galapa","Sabanalarga","Baranoa","Campo de la Cruz","Candelaria","Juan de Acosta","Luruaco","Manatí","Palmar de Varela","Piojó","Polonuevo","Ponedera","Puerto Colombia","Repelón","Sabanagrande","Santa Lucía","Santo Tomás","Suan","Tubará","Usiacurí"],
-  "Bogotá D.C.":["Bogotá D.C."],
-  "Bolívar":["Cartagena","Magangué","El Carmen de Bolívar","Turbaco","Mompós","Arjona","Achí","Altos del Rosario","Arenal","Arroyohondo","Barranco de Loba","Calamar","Cantagallo","Cicuco","Clemencia","Córdoba","El Guamo","El Peñón","Hatillo de Loba","Mahates","Margarita","María La Baja","Montecristo","Morales","Norosí","Pinillos","Regidor","Río Viejo","San Cristóbal","San Estanislao","San Fernando","San Jacinto","San Jacinto del Cauca","San Juan Nepomuceno","San Martín de Loba","San Pablo","Santa Catalina","Santa Rosa","Santa Rosa del Sur","Simití","Soplaviento","Talaigua Nuevo","Tiquisio","Turbaná","Villanueva","Zambrano"],
-  "Boyacá":["Tunja","Duitama","Sogamoso","Chiquinquirá","Villa de Leyva","Puerto Boyacá","Paipa","Moniquirá","Nobsa","Tibasosa","Aquitania","Arcabuco","Belén","Berbeo","Betéitiva","Boavita","Boyacá","Briceño","Buena Vista","Busbanzá","Caldas","Campohermoso","Cerinza","Chinavita","Chíquiza","Chiscas","Chita","Chitaraque","Chivatá","Chivor","Ciénega","Cómbita","Coper","Corrales","Covarachía","Cubará","Cucaita","Cuítiva","El Cocuy","El Espino","Firavitoba","Floresta","Gachantivá","Gámeza","Garagoa","Guacamayas","Guateque","Guayatá","Güicán","Iza","Jenesano","Jericó","La Capilla","La Uvita","La Victoria","Labranzagrande","Macanal","Maripí","Miraflores","Mongua","Monguí","Motavita","Muzo","Nuevo Colón","Oicatá","Otanche","Pachavita","Páez","Pajarito","Panqueba","Pauna","Paya","Paz de Río","Pesca","Pisba","Quípama","Ramiriquí","Ráquira","Rondón","Saboyá","Sáchica","Samacá","San Eduardo","San José de Pare","San Luis de Gaceno","San Mateo","San Miguel de Sema","San Pablo de Borbur","Santa María","Santa Rosa de Viterbo","Santa Sofía","Santana","Sativasur","Sativanorte","Siachoque","Soatá","Socotá","Socha","Somondoco","Sora","Soracá","Sotaquirá","Susacón","Sutamarchán","Sutatenza","Tasco","Tenza","Tibaná","Tinjacá","Tipacoque","Toca","Togüí","Tópaga","Tota","Turmequé","Tuta","Tutazá","Úmbita","Ventaquemada","Viracachá","Zetaquira"],
-  "Caldas":["Manizales","La Dorada","Chinchiná","Riosucio","Salamina","Villamaría","Aguadas","Anserma","Aranzazu","Belalcázar","Filadelfia","La Merced","Manzanares","Marmato","Marquetalia","Marulanda","Neira","Norcasia","Pácora","Palestina","Pensilvania","Risaralda","Samaná","San José","Supía","Victoria","Viterbo"],
-  "Caquetá":["Florencia","San Vicente del Caguán","Albania","Belén de los Andaquíes","Cartagena del Chairá","Curillo","El Doncello","El Paujil","La Montañita","Milán","Morelia","Puerto Rico","San José del Fragua","Solano","Solita","Valparaíso"],
-  "Casanare":["Yopal","Aguazul","Tauramena","Villanueva","Hato Corozal","Orocué","Paz de Ariporo","Chámeza","La Salina","Maní","Monterrey","Nunchía","Pore","Recetor","Sabanalarga","Sácama","San Luis de Palenque","Támara","Trinidad"],
-  "Cauca":["Popayán","Santander de Quilichao","Puerto Tejada","El Tambo","Patía","Corinto","Almaguer","Argelia","Balboa","Bolívar","Buenos Aires","Cajibío","Caldono","Caloto","Florencia","Guachené","Guapi","Inzá","Jambaló","La Sierra","La Vega","López de Micay","Mercaderes","Miranda","Morales","Padilla","Páez","Piamonte","Piendamó","Puracé","Rosas","San Sebastián","Santa Rosa","Silvia","Sotara","Suárez","Sucre","Timbío","Timbiquí","Toribío","Totoró","Villa Rica"],
-  "Cesar":["Valledupar","Aguachica","Agustín Codazzi","Bosconia","Astrea","Becerril","Chimichagua","Chiriguaná","Curumaní","El Copey","El Paso","Gamarra","González","La Gloria","La Jagua de Ibirico","La Paz","Manaure Balcón del Cesar","Pailitas","Pelaya","Pueblo Bello","Río de Oro","San Alberto","San Diego","San Martín","Tamalameque"],
-  "Chocó":["Quibdó","Istmina","Riosucio","Acandí","Alto Baudó","Atrato","Bagadó","Bahía Solano","Bajo Baudó","Bojayá","Carmen del Darién","Cértegui","Condoto","El Carmen de Atrato","El Litoral del San Juan","Juradó","Lloró","Medio Atrato","Medio Baudó","Medio San Juan","Nóvita","Nuquí","Río Iro","Río Quito","San José del Palmar","Sipí","Tadó","Unguía","Unión Panamericana"],
-  "Córdoba":["Montería","Cereté","Lorica","Sahagún","Montelíbano","Ayapel","Buenavista","Canalete","Chimá","Chinú","Ciénaga de Oro","Cotorra","La Apartada","Los Córdobas","Momil","Moñitos","Planeta Rica","Pueblo Nuevo","Puerto Escondido","Puerto Libertador","Purísima de la Concepción","San Andrés de Sotavento","San Antero","San Bernardo del Viento","San Carlos","San José de Uré","San Pelayo","Tierralta","Tuchín","Valencia"],
-  "Cundinamarca":["Soacha","Facatativá","Zipaquirá","Chía","Fusagasugá","Mosquera","Madrid","Funza","Cajicá","Girardot","La Mesa","Tocancipá","Sopó","Villeta","Gachancipá","Tabio","Tenjo","El Rosal","Subachoque","Cogua","Nemocón","Ubaté","Simijaca","Agua de Dios","Albán","Anapoima","Anolaima","Apulo","Arbeláez","Beltrán","Bituima","Bojacá","Cabrera","Cachipay","Caparrapí","Cáqueza","Carmen de Carupa","Chaguaní","Chipaque","Choachí","Chocontá","Cota","Cucunubá","El Colegio","El Peñón","Fomeque","Fosca","Fúquene","Gachalá","Gachetá","Gama","Granada","Guachetá","Guaduas","Guasca","Guataquí","Guatavita","Guayabal de Síquima","Guayabetal","Gutiérrez","Jerusalén","Junín","La Calera","La Palma","La Peña","La Vega","Lenguazaque","Macheta","Manta","Medina","Nariño","Nilo","Nimaima","Nocaima","Venecia","Pacho","Paime","Pandi","Paratebueno","Pasca","Puerto Salgar","Pulí","Quebradanegra","Quetame","Quipile","Ricaurte","San Antonio del Tequendama","San Bernardo","San Cayetano","San Francisco","San Juan de Rioseco","Sasaima","Sesquilé","Sibaté","Silvania","Suesca","Supatá","Susa","Sutatausa","Tausa","Tena","Tibacuy","Tibiritá","Tocaima","Topaipí","Ubalá","Ubaque","Une","Útica","Vergara","Vianí","Villa de San Diego de Ubaté","Viotá","Yacopí","Zipacón"],
-  "Guainía":["Inírida","Barranco Minas","Cacahual","La Guadalupe","Mapiripana","Morichal","Pana Pana","Puerto Colombia","San Felipe"],
-  "Guaviare":["San José del Guaviare","Calamar","El Retorno","Miraflores"],
-  "Huila":["Neiva","Pitalito","Garzón","La Plata","Campoalegre","Acevedo","Agrado","Aipe","Algeciras","Altamira","Baraya","Colombia","Elías","Gigante","Guadalupe","Hobo","Iquira","Isnos","La Argentina","Nátaga","Oporapa","Paicol","Palermo","Palestina","Pital","Rivera","Saladoblanco","San Agustín","Santa María","Suaza","Tarqui","Tello","Teruel","Tesalia","Timaná","Villavieja","Yaguará"],
-  "La Guajira":["Riohacha","Maicao","Uribia","Fonseca","San Juan del Cesar","Albania","Barrancas","Dibula","Distracción","El Molino","Hatonuevo","La Jagua del Pilar","Manaure","Urumita","Villanueva"],
-  "Magdalena":["Santa Marta","Ciénaga","Fundación","El Banco","Aracataca","Plato","Algarrobo","Ariguaní","Cerro de San Antonio","Chivolo","Concordia","El Piñón","El Retén","Guamal","Nueva Granada","Pedraza","Pijiño del Carmen","Pivijay","Puebloviejo","Remolino","Sabanas de San Ángel","Salamina","San Sebastián de Buenavista","San Zenón","Santa Ana","Santa Bárbara de Pinto","Sitionuevo","Tenerife","Zapayán","Zona Bananera"],
-  "Meta":["Villavicencio","Acacías","Granada","Cumaral","Restrepo","San Martín","Puerto López","Barranca de Upía","Cabuyaro","Castilla la Nueva","Cubarral","El Calvario","El Castillo","El Dorado","Fuente de Oro","Guamal","La Macarena","La Uribe","Lejanías","Mapiripán","Mesetas","Puerto Concordia","Puerto Gaitán","Puerto Lleras","Puerto Rico","San Carlos de Guaroa","San Juan de Arama","San Juanito","Vista Hermosa"],
-  "Nariño":["Pasto","Tumaco","Ipiales","Túquerres","Samaniego","La Unión","El Charco","Barbacoas","Olaya Herrera","Albán","Aldana","Ancuyá","Arboleda","Belén","Buesaco","Chachagüí","Colón","Consacá","Contadero","Córdoba","Cuaspud","Cumbal","Cumbitara","El Peñol","El Rosario","El Tablón de Gómez","El Tambo","Francisco Pizarro","Funes","Guachucal","Guaitarilla","Gualmatán","Iles","Imués","La Cruz","La Florida","La Llanada","La Tola","Leiva","Linares","Los Andes","Magüí","Mallama","Mosquera","Nariño","Ospina","Policarpa","Potosí","Providencia","Puerres","Pupiales","Ricaurte","Roberto Payán","San Bernardo","San Lorenzo","San Pablo","San Pedro de Cartago","Sandoná","Santa Bárbara","Santacruz","Sapuyes","Taminango","Tangua","Yacuanquer"],
-  "Norte de Santander":["Cúcuta","Ocaña","Pamplona","Los Patios","Villa del Rosario","Tibú","Ábrego","Arboledas","Bochalema","Bucarasica","Cácota","Cachirá","Chitagá","Convención","Cucutilla","Durania","El Carmen","El Tarra","El Zulia","Gramalote","Hacarí","Herrán","La Esperanza","La Playa","Labateca","Lourdes","Mutiscua","Pamplonita","Puerto Santander","Ragonvalia","Salazar","San Calixto","San Cayetano","Santiago","Sardinata","Silos","Teorama","Toledo","Villa Caro"],
-  "Putumayo":["Mocoa","Puerto Asís","Orito","Valle del Guamuez","Villagarzón","Colón","Leguízamo","Puerto Caicedo","Puerto Guzmán","Puerto Leguízamo","San Francisco","San Miguel","Santiago","Sibundoy"],
-  "Quindío":["Armenia","Calarcá","Montenegro","Quimbaya","La Tebaida","Buenavista","Circasia","Córdoba","Filandia","Génova","Pijao","Salento"],
-  "Risaralda":["Pereira","Dosquebradas","Santa Rosa de Cabal","La Virginia","Apía","Balboa","Belén de Umbría","Guática","La Celia","Marsella","Mistrató","Pueblo Rico","Quinchía","Santuario"],
-  "San Andrés y Providencia":["San Andrés","Providencia"],
-  "Santander":["Bucaramanga","Floridablanca","Girón","Piedecuesta","Barrancabermeja","San Gil","Socorro","Vélez","Barbosa","Lebrija","Sabana de Torres","Puerto Wilches","Rionegro","San Vicente de Chucurí","Aguada","Albania","Aratoca","Barichara","Betulia","Bolívar","Cabrera","California","Capitanejo","Carcasí","Cepitá","Cerrito","Charalá","Charta","Chima","Chipatá","Cimitarra","Confines","Contratación","Coromoro","Curití","El Carmen de Chucurí","El Guacamayo","El Peñón","El Playón","Encino","Enciso","Galán","Gambita","Guaca","Guadalupe","Guapotá","Guavatá","Güepsa","Hato","Jesús María","Jordán","La Belleza","La Paz","Landázuri","Los Santos","Macaravita","Málaga","Matanza","Mogotes","Molagavita","Ocamonte","Oiba","Onzaga","Palmar","Palmas del Socorro","Páramo","Pinchote","Puente Nacional","Puerto Parra","San Andrés","San Benito","San Joaquín","San José de Miranda","San Miguel","Santa Bárbara","Santa Helena del Opón","Simacota","Suaita","Sucre","Suratá","Tona","Valle de San José","Vetas","Villanueva","Zapatoca"],
-  "Sucre":["Sincelejo","Corozal","Sahagún","Sampués","San Marcos","Buenavista","Caimito","Colosó","Coveñas","Chalán","El Roble","Galeras","Guaranda","La Unión","Los Palmitos","Majagual","Morroa","Ovejas","Palmito","San Benito Abad","San Juan de Betulia","San Onofre","San Pedro","Santiago de Tolú","Since","Sucre","Tolú Viejo"],
-  "Tolima":["Ibagué","Espinal","Melgar","Honda","Líbano","Mariquita","El Guamo","Chaparral","Alpujarra","Alvarado","Ambalema","Anzoátegui","Armero-Guayabal","Ataco","Cajamarca","Carmen de Apicalá","Casabianca","Coello","Coyaima","Cunday","Dolores","Falan","Flandes","Fresno","Herveo","Icononzo","Lérida","Murillo","Natagaima","Ortega","Palocabildo","Piedras","Planadas","Prado","Purificación","Rioblanco","Roncesvalles","Rovira","Saldaña","San Antonio","San Luis","Santa Isabel","Suárez","Valle de San Juan","Venadillo","Villahermosa","Villarrica"],
-  "Valle del Cauca":["Cali","Palmira","Buenaventura","Tuluá","Buga","Cartago","Yumbo","Jamundí","Candelaria","Florida","Pradera","El Cerrito","Ginebra","Guacarí","Alcalá","Andalucía","Ansermanuevo","Argelia","Bolívar","Bugalagrande","Caicedonia","Calima","Dagua","El Águila","El Cairo","El Dovio","La Cumbre","La Unión","La Victoria","Obando","Restrepo","Riofrío","Roldanillo","San Pedro","Sevilla","Toro","Trujillo","Ulloa","Versalles","Vijes","Yotoco","Zarzal"],
-  "Vaupés":["Mitú","Carurú","Pacoa","Papunaua","Taraira","Yavaraté"],
-  "Vichada":["Puerto Carreño","Cumaribo","La Primavera","Santa Rosalía"],
-}
 
 # ── MercadoPago Colombia ─────────────────────────────────
 MP_ACCESS_TOKEN   = os.getenv("MP_ACCESS_TOKEN", "")       # APP_USR-...
@@ -3520,10 +3489,6 @@ def _calcular_actividad() -> dict:
         )
         pedidos_web_hoy = cur.fetchone()[0]
         cur.execute(
-            "SELECT COUNT(*) FROM orders WHERE date(siigo_invoice_emitted_at)=date('now')"
-        )
-        facturas_web_hoy = cur.fetchone()[0]
-        cur.execute(
             "SELECT COUNT(*) FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days')"
         )
@@ -3531,12 +3496,25 @@ def _calcular_actividad() -> dict:
         cur.execute(
             "SELECT DISTINCT buyer_city FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days') "
-            "AND buyer_city IS NOT NULL AND buyer_city != '' LIMIT 12"
+            "AND buyer_city IS NOT NULL AND buyer_city != ''"
         )
-        ciudades_semana = [r[0] for r in cur.fetchall()]
+        ciudades_semana = {r[0] for r in cur.fetchall()}
         con.close()
     except Exception:
         log.warning("actividad: no se pudo consultar orders.db", exc_info=True)
+        ciudades_semana = set()
+
+    # Ciudades MeLi de esta semana (real, acumulado por app/tools/cobertura_meli.py):
+    # sin esto "ciudades con envío" solo veía el canal web, casi vacío casi todo
+    # el día — mismo problema de fondo que pedidos_hoy antes de combinar canales.
+    try:
+        raw = json.loads(_COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
+        hace_7 = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+        for entry in (raw.get("municipios") or {}).values():
+            if (entry.get("ultima_vez") or "") >= hace_7 and entry.get("municipio"):
+                ciudades_semana.add(entry["municipio"])
+    except Exception:
+        pass
 
     mensajes_wa = 0
     preguntas_meli = 0
@@ -3551,22 +3529,17 @@ def _calcular_actividad() -> dict:
     except Exception:
         pass
 
-    facturas_meli_hoy = 0
-    try:
-        idx_path = ROOT / "app" / "data" / "facturacion_meli_index.json"
-        indice = json.loads(idx_path.read_text(encoding="utf-8")).get("indice", {})
-        facturas_meli_hoy = sum(1 for v in indice.values() if v.get("factura_fecha") == hoy)
-    except Exception:
-        pass
+    ciudades_semana = sorted(ciudades_semana)[:12]
 
     return {
         "pedidos_hoy": pedidos_web_hoy + ordenes_meli_hoy,
-        "facturas_hoy": facturas_web_hoy + facturas_meli_hoy,
         "despachos_semana": despachos_semana,
         "ciudades_semana": ciudades_semana,
         "n_ciudades_semana": len(ciudades_semana),
-        "mensajes_whatsapp_hoy": mensajes_wa,
-        "preguntas_meli_hoy": preguntas_meli,
+        # WhatsApp + MeLi: antes solo se contaban las preguntas de MeLi aunque
+        # la etiqueta ya decía "por WhatsApp y MercadoLibre" — ahora sí suma
+        # ambos canales reales.
+        "consultas_hoy": mensajes_wa + preguntas_meli,
         "actualizado": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -3583,6 +3556,106 @@ def obtener_actividad(force: bool = False) -> dict:
 @app.route("/api/actividad")
 def api_actividad():
     return jsonify(obtener_actividad())
+
+
+_COBERTURA_MELI_FILE = ROOT / "app" / "data" / "cobertura_meli.json"
+_COBERTURA_CACHE: dict = {"ts": 0.0, "data": None}
+_COBERTURA_TTL = 300  # seg — agrega toda la tabla orders.db, no hace falta recalcular cada request
+
+
+def _calcular_cobertura() -> dict:
+    """Departamentos y municipios REALES alcanzados (todo el histórico, no solo
+    'esta semana'), combinando tienda web + MercadoLibre — para la sección
+    "¿A dónde hemos llegado?" del inicio. Mismo problema que _calcular_actividad:
+    la web sola apenas cubre un puñado de ciudades; MeLi mueve la cobertura real
+    pero no hay API barata para pedirla en vivo en cada visita, así que MeLi se
+    alimenta aparte por el cron de app/tools/cobertura_meli.py y se lee de un
+    JSON local (cobertura_meli.json).
+    """
+    municipios: dict[str, dict] = {}
+
+    def _sumar(depto: str, municipio: str, n: int, canal: str) -> None:
+        key = f"{depto}|{municipio}"
+        entry = municipios.setdefault(key, {
+            "departamento": depto, "municipio": municipio, "n_pedidos": 0, "canales": set(),
+        })
+        entry["n_pedidos"] += n
+        entry["canales"].add(canal)
+
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        cur.execute(
+            "SELECT buyer_city, COUNT(*) FROM orders "
+            "WHERE buyer_city IS NOT NULL AND buyer_city != '' GROUP BY buyer_city"
+        )
+        for ciudad, n in cur.fetchall():
+            hit = resolver_departamento_municipio(ciudad)
+            if hit:
+                _sumar(hit[0], hit[1], n, "web")
+        con.close()
+    except Exception:
+        log.warning("cobertura: no se pudo consultar orders.db", exc_info=True)
+
+    try:
+        raw = json.loads(_COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
+        for entry in (raw.get("municipios") or {}).values():
+            depto = entry.get("departamento")
+            municipio = entry.get("municipio")
+            n = int(entry.get("n_pedidos") or 0)
+            if depto and municipio and n:
+                _sumar(depto, municipio, n, "meli")
+    except Exception:
+        pass
+
+    por_depto: dict[str, dict] = {}
+    for entry in municipios.values():
+        depto = entry["departamento"]
+        d = por_depto.setdefault(depto, {"departamento": depto, "n_pedidos": 0, "municipios": []})
+        d["n_pedidos"] += entry["n_pedidos"]
+        d["municipios"].append({
+            "municipio": entry["municipio"],
+            "n_pedidos": entry["n_pedidos"],
+            "canales": sorted(entry["canales"]),
+        })
+
+    departamentos = []
+    for depto, d in por_depto.items():
+        d["municipios"].sort(key=lambda m: -m["n_pedidos"])
+        departamentos.append({
+            "departamento": depto,
+            "n_pedidos": d["n_pedidos"],
+            "n_municipios": len(d["municipios"]),
+            "municipios": d["municipios"][:8],
+        })
+    departamentos.sort(key=lambda d: -d["n_pedidos"])
+    max_pedidos = max((d["n_pedidos"] for d in departamentos), default=0)
+    for d in departamentos:
+        # 0.35..1.0: hasta el departamento con menos pedidos se ve como una
+        # barra visible, no se pierde a ancho cero.
+        d["peso"] = round(0.35 + 0.65 * (d["n_pedidos"] / max_pedidos), 2) if max_pedidos else 0.35
+
+    return {
+        "departamentos": departamentos,
+        "n_departamentos": len(departamentos),
+        "total_departamentos": TOTAL_DEPARTAMENTOS,
+        "n_municipios": len(municipios),
+        "total_municipios": TOTAL_MUNICIPIOS,
+    }
+
+
+def obtener_cobertura(force: bool = False) -> dict:
+    now = time.time()
+    if not force and _COBERTURA_CACHE["data"] is not None and (now - _COBERTURA_CACHE["ts"]) < _COBERTURA_TTL:
+        return _COBERTURA_CACHE["data"]
+    data = _calcular_cobertura()
+    _COBERTURA_CACHE.update({"ts": now, "data": data})
+    return data
+
+
+@app.route("/api/cobertura")
+def api_cobertura():
+    return jsonify(obtener_cobertura())
 
 
 @app.route("/")
@@ -3602,7 +3675,8 @@ def index():
         featured=featured[:12],
         ruta_origen=_construir_ruta_origen(catalog),
         banners=banners_vigentes(),
-        actividad=obtener_actividad())
+        actividad=obtener_actividad(),
+        cobertura=obtener_cobertura())
 
 
 @app.route("/tienda")

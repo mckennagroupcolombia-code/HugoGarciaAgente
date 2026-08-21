@@ -150,7 +150,7 @@ Endpoints usados por React:
 | --- | --- | --- | --- |
 | `/api/status` | GET | - | `estado`, `servicios`, `version` |
 | `/api/metricas` | GET | - | metricas del dia + token MeLi |
-| `/api/inicio/dolar-hora` | GET | query `force=1?` | Gadget Inicio: USD→COP horario (Yahoo) + TRM BanRep; `{valor, cambio_pct, serie_hora, serie_dia, trm_oficial}` |
+| `/api/inicio/dolar-hora` | GET | query `force=1?` | Gadget Inicio: TRM BanRep (tasa de hoy); gráfico TradingView en panel; `{valor, cambio_pct, serie_hora:[], serie_dia, trm_oficial}` |
 | `/api/preventa/pendientes` | GET | - | `preguntas`, `total` |
 | `/api/preventa/casos` | GET | - | casos recientes |
 | `/api/preventa/metricas` | GET | `dias` (7–90, default 30), `refresh=1` opcional | conversión pregunta→compra: `resumen.tasa_compra_pct`, `por_respuesta`, `por_producto`, `conversion_explicacion`. Cache ~15 min. |

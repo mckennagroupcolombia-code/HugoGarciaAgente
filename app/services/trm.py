@@ -10,17 +10,13 @@ import logging
 import re
 import threading
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
 log = logging.getLogger(__name__)
 
 TRM_URL = "https://www.datos.gov.co/resource/32sa-8pi3.json"
-YAHOO_CHART_URLS = (
-    "https://query1.finance.yahoo.com/v8/finance/chart/USDCOP=X",
-    "https://query2.finance.yahoo.com/v8/finance/chart/USDCOP=X",
-)
 _TZ_BOGOTA = ZoneInfo("America/Bogota")
 _RE_FECHA = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 _HTTP_HEADERS = {
@@ -101,15 +97,15 @@ def obtener_trm(
     """
     Obtiene la TRM BanRep vigente para `fecha` (YYYY-MM-DD).
 
-    Si la fecha es None, usa hoy (America/Bogota aproximado con date.today()).
+    Si la fecha es None, usa hoy en America/Bogota.
     Si no hay registro exacto (festivo/fin de semana cubierto por vigencia),
     busca el rango que contiene la fecha; si falla, el último vigente ≤ fecha.
     """
     import requests
 
-    fecha_s = normalizar_fecha(fecha) or date.today().isoformat()
+    fecha_s = normalizar_fecha(fecha) or _hoy_bogota().isoformat()
     # No consultar futuro: BanRep aún no publica
-    hoy = date.today().isoformat()
+    hoy = _hoy_bogota().isoformat()
     if fecha_s > hoy:
         fecha_s = hoy
 
@@ -236,87 +232,6 @@ def obtener_trm_historico(
     return out
 
 
-def _iso_bogota(ts: int | float) -> str:
-    dt = datetime.fromtimestamp(float(ts), tz=timezone.utc).astimezone(_TZ_BOGOTA)
-    return dt.isoformat(timespec="seconds")
-
-
-def _yahoo_serie(
-    interval: str,
-    range_: str,
-    *,
-    timeout_s: float,
-) -> dict[str, Any] | None:
-    """Serie de Yahoo Finance USDCOP=X. None si todas las URLs fallan."""
-    import requests
-
-    last_err: Exception | None = None
-    for url in YAHOO_CHART_URLS:
-        try:
-            r = requests.get(
-                url,
-                params={
-                    "interval": interval,
-                    "range": range_,
-                    "includePrePost": "false",
-                },
-                headers=_HTTP_HEADERS,
-                timeout=timeout_s,
-            )
-            r.raise_for_status()
-            payload = r.json()
-        except Exception as e:
-            last_err = e
-            log.warning("Yahoo USDCOP %s %s falló (%s): %s", interval, range_, url, e)
-            continue
-        chart = payload.get("chart") if isinstance(payload, dict) else None
-        if not isinstance(chart, dict):
-            continue
-        results = chart.get("result")
-        if not isinstance(results, list) or not results:
-            continue
-        result = results[0]
-        if not isinstance(result, dict):
-            continue
-        meta = result.get("meta") if isinstance(result.get("meta"), dict) else {}
-        timestamps = result.get("timestamp")
-        quote = (result.get("indicators") or {}).get("quote") or []
-        closes = quote[0].get("close") if quote and isinstance(quote[0], dict) else None
-        if not isinstance(timestamps, list) or not isinstance(closes, list):
-            continue
-        puntos: list[dict[str, Any]] = []
-        for ts, raw in zip(timestamps, closes):
-            if raw is None or ts is None:
-                continue
-            try:
-                v = float(raw)
-            except (TypeError, ValueError):
-                continue
-            if v <= 0:
-                continue
-            puntos.append({"t": _iso_bogota(ts), "v": round(v, 4), "ts": int(ts)})
-        precio = meta.get("regularMarketPrice")
-        try:
-            precio_f = float(precio) if precio is not None else None
-        except (TypeError, ValueError):
-            precio_f = None
-        if precio_f is None and puntos:
-            precio_f = float(puntos[-1]["v"])
-        prev = meta.get("chartPreviousClose") or meta.get("previousClose")
-        try:
-            prev_f = float(prev) if prev is not None else None
-        except (TypeError, ValueError):
-            prev_f = None
-        return {
-            "puntos": puntos,
-            "precio": round(precio_f, 4) if precio_f and precio_f > 0 else None,
-            "previo": round(prev_f, 4) if prev_f and prev_f > 0 else None,
-        }
-    if last_err:
-        log.warning("Yahoo USDCOP agotó URLs: %s", last_err)
-    return None
-
-
 def _cambio(actual: float, previo: float | None) -> tuple[float, float]:
     if previo is None or previo <= 0:
         return 0.0, 0.0
@@ -331,9 +246,10 @@ def obtener_dolar_hora(
     force: bool = False,
 ) -> dict[str, Any]:
     """
-    Precio USD→COP para el gadget de Inicio: mercado horario + TRM BanRep.
+    TRM BanRep de hoy (America/Bogota) para el gadget de Inicio.
 
-    Cache 10 min. Si Yahoo falla, usa TRM oficial y serie diaria.
+    El gráfico de mercado lo renderiza TradingView en el panel.
+    Cache 10 min. `serie_hora` queda vacía a propósito.
     """
     now = time.time()
     if not force:
@@ -343,7 +259,6 @@ def obtener_dolar_hora(
             if cached and (now - ts) < DOLAR_CACHE_TTL_S:
                 return cached
 
-    yahoo = _yahoo_serie("1h", "5d", timeout_s=timeout_s)
     trm = obtener_trm(None, timeout_s=timeout_s)
     serie_dia = obtener_trm_historico(limit=45, timeout_s=timeout_s)
 
@@ -354,34 +269,21 @@ def obtener_dolar_hora(
         except (KeyError, TypeError, ValueError):
             trm_valor = None
 
-    serie_hora = list(yahoo["puntos"]) if yahoo else []
-    mercado = yahoo["precio"] if yahoo else None
-    if mercado is None and serie_hora:
-        mercado = float(serie_hora[-1]["v"])
-
-    if mercado and mercado > 0:
-        valor = float(mercado)
-        fuente = "yahoo"
-        fuente_label = "Mercado (hora)"
-        hora = serie_hora[-1]["t"] if serie_hora else datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds")
-        previo_hora = None
-        if len(serie_hora) >= 2:
-            previo_hora = float(serie_hora[-2]["v"])
-        elif yahoo and yahoo.get("previo"):
-            previo_hora = float(yahoo["previo"])
-        cambio_abs, cambio_pct = _cambio(valor, previo_hora)
-    elif trm_valor and trm_valor > 0:
-        valor = float(trm_valor)
-        fuente = "banrep"
-        fuente_label = "TRM BanRep"
-        hora = datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds")
-        previo_dia = float(serie_dia[-2]["v"]) if len(serie_dia) >= 2 else None
-        cambio_abs, cambio_pct = _cambio(valor, previo_dia)
-    else:
+    if not trm_valor or trm_valor <= 0:
         return {
-            "error": trm.get("error") or "No se pudo obtener el precio USD/COP",
+            "error": trm.get("error") or "No se pudo obtener la TRM BanRep USD/COP",
             "unidad": "COP",
         }
+
+    valor = float(trm_valor)
+    previo_dia = None
+    if serie_dia:
+        if serie_dia[-1].get("t") == trm.get("fecha") and len(serie_dia) >= 2:
+            previo_dia = float(serie_dia[-2]["v"])
+        elif serie_dia[-1].get("t") != trm.get("fecha"):
+            previo_dia = float(serie_dia[-1]["v"])
+    cambio_abs, cambio_pct = _cambio(valor, previo_dia)
+    hora = datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds")
 
     out = {
         "valor": round(valor, 2),
@@ -390,15 +292,15 @@ def obtener_dolar_hora(
         "hora": hora,
         "cambio_abs": cambio_abs,
         "cambio_pct": cambio_pct,
-        "fuente": fuente,
-        "fuente_label": fuente_label,
-        "trm_oficial": round(trm_valor, 2) if trm_valor else None,
-        "trm_fecha": trm.get("fecha") if trm_valor else None,
-        "trm_fuente": "banrep" if trm_valor else None,
-        "serie_hora": [{"t": p["t"], "v": p["v"]} for p in serie_hora],
+        "fuente": "banrep",
+        "fuente_label": "TRM BanRep · Tasa de hoy",
+        "trm_oficial": round(valor, 2),
+        "trm_fecha": trm.get("fecha"),
+        "trm_fuente": "banrep",
+        "serie_hora": [],
         "serie_dia": serie_dia,
         "cache_ttl_s": int(DOLAR_CACHE_TTL_S),
-        "actualizado": datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds"),
+        "actualizado": hora,
     }
     with _DOLAR_CACHE_LOCK:
         _DOLAR_CACHE["ts"] = now

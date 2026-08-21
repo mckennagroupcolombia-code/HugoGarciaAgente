@@ -28,14 +28,6 @@
       <span class="kit-val" data-live="pedidos_hoy">{{ actividad.pedidos_hoy }}</span>
     </div>
     <div class="kit-item">
-      <div class="kit-dot dot-4"><i class="ph ph-receipt"></i></div>
-      <div class="kit-info">
-        <h3>Facturas emitidas hoy</h3>
-        <p>Facturación electrónica en curso</p>
-      </div>
-      <span class="kit-val" data-live="facturas_hoy">{{ actividad.facturas_hoy }}</span>
-    </div>
-    <div class="kit-item">
       <div class="kit-dot dot-2"><i class="ph ph-map-pin"></i></div>
       <div class="kit-info">
         <h3>Ciudades con envío</h3>
@@ -49,7 +41,7 @@
         <h3>Consultas atendidas hoy</h3>
         <p>Por WhatsApp y MercadoLibre</p>
       </div>
-      <span class="kit-val" data-live="preguntas_meli_hoy">{{ actividad.preguntas_meli_hoy }}</span>
+      <span class="kit-val" data-live="consultas_hoy">{{ actividad.consultas_hoy }}</span>
     </div>
   </div>
 </div>
@@ -155,6 +147,12 @@
 {% if sec == 'ruta_origen' and Sec.ruta_origen != false and not LAYOUT_CLASICO.nodos.get('ruta_origen', {}).get('hidden') %}
 <div style="order:{{ LAYOUT_CLASICO.orden_map.ruta_origen | default(3) }};">
   {% include "_ruta_origen.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'cobertura' and Sec.cobertura != false and not LAYOUT_CLASICO.nodos.get('cobertura', {}).get('hidden') %}
+<div style="order:{{ LAYOUT_CLASICO.orden_map.cobertura | default(4) }};">
+  {% include "_cobertura.html" %}
 </div>
 {% endif %}
 

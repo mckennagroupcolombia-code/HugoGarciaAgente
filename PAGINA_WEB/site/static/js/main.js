@@ -152,30 +152,44 @@
     sync();
   });
 
-  /* ── Ruta de origen: popovers de país ───────────────── */
-  document.querySelectorAll('.route-pin[data-route-target]').forEach(function (pin) {
-    pin.addEventListener('click', function () {
-      var id = pin.getAttribute('data-route-target');
-      var card = document.getElementById(id);
-      if (!card) return;
-      var isOpen = pin.getAttribute('aria-expanded') === 'true';
-      document.querySelectorAll('.route-pin[aria-expanded="true"]').forEach(function (other) {
-        if (other !== pin) {
-          other.setAttribute('aria-expanded', 'false');
-          var otherCard = document.getElementById(other.getAttribute('data-route-target'));
-          if (otherCard) otherCard.hidden = true;
-        }
+  /* ── Popovers de pin en mapas (ruta de origen / cobertura) ─ */
+  var initMapPins = function (pinSelector, targetAttr) {
+    document.querySelectorAll(pinSelector + '[' + targetAttr + ']').forEach(function (pin) {
+      pin.addEventListener('click', function () {
+        var id = pin.getAttribute(targetAttr);
+        var card = document.getElementById(id);
+        if (!card) return;
+        var isOpen = pin.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll(pinSelector + '[aria-expanded="true"]').forEach(function (other) {
+          if (other !== pin) {
+            other.setAttribute('aria-expanded', 'false');
+            var otherCard = document.getElementById(other.getAttribute(targetAttr));
+            if (otherCard) otherCard.hidden = true;
+          }
+        });
+        pin.setAttribute('aria-expanded', String(!isOpen));
+        card.hidden = isOpen;
       });
-      pin.setAttribute('aria-expanded', String(!isOpen));
-      card.hidden = isOpen;
     });
-  });
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('.route-pin') || e.target.closest('.route-pin-card')) return;
-    document.querySelectorAll('.route-pin[aria-expanded="true"]').forEach(function (pin) {
-      pin.setAttribute('aria-expanded', 'false');
-      var card = document.getElementById(pin.getAttribute('data-route-target'));
-      if (card) card.hidden = true;
+    document.addEventListener('click', function (e) {
+      if (e.target.closest(pinSelector) || e.target.closest(pinSelector + '-card')) return;
+      document.querySelectorAll(pinSelector + '[aria-expanded="true"]').forEach(function (pin) {
+        pin.setAttribute('aria-expanded', 'false');
+        var card = document.getElementById(pin.getAttribute(targetAttr));
+        if (card) card.hidden = true;
+      });
+    });
+  };
+  initMapPins('.route-pin', 'data-route-target');
+
+  /* ── Cobertura: acordeón por departamento (sin mapa) ─── */
+  document.querySelectorAll('.coverage-depto-btn[aria-controls]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var list = document.getElementById(btn.getAttribute('aria-controls'));
+      if (!list) return;
+      var isOpen = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!isOpen));
+      list.hidden = isOpen;
     });
   });
 

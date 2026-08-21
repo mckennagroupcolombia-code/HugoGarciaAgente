@@ -8120,13 +8120,16 @@ def register_routes(app):
     @app.route("/api/inicio/dolar-hora", methods=["GET"])
     @app.route("/app/api/inicio/dolar-hora", methods=["GET"])
     def api_inicio_dolar_hora():
-        """Precio USD→COP horario (mercado) + TRM BanRep para el gadget de Inicio."""
+        """TRM BanRep de hoy (gadget Inicio); el gráfico de mercado es TradingView en el panel."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.trm import obtener_dolar_hora
 
         force = (request.args.get("force") or "").strip().lower() in ("1", "true", "si", "sí")
-        data = obtener_dolar_hora(force=force)
+        try:
+            data = obtener_dolar_hora(force=force)
+        except Exception as e:
+            return jsonify({"error": f"No se pudo obtener la TRM: {e}", "unidad": "COP"}), 502
         if data.get("error"):
             return jsonify(data), 502
         return jsonify(data)

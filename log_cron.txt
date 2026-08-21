@@ -1110,3 +1110,24 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-20) no es el último día del mes.
+[cursor/wa-metricas-panel 7655530] Auto-commit: actualizacion diaria 2026-08-20 23:00
+ 63 files changed, 6524 insertions(+), 4561 deletions(-)
+ create mode 100644 8a26d907-001a-4f18-910d-432b638d3b8e.png
+ create mode 100644 ArmandoGarcia.png
+ create mode 100644 app/services/formula_molecular.py
+ create mode 100644 app/services/salud_servicios.py
+ create mode 100644 desktop/src/hooks/useSaludServicios.ts
+ create mode 100644 desktop/src/lib/formulaMolecular.ts
+ create mode 100755 scripts/reiniciar_agente_local.sh
+ create mode 100644 tests/test_coa_parametros_sugerir.py
+ create mode 100644 tests/test_formula_molecular.py
+ create mode 100644 uploads/tickets/5265b9d137f9489389915608d50f9728.png
+ create mode 100644 uploads/tickets/8346ab345cd54d11a06188e4be832475.jpeg
+ create mode 100644 uploads/tickets/8b6513f1c0d0495f9af98644487b4cea.png
+ create mode 100644 uploads/tickets/a1e04a32c74e4e6abde9e002402448fa.jpeg
+ create mode 100644 uploads/tickets/b39d5a4d7819458bb01756a589285200.png
+ create mode 100644 uploads/tickets/b41f955658344dfeb7ecb4c5e04f83e6.jpeg
+ create mode 100644 uploads/tickets/c629d5524a0b4f5699e2a02947f0538f.png
+ create mode 100644 uploads/tickets/e925e00396eb47288554dae022480f25.png
+ create mode 100644 uploads/tickets/fe20201bf4ee46c7865b774103ee2a25.png
+[2026-08-20 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-20 23:00'

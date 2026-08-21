@@ -19,6 +19,7 @@ import DocumentosCatalogoTab, {
   type ProductoDocumentacion,
 } from "./documentos/DocumentosCatalogoTab";
 import {
+  PARAMETROS_COA_FALLBACK,
   parseParamRows,
   rowsToParamString,
   type ParamRow,
@@ -609,16 +610,23 @@ function CoaTabContent({
   );
 
   const sugerirParamsCoaMut = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const n = (titulo || nombreComercial || producto?.nombre_base || "").trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
-      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", {
-        campo: "coa_parametros",
-        nombre: n,
-      }, { timeoutMs: 180000 });
+      try {
+        const r = await api.post<{ valor?: string }>("/api/fichas/sugerir-campo", {
+          campo: "coa_parametros",
+          nombre: n,
+        }, { timeoutMs: 180000 });
+        const filas = (r.valor || "").trim();
+        if (parseParamRows(filas).some((row) => row.parametro)) return filas;
+      } catch {
+        /* plantilla local si el API falla o el proceso aún no tiene el campo */
+      }
+      return PARAMETROS_COA_FALLBACK;
     },
-    onSuccess: (r) => {
-      if (r.valor) setParametros(r.valor);
+    onSuccess: (filas) => {
+      setParametros(filas);
     },
   });
 
@@ -1550,30 +1558,45 @@ function DocumentoCompletoTabContent({
     mutationFn: async () => {
       const n = nombre.trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
-      const campos: string[] = [];
-      const tieneParams = parseParamRows(coaParametros).some(
-        (r) => r.parametro || r.especificacion || r.resultado,
-      );
-      if (!tieneParams) campos.push("coa_parametros");
-      if (!coaEinces.trim()) campos.push("coa_einecs");
-      if (!coaGrado.trim()) campos.push("coa_grado");
-      if (!campos.length) throw new Error("El COA ya tiene datos para sugerir");
-      const r = await api.post<{ ok?: boolean; resultados?: Record<string, string | null>; error?: string }>(
-        "/api/fichas/sugerir-multiples",
-        { nombre: n, campos },
-        { timeoutMs: 180000 },
-      );
-      if (r.error) throw new Error(r.error);
-      const out = r.resultados || {};
-      if (campos.includes("coa_parametros") && !out.coa_parametros) {
-        throw new Error("No se pudieron sugerir parámetros COA. Intente de nuevo.");
+      let parametros = "";
+      try {
+        const r = await api.post<{ valor?: string; error?: string }>(
+          "/api/fichas/sugerir-campo",
+          { campo: "coa_parametros", nombre: n },
+          { timeoutMs: 180000 },
+        );
+        if (r.error) throw new Error(r.error);
+        parametros = (r.valor || "").trim();
+      } catch {
+        parametros = "";
       }
-      return out;
+      if (!parseParamRows(parametros).some((row) => row.parametro)) {
+        parametros = PARAMETROS_COA_FALLBACK;
+      }
+      const extras: string[] = [];
+      if (!coaEinces.trim()) extras.push("coa_einecs");
+      if (!coaGrado.trim()) extras.push("coa_grado");
+      let einecs = "";
+      let grado = "";
+      if (extras.length) {
+        try {
+          const extra = await api.post<{ resultados?: Record<string, string | null> }>(
+            "/api/fichas/sugerir-multiples",
+            { nombre: n, campos: extras },
+            { timeoutMs: 120000 },
+          );
+          einecs = (extra.resultados?.coa_einecs || "").trim();
+          grado = (extra.resultados?.coa_grado || "").trim();
+        } catch {
+          /* EINECS/grado son opcionales; la tabla ya va llena */
+        }
+      }
+      return { parametros, einecs, grado };
     },
     onSuccess: (res) => {
-      if (res.coa_parametros) setCoaParametros(res.coa_parametros);
-      if (res.coa_einecs) setCoaEinces(res.coa_einecs);
-      if (res.coa_grado) setCoaGrado(res.coa_grado);
+      if (res.parametros) setCoaParametros(res.parametros);
+      if (res.einecs) setCoaEinces(res.einecs);
+      if (res.grado) setCoaGrado(res.grado);
     },
   });
 

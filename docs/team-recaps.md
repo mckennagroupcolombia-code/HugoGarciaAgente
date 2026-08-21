@@ -32,6 +32,17 @@ Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea
   - `desktop/src/components/VitrinaWebPanel.tsx`, `hooks/useVitrinaWeb.ts`, registro del panel en `stores/app.ts`, `icons/mck/paths/panels.tsx`, `lib/panelInfo.ts`, `lib/navStructure.ts`, `App.tsx`, `lib/panelAccess.ts`
   - `tests/test_origen_materias.py`, `tests/test_banners_web.py`
 
+### 2026-08-20 22:45 - Gadget dólar: TRM BanRep + TradingView (fix HTTP 500)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El gadget de Inicio dejaba de cargar (HTTP 500) porque se quitó Yahoo a medias (`YAHOO_CHART_URLS` / `timezone`) y el backend seguía llamando código muerto.
+  - La cifra grande es la TRM BanRep de hoy (America/Bogota). El gráfico pasa a widgets oficiales TradingView (`FX_IDC:USDCOP`).
+- **Archivos Modificados:**
+  - `app/services/trm.py`, `app/routes.py`, `tests/test_trm.py`
+  - `desktop/src/components/DolarHoraGadget.tsx`, `useDolarHora.ts`
+  - `docs/agentic/CONTRACTS.md`, `modules/desktop-panel.md`
+
 ### 2026-08-19 17:40 - Catálogo: gestionar MeLi y web y cómo se muestran
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva funcionalidad
