@@ -337,6 +337,33 @@ export function useEstadoMeli() {
   });
 }
 
+export function usePrecioMeli(sku: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      precio,
+      meli_item_id,
+    }: {
+      precio: number;
+      meli_item_id?: string;
+    }) =>
+      api.post<{
+        ok: boolean;
+        msg?: string;
+        error?: string;
+        items?: Array<{ item_id: string; ok: boolean; error?: string | null }>;
+      }>(`/api/publicaciones/${sku}/precio-meli`, {
+        precio,
+        meli_item_id: meli_item_id || undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["publicacion", sku] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones-precios-canales"] });
+    },
+  });
+}
+
 export function useRefreshWeb() {
   return useMutation({
     mutationFn: () => api.post<{ ok: boolean }>("/api/publicaciones/refresh-web"),
@@ -546,6 +573,31 @@ export function useEliminarImagenes(sku: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
       qc.invalidateQueries({ queryKey: ["publicaciones"] });
+    },
+  });
+}
+
+export function useCopiarImagenSitio(sku: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      origen: "web" | "meli";
+      destino: "web" | "meli";
+      imagen_id: string;
+      url?: string;
+      meli_item_id?: string;
+    }) =>
+      api.post<{
+        ok: boolean;
+        mensaje?: string;
+        error?: string;
+        destino?: string;
+      }>(`/api/publicaciones/${sku}/imagenes/copiar`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
+      qc.invalidateQueries({ queryKey: ["publicacion", sku] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
     },
   });
 }

@@ -198,14 +198,11 @@ def generar_pdf_seccion_web(doc: dict, seccion: str) -> bytes:
     titulo = (doc.get("titulo") or ft.get("titulo") or "").strip()
     color_acento = doc.get("color_acento") or ft.get("color_acento") or "#069DC2"
 
-    import re as _re
-
-    def _formula_sub(val: str) -> str:
-        return _re.sub(r"(\d+)", r"<sub>\1</sub>", str(val or ""))
+    from app.services.formula_molecular import formula_a_html_sub
 
     tpl_dir = Path(__file__).resolve().parents[1] / "templates"
     env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
-    env.filters["formula_sub"] = _formula_sub
+    env.filters["formula_sub"] = formula_a_html_sub
     tpl = env.get_template("documento_completo_pdf.html")
     html_str = tpl.render(
         titulo=titulo,

@@ -4618,6 +4618,15 @@ def register_routes(app):
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
 
+    # ── Salud del ecosistema (semáforo en Inicio) ────────────────────────────
+    @app.route("/api/sistema/salud")
+    def api_sistema_salud():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.salud_servicios import estado_ecosistema
+
+        return jsonify(estado_ecosistema())
+
     # ── Control de Versiones (panel Sistemas): grafo de commits + recaps ────
     @app.route("/api/git/log")
     def api_git_log():
@@ -5322,24 +5331,26 @@ def register_routes(app):
             prompt = (
                 "Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá).\n"
                 "Analiza este documento (puede ser una ficha técnica, etiqueta, hoja de datos, empaque, PDF o foto del producto).\n"
+                "La fuente puede estar en inglés: TRADUCE al español los valores de texto "
+                "(descripción, apariencia, olor, modo de uso, aplicaciones). No traduzcas CAS ni fórmulas.\n"
                 "Extrae toda la información técnica visible y devuelve un JSON con los campos que puedas identificar.\n\n"
-                "Campos posibles (usa solo los que aparecen en la imagen):\n"
+                "Campos posibles (usa solo los que aparecen en la imagen; claves en español):\n"
                 "{\n"
                 '  "nombre_producto": "nombre del ingrediente o producto",\n'
                 '  "cas": "número CAS",\n'
-                '  "descripcion": "descripción técnica del producto",\n'
-                '  "apariencia": "aspecto físico (color, estado, textura)",\n'
-                '  "olor": "olor característico",\n'
+                '  "descripcion": "descripción técnica del producto en español",\n'
+                '  "apariencia": "aspecto físico (color, estado, textura) en español",\n'
+                '  "olor": "olor característico en español",\n'
                 '  "punto_fusion": "punto de fusión con unidades",\n'
                 '  "ph": "pH o rango de pH",\n'
-                '  "solubilidad": "solubilidad en agua/solventes",\n'
+                '  "solubilidad": "solubilidad en agua/solventes en español",\n'
                 '  "humedad": "contenido de humedad",\n'
                 '  "formula_quimica": "fórmula molecular",\n'
-                '  "modo_uso": "instrucciones de uso o incorporación",\n'
+                '  "modo_uso": "instrucciones de uso o incorporación en español",\n'
                 '  "propiedades_lista": "beneficios o propiedades (uno por línea como Nombre|Descripción)",\n'
-                '  "aplicaciones": "aplicaciones industriales (una por línea)"\n'
+                '  "aplicaciones": "aplicaciones industriales (una por línea, en español)"\n'
                 "}\n\n"
-                "Responde SOLO JSON válido. Omite campos que no estén visibles en la imagen. Sin markdown."
+                "Responde SOLO JSON válido. Omite campos que no estén visibles. Sin markdown."
             )
 
             def _llamar_gemini():
@@ -5392,6 +5403,355 @@ def register_routes(app):
                 except Exception:
                     pass
 
+            return jsonify({"ok": True, "campos": campos})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/ft/escanear-url", methods=["POST"])
+    @app.route("/api/fichas/ft/escanear-url", methods=["POST"])
+    def api_fichas_ft_escanear_url():
+        """Extrae campos de ficha técnica desde un link (HTML, PDF o imagen)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        raw_url = str(body.get("url") or "").strip()
+        texto_pegado = str(body.get("texto") or body.get("contenido") or "").strip()
+        if not raw_url and not texto_pegado:
+            return jsonify({"error": "Envíe «url» con el link a extraer (o «texto» pegado de la página)"}), 400
+
+        from urllib.parse import urlparse
+        import ipaddress
+        import socket
+        import re as _re
+        import json as _json
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+        if raw_url:
+            parsed = urlparse(raw_url)
+            if parsed.scheme not in ("http", "https") or not parsed.hostname:
+                return jsonify({"error": "La URL debe ser http o https"}), 400
+            host = parsed.hostname.lower()
+            if host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local"):
+                return jsonify({"error": "URL no permitida"}), 400
+            try:
+                for info in socket.getaddrinfo(host, None):
+                    ip = ipaddress.ip_address(info[4][0])
+                    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                        return jsonify({"error": "URL no permitida"}), 400
+            except Exception:
+                return jsonify({"error": "No se pudo resolver el host de la URL"}), 400
+        else:
+            raw_url = "(texto pegado)"
+
+        api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+        if not api_key:
+            return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
+
+        modelo = "gemini-2.5-flash"
+        try:
+            from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+            ok_budget, motivo = permitir_llamada(modelo, contexto="ft_escanear_url")
+            if not ok_budget:
+                return jsonify({"error": motivo or "Presupuesto LLM agotado"}), 429
+        except Exception:
+            permitir_llamada = None  # type: ignore
+            registrar_llamada = None  # type: ignore
+            usage_gemini = None  # type: ignore
+
+        prompt_campos = (
+            "Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá).\n"
+            "Analiza este documento (ficha técnica / TDS / SDS / COA / etiqueta / página de proveedor).\n"
+            "La fuente puede estar en inglés, español u otro idioma: TRADUCE al español los valores de texto "
+            "(descripción, apariencia, olor, modo de uso, aplicaciones, propiedades). "
+            "No traduzcas nombres químicos, CAS, fórmulas ni unidades.\n"
+            "Mapea etiquetas EN→ES: Appearance→apariencia, Odour/Odor→olor, Melting point→punto_fusion, "
+            "Solubility→solubilidad, Molecular formula→formula_quimica, Applications/Uses→aplicaciones, "
+            "Description→descripcion, Storage/Handling→modo_uso o recomendaciones.\n"
+            "Extrae toda la información técnica útil y devuelve un JSON con estos campos (solo los que existan):\n"
+            "{\n"
+            '  "nombre_producto": "nombre del ingrediente o producto",\n'
+            '  "cas": "número CAS",\n'
+            '  "descripcion": "descripción técnica en español",\n'
+            '  "apariencia": "aspecto físico en español",\n'
+            '  "olor": "olor característico en español",\n'
+            '  "punto_fusion": "punto de fusión con unidades",\n'
+            '  "ph": "pH o rango de pH",\n'
+            '  "solubilidad": "solubilidad en español",\n'
+            '  "humedad": "contenido de humedad",\n'
+            '  "formula_quimica": "fórmula molecular",\n'
+            '  "modo_uso": "instrucciones de uso o incorporación en español",\n'
+            '  "propiedades_lista": "beneficios o propiedades (uno por línea: Nombre|Descripción en español)",\n'
+            '  "aplicaciones": "aplicaciones (una por línea, en español)",\n'
+            '  "fabricante": "fabricante o proveedor si aparece",\n'
+            '  "sinonimos": "sinónimos / INCI / otros nombres"\n'
+            "}\n\n"
+            "Responde SOLO JSON válido con claves en español como arriba. Sin markdown."
+        )
+
+        try:
+            import requests as _req
+            from google import genai
+            from google.genai import types as gtypes
+
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/pdf,image/*,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
+            }
+
+            def _texto_desde_html(raw: bytes) -> str:
+                try:
+                    decoded = raw.decode("utf-8", errors="ignore")
+                except Exception:
+                    decoded = ""
+                decoded = _re.sub(r"(?is)<(script|style|noscript|svg)[^>]*>.*?</\1>", " ", decoded)
+                parts = []
+                for tr in _re.findall(r"(?is)<tr[^>]*>(.*?)</tr>", decoded):
+                    cells = _re.findall(r"(?is)<t[dh][^>]*>(.*?)</t[dh]>", tr)
+                    cells = [_re.sub(r"<[^>]+>", " ", c) for c in cells]
+                    cells = [_re.sub(r"\s+", " ", c).strip() for c in cells if c.strip()]
+                    if len(cells) >= 2:
+                        parts.append(f"{cells[0]}: {' | '.join(cells[1:])}")
+                    elif cells:
+                        parts.append(cells[0])
+                for tag in ("h1", "h2", "h3", "li", "p", "div", "td", "th", "span"):
+                    for m in _re.findall(rf"(?is)<{tag}[^>]*>(.*?)</{tag}>", decoded):
+                        t = _re.sub(r"<[^>]+>", " ", m)
+                        t = _re.sub(r"\s+", " ", t).strip()
+                        if len(t) > 25:
+                            parts.append(t)
+                if len(" ".join(parts)) < 80:
+                    plain = _re.sub(r"<[^>]+>", " ", decoded)
+                    plain = _re.sub(r"\s+", " ", plain).strip()
+                    parts.append(plain)
+                seen = set()
+                out = []
+                for p in parts:
+                    key = p[:120].lower()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    out.append(p)
+                return "\n".join(out)[:16000]
+
+            def _parece_bloqueado(html_or_text: str) -> bool:
+                t = (html_or_text or "").lower()
+                return any(
+                    x in t
+                    for x in (
+                        "just a moment",
+                        "cf-browser-verification",
+                        "challenge-platform",
+                        "attention required",
+                        "access denied",
+                        "enable javascript and cookies",
+                    )
+                )
+
+            data: bytes | None = None
+            ctype = ""
+            path_lower = ""
+            fetch_err = ""
+            contents = None
+            usar_url_context = False
+            if texto_pegado and len(texto_pegado) >= 40:
+                contents = [
+                    prompt_campos
+                    + f"\n\nURL fuente: {raw_url}\n\nCONTENIDO PEGADO POR EL OPERADOR:\n{texto_pegado[:16000]}"
+                ]
+            elif raw_url.startswith("http"):
+                try:
+                    r = _req.get(raw_url, timeout=25, headers=headers, allow_redirects=True, stream=True)
+                    if r.status_code >= 400:
+                        fetch_err = f"HTTP {r.status_code}"
+                    else:
+                        max_bytes = 12 * 1024 * 1024
+                        chunks = []
+                        total = 0
+                        for chunk in r.iter_content(chunk_size=65536):
+                            if not chunk:
+                                continue
+                            total += len(chunk)
+                            if total > max_bytes:
+                                return jsonify({"error": "El archivo del link es demasiado grande (>12 MB)"}), 413
+                            chunks.append(chunk)
+                        data = b"".join(chunks)
+                        ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                        path_lower = (urlparse(r.url).path or "").lower()
+                        if not data:
+                            fetch_err = "respuesta vacía"
+                except Exception as e:
+                    fetch_err = str(e)[:200]
+
+                if data:
+                    es_pdf = data[:4] == b"%PDF" or ctype == "application/pdf" or path_lower.endswith(".pdf")
+                    es_png = data[:4] == b"\x89PNG" or ctype == "image/png"
+                    es_webp = data[8:12] == b"WEBP" if len(data) >= 12 else False
+                    es_gif = data[:3] == b"GIF" or ctype == "image/gif"
+                    es_jpeg = data[:2] == b"\xff\xd8" or ctype in ("image/jpeg", "image/jpg")
+                    if es_pdf:
+                        contents = [gtypes.Part.from_bytes(data=data, mime_type="application/pdf"), prompt_campos]
+                    elif es_png or es_webp or es_gif or es_jpeg or ctype.startswith("image/"):
+                        if es_png:
+                            mime_type = "image/png"
+                        elif es_webp:
+                            mime_type = "image/webp"
+                        elif es_gif:
+                            mime_type = "image/gif"
+                        else:
+                            mime_type = "image/jpeg"
+                        contents = [gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt_campos]
+                    else:
+                        texto_pagina = _texto_desde_html(data)
+                        if len(texto_pagina) < 40 or _parece_bloqueado(texto_pagina):
+                            usar_url_context = True
+                        else:
+                            contents = [
+                                prompt_campos
+                                + f"\n\nURL fuente: {raw_url}\n\nCONTENIDO EXTRAÍDO:\n{texto_pagina}"
+                            ]
+                else:
+                    usar_url_context = True
+            else:
+                return jsonify({
+                    "error": "Pegue al menos ~40 caracteres del texto de la ficha, o un link http(s).",
+                }), 400
+
+            # Si solo hay URL y falló descarga: UrlContext (Gemini lee desde Google)
+
+            def _llamar_gemini():
+                client = genai.Client(api_key=api_key)
+                if usar_url_context or contents is None:
+                    # Sitios con Cloudflare / anti-bot (p. ej. Shopify) bloquean el servidor:
+                    # Gemini lee la URL desde su infraestructura.
+                    prompt_url = (
+                        prompt_campos
+                        + f"\n\nLee el contenido de esta URL (usa la herramienta de contexto de URL) "
+                        f"y extrae los campos del producto/ficha:\n{raw_url}\n"
+                    )
+                    if fetch_err:
+                        prompt_url += f"\n(Nota: descarga local falló: {fetch_err})\n"
+                    return client.models.generate_content(
+                        model=modelo,
+                        contents=prompt_url,
+                        config=gtypes.GenerateContentConfig(
+                            tools=[gtypes.Tool(url_context=gtypes.UrlContext())],
+                            temperature=0.2,
+                        ),
+                    )
+                return client.models.generate_content(model=modelo, contents=contents)
+
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                fut = ex.submit(_llamar_gemini)
+                try:
+                    response = fut.result(timeout=90)
+                except FutureTimeout:
+                    return jsonify({"error": "Gemini tardó demasiado con ese link"}), 504
+
+            if registrar_llamada and usage_gemini:
+                try:
+                    tin, tout = usage_gemini(response)
+                    registrar_llamada(
+                        modelo,
+                        tokens_in=tin,
+                        tokens_out=tout,
+                        contexto="ft_escanear_url",
+                        chars_prompt=len(prompt_campos) + 200,
+                        chars_respuesta=len(getattr(response, "text", None) or ""),
+                    )
+                except Exception:
+                    pass
+
+            texto = (response.text or "").strip()
+            texto = texto.strip("`")
+            if texto.startswith("json"):
+                texto = texto[4:].strip()
+            try:
+                campos = _json.loads(texto)
+            except Exception:
+                m = _re.search(r"\{.*\}", texto, _re.DOTALL)
+                campos = _json.loads(m.group(0)) if m else {}
+            if not isinstance(campos, dict):
+                campos = {}
+
+            # Normalizar claves EN → ES por si el modelo no siguió el esquema
+            _alias = {
+                "product_name": "nombre_producto",
+                "name": "nombre_producto",
+                "description": "descripcion",
+                "appearance": "apariencia",
+                "odour": "olor",
+                "odor": "olor",
+                "melting_point": "punto_fusion",
+                "solubility": "solubilidad",
+                "molecular_formula": "formula_quimica",
+                "formula": "formula_quimica",
+                "applications": "aplicaciones",
+                "uses": "aplicaciones",
+                "usage": "modo_uso",
+                "directions": "modo_uso",
+                "manufacturer": "fabricante",
+                "supplier": "fabricante",
+                "synonyms": "sinonimos",
+                "inci": "sinonimos",
+            }
+            for en_k, es_k in _alias.items():
+                if en_k in campos and not str(campos.get(es_k) or "").strip():
+                    campos[es_k] = campos[en_k]
+            # INCI como sinónimo si vino aparte
+            if campos.get("inci") and not str(campos.get("sinonimos") or "").strip():
+                campos["sinonimos"] = str(campos["inci"])
+
+            utiles = [
+                k for k in (
+                    "nombre_producto", "cas", "descripcion", "apariencia", "olor",
+                    "ph", "solubilidad", "formula_quimica", "aplicaciones", "modo_uso",
+                    "propiedades_lista", "fabricante", "sinonimos",
+                )
+                if str(campos.get(k) or "").strip()
+            ]
+            if not utiles:
+                detalle = f" Descarga local: {fetch_err}." if fetch_err else ""
+                return jsonify({
+                    "error": (
+                        "La IA no encontró datos técnicos en ese link."
+                        + detalle
+                        + " Pruebe un PDF de ficha técnica (TDS) o reinicie el agente para cargar el extractor actualizado."
+                    ),
+                }), 422
+
+            if usar_url_context:
+                campos["_extraccion"] = "gemini_url_context"
+            nombre_prod = str(campos.get("nombre_producto") or "").strip()
+            campos_vacios = [
+                k for k in ("cas", "formula_quimica")
+                if not str(campos.get(k) or "").strip()
+            ]
+            if nombre_prod and campos_vacios:
+                try:
+                    from app.services.documento_cientifico import buscar_pubchem as _bp
+                    from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FT2
+
+                    with _TPE(max_workers=1) as ex2:
+                        fut2 = ex2.submit(lambda: _bp(nombre_prod))
+                        try:
+                            pc = fut2.result(timeout=8)
+                        except _FT2:
+                            pc = {}
+                    if not campos.get("cas") and pc.get("cas"):
+                        campos["cas"] = pc["cas"]
+                        campos["_cas_fuente"] = "pubchem"
+                    if not campos.get("formula_quimica") and pc.get("formula_molecular"):
+                        campos["formula_quimica"] = pc["formula_molecular"]
+                        campos["_formula_fuente"] = "pubchem"
+                except Exception:
+                    pass
+
+            campos["_fuente_url"] = raw_url
             return jsonify({"ok": True, "campos": campos})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -15595,6 +15955,42 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/publicaciones/<sku>/precio-meli", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/precio-meli", methods=["POST"])
+    def api_publicacion_precio_meli(sku: str):
+        """Actualiza el precio de venta en Mercado Libre (valor exacto del listing)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        precio_raw = body.get("precio")
+        if precio_raw is None:
+            return jsonify({"error": "Campo 'precio' requerido"}), 400
+        try:
+            precio = float(precio_raw)
+        except (TypeError, ValueError):
+            return jsonify({"error": "precio debe ser un número"}), 400
+        if precio <= 0:
+            return jsonify({"error": "El precio debe ser mayor que 0"}), 400
+        meli_id = str(body.get("meli_item_id") or body.get("meli_id") or "").strip()
+        try:
+            from app.services.meli import actualizar_precio_meli_por_sku
+            from app.services.publicaciones import obtener_publicacion
+            from app.panel_activity import log_line
+
+            if not meli_id:
+                pub = obtener_publicacion(sku) or {}
+                meli_id = str(pub.get("meli_id_efectivo") or "").strip()
+            res = actualizar_precio_meli_por_sku(sku, precio, meli_id=meli_id or None)
+            if res.get("ok"):
+                log_line(f"✔ publicaciones {sku} precio MeLi → ${int(round(precio)):,}")
+                return jsonify(res)
+            return jsonify({
+                **res,
+                "error": res.get("msg") or res.get("error") or "No se pudo actualizar el precio en MeLi",
+            }), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/publicaciones/refresh-web", methods=["POST"])
     @app.route("/app/api/publicaciones/refresh-web", methods=["POST"])
     def api_publicaciones_refresh_web():
@@ -15747,6 +16143,44 @@ def register_routes(app):
             return jsonify({"error": "Sin ID de publicación MeLi"}), 400
         try:
             return jsonify(reordenar_imagenes_meli(meli_item_id, picture_ids, sku=sku))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagenes/copiar", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/imagenes/copiar", methods=["POST"])
+    def api_publicacion_imagenes_copiar(sku: str):
+        """Copia una foto entre Web y MeLi (arrastra en el panel)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import (
+            copiar_imagen_entre_sitios,
+            aplicar_overrides_a_cache,
+            refrescar_web,
+        )
+        body = request.get_json(silent=True) or {}
+        origen = str(body.get("origen") or "").strip()
+        destino = str(body.get("destino") or "").strip()
+        imagen_id = str(body.get("imagen_id") or body.get("id") or "").strip()
+        url = str(body.get("url") or "").strip()
+        meli_item_id = str(body.get("meli_item_id") or "").strip()
+        try:
+            res = copiar_imagen_entre_sitios(
+                sku,
+                origen=origen,
+                destino=destino,
+                imagen_id=imagen_id,
+                url=url,
+                meli_item_id=meli_item_id,
+            )
+            if res.get("ok") and destino == "web":
+                try:
+                    aplicar_overrides_a_cache()
+                    refrescar_web()
+                except Exception:
+                    pass
+            if res.get("ok"):
+                return jsonify(res)
+            return jsonify({**res, "error": res.get("error") or "No se pudo copiar"}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -19206,10 +19640,47 @@ REGLAS:
         # /app/api/* que no tiene ruta Flask propia no debe caer al index.html:
         # el panel espera JSON y muestra "el servidor devolvió HTML".
         if path == "api" or path.startswith("api/"):
-            return jsonify({"error": "Ruta no encontrada"}), 404
+            return jsonify({
+                "error": "Ruta API no encontrada. Si acabas de actualizar el código, reinicia el agente en el puerto 8081.",
+            }), 404
         if not os.path.isdir(_SPA_DIR):
             return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404
         resp = send_from_directory(_SPA_DIR, "index.html")
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         resp.headers["Pragma"] = "no-cache"
         return resp
+
+    # POST/PUT/DELETE a /app/api/… sin ruta registrada: sin esto Flask responde 405
+    # (el catch-all SPA solo admite GET/HEAD y “mata” el método).
+    # OJO: este catch-all también intercepta rutas /app/api/… que sí existen pero
+    # no aceptan este método (p. ej. POST a un endpoint solo GET/PUT) — Werkzeug
+    # prioriza esta regla porque es un match completo (path + método) frente al
+    # match parcial (solo path) de la ruta específica. Toda ruta real bajo
+    # /app/api/… se registra también bajo /api/… (ver duplicaciones arriba), así
+    # que probamos ese path gemelo para distinguir "no existe" de "método no
+    # permitido" antes de devolver el mensaje de "reinicia el agente".
+    @app.route("/app/api/<path:path>", methods=["POST", "PUT", "PATCH", "DELETE"])
+    def app_api_mutator_not_found(path: str):
+        from werkzeug.exceptions import MethodNotAllowed, NotFound
+
+        adapter = app.url_map.bind(request.host)
+        ruta_existe = True
+        try:
+            adapter.match(f"/api/{path}", method=request.method)
+        except NotFound:
+            ruta_existe = False
+        except MethodNotAllowed:
+            ruta_existe = True
+
+        if ruta_existe:
+            return jsonify({
+                "error": f"Método {request.method} no permitido en /app/api/{path}.",
+            }), 405
+
+        return jsonify({
+            "error": (
+                f"Ruta /app/api/{path} no existe en este proceso. "
+                "Reinicia el agente (puerto 8081) para cargar endpoints nuevos "
+                "(p. ej. fichas/ft/escanear-url)."
+            ),
+        }), 404

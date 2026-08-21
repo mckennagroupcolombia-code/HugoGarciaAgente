@@ -979,13 +979,11 @@ def actualizar_publicacion(sku: str, campos: dict) -> dict:
 
 
 def aplicar_overrides_a_cache() -> dict:
-    """Escribe los overrides dentro de cache.json (desc, foto, meli_id)."""
+    """Escribe los overrides dentro de cache.json (desc, foto, meli_id, galería local)."""
     cache = _load_cache()
     overrides = _load_overrides()
-    if not overrides:
-        return {"ok": True, "actualizados": 0, "mensaje": "Sin cambios pendientes"}
-
     count = 0
+    galerias = 0
 
     def _apply(p: dict) -> None:
         nonlocal count
@@ -1002,16 +1000,47 @@ def aplicar_overrides_a_cache() -> dict:
         if ov.get("oculto_web"):
             p["solo_vitrina"] = True
             p["buyable"] = False
+        # Orden explícito de fotos del panel → galería completa en caché
+        imagenes = ov.get("imagenes_web") or []
+        if isinstance(imagenes, list) and imagenes:
+            paths = [f"/imagenes-productos-catalogo/{fn}" for fn in imagenes if fn]
+            if paths:
+                p["photos"] = paths
+                p["photo"] = paths[0]
         count += 1
+
+    def _sync_galeria_local(p: dict) -> None:
+        nonlocal galerias
+        sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+        if not sku:
+            return
+        imgs = escanear_imagenes_web(sku)
+        if not imgs:
+            return
+        paths = [im["path"] for im in imgs]
+        # Si ya hay override con orden, respetarlo (ya aplicado arriba)
+        ov = overrides.get(sku) or {}
+        if ov.get("imagenes_web"):
+            return
+        # Varias locales (o una local) deben ganar sobre una sola foto MeLi en caché
+        if len(paths) >= 1:
+            p["photos"] = paths
+            p["photo"] = paths[0]
+            galerias += 1
 
     for section in cache.get("sections", []):
         for p in section.get("products", []):
             _apply(p)
+            _sync_galeria_local(p)
     for p in cache.get("combos", []):
         _apply(p)
+        _sync_galeria_local(p)
 
     _save_cache(cache)
-    return {"ok": True, "actualizados": count, "mensaje": f"{count} producto(s) actualizados en caché"}
+    msg = f"{count} override(s)"
+    if galerias:
+        msg += f", {galerias} galería(s) local(es)"
+    return {"ok": True, "actualizados": count, "galerias": galerias, "mensaje": msg}
 
 
 def refrescar_web() -> dict:
@@ -1580,4 +1609,98 @@ def obtener_fotos_actuales(sku: str, meli_item_id: str = "") -> dict:
             "total": len(meli_imagenes),
             "error": meli_error,
         },
+    }
+
+
+def copiar_imagen_entre_sitios(
+    sku: str,
+    origen: str,
+    destino: str,
+    imagen_id: str = "",
+    url: str = "",
+    meli_item_id: str = "",
+) -> dict:
+    """
+    Copia una foto de Web→MeLi o MeLi→Web (no mueve: deja el origen intacto).
+    origen/destino: "web" | "meli"
+    """
+    origen = (origen or "").strip().lower()
+    destino = (destino or "").strip().lower()
+    if origen not in ("web", "meli") or destino not in ("web", "meli"):
+        return {"ok": False, "error": "origen y destino deben ser 'web' o 'meli'"}
+    if origen == destino:
+        return {"ok": False, "error": "Origen y destino son el mismo sitio"}
+
+    sku = (sku or "").strip()
+    imagen_id = (imagen_id or "").strip()
+    url = (url or "").strip()
+    meli_item_id = (meli_item_id or "").strip()
+
+    if origen == "web":
+        safe = Path(imagen_id).name
+        if not safe or safe != imagen_id.replace("\\", "/").split("/")[-1]:
+            safe = Path(imagen_id).name
+        path = _IMAGENES_DIR / safe
+        if not path.is_file():
+            return {"ok": False, "error": f"No se encontró la imagen web '{safe}'"}
+        file_bytes = path.read_bytes()
+        filename = safe
+    else:
+        pic_url = url
+        if not pic_url and imagen_id:
+            pic_url = f"https://http2.mlstatic.com/D_NQ_NP_{imagen_id}-O.jpg"
+        if not pic_url:
+            return {"ok": False, "error": "Falta URL o id de la foto MeLi"}
+        try:
+            r = _req.get(pic_url, timeout=35)
+        except Exception as e:
+            return {"ok": False, "error": f"No se pudo descargar la foto MeLi: {e}"}
+        if r.status_code != 200 or not r.content:
+            return {
+                "ok": False,
+                "error": f"Descarga MeLi HTTP {r.status_code}: {(r.text or '')[:160]}",
+            }
+        file_bytes = r.content
+        filename = f"{imagen_id or 'meli'}.jpg"
+
+    if destino == "web":
+        res = subir_imagen_web(sku, file_bytes, filename)
+        if not res.get("ok"):
+            return {"ok": False, "error": res.get("error") or "No se pudo guardar en web", "resultado": res}
+        return {
+            "ok": True,
+            "origen": origen,
+            "destino": "web",
+            "mensaje": f"Foto copiada a la tienda web ({res.get('filename')})",
+            "resultado": res,
+        }
+
+    if not meli_item_id:
+        pub = obtener_publicacion(sku) or {}
+        meli_item_id = str(pub.get("meli_id_efectivo") or "").strip()
+    if not meli_item_id:
+        return {"ok": False, "error": "Sin ID MeLi: vincula la publicación antes de copiar fotos"}
+
+    ext = Path(filename).suffix.lower()
+    content_type = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+    # Normalizar igual que el upload del panel
+    try:
+        out_fmt = "JPEG" if content_type == "image/jpeg" else "PNG"
+        file_bytes, _meta = normalizar_imagen_catalogo(file_bytes, out_format=out_fmt)
+        content_type = "image/jpeg" if out_fmt == "JPEG" else "image/png"
+    except Exception:
+        pass
+
+    res = subir_imagen_meli(meli_item_id, file_bytes, content_type, sku=sku)
+    if not res.get("ok"):
+        return {"ok": False, "error": res.get("error") or "No se pudo subir a MeLi", "resultado": res}
+    return {
+        "ok": True,
+        "origen": origen,
+        "destino": "meli",
+        "mensaje": (
+            "Foto copiada a Mercado Libre"
+            + ("" if res.get("adjuntada", True) else " (CDN; el listing no admite fotos nuevas)")
+        ),
+        "resultado": res,
     }

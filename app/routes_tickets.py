@@ -575,6 +575,13 @@ def register_tickets_routes(app):
         )
         return jsonify({"ok": True}), 200
 
+    @app.route("/api/tickets/presencia/en-linea", methods=["GET"])
+    @_auth
+    def panel_presencia_en_linea():
+        from app.services.panel_presencia import usuarios_en_linea_ahora
+
+        return jsonify({"usuario_ids": sorted(usuarios_en_linea_ahora())}), 200
+
     @app.route("/api/tickets/panel/metricas", methods=["GET"])
     @_auth
     def panel_metricas_operadores():
@@ -1061,14 +1068,10 @@ def register_tickets_routes(app):
                 panel="tickets",
                 detalle={"ticket_id": ticket_id, "tipo": (ticket or {}).get("tipo")},
             )
-        if ticket and ticket.get("tipo") == "solicitud" and nuevo_estado == "esperando_aprobacion":
-            import threading
-            from app.services.tickets_notificaciones import notificar_revision_solicitada
-            threading.Thread(
-                target=notificar_revision_solicitada,
-                args=(ticket_id, request.tickets_usuario["id"]),
-                daemon=True,
-            ).start()
+        # Notificación al creador: la dispara cambiar_estado() en tickets_db.py, que
+        # conoce el estado FINAL real (ej. "resuelto" pedido por el ejecutor puede
+        # quedar auto-ruteado a "esperando_aprobacion" — este `nuevo_estado` de acá
+        # es el pedido, no el resultante, así que comparar contra él no lo detectaba).
         return jsonify(ticket), 200
 
     @app.route("/api/tickets/<int:ticket_id>/asignar", methods=["PUT"])

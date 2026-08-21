@@ -174,9 +174,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     label: "Publicaciones",
     description: "Gestiona cada ficha en Mercado Libre y en la tienda web, y cómo se muestra en ambos sitios.",
     tips: [
-      "En Catálogo abre un producto: la pestaña Sitios compara la ficha web (familia + presentaciones) con cada publicación MeLi.",
-      "La tienda solo lista SKUs con ID MeLi. Pausar en MeLi no los saca de la web; Ocultar en la tienda los deja en vitrina.",
-      "Usa Republicar MeLi / Crear desde cero para altas por política.",
+      "En Catálogo → Sitios verás dos ventanas: Página web | Mercado Libre.",
+      "Web: botón «No mostrar en la web», ordenar/eliminar fotos. MeLi: editar precio, pausar/activar y fotos.",
+      "Marca las fotos que no sirven (☑) y elimínalas; la ★ es la que se ve primero en cada sitio.",
     ],
     tier: "standard",
     category: "publicaciones",

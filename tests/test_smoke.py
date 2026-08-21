@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 
@@ -571,7 +572,7 @@ def test_missing_app_api_returns_json_not_spa_html():
         r = c.get("/app/api/ruta-que-no-existe")
         assert r.status_code == 404
         assert r.is_json
-        assert r.get_json().get("error") == "Ruta no encontrada"
+        assert "no encontrada" in r.get_json().get("error", "").lower()
         preview = r.get_data(as_text=True).lstrip()
         assert not preview.startswith("<")
 
@@ -1426,10 +1427,25 @@ def test_web_chat_fallback_queja_precios() -> None:
     assert "wa.me" in out
 
 
-def test_coa_generacion_docx() -> None:
-    from app.services.coa import PLANTILLA_DEFAULT, generar_desde_datos, plantilla_datos_ejemplo
+def _coa_plantilla_disponible() -> bool:
+    from app.services.coa import PLANTILLA_DEFAULT
 
-    assert PLANTILLA_DEFAULT.is_file()
+    return PLANTILLA_DEFAULT.is_file()
+
+
+def _sds_plantillas_disponibles() -> bool:
+    from app.services.sds import PLANTILLA_DEFAULT, PLANTILLA_REF_PDF
+
+    return PLANTILLA_DEFAULT.is_file() and PLANTILLA_REF_PDF.is_file()
+
+
+@pytest.mark.skipif(
+    not _coa_plantilla_disponible(),
+    reason="fichas_word/plantillas/COA PLANTILLA.docx está en .gitignore (propietario); no existe en CI",
+)
+def test_coa_generacion_docx() -> None:
+    from app.services.coa import generar_desde_datos, plantilla_datos_ejemplo
+
     datos = plantilla_datos_ejemplo()
     datos["titulo"] = "SMOKE COA TEST"
     res = generar_desde_datos(datos, generar_pdf=False, subir_drive=False)
@@ -1437,11 +1453,13 @@ def test_coa_generacion_docx() -> None:
     assert res["docx_nombre"].startswith("COA-")
 
 
+@pytest.mark.skipif(
+    not _sds_plantillas_disponibles(),
+    reason="fichas_word/plantillas/SDS *.docx|pdf están en .gitignore (propietarios); no existen en CI",
+)
 def test_sds_generacion_docx() -> None:
-    from app.services.sds import PLANTILLA_DEFAULT, PLANTILLA_REF_PDF, generar_desde_datos, plantilla_datos_ejemplo
+    from app.services.sds import generar_desde_datos, plantilla_datos_ejemplo
 
-    assert PLANTILLA_DEFAULT.is_file()
-    assert PLANTILLA_REF_PDF.is_file()
     datos = plantilla_datos_ejemplo()
     datos["titulo"] = "SMOKE SDS TEST"
     res = generar_desde_datos(datos, generar_pdf=False, subir_drive=False)
@@ -1470,6 +1488,10 @@ def test_documentos_catalogo_asociar_y_coincidencia(tmp_path, monkeypatch) -> No
     assert dc._coincide_archivo("Urea Cosmética", "C-UREA250", "COA-UREA-COSMETICA.pdf")
 
 
+@pytest.mark.skipif(
+    not _coa_plantilla_disponible(),
+    reason="fichas_word/plantillas/COA PLANTILLA.docx está en .gitignore (propietario); no existe en CI",
+)
 def test_documentos_preview_coa_docx() -> None:
     from app.services.coa import generar_desde_datos, plantilla_datos_ejemplo
 

@@ -150,7 +150,13 @@ async function request<T>(
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || body.mensaje || `HTTP ${res.status}`);
+    const detail = body.error || body.mensaje || `HTTP ${res.status}`;
+    if (res.status === 405) {
+      throw new Error(
+        `${detail} — el agente en :8081 no tiene esta ruta (proceso viejo). Reinícialo y recarga el panel.`,
+      );
+    }
+    throw new Error(detail);
   }
   const ct = (res.headers.get("content-type") ?? "").toLowerCase();
   if (!ct.includes("application/json")) {

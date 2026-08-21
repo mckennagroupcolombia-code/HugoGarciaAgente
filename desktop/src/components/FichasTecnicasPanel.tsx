@@ -23,6 +23,7 @@ import {
   rowsToParamString,
   type ParamRow,
 } from "../lib/coaParametros";
+import { formatearFormulaMolecular } from "../lib/formulaMolecular";
 
 type TabDoc = "catalogo" | "ft" | "coa" | "sds" | "completo" | "biblioteca";
 
@@ -527,7 +528,7 @@ function CoaTabContent({
     setReferencia(String(ident.referencia_interna || ""));
     setInci(String(ident.nombre_inci || ""));
     setCas(String(ident.cas || ""));
-    setFormula(String(ident.formula_molecular || ""));
+    setFormula(formatearFormulaMolecular(String(ident.formula_molecular || "")));
     setEinces(String(ident.einces || ""));
     setConcentracion(String(ident.concentracion || ""));
     setGrado(String(ident.grado || ""));
@@ -607,6 +608,20 @@ function CoaTabContent({
     ],
   );
 
+  const sugerirParamsCoaMut = useMutation({
+    mutationFn: () => {
+      const n = (titulo || nombreComercial || producto?.nombre_base || "").trim();
+      if (!n) throw new Error("Indique el nombre del producto primero");
+      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", {
+        campo: "coa_parametros",
+        nombre: n,
+      }, { timeoutMs: 180000 });
+    },
+    onSuccess: (r) => {
+      if (r.valor) setParametros(r.valor);
+    },
+  });
+
   return (
     <Fragment>
     <DocumentoGeneradorTab
@@ -628,7 +643,7 @@ function CoaTabContent({
           <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
-          <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
+          <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
           <Field label="EINECS" value={einces} onChange={setEinces} />
           <Field label="Concentración" value={concentracion} onChange={setConcentracion} />
           <Field label="Presentación" value={presentacion} onChange={setPresentacion} />
@@ -664,7 +679,19 @@ function CoaTabContent({
           onChange={setParametros}
           rows={8}
           mono
+          actions={
+            !parseParamRows(parametros).some((r) => r.parametro || r.especificacion || r.resultado) ? (
+              <IaBtn
+                label="Sugerir"
+                loading={sugerirParamsCoaMut.isPending}
+                onClick={() => sugerirParamsCoaMut.mutate()}
+              />
+            ) : undefined
+          }
         />
+        {sugerirParamsCoaMut.isError && (
+          <p className="text-xs text-danger">{(sugerirParamsCoaMut.error as Error).message}</p>
+        )}
         <p className="text-xs font-medium text-muted">Empaque y almacenamiento</p>
         <Field label="Empaque original" value={empaque} onChange={setEmpaque} rows={2} />
         <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
@@ -830,7 +857,7 @@ function SdsTabContent({
     setReferencia(String(ident.referencia_interna || ""));
     setInci(String(ident.nombre_inci || ""));
     setCas(String(ident.cas || ""));
-    setFormula(String(ident.formula_molecular || ""));
+    setFormula(formatearFormulaMolecular(String(ident.formula_molecular || "")));
     setUsos(String(ident.usos || ""));
     setTelefono(String(ident.telefono_emergencia || ""));
     setClasificacion(String(pel.clasificacion || ""));
@@ -893,7 +920,7 @@ function SdsTabContent({
           <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
-          <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
+          <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
           <Field label="Usos recomendados" value={usos} onChange={setUsos} />
           <Field label="Teléfono emergencia" value={telefono} onChange={setTelefono} />
         </div>
@@ -927,30 +954,82 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
   const [preview, setPreview] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState(false);
   const [ok, setOk] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [textoPagina, setTextoPagina] = useState("");
+  const [mostrarPegar, setMostrarPegar] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const { useTicketsAuth } = await import("../stores/ticketsAuth");
+    const { useAuthStore } = await import("../stores/auth");
+    const t = useTicketsAuth.getState();
+    const token = t.apiToken || t.token || useAuthStore.getState().token || "";
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   const enviar = async (file: File) => {
     setError(null); setOk(false); setScanning(true);
     try {
       const { resolvePanelApiUrl } = await import("../api/client");
-      const { useTicketsAuth } = await import("../stores/ticketsAuth");
-      const { useAuthStore } = await import("../stores/auth");
-      const t = useTicketsAuth.getState();
-      const token = t.apiToken || t.token || useAuthStore.getState().token || "";
       const url = await resolvePanelApiUrl("/api/fichas/ft/escanear-imagen", "POST");
       const fd = new FormData();
       fd.append("imagen", file);
       const res = await fetch(url, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: await authHeaders(),
         body: fd,
       });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
-      onCamposExtraidos(json.campos || {});
+      const campos = json.campos || {};
+      const llenos = Object.entries(campos).filter(
+        ([k, v]) => !k.startsWith("_") && v != null && String(v).trim() !== "",
+      );
+      if (!llenos.length) {
+        throw new Error("La extracción no devolvió campos útiles. Pruebe otra imagen/PDF.");
+      }
+      onCamposExtraidos(campos);
       setOk(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const enviarUrl = async () => {
+    const u = linkUrl.trim();
+    const texto = textoPagina.trim();
+    if ((!u && !texto) || scanning) return;
+    setError(null); setOk(false); setScanning(true);
+    try {
+      const { api } = await import("../api/client");
+      const body: { url?: string; texto?: string } = {};
+      if (u) body.url = u;
+      if (texto.length >= 40) body.texto = texto;
+      const json = await api.post<{ ok?: boolean; campos?: Record<string, unknown>; error?: string }>(
+        "/api/fichas/ft/escanear-url",
+        body,
+        { timeoutMs: 120000 },
+      );
+      if (json.error) throw new Error(json.error);
+      const campos = json.campos || {};
+      const llenos = Object.entries(campos).filter(
+        ([k, v]) => !k.startsWith("_") && v != null && String(v).trim() !== "",
+      );
+      if (!llenos.length) {
+        throw new Error(
+          "La extracción no devolvió campos. Si el sitio bloquea el servidor, pegue el texto de la página abajo.",
+        );
+      }
+      onCamposExtraidos(campos);
+      setOk(true);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      if (/descarga|HTTP|bloque|Cloudflare|conexión|connect|reset/i.test(msg)) {
+        setMostrarPegar(true);
+      }
     } finally {
       setScanning(false);
     }
@@ -1001,8 +1080,8 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
     >
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-xs font-medium text-accent">Escanear ficha técnica desde imagen o PDF</p>
-          <p className="text-[10px] text-muted">Pega con Ctrl+V, arrastra o adjunta — la IA extrae los campos automáticamente.</p>
+          <p className="text-xs font-medium text-accent">Escanear ficha técnica</p>
+          <p className="text-[10px] text-muted">Imagen, PDF o link de ficha — la IA rellena el formulario.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -1023,6 +1102,47 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
         <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && esValido(f)) fromFile(f); }} />
       </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          type="url"
+          value={linkUrl}
+          onChange={(e) => setLinkUrl(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void enviarUrl(); } }}
+          placeholder="https://… link de ficha técnica o PDF"
+          disabled={scanning}
+          className="min-w-[200px] flex-1 rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink placeholder:text-muted"
+        />
+        <button
+          type="button"
+          onClick={() => void enviarUrl()}
+          disabled={scanning || (!linkUrl.trim() && textoPagina.trim().length < 40)}
+          className="rounded border border-accent/40 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
+        >
+          {scanning ? "Extrayendo…" : "Extraer desde link"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMostrarPegar((v) => !v)}
+          className="rounded border border-border px-2 py-1.5 text-[10px] text-muted hover:border-accent hover:text-accent"
+        >
+          {mostrarPegar ? "Ocultar texto" : "Pegar texto"}
+        </button>
+      </div>
+      {mostrarPegar && (
+        <div className="space-y-1">
+          <p className="text-[10px] text-muted">
+            Si el sitio bloquea el servidor (Cloudflare/Shopify), copie el texto de la ficha en el navegador y pégalo aquí.
+          </p>
+          <textarea
+            value={textoPagina}
+            onChange={(e) => setTextoPagina(e.target.value)}
+            rows={5}
+            placeholder="CAS, INCI, descripción, solubilidad, modo de uso…"
+            disabled={scanning}
+            className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink placeholder:text-muted"
+          />
+        </div>
+      )}
       {preview && (
         <img
           src={preview}
@@ -1054,6 +1174,9 @@ function CoaSection({
   coaFirmaOrganizacion, setCoaFirmaOrganizacion,
   coaFirmaImagenB64, setCoaFirmaImagenB64,
   ia,
+  onSugerir,
+  sugiriendo,
+  errorSugerir,
 }: {
   coaEinces: string; setCoaEinces: (v: string) => void;
   coaGrado: string; setCoaGrado: (v: string) => void;
@@ -1064,10 +1187,15 @@ function CoaSection({
   coaFirmaImagenB64: string; setCoaFirmaImagenB64: (v: string) => void;
   ia: (campo: string) => { label: string; loading: boolean; onClick: () => void };
   nombreProducto: string;
+  onSugerir: () => void;
+  sugiriendo: boolean;
+  errorSugerir: string | null;
 }) {
   /* ── Tabla de parámetros ── */
   const rows = parseParamRows(coaParametros);
   const rowsParaTabla = rows.length ? rows : [{ parametro: "", especificacion: "", resultado: "" }];
+  const tieneParametros = rows.some((r) => r.parametro || r.especificacion || r.resultado);
+  const sinInfoCoa = !coaEinces.trim() && !coaGrado.trim() && !tieneParametros;
 
   const updateRow = (i: number, field: keyof ParamRow, val: string) => {
     const next = rowsParaTabla.map((r, idx) => idx === i ? { ...r, [field]: val } : r);
@@ -1088,6 +1216,22 @@ function CoaSection({
 
   return (
     <div className="space-y-4">
+      {sinInfoCoa && (
+        <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-2">
+          <p className="text-xs text-muted">
+            No hay información COA. Puede sugerir parámetros de análisis típicos (especificaciones de literatura; el resultado queda en «Conforme», sin inventar un ensayo de laboratorio).
+          </p>
+          {errorSugerir && <p className="text-xs text-danger">{errorSugerir}</p>}
+          <button
+            type="button"
+            onClick={onSugerir}
+            disabled={sugiriendo}
+            className="rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
+          >
+            {sugiriendo ? "Sugiriendo…" : "Sugerir"}
+          </button>
+        </div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <Field
@@ -1161,7 +1305,18 @@ function CoaSection({
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs text-muted">Parámetros de análisis</p>
-          {rowsParaTabla.some((r) => r.parametro || r.especificacion || r.resultado) && (
+          <div className="flex items-center gap-2">
+            {!tieneParametros && !sinInfoCoa && (
+              <button
+                type="button"
+                onClick={onSugerir}
+                disabled={sugiriendo}
+                className="rounded border border-accent/40 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
+              >
+                {sugiriendo ? "Sugiriendo…" : "Sugerir"}
+              </button>
+            )}
+            {tieneParametros && (
             <button
               type="button"
               onClick={() => setCoaParametros("")}
@@ -1169,7 +1324,8 @@ function CoaSection({
             >
               Limpiar tabla
             </button>
-          )}
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-left text-xs">
@@ -1259,6 +1415,16 @@ function DocumentoCompletoTabContent({
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
   const loadFtRef = useRef<(d: Record<string, unknown>) => void>(() => {});
   const autoCompletarFtRef = useRef<(r: Record<string, string>) => void>(() => {});
+
+  const registrarBuildFt = useCallback((fn: () => Record<string, unknown>) => {
+    buildFtRef.current = fn;
+  }, []);
+  const registrarLoadFt = useCallback((fn: (d: Record<string, unknown>) => void) => {
+    loadFtRef.current = fn;
+  }, []);
+  const registrarAutoCompletarFt = useCallback((fn: (r: Record<string, string>) => void) => {
+    autoCompletarFtRef.current = fn;
+  }, []);
 
   /* Campos vacíos detectados tras escanear el documento FT */
   const [camposVaciosEscan, setCamposVaciosEscan] = useState<string[]>([]);
@@ -1369,6 +1535,7 @@ function DocumentoCompletoTabContent({
         case "recomendaciones":        setSdsRecomendaciones(v); break;
         case "coa_einecs":             setCoaEinces(v); break;
         case "coa_grado":              setCoaGrado(v); break;
+        case "coa_parametros":         setCoaParametros(v); break;
       }
     },
   });
@@ -1377,6 +1544,37 @@ function DocumentoCompletoTabContent({
     label: "IA",
     loading: sugerirMut.isPending && sugerirMut.variables === campo,
     onClick: () => sugerirMut.mutate(campo),
+  });
+
+  const sugerirCoaMut = useMutation({
+    mutationFn: async () => {
+      const n = nombre.trim();
+      if (!n) throw new Error("Indique el nombre del producto primero");
+      const campos: string[] = [];
+      const tieneParams = parseParamRows(coaParametros).some(
+        (r) => r.parametro || r.especificacion || r.resultado,
+      );
+      if (!tieneParams) campos.push("coa_parametros");
+      if (!coaEinces.trim()) campos.push("coa_einecs");
+      if (!coaGrado.trim()) campos.push("coa_grado");
+      if (!campos.length) throw new Error("El COA ya tiene datos para sugerir");
+      const r = await api.post<{ ok?: boolean; resultados?: Record<string, string | null>; error?: string }>(
+        "/api/fichas/sugerir-multiples",
+        { nombre: n, campos },
+        { timeoutMs: 180000 },
+      );
+      if (r.error) throw new Error(r.error);
+      const out = r.resultados || {};
+      if (campos.includes("coa_parametros") && !out.coa_parametros) {
+        throw new Error("No se pudieron sugerir parámetros COA. Intente de nuevo.");
+      }
+      return out;
+    },
+    onSuccess: (res) => {
+      if (res.coa_parametros) setCoaParametros(res.coa_parametros);
+      if (res.coa_einecs) setCoaEinces(res.coa_einecs);
+      if (res.coa_grado) setCoaGrado(res.coa_grado);
+    },
   });
 
   /* Preload desde producto seleccionado */
@@ -1687,12 +1885,34 @@ function DocumentoCompletoTabContent({
 
         <FtImageScanner
           onCamposExtraidos={(campos) => {
-            if (campos.nombre_producto) setNombre(String(campos.nombre_producto).toUpperCase());
-            if (campos.cas) setCas(String(campos.cas));
-            if (campos.nombre_comercial) setNombreComercial(String(campos.nombre_comercial));
-            if (campos.inci) setInci(String(campos.inci));
+            const strCampos: Record<string, string> = {};
+            for (const [k, raw] of Object.entries(campos)) {
+              if (k.startsWith("_")) continue;
+              if (raw == null) continue;
+              if (Array.isArray(raw)) {
+                const joined = raw
+                  .map((x) => (Array.isArray(x) ? x.join("|") : String(x)))
+                  .filter(Boolean)
+                  .join("\n");
+                if (joined.trim()) strCampos[k] = joined;
+              } else {
+                const s = String(raw).trim();
+                if (s) strCampos[k] = s;
+              }
+            }
+            const nombreProd =
+              strCampos.nombre_producto || strCampos.product_name || strCampos.titulo || "";
+            const casVal = strCampos.cas || "";
+            if (nombreProd) setNombre(nombreProd.toUpperCase());
+            if (casVal) setCas(casVal);
+            if (strCampos.nombre_comercial) setNombreComercial(strCampos.nombre_comercial);
+            if (strCampos.inci) setInci(strCampos.inci);
+
+            // Merge en el formulario FT (no reemplazar todo el estado)
+            autoCompletarFtRef.current(strCampos);
             loadFtRef.current(campos);
-            const vacios = FT_CAMPOS_AUTOSUGERIR.filter(c => !campos[c] || String(campos[c]).trim() === "");
+
+            const vacios = FT_CAMPOS_AUTOSUGERIR.filter((c) => !strCampos[c]);
             setCamposVaciosEscan(vacios);
             setSugerirVaciosError(null);
           }}
@@ -1893,9 +2113,9 @@ function DocumentoCompletoTabContent({
       <FichaTecnicaForm
         productoRef={producto?.ref ?? referencia}
         productoNombre={producto?.nombre_base}
-        onBuildDatos={(fn) => { buildFtRef.current = fn; }}
-        onLoadDatos={(fn) => { loadFtRef.current = fn; }}
-        onAutoCompletarRef={(fn) => { autoCompletarFtRef.current = fn; }}
+        onBuildDatos={registrarBuildFt}
+        onLoadDatos={registrarLoadFt}
+        onAutoCompletarRef={registrarAutoCompletarFt}
         hideIdentificacion
         externalNombreProducto={nombre}
         externalCas={cas}
@@ -1917,6 +2137,9 @@ function DocumentoCompletoTabContent({
         coaFirmaImagenB64={coaFirmaImagenB64} setCoaFirmaImagenB64={setCoaFirmaImagenB64}
         ia={ia}
         nombreProducto={nombre}
+        onSugerir={() => sugerirCoaMut.mutate()}
+        sugiriendo={sugerirCoaMut.isPending}
+        errorSugerir={sugerirCoaMut.isError ? (sugerirCoaMut.error as Error).message : null}
       />
 
       {/* ─── SDS: solo campos exclusivos ─── */}

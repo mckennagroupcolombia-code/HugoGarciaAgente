@@ -749,6 +749,56 @@ app.post('/enviar-archivo', async (req, res) => {
     }
 });
 
+// ── Perfil de WhatsApp (foto + "Info"/about) ─────────────────────────────────
+app.post('/perfil/foto', async (req, res) => {
+    const { filePath } = req.body;
+    try {
+        if (!sistemaListo && client.info && client.info.wid) {
+            await promoverSistemaListoSiSesionFunciona('API /perfil/foto');
+        }
+        if (!sistemaListo || !client.info || !client.info.wid) {
+            return res.status(503).json({ status: "error", error: "Sincronizando..." });
+        }
+        if (!filePath || !fs.existsSync(filePath)) {
+            return res.status(400).json({ status: "error", error: `Archivo no encontrado: ${filePath}` });
+        }
+        const { MessageMedia } = require('whatsapp-web.js');
+        const fileData = fs.readFileSync(filePath);
+        const lower = String(filePath).toLowerCase();
+        let mimeType = 'image/png';
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+        const media = new MessageMedia(mimeType, fileData.toString('base64'), path.basename(filePath));
+        const ok = await client.setProfilePicture(media);
+        console.log(`🖼️ Foto de perfil actualizada: ${filePath} — ok=${ok}`);
+        res.status(200).json({ status: "success", ok });
+    } catch (error) {
+        console.error("❌ Error actualizando foto de perfil:", error.message);
+        res.status(500).json({ status: "error", error: error.message });
+    }
+});
+
+app.post('/perfil/about', async (req, res) => {
+    const { texto } = req.body;
+    if (!texto) {
+        return res.status(400).json({ status: "error", error: "Falta texto" });
+    }
+    try {
+        if (!sistemaListo && client.info && client.info.wid) {
+            await promoverSistemaListoSiSesionFunciona('API /perfil/about');
+        }
+        if (!sistemaListo || !client.info || !client.info.wid) {
+            return res.status(503).json({ status: "error", error: "Sincronizando..." });
+        }
+        await client.setStatus(texto);
+        console.log(`📝 Info de perfil (about) actualizada: "${texto}"`);
+        res.status(200).json({ status: "success" });
+    } catch (error) {
+        console.error("❌ Error actualizando info de perfil:", error.message);
+        res.status(500).json({ status: "error", error: error.message });
+    }
+});
+
 // ── Enviar nota de voz (PTT) ─────────────────────────────────────────────────
 app.post('/enviar-ptt', async (req, res) => {
     const { numero, audioBase64, mimeType } = req.body;

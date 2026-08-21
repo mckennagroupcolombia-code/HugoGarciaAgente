@@ -361,6 +361,7 @@ def obtener_seller_id_meli() -> int:
 URL_API_WHATSAPP = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 URL_API_WHATSAPP_ARCHIVO = os.getenv("URL_API_WHATSAPP_ARCHIVO", "http://127.0.0.1:3000/enviar-archivo")
 URL_API_SUPERVISOR_PTT  = os.getenv("URL_API_SUPERVISOR_PTT", "http://127.0.0.1:3001/enviar-ptt")
+URL_API_SUPERVISOR_TEXTO = os.getenv("URL_API_SUPERVISOR_TEXTO", "http://127.0.0.1:3001/enviar")
 TELEFONO_GRUPO_REPORTE  = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
 
 
@@ -393,6 +394,30 @@ def enviar_voz_supervisor(numero_destino: str, audio_bytes: bytes, mime_type: st
         return False
     except Exception as exc:
         print(f"[enviar_voz_supervisor] Conexión fallida: {exc}")
+        return False
+
+
+def enviar_texto_supervisor(numero_destino: str, texto: str) -> bool:
+    """Envía texto plano a través del bridge supervisor (puerto 3001, número 573196529076).
+
+    Bridge dedicado a las alertas automatizadas de operadores (antes notas de voz,
+    ver `enviar_voz_supervisor`; ahora texto corto) — a diferencia de
+    `enviar_whatsapp_reporte`, que usa el bridge principal (puerto 3000) para
+    grupos operativos y reportes. Retorna True si el envío fue exitoso.
+    """
+    import requests as _req
+
+    token = os.getenv("WHATSAPP_SUPERVISOR_TOKEN", "").strip()
+    headers = {"X-Bridge-Token": token} if token else {}
+    payload = {"numero": numero_destino, "mensaje": texto}
+    try:
+        r = _req.post(URL_API_SUPERVISOR_TEXTO, json=payload, headers=headers, timeout=30)
+        if r.status_code == 200:
+            return True
+        print(f"[enviar_texto_supervisor] Error {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as exc:
+        print(f"[enviar_texto_supervisor] Conexión fallida: {exc}")
         return False
 
 

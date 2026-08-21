@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { Field, listaDesdeTexto } from "./DocumentoGeneradorTab";
+import { formatearFormulaMolecular } from "../../lib/formulaMolecular";
 
 export type ComposicionFila = { componente: string; valor: string };
 
@@ -268,35 +269,64 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     propiedadesLista = propsLista;
   }
 
+  const flat = (k: string, ...alts: string[]) => {
+    for (const key of [k, ...alts]) {
+      const v = datos[key];
+      if (v != null && String(v).trim()) return String(v).trim();
+    }
+    return "";
+  };
+
   return {
     nombreProducto: nombre,
     referencia: String(datos.referencia || "") || valorEnFilas(identidad, "referencia siigo", "referencia"),
-    sinonimos: String(datos.sinonimos || "") || valorEnFilas(identidad, "sinonimos", "sinonimo"),
-    cas: String(datos.cas || "") || valorEnFilas(identidad, "cas", "cas #"),
-    paisOrigen: String(datos.pais_origen || "") || valorEnFilas(identidad, "pais de origen", "pais origen", "origen"),
-    fabricante: String(datos.fabricante || "") || valorEnFilas(identidad, "fabricante", "fabricante proveedor"),
+    sinonimos: flat("sinonimos", "synonyms") || valorEnFilas(identidad, "sinonimos", "sinonimo", "synonyms"),
+    cas: String(datos.cas || "") || valorEnFilas(identidad, "cas", "cas #", "cas number"),
+    paisOrigen:
+      flat("pais_origen", "country_of_origin", "origin") ||
+      valorEnFilas(identidad, "pais de origen", "pais origen", "origen", "country of origin"),
+    fabricante:
+      flat("fabricante", "manufacturer", "supplier") ||
+      valorEnFilas(identidad, "fabricante", "fabricante proveedor", "manufacturer"),
     fechaRevision:
-      fechaParaInput(String(datos.fecha_revision || "")) ||
-      fechaParaInput(valorEnFilas(identidad, "fecha de revision")) ||
+      fechaParaInput(String(datos.fecha_revision || datos.revision_date || "")) ||
+      fechaParaInput(valorEnFilas(identidad, "fecha de revision", "revision date")) ||
       hoyIso(),
-    descripcion: String(datos.descripcion || ""),
-    apariencia: cf.apariencia || valorEnFilas(props, "apariencia"),
-    puntoFusion: cf.punto_fusion || valorEnFilas(props, "punto de fusion", "punto fusion"),
+    descripcion: flat("descripcion", "description"),
+    apariencia:
+      flat("apariencia", "appearance") ||
+      cf.apariencia ||
+      valorEnFilas(props, "apariencia", "appearance"),
+    puntoFusion:
+      flat("punto_fusion", "melting_point", "melting point") ||
+      cf.punto_fusion ||
+      valorEnFilas(props, "punto de fusion", "punto fusion", "melting point"),
     indiceSaponificacion:
-      cf.indice_saponificacion || valorEnFilas(props, "indice de saponificacion", "indice saponificacion"),
-    ph: cf.ph || valorEnFilas(props, "ph"),
-    olor: cf.olor || valorEnFilas(props, "olor"),
-    sabor: cf.sabor || valorEnFilas(props, "sabor"),
-    modoUso: String(datos.modo_uso || "") || valorEnFilas(props, "modo de uso", "modo uso"),
-    formulaQuimica: cf.formula_quimica || valorEnFilas(props, "formula quimica", "formula"),
-    solubilidad: cf.solubilidad || valorEnFilas(props, "solubilidad"),
+      flat("indice_saponificacion", "saponification_value") ||
+      cf.indice_saponificacion ||
+      valorEnFilas(props, "indice de saponificacion", "indice saponificacion", "saponification value"),
+    ph: flat("ph") || cf.ph || valorEnFilas(props, "ph"),
+    olor: flat("olor", "odour", "odor") || cf.olor || valorEnFilas(props, "olor", "odour", "odor"),
+    sabor: flat("sabor", "taste") || cf.sabor || valorEnFilas(props, "sabor", "taste"),
+    modoUso:
+      flat("modo_uso", "usage", "directions", "incorporation") ||
+      valorEnFilas(props, "modo de uso", "modo uso", "usage"),
+    formulaQuimica: formatearFormulaMolecular(
+      flat("formula_quimica", "molecular_formula", "formula") ||
+      cf.formula_quimica ||
+      valorEnFilas(props, "formula quimica", "formula", "molecular formula"),
+    ),
+    solubilidad:
+      flat("solubilidad", "solubility") ||
+      cf.solubilidad ||
+      valorEnFilas(props, "solubilidad", "solubility"),
     propiedadesLista: propiedadesLista,
     aplicaciones: Array.isArray(datos.aplicaciones)
       ? (datos.aplicaciones as string[]).join("\n\n")
-      : String(datos.aplicaciones || ""),
+      : flat("aplicaciones", "applications", "uses"),
     composicion: parseComposicion(datos, identidad),
-    recomendaciones: String(datos.recomendaciones || ""),
-    lote: String(datos.lote || ""),
+    recomendaciones: flat("recomendaciones", "recommendations", "storage"),
+    lote: flat("lote", "lot", "batch"),
     colorAcento: String(datos.color_acento || "#069DC2"),
   };
 }
@@ -349,38 +379,99 @@ export default function FichaTecnicaForm({
     onBuildDatos(() => build());
   }, [build, onBuildDatos]);
 
-  useEffect(() => {
-    onLoadDatos((datos) => setState(formularioDesdeDatos(datos)));
+  // Registrar loader en layout (antes del paint) para que el escáner no llame un no-op
+  useLayoutEffect(() => {
+    onLoadDatos((datos) => {
+      setState((prev) => {
+        const next = formularioDesdeDatos(datos);
+        const merged: FichaTecnicaFormState = { ...prev };
+        (Object.keys(next) as (keyof FichaTecnicaFormState)[]).forEach((k) => {
+          const v = next[k];
+          if (typeof v === "string") {
+            if (v.trim()) (merged as unknown as Record<string, unknown>)[k] = v;
+          } else if (k === "composicion" && Array.isArray(v)) {
+            const rows = v as ComposicionFila[];
+            if (rows.some((r) => r.componente.trim() || r.valor.trim())) merged.composicion = rows;
+          }
+        });
+        return merged;
+      });
+    });
   }, [onLoadDatos]);
 
   const autoCompletar = useCallback((resultados: Record<string, string>) => {
     const updates: Partial<FichaTecnicaFormState> = {};
     for (const [campo, v] of Object.entries(resultados)) {
-      if (!v) continue;
+      if (!v || !String(v).trim()) continue;
+      const val = String(v).trim();
       switch (campo) {
-        case "sinonimos":             updates.sinonimos = v; break;
-        case "cas":                   updates.cas = v; break;
-        case "pais_origen":           updates.paisOrigen = v; break;
-        case "fabricante":            updates.fabricante = v; break;
-        case "descripcion":           updates.descripcion = v; break;
-        case "apariencia":            updates.apariencia = v; break;
-        case "punto_fusion":          updates.puntoFusion = v; break;
-        case "indice_saponificacion": updates.indiceSaponificacion = v; break;
-        case "ph":                    updates.ph = v; break;
-        case "olor":                  updates.olor = v; break;
-        case "sabor":                 updates.sabor = v; break;
-        case "formula_quimica":       updates.formulaQuimica = v; break;
-        case "solubilidad":           updates.solubilidad = v; break;
-        case "modo_uso":              updates.modoUso = v; break;
-        case "propiedades_lista":     updates.propiedadesLista = v; break;
-        case "aplicaciones":          updates.aplicaciones = v; break;
-        case "recomendaciones":       updates.recomendaciones = v; break;
+        case "sinonimos":
+        case "synonyms":
+          updates.sinonimos = val; break;
+        case "cas":
+          updates.cas = val; break;
+        case "pais_origen":
+        case "country_of_origin":
+          updates.paisOrigen = val; break;
+        case "fabricante":
+        case "manufacturer":
+        case "supplier":
+          updates.fabricante = val; break;
+        case "descripcion":
+        case "description":
+          updates.descripcion = val; break;
+        case "apariencia":
+        case "appearance":
+          updates.apariencia = val; break;
+        case "punto_fusion":
+        case "melting_point":
+          updates.puntoFusion = val; break;
+        case "indice_saponificacion":
+          updates.indiceSaponificacion = val; break;
+        case "ph":
+          updates.ph = val; break;
+        case "olor":
+        case "odour":
+        case "odor":
+          updates.olor = val; break;
+        case "sabor":
+        case "taste":
+          updates.sabor = val; break;
+        case "formula_quimica":
+        case "molecular_formula":
+        case "formula":
+          updates.formulaQuimica = formatearFormulaMolecular(val); break;
+        case "solubilidad":
+        case "solubility":
+          updates.solubilidad = val; break;
+        case "modo_uso":
+        case "usage":
+        case "directions":
+          updates.modoUso = val; break;
+        case "propiedades_lista":
+        case "properties":
+          updates.propiedadesLista = val; break;
+        case "aplicaciones":
+        case "applications":
+        case "uses":
+          updates.aplicaciones = val; break;
+        case "recomendaciones":
+        case "recommendations":
+          updates.recomendaciones = val; break;
+        case "nombre_producto":
+        case "product_name":
+        case "titulo":
+          updates.nombreProducto = val; break;
+        case "lote":
+        case "lot":
+        case "batch":
+          updates.lote = val; break;
       }
     }
     if (Object.keys(updates).length) patch(updates);
   }, [patch]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     onAutoCompletarRef?.(autoCompletar);
   }, [autoCompletar, onAutoCompletarRef]);
 
@@ -392,18 +483,19 @@ export default function FichaTecnicaForm({
     if (productoNombre) patch({ nombreProducto: productoNombre });
   }, [productoNombre, patch]);
 
+  // Solo sincronizar externos cuando traen valor ("" no debe borrar lo escaneado)
   useEffect(() => {
-    if (hideIdentificacion && externalNombreProducto !== undefined)
+    if (hideIdentificacion && externalNombreProducto)
       patch({ nombreProducto: externalNombreProducto });
   }, [hideIdentificacion, externalNombreProducto, patch]);
 
   useEffect(() => {
-    if (hideIdentificacion && externalCas !== undefined)
+    if (hideIdentificacion && externalCas)
       patch({ cas: externalCas });
   }, [hideIdentificacion, externalCas, patch]);
 
   useEffect(() => {
-    if (hideIdentificacion && externalReferencia !== undefined)
+    if (hideIdentificacion && externalReferencia)
       patch({ referencia: externalReferencia });
   }, [hideIdentificacion, externalReferencia, patch]);
 
@@ -432,7 +524,7 @@ export default function FichaTecnicaForm({
         case "ph":                   patch({ ph: v }); break;
         case "olor":                 patch({ olor: v }); break;
         case "sabor":                patch({ sabor: v }); break;
-        case "formula_quimica":      patch({ formulaQuimica: v }); break;
+        case "formula_quimica":      patch({ formulaQuimica: formatearFormulaMolecular(v) }); break;
         case "solubilidad":          patch({ solubilidad: v }); break;
         case "modo_uso":             patch({ modoUso: v }); break;
         case "propiedades_lista":    patch({ propiedadesLista: v }); break;
@@ -590,18 +682,19 @@ export default function FichaTecnicaForm({
 
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { label: "Punto de fusión",           campo: "punto_fusion",          val: state.puntoFusion,           set: (v: string) => patch({ puntoFusion: v }),           ph: "Ej. 58-62 °C" },
-            { label: "Índice de saponificación",  campo: "indice_saponificacion", val: state.indiceSaponificacion,  set: (v: string) => patch({ indiceSaponificacion: v }),  ph: "Ej. 190-200 mg KOH/g" },
-            { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0" },
-            { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆" },
-            { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría" },
-          ].map(({ label, campo, val, set, ph: placeholder }) => (
+            { label: "Punto de fusión",           campo: "punto_fusion",          val: state.puntoFusion,           set: (v: string) => patch({ puntoFusion: v }),           ph: "Ej. 58-62 °C", formula: false },
+            { label: "Índice de saponificación",  campo: "indice_saponificacion", val: state.indiceSaponificacion,  set: (v: string) => patch({ indiceSaponificacion: v }),  ph: "Ej. 190-200 mg KOH/g", formula: false },
+            { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0", formula: false },
+            { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆", formula: true },
+            { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría", formula: false },
+          ].map(({ label, campo, val, set, ph: placeholder, formula }) => (
             <Field
               key={campo}
               label={label}
               value={val}
               onChange={set}
               placeholder={placeholder}
+              formula={formula}
               actions={<IaBtn label="IA" {...ia(campo)} />}
             />
           ))}

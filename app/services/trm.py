@@ -10,13 +10,17 @@ import logging
 import re
 import threading
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
 log = logging.getLogger(__name__)
 
 TRM_URL = "https://www.datos.gov.co/resource/32sa-8pi3.json"
+YAHOO_CHART_URLS = (
+    "https://query1.finance.yahoo.com/v8/finance/chart/USDCOP=X",
+    "https://query2.finance.yahoo.com/v8/finance/chart/USDCOP=X",
+)
 _TZ_BOGOTA = ZoneInfo("America/Bogota")
 _RE_FECHA = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 _HTTP_HEADERS = {

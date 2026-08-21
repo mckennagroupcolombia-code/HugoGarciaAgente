@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { formatearFormulaMolecular } from "../../lib/formulaMolecular";
 import { ProseTextarea } from "../ProseTextarea";
 
 export interface DocDatosItem {
@@ -950,6 +951,8 @@ export function Field({
   clearable = true,
   /** Acciones extra a la derecha de la etiqueta (p. ej. botón IA). */
   actions,
+  /** Dígitos como subíndices de fórmula molecular (C₆H₁₂O₆). */
+  formula,
 }: {
   label?: string;
   value: string;
@@ -961,10 +964,15 @@ export function Field({
   /** Botón Limpiar (default true). */
   clearable?: boolean;
   actions?: ReactNode;
+  formula?: boolean;
 }) {
   const hasValue = value.length > 0;
   const showClear = clearable;
-  const cls = `w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm ${mono ? "font-mono text-xs" : ""}`;
+  const shown = formula ? formatearFormulaMolecular(value) : value;
+  const emit = (v: string) => onChange(formula ? formatearFormulaMolecular(v) : v);
+  const cls = `w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm ${
+    mono ? "font-mono text-xs" : ""
+  } ${formula ? "tracking-wide" : ""}`;
 
   const clearControl = showClear ? (
     <button
@@ -999,8 +1007,8 @@ export function Field({
       <div>
         {header}
         <ProseTextarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={shown}
+          onChange={(e) => emit(e.target.value)}
           rows={rows}
           placeholder={placeholder}
           className={`${header ? "" : "mt-1 "}${cls}`}
@@ -1015,9 +1023,11 @@ export function Field({
       <div className="relative">
         <input
           type={type || "text"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={shown}
+          onChange={(e) => emit(e.target.value)}
           placeholder={placeholder}
+          spellCheck={formula ? false : undefined}
+          autoCapitalize={formula ? "off" : undefined}
           className={`${header ? "" : "mt-1 "}${cls}`}
         />
       </div>

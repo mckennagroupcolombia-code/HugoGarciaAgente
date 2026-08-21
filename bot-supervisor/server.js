@@ -616,6 +616,70 @@ appExpress.post('/enviar', async (req, res) => {
     }
 });
 
+// ── Perfil de WhatsApp (foto, nombre para mostrar e "Info"/about) ────────────
+appExpress.post('/perfil/foto', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { filePath } = req.body;
+    try {
+        if (!sistemaListo && client.info && client.info.wid) await promoverSistemaListo('API /perfil/foto');
+        if (!sistemaListo) return res.status(503).json({ error: 'Sincronizando…' });
+        if (!filePath || !fs.existsSync(filePath)) {
+            return res.status(400).json({ error: `Archivo no encontrado: ${filePath}` });
+        }
+        const fileData = fs.readFileSync(filePath);
+        const lower = String(filePath).toLowerCase();
+        let mimeType = 'image/png';
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+        const media = new MessageMedia(mimeType, fileData.toString('base64'), path.basename(filePath));
+        const ok = await client.setProfilePicture(media);
+        res.json({ status: 'success', ok });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+appExpress.post('/perfil/about', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { texto } = req.body;
+    if (!texto) return res.status(400).json({ error: 'Falta texto' });
+    try {
+        if (!sistemaListo && client.info && client.info.wid) await promoverSistemaListo('API /perfil/about');
+        if (!sistemaListo) return res.status(503).json({ error: 'Sincronizando…' });
+        await client.setStatus(texto);
+        res.json({ status: 'success' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+appExpress.post('/perfil/nombre', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { nombre } = req.body;
+    if (!nombre) return res.status(400).json({ error: 'Falta nombre' });
+    try {
+        if (!sistemaListo && client.info && client.info.wid) await promoverSistemaListo('API /perfil/nombre');
+        if (!sistemaListo) return res.status(503).json({ error: 'Sincronizando…' });
+        const ok = await client.setDisplayName(nombre);
+        res.json({ status: 'success', ok });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+appExpress.get('/perfil/actual', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    try {
+        const wid = client.info && client.info.wid;
+        if (!wid) return res.status(503).json({ error: 'Sincronizando…' });
+        const contact = await client.getContactById(wid._serialized);
+        const about = await contact.getAbout();
+        res.json({ pushname: client.info.pushname || null, about: about || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 /** GET /status */
 appExpress.get('/status', (req, res) => {
     const wid = client && client.info && client.info.wid;

@@ -1,24 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ProseTextarea } from "./ProseTextarea";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
 import CompetenciaPreciosPanel from "./CompetenciaPreciosPanel";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { Icon } from "../icons/Icon";
 import {
   usePublicaciones,
   usePublicacionDetalle,
   useGuardarPublicacion,
   useSyncWeb,
-  useSyncMeli,
-  useRefreshWeb,
   useFotosActuales,
   useSubirImagen,
   useReordenarImagenesWeb,
   useReordenarImagenesMeli,
   useEliminarImagenes,
+  useCopiarImagenSitio,
   useGaleriaPublicaciones,
   useNormalizarImagenesCatalogo,
   usePreciosCanales,
   useEstadoMeli,
+  usePrecioMeli,
   type PublicacionItem,
   type PublicacionDetalle,
   type SyncStatus,
@@ -120,7 +120,7 @@ function SyncBadge({
   );
 }
 
-// ── Card de producto en la lista ───────────────────────────────────────────
+// ── Fila de producto en el listado (solo nombre) ───────────────────────────
 
 function ProductoCard({
   item,
@@ -135,159 +135,42 @@ function ProductoCard({
   onClick: () => void;
   onSelectPresentacion: (sku: string) => void;
 }) {
-  const fotoUrl = item.foto_efectiva ? resolverFotoPreview(item.foto_efectiva) : null;
-
-  const webOk = item.sync_web.status === "ok";
-  const meliOk = item.sync_meli.status === "linked";
   const presentaciones = item.presentaciones || [];
   const tieneVarias = presentaciones.length > 1;
 
   return (
-    <div
-      className={`w-full rounded-xl border-2 transition ${
-        selected
-          ? "border-accent bg-accent/5"
-          : "border-border hover:border-accent/40 hover:bg-surface-hover"
-      }`}
-    >
-      <button onClick={onClick} className="w-full p-3 text-left">
-        <div className="flex gap-3">
-          {/* Foto miniatura */}
-          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
-            {fotoUrl ? (
-              <img
-                src={fotoUrl}
-                alt={item.nombre}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted text-xs">
-                —
-              </div>
-            )}
-          </div>
-
-          {/* Info */}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">{item.nombre}</p>
-            <p className="text-[11px] text-muted">{item.sku}</p>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              <SyncBadge status={item.sync_web} label="Web" compact />
-              <SyncBadge status={item.sync_meli} label="MeLi" compact />
-              {item.tiene_override && (
-                <span className="rounded-full border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                  Editado
-                </span>
-              )}
-              {item.oculto_web && (
-                <span className="rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
-                  Oculto web
-                </span>
-              )}
-              {tieneVarias && (
-                <span className="rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
-                  {presentaciones.length} presentaciones
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Precio + enlace MeLi */}
-          <div className="shrink-0 text-right space-y-1">
-            <p className="text-sm font-bold text-ink">
-              {item.precio_web > 0
-                ? `$${item.precio_web.toLocaleString("es-CO")}`
-                : "—"}
-            </p>
-            {item.url_web ? (
-              <a
-                href={item.url_web}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-0.5 rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-800 hover:bg-green-100"
-                title={item.visible_web ? "Cómo se ve en la tienda" : "Ficha web (puede no estar visible)"}
-              >
-                ↗ Web
-              </a>
-            ) : null}
-            {item.meli_compliance_reemplazo?.url_meli ? (
-              <a
-                href={item.meli_compliance_reemplazo.url_meli}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-0.5 rounded border border-teal-300 bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-800 hover:bg-teal-100"
-                title={`Reemplazo compliance · ${item.meli_compliance_reemplazo.estado_actual}`}
-              >
-                ↗ MeLi {item.meli_compliance_reemplazo.estado_actual === "active" ? "✓" : "!"}
-              </a>
-            ) : item.meli_url ? (
-              <a
-                href={item.meli_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-0.5 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100"
-              >
-                ↗ MeLi
-              </a>
-            ) : null}
-            {!webOk || !meliOk ? (
-              <p className="text-[10px] text-warning">⚠ Incompleto</p>
-            ) : (
-              <p className="text-[10px] text-green-600">✓ Listo</p>
-            )}
-          </div>
-        </div>
+    <div className="border-b border-border/60 last:border-b-0">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full px-2 py-2 text-left text-sm transition ${
+          selected
+            ? "bg-accent/10 font-semibold text-accent"
+            : "text-ink hover:bg-surface-hover"
+        }`}
+      >
+        <span className="line-clamp-2 leading-snug">{item.nombre}</span>
       </button>
 
-      {tieneVarias && (
-        <div className="border-t border-border/60 px-3 py-2">
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
-            {presentaciones.length} presentaciones — clic para editar cada una
-          </p>
-          <div className="space-y-1 pb-0.5">
-            {presentaciones.map((pres) => (
-              <button
-                key={pres.sku}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectPresentacion(pres.sku);
-                }}
-                className={`flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-left text-xs transition ${
-                  selectedSku === pres.sku
-                    ? "border-accent bg-accent/10"
-                    : "border-border/70 hover:border-accent/40 hover:bg-surface-hover"
-                }`}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="font-semibold text-ink">
-                    {pres.presentacion_label || pres.sku}
-                  </span>
-                  <span className="ml-1.5 text-muted">{pres.sku}</span>
-                </span>
-                <span className="ml-2 flex shrink-0 items-center gap-2">
-                  {pres.stock !== null && pres.stock !== undefined && (
-                    <span className={`text-[10px] ${pres.stock > 0 ? "text-muted" : "text-danger"}`}>
-                      stock {pres.stock}
-                    </span>
-                  )}
-                  <span className="font-bold text-ink">
-                    {pres.precio_web > 0 ? `$${pres.precio_web.toLocaleString("es-CO")}` : "—"}
-                  </span>
-                  {pres.meli_id ? (
-                    <span title="Vinculado a MeLi" className="text-green-600">●</span>
-                  ) : (
-                    <span title="Sin publicación MeLi" className="text-danger">○</span>
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
+      {tieneVarias && selected && (
+        <div className="space-y-0.5 pb-1.5 pl-3">
+          {presentaciones.map((pres) => (
+            <button
+              key={pres.sku}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPresentacion(pres.sku);
+              }}
+              className={`block w-full truncate px-2 py-1 text-left text-xs transition ${
+                selectedSku === pres.sku
+                  ? "font-semibold text-accent"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              {pres.presentacion_label || pres.nombre || pres.sku}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -298,6 +181,22 @@ function ProductoCard({
 
 type ImgItem = { id: string; url: string; principal: boolean; extra?: Record<string, unknown> };
 
+const FOTO_DRAG_MIME = "application/x-mckenna-foto";
+
+type FotoDragPayload = { plataforma: "web" | "meli"; id: string; url: string };
+
+function parseFotoDrag(e: React.DragEvent): FotoDragPayload | null {
+  try {
+    const raw = e.dataTransfer.getData(FOTO_DRAG_MIME) || e.dataTransfer.getData("text/plain");
+    if (!raw) return null;
+    const data = JSON.parse(raw) as FotoDragPayload;
+    if (!data?.plataforma || !data?.id) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 function ImageGrid({
   items,
   plataforma,
@@ -305,6 +204,10 @@ function ImageGrid({
   onDelete,
   onSetPrincipal,
   saving,
+  selectedIds,
+  onToggleSelect,
+  onCopyFromOther,
+  dropHint,
 }: {
   items: ImgItem[];
   plataforma: "web" | "meli";
@@ -312,112 +215,181 @@ function ImageGrid({
   onDelete: (item: ImgItem) => void;
   onSetPrincipal: (item: ImgItem) => void;
   saving?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onCopyFromOther?: (payload: FotoDragPayload) => void;
+  dropHint?: string;
 }) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [dropHover, setDropHover] = useState(false);
+  const crossDropRef = useRef(false);
+  const selectable = Boolean(onToggleSelect);
 
-  function handleDragStart(i: number) {
+  function handleDragStart(e: React.DragEvent, i: number) {
     setDragIdx(i);
+    crossDropRef.current = false;
+    const item = items[i];
+    const payload: FotoDragPayload = { plataforma, id: item.id, url: item.url };
+    e.dataTransfer.setData(FOTO_DRAG_MIME, JSON.stringify(payload));
+    e.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    e.dataTransfer.effectAllowed = "copyMove";
   }
+
   function handleDragEnter(i: number) {
     if (dragIdx === null || i === dragIdx) return;
     setOverIdx(i);
   }
+
   function handleDragEnd() {
-    if (dragIdx !== null && overIdx !== null && dragIdx !== overIdx) {
+    if (!crossDropRef.current && dragIdx !== null && overIdx !== null && dragIdx !== overIdx) {
       const next = [...items];
       const [moved] = next.splice(dragIdx, 1);
       next.splice(overIdx, 0, moved);
-      // actualiza flag principal (primera posición)
-      next.forEach((it, idx) => { it.principal = idx === 0; });
+      next.forEach((it, idx) => {
+        it.principal = idx === 0;
+      });
       onReorder(next);
     }
     setDragIdx(null);
     setOverIdx(null);
+    setDropHover(false);
   }
 
-  if (items.length === 0) {
-    return (
-      <p className="py-4 text-center text-xs text-muted">
-        Sin imágenes en {plataforma === "web" ? "Web/SIIGO" : "MercadoLibre"}
-      </p>
-    );
+  function handleZoneDragOver(e: React.DragEvent) {
+    const types = Array.from(e.dataTransfer.types || []);
+    if (!types.includes(FOTO_DRAG_MIME) && !types.includes("text/plain")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropHover(true);
+  }
+
+  function handleZoneDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropHover(false);
+    const payload = parseFotoDrag(e);
+    if (!payload) return;
+    if (payload.plataforma === plataforma) return;
+    crossDropRef.current = true;
+    onCopyFromOther?.(payload);
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {items.map((item, i) => (
-        <div
-          key={item.id}
-          draggable
-          onDragStart={() => handleDragStart(i)}
-          onDragEnter={() => handleDragEnter(i)}
-          onDragOver={(e) => e.preventDefault()}
-          onDragEnd={handleDragEnd}
-          className={`relative w-28 shrink-0 cursor-grab rounded-xl border-2 bg-surface transition ${
-            dragIdx === i
-              ? "opacity-40 scale-95"
-              : overIdx === i
-                ? "border-accent shadow-lg"
-                : item.principal
-                  ? "border-yellow-400"
-                  : "border-border hover:border-accent/40"
-          }`}
-        >
-          {/* Foto */}
-          <div className="h-24 overflow-hidden rounded-t-lg bg-surface-hover">
-            <img
-              src={item.url}
-              alt=""
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "";
-                (e.currentTarget as HTMLImageElement).style.background = "#eee";
-              }}
-            />
-          </div>
-
-          {/* Badge principal */}
-          {item.principal && (
-            <div className="absolute left-1 top-1 rounded-full bg-yellow-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow">
-              ★ Principal
-            </div>
-          )}
-
-          {/* Índice de orden */}
-          <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-[10px] font-bold text-white">
-            {i + 1}
-          </div>
-
-          {/* Acciones */}
-          <div className="flex items-center justify-between rounded-b-lg border-t border-border bg-surface px-1 py-1">
-            {!item.principal && (
-              <button
-                onClick={() => onSetPrincipal(item)}
-                disabled={saving}
-                title="Establecer como principal"
-                className="flex-1 rounded py-0.5 text-center text-[10px] font-semibold text-muted hover:text-yellow-600"
+    <div
+      onDragOver={handleZoneDragOver}
+      onDragLeave={() => setDropHover(false)}
+      onDrop={handleZoneDrop}
+      className={`min-h-[3.5rem] rounded-lg border-2 border-dashed p-1.5 transition ${
+        dropHover
+          ? plataforma === "web"
+            ? "border-green-500 bg-green-100/60"
+            : "border-blue-500 bg-blue-100/60"
+          : "border-transparent"
+      }`}
+    >
+      {items.length === 0 ? (
+        <p className="py-4 text-center text-xs text-muted">
+          {dropHint ||
+            (plataforma === "web"
+              ? "Sin fotos en la web — arrastra aquí desde MeLi"
+              : "Sin fotos en MeLi — arrastra aquí desde la web")}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {items.map((item, i) => {
+            const isSelected = selectedIds?.has(item.id) ?? false;
+            return (
+              <div
+                key={item.id}
+                draggable={!saving}
+                onDragStart={(e) => handleDragStart(e, i)}
+                onDragEnter={() => handleDragEnter(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnd={handleDragEnd}
+                title="Arrastra para ordenar aquí, o suelta en el otro sitio para copiar"
+                className={`relative w-14 shrink-0 cursor-grab rounded-lg border-2 bg-surface transition ${
+                  dragIdx === i
+                    ? "opacity-40 scale-95"
+                    : overIdx === i
+                      ? "border-accent shadow-lg"
+                      : isSelected
+                        ? "border-accent ring-2 ring-accent/30"
+                        : item.principal
+                          ? "border-yellow-400"
+                          : "border-border hover:border-accent/40"
+                }`}
               >
-                ☆ Princ.
-              </button>
-            )}
-            {item.principal && <span className="flex-1" />}
-            <button
-              onClick={() => onDelete(item)}
-              disabled={saving}
-              title="Eliminar imagen"
-              className="ml-1 rounded p-0.5 text-[10px] text-muted hover:text-danger disabled:opacity-40"
-            >
-              🗑
-            </button>
-          </div>
-        </div>
-      ))}
+                {selectable && (
+                  <label
+                    className="absolute left-0.5 top-0.5 z-10 flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded border border-white/80 bg-black/55"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Seleccionar para eliminar"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleSelect?.(item.id)}
+                      className="h-2.5 w-2.5 accent-accent"
+                    />
+                  </label>
+                )}
 
-      {/* Hint */}
-      {items.length > 1 && (
-        <div className="flex w-full items-center gap-1 text-[10px] text-muted">
-          <span>☰ Arrastra para reordenar · ★ = imagen principal del catálogo</span>
+                <div className="h-12 overflow-hidden rounded-t-md bg-surface-hover">
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="pointer-events-none h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "";
+                      (e.currentTarget as HTMLImageElement).style.background = "#eee";
+                    }}
+                  />
+                </div>
+
+                {item.principal && (
+                  <div className="absolute right-0.5 top-0.5 rounded bg-yellow-400 px-1 py-0 text-[8px] font-black text-black shadow">
+                    ★
+                  </div>
+                )}
+
+                {!item.principal && (
+                  <div className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/50 text-[8px] font-bold text-white">
+                    {i + 1}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-b-md border-t border-border bg-surface px-0.5 py-0.5">
+                  {!item.principal && (
+                    <button
+                      onClick={() => onSetPrincipal(item)}
+                      disabled={saving}
+                      title="Usar como foto principal"
+                      className="flex-1 rounded py-0 text-center text-[8px] font-semibold text-muted hover:text-yellow-600"
+                    >
+                      ☆
+                    </button>
+                  )}
+                  {item.principal && <span className="flex-1" />}
+                  <button
+                    onClick={() => onDelete(item)}
+                    disabled={saving}
+                    title="Eliminar imagen"
+                    className="ml-0.5 inline-flex items-center justify-center rounded p-0.5 text-muted hover:text-danger disabled:opacity-40"
+                  >
+                    <Icon name="trash" size={10} weight="regular" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="flex w-full items-center gap-1 text-[10px] text-muted">
+            <span>
+              ☰ Ordenar · ★ = primera · Arrastra al otro sitio para copiar
+              {selectable ? " · ☑ eliminar" : ""}
+            </span>
+          </div>
         </div>
       )}
     </div>
@@ -818,41 +790,228 @@ function SitiosTab({
   onToggleOculto: (v: boolean) => void;
 }) {
   const estadoMut = useEstadoMeli();
+  const precioMut = usePrecioMeli(sku);
+  const guardarMut = useGuardarPublicacion();
+  const syncWebMut = useSyncWeb(sku);
+  const meliItemId = data.meli_id_efectivo || data.meli_item_id_override || data.meli_item_id_cache || "";
+  const { data: fotos, isLoading: fotosLoading, refetch: refetchFotos } = useFotosActuales(sku, meliItemId);
+  const reordenarWebMut = useReordenarImagenesWeb(sku);
+  const reordenarMeliMut = useReordenarImagenesMeli(sku);
+  const eliminarMut = useEliminarImagenes(sku);
+  const copiarMut = useCopiarImagenSitio(sku);
+  const subirMut = useSubirImagen(sku);
+  const fileWebRef = useRef<HTMLInputElement>(null);
+  const fileMeliRef = useRef<HTMLInputElement>(null);
+
   const vista: VistaSitios | undefined = data.vista_sitios;
   const web = vista?.web;
   const meli = vista?.meli;
-  const filas: PresentacionSitio[] = vista?.presentaciones?.length
-    ? vista.presentaciones
-    : [];
+  const filas: PresentacionSitio[] = vista?.presentaciones?.length ? vista.presentaciones : [];
 
   const estadoMeli = (meli?.estado || "").toLowerCase();
   const meliActivo = estadoMeli === "active";
   const meliPausado = estadoMeli === "paused";
-  const tieneMeli = Boolean(meli?.item_id || data.meli_id_efectivo);
+  const tieneMeli = Boolean(meli?.item_id || meliItemId);
+
+  const [precioEdit, setPrecioEdit] = useState("");
+  const [webOrder, setWebOrder] = useState<ImgItem[] | null>(null);
+  const [meliOrder, setMeliOrder] = useState<ImgItem[] | null>(null);
+  const [selWeb, setSelWeb] = useState<Set<string>>(new Set());
+  const [selMeli, setSelMeli] = useState<Set<string>>(new Set());
+  const [msgOculto, setMsgOculto] = useState("");
+  const [msgCopia, setMsgCopia] = useState("");
+
+  useEffect(() => {
+    const p = meli?.precio ?? null;
+    setPrecioEdit(p != null && !Number.isNaN(Number(p)) ? String(Math.round(Number(p))) : "");
+  }, [meli?.precio, sku]);
+
+  useEffect(() => {
+    if (fotos?.web.imagenes) {
+      setWebOrder(
+        fotos.web.imagenes.map((img) => ({
+          id: img.filename,
+          url: srcImagenCatalogoPanel(img.filename || img.path || img.url),
+          principal: img.principal,
+          extra: { filename: img.filename, path: img.path },
+        })),
+      );
+      setSelWeb(new Set());
+    }
+  }, [fotos?.web.imagenes]);
+
+  useEffect(() => {
+    if (fotos?.meli.imagenes) {
+      setMeliOrder(
+        fotos.meli.imagenes.map((img) => ({
+          id: img.id,
+          url: img.url,
+          principal: img.principal,
+        })),
+      );
+      setSelMeli(new Set());
+    }
+  }, [fotos?.meli.imagenes]);
+
+  const savingFotos =
+    reordenarWebMut.isPending ||
+    reordenarMeliMut.isPending ||
+    eliminarMut.isPending ||
+    subirMut.isPending ||
+    copiarMut.isPending;
+
+  async function handleCopiarFoto(destino: "web" | "meli", payload: FotoDragPayload) {
+    if (payload.plataforma === destino) return;
+    if (destino === "meli" && !meliItemId) {
+      setMsgCopia("Vincula el ID MeLi antes de copiar fotos ahí.");
+      return;
+    }
+    setMsgCopia("");
+    try {
+      const res = await copiarMut.mutateAsync({
+        origen: payload.plataforma,
+        destino,
+        imagen_id: payload.id,
+        url: payload.url,
+        meli_item_id: meliItemId || undefined,
+      });
+      setMsgCopia(`✓ ${res.mensaje || "Foto copiada"}`);
+    } catch (e) {
+      setMsgCopia(e instanceof Error ? e.message : "No se pudo copiar la foto");
+    }
+  }
+
+  async function handleOcultarWeb(ocultar: boolean) {
+    onToggleOculto(ocultar);
+    setMsgOculto("");
+    try {
+      await guardarMut.mutateAsync({ sku, campos: { oculto_web: ocultar } });
+      await syncWebMut.mutateAsync();
+      setMsgOculto(
+        ocultar
+          ? "✓ Oculto en la tienda (sigue en vitrina, sin compra)"
+          : "✓ Visible para comprar en la tienda",
+      );
+    } catch (e) {
+      onToggleOculto(!ocultar);
+      setMsgOculto(e instanceof Error ? e.message : "No se pudo actualizar la tienda");
+    }
+  }
+
+  async function handlePrecioMeli() {
+    const n = Number(precioEdit.replace(/[^\d.]/g, ""));
+    if (!n || n <= 0) return;
+    await precioMut.mutateAsync({ precio: n, meli_item_id: meliItemId || undefined });
+  }
+
+  function toggleSel(set: Set<string>, id: string, setter: (s: Set<string>) => void) {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setter(next);
+  }
+
+  async function handleDeleteWeb(item: ImgItem) {
+    if (!confirm(`¿Eliminar esta foto de la tienda web?`)) return;
+    await eliminarMut.mutateAsync({ plataforma: "web", filename: item.id });
+  }
+
+  async function handleDeleteMeli(item: ImgItem) {
+    if (!confirm("¿Quitar esta foto de Mercado Libre?")) return;
+    await eliminarMut.mutateAsync({
+      plataforma: "meli",
+      picture_id: item.id,
+      meli_item_id: meliItemId,
+    });
+  }
+
+  async function handleDeleteSelectedWeb() {
+    if (!selWeb.size) return;
+    if (!confirm(`¿Eliminar ${selWeb.size} foto(s) de la tienda web?`)) return;
+    for (const id of selWeb) {
+      await eliminarMut.mutateAsync({ plataforma: "web", filename: id });
+    }
+    setSelWeb(new Set());
+  }
+
+  async function handleDeleteSelectedMeli() {
+    if (!selMeli.size) return;
+    if (!confirm(`¿Eliminar ${selMeli.size} foto(s) de Mercado Libre?`)) return;
+    for (const id of selMeli) {
+      await eliminarMut.mutateAsync({
+        plataforma: "meli",
+        picture_id: id,
+        meli_item_id: meliItemId,
+      });
+    }
+    setSelMeli(new Set());
+  }
+
+  async function handleGuardarOrdenWeb() {
+    if (!webOrder) return;
+    await reordenarWebMut.mutateAsync(webOrder.map((i) => i.id));
+  }
+
+  async function handleGuardarOrdenMeli() {
+    if (!meliOrder || !meliItemId) return;
+    await reordenarMeliMut.mutateAsync({
+      picture_ids: meliOrder.map((i) => i.id),
+      meli_item_id: meliItemId,
+    });
+  }
+
+  function handleSetPrincipalWeb(item: ImgItem) {
+    if (!webOrder) return;
+    setWebOrder(
+      [item, ...webOrder.filter((i) => i.id !== item.id)].map((i, idx) => ({
+        ...i,
+        principal: idx === 0,
+      })),
+    );
+  }
+
+  function handleSetPrincipalMeli(item: ImgItem) {
+    if (!meliOrder) return;
+    setMeliOrder(
+      [item, ...meliOrder.filter((i) => i.id !== item.id)].map((i, idx) => ({
+        ...i,
+        principal: idx === 0,
+      })),
+    );
+  }
+
+  async function handleSubir(files: FileList | null, target: "web" | "meli") {
+    if (!files?.length) return;
+    await subirMut.mutateAsync({
+      files: Array.from(files),
+      targets: [target],
+      meliItemId: target === "meli" ? meliItemId : undefined,
+    });
+    if (target === "web" && fileWebRef.current) fileWebRef.current.value = "";
+    if (target === "meli" && fileMeliRef.current) fileMeliRef.current.value = "";
+  }
 
   return (
-    <div className="space-y-5">
-      <p className="text-xs text-muted">
-        Misma ficha, dos vitrinas: en la web se agrupa por familia (botones de presentación);
-        en Mercado Libre cada presentación es una publicación aparte. La tienda solo lista
-        SKUs con ID MeLi vinculado.
-      </p>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {/* Web */}
-        <div className="rounded-xl border border-green-200 bg-green-50/40 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-bold text-ink">Página web</h4>
+    <div className="space-y-4">
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* ── WEB ── */}
+        <section className="flex flex-col gap-3 rounded-xl border-2 border-green-200 bg-green-50/40 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-bold text-ink">Página web</h4>
+              <p className="text-[11px] text-muted">mckennagroup.co</p>
+            </div>
             <span
               className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
-                web?.visible
+                web?.visible && !ocultoWeb
                   ? "border-green-300 bg-green-100 text-green-800"
                   : "border-border bg-surface text-muted"
               }`}
             >
-              {web?.visible ? (web.vitrina ? "Vitrina" : "Visible") : "No se muestra"}
+              {ocultoWeb || !web?.visible ? "No se muestra" : web?.vitrina ? "Vitrina" : "Visible"}
             </span>
           </div>
+
           <div className="flex gap-3">
             <FotoSitio src={web?.foto || data.foto_efectiva} alt={web?.nombre || data.nombre} />
             <div className="min-w-0 flex-1 space-y-1">
@@ -866,58 +1025,131 @@ function SitiosTab({
                   ? `Desde ${fmtCopSitio(web.precio)}`
                   : fmtCopSitio(web?.precio ?? data.precio_web)}
               </p>
-              {filas.length > 1 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {filas.map((f) => (
-                    <span
-                      key={f.sku}
-                      title={f.sku}
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                        f.aparece_en_web
-                          ? "border-green-300 bg-white text-green-800"
-                          : "border-border bg-surface text-muted line-through"
-                      }`}
-                    >
-                      {f.web.label}
-                    </span>
-                  ))}
-                </div>
+              {web?.url && (
+                <a
+                  href={web.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex text-xs font-semibold text-green-800 underline"
+                >
+                  Ver como cliente ↗
+                </a>
               )}
             </div>
           </div>
-          {web?.motivo_oculto && (
+
+          {web?.motivo_oculto && !ocultoWeb && (
             <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-2.5 py-1.5 text-[11px] text-yellow-800">
               {web.motivo_oculto}
             </p>
           )}
-          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-white/80 px-3 py-2">
-            <input
-              type="checkbox"
-              checked={ocultoWeb}
-              onChange={(e) => onToggleOculto(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-accent"
-            />
-            <span>
-              <span className="block text-xs font-semibold text-ink">Ocultar en la tienda</span>
-              <span className="block text-[11px] text-muted">Queda en vitrina, sin botón de compra. Recuerda Guardar y ↑ Web.</span>
-            </span>
-          </label>
-          {web?.url && (
-            <a
-              href={web.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-green-800 underline"
-            >
-              Ver como cliente ↗
-            </a>
-          )}
-        </div>
 
-        {/* MeLi */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-bold text-ink">Mercado Libre</h4>
+          <button
+            type="button"
+            disabled={guardarMut.isPending || syncWebMut.isPending}
+            onClick={() => void handleOcultarWeb(!ocultoWeb)}
+            className={`w-full rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition disabled:opacity-40 ${
+              ocultoWeb
+                ? "border-green-400 bg-green-100 text-green-900 hover:bg-green-200"
+                : "border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100"
+            }`}
+          >
+            {guardarMut.isPending || syncWebMut.isPending
+              ? "Aplicando…"
+              : ocultoWeb
+                ? "Mostrar en la tienda"
+                : "No mostrar en la web"}
+          </button>
+          {msgOculto && (
+            <p className={`text-xs ${msgOculto.startsWith("✓") ? "text-green-700" : "text-danger"}`}>
+              {msgOculto}
+            </p>
+          )}
+
+          <div className="border-t border-green-200/80 pt-3 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold text-ink">
+                Fotos en la web ({fotos?.web.total ?? webOrder?.length ?? 0})
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void refetchFotos()}
+                  className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:text-ink"
+                >
+                  ↺
+                </button>
+                {selWeb.size > 0 && (
+                  <button
+                    type="button"
+                    disabled={savingFotos}
+                    onClick={() => void handleDeleteSelectedWeb()}
+                    className="rounded border border-danger/40 bg-danger/5 px-2 py-1 text-[10px] font-semibold text-danger"
+                  >
+                    Eliminar {selWeb.size}
+                  </button>
+                )}
+                {webOrder && webOrder.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={reordenarWebMut.isPending}
+                    onClick={() => void handleGuardarOrdenWeb()}
+                    className="rounded bg-accent px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-40"
+                  >
+                    {reordenarWebMut.isPending ? "…" : "Guardar orden"}
+                  </button>
+                )}
+              </div>
+            </div>
+            {fotosLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              </div>
+            ) : (
+              <ImageGrid
+                items={webOrder ?? []}
+                plataforma="web"
+                onReorder={setWebOrder}
+                onDelete={(item) => void handleDeleteWeb(item)}
+                onSetPrincipal={handleSetPrincipalWeb}
+                saving={savingFotos}
+                selectedIds={selWeb}
+                onToggleSelect={(id) => toggleSel(selWeb, id, setSelWeb)}
+                onCopyFromOther={(p) => void handleCopiarFoto("web", p)}
+                dropHint="Arrastra aquí una foto de MeLi para copiarla a la web"
+              />
+            )}
+            <input
+              ref={fileWebRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(e) => void handleSubir(e.target.files, "web")}
+            />
+            <button
+              type="button"
+              disabled={subirMut.isPending}
+              onClick={() => fileWebRef.current?.click()}
+              className="w-full rounded-lg border border-dashed border-green-400 bg-white/70 py-2 text-xs font-semibold text-green-900 hover:bg-green-50 disabled:opacity-40"
+            >
+              {subirMut.isPending ? "Subiendo…" : "+ Agregar fotos a la web"}
+            </button>
+            {reordenarWebMut.isSuccess && (
+              <p className="text-[11px] text-green-700">✓ Orden web guardado</p>
+            )}
+          </div>
+        </section>
+
+        {/* ── MELI ── */}
+        <section className="flex flex-col gap-3 rounded-xl border-2 border-blue-200 bg-blue-50/40 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-bold text-ink">Mercado Libre</h4>
+              <p className="font-mono text-[11px] text-muted">
+                {meli?.item_id || meliItemId || "Sin vincular"}
+              </p>
+            </div>
             <span
               className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
                 meliActivo
@@ -927,34 +1159,65 @@ function SitiosTab({
                     : "border-border bg-surface text-muted"
               }`}
             >
-              {tieneMeli ? (estadoMeli || "Vinculado") : "Sin vincular"}
+              {tieneMeli ? estadoMeli || "Vinculado" : "Sin vincular"}
             </span>
           </div>
+
           <div className="flex gap-3">
             <FotoSitio src={meli?.foto || data.foto_efectiva} alt={meli?.titulo || data.nombre} />
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-semibold leading-tight text-ink">
                 {meli?.titulo || data.nombre}
               </p>
-              <p className="font-mono text-[11px] text-muted">{meli?.item_id || data.meli_id_efectivo || "—"}</p>
-              <p className="text-sm font-bold text-ink">{fmtCopSitio(meli?.precio)}</p>
               {meli?.stock != null && (
                 <p className="text-[11px] text-muted">Stock {meli.stock}</p>
               )}
-            </div>
-          </div>
-          {tieneMeli ? (
-            <div className="flex flex-wrap gap-2">
               {meli?.permalink && (
                 <a
                   href={meli.permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-800 underline"
+                  className="inline-flex text-xs font-semibold text-blue-800 underline"
                 >
                   Ver publicación ↗
                 </a>
               )}
+            </div>
+          </div>
+
+          {tieneMeli ? (
+            <>
+              <div className="rounded-lg border border-blue-200 bg-white/80 p-3 space-y-2">
+                <label className="block text-xs font-bold text-ink">Precio en MeLi (COP)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={precioEdit}
+                    onChange={(e) => setPrecioEdit(e.target.value)}
+                    placeholder="Ej: 24210"
+                    className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    disabled={precioMut.isPending || !precioEdit}
+                    onClick={() => void handlePrecioMeli()}
+                    className="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40"
+                  >
+                    {precioMut.isPending ? "…" : "Aplicar"}
+                  </button>
+                </div>
+                {precioMut.isSuccess && (
+                  <p className="text-[11px] text-green-700">
+                    ✓ {precioMut.data?.msg || "Precio actualizado en MeLi"}
+                  </p>
+                )}
+                {precioMut.isError && (
+                  <p className="text-[11px] text-danger">{precioMut.error.message}</p>
+                )}
+              </div>
+
               {(meliActivo || meliPausado || estadoMeli === "") && (
                 <button
                   type="button"
@@ -965,7 +1228,7 @@ function SitiosTab({
                       estado: meliActivo ? "paused" : "active",
                     })
                   }
-                  className="rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-40"
+                  className="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-40"
                 >
                   {estadoMut.isPending
                     ? "…"
@@ -974,46 +1237,133 @@ function SitiosTab({
                       : "Activar en MeLi"}
                 </button>
               )}
-            </div>
+              {estadoMut.isSuccess && (
+                <p className="text-xs text-green-700">
+                  ✓ {estadoMut.data?.mensaje || `Estado: ${estadoMut.data?.estado}`}
+                </p>
+              )}
+              {estadoMut.isError && (
+                <p className="text-xs text-danger">{estadoMut.error.message}</p>
+              )}
+            </>
           ) : (
-            <p className="text-[11px] text-muted">
-              Vincula el ID MCO en la pestaña MeLi para gestionar esta publicación.
+            <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-[11px] text-yellow-800">
+              Vincula el ID MCO en la pestaña MeLi para editar precio y fotos aquí.
             </p>
           )}
-          {estadoMut.isSuccess && (
-            <p className="text-xs text-green-700">
-              ✓ {estadoMut.data?.mensaje || `Estado: ${estadoMut.data?.estado}`}
-            </p>
-          )}
-          {estadoMut.isError && (
-            <p className="text-xs text-danger">{estadoMut.error.message}</p>
-          )}
-        </div>
+
+          <div className="border-t border-blue-200/80 pt-3 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold text-ink">
+                Fotos en MeLi ({fotos?.meli.total ?? meliOrder?.length ?? 0})
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void refetchFotos()}
+                  className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:text-ink"
+                >
+                  ↺
+                </button>
+                {selMeli.size > 0 && (
+                  <button
+                    type="button"
+                    disabled={savingFotos || !meliItemId}
+                    onClick={() => void handleDeleteSelectedMeli()}
+                    className="rounded border border-danger/40 bg-danger/5 px-2 py-1 text-[10px] font-semibold text-danger"
+                  >
+                    Eliminar {selMeli.size}
+                  </button>
+                )}
+                {meliOrder && meliOrder.length > 0 && meliItemId && (
+                  <button
+                    type="button"
+                    disabled={reordenarMeliMut.isPending}
+                    onClick={() => void handleGuardarOrdenMeli()}
+                    className="rounded bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-40"
+                  >
+                    {reordenarMeliMut.isPending ? "…" : "Guardar orden"}
+                  </button>
+                )}
+              </div>
+            </div>
+            {!meliItemId ? (
+              <p className="text-[11px] text-muted">Sin ID MeLi — no se pueden gestionar fotos.</p>
+            ) : fotosLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+              </div>
+            ) : fotos?.meli.error ? (
+              <p className="rounded-lg border border-yellow-200 bg-yellow-50 px-2.5 py-1.5 text-[11px] text-yellow-800">
+                {fotos.meli.error}
+              </p>
+            ) : (
+              <ImageGrid
+                items={meliOrder ?? []}
+                plataforma="meli"
+                onReorder={setMeliOrder}
+                onDelete={(item) => void handleDeleteMeli(item)}
+                onSetPrincipal={handleSetPrincipalMeli}
+                saving={savingFotos}
+                selectedIds={selMeli}
+                onToggleSelect={(id) => toggleSel(selMeli, id, setSelMeli)}
+                onCopyFromOther={(p) => void handleCopiarFoto("meli", p)}
+                dropHint="Arrastra aquí una foto de la web para copiarla a MeLi"
+              />
+            )}
+            <input
+              ref={fileMeliRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(e) => void handleSubir(e.target.files, "meli")}
+            />
+            <button
+              type="button"
+              disabled={subirMut.isPending || !meliItemId}
+              onClick={() => fileMeliRef.current?.click()}
+              className="w-full rounded-lg border border-dashed border-blue-400 bg-white/70 py-2 text-xs font-semibold text-blue-900 hover:bg-blue-50 disabled:opacity-40"
+            >
+              {subirMut.isPending ? "Subiendo…" : "+ Agregar fotos a MeLi"}
+            </button>
+            {reordenarMeliMut.isSuccess && (
+              <p className="text-[11px] text-green-700">✓ Orden MeLi guardado</p>
+            )}
+          </div>
+        </section>
       </div>
 
-      <div>
-        <h4 className="mb-2 text-sm font-bold text-ink">Relación de presentaciones</h4>
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full min-w-[560px] text-xs">
-            <thead className="bg-surface-hover text-left text-[10px] uppercase tracking-wide text-muted">
-              <tr>
-                <th className="px-3 py-2">SKU</th>
-                <th className="px-3 py-2">En la web</th>
-                <th className="px-3 py-2">En Mercado Libre</th>
-                <th className="px-3 py-2 text-right">MeLi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.length === 0 && (
+      {(msgCopia || copiarMut.isPending) && (
+        <p className={`text-xs ${msgCopia.startsWith("✓") ? "text-green-700" : msgCopia ? "text-danger" : "text-muted"}`}>
+          {copiarMut.isPending ? "Copiando foto entre sitios…" : msgCopia}
+        </p>
+      )}
+      {eliminarMut.isError && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          Error al eliminar: {eliminarMut.error.message}
+        </p>
+      )}
+      {subirMut.isError && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          Error al subir: {subirMut.error.message}
+        </p>
+      )}
+
+      {filas.length > 1 && (
+        <div>
+          <h4 className="mb-2 text-sm font-bold text-ink">Otras presentaciones de esta familia</h4>
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[480px] text-xs">
+              <thead className="bg-surface-hover text-left text-[10px] uppercase tracking-wide text-muted">
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-muted">
-                    Sin presentaciones en caché.
-                  </td>
+                  <th className="px-3 py-2">SKU</th>
+                  <th className="px-3 py-2">Web</th>
+                  <th className="px-3 py-2">MeLi</th>
                 </tr>
-              )}
-              {filas.map((f) => {
-                const est = (f.meli.estado || "").toLowerCase();
-                return (
+              </thead>
+              <tbody>
+                {filas.map((f) => (
                   <tr key={f.sku} className="border-t border-border/70">
                     <td className="px-3 py-2">
                       <div className="font-semibold text-ink">{f.web.label}</div>
@@ -1021,62 +1371,25 @@ function SitiosTab({
                     </td>
                     <td className="px-3 py-2">
                       {f.aparece_en_web ? (
-                        <span className="text-green-700">
-                          Botón {f.web.label} · {fmtCopSitio(f.web.precio)}
-                        </span>
-                      ) : f.web.vitrina ? (
-                        <span className="text-yellow-700">Vitrina, sin compra</span>
+                        <span className="text-green-700">{fmtCopSitio(f.web.precio)}</span>
                       ) : (
-                        <span className="text-muted">No aparece (falta MeLi)</span>
+                        <span className="text-muted">No aparece</span>
                       )}
                     </td>
                     <td className="px-3 py-2">
                       {f.meli.item_id ? (
-                        <div>
-                          <div className="text-ink">{f.meli.titulo || f.nombre}</div>
-                          <div className="font-mono text-[10px] text-muted">{f.meli.item_id}</div>
-                        </div>
+                        <span className="font-mono text-[10px]">{f.meli.item_id}</span>
                       ) : (
                         <span className="text-muted">Sin publicación</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      {f.meli.permalink ? (
-                        <a
-                          href={f.meli.permalink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mr-2 text-blue-700 underline"
-                        >
-                          ↗
-                        </a>
-                      ) : null}
-                      {f.meli.item_id && (est === "active" || est === "paused") && (
-                        <button
-                          type="button"
-                          disabled={estadoMut.isPending}
-                          onClick={() =>
-                            void estadoMut.mutateAsync({
-                              sku: f.sku,
-                              estado: est === "active" ? "paused" : "active",
-                            })
-                          }
-                          className="text-[10px] font-semibold text-blue-800 hover:underline disabled:opacity-40"
-                        >
-                          {est === "active" ? "Pausar" : "Activar"}
-                        </button>
-                      )}
-                      {est && f.meli.item_id ? (
-                        <div className="text-[10px] capitalize text-muted">{est}</div>
-                      ) : null}
-                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1085,7 +1398,7 @@ function SitiosTab({
 
 export function EditorPanel({
   sku,
-  onClose,
+  onClose: _onClose,
   layout: _layout,
   onEstadoMarcado: _onEstadoMarcado,
 }: {
@@ -1094,31 +1407,12 @@ export function EditorPanel({
   layout?: string;
   onEstadoMarcado?: (estado: "" | "omitir" | "por_publicar") => void;
 }) {
-  const [tab, setTab] = useState<"general" | "sitios" | "imagenes" | "meli" | "ficha">("sitios");
-  const liveMeli = tab === "sitios" || tab === "meli";
-  const { data, isLoading, error, refetch } = usePublicacionDetalle(sku, liveMeli);
-  const guardarMut = useGuardarPublicacion();
-  const syncWebMut = useSyncWeb(sku);
-  const syncMeliMut = useSyncMeli(sku);
-
-  const [descripcion, setDescripcion] = useState("");
-  const [fotoUrl, setFotoUrl] = useState("");
-  const [meliItemId, setMeliItemId] = useState("");
+  const { data, isLoading, error, refetch } = usePublicacionDetalle(sku, true);
   const [ocultoWeb, setOcultoWeb] = useState(false);
-  const [caracteristicas, setCaracteristicas] = useState<
-    { titulo: string; valor: string }[]
-  >([]);
-  const [stockMeli, setStockMeli] = useState("");
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!data) return;
-    setDescripcion(data.desc_override || data.desc_cache || "");
-    setFotoUrl(data.foto_url_override || "");
-    setMeliItemId(data.meli_item_id_override || data.meli_item_id_cache || "");
     setOcultoWeb(data.oculto_web);
-    setCaracteristicas(data.caracteristicas || []);
-    setSaved(false);
   }, [data]);
 
   if (isLoading && !data) {
@@ -1132,79 +1426,29 @@ export function EditorPanel({
   if (error || !data) {
     return (
       <div className="rounded-xl border border-danger/30 bg-danger/5 p-5 text-sm text-danger">
-        Error cargando producto. <button onClick={() => refetch()} className="underline">Reintentar</button>
+        Error cargando producto.{" "}
+        <button onClick={() => refetch()} className="underline">
+          Reintentar
+        </button>
       </div>
     );
   }
-
-  const fotoEfectiva = fotoUrl || data.foto_url_cache;
-  const fotoPreviewUrl = fotoEfectiva ? resolverFotoPreview(fotoEfectiva) : null;
-
-  async function handleGuardar() {
-    await guardarMut.mutateAsync({
-      sku,
-      campos: {
-        descripcion: descripcion || undefined,
-        foto_url: fotoUrl || undefined,
-        meli_item_id: meliItemId || undefined,
-        caracteristicas: caracteristicas.length ? caracteristicas : undefined,
-        oculto_web: ocultoWeb || undefined,
-      },
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  }
-
-  function addCaracteristica() {
-    setCaracteristicas((c) => [...c, { titulo: "", valor: "" }]);
-  }
-
-  function removeCaracteristica(i: number) {
-    setCaracteristicas((c) => c.filter((_, idx) => idx !== i));
-  }
-
-  function updateCaracteristica(
-    i: number,
-    field: "titulo" | "valor",
-    value: string,
-  ) {
-    setCaracteristicas((c) =>
-      c.map((item, idx) => (idx === i ? { ...item, [field]: value } : item)),
-    );
-  }
-
-  const meli = data.meli_live;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header del editor */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-bold text-ink leading-tight">{data.nombre}</h3>
-          <p className="text-xs text-muted mt-0.5">
-            {data.sku} · {data.categoria}
-          </p>
-          {data.es_presentacion_de && data.es_presentacion_de !== data.sku && (
-            <p className="mt-1 inline-flex items-center rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
-              Presentación de {data.es_presentacion_de}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          className="shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface-hover hover:text-ink"
-        >
-          ✕
-        </button>
-      </div>
+      <h3 className="text-base font-bold leading-tight text-ink">{data.nombre}</h3>
 
       {data.meli_compliance_reemplazo?.url_meli && (
-        <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 space-y-2">
-          <p className="text-xs font-bold text-teal-900">Publicación de reemplazo (compliance MeLi)</p>
+        <div className="space-y-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+          <p className="text-xs font-bold text-teal-900">
+            Publicación de reemplazo (compliance MeLi)
+          </p>
           <p className="text-[11px] text-teal-800">
             {data.meli_compliance_reemplazo.item_id}
             {" · "}
-            <span className="font-semibold">{data.meli_compliance_reemplazo.estado_actual}</span>
+            <span className="font-semibold">
+              {data.meli_compliance_reemplazo.estado_actual}
+            </span>
             {data.meli_compliance_reemplazo.item_origen_id && (
               <> · sustituye {data.meli_compliance_reemplazo.item_origen_id}</>
             )}
@@ -1220,382 +1464,12 @@ export function EditorPanel({
         </div>
       )}
 
-      {/* Indicadores de estado */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-lg border border-border bg-surface px-3 py-2 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">SIIGO</p>
-          <p className="mt-0.5 text-sm font-bold text-green-600">Fuente</p>
-          <p className="text-[11px] text-muted">
-            ${data.precio_lista.toLocaleString("es-CO")}
-          </p>
-        </div>
-        <div
-          className={`rounded-lg border px-3 py-2 text-center ${
-            data.sync_web.status === "ok"
-              ? "border-green-200 bg-green-50"
-              : "border-yellow-200 bg-yellow-50"
-          }`}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">WEB</p>
-          <p
-            className={`mt-0.5 text-sm font-bold ${
-              data.sync_web.status === "ok" ? "text-green-700" : "text-yellow-700"
-            }`}
-          >
-            {data.sync_web.status === "ok" ? "Completo" : "Incompleto"}
-          </p>
-          <p className="text-[11px] text-muted">{data.sync_web.mensaje}</p>
-        </div>
-        <div
-          className={`rounded-lg border px-3 py-2 text-center ${
-            data.sync_meli.status === "linked"
-              ? "border-blue-200 bg-blue-50"
-              : "border-gray-200 bg-gray-50"
-          }`}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">MELI</p>
-          <p
-            className={`mt-0.5 text-sm font-bold ${
-              data.sync_meli.status === "linked" ? "text-blue-700" : "text-gray-500"
-            }`}
-          >
-            {data.sync_meli.status === "linked" ? "Vinculado" : "Sin vincular"}
-          </p>
-          {meli ? (
-            <p className="text-[11px] text-muted">
-              Stock: {(meli as Record<string, unknown>).available_quantity as number ?? "—"}
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted">{data.meli_id_efectivo || "—"}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-lg border border-border bg-surface p-1">
-        {(["sitios", "general", "imagenes", "meli", "ficha"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={hubTabClass(tab === t, "flex-1 justify-center")}
-          >
-            <span className={HUB_TAB_LABEL}>
-              {t === "sitios"
-                ? "Sitios"
-                : t === "general"
-                  ? "General"
-                  : t === "imagenes"
-                    ? "Imágenes"
-                    : t === "meli"
-                      ? "MeLi"
-                      : "Ficha"}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {tab === "sitios" && (
-        <SitiosTab
-          sku={sku}
-          data={data}
-          ocultoWeb={ocultoWeb}
-          onToggleOculto={setOcultoWeb}
-        />
-      )}
-
-      {/* Tab: General */}
-      {tab === "general" && (
-        <div className="space-y-4">
-          {/* Acceso rápido a imágenes */}
-          <button
-            onClick={() => setTab("imagenes")}
-            className="flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface px-4 py-3 text-left text-sm transition hover:border-accent/40 hover:bg-surface-hover"
-          >
-            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-hover">
-              {fotoPreviewUrl ? (
-                <img src={fotoPreviewUrl} alt="foto" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted text-xs">—</div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink">Gestión de imágenes</p>
-              <p className="text-xs text-muted">Subir foto a Web / SIIGO y MercadoLibre →</p>
-            </div>
-          </button>
-
-          {/* Descripción */}
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-ink">
-              Descripción para la web
-            </label>
-            <ProseTextarea
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              rows={5}
-              maxLength={600}
-              placeholder="Descripción del producto para la tienda web y catálogo..."
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent resize-y"
-            />
-            <p className="mt-0.5 text-right text-[11px] text-muted">
-              {descripcion.length}/600
-            </p>
-          </div>
-
-          {/* Características */}
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-semibold text-ink">Características</label>
-              <button
-                onClick={addCaracteristica}
-                className="rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent hover:bg-accent/20"
-              >
-                + Agregar
-              </button>
-            </div>
-            <div className="space-y-2">
-              {caracteristicas.map((c, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={c.titulo}
-                    onChange={(e) => updateCaracteristica(i, "titulo", e.target.value)}
-                    placeholder="Nombre (ej: Pureza)"
-                    className="w-2/5 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs text-ink outline-none focus:border-accent"
-                  />
-                  <input
-                    value={c.valor}
-                    onChange={(e) => updateCaracteristica(i, "valor", e.target.value)}
-                    placeholder="Valor (ej: 99%)"
-                    className="flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs text-ink outline-none focus:border-accent"
-                  />
-                  <button
-                    onClick={() => removeCaracteristica(i)}
-                    className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:border-danger/40 hover:text-danger"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {caracteristicas.length === 0 && (
-                <p className="text-xs text-muted">Sin características personalizadas</p>
-              )}
-            </div>
-          </div>
-
-          {/* Ocultar en web */}
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={ocultoWeb}
-              onChange={(e) => setOcultoWeb(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-            <div>
-              <p className="text-sm font-semibold text-ink">Ocultar en la tienda web</p>
-              <p className="text-xs text-muted">El producto solo se verá en vitrina, sin botón de compra</p>
-            </div>
-          </label>
-        </div>
-      )}
-
-      {/* Tab: Imágenes */}
-      {tab === "imagenes" && (
-        <ImagenesTab sku={sku} meliItemId={meliItemId} />
-      )}
-
-      {/* Tab: MeLi */}
-      {tab === "meli" && (
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-ink">
-              ID de publicación en MercadoLibre
-            </label>
-            <input
-              type="text"
-              value={meliItemId}
-              onChange={(e) => setMeliItemId(e.target.value)}
-              placeholder="MCO123456789"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-            />
-            {data.meli_item_id_cache && (
-              <p className="mt-1 text-[11px] text-muted">
-                ID en caché: <span className="font-mono">{data.meli_item_id_cache}</span>
-              </p>
-            )}
-          </div>
-
-          {meli ? (
-            <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-xs font-bold text-blue-800">Datos en vivo de MeLi</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-muted">Stock</p>
-                  <p className="font-bold text-ink">
-                    {String((meli as Record<string, unknown>).available_quantity ?? "—")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted">Estado</p>
-                  <p className="font-bold text-ink capitalize">
-                    {String((meli as Record<string, unknown>).status ?? "—")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted">Precio MeLi</p>
-                  <p className="font-bold text-ink">
-                    {(meli as Record<string, unknown>).price
-                      ? `$${Number((meli as Record<string, unknown>).price).toLocaleString("es-CO")}`
-                      : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted">Condición</p>
-                  <p className="font-bold text-ink capitalize">
-                    {String((meli as Record<string, unknown>).condition ?? "—")}
-                  </p>
-                </div>
-              </div>
-              {Boolean((meli as Record<string, unknown>).permalink) && (
-                <a
-                  href={String((meli as Record<string, unknown>).permalink)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 underline"
-                >
-                  Ver publicación en MeLi ↗
-                </a>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-border bg-surface p-4 text-xs text-muted">
-              <p>Los datos en vivo de MeLi se cargan al abrir el detalle con el botón "Refrescar MeLi".</p>
-            </div>
-          )}
-
-          {/* Sync stock MeLi */}
-          {(data.meli_id_efectivo || meliItemId) && (
-            <div className="rounded-xl border border-border bg-surface p-4 space-y-2">
-              <p className="text-xs font-semibold text-ink">Actualizar stock en MeLi</p>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={stockMeli}
-                  onChange={(e) => setStockMeli(e.target.value)}
-                  placeholder="Cantidad"
-                  min={0}
-                  className="w-32 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                />
-                <button
-                  onClick={() => syncMeliMut.mutate(Number(stockMeli))}
-                  disabled={!stockMeli || syncMeliMut.isPending}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-40"
-                >
-                  {syncMeliMut.isPending ? "Sincronizando..." : "Actualizar stock MeLi"}
-                </button>
-              </div>
-              {syncMeliMut.isSuccess && (
-                <p className="text-xs text-green-600">
-                  ✓ {String((syncMeliMut.data as Record<string, unknown>)?.resultado ?? "Stock actualizado")}
-                </p>
-              )}
-              {syncMeliMut.isError && (
-                <p className="text-xs text-danger">{syncMeliMut.error.message}</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab: Ficha técnica */}
-      {tab === "ficha" && (
-        <div className="space-y-3">
-          {data.ficha && Object.keys(data.ficha).length > 0 ? (
-            <>
-              {(data.ficha as Record<string, unknown>).titulo && (
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Título</p>
-                  <p className="text-sm font-semibold text-ink">
-                    {String((data.ficha as Record<string, unknown>).titulo)}
-                  </p>
-                </div>
-              )}
-              {(data.ficha as Record<string, unknown>).descripcion && (
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Descripción técnica</p>
-                  <p className="text-sm text-ink">
-                    {String((data.ficha as Record<string, unknown>).descripcion)}
-                  </p>
-                </div>
-              )}
-              {Array.isArray((data.ficha as Record<string, unknown>).secciones) &&
-                ((data.ficha as Record<string, unknown>).secciones as unknown[]).length > 0 && (
-                  <div className="space-y-3">
-                    {((data.ficha as Record<string, unknown>).secciones as { titulo?: string; items?: unknown[] }[]).map(
-                      (s, i) => (
-                        <div key={i} className="rounded-lg border border-border bg-surface p-3">
-                          {s.titulo && (
-                            <p className="mb-2 text-xs font-bold text-ink uppercase tracking-wide">
-                              {s.titulo}
-                            </p>
-                          )}
-                          <ul className="space-y-1">
-                            {(s.items || []).map((item, j) => (
-                              <li key={j} className="flex gap-2 text-xs text-ink-secondary">
-                                <span className="mt-0.5 shrink-0 text-muted">•</span>
-                                <span>{String(item)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-            </>
-          ) : (
-            <p className="text-sm text-muted">Sin ficha técnica en el catálogo.</p>
-          )}
-        </div>
-      )}
-
-      {/* Botones de acción */}
-      <div className="sticky bottom-0 rounded-xl border border-border bg-surface-panel p-3 shadow-sm space-y-2">
-        <div className="flex gap-2">
-          <button
-            onClick={handleGuardar}
-            disabled={guardarMut.isPending}
-            className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
-          >
-            {guardarMut.isPending
-              ? "Guardando..."
-              : saved
-                ? "✓ Guardado"
-                : "Guardar cambios"}
-          </button>
-          <button
-            onClick={() => syncWebMut.mutate()}
-            disabled={syncWebMut.isPending}
-            title="Aplica los cambios guardados al cache de la tienda web"
-            className="rounded-lg border-2 border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-accent/40 disabled:opacity-40"
-          >
-            {syncWebMut.isPending ? "..." : "↑ Web"}
-          </button>
-        </div>
-        {guardarMut.isError && (
-          <p className="text-xs text-danger">{guardarMut.error.message}</p>
-        )}
-        {syncWebMut.isSuccess && (
-          <p className="text-xs text-green-600">
-            ✓ {String(
-              ((syncWebMut.data as Record<string, unknown>)?.cache as Record<string, unknown>)?.mensaje
-              ?? "Cache web actualizado",
-            )}
-          </p>
-        )}
-        {syncWebMut.isError && (
-          <p className="text-xs text-danger">{syncWebMut.error.message}</p>
-        )}
-      </div>
+      <SitiosTab
+        sku={sku}
+        data={data}
+        ocultoWeb={ocultoWeb}
+        onToggleOculto={setOcultoWeb}
+      />
     </div>
   );
 }
@@ -2116,11 +1990,9 @@ export default function PublicacionesPanel() {
   const [mainView, setMainView] = useState<MainView>("catalogo");
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
-  const [canalFiltro, setCanalFiltro] = useState("");
+  const [buscarAbierto, setBuscarAbierto] = useState(false);
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
-  const syncAllMut = useSyncWeb();
-  const refreshWebMut = useRefreshWeb();
+  const buscarInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce búsqueda
   useEffect(() => {
@@ -2128,34 +2000,17 @@ export default function PublicacionesPanel() {
     return () => clearTimeout(t);
   }, [buscar]);
 
+  useEffect(() => {
+    if (buscarAbierto) buscarInputRef.current?.focus();
+  }, [buscarAbierto]);
+
   const { data, isLoading, error, refetch } = usePublicaciones(
     buscarDebounced,
-    categoriaFiltro,
-    canalFiltro,
+    "",
+    "",
   );
 
   const items = data?.items ?? [];
-  const categorias = data?.categorias ?? [];
-  const resumen = data?.resumen;
-  const totalOk = resumen?.listos ?? 0;
-  const webIncompleto = resumen?.falta_web ?? 0;
-  const sinMeli = resumen?.sin_meli ?? 0;
-  const noEnTienda = resumen?.no_en_tienda ?? 0;
-
-  const filtroAyuda =
-    canalFiltro === "ambos"
-      ? "Solo los que ya tienen ficha completa en la tienda y publicación en Mercado Libre."
-      : canalFiltro === "falta_web"
-        ? "Les falta foto o texto en la ficha de la tienda. No dice nada de Mercado Libre."
-        : canalFiltro === "sin_meli"
-          ? "No tienen publicación en Mercado Libre. La tienda tampoco los vende: solo lista lo que está en MeLi."
-          : canalFiltro === "no_en_tienda"
-            ? "No aparecen para comprar en mckennagroup.co: los ocultaron o no tienen ID de MeLi."
-            : "Toca un recuadro para filtrar. Los números no cambian: son el total del catálogo.";
-
-  function toggleCanal(id: string) {
-    setCanalFiltro((prev) => (prev === id ? "" : id));
-  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -2165,51 +2020,50 @@ export default function PublicacionesPanel() {
           onClick={() => setMainView("catalogo")}
           className={hubTabClass(mainView === "catalogo", "flex-1 justify-center")}
         >
-          <span className={HUB_TAB_LABEL}>🗂 Catálogo</span>
+          <Icon name="folder" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Catálogo</span>
         </button>
         <button
           onClick={() => setMainView("galeria")}
           className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
         >
-          <span className={HUB_TAB_LABEL}>🖼 Galería</span>
+          <Icon name="image" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Galería</span>
         </button>
         <button
           onClick={() => setMainView("catalogo-cliente")}
           className={hubTabClass(mainView === "catalogo-cliente", "flex-1 justify-center")}
         >
-          <span className={HUB_TAB_LABEL}>🔗 Catálogo cliente</span>
+          <Icon name="link" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Catálogo cliente</span>
         </button>
         <button
           onClick={() => setMainView("precios")}
           className={hubTabClass(mainView === "precios", "flex-1 justify-center")}
         >
-          <span className={HUB_TAB_LABEL}>💲 Verificar precios</span>
+          <Icon name="calculator" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Verificar precios</span>
         </button>
         <button
           onClick={() => setMainView("competencia")}
           className={hubTabClass(mainView === "competencia", "flex-1 justify-center")}
         >
-          <span className={HUB_TAB_LABEL}>⚖ Competencia</span>
+          <Icon name="target" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Competencia</span>
         </button>
         <button
           onClick={() => setMainView("compliance")}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-            mainView === "compliance"
-              ? "bg-orange-500 text-white shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
+          className={hubTabClass(mainView === "compliance", "flex-1 justify-center")}
         >
-          🛡 Republicar MeLi
+          <Icon name="refresh" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Republicar MeLi</span>
         </button>
         <button
           onClick={() => setMainView("crear")}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-            mainView === "crear"
-              ? "bg-teal-600 text-white shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
+          className={hubTabClass(mainView === "crear", "flex-1 justify-center")}
         >
-          ✦ Crear desde cero
+          <Icon name="plus" size={16} weight="regular" />
+          <span className={HUB_TAB_LABEL}>Crear desde cero</span>
         </button>
       </div>
 
@@ -2259,144 +2113,54 @@ export default function PublicacionesPanel() {
         </div>
       )}
 
-      {/* Vista catálogo — existente */}
+      {/* Vista catálogo — listado → editor Web | MeLi */}
       {mainView === "catalogo" && (
       <div className="flex flex-1 min-h-0 flex-col gap-4 lg:flex-row">
-      {/* Columna izquierda: lista */}
+      {/* Columna izquierda: solo listado */}
       <div
-        className={`flex flex-col gap-3 lg:w-[420px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
+        className={`flex flex-col gap-3 lg:w-[320px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
       >
-        {/* Resumen = filtros (un solo juego, sin pastillas duplicadas) */}
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => toggleCanal("ambos")}
-            title="Tienen foto y texto en la tienda, y ya están en Mercado Libre"
-            className={`rounded-xl border p-3 text-center transition ${
-              canalFiltro === "ambos"
-                ? "border-green-500 bg-green-100 ring-2 ring-green-400"
-                : "border-green-200 bg-green-50 hover:border-green-400"
-            }`}
-          >
-            <p className="text-lg font-black text-green-700">{totalOk}</p>
-            <p className="text-[11px] font-semibold text-green-600">En web y MeLi</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleCanal("falta_web")}
-            title="A la ficha de la tienda le falta foto o descripción"
-            className={`rounded-xl border p-3 text-center transition ${
-              canalFiltro === "falta_web"
-                ? "border-yellow-500 bg-yellow-100 ring-2 ring-yellow-400"
-                : "border-yellow-200 bg-yellow-50 hover:border-yellow-400"
-            }`}
-          >
-            <p className="text-lg font-black text-yellow-700">{webIncompleto}</p>
-            <p className="text-[11px] font-semibold text-yellow-600">Falta foto o texto</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleCanal("sin_meli")}
-            title="No hay publicación en Mercado Libre"
-            className={`rounded-xl border p-3 text-center transition ${
-              canalFiltro === "sin_meli"
-                ? "border-gray-500 bg-gray-200 ring-2 ring-gray-400"
-                : "border-gray-200 bg-gray-50 hover:border-gray-400"
-            }`}
-          >
-            <p className="text-lg font-black text-gray-600">{sinMeli}</p>
-            <p className="text-[11px] font-semibold text-gray-500">Sin Mercado Libre</p>
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => toggleCanal("no_en_tienda")}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-              canalFiltro === "no_en_tienda"
-                ? "border-accent bg-accent/10 text-accent"
-                : "border-border text-muted hover:border-accent/40 hover:text-ink"
-            }`}
-          >
-            No se ven en la tienda{noEnTienda ? ` (${noEnTienda})` : ""}
-          </button>
-          {canalFiltro && (
+        <div className="flex items-center gap-2">
+          {buscarAbierto || buscar ? (
+            <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-border bg-surface-input px-2 py-1.5">
+              <Icon name="search" size={16} weight="regular" className="shrink-0 text-muted" />
+              <input
+                ref={buscarInputRef}
+                type="text"
+                value={buscar}
+                onChange={(e) => setBuscar(e.target.value)}
+                onBlur={() => {
+                  if (!buscar) setBuscarAbierto(false);
+                }}
+                placeholder="Buscar…"
+                className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted/50"
+              />
+              <button
+                type="button"
+                title="Cerrar búsqueda"
+                onClick={() => {
+                  setBuscar("");
+                  setBuscarAbierto(false);
+                }}
+                className="rounded p-0.5 text-muted hover:text-ink"
+              >
+                <Icon name="close" size={14} weight="regular" />
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => setCanalFiltro("")}
-              className="text-[11px] font-semibold text-accent underline"
+              title="Buscar"
+              onClick={() => setBuscarAbierto(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-surface p-2 text-muted transition hover:border-accent/40 hover:text-ink"
             >
-              Ver todos
+              <Icon name="search" size={18} weight="regular" />
             </button>
           )}
         </div>
-        <p className="text-[11px] leading-snug text-muted">{filtroAyuda}</p>
 
-        {/* Acciones globales */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => syncAllMut.mutate()}
-            disabled={syncAllMut.isPending}
-            title="Aplica todos los overrides guardados al cache de la tienda web"
-            className="flex-1 rounded-lg border-2 border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-40"
-          >
-            {syncAllMut.isPending ? "Sincronizando..." : "↑ Sync todos a Web"}
-          </button>
-          <button
-            onClick={() => refreshWebMut.mutate()}
-            disabled={refreshWebMut.isPending}
-            title="Recarga el catálogo desde SIIGO (borra overrides del cache, los overrides guardados se conservan)"
-            className="rounded-lg border-2 border-border bg-surface px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/30 hover:text-ink disabled:opacity-40"
-          >
-            {refreshWebMut.isPending ? "..." : "↺ Reload SIIGO"}
-          </button>
-        </div>
-
-        {/* Mensajes globales */}
-        {syncAllMut.isSuccess && (
-          <p className="rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-            ✓ {String(
-              ((syncAllMut.data as Record<string, unknown>)?.cache as Record<string, unknown>)?.mensaje
-              ?? "Cache actualizado",
-            )}
-          </p>
-        )}
-        {refreshWebMut.isSuccess && (
-          <p className="rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-            ✓ Catálogo recargado desde SIIGO
-          </p>
-        )}
-        {refreshWebMut.isError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-            {refreshWebMut.error.message}
-          </p>
-        )}
-
-        {/* Filtros */}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Buscar por nombre o SKU..."
-            className="flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
-          />
-          <select
-            value={categoriaFiltro}
-            onChange={(e) => setCategoriaFiltro(e.target.value)}
-            className="rounded-lg border border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-          >
-            <option value="">Todas</option>
-            {categorias.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Lista de productos */}
-        <div className="flex-1 space-y-2 overflow-y-auto pr-0.5">
+        {/* Lista de productos — solo nombres */}
+        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel pr-0.5">
           {isLoading && (
             <div className="flex justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -2412,9 +2176,7 @@ export default function PublicacionesPanel() {
           )}
           {!isLoading && items.length === 0 && !error && (
             <p className="py-8 text-center text-sm text-muted">
-              {buscar || categoriaFiltro
-                ? "Sin resultados con estos filtros."
-                : "No hay productos en el catálogo. Usa 'Reload SIIGO' para cargar."}
+              {buscar ? "Sin resultados." : "No hay productos en el catálogo."}
             </p>
           )}
           {items.map((item) => {
@@ -2440,9 +2202,13 @@ export default function PublicacionesPanel() {
         </div>
       ) : (
         <div className="hidden flex-1 items-center justify-center rounded-xl border-2 border-dashed border-border text-muted lg:flex">
-          <div className="text-center">
-            <p className="text-4xl opacity-20">🛒</p>
-            <p className="mt-2 text-sm">Selecciona un producto para editar</p>
+          <div className="max-w-sm px-6 text-center">
+            <p className="text-sm font-semibold text-ink">Elige un producto del listado</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Se abren dos ventanas: <span className="font-semibold text-ink">Página web</span> y{" "}
+              <span className="font-semibold text-ink">Mercado Libre</span> — ocultar en tienda,
+              precio MeLi y fotos de cada sitio.
+            </p>
           </div>
         </div>
       )}

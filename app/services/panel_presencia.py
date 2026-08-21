@@ -100,6 +100,21 @@ def _usuario_en_linea(row: sqlite3.Row | None) -> bool:
     return bool(row and row["activa"] and not _sesion_idle(row, minutos=ONLINE_IDLE_MINUTES))
 
 
+def usuarios_en_linea_ahora() -> set[int]:
+    """IDs de usuarios con sesión activa de panel en los últimos ONLINE_IDLE_MINUTES.
+
+    Query liviana (sin agregaciones de día) pensada para pollear cada pocos
+    segundos desde una vista de chat, a diferencia de `metricas_panel_operadores`.
+    """
+    corte = (datetime.now() - timedelta(minutes=ONLINE_IDLE_MINUTES)).strftime("%Y-%m-%d %H:%M:%S")
+    with _conn() as db:
+        rows = db.execute(
+            "SELECT DISTINCT usuario_id FROM panel_sesiones_operativas WHERE activa=1 AND ultimo_ping >= ?",
+            (corte,),
+        ).fetchall()
+        return {r["usuario_id"] for r in rows}
+
+
 def iniciar_sesion_panel(
     usuario_id: int,
     session_uuid: str,

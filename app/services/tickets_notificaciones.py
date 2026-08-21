@@ -86,77 +86,6 @@ def _primer_nombre(nombre: str) -> str:
     return (nombre or "Operador").strip().split(" ")[0]
 
 
-# ── Conjugación best-effort del verbo inicial del título a pasado 3ª persona ──
-
-_VERBOS_ACCION_IRREGULARES = {
-    "hacer": "hizo", "decir": "dijo", "poner": "puso", "tener": "tuvo",
-    "dar": "dio", "ir": "fue", "ser": "fue", "venir": "vino",
-    "poder": "pudo", "querer": "quiso", "saber": "supo", "traer": "trajo",
-    "producir": "produjo", "conducir": "condujo", "reponer": "repuso",
-    "corregir": "corrigió", "seguir": "siguió", "pedir": "pidió",
-    "servir": "sirvió", "elegir": "eligió", "sugerir": "sugirió",
-    "repetir": "repitió", "preferir": "prefirió", "sentir": "sintió",
-    "dormir": "durmió", "morir": "murió", "medir": "midió",
-    "despedir": "despidió", "revertir": "revirtió",
-}
-
-_VERBOS_ACCION = {
-    "aprobar", "comprar", "revisar", "enviar", "facturar", "pagar",
-    "actualizar", "generar", "imprimir", "entregar", "confirmar",
-    "cancelar", "corregir", "publicar", "sincronizar", "crear",
-    "registrar", "subir", "descargar", "verificar", "cotizar", "cargar",
-    "programar", "gestionar", "tramitar", "coordinar", "solicitar",
-    "preparar", "alistar", "despachar", "radicar", "renovar", "ajustar",
-    "reponer", "abastecer", "contactar", "llamar", "reunir", "agendar",
-    "notificar", "informar", "autorizar", "validar", "cerrar", "abrir",
-    "resolver", "atender", "responder", "definir", "negociar", "firmar",
-    "elaborar", "diseñar", "etiquetar", "empacar", "transportar", "hacer",
-    "completar", "terminar", "finalizar", "iniciar", "chequear",
-    "comprobar", "subsanar", "surtir", "remitir", "escanear",
-    "digitalizar", "archivar", "organizar", "instalar", "configurar",
-    "activar", "desactivar", "bloquear", "desbloquear", "eliminar",
-    "duplicar", "exportar", "importar", "migrar", "respaldar", "auditar",
-    "monitorear", "supervisar", "delegar", "asignar", "reasignar",
-    "priorizar", "escalar", "pedir", "seguir",
-}
-
-
-def _pasado_3s(infinitivo: str) -> str | None:
-    v = infinitivo.strip().lower()
-    if v in _VERBOS_ACCION_IRREGULARES:
-        return _VERBOS_ACCION_IRREGULARES[v]
-    if v.endswith("ar") and len(v) > 2:
-        return v[:-2] + "ó"
-    if v.endswith(("er", "ir")) and len(v) > 2:
-        stem = v[:-2]
-        if stem and stem[-1] in "aeiou":
-            return stem + "yó"
-        return stem + "ió"
-    return None
-
-
-def _conjugar_titulo_pasado(titulo: str) -> str | None:
-    """Convierte 'Aprobar pago de nómina' -> 'aprobó pago de nómina', si el verbo es reconocido."""
-    partes = (titulo or "").strip().split(None, 1)
-    if not partes:
-        return None
-    infinitivo = partes[0].strip(".,;:").lower()
-    if infinitivo not in _VERBOS_ACCION:
-        return None
-    conjugado = _pasado_3s(infinitivo)
-    if not conjugado:
-        return None
-    resto = partes[1] if len(partes) > 1 else ""
-    return f"{conjugado} {resto}".strip()
-
-
-def _sms_ticket_resuelto(resolvio: str, titulo: str) -> str:
-    frase = _conjugar_titulo_pasado(titulo)
-    if frase:
-        return f"{resolvio} {frase}."
-    return f"{resolvio} resolvió: {titulo}."
-
-
 def enviar_texto_operador(usuario_id: int | None, texto: str) -> bool:
     if not _notif_habilitada():
         return False
@@ -164,8 +93,11 @@ def enviar_texto_operador(usuario_id: int | None, texto: str) -> bool:
     if not numero:
         print(f"[tickets-notif] Sin teléfono para usuario {usuario_id}")
         return False
-    from app.utils import enviar_whatsapp_reporte
-    ok = enviar_whatsapp_reporte(texto.strip(), numero_destino=numero)
+    # Bridge supervisor (573196529076) — dedicado a estas alertas automatizadas de
+    # operadores, distinto del bridge principal (573195183596, `enviar_whatsapp_reporte`)
+    # que usan los grupos operativos y reportes.
+    from app.utils import enviar_texto_supervisor
+    ok = enviar_texto_supervisor(numero, texto.strip())
     if ok:
         print(f"[tickets-notif] Enviado a usuario {usuario_id} ({numero[:6]}…)")
     return ok
@@ -225,7 +157,7 @@ def notificar_ticket_creado(ticket_id: int) -> None:
         elif subtipo == "etiqueta":
             texto = f"Etiquetas: {creador} pidió {titulo}."
         elif t["tipo"] == "solicitud":
-            texto = f"Solicitudes: {creador} te solicita {titulo}."
+            texto = f"{creador} te ha hecho una solicitud: {titulo}"
         else:
             texto = f"Acciones: {creador} te asignó {titulo}."
         _programar(asig, texto)
@@ -265,7 +197,7 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
                     if p:
                         texto += f" Puedes seguir con {_titulo_corto(p.get('titulo') or 'pendiente', 40)}."
             else:
-                texto = _sms_ticket_resuelto(resolvio, titulo)
+                texto = f"{resolvio} resolvió tu solicitud: {titulo}"
             _programar(creador, texto)
 
         if subtipo == "compra" and t.get("ticket_padre_id"):
@@ -297,6 +229,21 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
         titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
         texto = f"{resolvio} terminó {titulo} y pide tu aprobación."
         _programar(creador, texto)
+
+
+def notificar_ticket_reabierto(ticket_id: int, reabrio_uid: int) -> None:
+    """Avisa a quien resolvió la solicitud que el solicitante la reabrió."""
+    with _conn_ctx() as db:
+        t = _ticket_row(db, ticket_id)
+        if not t or t["tipo"] != "solicitud":
+            return
+        asig = t.get("asignado_a")
+        if not asig or asig == reabrio_uid:
+            return
+        reabrio = _primer_nombre(_nombre_usuario(db, reabrio_uid))
+        titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
+        texto = f"{reabrio} reabrió tu solicitud: {titulo}"
+        _programar(asig, texto)
 
 
 def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> None:

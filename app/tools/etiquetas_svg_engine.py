@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from app.services.formula_molecular import formatear_formula_molecular
+
 _REPO = Path(__file__).resolve().parents[2]
 _SVG_DIR = _REPO / "Etiquetas Modelo SVG"
 _PLANTILLAS_PATH = _REPO / "app" / "data" / "etiquetas_svg_plantillas.json"
@@ -117,7 +119,7 @@ def _valor_campo(datos: dict, campo: str) -> str:
     neto = f"{datos.get('contenido_neto', '')} {datos.get('unidad', '')}".strip()
     cas = (datos.get("cas") or "").strip()
     conc = (datos.get("concentracion") or "99 %").strip()
-    formula = (datos.get("formula_molecular") or "").strip()
+    formula = formatear_formula_molecular((datos.get("formula_molecular") or "").strip())
     distribuidor = (datos.get("distribuidor") or "MCKENNA GROUP S.A.S").strip()
     nit = (datos.get("nit") or "901316016-3").strip()
     ciudad = (datos.get("ciudad") or "BOGOTÁ – COLOMBIA").strip()

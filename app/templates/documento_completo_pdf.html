@@ -427,7 +427,7 @@ ul.beneficios li {
     <div class="sec-title">Características físico-químicas</div>
     <table>
       {% for label, value in ft.propiedades %}
-      <tr><td class="td-key">{{ label }}</td><td>{{ value }}</td></tr>
+      <tr><td class="td-key">{{ label }}</td><td>{% if 'órmula' in label|lower %}{{ value | formula_sub | safe }}{% else %}{{ value }}{% endif %}</td></tr>
       {% endfor %}
     </table>
   </div>

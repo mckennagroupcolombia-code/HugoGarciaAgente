@@ -29,6 +29,11 @@ import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs } from "./Cronometro";
 import UserAvatar from "./UserAvatar";
+import { useActividadEquipo } from "../hooks/useActividadEquipo";
+import { useGitLog } from "../hooks/useGitLog";
+import { useTeamRecaps } from "../hooks/useTeamRecaps";
+import { useSaludServicios, type SaludItem } from "../hooks/useSaludServicios";
+import { layoutCommitGraph, type GraphEdge } from "../lib/gitGraphLayout";
 import {
   InventarioCarritoBadge,
   InventarioCarritoModal,
@@ -4030,6 +4035,153 @@ function navScopeLabel(scope: NavScope): string {
 
 // ── CentroMandoHome ───────────────────────────────────────────────────────────
 
+// ── Inicio: bloques de ecosistema (actividad, salud, commits, recaps) ────────
+
+function iconoEventoActividadHome(accion: string, resumen: string): string {
+  if (accion === "ticket_creado") return "⚡";
+  if (resumen.includes("completó") || resumen.includes("resolvió")) return "✅";
+  if (resumen.includes("inició")) return "▶";
+  if (resumen.includes("pausó")) return "⏸";
+  return "💬";
+}
+
+function minutosDesdeHome(iso: string): number {
+  const ms = Date.now() - new Date(iso.replace(" ", "T")).getTime();
+  return Math.max(0, Math.floor(ms / 60000));
+}
+
+function tiempoRelativoHome(iso: string): string {
+  const min = minutosDesdeHome(iso);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  return `hace ${Math.floor(min / 60)}h`;
+}
+
+/** Actividad del equipo — mismo dato que TeamActivityBanner (useActividadEquipo), pero
+ * expandida como sección de Inicio en vez de tirita colapsada. */
+function ActividadEquipoInicio() {
+  const { data, isLoading } = useActividadEquipo();
+  const eventos = data?.eventos ?? [];
+  if (isLoading) return <p className="text-[12px] text-muted py-1">Cargando…</p>;
+  if (!eventos.length) return <p className="text-[12px] text-muted py-1">Sin actividad hoy todavía.</p>;
+  return (
+    <div className="space-y-1.5">
+      {eventos.slice(0, 6).map((e) => (
+        <div key={e.id} className="flex items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2">
+          <span className="shrink-0">{iconoEventoActividadHome(e.accion, e.resumen)}</span>
+          <span className="text-[12px] text-ink truncate flex-1">{e.resumen}</span>
+          <span className="shrink-0 text-[10px] text-muted">{tiempoRelativoHome(e.creado_en)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Semáforo de servicios — GET /api/sistema/salud (checks locales, sin red externa). */
+function EcosistemaSemaforo() {
+  const { data, isLoading } = useSaludServicios();
+  const items: SaludItem[] = data?.items ?? [];
+  if (isLoading) return <p className="text-[12px] text-muted py-1">Verificando…</p>;
+  if (!items.length) return <p className="text-[12px] text-muted py-1">Sin datos de servicios.</p>;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((it) => {
+        const cls = it.estado === "ok"
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+          : it.estado === "alerta"
+            ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
+            : "border-red-500/40 bg-red-500/10 text-red-500";
+        const dotCls = it.estado === "ok" ? "bg-emerald-500" : it.estado === "alerta" ? "bg-amber-500 animate-pulse" : "bg-red-500 animate-pulse";
+        return (
+          <span key={it.nombre} title={it.detalle}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${dotCls}`} />
+            {it.nombre}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// Mismos 8 colores categóricos que usa el panel completo de Control de Versiones
+// (skill dataviz — references/palette.md), duplicados acá porque esos helpers viven
+// locales a ControlVersionesPanel.tsx y esta es una vista compacta, no interactiva.
+const HOME_LANE_COLORS = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
+function colorCarrilHome(lane: number): string { return HOME_LANE_COLORS[lane % HOME_LANE_COLORS.length]; }
+
+const HOME_GRAFO_ROW_H = 26;
+const HOME_GRAFO_LANE_W = 14;
+const HOME_GRAFO_PAD_X = 8;
+const HOME_GRAFO_NODE_R = 4;
+
+function rutaAristaHome(e: GraphEdge): string {
+  const x1 = HOME_GRAFO_PAD_X + e.fromLane * HOME_GRAFO_LANE_W;
+  const y1 = e.fromRow * HOME_GRAFO_ROW_H + HOME_GRAFO_ROW_H / 2;
+  const x2 = HOME_GRAFO_PAD_X + e.toLane * HOME_GRAFO_LANE_W;
+  const y2 = e.toRow * HOME_GRAFO_ROW_H + HOME_GRAFO_ROW_H / 2;
+  if (e.fromLane === e.toLane) return `M ${x1} ${y1} L ${x2} ${y2}`;
+  const yMid = (y1 + y2) / 2;
+  return `M ${x1} ${y1} C ${x1} ${yMid}, ${x2} ${yMid}, ${x2} ${y2}`;
+}
+
+/** Versión compacta y de solo lectura del árbol de commits — la interactiva
+ * (zoom, asignar autor) queda en Sistemas → Control de Versiones. */
+function MiniArbolCommits() {
+  const { data, isLoading } = useGitLog(15);
+  const layout = useMemo(() => layoutCommitGraph(data?.commits ?? []), [data?.commits]);
+  if (isLoading) return <p className="text-[12px] text-muted py-1">Cargando historial…</p>;
+  if (!layout.nodes.length) return <p className="text-[12px] text-muted py-1">Sin commits para mostrar.</p>;
+  const svgW = HOME_GRAFO_PAD_X * 2 + (layout.laneCount - 1) * HOME_GRAFO_LANE_W;
+  const svgH = layout.nodes.length * HOME_GRAFO_ROW_H;
+  return (
+    <div className="flex gap-2">
+      <svg width={svgW} height={svgH} className="shrink-0 block">
+        {layout.edges.map((e, i) => (
+          <path key={i} d={rutaAristaHome(e)} fill="none" stroke={colorCarrilHome(e.fromLane)} strokeWidth={2} opacity={0.5} />
+        ))}
+        {layout.nodes.map((n) => (
+          <circle key={n.hash}
+            cx={HOME_GRAFO_PAD_X + n.lane * HOME_GRAFO_LANE_W}
+            cy={n.row * HOME_GRAFO_ROW_H + HOME_GRAFO_ROW_H / 2}
+            r={HOME_GRAFO_NODE_R}
+            fill={colorCarrilHome(n.lane)}
+          />
+        ))}
+      </svg>
+      <div className="min-w-0 flex-1">
+        {layout.nodes.map((n) => (
+          <div key={n.hash} style={{ height: HOME_GRAFO_ROW_H }} className="flex items-center gap-2">
+            <span className="truncate text-[11px] font-medium text-ink flex-1">{n.asunto}</span>
+            <span className="shrink-0 text-[10px] text-muted">{(n.autor_manual || n.autor).split(" ")[0]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Historial de cambios de la app — docs/team-recaps.md vía useTeamRecaps. */
+function RecapsRecientesInicio() {
+  const { data, isLoading } = useTeamRecaps(5);
+  const recaps = data?.recaps ?? [];
+  if (isLoading) return <p className="text-[12px] text-muted py-1">Cargando…</p>;
+  if (!recaps.length) return <p className="text-[12px] text-muted py-1">Sin cambios recientes registrados.</p>;
+  return (
+    <div className="space-y-1.5">
+      {recaps.slice(0, 5).map((r, i) => (
+        <div key={i} className="rounded-lg border border-accent/10 bg-accent/8 px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12px] font-semibold text-ink truncate flex-1">{r.titulo}</span>
+            <span className="shrink-0 text-[10px] text-muted">{r.fecha}</span>
+          </div>
+          <p className="text-[10px] text-accent/70 truncate">{r.autor} · {r.tipo_cambio}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onVerSolicitud, onContratos, onTablero,
@@ -4055,26 +4207,18 @@ function CentroMandoHome({
   onEmpaque?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
-  const verStock = Boolean(onStock && puedeVerSeccionPanel(user, "stock"));
-  const verEmpaque = Boolean(onEmpaque && puedeVerSeccionPanel(user, "empaque"));
-  const verImpresora = Boolean(onImpresora && puedeVerSeccionPanel(user, "etiquetas"));
-  const tieneAtajos = verStock || verEmpaque || verImpresora;
 
   const [acciones,      setAcciones]      = useState<any[]>([]);
   const [solicitudes,   setSolicitudes]   = useState<any[]>([]);
   const [recordatorios, setRecordatorios] = useState<any[]>([]);
-  const [procedimientos,setProcedimientos]= useState<any[]>([]);
-  const [notas,         setNotas]         = useState<any[]>([]);
   const [cargando,      setCargando]      = useState(true);
 
   const cargar = useCallback(async () => {
     const hoy = new Date().toISOString().slice(0, 10);
-    const [acc, sol, rec, proc, not] = await Promise.allSettled([
+    const [acc, sol, rec] = await Promise.allSettled([
       tapi("/?tipo=accion&activas=1", token),
       tapi("/?tipo=solicitud&activas=1", token),
       tapi("/recordatorios", token),
-      tapi("/protocolos?alcance=mis", token),
-      fetch("/api/tickets/notas", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).then(r => r.ok ? r.json() : []),
     ]);
     setAcciones(acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : []);
     setSolicitudes(sol.status === "fulfilled" && Array.isArray(sol.value)
@@ -4088,8 +4232,6 @@ function CentroMandoHome({
       if (!aHoy && bHoy) return 1;
       return (a.proxima_fecha ?? "").localeCompare(b.proxima_fecha ?? "");
     }));
-    setProcedimientos(proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value as any[] : []);
-    setNotas(not.status === "fulfilled" && Array.isArray(not.value) ? (not.value as any[]).slice(0, 3) : []);
     setCargando(false);
   }, [token, user.id]);
 
@@ -4104,7 +4246,7 @@ function CentroMandoHome({
   const fechaHoy = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
   const hoy = new Date().toISOString().slice(0, 10);
 
-  function SeccionHeader({ icon, titulo, count, onVerTodo }: { icon: string; titulo: string; count?: number; onVerTodo: () => void }) {
+  function SeccionHeader({ icon, titulo, count, onVerTodo }: { icon: string; titulo: string; count?: number; onVerTodo?: () => void }) {
     return (
       <div className="flex items-center justify-between gap-2 mb-2">
         <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted">
@@ -4114,9 +4256,11 @@ function CentroMandoHome({
             <span className="ml-1 rounded-full bg-accent/10 px-1.5 py-px text-[10px] font-bold text-accent">{count}</span>
           )}
         </p>
-        <button type="button" onClick={onVerTodo} className="text-[11px] font-semibold text-accent hover:underline shrink-0">
-          Ver todo →
-        </button>
+        {onVerTodo && (
+          <button type="button" onClick={onVerTodo} className="text-[11px] font-semibold text-accent hover:underline shrink-0">
+            Ver todo →
+          </button>
+        )}
       </div>
     );
   }
@@ -4146,97 +4290,77 @@ function CentroMandoHome({
 
       <DolarHoraGadget />
 
-      {tieneAtajos && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {verStock && (
-            <button
-              type="button"
-              onClick={onStock}
-              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/30 bg-accent/10 px-3 py-3 text-left hover:border-accent/60"
-            >
-              <span className="text-accent">
-                <Icon name="package" size={22} weight="duotone" />
-              </span>
-              <span className="text-[13px] font-extrabold text-ink leading-none">Stock MeLi</span>
-              <span className="text-[10px] font-semibold text-accent/80 leading-snug">
-                Editar unidades · ver Activa / Pausada
-              </span>
-            </button>
-          )}
-          {verEmpaque && (
-            <button
-              type="button"
-              onClick={onEmpaque}
-              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 text-left hover:border-accent/50"
-            >
-              <span className="text-accent">
-                <Icon name="camera" size={22} weight="duotone" />
-              </span>
-              <span className="text-[13px] font-extrabold text-ink leading-none">Empaque</span>
-              <span className="text-[10px] font-semibold text-muted leading-snug">
-                Evidencia fotográfica
-              </span>
-            </button>
-          )}
-          {verImpresora && (
-            <button
-              type="button"
-              onClick={onImpresora}
-              className="mck-card mck-card-interactive mck-press flex flex-col items-start gap-1 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 text-left hover:border-accent/50"
-            >
-              <span className="text-accent">
-                <Icon name="tag" size={22} weight="duotone" />
-              </span>
-              <span className="text-[13px] font-extrabold text-ink leading-none">Etiquetas</span>
-              <span className="text-[10px] font-semibold text-muted leading-snug">
-                Impresión y diseño
-              </span>
-            </button>
-          )}
+      {/* ── Actividad del equipo — expandida acá; la tirita colapsada del cabezote sigue existiendo ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="👥" titulo="Actividad del equipo" />
+          <ActividadEquipoInicio />
         </div>
       )}
 
-      {/* ── Acciones ── */}
-      {pVer("acciones") && (
-        <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} onVerTodo={onAcciones} />
-          {acciones.length === 0 ? (
-            <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {acciones.slice(0, 4).map((a: any) => (
-                <button key={a.id} type="button" onClick={onAcciones}
-                  className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
-                  <span className="text-[13px] font-semibold text-ink truncate flex-1">{a.titulo}</span>
-                  <span className="shrink-0 text-[10px] text-accent font-semibold">{a.estado === "en_proceso" ? "en curso" : "pendiente"}</span>
-                </button>
-              ))}
-              {acciones.length > 4 && (
-                <p className="text-[11px] text-accent/50 text-right pr-1">+{acciones.length - 4} más</p>
+      {/* ── Ecosistema: semáforo de servicios ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="🩺" titulo="Ecosistema" />
+          <EcosistemaSemaforo />
+        </div>
+      )}
+
+      {/* ── Árbol de commits (compacto) — versión completa en Sistemas → Control de Versiones ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="🌳" titulo="Árbol de commits"
+            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
+          <MiniArbolCommits />
+        </div>
+      )}
+
+      {/* ── Historial de cambios de la app (docs/team-recaps.md) ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="📝" titulo="Cambios recientes"
+            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
+          <RecapsRecientesInicio />
+        </div>
+      )}
+
+      {/* ── Acciones / Solicitudes — resumen sin botón propio: la pestaña de arriba
+          (Agenda/Acciones/Solicitudes) ya navega a las mismas pantallas. ── */}
+      {(pVer("acciones") || pVer("solicitudes")) && (
+        <div className="grid grid-cols-2 gap-2">
+          {pVer("acciones") && (
+            <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-3">
+              <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} />
+              {acciones.length === 0 ? (
+                <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {acciones.slice(0, 3).map((a: any) => (
+                    <button key={a.id} type="button" onClick={onAcciones}
+                      className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                      <span className="text-[13px] font-semibold text-ink truncate flex-1">{a.titulo}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* ── Solicitudes ── */}
-      {pVer("solicitudes") && (
-        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} onVerTodo={onSolicitudes} />
-          {solicitudes.length === 0 ? (
-            <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {solicitudes.slice(0, 4).map((s: any) => (
-                <button key={s.id} type="button" onClick={() => onVerSolicitud(s.id)}
-                  className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
-                  <span className="text-[13px] font-semibold text-ink truncate flex-1">{s.titulo}</span>
-                  <span className="shrink-0 text-[10px] text-accent/70 font-medium truncate max-w-[80px]">{s.creado_por_nombre || ""}</span>
-                </button>
-              ))}
-              {solicitudes.length > 4 && (
-                <p className="text-[11px] text-accent/50 text-right pr-1">+{solicitudes.length - 4} más</p>
+          {pVer("solicitudes") && (
+            <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+              <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} />
+              {solicitudes.length === 0 ? (
+                <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {solicitudes.slice(0, 3).map((s: any) => (
+                    <button key={s.id} type="button" onClick={() => onVerSolicitud(s.id)}
+                      className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
+                      <span className="text-[13px] font-semibold text-ink truncate flex-1">{s.titulo}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -4271,37 +4395,6 @@ function CentroMandoHome({
         </div>
       )}
 
-      {/* ── Fila inferior: Procedimientos · Notas · Bolsillo ── */}
-      <div className="grid grid-cols-3 gap-2">
-        {pVer("acciones") && (
-          <button type="button" onClick={onProcedimientos}
-            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
-            <span className="text-accent"><TopicIcon value="🔒" size={20} weight="regular" /></span>
-            <span className="text-[12px] font-bold text-ink leading-none">Procedimientos</span>
-            <span className="text-[10px] text-accent/70 font-semibold">
-              {procedimientos.length > 0 ? `${procedimientos.length} guardados` : "—"}
-            </span>
-          </button>
-        )}
-        {pVer("acciones") && onNotas && (
-          <button type="button" onClick={onNotas}
-            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
-            <span className="text-accent"><TopicIcon value="💭" size={20} weight="regular" /></span>
-            <span className="text-[12px] font-bold text-ink leading-none">Notas</span>
-            <span className="text-[10px] text-accent/70 font-semibold line-clamp-1 text-center px-1">
-              {notas.length > 0 ? notas[0]?.contenido?.slice(0, 18) ?? "—" : "—"}
-            </span>
-          </button>
-        )}
-        {pVer("acciones") && onBolsillo && (
-          <button type="button" onClick={onBolsillo}
-            className="mck-card mck-card-interactive flex flex-col items-center gap-1.5 border-accent/20 bg-[rgb(var(--mck-card-bg))] px-3 py-3 hover:border-accent/50">
-            <span className="text-accent"><TopicIcon value="🔑" size={20} weight="regular" /></span>
-            <span className="text-[12px] font-bold text-ink leading-none">Bolsillo</span>
-            <span className="text-[10px] text-accent/70 font-semibold">cifradas</span>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -12049,6 +12142,24 @@ async function playAlarmAudio(apiToken?: string) {
   } catch { /* AudioContext no disponible */ }
 }
 
+/** Chime corto de "listo" (arpegio ascendente) — mismo enfoque Web Audio que playAlarmAudio, sin red/TTS. */
+function playChimeExito() {
+  try {
+    const ctx = _unlockedCtx ?? new AudioContext();
+    const now = ctx.currentTime;
+    [[0, 523.25], [0.1, 659.25], [0.2, 783.99], [0.32, 1046.5]].forEach(([delay, freq]) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.5);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now + delay); osc.stop(now + delay + 0.52);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 1400);
+  } catch { /* AudioContext no disponible */ }
+}
+
 async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<void> {
   const texto = `Veci, tiene una solicitud de parte de ${nombre}.`;
   if (apiToken) {
@@ -13134,6 +13245,21 @@ function shortNumero(numero: string): string {
   return m ? `# ${m[1]}` : numero;
 }
 
+/** Timestamps del backend vienen sin zona (hora local del servidor) — sin esto Date los toma como UTC. */
+function fechaServidorToDate(s: string): Date {
+  return new Date(s.includes("T") || s.includes("Z") ? s : `${s}Z`);
+}
+
+/** Punto de presencia — verde si la persona tiene una sesión de panel activa ahora mismo. */
+function PresenceDot({ enLinea, title }: { enLinea: boolean; title?: string }) {
+  return (
+    <span
+      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${enLinea ? "bg-emerald-500" : "bg-muted/30"}`}
+      title={title ?? (enLinea ? "En línea ahora" : undefined)}
+    />
+  );
+}
+
 // ── SolicitudCard ─────────────────────────────────────────────────────────────
 
 function SolicitudCard({
@@ -13171,12 +13297,6 @@ function SolicitudCard({
   const puedeEnviarChat = !resuelta && puedeVerChat && !ticket.bloqueado_por;
   const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
   const puedeSubirAdjuntos = (esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta;
-  // El backend manda a revisión del solicitante cuando cierra quien la ejecutó
-  // (tickets_db._requiere_aprobacion_del_solicitante): mismas excepciones aquí.
-  const cierreVaARevision =
-    (ticket.tipo ?? "solicitud") === "solicitud"
-    && esAsignado && !esCreadoPorMi && !esIntervencion
-    && !["compra", "etiqueta"].includes((ticket.subtipo ?? "").trim());
 
   // Pasos/checklist
   const [pasos, setPasos] = useState<Paso[]>([]);
@@ -13235,6 +13355,9 @@ function SolicitudCard({
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showExtrasMenu, setShowExtrasMenu] = useState(false);
+  // Presencia — quién está en línea ahora mismo (solo se pollea en modo ampliado)
+  const [enLineaIds, setEnLineaIds] = useState<Set<number>>(new Set());
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const adjuntosPorPaso = useMemo(() => {
     const map = new Map<number, Adjunto[]>();
@@ -13247,8 +13370,98 @@ function SolicitudCard({
     return map;
   }, [adjuntos]);
 
-  const [showPedirRevision, setShowPedirRevision] = useState(false);
-  const [notaRevision, setNotaRevision] = useState("");
+  // Timeline unificado del chat (modo ampliado): fusiona comentarios + adjuntos en una sola
+  // secuencia cronológica, mostrando fotos como burbuja de imagen en vez de una fila aparte
+  // en un panel "Adjuntos" separado. `enviarMensajeChat` sube el archivo aparte y publica un
+  // comentario placeholder "📎 Imagen adjunta" — aquí se detecta ese par (mismo autor, <20s de
+  // diferencia) y se muestra solo la imagen, sin el texto redundante.
+  type TimelineItem =
+    | { kind: "comentario"; id: string; ts: string; comentario: Comentario }
+    | { kind: "adjunto"; id: string; ts: string; adjunto: Adjunto };
+  const timelineItems = useMemo<TimelineItem[]>(() => {
+    if (!detalleAmpliado) return [];
+    const esImagenAdj = (a: Adjunto) =>
+      (a.mime?.startsWith("image/")) || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+    const usados = new Set<number>();
+    const items: TimelineItem[] = [];
+    for (const c of comentarios) {
+      if (c.texto.trim() === "📎 Imagen adjunta") {
+        const cTs = fechaServidorToDate(c.creado_en).getTime();
+        const match = adjuntos.find((a) =>
+          !usados.has(a.id) && esImagenAdj(a) && a.creado_por_nombre === c.autor_nombre
+          && Math.abs(fechaServidorToDate(a.creado_en).getTime() - cTs) < 20000);
+        if (match) {
+          usados.add(match.id);
+          items.push({ kind: "adjunto", id: `adj-${match.id}`, ts: match.creado_en, adjunto: match });
+          continue;
+        }
+      }
+      items.push({ kind: "comentario", id: `com-${c.id}`, ts: c.creado_en, comentario: c });
+    }
+    for (const a of adjuntos) {
+      if (!usados.has(a.id)) items.push({ kind: "adjunto", id: `adj-${a.id}`, ts: a.creado_en, adjunto: a });
+    }
+    items.sort((x, y) => x.ts.localeCompare(y.ts));
+    return items;
+  }, [detalleAmpliado, comentarios, adjuntos]);
+
+  useEffect(() => {
+    if (!detalleAmpliado) return;
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [detalleAmpliado, timelineItems.length]);
+
+  // Override local de corrida/estado: al pulsar Iniciar necesitamos que la tarjeta
+  // reaccione YA (quitar el gate, mostrar el cronómetro) sin esperar a que el padre
+  // vuelva a pasar un `ticket` prop fresco vía onChanged() — de lo contrario se veían
+  // Iniciar y Listo a la vez (el gate seguía activo con el prop viejo).
+  const [ticketOverride, setTicketOverride] = useState<Partial<Ticket>>({});
+  useEffect(() => { setTicketOverride({}); }, [ticket.id]);
+  const ticketEfectivo: Ticket = { ...ticket, ...ticketOverride };
+  const corridaActual = ticketEfectivo.corrida;
+  const corridaEstado = corridaActual?.estado;
+
+  // Tick cliente cada segundo mientras la corrida está activa — cronómetro fluido sin
+  // pollear el servidor; el tiempo real se calcula desde iniciada_en/reanudada_en.
+  const [tickNow, setTickNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (corridaEstado !== "activa") return;
+    const iv = setInterval(() => setTickNow(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, [corridaEstado]);
+  const segundosCronometro = (() => {
+    if (!corridaActual) return 0;
+    if (corridaActual.estado !== "activa") {
+      return corridaActual.segundos_transcurridos ?? corridaActual.segundos_acumulados ?? 0;
+    }
+    const base = corridaActual.segundos_acumulados ?? 0;
+    const desdeTs = corridaActual.reanudada_en ?? corridaActual.iniciada_en;
+    const desde = desdeTs ? parseUtcTs(desdeTs) : tickNow;
+    return base + Math.max(0, Math.floor((tickNow - desde) / 1000));
+  })();
+
+  async function pausarCorridaSolicitud() {
+    const cid = corridaActual?.id;
+    if (!cid || busy) return;
+    setBusy(true);
+    try {
+      const t = await tapi(`/corridas/${cid}/pausar`, token, { method: "POST" }) as Ticket;
+      setTicketOverride((p) => ({ ...p, corrida: t.corrida }));
+    } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  async function reanudarCorridaSolicitud() {
+    const cid = corridaActual?.id;
+    if (!cid || busy) return;
+    setBusy(true);
+    try {
+      const t = await tapi(`/corridas/${cid}/reanudar`, token, { method: "POST" }) as Ticket;
+      setTicketOverride((p) => ({ ...p, corrida: t.corrida }));
+    } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  /** Segundos trabajados a mostrar en la pantalla de celebración; null = no celebrando. */
+  const [celebrando, setCelebrando] = useState<number | null>(null);
+
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
   const [ajustesMensaje, setAjustesMensaje] = useState("");
   const [ajustesArchivo, setAjustesArchivo] = useState<File | null>(null);
@@ -13285,8 +13498,10 @@ function SolicitudCard({
   }, [ticket.id]);
 
   useEffect(() => {
-    if (adjuntos.length > 0) setShowAdjuntos(true);
-  }, [adjuntos.length]);
+    // Modo ampliado: los adjuntos ya se ven inline en el timeline del chat —
+    // no auto-abrir el panel aparte (era lo que "tapaba" la pantalla al entrar).
+    if (adjuntos.length > 0 && !detalleAmpliado) setShowAdjuntos(true);
+  }, [adjuntos.length, detalleAmpliado]);
 
   useEffect(() => {
     if (adjuntos.some((a) => a.paso_id) && pasos.length === 0) void cargarPasos();
@@ -13600,10 +13815,7 @@ function SolicitudCard({
       setTimeout(() => setMsg(""), 4000);
       return;
     }
-    const aviso = cierreVaARevision
-      ? `¿Marcar "${ticket.titulo}" como lista?\n\nPasa a revisión de ${ticket.creado_por_nombre ?? "quien la pidió"}, que la cierra al aprobarla.`
-      : `¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`;
-    if (!isMcKennaAndroidApp() && !confirm(aviso)) return;
+    if (!isMcKennaAndroidApp() && !confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nSi algo quedó pendiente, ${ticket.creado_por_nombre ?? "quien la pidió"} puede reabrirla después.`)) return;
     setBusy(true);
     try {
       if (guardarComoProcedimiento) {
@@ -13611,41 +13823,12 @@ function SolicitudCard({
         await guardarProcedimientoDesdeSolicitud();
       }
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      setCelebrando(segundosCronometro || ticket.segundos_trabajo || 0);
+      playChimeExito();
       onChanged();
-      onCerrarDetalle?.();
+      setTimeout(() => onCerrarDetalle?.(), 1900);
     } catch (e: any) {
       setMsg(e.message ?? "Error");
-      setTimeout(() => setMsg(""), 4000);
-    } finally { setBusy(false); }
-  }
-
-  async function pedirRevision() {
-    if (!esAsignado || busy) return;
-    const total = ticket.pasos_total ?? 0;
-    const hechos = ticket.pasos_completados ?? 0;
-    if (total > 0 && hechos < total) {
-      setMsg(`Faltan ${total - hechos} paso(s) por completar antes de pedir revisión.`);
-      setTimeout(() => setMsg(""), 4000);
-      return;
-    }
-    setBusy(true);
-    try {
-      if (guardarComoProcedimiento) {
-        if (pasos.length === 0 && (ticket.pasos_total ?? 0) > 0) await cargarPasos();
-        await guardarProcedimientoDesdeSolicitud();
-      }
-      await tapi(`/${ticket.id}/estado`, token, {
-        method: "PUT",
-        body: JSON.stringify({
-          estado: "esperando_aprobacion",
-          motivo: notaRevision.trim() || undefined,
-        }),
-      });
-      setShowPedirRevision(false);
-      setNotaRevision("");
-      onChanged();
-    } catch (e: any) {
-      setMsg(e.message ?? "Error al pedir revisión");
       setTimeout(() => setMsg(""), 4000);
     } finally { setBusy(false); }
   }
@@ -13746,6 +13929,24 @@ function SolicitudCard({
     } finally { setBusy(false); }
   }
 
+  /** Creador reabre una solicitud ya resuelta que no quedó como esperaba — dispara aviso
+   * WhatsApp a quien la había resuelto (ver cambiar_estado en tickets_db.py). */
+  async function reabrirSolicitud() {
+    if (!esCreadoPorMi || busy) return;
+    if (!isMcKennaAndroidApp() && !confirm(`¿Reabrir "${ticket.titulo}"?\n\n${ticket.asignado_a_nombre ?? "Quien la resolvió"} recibirá un aviso.`)) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "en_proceso", motivo: "Reabierta por el solicitante" }),
+      });
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "No se pudo reabrir");
+      setTimeout(() => setMsg(""), 4000);
+    } finally { setBusy(false); }
+  }
+
   async function resolverIntervencion() {
     if (!esAsignado || busy) return;
     const texto = resolucionInter.trim();
@@ -13790,6 +13991,28 @@ function SolicitudCard({
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
       onChanged();
     } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  /** Gate "Iniciar": arranca la corrida (cronómetro) y pasa la solicitud a en_proceso — mismo
+   * patrón de dos llamadas que ya usa continuarAccion() para acciones. */
+  async function iniciarSolicitudConCronometro() {
+    if (!esAsignado || busy) return;
+    setBusy(true);
+    try {
+      const segPrev = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
+      const t1 = await tapi(`/${ticket.id}/corridas/iniciar`, token, {
+        method: "POST",
+        body: JSON.stringify({ segundos_previos: segPrev }),
+      }) as Ticket;
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "en_proceso" }) });
+      // Reflejar de inmediato en esta tarjeta — no esperar a que el padre vuelva a
+      // pasar un `ticket` prop fresco (onChanged() puede tardar o no llegar a tiempo).
+      setTicketOverride((p) => ({ ...p, corrida: t1.corrida, estado: "en_proceso" }));
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "No se pudo iniciar");
+      setTimeout(() => setMsg(""), 4000);
+    } finally { setBusy(false); }
   }
 
   async function eliminar() {
@@ -13879,7 +14102,9 @@ function SolicitudCard({
         await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
         limpiarArchivoPendiente();
         void cargarAdjuntos();
-        setShowAdjuntos(true);
+        // Modo ampliado: la foto ya aparece inline en el chat — no hace falta
+        // abrir además el panel aparte de Adjuntos y tapar la pantalla.
+        if (!detalleAmpliado) setShowAdjuntos(true);
       }
       if (textoEnvio) {
         await tapi(`/${ticket.id}/comentarios`, token, {
@@ -13914,12 +14139,34 @@ function SolicitudCard({
   }, [ticket.bloqueado_por]);
 
   useEffect(() => {
-    if (!showChat) return;
+    if (!showChat && !detalleAmpliado) return;
     void cargarComentarios();
-    const iv = setInterval(() => void cargarComentarios(), 12000);
+    if (detalleAmpliado) void cargarAdjuntos();
+    // Modo ampliado: refresco más frecuente para que se sienta como chat en vivo
+    // (mensajes/fotos de la otra persona sin recargar la página).
+    const ms = detalleAmpliado ? 6000 : 12000;
+    const iv = setInterval(() => {
+      void cargarComentarios();
+      if (detalleAmpliado) void cargarAdjuntos();
+    }, ms);
     return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showChat, ticket.id]);
+  }, [showChat, detalleAmpliado, ticket.id]);
+
+  // Presencia — quiénes están en línea ahora (solo modo ampliado, mismo cadencia que el chat)
+  useEffect(() => {
+    if (!detalleAmpliado) return;
+    let cancelled = false;
+    async function cargarPresencia() {
+      try {
+        const data = await tapi("/presencia/en-linea", token) as { usuario_ids?: number[] };
+        if (!cancelled) setEnLineaIds(new Set(data.usuario_ids ?? []));
+      } catch { /* ignore */ }
+    }
+    void cargarPresencia();
+    const iv = setInterval(cargarPresencia, 10000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [detalleAmpliado, token]);
 
   async function cargarAdjuntos() {
     setLoadingAdjuntos(true);
@@ -14127,6 +14374,70 @@ function SolicitudCard({
     );
   }
 
+  // ── Celebración al marcar lista 🏆 (mismo patrón que RepetirAccionWizard fase "completada") ──
+  if (celebrando != null) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-5 text-center px-4 py-10">
+        <div className="relative">
+          <div className="mck-bounce-in text-8xl select-none">🏆</div>
+          <div className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
+        </div>
+        <div className="mck-slide-up space-y-1.5" style={{ animationDelay: "0.2s" }}>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">¡Solicitud resuelta!</p>
+          <h2 className="text-2xl font-extrabold text-ink max-w-sm">{ticket.titulo}</h2>
+          {celebrando > 0 && (
+            <div className="flex justify-center pt-1">
+              <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3 py-1">
+                <span className="text-sm">⏱</span>
+                <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtTiempo(celebrando)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Gate "Iniciar": obliga a registrar cuándo empieza el trabajo antes de ver
+  // descripción/adjuntos/chat — solo para solicitudes libres (sin protocolo) aún no iniciadas.
+  const necesitaIniciarSolicitud =
+    detalleAmpliado && ticket.tipo === "solicitud" && esAsignado && !supervision
+    && !esIntervencion && !esSolicitudCompraDelegada(ticket) && !resuelta
+    && !ticket.protocolo_id && ticketEfectivo.estado === "pendiente"
+    && corridaEstado !== "activa" && corridaEstado !== "pausada";
+
+  if (necesitaIniciarSolicitud) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-5 text-center px-4 py-10">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="font-mono text-sm font-bold text-muted">{ticket.numero}</span>
+          <CategoriaBadge cat={ticket.categoria} />
+          <PrioridadBadge p={ticket.prioridad} />
+        </div>
+        <h2 className="text-2xl font-extrabold text-ink leading-snug max-w-md">{ticket.titulo}</h2>
+        <p className="text-sm font-bold text-muted">
+          {esCreadoPorMi ? "Tú" : (ticket.creado_por_nombre ?? "?")}
+          {" → "}
+          <strong className="text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
+        </p>
+        {msg && <p className="text-xs text-red-400">{msg}</p>}
+        <div className="w-full max-w-xs">
+          <CorridaCronometroBlock
+            segundos={0}
+            estado={null}
+            etiqueta={ticket.numero}
+            onIniciar={() => void iniciarSolicitudConCronometro()}
+          />
+        </div>
+        <p className="text-xs text-muted max-w-xs">
+          Al pulsar Iniciar se registra el tiempo de trabajo. Ahí vas a ver la descripción
+          completa, los adjuntos y vas a poder escribir en el chat.
+        </p>
+      </div>
+    );
+  }
+
   const adjuntosEntregaRevision = adjuntos.filter((a) =>
     a.creado_por != null
       ? uidEq(a.creado_por, ticket.asignado_a)
@@ -14194,12 +14505,16 @@ function SolicitudCard({
             <p className="text-sm leading-relaxed text-muted/80 whitespace-pre-wrap">{ticket.descripcion}</p>
           )}
           {/* De quién → para quién */}
-          <div className="flex items-center gap-2 text-xs text-muted flex-wrap">
-            <span className="font-medium text-ink/70">
+          <div className="flex items-center gap-2 text-xs lg:text-sm text-muted flex-wrap">
+            <span className="inline-flex items-center gap-1.5 font-medium text-ink/70">
+              <PresenceDot enLinea={!!ticket.creado_por && enLineaIds.has(ticket.creado_por)} />
               {esCreadoPorMi ? "Tú" : (ticket.creado_por_nombre ?? "?")}
             </span>
             <svg className="h-3 w-3 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <span className="font-semibold text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</span>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+              <PresenceDot enLinea={!!ticket.asignado_a && enLineaIds.has(ticket.asignado_a)} />
+              {ticket.asignado_a_nombre ?? "Sin asignar"}
+            </span>
           </div>
           {(ticket.frecuencia || ticket.protocolo_titulo) && (
             <div className="flex flex-wrap gap-2 pt-0.5">
@@ -14323,6 +14638,39 @@ function SolicitudCard({
             </span>
           </div>
         </>
+      )}
+
+      {/* Cronómetro grande y animado — visible mientras se trabaja en la solicitud, junto
+          al título (no metido entre los botones de abajo, que quedan solo con "Listo"). */}
+      {detalleAmpliado && !resuelta && (corridaEstado === "activa" || corridaEstado === "pausada") && (
+        <div className={`shrink-0 rounded-2xl border-2 p-4 transition-colors ${
+          corridaEstado === "activa" ? "border-accent bg-accent/10" : "border-border bg-surface-hover"
+        }`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${corridaEstado === "activa" ? "bg-emerald-500 animate-pulse" : "bg-muted/40"}`} />
+              <span className="text-xs font-bold uppercase tracking-wide text-muted">
+                {corridaEstado === "activa" ? "Trabajando en esto" : "En pausa"}
+              </span>
+            </div>
+            <span className="font-mono text-4xl lg:text-5xl font-black tabular-nums text-accent">
+              {fmtTiempo(segundosCronometro)}
+            </span>
+            {esAsignado && !supervision && (
+              corridaEstado === "activa" ? (
+                <button type="button" disabled={busy} onClick={() => void pausarCorridaSolicitud()}
+                  className="rounded-xl border border-border bg-surface-panel px-4 py-2 text-sm font-bold text-muted hover:text-ink transition-colors disabled:opacity-40">
+                  ⏸ Pausar
+                </button>
+              ) : (
+                <button type="button" disabled={busy} onClick={() => void reanudarCorridaSolicitud()}
+                  className="rounded-xl border border-accent bg-accent px-4 py-2 text-sm font-bold text-white transition-colors disabled:opacity-40">
+                  ▶ Reanudar
+                </button>
+              )
+            )}
+          </div>
+        </div>
       )}
 
       {/* Formulario de edición inline — visible al creador o admin */}
@@ -14536,22 +14884,23 @@ function SolicitudCard({
           )}
 
           {/* Lista de mensajes */}
+          {detalleAmpliado && lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
           <div className={detalleAmpliado
-            ? "flex-1 min-h-0 overflow-y-auto bg-surface/50 px-3 pt-3 pb-1 space-y-1"
+            ? "flex-1 min-h-0 overflow-y-auto bg-surface/50 px-4 pt-4 pb-1 space-y-1.5"
             : "overflow-y-auto bg-surface px-3 py-3 max-h-52 space-y-1"}
           >
             {loadingComentarios && comentarios.length === 0 && (
               <p className="text-xs text-muted text-center py-4">Cargando mensajes…</p>
             )}
-            {!loadingComentarios && comentarios.length === 0 && (
-              <p className="text-xs text-muted text-center py-6 italic">
+            {!loadingComentarios && comentarios.length === 0 && adjuntos.length === 0 && (
+              <p className="text-xs lg:text-sm text-muted text-center py-6 italic">
                 Aún no hay mensajes. Escribe abajo para empezar.
               </p>
             )}
             {(() => {
               const getDateLabel = (ts: string) => {
                 try {
-                  const d = new Date(ts.includes("T") || ts.includes("Z") ? ts : ts + "Z");
+                  const d = fechaServidorToDate(ts);
                   const hoy = new Date();
                   const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
                   if (d.toDateString() === hoy.toDateString()) return "Hoy";
@@ -14559,15 +14908,90 @@ function SolicitudCard({
                   return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
                 } catch { return null; }
               };
+              const horaDe = (ts: string) => {
+                try { return fechaServidorToDate(ts).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }); }
+                catch { return ""; }
+              };
+
+              // ── Modo ampliado: timeline unificado (mensajes + fotos/archivos inline) ──
+              if (detalleAmpliado) {
+                return timelineItems.flatMap((item, idx) => {
+                  const autorId = item.kind === "comentario" ? item.comentario.usuario_id : item.adjunto.creado_por;
+                  const autorNombre = item.kind === "comentario" ? item.comentario.autor_nombre : (item.adjunto.creado_por_nombre ?? "?");
+                  const esMio = autorId === user.id;
+                  const fechaLabel = getDateLabel(item.ts);
+                  const prevTs = timelineItems[idx - 1]?.ts;
+                  const mostrarSep = fechaLabel && fechaLabel !== (prevTs ? getDateLabel(prevTs) : null);
+                  const out = [];
+                  if (mostrarSep) {
+                    out.push(
+                      <div key={`sep-${item.id}`} className="flex items-center gap-2 py-2">
+                        <div className="flex-1 h-px bg-border/40" />
+                        <span className="text-[11px] text-muted/70 font-medium px-1">{fechaLabel}</span>
+                        <div className="flex-1 h-px bg-border/40" />
+                      </div>
+                    );
+                  }
+                  const burbujaCls = esMio
+                    ? "rounded-br-sm bg-accent text-white"
+                    : "rounded-bl-sm border border-border bg-surface-panel text-ink";
+                  out.push(
+                    <div key={item.id} className={`flex items-end gap-2 mb-1.5 ${esMio ? "justify-end" : "justify-start"}`}>
+                      {!esMio && (
+                        <span className="relative mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-black text-accent">
+                          {autorNombre.charAt(0).toUpperCase()}
+                          {!!autorId && enLineaIds.has(autorId) && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-emerald-500" title="En línea ahora" />
+                          )}
+                        </span>
+                      )}
+                      <div className="max-w-[75%] lg:max-w-[60%] space-y-0.5">
+                        {!esMio && <p className="px-1 text-[11px] lg:text-xs font-bold text-muted">{autorNombre}</p>}
+                        {item.kind === "adjunto" ? (
+                          (item.adjunto.mime?.startsWith("image/")) || /\.(jpg|jpeg|png|gif|webp)$/i.test(item.adjunto.nombre_original) ? (
+                            <button
+                              type="button"
+                              onClick={() => setLightboxUrl(ticketsUploadUrl(item.adjunto.nombre_archivo, token))}
+                              className="group relative block overflow-hidden rounded-2xl border border-border shadow-sm"
+                              title="Ver imagen completa"
+                            >
+                              <img
+                                src={ticketsUploadUrl(item.adjunto.nombre_archivo, token)}
+                                alt={item.adjunto.nombre_original}
+                                className="max-h-72 w-full max-w-[280px] object-cover transition group-hover:opacity-85"
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-2xl text-white opacity-0 transition group-hover:bg-black/10 group-hover:opacity-100">🔍</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={ticketsUploadUrl(item.adjunto.nombre_archivo, token)}
+                              target="_blank" rel="noreferrer"
+                              className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm ${burbujaCls}`}
+                            >
+                              <span className="text-lg shrink-0">{/\.pdf$/i.test(item.adjunto.nombre_original) ? "📄" : "📁"}</span>
+                              <span className="truncate underline underline-offset-2">{item.adjunto.nombre_original}</span>
+                            </a>
+                          )
+                        ) : (
+                          <div className={`rounded-2xl px-3.5 py-2.5 text-sm lg:text-base leading-relaxed shadow-sm ${burbujaCls}`}>
+                            <p className="whitespace-pre-wrap">{item.comentario.texto}</p>
+                          </div>
+                        )}
+                        <p className={`px-1 text-[11px] lg:text-xs text-muted/70 ${esMio ? "text-right" : "text-left"}`}>{horaDe(item.ts)}</p>
+                      </div>
+                    </div>
+                  );
+                  return out;
+                });
+              }
+
+              // ── Modo tarjeta compacta (sin cambios) ──
               return comentarios.flatMap((c, idx) => {
                 const esMio = c.usuario_id === user.id;
                 const fechaLabel = c.creado_en ? getDateLabel(c.creado_en) : null;
                 const prevFechaLabel = comentarios[idx - 1]?.creado_en ? getDateLabel(comentarios[idx - 1].creado_en) : null;
                 const mostrarSep = fechaLabel && fechaLabel !== prevFechaLabel;
-                const horaStr = c.creado_en ? (() => {
-                  try { return new Date(c.creado_en.includes("T") || c.creado_en.includes("Z") ? c.creado_en : c.creado_en + "Z").toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }); }
-                  catch { return ""; }
-                })() : "";
+                const horaStr = c.creado_en ? horaDe(c.creado_en) : "";
                 const items = [];
                 if (mostrarSep) {
                   items.push(
@@ -14596,6 +15020,7 @@ function SolicitudCard({
                 return items;
               });
             })()}
+            {detalleAmpliado && <div ref={chatBottomRef} />}
           </div>
 
           {/* Área de entrada — pegada al fondo */}
@@ -15177,45 +15602,27 @@ function SolicitudCard({
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           {protocoloMsg && <p className="text-xs font-semibold text-accent">{protocoloMsg}</p>}
 
-          {/* Generar procedimiento al contestar / cerrar */}
-          <div className="rounded-xl border-2 border-dashed border-accent/30 bg-accent/5 p-3 space-y-2">
+          {/* Procedimiento — un solo control compacto (antes: checkbox + botón separado, confuso) */}
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-hover px-2.5 py-1.5">
             <button
               type="button"
               onClick={() => setGuardarComoProcedimiento((v) => !v)}
-              className={`w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition ${
-                guardarComoProcedimiento
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-border bg-surface-panel text-muted hover:border-accent/50"
-              }`}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              title="Al marcar lista o pedir revisión, queda guardado en Procedimientos"
             >
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs font-black transition ${
+              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 text-[10px] font-black transition ${
                 guardarComoProcedimiento ? "border-accent bg-accent text-white" : "border-border"
               }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
-              <div>
-                <p className="text-sm font-semibold text-ink">Guardar como procedimiento al cerrar</p>
-                <p className="text-[11px] text-muted">Al marcar lista o pedir revisión, queda en Procedimientos</p>
-              </div>
+              <span className="truncate text-xs font-semibold text-ink">Guardar como procedimiento al cerrar</span>
             </button>
             {guardarComoProcedimiento && (
-              <div className="flex gap-2 rounded-xl border border-accent/20 bg-surface-panel p-1">
-                <button
-                  type="button"
-                  onClick={() => setAlcanceProcedimiento("personal")}
-                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                    alcanceProcedimiento === "personal" ? "bg-accent text-white shadow" : "text-muted hover:text-ink"
-                  }`}
-                >
-                  🔒 Solo para mí
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAlcanceProcedimiento("global")}
-                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                    alcanceProcedimiento === "global" ? "bg-accent text-white shadow" : "text-muted hover:text-ink"
-                  }`}
-                >
-                  🌐 Compartir equipo
-                </button>
+              <div className="flex shrink-0 gap-1 rounded-lg border border-accent/20 bg-surface-panel p-0.5">
+                <button type="button" onClick={() => setAlcanceProcedimiento("personal")}
+                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "personal" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+                >🔒 Solo yo</button>
+                <button type="button" onClick={() => setAlcanceProcedimiento("global")}
+                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "global" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+                >🌐 Equipo</button>
               </div>
             )}
             <button
@@ -15223,9 +15630,9 @@ function SolicitudCard({
               disabled={generandoProcedimiento || busy || !!ticket.bloqueado_por}
               onClick={() => void generarProcedimientoAhora()}
               title={ticket.bloqueado_por ? "Intervención pendiente" : "Guardar pasos actuales sin cerrar la solicitud"}
-              className="w-full rounded-xl border border-accent/40 bg-surface-panel py-2 text-xs font-bold text-accent hover:bg-accent/10 transition-colors disabled:opacity-40"
+              className="shrink-0 text-[11px] font-bold text-accent underline-offset-2 hover:underline disabled:opacity-40"
             >
-              {generandoProcedimiento ? "Generando…" : "📋 Generar procedimiento ahora"}
+              {generandoProcedimiento ? "Generando…" : "Generar ahora"}
             </button>
           </div>
 
@@ -15281,75 +15688,29 @@ function SolicitudCard({
               </button>
             </div>
           ) : (
-            /* Solicitud libre → Iniciar/Pausar + Listo + Solicitar revisión */
+            /* Solicitud libre, ya iniciada (pasó el gate de Iniciar) — el cronómetro va
+               arriba, grande, junto al título; acá solo queda la acción de cerrar. */
             <div className="space-y-2">
-              <div className="flex gap-2">
-                <button type="button" disabled={busy} onClick={iniciarPausar}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-                    ticket.estado === "en_proceso"
-                      ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10"
-                      : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-                  }`}
-                >
-                  <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
-                  {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
-                </button>
-                {(() => {
-                  const total = ticket.pasos_total ?? 0;
-                  const hechos = ticket.pasos_completados ?? 0;
-                  const pasosFaltantes = total > 0 ? total - hechos : 0;
-                  const bloqueado = !!ticket.bloqueado_por;
-                  const noPermite = pasosFaltantes > 0 || bloqueado;
-                  return (
-                    <button type="button" disabled={busy || noPermite} onClick={resolver}
-                      title={bloqueado ? "Intervención pendiente — no disponible" : pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-                        noPermite
-                          ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                          : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10"
-                      }`}
-                    >
-                      <Icon name="check" size={15} weight="bold" />
-                      {bloqueado
-                        ? "Listo 🔒"
-                        : pasosFaltantes > 0
-                          ? `Listo (${hechos}/${total} pasos)`
-                          : cierreVaARevision ? "Marcar lista" : "Listo"}
-                    </button>
-                  );
-                })()}
-              </div>
-              {/* Solicitar revisión del solicitante */}
-              {!showPedirRevision ? (
-                <button type="button" disabled={busy}
-                  onClick={() => setShowPedirRevision(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20  px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/50  transition-colors">
-                  🔔 Solicitar revisión del solicitante
-                </button>
-              ) : (
-                <div className="rounded-xl border border-accent/40 bg-accent/20  p-3 space-y-2">
-                  <p className="text-xs font-bold text-accent">
-                    Solicitar revisión a {ticket.creado_por_nombre ?? "el solicitante"}
-                  </p>
-                  <ProseTextarea
-                    className="quest-input w-full text-xs resize-none"
-                    rows={2}
-                    placeholder="Nota para el solicitante (opcional): qué revisó, cómo quedó…"
-                    value={notaRevision}
-                    onChange={(e) => setNotaRevision(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <button type="button" disabled={busy} onClick={pedirRevision}
-                      className="flex-1 rounded-xl bg-accent/50 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent transition-colors">
-                      {busy ? "Enviando…" : "Enviar para revisión"}
-                    </button>
-                    <button type="button" onClick={() => { setShowPedirRevision(false); setNotaRevision(""); }}
-                      className="rounded-xl border border-border px-3 py-2 text-xs text-muted hover:text-ink">
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const total = ticket.pasos_total ?? 0;
+                const hechos = ticket.pasos_completados ?? 0;
+                const pasosFaltantes = total > 0 ? total - hechos : 0;
+                const bloqueado = !!ticket.bloqueado_por;
+                const noPermite = pasosFaltantes > 0 || bloqueado;
+                return (
+                  <button type="button" disabled={busy || noPermite} onClick={resolver}
+                    title={bloqueado ? "Intervención pendiente — no disponible" : pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
+                    className={`flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                      noPermite
+                        ? "border-border bg-surface-hover text-muted cursor-not-allowed"
+                        : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10"
+                    }`}
+                  >
+                    <Icon name="check" size={15} weight="bold" />
+                    {bloqueado ? "Listo 🔒" : pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                  </button>
+                );
+              })()}
             </div>
           )}
 
@@ -15613,6 +15974,21 @@ function SolicitudCard({
           <p className="text-[10px] text-center text-muted">
             Seguimiento del equipo — usa <strong>Mensajes</strong> para conversar con quien solicita o ejecuta la tarea
           </p>
+        </div>
+      )}
+
+      {/* Reabrir: el solicitante ve que no quedó como esperaba — reemplaza la antigua
+          aprobación previa obligatoria; ahora se puede corregir después de resuelta. */}
+      {resuelta && esCreadoPorMi && ticket.tipo === "solicitud" && (
+        <div className="pt-1">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void reabrirSolicitud()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-bold text-muted hover:border-accent hover:text-accent transition-colors disabled:opacity-40"
+          >
+            ↺ Reabrir solicitud
+          </button>
         </div>
       )}
 

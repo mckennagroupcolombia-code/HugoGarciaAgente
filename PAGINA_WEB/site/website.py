@@ -3496,8 +3496,20 @@ _ACTIVIDAD_TTL = 60  # seg — evita golpear sqlite en cada request del ticker
 
 
 def _calcular_actividad() -> dict:
-    """Actividad real agregada (sin PII) para el ticker 'en este momento' del inicio."""
-    pedidos_hoy = 0
+    """Actividad real agregada (sin PII) para el ticker 'en este momento' del inicio.
+
+    Combina tienda web + MercadoLibre: la web sola casi no tiene tráfico propio
+    (pedidos/facturas quedan en 0 casi todo el día) mientras MeLi mueve cientos
+    de órdenes diarias — mostrar solo el canal web hacía ver el ticker "muerto"
+    aunque el negocio sí estuviera facturando. `ordenes_meli` (metricas_diarias.json)
+    y `facturacion_meli_index.json` (índice real de facturas MeLi, ver Flujo F en
+    CLAUDE.md) sí reflejan ese volumen sin necesidad de golpear la API de MeLi
+    en cada request del ticker.
+    """
+    hoy = datetime.now().strftime("%Y-%m-%d")
+
+    pedidos_web_hoy = 0
+    facturas_web_hoy = 0
     despachos_semana = 0
     ciudades_semana: list[str] = []
     try:
@@ -3506,7 +3518,11 @@ def _calcular_actividad() -> dict:
         cur.execute(
             "SELECT COUNT(*) FROM orders WHERE status='approved' AND date(created_at)=date('now')"
         )
-        pedidos_hoy = cur.fetchone()[0]
+        pedidos_web_hoy = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(*) FROM orders WHERE date(siigo_invoice_emitted_at)=date('now')"
+        )
+        facturas_web_hoy = cur.fetchone()[0]
         cur.execute(
             "SELECT COUNT(*) FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days')"
@@ -3524,17 +3540,28 @@ def _calcular_actividad() -> dict:
 
     mensajes_wa = 0
     preguntas_meli = 0
+    ordenes_meli_hoy = 0
     try:
         metricas_path = ROOT / "app" / "data" / "metricas_diarias.json"
         m = json.loads(metricas_path.read_text(encoding="utf-8"))
-        if m.get("fecha") == datetime.now().strftime("%Y-%m-%d"):
+        if m.get("fecha") == hoy:
             mensajes_wa = int(m.get("mensajes_whatsapp") or 0)
             preguntas_meli = int(m.get("preguntas_meli") or 0)
+            ordenes_meli_hoy = int(m.get("ordenes_meli") or 0)
+    except Exception:
+        pass
+
+    facturas_meli_hoy = 0
+    try:
+        idx_path = ROOT / "app" / "data" / "facturacion_meli_index.json"
+        indice = json.loads(idx_path.read_text(encoding="utf-8")).get("indice", {})
+        facturas_meli_hoy = sum(1 for v in indice.values() if v.get("factura_fecha") == hoy)
     except Exception:
         pass
 
     return {
-        "pedidos_hoy": pedidos_hoy,
+        "pedidos_hoy": pedidos_web_hoy + ordenes_meli_hoy,
+        "facturas_hoy": facturas_web_hoy + facturas_meli_hoy,
         "despachos_semana": despachos_semana,
         "ciudades_semana": ciudades_semana,
         "n_ciudades_semana": len(ciudades_semana),
@@ -3632,17 +3659,57 @@ def catalogo():
         q_filter=q_filter)
 
 
+def _fotos_locales_catalogo(sku: str, orden_preferido: list | None = None) -> list[str]:
+    """
+    Galería local en IMAGENES_PRODUCTOS_CATALOGO: {sku}.ext y {sku}_N.ext.
+    Misma convención que el panel de Publicaciones.
+    """
+    sku = (sku or "").strip()
+    if not sku:
+        return []
+    img_dir = ROOT / "IMAGENES_PRODUCTOS_CATALOGO"
+    if not img_dir.is_dir():
+        return []
+    exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    found: dict[str, Path] = {}
+    for f in img_dir.iterdir():
+        if not f.is_file() or f.suffix.lower() not in exts:
+            continue
+        stem = f.stem
+        if stem == sku or stem.startswith(f"{sku}_"):
+            found[f.name] = f
+    if not found:
+        return []
+    orden = list(orden_preferido or [])
+
+    def sort_key(fname: str) -> tuple:
+        try:
+            return (0, orden.index(fname), fname)
+        except ValueError:
+            return (1, 0, fname)
+
+    names = sorted(found.keys(), key=sort_key)
+    return [f"/imagenes-productos-catalogo/{n}" for n in names]
+
+
 def _fotos_de_producto(p: dict) -> list[str]:
-    """Galería del producto: override del panel, si no todas las fotos MeLi, si no la principal."""
+    """Galería del producto: override del panel, archivos locales del SKU, fotos MeLi, o la principal."""
     sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+    orden_ov: list = []
     try:
         raw = json.loads(PUB_OVERRIDES_FILE.read_text(encoding="utf-8"))
         ov = raw.get(sku) or raw.get(sku.upper()) or {}
-        imagenes = ov.get("imagenes_web", [])
-        if imagenes:
-            return [f"/imagenes-productos-catalogo/{fn}" for fn in imagenes]
+        imagenes = ov.get("imagenes_web") or []
+        if isinstance(imagenes, list) and imagenes:
+            orden_ov = [str(fn) for fn in imagenes if fn]
+            return [f"/imagenes-productos-catalogo/{fn}" for fn in orden_ov]
     except Exception:
         pass
+
+    locales = _fotos_locales_catalogo(sku, orden_ov or None)
+    if locales:
+        return locales
+
     photos = _normalize_photo_urls(p.get("photos") or [])
     if photos:
         return photos

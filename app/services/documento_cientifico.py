@@ -13,6 +13,7 @@ from typing import Any
 import requests
 
 from app.tools.knowledge_agent import buscar_arxiv, buscar_pubmed
+from app.services.formula_molecular import formatear_formula_molecular
 
 
 def _vacio(val: Any) -> bool:
@@ -63,7 +64,9 @@ def buscar_pubchem(nombre: str) -> dict[str, Any]:
             _cid = str(p.get("CID") or "").strip()
             return {
                 "cas": str(cas or "").strip(),
-                "formula_molecular": str(p.get("MolecularFormula") or "").strip(),
+                "formula_molecular": formatear_formula_molecular(
+                    str(p.get("MolecularFormula") or "").strip()
+                ),
                 "nombre_iupac": str(p.get("IUPACName") or "").strip(),
                 "masa_molecular": str(p.get("MolecularWeight") or "").strip(),
                 "cid": _cid,
@@ -432,7 +435,7 @@ _CAMPOS_PERMITIDOS = {
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "recomendaciones", "nombre_comercial",
     "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
-    "coa_einecs", "coa_grado",
+    "coa_einecs", "coa_grado", "coa_parametros",
 }
 
 _PROMPT_BASE = (
@@ -448,6 +451,27 @@ _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "sds_clasificacion_ghs", "sds_manipulacion",
 }
+
+
+def normalizar_filas_parametros_coa(texto: str) -> str:
+    """Deja solo filas Parámetro|Especificación|Resultado; descarta encabezados y markdown."""
+    lineas: list[str] = []
+    for cruda in (texto or "").splitlines():
+        ln = cruda.strip().strip("|")
+        if not ln or ln.startswith("#"):
+            continue
+        if set(ln) <= set("-|: "):
+            continue
+        partes = [p.strip() for p in ln.split("|")]
+        if len(partes) < 2:
+            continue
+        clave = partes[0].lower()
+        if clave in {"parametro", "parámetro", "parameter"}:
+            continue
+        while len(partes) < 3:
+            partes.append("Conforme")
+        lineas.append("|".join(partes[:3]))
+    return "\n".join(lineas)
 
 
 def _asegurar_punto_final(texto: str) -> str:
@@ -512,16 +536,21 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
 
     if campo == "formula_quimica":
         if pc.get("formula_molecular"):
-            return {"ok": True, "campo": campo, "valor": pc["formula_molecular"], "origen": "pubchem"}
+            return {
+                "ok": True,
+                "campo": campo,
+                "valor": formatear_formula_molecular(pc["formula_molecular"]),
+                "origen": "pubchem",
+            }
         if cid:
             vals = _pug_view(cid, "Molecular Formula")
             if vals:
-                return {"ok": True, "campo": campo, "valor": vals[0], "origen": "pubchem"}
+                return {"ok": True, "campo": campo, "valor": formatear_formula_molecular(vals[0]), "origen": "pubchem"}
         valor = _sintetizar_texto(
             f'{_PROMPT_BASE}\nIndica la fórmula química molecular de "{nombre}".\n'
             "Responde SOLO con la fórmula (ej. C6H12O6) o \"No aplica\"."
         )
-        return {"ok": True, "campo": campo, "valor": valor.split("\n")[0].strip(), "origen": "gemini"}
+        return {"ok": True, "campo": campo, "valor": formatear_formula_molecular(valor.split("\n")[0].strip()), "origen": "gemini"}
 
     # ── 3. Campos físico-químicos vía PUG View ───────────────────────────────
     _PUG_MAP: dict[str, list[str]] = {
@@ -693,6 +722,17 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Ejemplos: Grado Farmacéutico USP/NF, Grado Cosmético, Grado Alimentario FCC, Grado Reactivo ACS.\n"
             "Responde en UNA línea concisa. Sin markdown."
         ),
+        "coa_parametros": (
+            f'Sugiere la tabla de parámetros de un CERTIFICADO DE ANÁLISIS (COA) para "{nombre}" '
+            "grado cosmético/farmacéutico, según especificaciones típicas de literatura y fichas de proveedor.\n"
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato ESTRICTO: una fila por línea como \"Parámetro|Especificación|Resultado\".\n"
+            "6 a 12 parámetros relevantes (aspecto, identificación, ensayo/pureza, humedad, pH, "
+            "metales pesados, residuales, microbiología si aplica).\n"
+            "Especificación: rango o criterio típico publicado (ej. ≥ 99.0 %, Polvo blanco, Cumple).\n"
+            "Resultado: escriba \"Conforme\" — NO invente números de un ensayo de laboratorio real.\n"
+            "Sin markdown, sin encabezados, sin numeración."
+        ),
     }
 
     prompt_texto = _PROMPTS.get(campo)
@@ -704,6 +744,10 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":
         valor = _asegurar_punto_final_lineas(valor)
+    elif campo == "coa_parametros":
+        valor = normalizar_filas_parametros_coa(valor)
+        if not valor:
+            raise RuntimeError("La IA no devolvió filas de parámetros COA utilizables")
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 

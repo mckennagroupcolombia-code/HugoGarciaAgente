@@ -40,17 +40,40 @@ def _clasificar_integracion(texto: str) -> str:
     return "otro"
 
 
+def _numero_factura_ordenable(f: dict) -> int:
+    """Número de documento Siigo como entero, para saber cuál factura es la
+    más reciente cuando un mismo pack_id tiene varias (ej. anulada por nota
+    crédito y reemplazada). -1 si no viene o no es numérico."""
+    try:
+        return int(f.get("number"))
+    except (TypeError, ValueError):
+        return -1
+
+
 def construir_indice_facturacion_meli(facturas: list[dict]) -> dict[str, dict]:
     """A partir de una lista de facturas Siigo ya obtenida, extrae las que
     referencian una venta MeLi (por pack_id en observations) y arma el índice.
+
+    Un pack_id puede tener más de una factura (la original y su reemplazo tras
+    una nota crédito — p. ej. corrección de IVA duplicado o de NIT/comprador).
+    Se queda con la de mayor `number` (documento Siigo más reciente), no con
+    la última que aparezca en `facturas` — antes de este fix, una orden con
+    varias facturas terminaba con la que quedara al final de la lista sin
+    importar cuál era la vigente, dejando el índice apuntando a facturas ya
+    anuladas.
     """
     indice: dict[str, dict] = {}
+    numeros: dict[str, int] = {}
     for f in facturas:
         texto = _texto_factura(f)
         m = _RE_PACK.search(texto)
         if not m:
             continue
         pack_id = m.group(1)
+        numero = _numero_factura_ordenable(f)
+        if pack_id in numeros and numero <= numeros[pack_id]:
+            continue
+        numeros[pack_id] = numero
         indice[pack_id] = {
             "factura_id": f.get("id"),
             "factura_numero": f.get("name") or str(f.get("number") or ""),

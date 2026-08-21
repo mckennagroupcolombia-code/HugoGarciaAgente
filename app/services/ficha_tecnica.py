@@ -1177,8 +1177,11 @@ def generar_pdf_html(
     nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
     destino = salida or (FICHAS_PDF_DIR / nombre_pdf)
 
+    from app.services.formula_molecular import formula_a_html_sub
+
     tpl_dir = Path(__file__).resolve().parents[1] / "templates"
     env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
+    env.filters["formula_sub"] = formula_a_html_sub
     tpl = env.get_template("ficha_tecnica_pdf.html")
     html_str = tpl.render(**ctx)
 
@@ -1432,13 +1435,11 @@ def generar_pdf_completo(
     if sds_ctx and not _sds_diligenciado(sds_ctx):
         sds_ctx = None
 
-    import re as _re
-    def _formula_sub(val: str) -> str:
-        return _re.sub(r"(\d+)", r"<sub>\1</sub>", str(val or ""))
+    from app.services.formula_molecular import formula_a_html_sub
 
     tpl_dir = Path(__file__).resolve().parents[1] / "templates"
     env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
-    env.filters["formula_sub"] = _formula_sub
+    env.filters["formula_sub"] = formula_a_html_sub
     tpl = env.get_template("documento_completo_pdf.html")
     html_str = tpl.render(
         titulo=titulo,

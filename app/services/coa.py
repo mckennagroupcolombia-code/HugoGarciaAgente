@@ -116,7 +116,9 @@ def aplicar_datos_a_docx(doc_path: Path, datos: dict) -> None:
     _celda(t3, 0, 3, ident.get("referencia_interna", ""))
     _celda(t3, 1, 1, ident.get("nombre_inci", ""))
     _celda(t3, 1, 3, ident.get("cas", ""))
-    _celda(t3, 2, 1, ident.get("formula_molecular", ""))
+    from app.services.formula_molecular import formatear_formula_molecular
+
+    _celda(t3, 2, 1, formatear_formula_molecular(ident.get("formula_molecular", "")))
     _celda(t3, 2, 3, ident.get("einces", ""))
     _celda(t3, 3, 1, ident.get("concentracion", ""))
     _celda(t3, 3, 3, ident.get("grado", ""))
