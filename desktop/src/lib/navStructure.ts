@@ -105,7 +105,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "publicaciones",
     label: "Publicaciones",
     hub: true,
-    items: [{ panel: "publicaciones", tier: "standard" }],
+    items: [
+      { panel: "publicaciones", tier: "standard" },
+      { panel: "vitrina-web", tier: "standard" },
+    ],
   },
   {
     id: "placas",

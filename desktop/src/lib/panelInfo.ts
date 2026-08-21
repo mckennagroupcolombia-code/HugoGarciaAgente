@@ -182,6 +182,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     category: "publicaciones",
   },
 
+  "vitrina-web": {
+    emoji: "🖥️",
+    label: "Vitrina Web",
+    description:
+      "Banners de promociones y el país de origen de las materias primas que se muestran en el inicio de mckennagroup.co (mapa de ruta + carrusel de descuentos).",
+    tips: [
+      "Un banner solo aparece en el sitio si está Activo y hoy cae dentro de su rango de fechas — no hay que recordar apagarlo cuando vence.",
+      "En 'Origen de materias' basta con asignar país a las 6 líneas comerciales para que todo el catálogo tenga ruta en el mapa del inicio.",
+      "Puedes afinar el país de un SKU puntual sin tocar el de su línea completa.",
+    ],
+    tier: "standard",
+    category: "publicaciones",
+  },
+
   // ── Finanzas ─────────────────────────────────────────────────────────────────
   facturacion: {
     emoji: "🧾",

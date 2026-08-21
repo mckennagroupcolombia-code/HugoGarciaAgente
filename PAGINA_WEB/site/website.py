@@ -30,6 +30,8 @@ from app.tools.tema_web import (
     resolver_layout_ctx,
 )
 from app.tools.stock_web import obtener_stock_web, set_stock_web
+from app.tools.origen_materias import cargar_origen_materias, resolver_pais_sku
+from app.tools.banners_web import banners_vigentes
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -3458,6 +3460,104 @@ def documento_tecnico_pdf(filename: str):
     )
 
 
+def _construir_ruta_origen(catalog: list) -> dict:
+    """País de origen (línea + overrides) con productos reales, para el mapa del inicio."""
+    cfg = cargar_origen_materias()
+    paises_info = cfg.get("paises", {})
+    por_pais: dict[str, list[dict]] = {}
+    for p in get_all_products(catalog):
+        sku = (p.get("ref") or "").strip()
+        if not sku:
+            continue
+        linea_id = linea_id_de_categoria(p.get("cat"))
+        pais = resolver_pais_sku(sku, linea_id, cfg)
+        if not pais:
+            continue
+        por_pais.setdefault(pais, []).append(p)
+
+    rutas = []
+    for pais, productos in sorted(por_pais.items(), key=lambda kv: -len(kv[1])):
+        info = paises_info.get(pais, {})
+        if "lat" not in info or "lon" not in info:
+            continue  # sin coordenadas propias no se puede ubicar en el mapa
+        rutas.append({
+            "pais": pais,
+            "x_pct": round((info["lon"] + 180) / 360 * 100, 2),
+            "y_pct": round((90 - info["lat"]) / 180 * 100, 2),
+            "puerto_entrada": info.get("puerto_entrada", ""),
+            "n_productos": len(productos),
+            "muestra": [{"nombre": pr.get("name", ""), "ref": pr.get("ref", "")} for pr in productos[:3]],
+        })
+    return {"rutas": rutas[:8], "tiene_datos": bool(rutas)}
+
+
+_ACTIVIDAD_CACHE: dict = {"ts": 0.0, "data": None}
+_ACTIVIDAD_TTL = 60  # seg — evita golpear sqlite en cada request del ticker
+
+
+def _calcular_actividad() -> dict:
+    """Actividad real agregada (sin PII) para el ticker 'en este momento' del inicio."""
+    pedidos_hoy = 0
+    despachos_semana = 0
+    ciudades_semana: list[str] = []
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM orders WHERE status='approved' AND date(created_at)=date('now')"
+        )
+        pedidos_hoy = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(*) FROM orders WHERE shipping_status IN ('shipped','delivered') "
+            "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days')"
+        )
+        despachos_semana = cur.fetchone()[0]
+        cur.execute(
+            "SELECT DISTINCT buyer_city FROM orders WHERE shipping_status IN ('shipped','delivered') "
+            "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days') "
+            "AND buyer_city IS NOT NULL AND buyer_city != '' LIMIT 12"
+        )
+        ciudades_semana = [r[0] for r in cur.fetchall()]
+        con.close()
+    except Exception:
+        log.warning("actividad: no se pudo consultar orders.db", exc_info=True)
+
+    mensajes_wa = 0
+    preguntas_meli = 0
+    try:
+        metricas_path = ROOT / "app" / "data" / "metricas_diarias.json"
+        m = json.loads(metricas_path.read_text(encoding="utf-8"))
+        if m.get("fecha") == datetime.now().strftime("%Y-%m-%d"):
+            mensajes_wa = int(m.get("mensajes_whatsapp") or 0)
+            preguntas_meli = int(m.get("preguntas_meli") or 0)
+    except Exception:
+        pass
+
+    return {
+        "pedidos_hoy": pedidos_hoy,
+        "despachos_semana": despachos_semana,
+        "ciudades_semana": ciudades_semana,
+        "n_ciudades_semana": len(ciudades_semana),
+        "mensajes_whatsapp_hoy": mensajes_wa,
+        "preguntas_meli_hoy": preguntas_meli,
+        "actualizado": datetime.now().isoformat(timespec="seconds"),
+    }
+
+
+def obtener_actividad(force: bool = False) -> dict:
+    now = time.time()
+    if not force and _ACTIVIDAD_CACHE["data"] is not None and (now - _ACTIVIDAD_CACHE["ts"]) < _ACTIVIDAD_TTL:
+        return _ACTIVIDAD_CACHE["data"]
+    data = _calcular_actividad()
+    _ACTIVIDAD_CACHE.update({"ts": now, "data": data})
+    return data
+
+
+@app.route("/api/actividad")
+def api_actividad():
+    return jsonify(obtener_actividad())
+
+
 @app.route("/")
 def index():
     catalog   = get_catalog()
@@ -3472,7 +3572,10 @@ def index():
         catalog=catalog,
         cats=cats,
         lineas=lineas_desde_catalogo(catalog),
-        featured=featured[:12])
+        featured=featured[:12],
+        ruta_origen=_construir_ruta_origen(catalog),
+        banners=banners_vigentes(),
+        actividad=obtener_actividad())
 
 
 @app.route("/tienda")

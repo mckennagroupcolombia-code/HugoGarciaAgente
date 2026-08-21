@@ -22,6 +22,7 @@ export type Panel =
   | "pedidos"
   | "empaque"
   | "publicaciones"
+  | "vitrina-web"
   | "facturacion"
   | "facturas"
   | "costos-productos"

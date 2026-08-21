@@ -1,0 +1,88 @@
+{#
+  "Ruta de tu materia prima" — de dónde viene, cómo llega a Colombia y a
+  nuestra bodega. `ruta_origen` viene de website.py:_construir_ruta_origen()
+  (datos reales: país resuelto por línea/SKU desde origen_materias.json,
+  cruzado contra el catálogo vigente). Sin datos configurados aún, se muestra
+  un aviso honesto en vez de un mapa vacío.
+#}
+{% set COL_X = 29.4 %}
+{% set COL_Y = 47.4 %}
+<section class="route-section">
+  <div class="section">
+    <div class="route-head reveal">
+      <span class="section-eyebrow">Nuestra red de abastecimiento</span>
+      <h2 class="section-title">Ruta de tu <em>materia prima</em></h2>
+      <p class="section-lead">
+        Del país de origen a Colombia, y de ahí a nuestra bodega en Bogotá.
+        Toca un país para ver qué materias primas llegan desde ahí.
+      </p>
+    </div>
+
+    {% if ruta_origen.tiene_datos %}
+    <div class="route-map reveal">
+      <svg class="route-map-bg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <ellipse cx="230" cy="150" rx="150" ry="80" class="route-blob" />
+        <ellipse cx="520" cy="120" rx="120" ry="70" class="route-blob" />
+        <ellipse cx="650" cy="230" rx="170" ry="100" class="route-blob" />
+        <ellipse cx="300" cy="330" rx="110" ry="90" class="route-blob" />
+        <ellipse cx="780" cy="380" rx="90" ry="60" class="route-blob" />
+
+        {% for ruta in ruta_origen.rutas %}
+        {% set ox = (ruta.x_pct / 100 * 1000) %}
+        {% set oy = (ruta.y_pct / 100 * 500) %}
+        {% set cx = (COL_X / 100 * 1000) %}
+        {% set cy = (COL_Y / 100 * 500) %}
+        {% set mx = (ox + cx) / 2 %}
+        {% set my = ([oy, cy] | min) - 70 %}
+        <path class="route-line" d="M {{ ox }} {{ oy }} Q {{ mx }} {{ my }} {{ cx }} {{ cy }}"
+              style="animation-delay: {{ loop.index0 * 0.15 }}s"></path>
+        {% endfor %}
+
+        {% set bx = (COL_X / 100 * 1000) + 70 %}
+        {% set by = (COL_Y / 100 * 500) + 55 %}
+        <path class="route-line route-line-final"
+              d="M {{ COL_X / 100 * 1000 }} {{ COL_Y / 100 * 500 }} L {{ bx }} {{ by }}"></path>
+      </svg>
+
+      {% for ruta in ruta_origen.rutas %}
+      <button type="button" class="route-pin" data-route-target="rp-{{ loop.index }}"
+              style="left:{{ ruta.x_pct }}%; top:{{ ruta.y_pct }}%;"
+              aria-expanded="false" aria-controls="rp-{{ loop.index }}">
+        <span class="route-pin-dot"></span>
+        <span class="route-pin-label">{{ ruta.pais }}</span>
+      </button>
+      {% endfor %}
+
+      <span class="route-pin route-pin-colombia" style="left:{{ COL_X }}%; top:{{ COL_Y }}%;">
+        <span class="route-pin-dot route-pin-dot-colombia"></span>
+        <span class="route-pin-label">Colombia</span>
+      </span>
+
+      <span class="route-bodega" style="left:{{ (COL_X / 100 * 1000 + 70) / 1000 * 100 }}%; top:{{ (COL_Y / 100 * 500 + 55) / 500 * 100 }}%;">
+        <i class="ph ph-warehouse" aria-hidden="true"></i>
+        <span>Bodega McKenna · Bogotá</span>
+      </span>
+
+      {% for ruta in ruta_origen.rutas %}
+      <div id="rp-{{ loop.index }}" class="route-pin-card" style="left:{{ ruta.x_pct }}%; top:{{ ruta.y_pct }}%;" hidden>
+        <strong>{{ ruta.pais }}</strong>
+        <span class="route-pin-card-count">{{ ruta.n_productos }} materia{% if ruta.n_productos != 1 %}s{% endif %} prima{% if ruta.n_productos != 1 %}s{% endif %}</span>
+        <ul>
+          {% for prod in ruta.muestra %}
+          <li>{{ prod.nombre }}</li>
+          {% endfor %}
+        </ul>
+        {% if ruta.puerto_entrada %}
+        <span class="route-pin-card-puerto"><i class="ph ph-anchor"></i> Ingresa por {{ ruta.puerto_entrada }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="route-empty reveal">
+      <i class="ph ph-map-trifold" aria-hidden="true"></i>
+      <p>Estamos documentando el país de origen de cada materia prima. Muy pronto verás aquí la ruta completa.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>

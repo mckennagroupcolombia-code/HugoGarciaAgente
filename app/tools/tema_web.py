@@ -46,6 +46,9 @@ _DENSIDAD_CSS = {
 
 _ORDEN_PUREZA = [
     "hero",
+    "actividad_vivo",
+    "banners_promo",
+    "ruta_origen",
     "metricas",
     "trazabilidad",
     "pilares",
@@ -55,7 +58,10 @@ _ORDEN_PUREZA = [
 ]
 _ORDEN_CLASICO = [
     "hero",
+    "actividad_vivo",
+    "banners_promo",
     "features",
+    "ruta_origen",
     "categorias",
     "destacados",
     "cta",
@@ -219,6 +225,9 @@ TEMA_WEB_DEFAULTS: dict = {
             "categorias": True,
             "destacados": True,
             "cta": False,
+            "actividad_vivo": True,
+            "banners_promo": True,
+            "ruta_origen": True,
         },
     },
     "pureza": {
@@ -309,6 +318,9 @@ TEMA_WEB_DEFAULTS: dict = {
             "categorias": True,
             "destacados": True,
             "cta": True,
+            "actividad_vivo": True,
+            "banners_promo": True,
+            "ruta_origen": True,
         },
     },
 }

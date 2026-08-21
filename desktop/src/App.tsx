@@ -37,6 +37,7 @@ const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"
 const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
 const InventarioControlPanel = lazy(() => import("./components/InventarioControlPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
+const VitrinaWebPanel = lazy(() => import("./components/VitrinaWebPanel"));
 const LogisticaInternacionalPanel = lazy(
   () => import("./components/LogisticaInternacionalPanel"),
 );
@@ -137,6 +138,8 @@ function PanelRouterInner() {
       return <InventarioControlPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
+    case "vitrina-web":
+      return <VitrinaWebPanel />;
     case "logistica-importaciones":
     case "logistica-embarques":
     case "logistica-aduanas":
@@ -262,6 +265,7 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   const p = user.permisos_secciones;
   if (!p) return panel === "settings";
   if (panel === "postventa" && p.preventa) return true;
+  if (panel === "vitrina-web" && p.publicaciones) return true;
   return Boolean(p[panel]);
 }
 

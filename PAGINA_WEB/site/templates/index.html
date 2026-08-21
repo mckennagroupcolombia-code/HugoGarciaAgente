@@ -10,32 +10,45 @@
 {{- n.icono if n.icono else fallback -}}
 {%- endmacro %}
 
-{% macro caja_por_que_elegirnos(H, Kit) -%}
+{% macro caja_por_que_elegirnos(actividad) -%}
+{#
+  Antes mostraba "Por qué elegirnos" (bullets estáticos). Ahora usa el mismo
+  espacio para actividad real en vivo (ver _actividad_vivo.html) — mismo
+  look, contenido que sí cambia día a día.
+#}
 <div class="hero-kit-box">
-  {% if not LAYOUT_CLASICO.nodos.get('hero.kit_label', {}).get('hidden') %}
-  <div class="hero-right-label" style="{{ nodo_style('hero.kit_label') }}">{{ H.kit_label or 'Por qué elegirnos' }}</div>
-  {% endif %}
-  <div class="kit-items">
-    {% for item in Kit %}
-    {% set kitn = LAYOUT_CLASICO.nodos.get('hero.kit.' ~ loop.index0, {}) %}
-    {% if not kitn.get('hidden') %}
-    <div class="kit-item" style="{{ nodo_style('hero.kit.' ~ loop.index0) }}">
-      <div class="kit-dot dot-{{ loop.index }}"><i class="ph ph-{{ icono_nodo('hero.kit.' ~ loop.index0 ~ '.icono', item.icono or 'circle') }}"></i></div>
+  <div class="hero-right-label"><span class="live-dot" aria-hidden="true"></span> En este momento</div>
+  <div class="kit-items" data-live-actividad>
+    <div class="kit-item">
+      <div class="kit-dot dot-1"><i class="ph ph-package"></i></div>
       <div class="kit-info">
-        <h3 style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.titulo') }}">{{ item.titulo }}</h3>
-        <p style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.texto') }}">{{ item.texto }}</p>
+        <h3>Despachos esta semana</h3>
+        <p>Pedidos ya en camino a todo Colombia</p>
       </div>
-      <span class="kit-val" style="{{ nodo_style('hero.kit.' ~ loop.index0 ~ '.valor') }}">{{ item.valor }}</span>
+      <span class="kit-val" data-live="despachos_semana">{{ actividad.despachos_semana }}</span>
     </div>
-    {% endif %}
-    {% endfor %}
+    <div class="kit-item">
+      <div class="kit-dot dot-2"><i class="ph ph-map-pin"></i></div>
+      <div class="kit-info">
+        <h3>Ciudades con envío</h3>
+        <p>Cobertura activa esta semana</p>
+      </div>
+      <span class="kit-val" data-live="n_ciudades_semana">{{ actividad.n_ciudades_semana }}</span>
+    </div>
+    <div class="kit-item">
+      <div class="kit-dot dot-3"><i class="ph ph-chat-circle-dots"></i></div>
+      <div class="kit-info">
+        <h3>Consultas atendidas hoy</h3>
+        <p>Por WhatsApp y MercadoLibre</p>
+      </div>
+      <span class="kit-val" data-live="preguntas_meli_hoy">{{ actividad.preguntas_meli_hoy }}</span>
+    </div>
   </div>
 </div>
 {%- endmacro %}
 
 {% block content %}
 {% set H = TC.hero if TC else {} %}
-{% set Kit = H.kit if H.kit else [] %}
 {% set Feat = TC.features if TC and TC.features else [] %}
 {% set Cat = TC.categorias if TC else {} %}
 {% set Dest = TC.destacados if TC else {} %}
@@ -113,10 +126,28 @@
   {% endif %}
 
   <div class="hero-right">
-    {{ caja_por_que_elegirnos(H, Kit) }}
+    {{ caja_por_que_elegirnos(actividad) }}
   </div>
 
 </section>
+{% endif %}
+
+{% if sec == 'actividad_vivo' and Sec.actividad_vivo != false and not LAYOUT_CLASICO.nodos.get('actividad_vivo', {}).get('hidden') %}
+<div style="order:{{ LAYOUT_CLASICO.orden_map.actividad_vivo | default(1) }};">
+  {% include "_actividad_vivo.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'banners_promo' and Sec.banners_promo != false and not LAYOUT_CLASICO.nodos.get('banners_promo', {}).get('hidden') %}
+<div style="order:{{ LAYOUT_CLASICO.orden_map.banners_promo | default(2) }};">
+  {% include "_banners_promo.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'ruta_origen' and Sec.ruta_origen != false and not LAYOUT_CLASICO.nodos.get('ruta_origen', {}).get('hidden') %}
+<div style="order:{{ LAYOUT_CLASICO.orden_map.ruta_origen | default(3) }};">
+  {% include "_ruta_origen.html" %}
+</div>
 {% endif %}
 
 {% if sec == 'features' and Sec.features != false and not LAYOUT_CLASICO.nodos.get('features', {}).get('hidden') %}

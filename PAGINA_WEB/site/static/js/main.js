@@ -131,7 +131,7 @@
     if (!track || !prev || !next) return;
 
     function paso() {
-      var slide = track.querySelector('.dest-slide');
+      var slide = track.firstElementChild;
       if (!slide) return track.clientWidth;
       var gap = parseFloat(getComputedStyle(track).gap) || 16;
       return slide.getBoundingClientRect().width + gap;
@@ -151,6 +151,53 @@
     window.addEventListener('resize', sync);
     sync();
   });
+
+  /* ── Ruta de origen: popovers de país ───────────────── */
+  document.querySelectorAll('.route-pin[data-route-target]').forEach(function (pin) {
+    pin.addEventListener('click', function () {
+      var id = pin.getAttribute('data-route-target');
+      var card = document.getElementById(id);
+      if (!card) return;
+      var isOpen = pin.getAttribute('aria-expanded') === 'true';
+      document.querySelectorAll('.route-pin[aria-expanded="true"]').forEach(function (other) {
+        if (other !== pin) {
+          other.setAttribute('aria-expanded', 'false');
+          var otherCard = document.getElementById(other.getAttribute('data-route-target'));
+          if (otherCard) otherCard.hidden = true;
+        }
+      });
+      pin.setAttribute('aria-expanded', String(!isOpen));
+      card.hidden = isOpen;
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.route-pin') || e.target.closest('.route-pin-card')) return;
+    document.querySelectorAll('.route-pin[aria-expanded="true"]').forEach(function (pin) {
+      pin.setAttribute('aria-expanded', 'false');
+      var card = document.getElementById(pin.getAttribute('data-route-target'));
+      if (card) card.hidden = true;
+    });
+  });
+
+  /* ── Actividad en vivo: refresco periódico sin recargar ─ */
+  if (document.querySelector('[data-live]')) {
+    var refrescarActividad = function () {
+      fetch('/api/actividad').then(function (r) {
+        return r.ok ? r.json() : null;
+      }).then(function (data) {
+        if (!data) return;
+        document.querySelectorAll('[data-live]').forEach(function (el) {
+          var key = el.getAttribute('data-live');
+          if (key in data) el.textContent = data[key];
+        });
+        var ciudadesEl = document.querySelector('[data-live-ciudades]');
+        if (ciudadesEl && Array.isArray(data.ciudades_semana) && data.ciudades_semana.length) {
+          ciudadesEl.textContent = 'Esta semana despachamos hacia: ' + data.ciudades_semana.join(', ');
+        }
+      }).catch(function () { /* silencioso: se conserva el último valor renderizado */ });
+    };
+    setInterval(refrescarActividad, 60000);
+  }
 
   /* ── Smooth anchors ─────────────────────────────────── */
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {

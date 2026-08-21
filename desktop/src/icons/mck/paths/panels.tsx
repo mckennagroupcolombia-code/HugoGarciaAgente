@@ -220,6 +220,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M16 9a3 3 0 0 1 0 6" />
     </>
   ),
+  "vitrina-web": (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M4 12h16M12 4c2.5 2.2 2.5 13.8 0 16M12 4c-2.5 2.2-2.5 13.8 0 16" />
+    </>
+  ),
   "placas-concreto": (
     <>
       <rect x="4" y="4" width="16" height="16" rx="1.5" />

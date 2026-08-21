@@ -79,6 +79,24 @@
 </section>
 {% endif %}
 
+{% if sec == 'actividad_vivo' and TW.secciones.actividad_vivo != false %}
+<div style="order:{{ LAYOUT.orden_map.actividad_vivo | default(1) }};">
+  {% include "_actividad_vivo.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'banners_promo' and TW.secciones.banners_promo != false %}
+<div style="order:{{ LAYOUT.orden_map.banners_promo | default(2) }};">
+  {% include "_banners_promo.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'ruta_origen' and TW.secciones.ruta_origen != false %}
+<div style="order:{{ LAYOUT.orden_map.ruta_origen | default(3) }};">
+  {% include "_ruta_origen.html" %}
+</div>
+{% endif %}
+
 {% if sec == 'metricas' and TW.secciones.metricas %}
 <div class="pz-metrics" style="order:{{ LAYOUT.orden_map.metricas | default(1) }};{{ nodo_style('metricas') }}">
   {% for m in TW.metricas %}

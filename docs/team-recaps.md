@@ -9,6 +9,21 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-20 22:35 - Inicio: ruta de origen en vivo, actividad real y banners promo
+- **Autor:** Claude Code
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Nueva sección "Ruta de tu materia prima": mapa animado (SVG propio, sin librerías) que conecta el país de origen de cada línea comercial/SKU con Colombia y la bodega McKenna; al hacer clic en un país se ven las materias primas reales que llegan de ahí.
+  - Tira "En este momento": pedidos despachados hoy, despachos y ciudades de la semana, consultas atendidas — datos reales de `orders.db` y `metricas_diarias.json` (nunca simulados), se refresca sola cada 60s sin recargar la página. En el tema Clásico reemplaza la caja "Por qué elegirnos" del hero por esta misma información en vivo.
+  - Carrusel de banners de promociones de la semana, con vigencia por fecha: uno vencido se oculta solo, sin que el operador tenga que recordarlo.
+  - Todo se administra desde el panel: nueva pestaña **Vitrina Web** (dentro de Publicaciones) para crear/editar banners y asignar país de origen por línea comercial o por SKU puntual.
+  - Aplica a ambos temas del sitio público (Clásico y Pureza). `tema_activo` sigue en `"clasico"` — no se cambió sin confirmarlo antes.
+- **Archivos Modificados:**
+  - `app/tools/origen_materias.py`, `app/tools/banners_web.py`, `app/tools/_json_store.py`, `app/tools/tema_web.py`, `app/routes.py`, `PAGINA_WEB/site/website.py`
+  - `PAGINA_WEB/site/templates/_actividad_vivo.html`, `_ruta_origen.html`, `_banners_promo.html`, `index.html`, `index_pureza.html`, `base.html`, `static/css/main.css`, `static/js/main.js`
+  - `desktop/src/components/VitrinaWebPanel.tsx`, `hooks/useVitrinaWeb.ts`, registro del panel en `stores/app.ts`, `icons/mck/paths/panels.tsx`, `lib/panelInfo.ts`, `lib/navStructure.ts`, `App.tsx`, `lib/panelAccess.ts`
+  - `tests/test_origen_materias.py`, `tests/test_banners_web.py`
+
 ### 2026-08-19 17:40 - Catálogo: gestionar MeLi y web y cómo se muestran
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva funcionalidad

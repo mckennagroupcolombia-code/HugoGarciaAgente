@@ -1,0 +1,37 @@
+{#
+  Tira de actividad real (datos agregados, sin PII) — da la sensación de que
+  hay operación en vivo detrás del sitio. `actividad` viene de
+  website.py:obtener_actividad(); un pequeño fetch en main.js la refresca
+  cada ~60s sin recargar la página.
+#}
+<section class="live-strip">
+  <div class="section live-strip-inner">
+    <div class="live-strip-head">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span class="live-strip-label">En este momento en McKenna</span>
+    </div>
+    <div class="live-strip-items" data-live-actividad>
+      <div class="live-item">
+        <span class="live-item-val" data-live="pedidos_hoy">{{ actividad.pedidos_hoy }}</span>
+        <span class="live-item-label">pedidos hoy</span>
+      </div>
+      <div class="live-item">
+        <span class="live-item-val" data-live="despachos_semana">{{ actividad.despachos_semana }}</span>
+        <span class="live-item-label">despachos esta semana</span>
+      </div>
+      <div class="live-item">
+        <span class="live-item-val" data-live="n_ciudades_semana">{{ actividad.n_ciudades_semana }}</span>
+        <span class="live-item-label">ciudades con envío</span>
+      </div>
+      <div class="live-item">
+        <span class="live-item-val" data-live="preguntas_meli_hoy">{{ actividad.preguntas_meli_hoy }}</span>
+        <span class="live-item-label">consultas atendidas hoy</span>
+      </div>
+    </div>
+    {% if actividad.ciudades_semana %}
+    <p class="live-strip-ciudades" data-live-ciudades>
+      Esta semana despachamos hacia: {{ actividad.ciudades_semana | join(', ') }}
+    </p>
+    {% endif %}
+  </div>
+</section>

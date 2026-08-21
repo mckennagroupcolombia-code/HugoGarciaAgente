@@ -15302,6 +15302,68 @@ def register_routes(app):
                 except Exception:
                     pass
 
+    # ── Vitrina Web (banners promo + origen de materias primas) ───────────────
+
+    @app.route("/api/web/banners", methods=["GET", "POST"])
+    @app.route("/app/api/web/banners", methods=["GET", "POST"])
+    def api_web_banners():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.banners_web import cargar_banners, crear_banner
+
+        if request.method == "GET":
+            return jsonify({"banners": cargar_banners(force=True)})
+        body = request.get_json(silent=True) or {}
+        try:
+            banner = crear_banner(body)
+            return jsonify({"ok": True, "banner": banner})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web/banners/<banner_id>", methods=["PUT", "DELETE"])
+    @app.route("/app/api/web/banners/<banner_id>", methods=["PUT", "DELETE"])
+    def api_web_banner_detalle(banner_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.banners_web import actualizar_banner, eliminar_banner
+
+        try:
+            if request.method == "DELETE":
+                eliminar_banner(banner_id)
+                return jsonify({"ok": True})
+            body = request.get_json(silent=True) or {}
+            banner = actualizar_banner(banner_id, body)
+            return jsonify({"ok": True, "banner": banner})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web/origen-materias", methods=["GET", "PUT"])
+    @app.route("/app/api/web/origen-materias", methods=["GET", "PUT"])
+    def api_web_origen_materias():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.origen_materias import (
+            cargar_origen_materias,
+            guardar_origen_materias,
+            resumen,
+        )
+
+        if request.method == "GET":
+            cfg = cargar_origen_materias(force=True)
+            return jsonify({**cfg, "resumen": resumen(cfg)})
+        body = request.get_json(silent=True) or {}
+        try:
+            cfg = guardar_origen_materias(body)
+            return jsonify({"ok": True, **cfg, "resumen": resumen(cfg)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     # ── Publicaciones (editor de catálogo) ────────────────────────────────────
 
     @app.route("/api/publicaciones", methods=["GET"])
