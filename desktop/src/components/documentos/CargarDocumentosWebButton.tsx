@@ -45,16 +45,27 @@ export default function CargarDocumentosWebButton({
         {mut.isPending ? "Cargando en la web…" : "Cargar en página web"}
       </button>
       {mut.isSuccess && data && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-400">
-          {data.total} documento{data.total !== 1 ? "s" : ""} completo{data.total !== 1 ? "s" : ""}{" "}
-          (FT + COA + SDS) en la tienda.
-          {data.omitidos_incompletos
-            ? ` ${data.omitidos_incompletos} no se cargó${data.omitidos_incompletos !== 1 ? "n" : ""} (incompleto o sin PDF).`
-            : ""}
-          {sitioOk
-            ? " Los cambios ya están en mckennagroup.co."
-            : ` Índice listo; la tienda no respondió (${data.sitio?.error || "sin respuesta"}). Se verán en la próxima visita.`}
-        </p>
+        <div className="max-w-md space-y-1 text-xs text-emerald-700 dark:text-emerald-400">
+          <p>
+            {data.total} documento{data.total !== 1 ? "s" : ""} completo
+            {data.total !== 1 ? "s" : ""} (FT + COA + SDS) actualizado
+            {data.total !== 1 ? "s" : ""} en la tienda.
+            {sitioOk
+              ? " Ya visibles en las fichas de producto."
+              : ` Índice listo; la tienda no respondió (${data.sitio?.error || "sin respuesta"}).`}
+          </p>
+          {!!data.omitidos_incompletos && (
+            <p className="text-amber-800 dark:text-amber-300">
+              {data.omitidos_incompletos} omitido
+              {data.omitidos_incompletos !== 1 ? "s" : ""} (falta COA, SDS o PDF)
+              {data.omitidos_titulos?.length
+                ? `: ${data.omitidos_titulos.slice(0, 6).join(", ")}${
+                    data.omitidos_titulos.length > 6 ? "…" : ""
+                  }`
+                : "."}
+            </p>
+          )}
+        </div>
       )}
       {mut.isError && (
         <p className="text-xs text-danger">

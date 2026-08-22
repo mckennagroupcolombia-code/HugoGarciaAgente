@@ -1309,3 +1309,45 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-21) no es el último día del mes.
+[cursor/wa-metricas-panel ab2cc72] Auto-commit: actualizacion diaria 2026-08-21 23:00
+ 101 files changed, 6677 insertions(+), 2275 deletions(-)
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACERIC10mL.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACERIC10mL_2.jpg
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACERIC10mL_3.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/RICINO 10 mL.png
+ create mode 100644 app/data/compras_exterior_soportes/20260821_152523_1be3968b_imagen.png.png
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/documento_scan_tablas.py
+ create mode 100644 app/templates/_pdf_hdr_logo.html
+ create mode 100644 desktop/src/components/SelectorGaleriaFotosModal.tsx
+ create mode 100644 desktop/src/components/documentos/CargarDocumentosWebButton.tsx
+ create mode 100644 tests/test_ficha_cabezote_logo.py
+ create mode 100644 uploads/tickets/06432ec78a0740bfbeb92229645dff1d.png
+ create mode 100644 uploads/tickets/102821395ec14b4eabde87f4e4efdb64.jpg
+ create mode 100644 uploads/tickets/1c01c954ff744cb29ff36cf26d9897a2.png
+ create mode 100644 uploads/tickets/40e7fea28687450d8ab8a1c073a1eb4e.png
+ create mode 100644 uploads/tickets/4f284cc21bf8470da6e10f129c564368.png
+ create mode 100644 uploads/tickets/5a6a2b62b8af47e4a0496b7c2d0a4053.png
+ create mode 100644 uploads/tickets/65611a67d9bc4d878bd350ab4f8377f2.png
+ create mode 100644 uploads/tickets/720a4d8aaa7d4ca085527b8a0ca65dc6.pdf
+ create mode 100644 uploads/tickets/7215c5915ece4ce4a95474058206c9ad.png
+ create mode 100644 uploads/tickets/74fc719a4a7c488488c8a64d87f02f43.png
+ create mode 100644 uploads/tickets/86d778e837ca4fe3bc33b57ecb2ee757.png
+ create mode 100644 uploads/tickets/94ee7af6d822444c813aa1caba2284fd.png
+ create mode 100644 uploads/tickets/9833b17040ed4142a6ac8523908d2df5.docx
+ create mode 100644 uploads/tickets/9c481e2b3d26430d80ba4b5c22ab4d5e.png
+ create mode 100644 uploads/tickets/9efc6498a4d64762868fc0b032bc9bb4.png
+ create mode 100644 uploads/tickets/a394bde4681345448b3957fc10c1f24c.png
+ create mode 100644 uploads/tickets/a398543ad11542cd8697554cde83a65c.jpg
+ create mode 100644 uploads/tickets/abeda50fc5774673ad9e2422f5c035dd.png
+ create mode 100644 uploads/tickets/addf03b4f1db4a7cadb316d656ee4ebe.png
+ create mode 100644 uploads/tickets/aec979ae3fdd419dbcfc342f5ac8a970.png
+ create mode 100644 uploads/tickets/b681545144724d469654886544db6c74.png
+ create mode 100644 uploads/tickets/ba1d67affd8740cda06bc9e5b84683b8.png
+ create mode 100644 uploads/tickets/cb468384bbfa464f93ae229b4bdfd6f3.png
+ create mode 100644 uploads/tickets/cb828f9ed4fe4412b1c8cb8cf830adcc.png
+ create mode 100644 uploads/tickets/e1fd29b377d4473490d0f1422eed55a6.png
+ create mode 100644 uploads/tickets/e7cdcb7eb8c7468c897b189e0866660c.png
+ create mode 100644 uploads/tickets/edbf6eeeb203482cbda6d00c96d632ad.png
+[2026-08-21 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-21 23:00'
