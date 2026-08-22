@@ -67,7 +67,16 @@ body {
 .hdr-pretitulo { font-size: 8pt; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
 .hdr-titulo { font-size: 16pt; font-weight: bold; color: var(--accent); text-transform: uppercase; line-height: 1.2; }
 .hdr-sinonimos { font-size: 7.5pt; color: #666; margin-top: 2px; font-style: italic; }
-.hdr-logo { max-width: 4.5cm; max-height: 1.8cm; object-fit: contain; flex-shrink: 0; }
+.hdr-logo {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 5.6cm;
+  max-height: 2.6cm;
+  object-fit: contain;
+  object-position: right center;
+  flex-shrink: 0;
+}
 
 /* ── Banner de sección ─── */
 .section-banner {
@@ -222,21 +231,31 @@ body {
 }
 
 .hdr {
-  display: flex;
-  min-height: 1.65cm;
+  display: table;
+  width: 100%;
+  table-layout: auto;
+  min-height: 2.2cm;
   gap: 0;
   margin: 0 0 0.22cm;
   padding: 0;
   border: 1.2pt solid var(--accent);
   border-top: 0;
+  overflow: visible;
 }
 
 .hdr-left {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
+  display: table-cell;
+  vertical-align: middle;
   padding: 5px 8px;
+}
+
+.hdr-logo-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 5.8cm;
+  text-align: right;
+  padding: 4px 8px;
+  overflow: visible;
 }
 
 .hdr-titulo {
@@ -254,10 +273,14 @@ body {
 }
 
 .hdr-logo {
-  align-self: center;
-  max-width: 4.2cm;
-  max-height: 1.4cm;
-  margin: 0 8px;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 5.6cm;
+  max-height: 2.6cm;
+  margin: 0;
+  object-fit: contain;
+  object-position: right center;
 }
 
 .meta-table {
@@ -392,9 +415,7 @@ ul.beneficios li {
       <div class="hdr-titulo">{{ ft.titulo }}</div>
       {% if ft.sinonimos %}<div class="hdr-sinonimos">{{ ft.sinonimos }}</div>{% endif %}
     </div>
-    {% if cabezote_src %}
-    <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group">
-    {% endif %}
+    {% include "_pdf_hdr_logo.html" %}
   </div>
 
   {% if ft.cas or ft.fecha_revision or ft.lote or ft.pais_origen or ft.fabricante %}
@@ -491,9 +512,7 @@ ul.beneficios li {
     <div class="hdr-left">
       <div class="hdr-titulo">{{ coa.titulo }}</div>
     </div>
-    {% if cabezote_src %}
-    <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group">
-    {% endif %}
+    {% include "_pdf_hdr_logo.html" %}
   </div>
 
   {# Identificación #}
@@ -597,9 +616,7 @@ ul.beneficios li {
     <div class="hdr-left">
       <div class="hdr-titulo">{{ sds.titulo }}</div>
     </div>
-    {% if cabezote_src %}
-    <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group">
-    {% endif %}
+    {% include "_pdf_hdr_logo.html" %}
   </div>
 
   {# Identificación #}

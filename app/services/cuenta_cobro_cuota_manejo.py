@@ -20,6 +20,11 @@ from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer,
 
 CUOTA_PCT_DEFAULT = 5.0
 
+# Totales de factura por debajo de este umbral, etiquetados como COP, son
+# casi siempre USD (p. ej. $532). Un pedido real en pesos de laboratorio
+# queda muy por encima. La cuenta de cobro siempre se liquida en COP.
+UMBRAL_NETO_ORIGEN_COP = 50_000.0
+
 _CARPETA = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "data",
@@ -121,6 +126,150 @@ def datos_pagador() -> dict[str, str]:
         "razon": _env("CUOTA_MANEJO_PAGADOR_RAZON", "McKenna Group S.A.S."),
         "nit": _env("CUOTA_MANEJO_PAGADOR_NIT", "901.952.087-1"),
         "ciudad": _env("CUOTA_MANEJO_PAGADOR_CIUDAD", "Bogotá D.C."),
+    }
+
+
+def neto_origen_lineas(lineas: list | None) -> float:
+    """Suma neta de mercancía en la moneda de la factura (sin TRM)."""
+    total = 0.0
+    for ln in lineas or []:
+        if not isinstance(ln, dict):
+            continue
+        try:
+            s = float(ln.get("subtotal") or 0)
+        except (TypeError, ValueError):
+            s = 0.0
+        if s <= 0:
+            try:
+                s = float(ln.get("cantidad") or 0) * float(ln.get("precio_unit") or 0)
+            except (TypeError, ValueError):
+                s = 0.0
+        try:
+            desc = float(ln.get("descuento") or 0)
+        except (TypeError, ValueError):
+            desc = 0.0
+        total += max(s - max(desc, 0.0), 0.0)
+    return round(total, 4)
+
+
+def parece_compra_en_divisa(
+    moneda: str,
+    trm: float = 0.0,
+    lineas: list | None = None,
+) -> bool:
+    """True si la factura está (o debió estar) en USD/divisa, no en COP."""
+    mon = (moneda or "USD").strip().upper() or "USD"
+    try:
+        tasa = float(trm or 0)
+    except (TypeError, ValueError):
+        tasa = 0.0
+    if mon != "COP":
+        return True
+    if tasa > 1.5:
+        return True
+    neto = neto_origen_lineas(lineas)
+    return 0 < neto < UMBRAL_NETO_ORIGEN_COP
+
+
+def resolver_tasa_cuenta_cobro(
+    *,
+    moneda: str,
+    trm: float = 0.0,
+    fecha_compra: str = "",
+    lineas: list | None = None,
+    consultar_banrep: bool = True,
+) -> dict[str, Any]:
+    """
+    Tasa para liquidar la cuenta de cobro en COP.
+
+    Compras exterior en dólares (o mal etiquetadas como COP con montos de
+    factura en USD) usan la TRM BanRep del día de la compra.
+    """
+    mon = (moneda or "USD").strip().upper() or "USD"
+    try:
+        tasa = float(trm or 0)
+    except (TypeError, ValueError):
+        tasa = 0.0
+    fuente = ""
+    corregido = False
+    aviso = ""
+    fecha_trm = (fecha_compra or "").strip()[:10]
+    error = None
+
+    if mon == "COP" and not parece_compra_en_divisa(mon, tasa, lineas):
+        return {
+            "moneda": "COP",
+            "trm": 1.0,
+            "trm_fuente": "cop",
+            "fecha_trm": fecha_trm,
+            "corregido": False,
+            "aviso": "",
+            "error": None,
+        }
+
+    if mon == "COP":
+        mon = "USD"
+        corregido = True
+        aviso = (
+            "La factura está en dólares; la cuenta de cobro se liquida en "
+            "pesos con la TRM del día de la compra"
+        )
+        if tasa <= 1.5:
+            tasa = 0.0
+
+    if mon != "COP" and tasa <= 1.5:
+        if not consultar_banrep:
+            return {
+                "moneda": mon,
+                "trm": 0.0,
+                "trm_fuente": "",
+                "fecha_trm": fecha_trm,
+                "corregido": corregido,
+                "aviso": aviso,
+                "error": "Se requiere la TRM del día de la compra para liquidar en pesos",
+            }
+        from app.services.trm import normalizar_fecha, obtener_trm
+
+        data = obtener_trm(normalizar_fecha(fecha_compra) if fecha_compra else None)
+        if data.get("error"):
+            return {
+                "moneda": mon,
+                "trm": 0.0,
+                "trm_fuente": "",
+                "fecha_trm": fecha_trm,
+                "corregido": corregido,
+                "aviso": aviso,
+                "error": str(data.get("error") or "No se pudo consultar la TRM BanRep"),
+            }
+        try:
+            tasa = float(data.get("valor") or 0)
+        except (TypeError, ValueError):
+            tasa = 0.0
+        if tasa <= 1.5:
+            return {
+                "moneda": mon,
+                "trm": 0.0,
+                "trm_fuente": "",
+                "fecha_trm": fecha_trm,
+                "corregido": corregido,
+                "aviso": aviso,
+                "error": "TRM BanRep inválida para liquidar en pesos",
+            }
+        fuente = "banrep"
+        if data.get("fecha"):
+            fecha_trm = str(data.get("fecha"))[:10]
+        corregido = True
+    elif mon != "COP":
+        fuente = "banrep" if fecha_compra else "manual"
+
+    return {
+        "moneda": mon,
+        "trm": round(tasa, 4),
+        "trm_fuente": fuente,
+        "fecha_trm": fecha_trm,
+        "corregido": corregido,
+        "aviso": aviso,
+        "error": error,
     }
 
 
@@ -326,7 +475,28 @@ def generar_pdf_cuenta_cobro(
 ) -> dict[str, Any]:
     """
     Genera PDF (solo tras aprobación). Colores del encabezado = acento del tema.
+    Siempre liquida en COP; si la factura es USD, aplica TRM del día de compra.
     """
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm,
+        fecha_compra=fecha_compra,
+        lineas=lineas,
+    )
+    if resolved.get("error"):
+        return {
+            "pct": float(pct if pct is not None else cuota_pct()),
+            "valor_compra_cop": 0.0,
+            "flete_cop": 0.0,
+            "cuota_manejo_cop": 0.0,
+            "total_cobro_cop": 0.0,
+            "numero": "",
+            "path": "",
+            "filename": "",
+            "error": resolved["error"],
+        }
+    moneda = str(resolved["moneda"])
+    trm = float(resolved["trm"])
     calc = calcular_cuota(
         moneda=moneda,
         trm=trm,
@@ -482,23 +652,29 @@ def generar_pdf_cuenta_cobro(
         nombres = ", ".join(_etiqueta_producto(p) for p in productos[:12])
         if len(productos) > 12:
             nombres += f" y {len(productos) - 12} más"
+        trm_txt = (
+            f", factura {mon_u}, TRM BanRep {trm:g} del día de la compra. Valores en pesos (COP)"
+            if mon_u != "COP" and trm
+            else ". Valores en pesos (COP)"
+        )
         concepto = (
             f"Adquisición de: {nombres}. "
             f"Incluye cuota de manejo del {calc['pct']:.0f}% sobre el valor de los productos. "
             f"Compra Nº {compra_id} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
-            + f"), moneda {mon_u}"
-            + (f", TRM {trm:g}" if mon_u != "COP" and trm else "")
-            + "."
+            + f"){trm_txt}."
         )
     else:
+        trm_txt = (
+            f", factura {mon_u}, TRM BanRep {trm:g} del día de la compra. Valores en pesos (COP)"
+            if mon_u != "COP" and trm
+            else ". Valores en pesos (COP)"
+        )
         concepto = (
             f"Adquisición de productos en el exterior y cuota de manejo "
             f"del {calc['pct']:.0f}% sobre su valor. Compra Nº {compra_id} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
-            + f"), moneda {mon_u}"
-            + (f", TRM {trm:g}" if mon_u != "COP" and trm else "")
-            + "."
+            + f"){trm_txt}."
         )
     story.append(Paragraph(concepto, st["n"]))
 
@@ -619,6 +795,18 @@ def generar_pdf_cuenta_flete(
     emisor_perfil: dict | None = None,
 ) -> dict[str, Any]:
     """PDF cuenta de cobro aparte solo por el flete/envío."""
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm,
+        fecha_compra=fecha_compra,
+        lineas=None,
+        consultar_banrep=True,
+    )
+    if not resolved.get("error") and float(resolved.get("trm") or 0) > 0:
+        moneda = str(resolved["moneda"])
+        trm = float(resolved["trm"])
+        if (moneda_flete or "").strip().upper() in ("", "COP") and resolved.get("corregido"):
+            moneda_flete = moneda
     flete_c = flete_en_cop(
         moneda=moneda, trm=trm, flete=flete, moneda_flete=moneda_flete
     )
@@ -722,7 +910,11 @@ def generar_pdf_cuenta_flete(
         f"Reembolso del flete / envío de la compra en el exterior Nº {compra_id} ({prov}"
         + (f", {fecha_compra}" if fecha_compra else "")
         + f"). Flete original: {flete:g} {mf}"
-        + (f", TRM {trm:g}" if mf != "COP" and mon_u != "COP" and trm else "")
+        + (
+            f", TRM BanRep {trm:g} del día de la compra. Valor en pesos (COP)"
+            if mf != "COP" and mon_u != "COP" and trm
+            else ". Valor en pesos (COP)"
+        )
         + ".",
         st["n"],
     ))

@@ -24,6 +24,7 @@ export type CuentaCobroDatos = {
   moneda?: string;
   moneda_flete?: string;
   trm?: number;
+  trm_fuente?: string;
   flete?: number;
   valor_compra_cop?: number;
   cuota_manejo_cop?: number;
@@ -225,9 +226,11 @@ export default function CuentaCobroAprobacion({
                   <span className="font-semibold text-accent">{pctNum}%</span> sobre el valor de los
                   productos
                   {compra.proveedor ? ` · ${compra.proveedor}` : ""}
-                  {compra.moneda ? ` · ${compra.moneda}` : ""}
-                  {compra.trm && compra.moneda && compra.moneda.toUpperCase() !== "COP"
-                    ? ` · TRM ${compra.trm}`
+                  . Valores en pesos (COP)
+                  {compra.moneda && compra.moneda.toUpperCase() !== "COP" && compra.trm
+                    ? ` · factura ${compra.moneda} × TRM ${Number(compra.trm).toLocaleString("es-CO", { maximumFractionDigits: 2 })}${
+                        compra.fecha_compra ? ` del ${compra.fecha_compra}` : ""
+                      }${compra.trm_fuente === "banrep" ? " BanRep" : ""}`
                     : ""}
                   .
                 </>
@@ -268,7 +271,7 @@ export default function CuentaCobroAprobacion({
                 <th className="px-3 py-2 font-bold">
                   {esFlete ? "Concepto" : "Producto / concepto"}
                 </th>
-                <th className="px-3 py-2 text-right font-bold">Valor</th>
+                <th className="px-3 py-2 text-right font-bold">Valor COP</th>
               </tr>
             </thead>
             <tbody>

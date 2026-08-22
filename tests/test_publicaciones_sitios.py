@@ -128,3 +128,86 @@ def test_canal_ocultos(tmp_path: Path):
         assert det["vista_sitios"]["web"]["vitrina"] is True
         fila_60 = next(f for f in det["vista_sitios"]["presentaciones"] if f["sku"] == "C-NEEM60")
         assert fila_60["aparece_en_web"] is False
+
+
+def _png_bytes() -> bytes:
+    from io import BytesIO
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (40, 40), (220, 40, 40)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_adjuntar_imagenes_desde_galeria_copia_a_otro_sku(tmp_path: Path):
+    img_dir = tmp_path / "imgs"
+    img_dir.mkdir()
+    src = img_dir / "C-NEEM60.png"
+    src.write_bytes(_png_bytes())
+    ov = tmp_path / "overrides.json"
+    ov.write_text("{}", encoding="utf-8")
+    siigo = tmp_path / "siigo_fotos.json"
+    siigo.write_text("{}", encoding="utf-8")
+
+    with (
+        patch.object(pub, "_IMAGENES_DIR", img_dir),
+        patch.object(pub, "_OVERRIDES_PATH", ov),
+        patch.object(pub, "_SIIGO_FOTOS_FILE", siigo),
+    ):
+        ya = pub.adjuntar_imagenes_desde_galeria(
+            "C-NEEM60", filenames=["C-NEEM60.png"], targets=["web"]
+        )
+        assert ya["ok"]
+        assert ya["archivos"][0]["web"]["skipped"] is True
+
+        res = pub.adjuntar_imagenes_desde_galeria(
+            "C-NEEM250", filenames=["C-NEEM60.png"], targets=["web"]
+        )
+        assert res["ok"] is True
+        assert res["copiadas"] == 1
+        assert res["archivos"][0]["web"]["ok"] is True
+        nuevo = res["archivos"][0]["web"]["filename"]
+        assert nuevo.startswith("C-NEEM250")
+        assert (img_dir / nuevo).is_file()
+        assert src.is_file()  # origen intacto
+
+        vacio = pub.adjuntar_imagenes_desde_galeria("C-NEEM250", filenames=[], targets=["web"])
+        assert vacio["ok"] is False
+
+
+def test_eliminar_imagen_web_quita_archivo_y_deja_de_listarse(tmp_path: Path):
+    img_dir = tmp_path / "imgs"
+    img_dir.mkdir()
+    foto = img_dir / "C-NEEM60.png"
+    foto.write_bytes(_png_bytes())
+    ov = tmp_path / "overrides.json"
+    ov.write_text("{}", encoding="utf-8")
+    siigo = tmp_path / "siigo_fotos.json"
+    siigo.write_text("{}", encoding="utf-8")
+
+    with (
+        patch.object(pub, "_IMAGENES_DIR", img_dir),
+        patch.object(pub, "_OVERRIDES_PATH", ov),
+        patch.object(pub, "_SIIGO_FOTOS_FILE", siigo),
+    ):
+        assert len(pub.escanear_imagenes_web("C-NEEM60")) == 1
+        res = pub.eliminar_imagen_web("C-NEEM60", "C-NEEM60.png")
+        assert res["ok"] is True
+        assert res["borrado"] is True
+        assert not foto.exists()
+        assert pub.escanear_imagenes_web("C-NEEM60") == []
+
+
+def test_eliminar_imagen_meli_acepta_sku_y_quita_picture():
+    pics = [
+        {"id": "AAA", "url": "https://x/a.jpg", "principal": True},
+        {"id": "BBB", "url": "https://x/b.jpg", "principal": False},
+    ]
+    with (
+        patch.object(pub, "_meli_get_pictures", return_value=(pics, "")),
+        patch.object(pub, "_meli_set_pictures", return_value={"ok": True, "total_pictures": 1}) as setter,
+    ):
+        res = pub.eliminar_imagen_meli("MCO111", "BBB", sku="C-NEEM60")
+        assert res["ok"] is True
+        setter.assert_called_once_with("MCO111", ["AAA"])
+

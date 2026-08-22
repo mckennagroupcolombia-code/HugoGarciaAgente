@@ -459,18 +459,22 @@ export interface SubirImagenResult {
   }[];
 }
 
-export function useSubirImagen(sku: string) {
+export function useSubirImagen(sku: string = "") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
       files,
       targets,
       meliItemId,
+      sku: skuArg,
     }: {
       files: File[];
       targets: ("web" | "meli")[];
       meliItemId?: string;
+      sku?: string;
     }) => {
+      const destSku = (skuArg || sku).trim();
+      if (!destSku) throw new Error("Indica el SKU al que pertenecen las fotos");
       // Una petición por archivo: subir todo junto superaba el timeout
       // del túnel Cloudflare (~100s) y el gateway respondía 504.
       const archivos: SubirImagenResult["archivos"] = [];
@@ -479,16 +483,20 @@ export function useSubirImagen(sku: string) {
         form.append("files[]", f);
         form.append("targets", targets.join(","));
         if (meliItemId) form.append("meli_item_id", meliItemId);
-        const res = await api.upload<SubirImagenResult>(`/api/publicaciones/${sku}/imagen`, form);
+        const res = await api.upload<SubirImagenResult>(
+          `/api/publicaciones/${encodeURIComponent(destSku)}/imagen`,
+          form,
+        );
         archivos.push(...(res.archivos || []));
       }
       const ok = archivos.some((a) => a.web?.ok || a.meli?.ok);
-      return { ok, sku, archivos } satisfies SubirImagenResult;
+      return { ok, sku: destSku, archivos } satisfies SubirImagenResult;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      const destSku = (vars.sku || sku).trim();
       qc.invalidateQueries({ queryKey: ["publicaciones"] });
-      qc.invalidateQueries({ queryKey: ["publicacion", sku] });
-      qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
+      qc.invalidateQueries({ queryKey: ["publicacion", destSku] });
+      qc.invalidateQueries({ queryKey: ["fotos-actuales", destSku] });
       qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
     },
   });
@@ -520,41 +528,10 @@ export function useReordenarImagenesMeli(sku: string) {
   });
 }
 
-export function useEliminarImagenWeb(sku: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (filename: string) =>
-      api.delete<{ ok: boolean }>(`/api/publicaciones/${sku}/imagen/web`),
-    // NOTE: api.delete doesn't support body; use post-with-method workaround
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
-      qc.invalidateQueries({ queryKey: ["publicaciones"] });
-    },
-  });
-}
-
-// DELETE con body requiere fetch directo ya que api.delete no lo soporta
-async function deleteWithBody(path: string, body: unknown): Promise<{ ok: boolean }> {
-  const form = new FormData();
-  // Use POST with _method=DELETE convention isn't available; use direct fetch
-  const { useTicketsAuth } = await import("../stores/ticketsAuth");
-  const { useAuthStore } = await import("../stores/auth");
-  const token = useTicketsAuth.getState().apiToken
-    || useTicketsAuth.getState().token
-    || useAuthStore.getState().token
-    || "";
-  const r = await fetch(path, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
-
 export function useEliminarImagenes(sku: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       plataforma,
       filename,
       picture_id,
@@ -565,14 +542,24 @@ export function useEliminarImagenes(sku: string) {
       picture_id?: string;
       meli_item_id?: string;
     }) => {
-      if (plataforma === "web") {
-        return deleteWithBody(`/api/publicaciones/${sku}/imagen/web`, { filename });
+      const skuEnc = encodeURIComponent(sku);
+      const path =
+        plataforma === "web"
+          ? `/api/publicaciones/${skuEnc}/imagen/web`
+          : `/api/publicaciones/${skuEnc}/imagen/meli`;
+      const body =
+        plataforma === "web" ? { filename } : { picture_id, meli_item_id };
+      const res = await api.post<{ ok?: boolean; error?: string }>(path, body);
+      if (!res?.ok) {
+        throw new Error(res?.error || "No se pudo eliminar la foto");
       }
-      return deleteWithBody(`/api/publicaciones/${sku}/imagen/meli`, { picture_id, meli_item_id });
+      return res;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
+      qc.invalidateQueries({ queryKey: ["publicacion", sku] });
       qc.invalidateQueries({ queryKey: ["publicaciones"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
     },
   });
 }
@@ -593,6 +580,43 @@ export function useCopiarImagenSitio(sku: string) {
         error?: string;
         destino?: string;
       }>(`/api/publicaciones/${sku}/imagenes/copiar`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
+      qc.invalidateQueries({ queryKey: ["publicacion", sku] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones-galeria"] });
+    },
+  });
+}
+
+export interface AdjuntarDesdeGaleriaResult {
+  ok: boolean;
+  sku: string;
+  copiadas?: number;
+  mensaje?: string;
+  error?: string;
+  archivos: Array<{
+    filename: string;
+    error?: string;
+    origen?: string;
+    web?: { ok?: boolean; skipped?: boolean; filename?: string; error?: string };
+    meli?: { ok?: boolean; picture_id?: string; error?: string };
+  }>;
+}
+
+export function useAdjuntarDesdeGaleria(sku: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      filenames?: string[];
+      recursos?: string[];
+      targets: Array<"web" | "meli">;
+      meli_item_id?: string;
+    }) =>
+      api.post<AdjuntarDesdeGaleriaResult>(
+        `/api/publicaciones/${encodeURIComponent(sku)}/imagenes/desde-galeria`,
+        body,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fotos-actuales", sku] });
       qc.invalidateQueries({ queryKey: ["publicacion", sku] });

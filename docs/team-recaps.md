@@ -9,6 +9,67 @@ No reemplaza otros registros existentes, que tienen propósito distinto:
 
 Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
 
+### 2026-08-21 15:40 - Cuenta de cobro en pesos con TRM del día
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La cuenta de cobro de compras en el exterior se liquida en pesos (COP) con la TRM BanRep del día de la compra.
+  - Si una factura en dólares quedaba marcada como COP (montos tipo $532), el sistema la convierte con la tasa de ese día antes de mostrar y de generar el PDF.
+- **Archivos Modificados:** `cuenta_cobro_cuota_manejo.py`, `contabilidad_db.py`, `compra_exterior_ocr.py`, `routes.py`, `CuentaCobroAprobacion.tsx`, `ComprasExteriorPanel.tsx`, tests
+
+### 2026-08-21 13:40 - Escáner FT/COA: varias imágenes a la vez
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Adjuntar hasta 8 imágenes/PDF en un solo escaneo (ficha técnica y COA).
+  - El backend envía todas a Gemini en una llamada y fusiona campos/parámetros.
+  - UI: `multiple` en el file picker, drop y pegado de varias fotos; miniaturas en FT.
+- **Archivos Modificados:** `app/routes.py`, `FichasTecnicasPanel.tsx`, `CoaDocumentosScanner.tsx`
+
+### 2026-08-21 13:25 - Escáner ficha/COA: error JSON.parse (HTML del proxy)
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Al adjuntar imagen/PDF en ficha técnica o escáner COA, si el proxy devolvía HTML (502/timeout) el panel mostraba `JSON.parse: unexpected character…`.
+  - Ahora usa `api.upload` con reintento `/api` ↔ `/app/api` y un mensaje claro si la respuesta no es JSON.
+- **Archivos Modificados:** `desktop/src/api/client.ts`, `FichasTecnicasPanel.tsx`, `CoaDocumentosScanner.tsx`
+
+### 2026-08-21 13:10 - Fichas técnicas: logo completo del color del formato
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El encabezado de FT/COA/SDS ya no recorta el logo: se pinta con el tamaño real de la imagen.
+  - Si no hay cabezote elegido, usa el logo que corresponde al color del formato (azul, morado, gris, amarillo, café).
+  - Al elegir el color en el formulario se selecciona ese logo. Los PDF de la tienda también lo incluyen.
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/services/documentos_web.py`, plantillas PDF, `FichasTecnicasPanel.tsx`, `tests/test_ficha_cabezote_logo.py`
+
+### 2026-08-21 13:00 - Docs web: solo documentos completos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Cargar en página web» y el índice de la tienda ya no publican fichas a medias: hace falta FT + COA + SDS diligenciados y el PDF en biblioteca.
+  - El botón informa cuántos se omitieron por incompletos.
+- **Archivos Modificados:** `app/services/documentos_web.py`, `CargarDocumentosWebButton.tsx`, `FichasTecnicasPanel.tsx`, `tests/test_documentos_web.py`
+
+### 2026-08-21 12:50 - Docs COA: cargar documentos en la página web
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Documentos técnicos → Biblioteca (escáner COA) hay un botón **Cargar en página web** que publica fichas nuevas o cambios (FT, COA, SDS) en las páginas de producto de mckennagroup.co, sin esperar el caché de 60 s.
+  - El mismo botón aparece al generar un PDF completo. Generar o borrar un documento ya marca el índice como desactualizado.
+- **Archivos Modificados:**
+  - `app/services/documentos_web.py`, `app/routes.py`, `PAGINA_WEB/site/website.py`
+  - `desktop/src/components/documentos/CargarDocumentosWebButton.tsx`, `FichasTecnicasPanel.tsx`
+  - `tests/test_documentos_web.py`
+
+### 2026-08-21 12:30 - Publicaciones: eliminar fotos de web y MeLi
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - En Publicaciones → Catálogo → Sitios, la papelera y "Eliminar N" ya quitan la foto: antes la orden no aplicaba (MeLi caía por un error interno, y en web la petición se quedaba esperando el refresco de la tienda).
+  - La foto desaparece al confirmar; si Mercado Libre o la web rechazan el borrado, vuelve a aparecer con el error.
+- **Archivos Modificados:** `app/services/publicaciones.py`, `app/routes.py`, `desktop/src/hooks/usePublicaciones.ts`, `desktop/src/components/PublicacionesPanel.tsx`, `tests/test_publicaciones_sitios.py`
+
 ### 2026-08-20 22:43 - Control de Versiones: Cambios recientes arriba, sin pestañas
 - **Autor:** Claude Code
 - **Tipo de Cambio:** Mejora técnica

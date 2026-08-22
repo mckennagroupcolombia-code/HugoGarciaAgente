@@ -90,8 +90,9 @@ Ejemplos:
     → descuento de línea = 4; neto = 16.
 
 Otras reglas:
-- moneda: código ISO visible (USD, CNY, EUR, COP…). Si el formato usa punto de miles
-  y coma decimal (ej. $166.623,00) y parece Colombia/Latam, usa "COP". Si no aparece, "USD".
+- moneda: USD por defecto en marketplaces (Amazon, AliExpress, eBay, Temu, Alibaba).
+  COP SOLO si ves formato colombiano con punto de miles y coma decimal ($166.623,00)
+  o las palabras COP/pesos. Un total como $532.00 o $177.17 es USD, NUNCA COP.
 - Números: usa punto decimal y SIN separador de miles (166623.00 o 166.62, no 166.623,00).
 - flete_detectado: número si ves shipping/freight/flete; si no, null.
 - Omite impuestos y totales globales (salvo para inferir descuento = merchandise − goods paid).
@@ -849,6 +850,10 @@ def extraer_compra_desde_imagenes(
     mon_flete_det = parsed.get("moneda_flete")
     mon_flete_det_s = str(mon_flete_det).strip().upper() if mon_flete_det else None
 
+    from app.services.cuenta_cobro_cuota_manejo import (
+        parece_compra_en_divisa,
+        resolver_tasa_cuenta_cobro,
+    )
     from app.services.trm import normalizar_fecha, obtener_trm
 
     fecha_ocr = normalizar_fecha(parsed.get("fecha_compra"))
@@ -857,7 +862,20 @@ def extraer_compra_desde_imagenes(
     trm_meta: dict[str, Any] | None = None
     trm_fuente = None
     trm_eff = float(trm) if trm is not None and float(trm) > 0 else 0.0
-    if moneda == "COP":
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm_eff,
+        fecha_compra=fecha_eff or "",
+        lineas=lineas,
+        consultar_banrep=True,
+    )
+    if not resolved.get("error") and float(resolved.get("trm") or 0) > 0:
+        moneda = str(resolved["moneda"])
+        trm_eff = float(resolved["trm"])
+        trm_fuente = str(resolved.get("trm_fuente") or "") or None
+        if resolved.get("fecha_trm") and not fecha_eff:
+            fecha_eff = str(resolved["fecha_trm"])[:10]
+    elif moneda == "COP" and not parece_compra_en_divisa(moneda, trm_eff, lineas):
         trm_eff = 1.0
         trm_fuente = "cop"
     elif moneda == "USD" and trm_eff <= 0:
@@ -874,6 +892,13 @@ def extraer_compra_desde_imagenes(
 
     flete_eff = float(flete) if flete is not None else (flete_det_n or 0.0)
     mon_flete_eff = (moneda_flete or mon_flete_det_s or moneda).strip().upper()
+    if (
+        resolved
+        and resolved.get("corregido")
+        and mon_flete_eff == "COP"
+        and moneda != "COP"
+    ):
+        mon_flete_eff = moneda
 
     desc_det = parsed.get("descuento_detectado")
     desc_det_n = abs(_num(desc_det)) if desc_det is not None and str(desc_det).strip() != "" else 0.0

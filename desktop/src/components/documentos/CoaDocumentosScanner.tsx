@@ -119,8 +119,14 @@ export function mergeCoaEnDatos(
     fillEmpty(next, "inci", c.inci, filled, "INCI");
     fillEmpty(next, "cas", c.cas, filled, "CAS");
     fillEmpty(next, "lote", c.lote, filled, "lote");
+    fillEmpty(next, "fecha_fabricacion", c.fecha_fabricacion, filled, "fecha fabricación");
+    fillEmpty(next, "fecha_vencimiento", c.fecha_vencimiento, filled, "fecha vencimiento");
+    fillEmpty(next, "presentacion", c.presentacion || c.tamano_lote, filled, "presentación");
     fillEmpty(next, "pais_origen", c.pais_origen, filled, "país origen");
     fillEmpty(next, "fabricante", c.fabricante, filled, "fabricante");
+    if (c.almacenamiento) {
+      fillEmpty(next, "recomendaciones", c.almacenamiento, filled, "almacenamiento");
+    }
 
     const cf = { ...((next.caracteristicas_fisicas as Record<string, unknown>) || {}) };
     fillEmpty(cf, "apariencia", c.apariencia, filled, "apariencia");
@@ -180,12 +186,14 @@ export default function CoaDocumentosScanner({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [scanPreview, setScanPreview] = useState<string | null>(null);
-  const [scanLightbox, setScanLightbox] = useState(false);
+  const [scanPreviews, setScanPreviews] = useState<{ url: string; name: string }[]>([]);
+  const [scanLightbox, setScanLightbox] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [camaraOpen, setCamaraOpen] = useState(false);
   const [parametros, setParametros] = useState("");
   const [fotosCapturadas, setFotosCapturadas] = useState(0);
+  const [pendienteAbrir, setPendienteAbrir] = useState(false);
+  const pendingFilesRef = useRef<File[]>([]);
   const [docSeleccionado, setDocSeleccionado] = useState("");
   const [aplicando, setAplicando] = useState(false);
   const [aplicarError, setAplicarError] = useState<string | null>(null);
@@ -239,22 +247,46 @@ export default function CoaDocumentosScanner({
 
   const abrirDesdeCamposIa = useCallback(
     (nombreDetectado: string, parametrosText: string) => {
+      const c = camposRef.current;
       const base: Record<string, unknown> = {
         titulo: nombreDetectado.toUpperCase(),
         nombre_producto: nombreDetectado,
-        nombre_comercial: camposRef.current.nombre_comercial || "",
-        inci: camposRef.current.inci || "",
-        cas: camposRef.current.cas || "",
-        lote: camposRef.current.lote || "",
-        pais_origen: camposRef.current.pais_origen || "",
-        fabricante: camposRef.current.fabricante || "",
-        caracteristicas_fisicas: {},
+        nombre_comercial: c.nombre_comercial || nombreDetectado,
+        inci: c.inci || "",
+        cas: c.cas || "",
+        lote: c.lote || "",
+        fecha_fabricacion: c.fecha_fabricacion || "",
+        fecha_vencimiento: c.fecha_vencimiento || "",
+        presentacion: c.presentacion || c.tamano_lote || "",
+        pais_origen: c.pais_origen || "",
+        fabricante: c.fabricante || "",
+        recomendaciones: c.almacenamiento || "",
+        caracteristicas_fisicas: {
+          apariencia: c.apariencia || "",
+          olor: c.olor || "",
+          ph: c.ph || "",
+          formula_quimica: c.formula_quimica || "",
+          solubilidad: c.solubilidad || "",
+          humedad: c.humedad || "",
+        },
         _coa: {
           titulo: nombreDetectado.toUpperCase(),
           parametros: [],
           identificacion: {},
-          lote: {},
-          empaque: {},
+          lote: {
+            numero: c.lote || "",
+            fecha_fabricacion: c.fecha_fabricacion || "",
+            fecha_vencimiento: c.fecha_vencimiento || "",
+            fecha_analisis: c.fecha_analisis || "",
+            fecha_emision: c.fecha_emision || "",
+            tamano_lote: c.tamano_lote || c.presentacion || "",
+            pais_origen: c.pais_origen || "",
+            fabricante: c.fabricante || "",
+          },
+          empaque: {
+            empaque_original: c.presentacion || "",
+            almacenamiento: c.almacenamiento || "",
+          },
         },
       };
       const { datos, filled } = mergeCoaEnDatos(
@@ -282,34 +314,35 @@ export default function CoaDocumentosScanner({
   );
 
   const escanearArchivo = useCallback(
-    async (file: File) => {
+    async (files: File[]) => {
+      const lote = files.slice(0, 8);
+      if (!lote.length) return;
       setScanError(null);
       setAplicarOk(false);
       setAsociacionMsg(null);
       setCamposComplementados([]);
+      setPendienteAbrir(false);
       setScanning(true);
       try {
-        const { resolvePanelApiUrl } = await import("../../api/client");
-        const { useTicketsAuth } = await import("../../stores/ticketsAuth");
-        const { useAuthStore } = await import("../../stores/auth");
-        const t = useTicketsAuth.getState();
-        const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-        const url = await resolvePanelApiUrl("/api/fichas/coa/escanear-parametros", "POST");
+        const { api } = await import("../../api/client");
         const fd = new FormData();
-        fd.append("imagen", file);
+        for (const file of lote) {
+          fd.append("imagen", file);
+        }
         const catalogo = archivos
           .filter((a) => a.nombre.toLowerCase().endsWith(".pdf"))
           .map((a) => a.nombre);
         if (catalogo.length) {
           fd.append("catalogo", JSON.stringify(catalogo));
         }
-        const res = await fetch(url, {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: fd,
-        });
-        const json = await res.json();
-        if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
+        const json = await api.upload<{
+          error?: string;
+          parametros?: string;
+          campos?: Record<string, unknown>;
+          nombre_producto?: string;
+          archivo_biblioteca?: string;
+        }>("/api/fichas/coa/escanear-parametros", fd, { timeoutMs: 180000 });
+        if (json.error) throw new Error(json.error);
 
         const nuevosParams = String(json.parametros || "");
         const camposIn: CoaScanCampos =
@@ -321,10 +354,12 @@ export default function CoaDocumentosScanner({
               )
             : {};
 
-        const acumulados: CoaScanCampos = { ...camposRef.current };
-        for (const [k, v] of Object.entries(camposIn)) {
+        // Re-análisis con el lote completo: Gemini ya fusionó las N imágenes.
+        // Preferimos el JSON fresco; solo rellenamos huecos con lo que ya teníamos.
+        const acumulados: CoaScanCampos = { ...camposIn };
+        for (const [k, v] of Object.entries(camposRef.current)) {
           if (k === "parametros" || k === "archivo_biblioteca") continue;
-          if (v) acumulados[k] = v;
+          if (!acumulados[k] && v) acumulados[k] = v;
         }
         camposRef.current = acumulados;
 
@@ -332,17 +367,19 @@ export default function CoaDocumentosScanner({
           acumulados.nombre_producto || json.nombre_producto || "",
         ).trim();
 
-        const merged = mergeParamStrings(parametrosRef.current, nuevosParams);
-        parametrosRef.current = merged;
-        setParametros(merged);
-        setFotosCapturadas((n) => n + 1);
+        const paramsFinal = nuevosParams.trim() || parametrosRef.current;
+        parametrosRef.current = paramsFinal;
+        setParametros(paramsFinal);
+        setFotosCapturadas(lote.length);
 
-        const extras = Object.keys(acumulados).filter(
-          (k) => k !== "parametros" && k !== "nombre_producto",
-        );
-        const extrasTxt = extras.length
-          ? ` · ${extras.length} dato${extras.length !== 1 ? "s" : ""} para complementar casillas`
+        const loteTxt = acumulados.lote ? `lote ${acumulados.lote}` : "";
+        const vencTxt = acumulados.fecha_vencimiento
+          ? `vence ${acumulados.fecha_vencimiento}`
           : "";
+        const fabTxt = acumulados.fecha_fabricacion
+          ? `fab. ${acumulados.fecha_fabricacion}`
+          : "";
+        const claveTxt = [loteTxt, fabTxt, vencTxt].filter(Boolean).join(" · ");
 
         const sugeridoIa = String(json.archivo_biblioteca || "").trim();
         const asociacion = decidirAsociacionCoa(archivos, nombreDetectado, sugeridoIa);
@@ -354,41 +391,77 @@ export default function CoaDocumentosScanner({
           setDocSeleccionado(archivoHit.nombre);
           setMatchScore(score);
           setAsociacionMsg(
-            `IA identificó la materia prima${nombreDetectado ? ` «${nombreDetectado}»` : ""} → «${archivoHit.nombre.replace(/\.pdf$/i, "")}»${extrasTxt}. Actualizando documento…`,
+            `Listo${claveTxt ? ` (${claveTxt})` : ""}. Materia prima → «${archivoHit.nombre.replace(/\.pdf$/i, "")}». Puedes agregar más fotos o pulsar «Abrir documento».`,
           );
-          await aplicarADocumento(archivoHit.nombre, merged);
         } else if (nombreDetectado) {
           setMateriaPrima(nombreDetectado);
-          abrirDesdeCamposIa(nombreDetectado, merged);
+          setDocSeleccionado("");
+          setMatchScore(null);
+          setAsociacionMsg(
+            `Listo${claveTxt ? ` (${claveTxt})` : ""}. Detectó «${nombreDetectado}» (sin PDF en biblioteca). Agrega más fotos si hace falta y pulsa «Abrir documento».`,
+          );
         } else {
           setAsociacionMsg(
-            `No se pudo leer el nombre de la materia prima.${extrasTxt || " Sube una foto más legible del encabezado del COA."}`,
+            `Se leyeron datos${claveTxt ? ` (${claveTxt})` : ""}, pero no el nombre del producto. Sube otra foto del encabezado o elige el documento abajo.`,
           );
         }
+        setPendienteAbrir(true);
       } catch (e: unknown) {
         setScanError(e instanceof Error ? e.message : String(e));
       } finally {
         setScanning(false);
       }
     },
-    [archivos, aplicarADocumento, abrirDesdeCamposIa],
+    [archivos],
   );
 
-  const procesarArchivo = useCallback(
-    (file: File) => {
-      if (file.type.startsWith("image/")) {
-        if (scanPreview) URL.revokeObjectURL(scanPreview);
-        setScanPreview(URL.createObjectURL(file));
+  const abrirConDatosExtraidos = useCallback(() => {
+    const params = parametrosRef.current;
+    const nombre = (camposRef.current.nombre_producto || materiaPrima || "").trim();
+    if (docSeleccionado) {
+      void aplicarADocumento(docSeleccionado, params);
+      return;
+    }
+    if (nombre) {
+      abrirDesdeCamposIa(nombre, params);
+      return;
+    }
+    setAplicarError("Indica el documento de la lista o adjunta una foto donde se lea el nombre del producto.");
+  }, [aplicarADocumento, abrirDesdeCamposIa, docSeleccionado, materiaPrima]);
+
+  const procesarArchivos = useCallback(
+    (incoming: FileList | File[]) => {
+      const nuevos = Array.from(incoming).filter(
+        (f) => f.type.startsWith("image/") || f.type === "application/pdf",
+      );
+      if (!nuevos.length) return;
+
+      const prev = pendingFilesRef.current;
+      const mergedFiles: File[] = [...prev];
+      for (const f of nuevos) {
+        if (mergedFiles.length >= 8) break;
+        const dup = mergedFiles.some(
+          (p) => p.name === f.name && p.size === f.size && p.lastModified === f.lastModified,
+        );
+        if (!dup) mergedFiles.push(f);
       }
-      void escanearArchivo(file);
+      pendingFilesRef.current = mergedFiles;
+
+      setScanPreviews((old) => {
+        for (const p of old) URL.revokeObjectURL(p.url);
+        return mergedFiles
+          .filter((f) => f.type.startsWith("image/"))
+          .map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
+      });
+
+      // Reanalizar TODAS las fotos juntas (no borra: Gemini fusiona; el formulario no se abre aún)
+      void escanearArchivo(mergedFiles);
     },
-    [escanearArchivo, scanPreview],
+    [escanearArchivo],
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    procesarArchivo(file);
+    if (e.target.files?.length) procesarArchivos(e.target.files);
     e.target.value = "";
   };
 
@@ -396,28 +469,32 @@ export default function CoaDocumentosScanner({
     const handler = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
+      const imgs: File[] = [];
       for (const item of items) {
         if (item.type.startsWith("image/")) {
           const file = item.getAsFile();
-          if (file) {
-            procesarArchivo(file);
-            e.preventDefault();
-          }
-          break;
+          if (file) imgs.push(file);
         }
+      }
+      if (imgs.length) {
+        procesarArchivos(imgs);
+        e.preventDefault();
       }
     };
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
-  }, [procesarArchivo]);
+  }, [procesarArchivos]);
 
   const limpiar = () => {
-    if (scanPreview) URL.revokeObjectURL(scanPreview);
-    setScanPreview(null);
+    for (const p of scanPreviews) URL.revokeObjectURL(p.url);
+    setScanPreviews([]);
+    setScanLightbox(null);
+    pendingFilesRef.current = [];
     setParametros("");
     parametrosRef.current = "";
     camposRef.current = {};
     setFotosCapturadas(0);
+    setPendienteAbrir(false);
     setScanError(null);
     setAplicarError(null);
     setAplicarOk(false);
@@ -425,10 +502,10 @@ export default function CoaDocumentosScanner({
     setAsociacionMsg(null);
     setMatchScore(null);
     setCamposComplementados([]);
+    setDocSeleccionado("");
   };
 
   const filas = parseParamRows(parametros);
-  const esValido = (f: File) => f.type.startsWith("image/") || f.type === "application/pdf";
 
   return (
     <div
@@ -443,15 +520,14 @@ export default function CoaDocumentosScanner({
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer.files[0];
-        if (file && esValido(file)) procesarArchivo(file);
+        if (e.dataTransfer.files?.length) procesarArchivos(e.dataTransfer.files);
       }}
     >
       <CamaraCapturaModal
         open={camaraOpen}
         titulo="Escáner de documentos COA"
         onClose={() => setCamaraOpen(false)}
-        onCapture={procesarArchivo}
+        onCapture={(file) => procesarArchivos([file])}
         mantenerAbierto
       />
 
@@ -461,9 +537,9 @@ export default function CoaDocumentosScanner({
             Escáner de documentos COA
           </h3>
           <p className="mt-1 text-xs text-muted">
-            Sube o fotografía el COA: la IA identifica sola la materia prima, completa casillas
-            y abre el documento de la biblioteca (o uno nuevo si aún no existe). No hace falta
-            elegir de la lista.
+            Sube varias fotos del COA (etiqueta + certificado, zoom de tablas…). Se acumulan y
+            la IA las fusiona. Cuando termines, pulsa «Abrir documento» para pasar lote, fechas
+            y parámetros al formulario — así no se borra nada al agregar la 2.ª foto.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -481,9 +557,9 @@ export default function CoaDocumentosScanner({
             disabled={scanning || aplicando}
             className="rounded-lg border border-accent/40 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
           >
-            Adjuntar imagen / PDF
+            Adjuntar imágenes / PDF
           </button>
-          {(parametros || scanPreview || fotosCapturadas > 0 || materiaPrima) && (
+          {(parametros || scanPreviews.length > 0 || fotosCapturadas > 0 || materiaPrima) && (
             <button
               type="button"
               onClick={limpiar}
@@ -499,6 +575,7 @@ export default function CoaDocumentosScanner({
         ref={scanFileRef}
         type="file"
         accept="image/*,application/pdf"
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />
@@ -512,20 +589,27 @@ export default function CoaDocumentosScanner({
       />
 
       <p className="text-[10px] text-muted">
-        También puedes pegar con Ctrl+V o arrastrar. Varios COA de la misma materia prima se fusionan en una sola tabla.
+        Hasta 8 fotos: puedes adjuntarlas de una en una; cada nueva se suma al lote y se
+        reanaliza todo junto. Ctrl+V y arrastrar también acumulan.
       </p>
 
-      {scanPreview && (
-        <img
-          src={scanPreview}
-          alt="Última captura"
-          title="Clic para ampliar"
-          onClick={() => setScanLightbox(true)}
-          className="max-h-32 rounded border border-border object-contain cursor-zoom-in"
-        />
+      {scanPreviews.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {scanPreviews.map((p) => (
+            <button
+              key={p.url}
+              type="button"
+              title={p.name}
+              onClick={() => setScanLightbox(p.url)}
+              className="rounded border border-border overflow-hidden hover:border-accent"
+            >
+              <img src={p.url} alt={p.name} className="h-20 w-20 object-cover" />
+            </button>
+          ))}
+        </div>
       )}
-      {scanLightbox && scanPreview && (
-        <ImageLightbox url={scanPreview} onClose={() => setScanLightbox(false)} />
+      {scanLightbox && (
+        <ImageLightbox url={scanLightbox} onClose={() => setScanLightbox(null)} />
       )}
 
       {materiaPrima && (
@@ -576,17 +660,18 @@ export default function CoaDocumentosScanner({
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs text-muted">
-          Corregir documento (opcional)
+          Documento destino (opcional)
           <select
             value={docSeleccionado}
             onChange={(e) => {
               setDocSeleccionado(e.target.value);
               setAplicarOk(false);
               setAplicarError(null);
+              setPendienteAbrir(true);
             }}
             className="rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink"
           >
-            <option value="">— Solo si la IA se equivocó —</option>
+            <option value="">— Nuevo / el que detectó la IA —</option>
             {opcionesDoc.map((a) => (
               <option key={a.nombre} value={a.nombre}>
                 {a.nombre.replace(/\.pdf$/i, "")}
@@ -597,11 +682,20 @@ export default function CoaDocumentosScanner({
         </label>
         <button
           type="button"
-          onClick={() => void aplicarADocumento(docSeleccionado, parametros)}
-          disabled={aplicando || scanning || !parametros.trim() || !docSeleccionado}
-          className="rounded-lg border border-accent/50 bg-surface-panel px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
+          onClick={() => abrirConDatosExtraidos()}
+          disabled={
+            aplicando ||
+            scanning ||
+            (!parametros.trim() && !Object.keys(camposRef.current).length) ||
+            (!docSeleccionado && !(materiaPrima || camposRef.current.nombre_producto))
+          }
+          className="rounded-lg bg-accent px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-accent-hover disabled:opacity-40"
         >
-          {aplicando ? "Abriendo editor…" : "Aplicar a este documento"}
+          {aplicando
+            ? "Abriendo editor…"
+            : pendienteAbrir
+              ? "Abrir documento con estos datos"
+              : "Abrir documento"}
         </button>
       </div>
 

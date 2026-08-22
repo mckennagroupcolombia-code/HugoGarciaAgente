@@ -91,9 +91,13 @@ body {
 }
 
 .hdr-logo {
-  max-width: 4.5cm;
-  max-height: 1.8cm;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 5.6cm;
+  max-height: 2.6cm;
   object-fit: contain;
+  object-position: right center;
   flex-shrink: 0;
   image-rendering: auto;
 }
@@ -262,21 +266,42 @@ body {
 }
 
 .hdr {
-  display: flex;
-  min-height: 1.7cm;
+  display: table;
+  width: 100%;
+  table-layout: auto;
+  min-height: 2.2cm;
   gap: 0;
   margin: 0 0 0.22cm;
   padding: 0;
   border: 1.2pt solid var(--accent);
   border-top: 0;
+  overflow: visible;
 }
 
 .hdr-left {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
+  display: table-cell;
+  vertical-align: middle;
   padding: 5px 8px;
+}
+
+.hdr-logo-cell {
+  display: table-cell;
+  vertical-align: middle;
+  width: 5.8cm;
+  text-align: right;
+  padding: 4px 8px;
+  overflow: visible;
+}
+
+.hdr-logo {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: 5.6cm;
+  max-height: 2.6cm;
+  margin: 0;
+  object-fit: contain;
+  object-position: right center;
 }
 
 .hdr-pretitulo {
@@ -294,13 +319,6 @@ body {
   color: #333;
   font-size: 8pt;
   text-align: center;
-}
-
-.hdr-logo {
-  align-self: center;
-  max-width: 4.2cm;
-  max-height: 1.45cm;
-  margin: 0 8px;
 }
 
 .meta-table {
@@ -420,9 +438,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
     <div class="hdr-titulo">{{ titulo }}</div>
     {% if sinonimos %}<div class="hdr-sinonimos">{{ sinonimos }}</div>{% endif %}
   </div>
-  {% if cabezote_src %}
-  <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group">
-  {% endif %}
+  {% include "_pdf_hdr_logo.html" %}
 </div>
 
 <!-- Meta: CAS / fecha / origen / fabricante -->

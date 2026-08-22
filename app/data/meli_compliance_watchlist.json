@@ -5075,6 +5075,150 @@
       "alertas_enviadas": [
         "MCO4280551154:closed"
       ]
+    },
+    {
+      "id": "19b01044-49a",
+      "item_id": "MCO4354278002",
+      "sku": "C-COCDESHIL250G",
+      "nombre": "Coco Deshidratado Hilos",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4354278002-coco-deshidratado-hilos-250g-materia-prima-_JM",
+      "item_origen_id": "MCO4208635856",
+      "origen": "reemplazo",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 18900.0,
+      "presentacion": "250g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-08-21T13:24:43",
+      "ultima_revision": "2026-08-21T13:24:45",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva (reemplazo)",
+      "historial": [
+        {
+          "fecha": "2026-08-21T13:24:45",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4354278002-coco-deshidratado-hilos-250g-materia-prima-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "baf07c4e-480",
+      "item_id": "MCO4354252044",
+      "sku": "C-COCDESHIL500G",
+      "nombre": "Coco Deshidratado Hilos Puro",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4354252044-coco-deshidratado-hilos-puro-500g-materia-prima-_JM",
+      "item_origen_id": "MCO4208343872",
+      "origen": "reemplazo",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 35900.0,
+      "presentacion": "500g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-08-21T13:25:32",
+      "ultima_revision": "2026-08-21T13:25:33",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva (reemplazo)",
+      "historial": [
+        {
+          "fecha": "2026-08-21T13:25:33",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4354252044-coco-deshidratado-hilos-puro-500g-materia-prima-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "6200ede4-4cc",
+      "item_id": "MCO4354281272",
+      "sku": "C-COCDESHIL250G",
+      "nombre": "Coco Deshidratado Natural",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4354281272-coco-deshidratado-natural-250g-_JM",
+      "item_origen_id": "MCO4354278002",
+      "origen": "reemplazo",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 18900.0,
+      "presentacion": "250g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-08-21T13:44:56",
+      "ultima_revision": "2026-08-21T13:44:58",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva (reemplazo)",
+      "historial": [
+        {
+          "fecha": "2026-08-21T13:44:58",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4354281272-coco-deshidratado-natural-250g-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
+    },
+    {
+      "id": "8e583223-b11",
+      "item_id": "MCO4354293808",
+      "sku": "C-COCDESHIL500G",
+      "nombre": "Coco Deshidratado Natural",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4354293808-coco-deshidratado-natural-500g-_JM",
+      "item_origen_id": "MCO4354252044",
+      "origen": "reemplazo",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 35900.0,
+      "presentacion": "500g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-08-21T13:46:06",
+      "ultima_revision": "2026-08-21T13:46:10",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva (reemplazo)",
+      "historial": [
+        {
+          "fecha": "2026-08-21T13:46:10",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4354293808-coco-deshidratado-natural-500g-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
     }
   ],
   "ultima_revision_global": "2026-08-18T08:30:53"

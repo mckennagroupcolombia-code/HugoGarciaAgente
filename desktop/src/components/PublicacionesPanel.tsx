@@ -14,6 +14,7 @@ import {
   useReordenarImagenesMeli,
   useEliminarImagenes,
   useCopiarImagenSitio,
+  useAdjuntarDesdeGaleria,
   useGaleriaPublicaciones,
   useNormalizarImagenesCatalogo,
   usePreciosCanales,
@@ -25,6 +26,7 @@ import {
   type VistaSitios,
   type PresentacionSitio,
 } from "../hooks/usePublicaciones";
+import SelectorGaleriaFotosModal from "./SelectorGaleriaFotosModal";
 
 // ── URLs de imagen del catálogo (panel) ────────────────────────────────────
 // /imagenes-productos-catalogo/* no se proxifica en Vite (:5173) ni en el
@@ -372,7 +374,12 @@ function ImageGrid({
                   )}
                   {item.principal && <span className="flex-1" />}
                   <button
-                    onClick={() => onDelete(item)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onDelete(item);
+                    }}
                     disabled={saving}
                     title="Eliminar imagen"
                     className="ml-0.5 inline-flex items-center justify-center rounded p-0.5 text-muted hover:text-danger disabled:opacity-40"
@@ -509,12 +516,24 @@ function ImagenesTab({
 
   async function handleDeleteWeb(item: ImgItem) {
     if (!confirm(`¿Eliminar "${item.id}" de Web? Esta acción no se puede deshacer.`)) return;
-    await eliminarMut.mutateAsync({ plataforma: "web", filename: item.id });
+    const prev = webOrder;
+    setWebOrder((cur) => (cur ? cur.filter((i) => i.id !== item.id) : cur));
+    try {
+      await eliminarMut.mutateAsync({ plataforma: "web", filename: item.id });
+    } catch {
+      setWebOrder(prev);
+    }
   }
 
   async function handleDeleteMeli(item: ImgItem) {
     if (!confirm("¿Quitar esta foto de la publicación MeLi?")) return;
-    await eliminarMut.mutateAsync({ plataforma: "meli", picture_id: item.id, meli_item_id: meliItemId });
+    const prev = meliOrder;
+    setMeliOrder((cur) => (cur ? cur.filter((i) => i.id !== item.id) : cur));
+    try {
+      await eliminarMut.mutateAsync({ plataforma: "meli", picture_id: item.id, meli_item_id: meliItemId });
+    } catch {
+      setMeliOrder(prev);
+    }
   }
 
   const isSaving = reordenarWebMut.isPending || reordenarMeliMut.isPending || eliminarMut.isPending;
@@ -800,8 +819,10 @@ function SitiosTab({
   const eliminarMut = useEliminarImagenes(sku);
   const copiarMut = useCopiarImagenSitio(sku);
   const subirMut = useSubirImagen(sku);
+  const adjuntarGaleriaMut = useAdjuntarDesdeGaleria(sku);
   const fileWebRef = useRef<HTMLInputElement>(null);
   const fileMeliRef = useRef<HTMLInputElement>(null);
+  const [galeriaDestino, setGaleriaDestino] = useState<"web" | "meli" | null>(null);
 
   const vista: VistaSitios | undefined = data.vista_sitios;
   const web = vista?.web;
@@ -858,7 +879,8 @@ function SitiosTab({
     reordenarMeliMut.isPending ||
     eliminarMut.isPending ||
     subirMut.isPending ||
-    copiarMut.isPending;
+    copiarMut.isPending ||
+    adjuntarGaleriaMut.isPending;
 
   async function handleCopiarFoto(destino: "web" | "meli", payload: FotoDragPayload) {
     if (payload.plataforma === destino) return;
@@ -913,38 +935,64 @@ function SitiosTab({
 
   async function handleDeleteWeb(item: ImgItem) {
     if (!confirm(`¿Eliminar esta foto de la tienda web?`)) return;
-    await eliminarMut.mutateAsync({ plataforma: "web", filename: item.id });
+    const prev = webOrder;
+    setWebOrder((cur) => (cur ? cur.filter((i) => i.id !== item.id) : cur));
+    try {
+      await eliminarMut.mutateAsync({ plataforma: "web", filename: item.id });
+    } catch {
+      setWebOrder(prev);
+    }
   }
 
   async function handleDeleteMeli(item: ImgItem) {
     if (!confirm("¿Quitar esta foto de Mercado Libre?")) return;
-    await eliminarMut.mutateAsync({
-      plataforma: "meli",
-      picture_id: item.id,
-      meli_item_id: meliItemId,
-    });
+    const prev = meliOrder;
+    setMeliOrder((cur) => (cur ? cur.filter((i) => i.id !== item.id) : cur));
+    try {
+      await eliminarMut.mutateAsync({
+        plataforma: "meli",
+        picture_id: item.id,
+        meli_item_id: meliItemId,
+      });
+    } catch {
+      setMeliOrder(prev);
+    }
   }
 
   async function handleDeleteSelectedWeb() {
     if (!selWeb.size) return;
     if (!confirm(`¿Eliminar ${selWeb.size} foto(s) de la tienda web?`)) return;
-    for (const id of selWeb) {
-      await eliminarMut.mutateAsync({ plataforma: "web", filename: id });
-    }
+    const ids = [...selWeb];
+    const prev = webOrder;
+    setWebOrder((cur) => (cur ? cur.filter((i) => !selWeb.has(i.id)) : cur));
     setSelWeb(new Set());
+    try {
+      for (const id of ids) {
+        await eliminarMut.mutateAsync({ plataforma: "web", filename: id });
+      }
+    } catch {
+      setWebOrder(prev);
+    }
   }
 
   async function handleDeleteSelectedMeli() {
     if (!selMeli.size) return;
     if (!confirm(`¿Eliminar ${selMeli.size} foto(s) de Mercado Libre?`)) return;
-    for (const id of selMeli) {
-      await eliminarMut.mutateAsync({
-        plataforma: "meli",
-        picture_id: id,
-        meli_item_id: meliItemId,
-      });
-    }
+    const ids = [...selMeli];
+    const prev = meliOrder;
+    setMeliOrder((cur) => (cur ? cur.filter((i) => !selMeli.has(i.id)) : cur));
     setSelMeli(new Set());
+    try {
+      for (const id of ids) {
+        await eliminarMut.mutateAsync({
+          plataforma: "meli",
+          picture_id: id,
+          meli_item_id: meliItemId,
+        });
+      }
+    } catch {
+      setMeliOrder(prev);
+    }
   }
 
   async function handleGuardarOrdenWeb() {
@@ -980,15 +1028,49 @@ function SitiosTab({
     );
   }
 
-  async function handleSubir(files: FileList | null, target: "web" | "meli") {
+  async function handleSubir(files: FileList | File[] | null, target: "web" | "meli") {
     if (!files?.length) return;
+    const list = Array.isArray(files) ? files : Array.from(files);
     await subirMut.mutateAsync({
-      files: Array.from(files),
+      files: list,
       targets: [target],
       meliItemId: target === "meli" ? meliItemId : undefined,
     });
     if (target === "web" && fileWebRef.current) fileWebRef.current.value = "";
     if (target === "meli" && fileMeliRef.current) fileMeliRef.current.value = "";
+    setGaleriaDestino(null);
+  }
+
+  async function handleDesdeGaleria(
+    destino: "web" | "meli",
+    sel: { filenames: string[]; recursos: string[]; meli: { id: string; url: string }[] },
+  ) {
+    let copiadas = 0;
+    if (destino === "web") {
+      for (const pic of sel.meli || []) {
+        await copiarMut.mutateAsync({
+          origen: "meli",
+          destino: "web",
+          imagen_id: pic.id,
+          url: pic.url,
+          meli_item_id: meliItemId || undefined,
+        });
+        copiadas += 1;
+      }
+    }
+    if ((sel.filenames?.length || 0) + (sel.recursos?.length || 0) > 0) {
+      const res = await adjuntarGaleriaMut.mutateAsync({
+        filenames: sel.filenames,
+        recursos: sel.recursos,
+        targets: [destino],
+        meli_item_id: destino === "meli" ? meliItemId || undefined : undefined,
+      });
+      copiadas += res.copiadas || 0;
+      setMsgCopia(`✓ ${res.mensaje || "Fotos agregadas desde la galería"}`);
+    } else if (copiadas) {
+      setMsgCopia(`✓ ${copiadas} foto(s) copiada(s) de MeLi a la web`);
+    }
+    setGaleriaDestino(null);
   }
 
   return (
@@ -1129,11 +1211,13 @@ function SitiosTab({
             />
             <button
               type="button"
-              disabled={subirMut.isPending}
-              onClick={() => fileWebRef.current?.click()}
+              disabled={subirMut.isPending || adjuntarGaleriaMut.isPending}
+              onClick={() => setGaleriaDestino("web")}
               className="w-full rounded-lg border border-dashed border-green-400 bg-white/70 py-2 text-xs font-semibold text-green-900 hover:bg-green-50 disabled:opacity-40"
             >
-              {subirMut.isPending ? "Subiendo…" : "+ Agregar fotos a la web"}
+              {subirMut.isPending || adjuntarGaleriaMut.isPending
+                ? "Agregando…"
+                : "+ Agregar fotos a la web"}
             </button>
             {reordenarWebMut.isSuccess && (
               <p className="text-[11px] text-green-700">✓ Orden web guardado</p>
@@ -1321,11 +1405,13 @@ function SitiosTab({
             />
             <button
               type="button"
-              disabled={subirMut.isPending || !meliItemId}
-              onClick={() => fileMeliRef.current?.click()}
+              disabled={subirMut.isPending || adjuntarGaleriaMut.isPending || !meliItemId}
+              onClick={() => setGaleriaDestino("meli")}
               className="w-full rounded-lg border border-dashed border-blue-400 bg-white/70 py-2 text-xs font-semibold text-blue-900 hover:bg-blue-50 disabled:opacity-40"
             >
-              {subirMut.isPending ? "Subiendo…" : "+ Agregar fotos a MeLi"}
+              {subirMut.isPending || adjuntarGaleriaMut.isPending
+                ? "Agregando…"
+                : "+ Agregar fotos a MeLi"}
             </button>
             {reordenarMeliMut.isSuccess && (
               <p className="text-[11px] text-green-700">✓ Orden MeLi guardado</p>
@@ -1348,6 +1434,25 @@ function SitiosTab({
         <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
           Error al subir: {subirMut.error.message}
         </p>
+      )}
+      {adjuntarGaleriaMut.isError && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          Error al agregar desde galería: {adjuntarGaleriaMut.error.message}
+        </p>
+      )}
+
+      {galeriaDestino && (
+        <SelectorGaleriaFotosModal
+          abierta
+          destino={galeriaDestino}
+          skuActual={sku}
+          pending={subirMut.isPending || adjuntarGaleriaMut.isPending || copiarMut.isPending}
+          fotosWeb={(webOrder ?? []).map((i) => ({ filename: i.id, url: i.url }))}
+          fotosMeli={(meliOrder ?? []).map((i) => ({ id: i.id, url: i.url }))}
+          onCerrar={() => setGaleriaDestino(null)}
+          onConfirmar={(sel) => handleDesdeGaleria(galeriaDestino, sel)}
+          onSubirArchivos={(files) => handleSubir(files, galeriaDestino)}
+        />
       )}
 
       {filas.length > 1 && (
@@ -1501,6 +1606,12 @@ function NormalizarSkuButton({ sku }: { sku: string }) {
   );
 }
 
+function skuInferidoDeArchivo(name: string): string {
+  const stem = name.replace(/\.[^.]+$/i, "").trim();
+  const m = stem.match(/^(.*)_(\d+)$/);
+  return (m ? m[1] : stem).trim();
+}
+
 function GaleriaPublicacionesView({
   onAbrirSku,
 }: {
@@ -1510,6 +1621,13 @@ function GaleriaPublicacionesView({
   const [q, setQ] = useState("");
   const { data, isLoading, isFetching, isError, error, refetch } = useGaleriaPublicaciones(q);
   const normalizarMut = useNormalizarImagenesCatalogo();
+  const subirMut = useSubirImagen("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [skuDestino, setSkuDestino] = useState("");
+  const [dropOver, setDropOver] = useState(false);
+  const [msgSubida, setMsgSubida] = useState("");
   const items = data?.items ?? [];
 
   // Vista plana: una tarjeta por imagen con el código SKU bien visible
@@ -1521,6 +1639,63 @@ function GaleriaPublicacionesView({
     })),
   );
   const sinEstandar = tarjetas.filter((t) => t.img.cumple_estandar === false).length;
+
+  const sugerenciasSku = (() => {
+    const map = new Map<string, string>();
+    for (const it of items) map.set(it.sku, it.nombre);
+    const qSku = skuDestino.trim().toLowerCase();
+    return Array.from(map.entries())
+      .filter(([sku, nombre]) => {
+        if (!qSku) return true;
+        return sku.toLowerCase().includes(qSku) || nombre.toLowerCase().includes(qSku);
+      })
+      .slice(0, 12);
+  })();
+
+  function tomarArchivos(list: FileList | File[] | null) {
+    if (!list || !("length" in list) || list.length === 0) return;
+    const arr = Array.from(list).filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(f.name));
+    if (!arr.length) return;
+    setFiles(arr);
+    setMsgSubida("");
+    const inferred = skuInferidoDeArchivo(arr[0].name);
+    if (inferred && arr.every((f) => skuInferidoDeArchivo(f.name).toUpperCase() === inferred.toUpperCase())) {
+      setSkuDestino((prev) => prev || inferred);
+    }
+    const readers = arr.map(
+      (f) =>
+        new Promise<string>((res) => {
+          const r = new FileReader();
+          r.onload = (e) => res(String(e.target?.result || ""));
+          r.readAsDataURL(f);
+        }),
+    );
+    void Promise.all(readers).then(setPreviews);
+  }
+
+  async function subirDesdeOrdenador() {
+    const sku = skuDestino.trim();
+    if (!files.length || !sku) return;
+    setMsgSubida("");
+    try {
+      const res = await subirMut.mutateAsync({ files, targets: ["web"], sku });
+      const n = res.archivos.filter((a) => a.web?.ok).length;
+      setMsgSubida(`✓ ${n} foto(s) cargada(s) a ${sku}`);
+      setFiles([]);
+      setPreviews([]);
+      if (fileRef.current) fileRef.current.value = "";
+      void refetch();
+    } catch (e) {
+      setMsgSubida(e instanceof Error ? e.message : "No se pudieron cargar las fotos");
+    }
+  }
+
+  function limpiarCarga() {
+    setFiles([]);
+    setPreviews([]);
+    setMsgSubida("");
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -1570,6 +1745,13 @@ function GaleriaPublicacionesView({
           >
             {isFetching ? "Actualizando…" : "🔄 Actualizar"}
           </button>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover"
+          >
+            + Cargar desde el computador
+          </button>
         </div>
       </div>
       {normalizarMut.isSuccess && (
@@ -1607,6 +1789,102 @@ function GaleriaPublicacionesView({
           Buscar
         </button>
       </form>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        className="hidden"
+        onChange={(e) => tomarArchivos(e.target.files)}
+      />
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDropOver(true);
+        }}
+        onDragLeave={() => setDropOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDropOver(false);
+          tomarArchivos(e.dataTransfer.files);
+        }}
+        className={`shrink-0 rounded-xl border-2 border-dashed px-3 py-3 transition ${
+          dropOver ? "border-accent bg-accent/5" : "border-border bg-surface"
+        }`}
+      >
+        {files.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex w-full flex-col items-center gap-1 py-2 text-center"
+          >
+            <span className="text-sm font-semibold text-ink">Cargar fotos desde el computador</span>
+            <span className="text-[11px] text-muted">
+              Arrastra JPG, PNG o WEBP aquí, o haz clic para elegir · se normalizan a 1000×1000
+            </span>
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {previews.map((src, i) => (
+                <img
+                  key={`${files[i]?.name}-${i}`}
+                  src={src}
+                  alt=""
+                  className="h-16 w-16 rounded-lg border border-border object-cover"
+                />
+              ))}
+            </div>
+            <p className="text-[11px] text-muted">
+              {files.length} archivo{files.length === 1 ? "" : "s"} · indica el SKU al que pertenecen
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[220px] flex-1">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                  SKU
+                </span>
+                <input
+                  type="text"
+                  list="galeria-sku-sugerencias"
+                  value={skuDestino}
+                  onChange={(e) => setSkuDestino(e.target.value)}
+                  placeholder="Ej: C-UREA250g"
+                  className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+                />
+                <datalist id="galeria-sku-sugerencias">
+                  {sugerenciasSku.map(([sku, nombre]) => (
+                    <option key={sku} value={sku}>
+                      {nombre}
+                    </option>
+                  ))}
+                </datalist>
+              </label>
+              <button
+                type="button"
+                disabled={!skuDestino.trim() || subirMut.isPending}
+                onClick={() => void subirDesdeOrdenador()}
+                className="rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
+              >
+                {subirMut.isPending ? "Cargando…" : `Subir ${files.length} a la galería`}
+              </button>
+              <button
+                type="button"
+                disabled={subirMut.isPending}
+                onClick={limpiarCarga}
+                className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {msgSubida && (
+        <p className={`text-xs shrink-0 ${msgSubida.startsWith("✓") ? "text-green-700" : "text-danger"}`}>
+          {msgSubida}
+        </p>
+      )}
 
       {isLoading && <p className="text-sm text-muted">Cargando galería…</p>}
       {isError && (

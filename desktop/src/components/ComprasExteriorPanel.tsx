@@ -2417,6 +2417,7 @@ export default function ComprasExteriorPanel() {
                 {" = "}
                 <strong className="font-mono text-accent">{fmtCop(cuotaManejoPreview.total)}</strong>
                 . Ajusta el % arriba antes de confirmar; el PDF se genera al aprobar.
+                La cuenta se liquida en <strong>pesos (COP)</strong> con la TRM BanRep del día de la compra.
               </p>
             )}
           </div>

@@ -163,6 +163,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "Las fichas están vinculadas a las publicaciones de MercadoLibre — Hugo las usa para responder preguntas.",
       "Puedes descargar el PDF de cada ficha para enviarlo a clientes.",
+      "En Biblioteca, «Cargar en página web» publica solo documentos completos (FT + COA + SDS) en las fichas de producto de la tienda.",
     ],
     tier: "standard",
     category: "docs",

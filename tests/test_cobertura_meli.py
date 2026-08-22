@@ -103,3 +103,20 @@ def test_estado_o_ciudad_sin_resolver_no_rompe(tmp_path, monkeypatch) -> None:
     r = cm.actualizar_cobertura_meli(dias=1, limite=10)
     assert r["resueltos"] == 0
     assert r["sin_resolver"] == 1
+
+
+def test_envios_por_fecha_usa_fecha_real_de_despacho(tmp_path, monkeypatch) -> None:
+    _reset(tmp_path, monkeypatch)
+    import app.services.meli as meli_mod
+    ordenes = [_orden("1"), _orden("2")]
+    envios = {
+        "1": _envio("shipped", "Medellín", "Antioquia", date_shipped="2026-08-10T10:00:00.000-05:00"),
+        "2": _envio("delivered", "Cali", "Valle del Cauca", date_shipped="2026-08-10T11:00:00.000-05:00"),
+    }
+    monkeypatch.setattr(meli_mod, "listar_ordenes_meli_por_estado", lambda *a, **k: ordenes)
+    monkeypatch.setattr(meli_mod, "consultar_envio_meli", lambda sid: envios[sid])
+
+    cm.actualizar_cobertura_meli(dias=1, limite=10)
+
+    data = json.loads(cm.COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
+    assert data["envios_por_fecha"]["2026-08-10"] == 2

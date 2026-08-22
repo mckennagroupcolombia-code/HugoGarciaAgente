@@ -591,5 +591,19 @@
   "C-ACDSAL20P30m": {
     "oculto_web": true,
     "updated_at": "2026-08-20T14:38:22.564324"
+  },
+  "RICINO 10 mL": {
+    "imagenes_web": [
+      "RICINO 10 mL.png"
+    ],
+    "updated_at": "2026-08-21T11:58:34.227676"
+  },
+  "C-ACERIC10mL": {
+    "imagenes_web": [
+      "C-ACERIC10mL_3.png",
+      "C-ACERIC10mL.png",
+      "C-ACERIC10mL_2.jpg"
+    ],
+    "updated_at": "2026-08-21T13:09:15.741479"
   }
 }

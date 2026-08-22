@@ -13,8 +13,9 @@
 {% macro caja_por_que_elegirnos(actividad) -%}
 {#
   Antes mostraba "Por qué elegirnos" (bullets estáticos). Ahora usa el mismo
-  espacio para actividad real en vivo (ver _actividad_vivo.html) — mismo
-  look, contenido que sí cambia día a día.
+  espacio para actividad real en vivo — único lugar donde se muestra en el
+  tema Clásico (antes se repetía además en una tira aparte más abajo,
+  _actividad_vivo.html; esa tira solo la usa el tema Pureza, ver tema_web.py).
 #}
 <div class="hero-kit-box">
   <div class="hero-right-label"><span class="live-dot" aria-hidden="true"></span> En este momento</div>
@@ -26,6 +27,14 @@
         <p>Entre tienda web y MercadoLibre</p>
       </div>
       <span class="kit-val" data-live="pedidos_hoy">{{ actividad.pedidos_hoy }}</span>
+    </div>
+    <div class="kit-item">
+      <div class="kit-dot dot-4"><i class="ph ph-truck"></i></div>
+      <div class="kit-info">
+        <h3>Despachos esta semana</h3>
+        <p>Entre tienda web y MercadoLibre</p>
+      </div>
+      <span class="kit-val" data-live="despachos_semana">{{ actividad.despachos_semana }}</span>
     </div>
     <div class="kit-item">
       <div class="kit-dot dot-2"><i class="ph ph-map-pin"></i></div>
@@ -130,12 +139,6 @@
   </div>
 
 </section>
-{% endif %}
-
-{% if sec == 'actividad_vivo' and Sec.actividad_vivo != false and not LAYOUT_CLASICO.nodos.get('actividad_vivo', {}).get('hidden') %}
-<div style="order:{{ LAYOUT_CLASICO.orden_map.actividad_vivo | default(1) }};">
-  {% include "_actividad_vivo.html" %}
-</div>
 {% endif %}
 
 {% if sec == 'banners_promo' and Sec.banners_promo != false and not LAYOUT_CLASICO.nodos.get('banners_promo', {}).get('hidden') %}

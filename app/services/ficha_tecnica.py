@@ -202,10 +202,10 @@ def _ajustar_cabezote_en_docx(docx_path: Path) -> None:
     jpeg_rgb, img_w, img_h = _imagen_bytes_rgb(files[media_key])
     files[media_key] = jpeg_rgb
 
-    # ── 4. Calcular tamaño EMU (máx 5 cm ancho × 2 cm alto) ──────────────────
+    # ── 4. Tamaño EMU: logo completo (máx 5.6 cm × 2.6 cm), sin recorte ──────
     # 1 cm = 360 000 EMU
-    max_cx = 1_800_000   # 5 cm
-    max_cy =   720_000   # 2 cm
+    max_cx = 2_016_000   # 5.6 cm
+    max_cy =   936_000   # 2.6 cm
     ratio = img_h / img_w if img_w > 0 else 0.5
     cx = max_cx
     cy = int(cx * ratio)
@@ -1003,45 +1003,99 @@ def _imagen_a_data_url(path: Path) -> str | None:
         return None
 
 
-def _cabezote_src_html(cabezote_id: str | None) -> str | None:
-    """Devuelve data URL base64 del cabezote para el template HTML.
-    Sirve los bytes originales sin re-encodear para preservar calidad;
-    solo convierte si el modo es CMYK o similar."""
-    path = None
-    try:
-        path = resolver_cabezote_path(cabezote_id)
-    except Exception:
-        path = None
-    if not path:
-        for nombre in (
-            "logo_azul.png",
-            "logo_mckenna.jpg",
-            "mckenna_estandar.jpg",
-            "isotipo_mckenna.png",
-            "logo_gris.png",
-        ):
-            candidato = CABEZOTES_DIR / nombre
-            if candidato.is_file():
-                path = candidato
-                break
-        if not path:
-            for nombre in ("LOGO AZUL.png", "isotipo_final.png", "LOGO GRIS.png"):
-                candidato = DISENO_DIR / nombre
-                if candidato.is_file():
-                    path = candidato
-                    break
-    return _imagen_a_data_url(path) if path else None
+_LOGO_POR_ACENTO = {
+    "069DC2": "logo_azul.png",
+    "003DA5": "logo_azul.png",
+    "5CB85C": "logo_azul.png",
+    "37474F": "logo_gris.png",
+    "000000": "logo_gris.png",
+    "6A1B9A": "logo_morado.png",
+    "FFA040": "logo_amarillo.png",
+    "B71C1C": "logo_cafe.png",
+}
 
 
-def _logo_pie_src_html(cabezote_id: str | None = None) -> str | None:
-    """Logo McKenna para la esquina inferior izquierda de cada página del PDF."""
-    candidatos: list[Path] = []
+def _logo_por_color_acento(color: str | None) -> Path | None:
+    """Logo McKenna que corresponde al color del formato (azul, morado, gris…)."""
+    hex_c = (color or "").strip().lstrip("#").upper()
+    nombre = _LOGO_POR_ACENTO.get(hex_c, "logo_azul.png")
+    path = CABEZOTES_DIR / nombre
+    return path if path.is_file() else None
+
+
+def _path_logo_correspondiente(
+    cabezote_id: str | None,
+    color_acento: str | None = None,
+) -> Path | None:
+    """Cabezote elegido, o el logo del color del formato, o el azul por defecto."""
     try:
         elegido = resolver_cabezote_path(cabezote_id)
     except Exception:
         elegido = None
-    if elegido and elegido.is_file() and elegido.stem.lower().startswith("logo"):
-        candidatos.append(elegido)
+    if elegido and elegido.is_file():
+        return elegido
+    por_color = _logo_por_color_acento(color_acento)
+    if por_color:
+        return por_color
+    for nombre in (
+        "logo_azul.png",
+        "logo_mckenna.jpg",
+        "mckenna_estandar.jpg",
+        "isotipo_mckenna.png",
+        "logo_gris.png",
+    ):
+        candidato = CABEZOTES_DIR / nombre
+        if candidato.is_file():
+            return candidato
+    for nombre in ("LOGO AZUL.png", "isotipo_final.png", "LOGO GRIS.png"):
+        candidato = DISENO_DIR / nombre
+        if candidato.is_file():
+            return candidato
+    return None
+
+
+def _medida_cabezote_cm(
+    path: Path,
+    *,
+    max_w_cm: float = 5.6,
+    max_h_cm: float = 2.6,
+) -> tuple[float, float]:
+    """Ancho/alto en cm para pintar el logo completo (sin recortar)."""
+    try:
+        with Image.open(path) as im:
+            w, h = im.size
+    except Exception:
+        return max_w_cm, 1.6
+    if w <= 0 or h <= 0:
+        return max_w_cm, 1.6
+    ratio = h / w
+    width = max_w_cm
+    height = width * ratio
+    if height > max_h_cm:
+        height = max_h_cm
+        width = height / ratio
+    return round(float(width), 2), round(float(height), 2)
+
+
+def _cabezote_src_html(
+    cabezote_id: str | None,
+    color_acento: str | None = None,
+) -> str | None:
+    """Devuelve data URL base64 del cabezote/logo para el template HTML."""
+    path = _path_logo_correspondiente(cabezote_id, color_acento)
+    return _imagen_a_data_url(path) if path else None
+
+
+def _logo_pie_src_html(
+    cabezote_id: str | None = None,
+    color_acento: str | None = None,
+) -> str | None:
+    """Logo McKenna para la esquina inferior izquierda de cada página del PDF."""
+    path = _path_logo_correspondiente(cabezote_id, color_acento)
+    if path and path.is_file() and path.stem.lower().startswith("logo"):
+        src = _imagen_a_data_url(path)
+        if src:
+            return src
     for nombre in (
         "logo_azul.png",
         "logo_gris.png",
@@ -1051,11 +1105,11 @@ def _logo_pie_src_html(cabezote_id: str | None = None) -> str | None:
         "logo_mckenna.jpg",
         "isotipo_mckenna.png",
     ):
-        candidatos.append(CABEZOTES_DIR / nombre)
+        src = _imagen_a_data_url(CABEZOTES_DIR / nombre)
+        if src:
+            return src
     for nombre in ("LOGO AZUL.png", "isotipo_final.png", "LOGO GRIS.png"):
-        candidatos.append(DISENO_DIR / nombre)
-    for path in candidatos:
-        src = _imagen_a_data_url(path)
+        src = _imagen_a_data_url(DISENO_DIR / nombre)
         if src:
             return src
     return None
@@ -1138,6 +1192,15 @@ def _contexto_html(
     color_raw = (d.get("color_acento") or "").strip()
     color_acento = color_raw if _hex_re.match(color_raw) else "#069DC2"
 
+    cabezote_src = None
+    cabezote_w_cm = None
+    cabezote_h_cm = None
+    if incluir_cabezote:
+        logo_path = _path_logo_correspondiente(cabezote_id, color_acento)
+        if logo_path:
+            cabezote_src = _imagen_a_data_url(logo_path)
+            cabezote_w_cm, cabezote_h_cm = _medida_cabezote_cm(logo_path)
+
     return {
         "titulo": titulo,
         "referencia": referencia,
@@ -1155,8 +1218,10 @@ def _contexto_html(
         "lote": lote,
         "color_acento": color_acento,
         "composicion": composicion,
-        "cabezote_src": _cabezote_src_html(cabezote_id) if incluir_cabezote else None,
-        "logo_pie_src": _logo_pie_src_html(cabezote_id) if incluir_cabezote else None,
+        "cabezote_src": cabezote_src,
+        "cabezote_w_cm": cabezote_w_cm,
+        "cabezote_h_cm": cabezote_h_cm,
+        "logo_pie_src": _logo_pie_src_html(cabezote_id, color_acento) if incluir_cabezote else None,
     }
 
 
@@ -1445,6 +1510,8 @@ def generar_pdf_completo(
         titulo=titulo,
         color_acento=ft_ctx["color_acento"],
         cabezote_src=ft_ctx["cabezote_src"],
+        cabezote_w_cm=ft_ctx.get("cabezote_w_cm"),
+        cabezote_h_cm=ft_ctx.get("cabezote_h_cm"),
         logo_pie_src=ft_ctx.get("logo_pie_src"),
         ft=ft_ctx,
         coa=coa_ctx,

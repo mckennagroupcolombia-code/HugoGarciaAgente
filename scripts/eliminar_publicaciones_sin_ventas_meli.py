@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """
-Cierra y elimina publicaciones MeLi sin ventas pagadas en los últimos N meses.
+Inventaría publicaciones MeLi sin ventas pagadas en los últimos N meses y
+crea un ticket en el Centro de Mando para que un operador las revise una a
+una — este script NUNCA cierra ni elimina publicaciones por sí mismo.
 
-Por defecto solo inventaria (dry-run). Con --ejecutar:
-  1) PUT status=closed
-  2) DELETE /items/{id} (borrado definitivo si MeLi lo permite)
+(Hasta 2026-08-18 sí lo hacía automáticamente con --ejecutar: cerró/eliminó
+22 publicaciones sin comprobar antes si el ítem era demasiado nuevo para
+haber tenido ventas, incluyendo dos creadas 23 días antes. Se removió esa
+ruta automática por eso.)
 
-Omite: closed/inactive, fulfillment (Full), under_review.
+Omite del inventario: closed/inactive, fulfillment (Full), under_review.
 
 Uso:
   python3 scripts/eliminar_publicaciones_sin_ventas_meli.py
-  python3 scripts/eliminar_publicaciones_sin_ventas_meli.py --meses 6 --ejecutar
+  python3 scripts/eliminar_publicaciones_sin_ventas_meli.py --meses 6
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import sqlite3
 import sys
 import time
 from datetime import datetime, timedelta
@@ -34,6 +38,7 @@ MELI_API = "https://api.mercadolibre.com"
 _NO_OPERABLES = frozenset({"closed", "inactive"})
 _REPORT_DIR = ROOT / "app" / "data"
 _CREDS_PATH = ROOT / "credenciales_meli.json"
+_TICKETS_DB_PATH = ROOT / "app" / "data" / "tickets.db"
 
 
 def _token_meli() -> str:
@@ -267,63 +272,59 @@ def _contar_razones(omitidos: list[dict]) -> dict[str, int]:
     return out
 
 
-def cerrar_y_eliminar(meli_id: str, headers: dict) -> dict:
-    """Cierra y luego intenta DELETE definitivo."""
-    result = {"meli_id": meli_id, "cerrado": False, "eliminado": False, "error": None}
+def _crear_ticket_revision_manual(candidatos: list[dict], meses: int) -> str | None:
+    """Crea un ticket en el Centro de Mando listando los candidatos, para que
+    un operador decida caso por caso — este script no cierra nada por su cuenta."""
+    if not candidatos:
+        return None
     try:
-        r = requests.put(
-            f"{MELI_API}/items/{meli_id}",
-            headers=headers,
-            json={"status": "closed"},
-            timeout=30,
-        )
-        if r.status_code in (200, 201):
-            result["cerrado"] = True
-        elif r.status_code == 400 and "closed" in (r.text or "").lower():
-            # Ya estaba cerrada o transición no aplicable → intentar delete igual
-            result["cerrado"] = True
-            result["aviso_cierre"] = (r.text or "")[:180]
-        else:
-            result["error"] = f"cierre HTTP {r.status_code}: {(r.text or '')[:220]}"
-            return result
-    except Exception as e:
-        result["error"] = f"cierre: {e}"
-        return result
+        from app.services.tickets_db import crear_ticket, init_db
 
-    time.sleep(0.35)
-    try:
-        r = requests.delete(
-            f"{MELI_API}/items/{meli_id}",
-            headers=headers,
-            timeout=30,
+        init_db()
+        db = sqlite3.connect(_TICKETS_DB_PATH)
+        db.row_factory = sqlite3.Row
+        row = db.execute("SELECT id FROM usuarios WHERE username='admin'").fetchone()
+        if not row:
+            row = db.execute(
+                "SELECT id FROM usuarios WHERE activo=1 ORDER BY id ASC LIMIT 1"
+            ).fetchone()
+        creador_id = int(row["id"]) if row else None
+        db.close()
+        if not creador_id:
+            print("⚠️ No hay usuario admin/activo en el Centro de Mando; no se crea ticket")
+            return None
+
+        lineas = [
+            f"- {c['meli_id']}  sku={c.get('sku') or '-'}  hist_sold={c.get('sold_quantity_lifetime')}  "
+            f"{c.get('titulo')}\n  {c.get('permalink')}"
+            for c in candidatos
+        ]
+        descripcion = (
+            f"Publicaciones MeLi sin ventas pagadas en los últimos {meses} meses "
+            f"({len(candidatos)} candidatas). Revisar una a una antes de cerrarlas: "
+            "puede ser un ítem nuevo que aún no ha tenido tiempo de vender.\n\n"
+            + "\n".join(lineas)
         )
-        if r.status_code in (200, 201, 204):
-            result["eliminado"] = True
-        else:
-            # Cerrada pero MeLi no permite borrar (p. ej. historial de ventas)
-            result["error"] = (
-                f"delete HTTP {r.status_code}: {(r.text or '')[:220]} "
-                "(quedó closed)"
-            )
+        data = {
+            "tipo": "accion",
+            "titulo": f"Revisar {len(candidatos)} publicaciones MeLi sin ventas ({meses}m)",
+            "categoria": "operaciones",
+            "descripcion": descripcion,
+            "prioridad": "media",
+        }
+        ticket, err = crear_ticket(data, creador_id, None)
+        if err:
+            print(f"⚠️ No se pudo crear el ticket: {err}")
+            return None
+        return f"#{ticket.get('id')}"
     except Exception as e:
-        result["error"] = f"delete: {e} (quedó closed)"
-    return result
+        print(f"⚠️ No se pudo crear el ticket de revisión manual: {e}")
+        return None
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--meses", type=int, default=6, help="Meses sin ventas (default 6)")
-    ap.add_argument(
-        "--ejecutar",
-        action="store_true",
-        help="Cierra y elimina de verdad (sin esto solo inventaría)",
-    )
-    ap.add_argument(
-        "--limite",
-        type=int,
-        default=0,
-        help="Máx. ítems a eliminar (0 = todos los candidatos)",
-    )
     args = ap.parse_args()
     if args.meses < 1 or args.meses > 24:
         print("❌ --meses debe estar entre 1 y 24")
@@ -347,64 +348,21 @@ def main() -> int:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_path = _REPORT_DIR / f"meli_sin_ventas_{args.meses}m_{stamp}.json"
     os.makedirs(_REPORT_DIR, exist_ok=True)
-
-    if not args.ejecutar:
-        with open(report_path, "w", encoding="utf-8") as f:
-            json.dump(inv, f, ensure_ascii=False, indent=2)
-        print(f"\n💾 Inventario guardado: {report_path}")
-        print("ℹ️  Dry-run. Para borrar: añade --ejecutar")
-        return 0
-
-    try:
-        headers = _headers(_token_meli())
-    except Exception as e:
-        print(f"❌ Token MeLi no disponible para ejecutar: {e}")
-        return 1
-
-    a_borrar = candidatos
-    if args.limite and args.limite > 0:
-        a_borrar = candidatos[: args.limite]
-
-    print(f"\n🗑️  Eliminando {len(a_borrar)} publicaciones…")
-    resultados: list[dict] = []
-    ok_cerrados = ok_eliminados = fallos = 0
-    for i, c in enumerate(a_borrar, 1):
-        mid = c["meli_id"]
-        print(f"  [{i}/{len(a_borrar)}] {mid} …", end=" ", flush=True)
-        res = cerrar_y_eliminar(mid, headers)
-        res["sku"] = c.get("sku")
-        res["titulo"] = c.get("titulo")
-        resultados.append(res)
-        if res.get("eliminado"):
-            ok_eliminados += 1
-            ok_cerrados += 1
-            print("ELIMINADA")
-        elif res.get("cerrado"):
-            ok_cerrados += 1
-            fallos += 1
-            print(f"CERRADA (delete falló: {res.get('error')})")
-        else:
-            fallos += 1
-            print(f"ERROR {res.get('error')}")
-        time.sleep(0.2)
-
-    out = {
-        **inv,
-        "ejecutado": True,
-        "procesados": len(a_borrar),
-        "cerrados_ok": ok_cerrados,
-        "eliminados_ok": ok_eliminados,
-        "fallos": fallos,
-        "resultados": resultados,
-    }
     with open(report_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+        json.dump(inv, f, ensure_ascii=False, indent=2)
+    print(f"\n💾 Inventario guardado: {report_path}")
+
+    ticket_ref = _crear_ticket_revision_manual(candidatos, args.meses)
+    if ticket_ref:
+        print(f"🎫 Ticket {ticket_ref} creado en el Centro de Mando para revisión manual.")
+    elif candidatos:
+        print("ℹ️  Hay candidatos pero no se pudo crear el ticket (ver aviso arriba).")
 
     print(
-        f"\n✅ Listo. Cerradas: {ok_cerrados} | Eliminadas del todo: {ok_eliminados} "
-        f"| Fallos: {fallos}\n💾 {report_path}"
+        "ℹ️  Este script no cierra ni elimina nada — cada publicación se revisa "
+        "y se cierra manualmente desde el panel o MeLi si corresponde."
     )
-    return 0 if fallos == 0 else 1
+    return 0
 
 
 if __name__ == "__main__":

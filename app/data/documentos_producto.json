@@ -1422,11 +1422,25 @@
           "codigo_verificacion": "QAP7U9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "APKHG8",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-08-21",
+          "codigo_verificacion": "CXW282",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-21T13:46:23+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-08-21T13:46:23+00:00"
     },
     "C-CITPOTK": {
       "ref": "C-CITPOTK",

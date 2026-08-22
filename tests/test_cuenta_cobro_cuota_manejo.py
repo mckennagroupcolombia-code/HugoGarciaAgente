@@ -167,3 +167,82 @@ def test_detalle_productos_en_concepto(tmp_path, monkeypatch):
     assert "Glicerina USP" in text
     assert "Urea cosmética" in text
     assert "Adquisición de" in text
+    assert "Valores en pesos (COP)" in text
+    assert "TRM BanRep 4000" in text
+
+
+def test_resolver_cop_mal_etiquetado_usa_trm_dia(monkeypatch):
+    from app.services.cuenta_cobro_cuota_manejo import resolver_tasa_cuenta_cobro
+
+    monkeypatch.setattr(
+        "app.services.trm.obtener_trm",
+        lambda fecha=None, **kw: {"valor": 4012.45, "fecha": "2026-08-21"},
+    )
+    out = resolver_tasa_cuenta_cobro(
+        moneda="COP",
+        trm=1,
+        fecha_compra="2026-08-21",
+        lineas=[{"nombre": "Agitador", "subtotal": 531.51, "descuento": 0.01}],
+    )
+    assert out["error"] is None
+    assert out["moneda"] == "USD"
+    assert out["trm"] == 4012.45
+    assert out["trm_fuente"] == "banrep"
+    assert out["corregido"] is True
+
+
+def test_resolver_cop_real_no_convierte():
+    from app.services.cuenta_cobro_cuota_manejo import resolver_tasa_cuenta_cobro
+
+    out = resolver_tasa_cuenta_cobro(
+        moneda="COP",
+        trm=1,
+        fecha_compra="2026-08-21",
+        lineas=[{"nombre": "Local", "subtotal": 180_000, "descuento": 0}],
+        consultar_banrep=False,
+    )
+    assert out["moneda"] == "COP"
+    assert out["trm"] == 1.0
+    assert out["corregido"] is False
+
+
+def test_guardar_cop_usd_liquida_cuenta_en_pesos(tmp_path, monkeypatch):
+    import app.services.contabilidad_db as db
+    from app.services import cuenta_cobro_cuota_manejo as mod
+
+    monkeypatch.setattr(db, "_DB_PATH", str(tmp_path / "c_trm.db"))
+    db._initialized = False
+    monkeypatch.setattr(mod, "_CARPETA", str(tmp_path / "pdfs_trm"))
+    monkeypatch.setattr(
+        "app.services.trm.obtener_trm",
+        lambda fecha=None, **kw: {"valor": 4000.0, "fecha": "2026-08-21"},
+    )
+
+    row = db.guardar_compra_exterior(
+        moneda="COP",
+        trm=1,
+        flete=0,
+        moneda_flete="COP",
+        proveedor="Marketplace",
+        lineas=[
+            {
+                "nombre": "Agitador Magnético Con Plancha Calefactora",
+                "codigo": "AGTMGNPLN",
+                "cantidad": 3,
+                "unidad": "un",
+                "precio_unit": 177.17,
+                "subtotal": 531.51,
+                "descuento": 0.01,
+                "ok": True,
+            }
+        ],
+        total_guardados=1,
+        fecha_compra="2026-08-21",
+        trm_fuente="cop",
+    )
+    assert row["moneda"] == "USD"
+    assert row["trm"] == 4000.0
+    assert row["valor_compra_cop"] == 2_126_000.0
+    assert row["cuota_manejo_cop"] == 106_300.0
+    assert row["total_cobro_cop"] == 2_232_300.0
+    assert row["cuenta_cobro_estado"] == "pendiente"

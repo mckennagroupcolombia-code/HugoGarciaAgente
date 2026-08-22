@@ -28,7 +28,80 @@ from app.services.ficha_tecnica import (
 )
 
 _TTL_SEC = int(os.getenv("DOCS_WEB_TTL_SEC", "60"))
-_CACHE: dict[str, Any] = {"ts": 0.0, "docs": None}
+_CACHE: dict[str, Any] = {"ts": 0.0, "docs": None, "epoch": None, "omitidos": []}
+_EPOCH_FILE = DATOS_DIR / ".docs_web_epoch"
+
+
+def _epoch_mtime() -> float:
+    try:
+        return _EPOCH_FILE.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def invalidar_indice_documentos_web() -> None:
+    """Marca el índice público como obsoleto (panel :8081 y tienda :8083)."""
+    _CACHE["docs"] = None
+    _CACHE["ts"] = 0.0
+    _CACHE["epoch"] = None
+    _CACHE["omitidos"] = []
+    try:
+        DATOS_DIR.mkdir(parents=True, exist_ok=True)
+        _EPOCH_FILE.write_text(str(time.time()), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _sitio_documentos_url() -> str:
+    return (os.getenv("WEB_SITE_INTERNAL_URL") or "http://localhost:8083").rstrip("/")
+
+
+def avisar_sitio_documentos_web(*, timeout: float = 25) -> dict:
+    """Pide a website.py que reconstruya el índice de FT/COA/SDS."""
+    import requests
+
+    url = f"{_sitio_documentos_url()}/api/documentos/refresh"
+    token = (
+        (os.getenv("ADMIN_TOKEN") or "").strip()
+        or (os.getenv("WEB_ADMIN_TOKEN") or "").strip()
+        or (os.getenv("WEB_API_KEY") or "").strip()
+    )
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    try:
+        r = requests.post(url, headers=headers, timeout=timeout)
+        if r.status_code == 200:
+            body = r.json() if r.content else {}
+            return {"ok": True, "total": body.get("total"), "url": url}
+        return {"ok": False, "error": f"HTTP {r.status_code}: {(r.text or '')[:240]}", "url": url}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "url": url}
+
+
+def resumen_documentos_web(docs: list[dict] | None = None) -> dict:
+    lista = docs if docs is not None else listar_documentos_completos_web()
+    omitidos = list(_CACHE.get("omitidos") or [])
+    return {
+        "ok": True,
+        "total": len(lista),
+        "con_coa": sum(1 for d in lista if d.get("coa")),
+        "con_sds": sum(1 for d in lista if d.get("sds")),
+        "titulos": [d.get("titulo") or "" for d in lista],
+        "omitidos_incompletos": len(omitidos),
+        "omitidos_titulos": omitidos[:40],
+    }
+
+
+def publicar_documentos_en_web(*, avisar_sitio: bool = True) -> dict:
+    """Reconstruye el índice público y avisa a la tienda para mostrar cambios ya."""
+    invalidar_indice_documentos_web()
+    docs = listar_documentos_completos_web(forzar=True)
+    out = resumen_documentos_web(docs)
+    if avisar_sitio:
+        out["sitio"] = avisar_sitio_documentos_web()
+    else:
+        out["sitio"] = {"ok": True, "omitido": True}
+    return out
+
 
 _STOP = {
     "de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "en",
@@ -69,30 +142,30 @@ def _formula_html(val: str) -> str:
 def _contexto_publico(datos: dict) -> dict | None:
     if (datos.get("_tipo") or "").strip() != "completo":
         return None
-    ft = _contexto_html(datos, datos.get("_cabezote_id"), incluir_cabezote=False)
+    ft = _contexto_html(datos, datos.get("_cabezote_id"), incluir_cabezote=True)
     titulo = (ft.get("titulo") or "").strip()
     if not titulo:
         return None
-    coa = _contexto_coa(datos.get("_coa") or {})
-    if coa and not _coa_diligenciado(coa):
-        coa = None
-    sds = _contexto_sds(datos.get("_sds") or {})
-    recs_ft = list(ft.get("recomendaciones") or [])
-    ft["recomendaciones"] = []
-    if recs_ft:
-        if sds is None:
-            sds = _contexto_sds({"titulo": titulo})
-        if not (sds.get("recomendaciones") or []):
-            sds["recomendaciones"] = recs_ft
-    if sds and not _sds_diligenciado(sds):
-        sds = None
     pdf_nombre = _pdf_nombre_desde_titulo(titulo)
     pdf_path = ruta_archivo_biblioteca_segura(pdf_nombre)
     if not pdf_path:
         return None
-    if coa and coa.get("formula"):
+
+    coa = _contexto_coa(datos.get("_coa") or {})
+    if not coa or not _coa_diligenciado(coa):
+        return None
+    sds = _contexto_sds(datos.get("_sds") or {})
+    if not sds or not _sds_diligenciado(sds):
+        return None
+
+    recs_ft = list(ft.get("recomendaciones") or [])
+    ft["recomendaciones"] = []
+    if recs_ft and not (sds.get("recomendaciones") or []):
+        sds["recomendaciones"] = recs_ft
+
+    if coa.get("formula"):
         coa["formula_html"] = _formula_html(coa["formula"])
-    if sds and sds.get("formula"):
+    if sds.get("formula"):
         sds["formula_html"] = _formula_html(sds["formula"])
     return {
         "titulo": titulo,
@@ -109,14 +182,17 @@ def _contexto_publico(datos: dict) -> dict | None:
 
 def _cargar_indice(*, forzar: bool = False) -> list[dict]:
     now = time.time()
+    epoch = _epoch_mtime()
     if (
         not forzar
         and _CACHE.get("docs") is not None
+        and _CACHE.get("epoch") == epoch
         and now - float(_CACHE.get("ts") or 0) < _TTL_SEC
     ):
         return _CACHE["docs"]
 
     docs: list[dict] = []
+    omitidos: list[str] = []
     vistos: set[str] = set()
     if DATOS_DIR.is_dir():
         archivos = sorted(DATOS_DIR.glob("ft_coa_sds_*.yaml")) + [
@@ -133,6 +209,12 @@ def _cargar_indice(*, forzar: bool = False) -> list[dict]:
                 continue
             ctx = _contexto_publico(datos)
             if not ctx:
+                if (datos.get("_tipo") or "").strip() == "completo":
+                    titulo = str(
+                        datos.get("titulo") or datos.get("nombre_producto") or path.stem
+                    ).strip()
+                    if titulo:
+                        omitidos.append(titulo)
                 continue
             clave = ctx["clave"]
             if clave in vistos:
@@ -142,6 +224,8 @@ def _cargar_indice(*, forzar: bool = False) -> list[dict]:
 
     _CACHE["ts"] = now
     _CACHE["docs"] = docs
+    _CACHE["epoch"] = epoch
+    _CACHE["omitidos"] = omitidos
     return docs
 
 
@@ -208,6 +292,8 @@ def generar_pdf_seccion_web(doc: dict, seccion: str) -> bytes:
         titulo=titulo,
         color_acento=color_acento,
         cabezote_src=ft.get("cabezote_src"),
+        cabezote_w_cm=ft.get("cabezote_w_cm"),
+        cabezote_h_cm=ft.get("cabezote_h_cm"),
         logo_pie_src=ft.get("logo_pie_src"),
         ft=ft,
         coa=coa,

@@ -633,6 +633,21 @@ def guardar_compra_exterior(
     return _adjuntar_cuenta_cobro_cuota(out["id"], cuota_pct=cuota_pct) or out
 
 
+def _necesita_resolver_tasa_compra(d: dict, lineas: list) -> bool:
+    from app.services.cuenta_cobro_cuota_manejo import parece_compra_en_divisa
+
+    mon = str(d.get("moneda") or "USD").strip().upper() or "USD"
+    try:
+        trm = float(d.get("trm") or 0)
+    except (TypeError, ValueError):
+        trm = 0.0
+    if mon != "COP" and trm > 1.5:
+        return False
+    if mon != "COP":
+        return True
+    return parece_compra_en_divisa(mon, trm, lineas)
+
+
 def listar_compras_exterior(limit: int = 50) -> list[dict]:
     import json
 
@@ -650,6 +665,14 @@ def listar_compras_exterior(limit: int = 50) -> list[dict]:
             d["lineas"] = json.loads(d.get("lineas_json") or "[]")
         except Exception:
             d["lineas"] = []
+        if (
+            _necesita_resolver_tasa_compra(d, d["lineas"])
+            and str(d.get("cuenta_cobro_estado") or "") != "aprobada"
+        ):
+            fixed = _preparar_cuenta_cobro_pendiente(int(d["id"]))
+            if fixed:
+                out.append(fixed)
+                continue
         out.append(_compra_exterior_row(d))
     return out
 
@@ -1028,7 +1051,11 @@ def _preparar_cuenta_cobro_pendiente(
         except Exception:
             lineas = []
 
-    from app.services.cuenta_cobro_cuota_manejo import calcular_cuota, carpeta_pdfs
+    from app.services.cuenta_cobro_cuota_manejo import (
+        calcular_cuota,
+        carpeta_pdfs,
+        resolver_tasa_cuenta_cobro,
+    )
 
     pct_eff = cuota_pct
     if pct_eff is None:
@@ -1038,13 +1065,37 @@ def _preparar_cuenta_cobro_pendiente(
         except (TypeError, ValueError):
             pct_eff = None
 
+    moneda = str(d.get("moneda") or "USD")
+    trm = float(d.get("trm") or 0)
+    trm_fuente = str(d.get("trm_fuente") or "")
+    moneda_flete = str(d.get("moneda_flete") or "")
+    fecha_compra = str(d.get("fecha_compra") or "")
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm,
+        fecha_compra=fecha_compra,
+        lineas=lineas,
+    )
+    if not resolved.get("error") and float(resolved.get("trm") or 0) > 0:
+        moneda = str(resolved["moneda"])
+        trm = float(resolved["trm"])
+        trm_fuente = str(resolved.get("trm_fuente") or trm_fuente)
+        if resolved.get("fecha_trm") and not fecha_compra:
+            fecha_compra = str(resolved["fecha_trm"])[:10]
+        if (
+            resolved.get("corregido")
+            and (moneda_flete or "").strip().upper() in ("", "COP")
+            and float(d.get("flete") or 0) > 0
+        ):
+            moneda_flete = moneda
+
     calc = calcular_cuota(
-        moneda=str(d.get("moneda") or "USD"),
-        trm=float(d.get("trm") or 0),
+        moneda=moneda,
+        trm=trm,
         lineas=lineas,
         pct=pct_eff,
         flete=float(d.get("flete") or 0),
-        moneda_flete=str(d.get("moneda_flete") or ""),
+        moneda_flete=moneda_flete,
     )
 
     for key in ("cuenta_cobro_path", "cuenta_flete_path"):
@@ -1063,11 +1114,17 @@ def _preparar_cuenta_cobro_pendiente(
     with _conn() as con:
         con.execute(
             """UPDATE compras_exterior SET
+                 moneda=?, trm=?, trm_fuente=?, moneda_flete=?, fecha_compra=?,
                  cuenta_cobro_path=?, cuota_manejo_cop=?, valor_compra_cop=?, cuota_pct=?,
                  total_cobro_cop=?, flete_cobro_cop=?, cuenta_cobro_estado=?,
                  cuenta_flete_path=?, cuenta_flete_estado=?
                WHERE id=?""",
             (
+                moneda,
+                float(trm or 0),
+                (trm_fuente or "")[:40],
+                (moneda_flete or "").strip().upper(),
+                (fecha_compra or "")[:10],
                 "",
                 float(calc.get("cuota_manejo_cop") or 0),
                 float(calc.get("valor_compra_cop") or 0),
@@ -1118,7 +1175,32 @@ def aprobar_cuenta_cobro_compra(
         carpeta_pdfs,
         generar_pdf_cuenta_cobro,
         generar_pdf_cuenta_flete,
+        resolver_tasa_cuenta_cobro,
     )
+
+    moneda = str(d.get("moneda") or "USD")
+    trm = float(d.get("trm") or 0)
+    trm_fuente = str(d.get("trm_fuente") or "")
+    moneda_flete = str(d.get("moneda_flete") or "")
+    fecha_compra = str(d.get("fecha_compra") or "")
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm,
+        fecha_compra=fecha_compra,
+        lineas=lineas,
+    )
+    if not resolved.get("error") and float(resolved.get("trm") or 0) > 0:
+        moneda = str(resolved["moneda"])
+        trm = float(resolved["trm"])
+        trm_fuente = str(resolved.get("trm_fuente") or trm_fuente)
+        if resolved.get("fecha_trm") and not fecha_compra:
+            fecha_compra = str(resolved["fecha_trm"])[:10]
+        if (
+            resolved.get("corregido")
+            and (moneda_flete or "").strip().upper() in ("", "COP")
+            and float(d.get("flete") or 0) > 0
+        ):
+            moneda_flete = moneda
 
     path_key = "cuenta_flete_path" if tipo_n == "flete" else "cuenta_cobro_path"
     prev = (d.get(path_key) or "").strip()
@@ -1133,12 +1215,12 @@ def aprobar_cuenta_cobro_compra(
     if tipo_n == "flete":
         gen = generar_pdf_cuenta_flete(
             compra_id=int(compra_id),
-            moneda=str(d.get("moneda") or "USD"),
-            trm=float(d.get("trm") or 0),
+            moneda=moneda,
+            trm=trm,
             flete=float(d.get("flete") or 0),
-            moneda_flete=str(d.get("moneda_flete") or ""),
+            moneda_flete=moneda_flete,
             proveedor=str(d.get("proveedor") or ""),
-            fecha_compra=str(d.get("fecha_compra") or ""),
+            fecha_compra=fecha_compra,
             accent_rgb=accent_rgb,
             emisor_perfil=emisor_perfil,
         )
@@ -1168,10 +1250,10 @@ def aprobar_cuenta_cobro_compra(
 
     gen = generar_pdf_cuenta_cobro(
         compra_id=int(compra_id),
-        moneda=str(d.get("moneda") or "USD"),
-        trm=float(d.get("trm") or 0),
+        moneda=moneda,
+        trm=trm,
         proveedor=str(d.get("proveedor") or ""),
-        fecha_compra=str(d.get("fecha_compra") or ""),
+        fecha_compra=fecha_compra,
         lineas=lineas,
         pct=pct_eff,
         accent_rgb=accent_rgb,
@@ -1183,10 +1265,16 @@ def aprobar_cuenta_cobro_compra(
     with _conn() as con:
         con.execute(
             """UPDATE compras_exterior SET
+                 moneda=?, trm=?, trm_fuente=?, moneda_flete=?, fecha_compra=?,
                  cuenta_cobro_path=?, cuota_manejo_cop=?, valor_compra_cop=?, cuota_pct=?,
                  total_cobro_cop=?, cuenta_cobro_estado=?
                WHERE id=?""",
             (
+                moneda,
+                float(trm or 0),
+                (trm_fuente or "")[:40],
+                (moneda_flete or "").strip().upper(),
+                (fecha_compra or "")[:10],
                 gen.get("filename") or "",
                 float(gen.get("cuota_manejo_cop") or 0),
                 float(gen.get("valor_compra_cop") or 0),

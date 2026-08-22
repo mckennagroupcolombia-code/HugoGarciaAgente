@@ -1241,6 +1241,17 @@
       "creado_at": "2026-08-17T23:12:25"
     },
     {
+      "id": "358bdba52d25",
+      "sku": "C-CAPVACGEL00TRA1000Un",
+      "nombre_producto": "CAPSULAS VACIAS GELATINA TRANSPARENTES 1000 Un",
+      "numero_producto": 112,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701120012630",
+      "creado_at": "2026-08-21T13:59:49"
+    },
+    {
       "id": "3b2e13efb2d3",
       "sku": "C-CERABEREFAMAKg",
       "nombre_producto": "CERA DE ABEJAS REFINADA AMARILLA Kg",
@@ -1251,6 +1262,17 @@
       "codigo": "7701130012637",
       "creado_at": "2026-07-14T15:35:25",
       "actualizado_at": "2026-07-23T08:56:58"
+    },
+    {
+      "id": "0918de4359cf",
+      "sku": "C-CAPVACGEL0AZUBLA1000UN",
+      "nombre_producto": "CAPSULAS VACIAS GELATINA 0 AZUL BLANCO 1000 UN",
+      "numero_producto": 114,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701140012634",
+      "creado_at": "2026-08-21T15:52:32"
     },
     {
       "id": "e5924af045f1",

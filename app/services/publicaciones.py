@@ -1570,19 +1570,26 @@ def eliminar_imagen_web(sku: str, filename: str) -> dict:
     return {"ok": True, "borrado": borrado, "nuevo_orden": orden}
 
 
-def reordenar_imagenes_meli(meli_item_id: str, picture_ids: list[str]) -> dict:
+def reordenar_imagenes_meli(meli_item_id: str, picture_ids: list[str], sku: str = "") -> dict:
     """Reordena las fotos de una publicación MeLi. El primero es el principal."""
+    _ = sku  # las rutas del panel lo envían; el PUT a MeLi usa el item_id
     return _meli_set_pictures(meli_item_id, picture_ids)
 
 
-def eliminar_imagen_meli(meli_item_id: str, picture_id: str) -> dict:
+def eliminar_imagen_meli(meli_item_id: str, picture_id: str, sku: str = "") -> dict:
     """Quita una foto de la publicación MeLi (no borra del CDN)."""
+    _ = sku  # las rutas del panel lo envían; el PUT a MeLi usa el item_id
     current, err = _meli_get_pictures(meli_item_id)
     if err:
         return {"ok": False, "error": err}
-    new_ids = [p["id"] for p in current if p["id"] != picture_id]
+    pid = (picture_id or "").strip()
+    new_ids = [p["id"] for p in current if p["id"] != pid]
+    if len(new_ids) == len(current):
+        return {"ok": False, "error": "Esa foto no está en la publicación de Mercado Libre"}
+    if not new_ids:
+        return {"ok": False, "error": "Mercado Libre exige al menos una foto; no se puede quitar la última"}
     result = _meli_set_pictures(meli_item_id, new_ids)
-    return {**result, "eliminado": picture_id, "total_pictures": len(new_ids)}
+    return {**result, "eliminado": pid, "total_pictures": len(new_ids)}
 
 
 def obtener_fotos_actuales(sku: str, meli_item_id: str = "") -> dict:
@@ -1703,4 +1710,161 @@ def copiar_imagen_entre_sitios(
             + ("" if res.get("adjuntada", True) else " (CDN; el listing no admite fotos nuevas)")
         ),
         "resultado": res,
+    }
+
+
+def _bytes_imagen_catalogo(filename: str) -> tuple[bytes | None, str, str]:
+    """Lee un archivo de IMAGENES_PRODUCTOS_CATALOGO. (bytes, error, nombre_seguro)."""
+    safe = Path(filename or "").name
+    if not safe or safe in (".", ".."):
+        return None, "Nombre de archivo inválido", safe
+    if Path(safe).suffix.lower() not in _IMG_EXTS_OK:
+        return None, f"Extensión no permitida: {safe}", safe
+    path = _IMAGENES_DIR / safe
+    if not path.is_file():
+        return None, f"No se encontró '{safe}' en la galería", safe
+    return path.read_bytes(), "", safe
+
+
+def _bytes_imagen_recurso(nombre: str) -> tuple[bytes | None, str, str]:
+    """Lee un PNG/JPG de la galería de recursos (Studio / etiquetas)."""
+    from app.tools.etiquetas_studio import _carpeta_recursos_png
+
+    rel = (nombre or "").strip().replace("\\", "/").lstrip("/")
+    if not rel or any(part in ("", ".", "..") for part in rel.split("/")):
+        return None, "Nombre de recurso inválido", rel
+    base = _carpeta_recursos_png().resolve()
+    cand = (base / rel).resolve()
+    try:
+        cand.relative_to(base)
+    except ValueError:
+        return None, "Ruta no permitida", rel
+    if cand.is_file() and cand.suffix.lower() in _IMG_EXTS_OK:
+        return cand.read_bytes(), "", cand.name
+    base_name = Path(rel).name
+    if base_name:
+        for found in base.rglob(base_name):
+            if not found.is_file() or found.suffix.lower() not in _IMG_EXTS_OK:
+                continue
+            try:
+                found.resolve().relative_to(base)
+            except ValueError:
+                continue
+            return found.read_bytes(), "", found.name
+    return None, f"Imagen no encontrada en la galería: {rel}", Path(rel).name
+
+
+def _adjuntar_bytes_a_sitios(
+    sku: str,
+    file_bytes: bytes,
+    filename: str,
+    targets: set[str],
+    meli_item_id: str,
+    existing_web: set[str],
+) -> dict:
+    """Copia bytes ya leídos a web y/o MeLi. Mutates existing_web con filenames nuevos."""
+    res_file: dict = {"filename": filename, "web": None, "meli": None}
+    if "web" in targets:
+        if filename in existing_web:
+            res_file["web"] = {
+                "ok": True,
+                "skipped": True,
+                "filename": filename,
+                "mensaje": "Ya estaba en la web",
+            }
+        else:
+            try:
+                r = subir_imagen_web(sku, file_bytes, filename)
+                res_file["web"] = r
+                if r.get("ok") and r.get("filename"):
+                    existing_web.add(str(r["filename"]))
+            except Exception as e:
+                res_file["web"] = {"ok": False, "error": str(e)}
+    if "meli" in targets:
+        if not meli_item_id:
+            res_file["meli"] = {"ok": False, "error": "Sin ID MeLi vinculado"}
+        else:
+            ext = Path(filename).suffix.lower()
+            content_type = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+            try:
+                out_fmt = "JPEG" if content_type == "image/jpeg" else "PNG"
+                file_bytes_n, _meta = normalizar_imagen_catalogo(file_bytes, out_format=out_fmt)
+                content_type = "image/jpeg" if out_fmt == "JPEG" else "image/png"
+                res_file["meli"] = subir_imagen_meli(
+                    meli_item_id, file_bytes_n, content_type, sku=sku
+                )
+            except Exception as e:
+                res_file["meli"] = {"ok": False, "error": str(e)}
+    return res_file
+
+
+def adjuntar_imagenes_desde_galeria(
+    sku: str,
+    filenames: list[str] | None = None,
+    recursos: list[str] | None = None,
+    targets: list[str] | None = None,
+    meli_item_id: str = "",
+) -> dict:
+    """
+    Copia fotos ya existentes (galería del catálogo o recursos Studio) a web y/o MeLi.
+    No borra el origen. Si el archivo ya pertenece al SKU en web, lo omite ahí.
+    """
+    sku = (sku or "").strip()
+    if not sku:
+        return {"ok": False, "error": "SKU requerido"}
+    names = [str(x).strip() for x in (filenames or []) if str(x).strip()]
+    recs = [str(x).strip() for x in (recursos or []) if str(x).strip()]
+    if not names and not recs:
+        return {"ok": False, "error": "Indica filenames o recursos de la galería"}
+    dest = {str(t).strip().lower() for t in (targets or []) if str(t).strip()}
+    dest &= {"web", "meli"}
+    if not dest:
+        return {"ok": False, "error": "targets debe incluir 'web' y/o 'meli'"}
+
+    meli_item_id = (meli_item_id or "").strip()
+    if "meli" in dest and not meli_item_id:
+        pub = obtener_publicacion(sku) or {}
+        meli_item_id = str(pub.get("meli_id_efectivo") or "").strip()
+
+    existing_web = {img["filename"] for img in escanear_imagenes_web(sku)}
+    archivos: list[dict] = []
+
+    for fname in names:
+        file_bytes, err, safe = _bytes_imagen_catalogo(fname)
+        if err or file_bytes is None:
+            archivos.append({"filename": safe or fname, "ok": False, "error": err})
+            continue
+        archivos.append(
+            _adjuntar_bytes_a_sitios(sku, file_bytes, safe, dest, meli_item_id, existing_web)
+        )
+
+    for rec in recs:
+        file_bytes, err, safe = _bytes_imagen_recurso(rec)
+        if err or file_bytes is None:
+            archivos.append({"filename": safe or rec, "ok": False, "error": err, "origen": "recursos"})
+            continue
+        row = _adjuntar_bytes_a_sitios(sku, file_bytes, safe, dest, meli_item_id, existing_web)
+        row["origen"] = "recursos"
+        archivos.append(row)
+
+    ok = any(
+        (r.get("web") or {}).get("ok") or (r.get("meli") or {}).get("ok")
+        for r in archivos
+        if not r.get("error")
+    )
+    copiadas = sum(
+        1
+        for r in archivos
+        if (r.get("web") or {}).get("ok") or (r.get("meli") or {}).get("ok")
+    )
+    return {
+        "ok": ok,
+        "sku": sku,
+        "archivos": archivos,
+        "copiadas": copiadas,
+        "mensaje": (
+            f"{copiadas} foto(s) agregada(s) desde la galería"
+            if copiadas
+            else "No se pudo agregar ninguna foto"
+        ),
     }

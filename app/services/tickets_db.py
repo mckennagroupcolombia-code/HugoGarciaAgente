@@ -2858,6 +2858,10 @@ def eliminar_ticket(ticket_id: int, usuario: dict) -> tuple:
             return False, "Ticket no encontrado"
         # Unblock any tickets that were waiting on this one
         db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (ticket_id,))
+        # Steps of OTHER tickets blocked on this one as an intervention (no CASCADE)
+        db.execute("UPDATE ticket_pasos SET bloqueado_por=NULL WHERE bloqueado_por=?", (ticket_id,))
+        # Child tickets (e.g. acciones registradas desde esta solicitud) — no CASCADE
+        db.execute("UPDATE tickets SET ticket_padre_id=NULL WHERE ticket_padre_id=?", (ticket_id,))
         # Unlink from etapa so the etapa can still exist
         db.execute(
             "UPDATE etapas_mision SET ticket_id=NULL, estado='pendiente' WHERE ticket_id=?",
@@ -3455,8 +3459,19 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             except (TypeError, ValueError):
                 ticket_padre_id = None
             subtipo = (data.get("subtipo") or "").strip() or None
-            if subtipo and tipo != "solicitud":
+            if subtipo and tipo not in ("solicitud", "accion"):
                 subtipo = None
+            # Una acción propia nueva arranca directo en_proceso más abajo — misma
+            # regla de "una a la vez" que cambiar_estado(): no crearla si ya hay otra
+            # en curso (se pierde el borrador del wizard, pero evita dejar acciones
+            # abiertas sin cerrar).
+            if tipo == "accion" and asignado_a:
+                bloqueante = accion_en_proceso_de(asignado_a)
+                if bloqueante:
+                    return None, (
+                        f"Ya tienes en curso \"{bloqueante['titulo']}\" ({bloqueante['numero']}) — "
+                        "termínala o pausa antes de iniciar otra."
+                    )
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
@@ -3515,16 +3530,28 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             return None, str(e)
 
 
+def accion_en_proceso_de(usuario_id: int, excluir_ticket_id: int | None = None) -> dict | None:
+    """Acción 'en_proceso' del usuario (id, numero, titulo), si tiene una.
+
+    Usada para impedir iniciar una segunda acción en paralelo (una a la vez por
+    usuario) — ver crear_ticket() y cambiar_estado(). `excluir_ticket_id` deja
+    pasar la reanudación de la misma acción que ya está en curso.
+    """
+    with _conn() as db:
+        q = """SELECT id, numero, titulo FROM tickets
+               WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=?"""
+        params: list = [usuario_id]
+        if excluir_ticket_id:
+            q += " AND id != ?"
+            params.append(excluir_ticket_id)
+        q += " LIMIT 1"
+        row = db.execute(q, params).fetchone()
+        return dict(row) if row else None
+
+
 def usuario_tiene_accion_en_proceso(usuario_id: int) -> bool:
     """True si el usuario tiene al menos una acción asignada en estado en_proceso."""
-    with _conn() as db:
-        row = db.execute(
-            """SELECT 1 FROM tickets
-               WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=?
-               LIMIT 1""",
-            (usuario_id,),
-        ).fetchone()
-        return row is not None
+    return accion_en_proceso_de(usuario_id) is not None
 
 
 def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
@@ -3612,7 +3639,32 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                 END,
                 t.creado_en DESC
         """, params).fetchall()
-        return [dict(r) for r in rows]
+        result = [dict(r) for r in rows]
+
+        # Corrida abierta por ticket (acciones) — para el cronómetro en vivo del
+        # tablero de Acciones (una consulta batch, no N+1 por fila).
+        ids_accion = [r["id"] for r in result if r.get("tipo") == "accion"]
+        if ids_accion:
+            from app.services.recetas_ops import _segundos_corrida
+
+            placeholders = ",".join("?" for _ in ids_accion)
+            corridas = db.execute(
+                f"""SELECT * FROM ticket_corridas
+                    WHERE ticket_id IN ({placeholders}) AND estado IN ('activa','pausada')
+                    ORDER BY id DESC""",
+                ids_accion,
+            ).fetchall()
+            por_ticket: dict[int, dict] = {}
+            for c in corridas:
+                cd = dict(c)
+                por_ticket.setdefault(cd["ticket_id"], cd)  # ORDER BY id DESC → primera = más reciente
+            for t in result:
+                c = por_ticket.get(t["id"])
+                if c:
+                    c["segundos_transcurridos"] = _segundos_corrida(c)
+                    t["corrida"] = c
+
+        return result
 
 
 def _sql_compra_delegada_cond(alias: str = "t") -> str:
@@ -3749,6 +3801,16 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                         (ticket_id,),
                     ).fetchone()["n"]
                     return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
+        if nuevo_estado == "en_proceso" and t["tipo"] == "accion" and t["asignado_a"]:
+            # Una sola acción en curso a la vez por usuario — evita dejar acciones
+            # abiertas sin cerrar mientras se empieza otra (ver crear_ticket() para
+            # el mismo gate al crear una acción nueva que arranca directo en_proceso).
+            bloqueante = accion_en_proceso_de(t["asignado_a"], excluir_ticket_id=ticket_id)
+            if bloqueante:
+                return False, (
+                    f"Ya tienes en curso \"{bloqueante['titulo']}\" ({bloqueante['numero']}) — "
+                    "termínala o pausa antes de iniciar otra."
+                )
         if nuevo_estado == "rechazado" and nivel < 2:
             # El creador puede rechazar una solicitud que espera su revisión
             rechaza_creador = (

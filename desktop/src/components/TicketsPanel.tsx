@@ -12245,6 +12245,7 @@ function AccionCardOperativa({
   readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [corridaId, setCorridaId] = useState<number | null>(ticket.corrida?.id ?? null);
   const [corridaActiva, setCorridaActiva] = useState(ticket.corrida?.estado === "activa");
@@ -12291,9 +12292,24 @@ function AccionCardOperativa({
   async function iniciarPausar() {
     if (busy) return;
     setBusy(true);
+    setMsg("");
     try {
       const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
       if (nuevoEstado === "en_proceso") {
+        // Una acción en curso a la vez por usuario (ver cambiar_estado en
+        // tickets_db.py) — se confirma con el servidor ANTES de arrancar el
+        // timer local, así no queda una corrida optimista huérfana si lo bloquea.
+        try {
+          await tapi(`/${ticket.id}/estado`, token, {
+            method: "PUT", body: JSON.stringify({ estado: "en_proceso" }),
+          });
+        } catch (e: any) {
+          setMsg(e?.message || "No se pudo iniciar");
+          setTimeout(() => setMsg(""), 5000);
+          setBusy(false);
+          return;
+        }
+
         // ── ARRANCAR TIMER INMEDIATAMENTE (antes del round-trip al servidor) ──
         // El intervalo permanente ya está corriendo; solo necesita inicioRef != null.
         const t0 = Date.now();
@@ -12317,12 +12333,6 @@ function AccionCardOperativa({
             }
           }
         } catch { /* timer ya corriendo desde t0 */ }
-
-        try {
-          await tapi(`/${ticket.id}/estado`, token, {
-            method: "PUT", body: JSON.stringify({ estado: "en_proceso" }),
-          });
-        } catch {}
       } else {
         // ── PAUSAR: capturar segLive ANTES de resetear ──
         const segTotal = segBase + segLive;
@@ -12343,7 +12353,12 @@ function AccionCardOperativa({
           await tapi(`/${ticket.id}/estado`, token, {
             method: "PUT", body: JSON.stringify({ estado: "pendiente" }),
           });
-        } catch {}
+        } catch (e: any) {
+          // Si esto falla, el cronómetro queda pausado pero el ticket sigue "en_proceso"
+          // — bloquea iniciar cualquier otra acción (una a la vez por usuario) sin avisar.
+          setMsg(e?.message || "El cronómetro se pausó pero no se pudo actualizar el estado — reintenta.");
+          setTimeout(() => setMsg(""), 6000);
+        }
       }
       onChanged();
       // Tickets operativos (no acciones): modo paso a paso MeLi al iniciar
@@ -12355,7 +12370,10 @@ function AccionCardOperativa({
         _autoStartPasoAPaso.add(ticket.id);
         onSelect(ticket.id);
       }
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo actualizar la acción");
+      setTimeout(() => setMsg(""), 5000);
+    }
     finally { setBusy(false); }
   }
 
@@ -12363,6 +12381,7 @@ function AccionCardOperativa({
     if (busy) return;
     if (!confirm(`¿Marcar "${ticket.titulo}" como terminada?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
+    setMsg("");
     try {
       if (corridaId) {
         try { await tapi(`/corridas/${corridaId}/finalizar`, token, { method: "POST" }); } catch {}
@@ -12376,7 +12395,10 @@ function AccionCardOperativa({
       _timerStore.delete(ticket.id);
       setSegLive(0);
       setTimeout(() => onChanged(), 2200);
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo marcar como terminada");
+      setTimeout(() => setMsg(""), 5000);
+    }
     finally { setBusy(false); }
   }
 
@@ -12384,6 +12406,7 @@ function AccionCardOperativa({
     if (busy) return;
     if (!confirm(`¿Cancelar la acción "${ticket.titulo}"?\n\nSe marcará como cancelada y quedará en el historial.`)) return;
     setBusy(true);
+    setMsg("");
     try {
       if (corridaId) {
         try { await tapi(`/corridas/${corridaId}/pausar`, token, { method: "POST" }); } catch {}
@@ -12392,17 +12415,24 @@ function AccionCardOperativa({
       inicioRef.current = null;
       _timerStore.delete(ticket.id);
       onChanged();
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo cancelar la acción");
+      setTimeout(() => setMsg(""), 5000);
+    }
     finally { setBusy(false); }
   }
 
   async function eliminar() {
     if (busy) return;
     setBusy(true);
+    setMsg("");
     try {
       await tapi(`/${ticket.id}`, token, { method: "DELETE" });
       onChanged();
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo eliminar la acción");
+      setTimeout(() => setMsg(""), 5000);
+    }
     finally { setBusy(false); setConfirmDelete(false); }
   }
 
@@ -12479,6 +12509,8 @@ function AccionCardOperativa({
           ✓ Completada a las <strong>{resolucionInfo.horario}</strong> · {fmtTiempo(resolucionInfo.duracion)} de trabajo
         </div>
       )}
+
+      {msg && <p className="text-[11px] font-semibold text-red-500 text-center">{msg}</p>}
 
       {!resuelta && !resolucionInfo && !readOnly && (
         <div className="flex flex-col gap-2 pt-1">
@@ -12603,6 +12635,10 @@ function usePegarCapturaEnZona(
       const file = imagenDesdePortapapeles(e.clipboardData);
       if (!file) return;
       e.preventDefault();
+      // Este listener corre en fase de captura (antes que cualquier onPaste de React en el
+      // propio elemento). Sin stopPropagation, un elemento con su propio onPaste=... dentro
+      // de la misma zona procesa el MISMO paste otra vez → imagen duplicada.
+      e.stopPropagation();
       onImagenRef.current(normalizarImagenPegada(file));
     };
     window.addEventListener("paste", onPaste, true);
@@ -13332,16 +13368,14 @@ function SolicitudCard({
   const [loadingComentarios, setLoadingComentarios] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [chatDraft, setChatDraft] = useState("");
-  const [archivoPendiente, setArchivoPendiente] = useState<File | null>(null);
-  const [archivoPreview, setArchivoPreview] = useState<string | null>(null);
-  const [archivoListo, setArchivoListo] = useState(false);
-  const archivoPendienteRef = useRef<File | null>(null);
+  const [archivosPendientes, setArchivosPendientes] = useState<{ file: File; preview: string | null }[]>([]);
+  const archivosPendientesRef = useRef<File[]>([]);
   const intervencionZoneRef = useRef<HTMLDivElement>(null);
   const chatMensajesRef = useRef<HTMLDivElement>(null);
   const interArchivoRef = useRef<HTMLInputElement>(null);
   const chatArchivoRef = useRef<HTMLInputElement>(null);
   const [enviandoChat, setEnviandoChat] = useState(false);
-  const hayArchivoPendiente = archivoListo || !!archivoPendiente || !!archivoPreview;
+  const hayArchivoPendiente = archivosPendientes.length > 0;
   const puedeResolverIntervencion = !busy && (!!resolucionInter.trim() || hayArchivoPendiente);
 
   // Adjuntos
@@ -13464,8 +13498,7 @@ function SolicitudCard({
 
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
   const [ajustesMensaje, setAjustesMensaje] = useState("");
-  const [ajustesArchivo, setAjustesArchivo] = useState<File | null>(null);
-  const [ajustesArchivoPreview, setAjustesArchivoPreview] = useState<string | null>(null);
+  const [ajustesArchivos, setAjustesArchivos] = useState<{ file: File; preview: string | null }[]>([]);
 
   // Guardar como protocolo
   const [showProtocoloForm, setShowProtocoloForm] = useState(false);
@@ -13594,40 +13627,52 @@ function SolicitudCard({
     }
   }
 
-  function asignarImagenPendiente(
-    file: File,
-    setFile: (f: File | null) => void,
-    preview: string | null,
-    setPreview: (u: string | null) => void,
-  ) {
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(file);
-    setPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+  function agregarAjusteArchivo(file: File) {
+    const norm = normalizarImagenPegada(file);
+    const preview = norm.type.startsWith("image/") ? URL.createObjectURL(norm) : null;
+    setAjustesArchivos((prev) => [...prev, { file: norm, preview }]);
   }
 
-  function quitarImagenPendiente(
-    setFile: (f: File | null) => void,
-    preview: string | null,
-    setPreview: (u: string | null) => void,
-  ) {
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(null);
-    setPreview(null);
+  function quitarAjusteArchivoEn(idx: number) {
+    setAjustesArchivos((prev) => {
+      const item = prev[idx];
+      if (item?.preview) URL.revokeObjectURL(item.preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  }
+
+  function limpiarAjustesArchivos() {
+    setAjustesArchivos((prev) => {
+      prev.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });
+      return [];
+    });
   }
 
   function limpiarArchivoPendiente() {
-    archivoPendienteRef.current = null;
-    quitarImagenPendiente(setArchivoPendiente, archivoPreview, setArchivoPreview);
-    setArchivoListo(false);
+    archivosPendientesRef.current = [];
+    setArchivosPendientes((prev) => {
+      prev.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });
+      return [];
+    });
   }
 
+  function quitarArchivoPendienteEn(idx: number) {
+    setArchivosPendientes((prev) => {
+      const item = prev[idx];
+      if (item?.preview) URL.revokeObjectURL(item.preview);
+      const next = prev.filter((_, i) => i !== idx);
+      archivosPendientesRef.current = next.map((x) => x.file);
+      return next;
+    });
+  }
+
+  /** Agrega una imagen a la cola de adjuntos pendientes (no reemplaza las anteriores —
+   * una solicitud suele necesitar varias capturas antes de resolver/enviar). */
   function asignarArchivoPendiente(file: File) {
     const norm = normalizarImagenPegada(file);
-    archivoPendienteRef.current = norm;
-    if (archivoPreview) URL.revokeObjectURL(archivoPreview);
-    setArchivoPendiente(norm);
-    setArchivoPreview(URL.createObjectURL(norm));
-    setArchivoListo(true);
+    const preview = norm.type.startsWith("image/") ? URL.createObjectURL(norm) : null;
+    archivosPendientesRef.current = [...archivosPendientesRef.current, norm];
+    setArchivosPendientes((prev) => [...prev, { file: norm, preview }]);
     if (puedeEnviarChat) setShowChat(true);
   }
 
@@ -13635,7 +13680,7 @@ function SolicitudCard({
     const file = clipboardPastedImageFile(e);
     if (!file) return;
     if (showPedirAjustes) {
-      asignarImagenPendiente(file, setAjustesArchivo, ajustesArchivoPreview, setAjustesArchivoPreview);
+      agregarAjusteArchivo(file);
       return;
     }
     asignarArchivoPendiente(file);
@@ -13644,6 +13689,11 @@ function SolicitudCard({
   function onArchivoInterSeleccionado(f: File | null) {
     if (!f || !esImagenPortapapeles(f)) return;
     asignarArchivoPendiente(f);
+  }
+
+  function onArchivosInterSeleccionados(files: FileList | null) {
+    if (!files) return;
+    Array.from(files).forEach((f) => onArchivoInterSeleccionado(f));
   }
 
   usePegarCapturaEnZona(
@@ -13660,16 +13710,20 @@ function SolicitudCard({
   function vistaPreviaPegada(className = "") {
     if (!hayArchivoPendiente) return null;
     return (
-      <div className={`flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-2 py-1.5 ${className}`}>
-        {archivoPreview ? (
-          <img src={archivoPreview} alt="" className="h-12 w-12 rounded object-cover border border-border" />
-        ) : (
-          <span className="flex h-12 w-12 items-center justify-center rounded border border-border bg-surface text-lg">📷</span>
-        )}
-        <span className="min-w-0 flex-1 truncate text-xs text-muted">{archivoPendiente?.name ?? "Imagen lista"}</span>
-        <button type="button" onClick={limpiarArchivoPendiente} className="shrink-0 text-xs text-danger hover:underline">
-          Quitar
-        </button>
+      <div className={`flex flex-wrap gap-2 rounded-lg border border-accent/40 bg-accent/5 px-2 py-1.5 ${className}`}>
+        {archivosPendientes.map((a, idx) => (
+          <div key={idx} className="flex items-center gap-1.5 rounded border border-border bg-surface px-1.5 py-1">
+            {a.preview ? (
+              <img src={a.preview} alt="" className="h-10 w-10 rounded object-cover border border-border" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded border border-border bg-surface text-base">📷</span>
+            )}
+            <span className="max-w-[6rem] truncate text-xs text-muted">{a.file.name}</span>
+            <button type="button" onClick={() => quitarArchivoPendienteEn(idx)} className="shrink-0 text-xs text-danger hover:underline">
+              ✕
+            </button>
+          </div>
+        ))}
       </div>
     );
   }
@@ -13826,7 +13880,7 @@ function SolicitudCard({
       setCelebrando(segundosCronometro || ticket.segundos_trabajo || 0);
       playChimeExito();
       onChanged();
-      setTimeout(() => onCerrarDetalle?.(), 1900);
+      setTimeout(() => onCerrarDetalle?.(), 3200);
     } catch (e: any) {
       setMsg(e.message ?? "Error");
       setTimeout(() => setMsg(""), 4000);
@@ -13877,9 +13931,9 @@ function SolicitudCard({
         method: "PUT",
         body: JSON.stringify({ estado: "en_proceso", motivo: ajustesMensaje.trim() }),
       });
-      if (ajustesArchivo) {
+      for (const { file } of ajustesArchivos) {
         const fd = new FormData();
-        fd.append("archivo", ajustesArchivo);
+        fd.append("archivo", file);
         await fetch(`/api/tickets/${ticket.id}/adjuntos`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -13888,8 +13942,7 @@ function SolicitudCard({
       }
       setShowPedirAjustes(false);
       setAjustesMensaje("");
-      setAjustesArchivo(null);
-      setAjustesArchivoPreview(null);
+      limpiarAjustesArchivos();
       onChanged();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
@@ -13950,25 +14003,29 @@ function SolicitudCard({
   async function resolverIntervencion() {
     if (!esAsignado || busy) return;
     const texto = resolucionInter.trim();
-    const archivo = archivoPendienteRef.current ?? archivoPendiente;
-    if (!texto && !archivo) {
+    const archivos = archivosPendientesRef.current.length > 0
+      ? archivosPendientesRef.current
+      : archivosPendientes.map((a) => a.file);
+    if (!texto && archivos.length === 0) {
       setMsg("Escribe tu respuesta o adjunta una imagen antes de resolver.");
       setTimeout(() => setMsg(""), 3000);
       return;
     }
     setBusy(true);
     try {
-      if (archivo) {
-        const fd = new FormData();
-        fd.append("archivo", archivo);
-        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+      if (archivos.length > 0) {
+        for (const archivo of archivos) {
+          const fd = new FormData();
+          fd.append("archivo", archivo);
+          await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+        }
         limpiarArchivoPendiente();
         void cargarAdjuntos();
       }
       await tapi(`/${ticket.id}/comentarios`, token, {
         method: "POST",
         body: JSON.stringify({
-          texto: texto || "📎 Resolución con imagen adjunta",
+          texto: texto || (archivos.length > 1 ? `📎 Resolución con ${archivos.length} imágenes adjuntas` : "📎 Resolución con imagen adjunta"),
         }),
       });
       await tapi(`/${ticket.id}/estado`, token, {
@@ -14091,15 +14148,19 @@ function SolicitudCard({
 
   async function enviarMensajeChat() {
     const texto = chatDraft.trim();
-    const archivo = archivoPendienteRef.current ?? archivoPendiente;
-    if ((!texto && !archivo) || enviandoChat || !puedeEnviarChat) return;
-    const textoEnvio = texto || (archivo ? "📎 Imagen adjunta" : "");
+    const archivos = archivosPendientesRef.current.length > 0
+      ? archivosPendientesRef.current
+      : archivosPendientes.map((a) => a.file);
+    if ((!texto && archivos.length === 0) || enviandoChat || !puedeEnviarChat) return;
+    const textoEnvio = texto || (archivos.length > 1 ? `📎 ${archivos.length} imágenes adjuntas` : archivos.length === 1 ? "📎 Imagen adjunta" : "");
     setEnviandoChat(true);
     try {
-      if (archivo) {
-        const fd = new FormData();
-        fd.append("archivo", archivo);
-        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+      if (archivos.length > 0) {
+        for (const archivo of archivos) {
+          const fd = new FormData();
+          fd.append("archivo", archivo);
+          await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+        }
         limpiarArchivoPendiente();
         void cargarAdjuntos();
         // Modo ampliado: la foto ya aparece inline en el chat — no hace falta
@@ -14588,6 +14649,13 @@ function SolicitudCard({
               <Icon name="user" size={11} />
               Para: <strong className="text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
             </span>
+            {!resuelta && (corridaEstado === "activa" || corridaEstado === "pausada") && (
+              <span className="flex items-center gap-1 font-mono font-semibold text-ink" title={corridaEstado === "activa" ? "En curso" : "En pausa"}>
+                <Icon name="clock" size={11} />
+                {fmtTiempo(segundosCronometro)}
+                {corridaEstado === "activa" && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+              </span>
+            )}
             {ticket.frecuencia && (
               <span className="flex items-center gap-1">
                 ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
@@ -14771,10 +14839,10 @@ function SolicitudCard({
               ref={interArchivoRef}
               type="file"
               accept="image/*"
+              multiple
               className="sr-only"
               onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                onArchivoInterSeleccionado(f);
+                onArchivosInterSeleccionados(e.target.files);
                 e.target.value = "";
               }}
             />
@@ -15055,10 +15123,10 @@ function SolicitudCard({
                   ref={chatArchivoRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="sr-only"
                   onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    onArchivoInterSeleccionado(f);
+                    onArchivosInterSeleccionados(e.target.files);
                     e.target.value = "";
                   }}
                 />
@@ -15877,45 +15945,49 @@ function SolicitudCard({
                 value={ajustesMensaje}
                 onChange={(e) => setAjustesMensaje(e.target.value)}
               />
-              {/* Adjuntar imagen */}
-              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-accent/40 bg-accent/30  text-accent" : "border-dashed border-border text-muted hover:border-accent/60 hover:text-accent"}`}>
-                <span>{ajustesArchivo ? "📎" : "🖼️"}</span>
-                <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional) — Ctrl+V"}</span>
-                {ajustesArchivo && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="ml-1 text-muted hover:text-red-500"
-                    onClick={(e) => { e.preventDefault(); setAjustesArchivo(null); setAjustesArchivoPreview(null); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") { setAjustesArchivo(null); setAjustesArchivoPreview(null); } }}
-                  >✕</span>
-                )}
+              {/* Adjuntar imágenes */}
+              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivos.length > 0 ? "border-accent/40 bg-accent/30  text-accent" : "border-dashed border-border text-muted hover:border-accent/60 hover:text-accent"}`}>
+                <span>{ajustesArchivos.length > 0 ? "📎" : "🖼️"}</span>
+                <span className="flex-1 truncate">
+                  {ajustesArchivos.length > 0
+                    ? `${ajustesArchivos.length} imagen${ajustesArchivos.length !== 1 ? "es" : ""} lista${ajustesArchivos.length !== 1 ? "s" : ""}`
+                    : "Adjuntar imágenes (opcional) — Ctrl+V"}
+                </span>
                 <input
                   type="file"
                   accept="image/*,.pdf,application/pdf"
+                  multiple
                   className="sr-only"
                   onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setAjustesArchivo(f);
-                    if (f && f.type.startsWith("image/")) {
-                      const url = URL.createObjectURL(f);
-                      setAjustesArchivoPreview(url);
-                    } else {
-                      setAjustesArchivoPreview(null);
-                    }
+                    Array.from(e.target.files ?? []).forEach((f) => agregarAjusteArchivo(f));
                     e.target.value = "";
                   }}
                 />
               </label>
-              {ajustesArchivoPreview && (
-                <img src={ajustesArchivoPreview} alt="Vista previa" className="rounded-lg max-h-32 object-contain border border-border" />
+              {ajustesArchivos.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {ajustesArchivos.map((a, idx) => (
+                    <div key={idx} className="relative">
+                      {a.preview ? (
+                        <img src={a.preview} alt="" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-xl">📎</div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => quitarAjusteArchivoEn(idx)}
+                        className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none"
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
               )}
               <div className="flex gap-2">
                 <button type="button" disabled={busy || !ajustesMensaje.trim()} onClick={pedirAjustes}
                   className="flex-1 rounded-xl bg-accent/50 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent transition-colors">
                   {busy ? "Enviando…" : "Enviar ajustes"}
                 </button>
-                <button type="button" onClick={() => { setShowPedirAjustes(false); setAjustesMensaje(""); setAjustesArchivo(null); setAjustesArchivoPreview(null); }}
+                <button type="button" onClick={() => { setShowPedirAjustes(false); setAjustesMensaje(""); limpiarAjustesArchivos(); }}
                   className="rounded-xl border border-border px-3 py-2 text-xs text-muted hover:text-ink">
                   Cancelar
                 </button>
@@ -16353,6 +16425,10 @@ async function cargarEstadoReanudacion(ticketId: number, token: string): Promise
   } else if (conCompras && pasoComprasHecho) {
     fase = "pasos";
     subCompras = "editando";
+  } else if (det.subtipo === "simple") {
+    // Acción simple: sin pasos ni compras por diseño — retomar directo en la
+    // pantalla de notas/adjunto/cronómetro (fase "cierre"), no el wizard de compras.
+    fase = "cierre";
   } else if (det.estado === "en_proceso" || (det.segundos_trabajo ?? 0) > 0) {
     fase = "compras_lista";
     subCompras = conCompras ? "editando" : "idle";
@@ -16557,6 +16633,7 @@ function NuevaAccionWizard({
         tipo: "accion",
         ticket_padre_id: solicitudPadreId ?? undefined,
         protocolo_id: plantilla?.protocoloId,
+        subtipo: plantilla?.protocoloId ? "procedimiento" : undefined,
       }),
     }) as Ticket;
     const tid = ticket.id;
@@ -17897,6 +17974,272 @@ function NuevaAccionWizard({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Formulario: acción simple (título + detalle, sin pasos ni compras obligatorios) ──
+
+function AccionSimpleForm({
+  token,
+  user,
+  chatApiToken,
+  onCancel,
+  onCreated,
+}: {
+  token: string;
+  user: TicketsUser;
+  chatApiToken: string | null | undefined;
+  onCancel: () => void;
+  onCreated: (ticketId: number) => void;
+}) {
+  const stt = useStt(token, chatApiToken);
+  const [titulo, setTitulo] = useState("");
+  const [detalle, setDetalle] = useState("");
+  const [mostrarFoto, setMostrarFoto] = useState(false);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [mostrarCompras, setMostrarCompras] = useState(false);
+  const [listaCompras, setListaCompras] = useState<ItemCompraAccion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function elegirFoto(file: File | null) {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoFile(file);
+    setFotoPreview(file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+  }
+
+  async function iniciarAccionSimple() {
+    if (!titulo.trim() || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const ticket = await tapi("/", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: titulo.trim(),
+          descripcion: detalle.trim() || titulo.trim(),
+          prioridad: "media",
+          categoria: "logistica",
+          asignado_a: user.id,
+          tipo: "accion",
+          subtipo: "simple",
+        }),
+      }) as Ticket;
+      const tid = ticket.id;
+
+      const items = listaCompras.filter((m) => m.n.trim());
+      if (items.length > 0) {
+        await tapi(`/${tid}/pasos`, token, {
+          method: "POST",
+          body: JSON.stringify({ descripcion: "Ir de compras", notas: notasListaCompras(items) }),
+        }).catch(() => {});
+      }
+      if (fotoFile) {
+        const fd = new FormData();
+        fd.append("archivo", fotoFile);
+        await tapi(`/${tid}/adjuntos`, token, { method: "POST", body: fd }).catch(() => {});
+      }
+      await tapi(`/${tid}/corridas/iniciar`, token, {
+        method: "POST", body: JSON.stringify({ segundos_previos: 0 }),
+      }).catch(() => {});
+
+      onCreated(tid);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo iniciar la acción");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-lg pb-10">
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+        >
+          ← Cancelar
+        </button>
+        <span className="text-xs font-bold uppercase tracking-widest text-muted">Acción simple</span>
+      </div>
+
+      <SttBanner stt={stt} />
+      {error && (
+        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-extrabold text-ink leading-tight">
+            ¿Qué vas<br />a hacer?
+          </h2>
+          <p className="mt-2 text-sm text-muted">Título y detalle — sin pasos ni listas obligatorias.</p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <ProseInput
+              autoFocus
+              className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
+              placeholder="Ej: Llamar al proveedor de envases"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && titulo.trim() && !loading) void iniciarAccionSimple();
+              }}
+              maxLength={150}
+            />
+            <SttInlineBtn
+              stt={stt}
+              onStart={() => void stt.iniciar((t) => setTitulo(proseText(t)))}
+            />
+          </div>
+          <div className="flex gap-2 items-start">
+            <ProseTextarea
+              className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none min-h-[100px]"
+              placeholder="Detalles adicionales (opcional)"
+              rows={4}
+              value={detalle}
+              onChange={(e) => setDetalle(e.target.value)}
+            />
+            <SttInlineBtn
+              stt={stt}
+              label="Detalle"
+              onStart={() => void stt.iniciar((t) => setDetalle(proseText(t)))}
+            />
+          </div>
+          <ProseHint />
+        </div>
+
+        {/* ── Extras opcionales, ocultos detrás de "+" ── */}
+        <div className="flex flex-wrap gap-2">
+          {!mostrarFoto && (
+            <button
+              type="button"
+              onClick={() => setMostrarFoto(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+            >
+              + 📷 Registro fotográfico
+            </button>
+          )}
+          {!mostrarCompras && (
+            <button
+              type="button"
+              onClick={() => {
+                setMostrarCompras(true);
+                if (listaCompras.length === 0) setListaCompras([nuevoItemCompra()]);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+            >
+              + 🛒 Lista de compras
+            </button>
+          )}
+        </div>
+
+        {mostrarFoto && (
+          <div
+            className="space-y-2 mck-slide-up"
+            onPasteCapture={(e) => manejarPasteCaptura(e, elegirFoto)}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wide text-accent">Registro fotográfico</p>
+              <button
+                type="button"
+                onClick={() => { elegirFoto(null); setMostrarFoto(false); }}
+                className="text-xs text-muted hover:text-danger"
+              >
+                Quitar
+              </button>
+            </div>
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
+              <TopicIcon value="📷" size={28} className="text-muted" />
+              <span className="text-sm font-bold text-accent">
+                {fotoFile ? fotoFile.name : "Subir foto, adjunto o Ctrl+V para pegar captura"}
+              </span>
+              <input
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => elegirFoto(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {fotoPreview && (
+              <img src={fotoPreview} alt="Vista previa" className="max-h-40 w-full rounded-xl object-contain border border-border" />
+            )}
+          </div>
+        )}
+
+        {mostrarCompras && (
+          <div className="space-y-3 mck-slide-up">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wide text-accent">Lista de compras</p>
+              <button
+                type="button"
+                onClick={() => { setListaCompras([]); setMostrarCompras(false); }}
+                className="text-xs text-muted hover:text-danger"
+              >
+                Quitar
+              </button>
+            </div>
+            {listaCompras.map((m, mi) => (
+              <div key={mi} className="flex flex-wrap gap-2 sm:flex-nowrap">
+                <input
+                  className="min-w-0 flex-[2] rounded-xl border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
+                  placeholder="Producto"
+                  value={m.n}
+                  onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (j === mi ? { ...x, n: e.target.value } : x)))}
+                />
+                <input
+                  className="w-20 rounded-xl border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
+                  placeholder="Cant."
+                  inputMode="decimal"
+                  value={m.cantidad}
+                  onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (j === mi ? { ...x, cantidad: e.target.value } : x)))}
+                />
+                <select
+                  className="w-[5.5rem] rounded-xl border-2 border-border bg-surface-input px-2 py-2.5 text-sm font-bold text-ink outline-none focus:border-accent"
+                  value={m.unidad}
+                  onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (
+                    j === mi ? { ...x, unidad: e.target.value as UnidadCompra } : x
+                  )))}
+                  aria-label="Unidad de medida"
+                >
+                  <option value="g">g</option>
+                  <option value="u">u</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setListaCompras((ms) => ms.filter((_, j) => j !== mi))}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-border text-muted transition hover:border-danger hover:text-danger"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setListaCompras((ms) => [...ms, nuevoItemCompra()])}
+              className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+            >
+              + Agregar producto
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          disabled={!titulo.trim() || loading}
+          onClick={() => void iniciarAccionSimple()}
+          className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+        >
+          {loading ? "Iniciando…" : "Iniciar acción"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -20885,10 +21228,12 @@ function RepetirAccionWizard({
   const [pasoFile, setPasoFile] = useState<File | null>(null);
   const [cierreFile, setCierreFile] = useState<File | null>(null);
   const pasoEjecRef = useRef<HTMLDivElement>(null);
+  const cierreRef = useRef<HTMLDivElement>(null);
   const pasoInicioRef = useRef(Date.now());
   const corridaIdRef = useRef<number | null>(reanudar?.corridaId ?? null);
 
   usePegarCapturaEnZona(fase === "paso", pasoEjecRef, (file) => setPasoFile(file));
+  usePegarCapturaEnZona(fase === "cierre", cierreRef, (file) => setCierreFile(file));
 
   const activeTicketId = ticketId ?? reanudar?.ticketId ?? 0;
   const cronometro = useTicketCronometro(activeTicketId, token);
@@ -21453,7 +21798,12 @@ function RepetirAccionWizard({
 
       {/* ── Cierre / reporte ── */}
       {fase === "cierre" && (
-        <div key="rep-cierre" className={`space-y-6 ${slide}`}>
+        <div
+          key="rep-cierre"
+          ref={cierreRef}
+          className={`space-y-6 ${slide}`}
+          onPaste={(e) => manejarPasteCaptura(e, setCierreFile)}
+        >
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">Último paso</p>
             <h2 className="text-3xl font-extrabold text-ink leading-tight">
@@ -21489,7 +21839,7 @@ function RepetirAccionWizard({
             ${cierreFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
             <span className="text-xl">{cierreFile ? "📎" : "📷"}</span>
             <span className="text-sm font-semibold text-muted truncate">
-              {cierreFile ? cierreFile.name : "Adjuntar foto o evidencia (opcional)"}
+              {cierreFile ? cierreFile.name : "Adjuntar foto, evidencia o Ctrl+V (opcional)"}
             </span>
             {cierreFile && (
               <button
@@ -23924,6 +24274,7 @@ function AccionesView({
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto" | "rechazado">(""); // "" = activas
   const [showWizard, setShowWizard] = useState(false);
+  const [showAccionSimple, setShowAccionSimple] = useState(false);
   const [showIniciarMenu, setShowIniciarMenu] = useState(false);
   const [protocolosMenu, setProtocolosMenu] = useState<Protocolo[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
@@ -24275,43 +24626,35 @@ function AccionesView({
       return;
     }
 
-    // Acción en_proceso sin bloqueo: abrir pantalla de ejecución (notas + cronómetro) en Hugo
-    if (t.estado === "en_proceso" && !t.bloqueado_por && onInicio) {
-      setLoadingExtra(true);
-      setMsg("");
-      try {
-        const payload = { id: t.id, titulo: t.titulo };
-        localStorage.setItem("mckenna-accion-activa", JSON.stringify(payload));
-        // Boot en store: Hugo lo consume al montar/actualizar. localStorage solo no basta —
-        // AgenteMandoView borraba mckenna-accion-activa al montar y nunca abría la acción.
-        useAppStore.getState().setHugoAccionBoot(payload);
-        onInicio();
-        return;
-      } catch {
-        /* falló el handoff — continuar con el wizard como fallback */
-      } finally {
-        setLoadingExtra(false);
-      }
-    }
-
+    // Nota: acciones "simple" y en_proceso solían desviarse aquí hacia una pantalla
+    // de ejecución en Hugo (notas + cronómetro) vía hugoAccionBoot/onInicio, pero ese
+    // destino (AgenteMandoView) nunca se monta en la app — el handoff terminaba
+    // siempre en la pantalla de inicio sin reabrir la acción. Todas las acciones se
+    // retoman ahora por el mismo camino de abajo (cargarEstadoReanudacion + wizard in-place),
+    // que sí está montado y probado. Para "simple" sin pasos/compras, ese resume
+    // resuelve directo a fase "cierre" (notas + adjunto con Ctrl+V + terminar).
     setLoadingExtra(true);
     setMsg("");
     try {
       const resume = await cargarEstadoReanudacion(t.id, token);
       if (t.estado === "pendiente") {
+        // El PUT /estado es el gate autoritativo ("una acción en curso a la vez",
+        // cambiar_estado en tickets_db.py) — si lo rechaza, debe propagar al catch
+        // de abajo y NO abrir el wizard. /corridas/iniciar solo arranca el
+        // cronómetro; si falla por algo transitorio, el wizard sincroniza al abrir.
+        const segPrev = resume.ticket.corrida?.segundos_acumulados ?? resume.ticket.segundos_trabajo ?? 0;
+        await tapi(`/${t.id}/estado`, token, {
+          method: "PUT",
+          body: JSON.stringify({ estado: "en_proceso" }),
+        });
         try {
-          const segPrev = resume.ticket.corrida?.segundos_acumulados ?? resume.ticket.segundos_trabajo ?? 0;
           await tapi(`/${t.id}/corridas/iniciar`, token, {
             method: "POST",
             body: JSON.stringify({ segundos_previos: segPrev }),
           });
-          await tapi(`/${t.id}/estado`, token, {
-            method: "PUT",
-            body: JSON.stringify({ estado: "en_proceso" }),
-          });
-          const det = await tapi(`/${t.id}`, token) as Ticket;
-          resume.ticket = det;
         } catch { /* wizard sincroniza al abrir */ }
+        const det = await tapi(`/${t.id}`, token) as Ticket;
+        resume.ticket = det;
       }
 
       // Detectar si este ticket fue creado por RepetirAccionWizard:
@@ -24521,6 +24864,7 @@ function AccionesView({
     // load() es async; si el usuario cierra antes de que termine, la alarma quedaba activa.
     sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, false, false);
     setShowWizard(false);
+    setShowAccionSimple(false);
     setWizardTituloInicial("");
     setPlantillaWizard(undefined);
     setReanudarWizard(null);
@@ -24572,7 +24916,19 @@ function AccionesView({
     );
   }
 
-  if (showWizard && !isAdmin) {
+  if (showAccionSimple) {
+    return (
+      <AccionSimpleForm
+        token={token}
+        user={user}
+        chatApiToken={chatApiToken}
+        onCancel={() => setShowAccionSimple(false)}
+        onCreated={(id) => void onAccionCreada(id)}
+      />
+    );
+  }
+
+  if (showWizard) {
     return (
       <NuevaAccionWizard
         token={token}
@@ -24594,7 +24950,7 @@ function AccionesView({
   }
 
   const tc = ACCIONES_TAB_CFG[tabAcciones as AccionesTab] ?? ACCIONES_TAB_CFG.subhome;
-  const mostrarCta = tc.ctaBase && !isAdmin;
+  const mostrarCta = tc.ctaBase;
   const mostrarCtaCrear =
     tabAcciones === "pendientes"
     || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user))
@@ -24669,7 +25025,7 @@ function AccionesView({
       </div>
 
       {/* ── Menú de inicio: libre o desde procedimiento ── */}
-      {showIniciarMenu && !isAdmin && (
+      {showIniciarMenu && (
         <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-widest text-accent">¿Cómo quieres empezar?</p>
@@ -24678,11 +25034,11 @@ function AccionesView({
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => { setShowIniciarMenu(false); abrirWizard(); }}
+              onClick={() => { setShowIniciarMenu(false); setShowAccionSimple(true); }}
               className="text-left rounded-2xl border-2 border-border bg-surface px-4 py-4 transition hover:border-accent hover:bg-accent/5 group"
             >
-              <p className="text-sm font-extrabold text-ink group-hover:text-accent transition-colors">✍️ Acción libre</p>
-              <p className="mt-1 text-xs text-muted">Describe con tus palabras qué vas a hacer.</p>
+              <p className="text-sm font-extrabold text-ink group-hover:text-accent transition-colors">⚡ Acción simple</p>
+              <p className="mt-1 text-xs text-muted">Título y listo — sin pasos ni compras obligatorias.</p>
             </button>
             <div className="rounded-2xl border-2 border-border bg-surface px-4 py-4 space-y-2">
               <p className="text-sm font-extrabold text-ink">📋 Desde procedimiento</p>
@@ -25355,23 +25711,27 @@ function AccionesView({
                   <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{grupo.length}</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {grupo.map((t) => (
-                    <AccionCard
-                      key={t.id}
-                      ticket={t}
-                      token={token}
-                      user={user}
-                      onSelect={onSelect}
-                      onChanged={() => void load(true)}
-                      onContinuar={
-                        !isAdmin && !comprasDelegadas.some((c) => c.ticket_padre_id === t.id)
-                          ? (tk) => void continuarAccion(tk)
-                          : undefined
-                      }
-                      isAdmin={isAdmin}
-                      readOnly={isAdmin}
-                    />
-                  ))}
+                  {grupo.map((t) => {
+                    const esPropia = uidEq(t.asignado_a, user.id);
+                    const soloLectura = isAdmin && !esPropia;
+                    return (
+                      <AccionCard
+                        key={t.id}
+                        ticket={t}
+                        token={token}
+                        user={user}
+                        onSelect={onSelect}
+                        onChanged={() => void load(true)}
+                        onContinuar={
+                          !soloLectura && !comprasDelegadas.some((c) => c.ticket_padre_id === t.id)
+                            ? (tk) => void continuarAccion(tk)
+                            : undefined
+                        }
+                        isAdmin={isAdmin}
+                        readOnly={soloLectura}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             );

@@ -2519,6 +2519,12 @@ def incorporar_publicaciones_meli_al_catalogo(items: list[dict], combos: list[di
         if su in vistos:
             continue
         vistos.add(su)
+        if not su.startswith("C-"):
+            # Solo los SKU "C-" son los combos definitivos de la tienda; los
+            # códigos legacy sin ese prefijo no se dan de alta automáticamente
+            # (los ya publicados de antes se dejan intactos, ver by_sku arriba).
+            omitidas.append(su)
+            continue
         raw = _siigo_raw_por_sku(sku)
         d = _combo_dict_desde_siigo_raw(raw) if raw else None
         if not d:
@@ -3476,11 +3482,11 @@ def _calcular_actividad() -> dict:
     en cada request del ticker.
     """
     hoy = datetime.now().strftime("%Y-%m-%d")
+    hace_7 = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
 
     pedidos_web_hoy = 0
-    facturas_web_hoy = 0
-    despachos_semana = 0
-    ciudades_semana: list[str] = []
+    despachos_web_semana = 0
+    ciudades_semana: set[str] = set()
     try:
         con = sqlite3.connect(DB_PATH)
         cur = con.cursor()
@@ -3492,7 +3498,7 @@ def _calcular_actividad() -> dict:
             "SELECT COUNT(*) FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days')"
         )
-        despachos_semana = cur.fetchone()[0]
+        despachos_web_semana = cur.fetchone()[0]
         cur.execute(
             "SELECT DISTINCT buyer_city FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days') "
@@ -3502,14 +3508,18 @@ def _calcular_actividad() -> dict:
         con.close()
     except Exception:
         log.warning("actividad: no se pudo consultar orders.db", exc_info=True)
-        ciudades_semana = set()
 
-    # Ciudades MeLi de esta semana (real, acumulado por app/tools/cobertura_meli.py):
-    # sin esto "ciudades con envío" solo veía el canal web, casi vacío casi todo
-    # el día — mismo problema de fondo que pedidos_hoy antes de combinar canales.
+    # Despachos + ciudades de MeLi esta semana (real, acumulado por
+    # app/tools/cobertura_meli.py::actualizar_cobertura_meli, `envios_por_fecha`
+    # usa la fecha REAL de despacho, no el día en que el cron lo notó). Sin
+    # esto, "despachos esta semana" solo veía el canal web (casi vacío) junto
+    # a "pedidos hoy" ya combinado — de ahí el 363 vs 3 que no cuadraba.
+    despachos_meli_semana = 0
     try:
         raw = json.loads(_COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
-        hace_7 = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+        for fecha, n in (raw.get("envios_por_fecha") or {}).items():
+            if fecha >= hace_7:
+                despachos_meli_semana += int(n or 0)
         for entry in (raw.get("municipios") or {}).values():
             if (entry.get("ultima_vez") or "") >= hace_7 and entry.get("municipio"):
                 ciudades_semana.add(entry["municipio"])
@@ -3529,13 +3539,13 @@ def _calcular_actividad() -> dict:
     except Exception:
         pass
 
-    ciudades_semana = sorted(ciudades_semana)[:12]
+    ciudades_semana_lista = sorted(ciudades_semana)
 
     return {
         "pedidos_hoy": pedidos_web_hoy + ordenes_meli_hoy,
-        "despachos_semana": despachos_semana,
-        "ciudades_semana": ciudades_semana,
-        "n_ciudades_semana": len(ciudades_semana),
+        "despachos_semana": despachos_web_semana + despachos_meli_semana,
+        "ciudades_semana": ciudades_semana_lista[:12],
+        "n_ciudades_semana": len(ciudades_semana_lista),
         # WhatsApp + MeLi: antes solo se contaban las preguntas de MeLi aunque
         # la etiqueta ya decía "por WhatsApp y MercadoLibre" — ahora sí suma
         # ambos canales reales.
@@ -4123,12 +4133,32 @@ def api_refresh():
     if admin and token != admin:
         abort(403)
     data = get_catalog(force=True)
+    try:
+        from app.services.documentos_web import invalidar_indice_documentos_web
+        invalidar_indice_documentos_web()
+    except Exception as e:
+        log.warning("api_refresh documentos: %s", e)
     return jsonify({
         "ok": True,
         "categorias": len(data),
         "familias_catalogo": sum(len(s["products"]) for s in data),
         "combos_siigo": len(_combo_products),
     })
+
+
+@app.route("/api/documentos/refresh", methods=["POST"])
+def api_documentos_refresh():
+    """Reconstruye el índice de FT/COA/SDS de la biblioteca en este proceso (tienda)."""
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _admin_bearer_authorized(auth) and not _web_api_key_valida():
+        abort(403)
+    from app.services.documentos_web import (
+        invalidar_indice_documentos_web,
+        listar_documentos_completos_web,
+    )
+    invalidar_indice_documentos_web()
+    docs = listar_documentos_completos_web(forzar=True)
+    return jsonify({"ok": True, "total": len(docs)})
 
 
 def _procesar_pedido_pagado_y_refrescar_catalogo(ref: str) -> None:

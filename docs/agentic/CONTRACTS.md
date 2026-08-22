@@ -178,6 +178,8 @@ Endpoints usados por React:
 | `/api/publicaciones` | GET | `buscar`, `categoria`, `canal` (`todos`\|`ambos`\|`falta_web`\|`sin_meli`\|`no_en_tienda`) | `items`, `resumen` (conteos estables), `categorias` |
 | `/api/publicaciones/<sku>` | GET | `live_meli=1` opcional | Detalle + `vista_sitios` `{web, meli, presentaciones}` (cómo se ve en tienda vs listing) |
 | `/api/publicaciones/<sku>/estado-meli` | POST | `estado`: `active`\|`paused` | Pausa/activa la publicación MeLi vinculada |
+| `/api/publicaciones/<sku>/imagenes/desde-galeria` | POST | `filenames[]` (catálogo), `recursos[]` (Studio), `targets` (`web` y/o `meli`), `meli_item_id?` | Copia fotos ya existentes de la galería al sitio; no borra el origen |
+| `/api/fichas/biblioteca/cargar-web` | POST | - | Publica **solo** documentos completos (FT+COA+SDS diligenciados + PDF) en la tienda. `{ok, total, con_coa, con_sds, titulos, omitidos_incompletos, omitidos_titulos, sitio}`. También `/app/api/...`. |
 
 También existen bajo `/app/api/publicaciones*`. La tienda web **solo muestra SKUs con `meli_id` MCO**; `oculto_web` los deja en vitrina sin compra.
 
@@ -241,6 +243,7 @@ El flete total se reparte por **unidades compradas** (packs × ml/g/un), no por 
 Unidad base obligatoria por línea: `ml` | `g` | `un` (detectada del texto: 500ml→ml, 1kg→g/1000, 100pcs→un).
 El costo guardado es por esa unidad mínima (COP/ml, COP/g o COP/un).
 USD→COP: TRM = tasa representativa BanRep vigente en `fecha_compra` (fuente `banrep`); override manual opcional.
+La **cuenta de cobro** siempre se genera en pesos (COP) con esa TRM del día de la compra. Si el OCR/formulario etiqueta como COP un total típico de factura en dólares (p. ej. $532), se reinterpreta como USD y se aplica la TRM BanRep.
 Descuentos: `descuento_detectado` / `descuento_pct` (pedido) y `descuento` / `descuento_pct` por línea; el costo usa el neto tras descuentos.
 
 ## Contabilidad — Ingresos/Egresos + extracto bancario

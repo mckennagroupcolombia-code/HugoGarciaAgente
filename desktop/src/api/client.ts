@@ -228,48 +228,82 @@ export const api = {
     const ctrl = ms && ms > 0 ? new AbortController() : null;
     const tid =
       ctrl && ms ? window.setTimeout(() => ctrl.abort(), ms) : null;
-    let res: Response;
-    try {
-      res = await fetch(url, {
+    const doFetch = (target: string) =>
+      fetch(target, {
         method: "POST",
         headers,
         body: form,
         signal: ctrl?.signal,
       });
-      // SPA/proxy puede devolver 404/405 en /app/api; reintentar el otro prefijo
-      if (
-        (res.status === 404 || res.status === 405) &&
+    let res: Response;
+    try {
+      res = await doFetch(url);
+      // SPA/proxy: 404/405 o HTML → reintentar el otro prefijo /api ↔ /app/api
+      const ct0 = (res.headers.get("content-type") ?? "").toLowerCase();
+      const needsAlt =
         origin &&
-        path.startsWith("/api/")
-      ) {
+        path.startsWith("/api/") &&
+        (res.status === 404 ||
+          res.status === 405 ||
+          !ct0.includes("application/json"));
+      if (needsAlt) {
         const alt = alternateMutatingApiUrl(url, path, "POST", origin);
         if (alt) {
-          res = await fetch(alt, {
+          // Releer el body: algunos navegadores consumen FormData al primer fetch
+          const retry = await fetch(alt, {
             method: "POST",
             headers,
             body: form,
             signal: ctrl?.signal,
           });
+          const ctR = (retry.headers.get("content-type") ?? "").toLowerCase();
+          if (
+            ctR.includes("application/json") ||
+            (retry.status !== res.status && retry.status < 500)
+          ) {
+            url = alt;
+            res = retry;
+          }
         }
       }
     } catch (e) {
       if (ctrl?.signal.aborted) {
         throw new Error("La solicitud tardó demasiado (timeout). Intente de nuevo.");
       }
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED/i.test(msg)) {
+        throw new Error(
+          "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel.",
+        );
+      }
       throw e;
     } finally {
       if (tid != null) window.clearTimeout(tid);
     }
     if (res.status === 401) throw new Error("No autorizado");
+    const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+    if (!ct.includes("application/json")) {
+      const preview = (await res.clone().text()).slice(0, 120).trim();
+      throw new Error(
+        preview.startsWith("<")
+          ? "El servidor devolvió HTML en lugar de JSON. Reinicia el agente (:8081) y recarga el panel; si el archivo es muy grande, usa una foto más liviana o PDF comprimido."
+          : res.status === 404
+            ? "Ruta no encontrada (404). Recarga el panel o reinicia el agente."
+            : preview
+              ? `Respuesta no JSON (HTTP ${res.status}): ${preview}`
+              : `Respuesta vacía o no JSON (HTTP ${res.status}).`,
+      );
+    }
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
       const msg =
-        (body && (body.error || body.mensaje)) ||
+        (typeof body.error === "string" && body.error) ||
+        (typeof body.mensaje === "string" && body.mensaje) ||
         (res.status === 404
           ? "Ruta no encontrada (404). Recarga el panel o reinicia el agente."
           : `HTTP ${res.status}`);
       throw new Error(msg);
     }
-    return res.json() as Promise<T>;
+    return body as T;
   },
 };

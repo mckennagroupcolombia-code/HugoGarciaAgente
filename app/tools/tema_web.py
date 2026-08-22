@@ -59,7 +59,6 @@ _ORDEN_PUREZA = [
 ]
 _ORDEN_CLASICO = [
     "hero",
-    "actividad_vivo",
     "banners_promo",
     "features",
     "ruta_origen",
@@ -227,7 +226,6 @@ TEMA_WEB_DEFAULTS: dict = {
             "categorias": True,
             "destacados": True,
             "cta": False,
-            "actividad_vivo": True,
             "banners_promo": True,
             "ruta_origen": True,
             "cobertura": True,

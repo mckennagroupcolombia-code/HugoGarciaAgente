@@ -14,6 +14,7 @@ import DocumentoGeneradorTab, {
 } from "./documentos/DocumentoGeneradorTab";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
+import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
 import DocumentosCatalogoTab, {
   type ProductoDocumentacion,
@@ -168,6 +169,16 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
   return (
     <div className="space-y-4">
       <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-ink">Cargar documentos en la página web</p>
+          <p className="mt-0.5 text-xs text-muted">
+            Publica solo documentos completos (FT + COA + SDS) en las páginas de producto de mckennagroup.co.
+          </p>
+        </div>
+        <CargarDocumentosWebButton />
+      </div>
 
       {deleteError && (
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">Error al eliminar: {deleteError}</p>
@@ -959,49 +970,56 @@ function SeccionBanner({ titulo }: { titulo: string }) {
 function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<string, unknown>) => void }) {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState(false);
+  const [previews, setPreviews] = useState<{ url: string; name: string; isImage: boolean }[]>([]);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [textoPagina, setTextoPagina] = useState("");
   const [mostrarPegar, setMostrarPegar] = useState(false);
+  const [progreso, setProgreso] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingFilesRef = useRef<File[]>([]);
 
-  const authHeaders = async (): Promise<Record<string, string>> => {
-    const { useTicketsAuth } = await import("../stores/ticketsAuth");
-    const { useAuthStore } = await import("../stores/auth");
-    const t = useTicketsAuth.getState();
-    const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  const MAX_ARCHIVOS = 8;
+  const esValido = (f: File) => f.type.startsWith("image/") || f.type === "application/pdf";
 
-  const enviar = async (file: File) => {
+  const enviar = async (files: File[]) => {
+    if (!files.length) return;
     setError(null); setOk(false); setScanning(true);
+    setProgreso(files.length > 1 ? `Extrayendo de ${files.length} archivos…` : "Extrayendo…");
     try {
-      const { resolvePanelApiUrl } = await import("../api/client");
-      const url = await resolvePanelApiUrl("/api/fichas/ft/escanear-imagen", "POST");
+      const { api } = await import("../api/client");
       const fd = new FormData();
-      fd.append("imagen", file);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: await authHeaders(),
-        body: fd,
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
+      for (const file of files.slice(0, MAX_ARCHIVOS)) {
+        fd.append("imagen", file);
+      }
+      const json = await api.upload<{
+        ok?: boolean;
+        campos?: Record<string, unknown>;
+        error?: string;
+      }>("/api/fichas/ft/escanear-imagen", fd, { timeoutMs: 180000 });
+      if (json.error) throw new Error(json.error);
       const campos = json.campos || {};
       const llenos = Object.entries(campos).filter(
         ([k, v]) => !k.startsWith("_") && v != null && String(v).trim() !== "",
       );
       if (!llenos.length) {
-        throw new Error("La extracción no devolvió campos útiles. Pruebe otra imagen/PDF.");
+        throw new Error("La extracción no devolvió campos útiles. Pruebe otras imágenes/PDF.");
       }
       onCamposExtraidos(campos);
       setOk(true);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(
+        /NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)
+          ? "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel, luego vuelve a adjuntar la imagen."
+          : /JSON\.parse|unexpected character|Failed to execute 'json'/i.test(msg)
+            ? "El servidor no respondió JSON (proxy o agente caído). Reinicia el agente en :8081 y recarga el panel."
+            : msg,
+      );
     } finally {
       setScanning(false);
+      setProgreso(null);
     }
   };
 
@@ -1043,53 +1061,75 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
     }
   };
 
-  const [fileName, setFileName] = useState<string | null>(null);
-
-  const fromFile = (file: File) => {
-    setOk(false); setError(null);
-    if (file.type.startsWith("image/")) {
-      if (preview) URL.revokeObjectURL(preview);
-      setPreview(URL.createObjectURL(file));
-    } else {
-      setPreview(null);
+  const fromFiles = (incoming: FileList | File[]) => {
+    const nuevos = Array.from(incoming).filter(esValido);
+    if (!nuevos.length) return;
+    const merged: File[] = [...pendingFilesRef.current];
+    for (const f of nuevos) {
+      if (merged.length >= MAX_ARCHIVOS) break;
+      const dup = merged.some(
+        (p) => p.name === f.name && p.size === f.size && p.lastModified === f.lastModified,
+      );
+      if (!dup) merged.push(f);
     }
-    setFileName(file.name);
-    enviar(file);
+    pendingFilesRef.current = merged;
+    setOk(false); setError(null);
+    setPreviews((prev) => {
+      for (const p of prev) {
+        if (p.isImage) URL.revokeObjectURL(p.url);
+      }
+      return merged.map((f) => ({
+        url: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
+        name: f.name,
+        isImage: f.type.startsWith("image/"),
+      }));
+    });
+    void enviar(merged);
   };
 
   useEffect(() => {
     const handler = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
-      if (!items) return;
+      if (!items || scanning) return;
+      const imgs: File[] = [];
       for (const item of items) {
         if (item.type.startsWith("image/")) {
           const file = item.getAsFile();
-          if (file) { fromFile(file); e.preventDefault(); }
-          break;
+          if (file) imgs.push(file);
         }
+      }
+      if (imgs.length) {
+        fromFiles(imgs);
+        e.preventDefault();
       }
     };
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
-  }, []);
+  }, [scanning]);
 
   const limpiar = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null); setFileName(null); setOk(false); setError(null);
+    for (const p of previews) {
+      if (p.isImage && p.url) URL.revokeObjectURL(p.url);
+    }
+    pendingFilesRef.current = [];
+    setPreviews([]); setOk(false); setError(null); setProgreso(null);
   };
-
-  const esValido = (f: File) => f.type.startsWith("image/") || f.type === "application/pdf";
 
   return (
     <div
       className="mb-4 rounded-lg border border-dashed border-accent/50 bg-accent/5 p-3 space-y-2"
-      onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && esValido(f)) fromFile(f); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files?.length) fromFiles(e.dataTransfer.files);
+      }}
       onDragOver={(e) => e.preventDefault()}
     >
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <p className="text-xs font-medium text-accent">Escanear ficha técnica</p>
-          <p className="text-[10px] text-muted">Imagen, PDF o link de ficha — la IA rellena el formulario.</p>
+          <p className="text-[10px] text-muted">
+            Puedes ir agregando fotos (hasta {MAX_ARCHIVOS}); se acumulan y la IA fusiona todo sin borrar lo anterior.
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -1098,17 +1138,26 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
             disabled={scanning}
             className="rounded border border-accent/40 px-3 py-1 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
           >
-            {scanning ? "Extrayendo…" : "Adjuntar imagen / PDF"}
+            {scanning ? (progreso || "Extrayendo…") : "Adjuntar imágenes / PDF"}
           </button>
-          {(preview || fileName) && (
+          {previews.length > 0 && (
             <button type="button" onClick={limpiar}
               className="rounded border border-border px-2 py-1 text-xs text-muted hover:text-danger hover:border-danger">
               ✕ Limpiar
             </button>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && esValido(f)) fromFile(f); }} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) fromFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         <input
@@ -1151,23 +1200,36 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
           />
         </div>
       )}
-      {preview && (
-        <img
-          src={preview}
-          alt="Vista previa"
-          title="Clic para ampliar"
-          onClick={() => setLightbox(true)}
-          className="max-h-36 rounded border border-border object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
-        />
-      )}
-      {lightbox && preview && <ImageLightbox url={preview} onClose={() => setLightbox(false)} />}
-      {!preview && fileName && (
-        <div className="flex items-center gap-2 rounded border border-border bg-surface-input px-3 py-2">
-          <span className="text-[10px] text-muted">📄</span>
-          <span className="text-xs text-ink truncate">{fileName}</span>
+      {previews.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {previews.map((p, i) =>
+            p.isImage && p.url ? (
+              <img
+                key={`${p.name}-${i}`}
+                src={p.url}
+                alt={p.name}
+                title={`${p.name} — clic para ampliar`}
+                onClick={() => setLightbox(p.url)}
+                className="h-20 w-20 rounded border border-border object-cover cursor-zoom-in hover:opacity-90"
+              />
+            ) : (
+              <div
+                key={`${p.name}-${i}`}
+                className="flex h-20 max-w-[140px] items-center gap-1 rounded border border-border bg-surface-input px-2"
+              >
+                <span className="text-[10px] text-muted">📄</span>
+                <span className="truncate text-[10px] text-ink">{p.name}</span>
+              </div>
+            ),
+          )}
         </div>
       )}
-      {ok && <p className="text-xs text-emerald-600 font-medium">Campos extraídos y aplicados al formulario.</p>}
+      {lightbox && <ImageLightbox url={lightbox} onClose={() => setLightbox(null)} />}
+      {ok && (
+        <p className="text-xs text-emerald-600 font-medium">
+          Campos extraídos{previews.length > 1 ? ` de ${previews.length} archivos` : ""} y aplicados al formulario.
+        </p>
+      )}
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
@@ -1634,7 +1696,31 @@ function DocumentoCompletoTabContent({
     if (datos._cabezote_id) setCabezoteId(String(datos._cabezote_id));
     if (datos.color_acento) setColorAcento(String(datos.color_acento));
 
-    loadFtRef.current(datos);
+    // Promover lote/fechas del bloque COA al formulario FT (fuente del completo).
+    // Preferir valores del escaneo (_coa.lote / top-level) para que sí se vean en el editor.
+    const coaLote = (coaData?.lote as Record<string, unknown>) || {};
+    const ftMerge: Record<string, unknown> = { ...datos };
+    const pick = (...vals: unknown[]) => {
+      for (const v of vals) {
+        const s = v == null ? "" : String(v).trim();
+        if (s) return s;
+      }
+      return "";
+    };
+    const loteN = pick(ftMerge.lote, coaLote.numero);
+    const fab = pick(ftMerge.fecha_fabricacion, coaLote.fecha_fabricacion);
+    const venc = pick(ftMerge.fecha_vencimiento, coaLote.fecha_vencimiento);
+    const fabte = pick(ftMerge.fabricante, coaLote.fabricante);
+    const pais = pick(ftMerge.pais_origen, coaLote.pais_origen);
+    const present = pick(ftMerge.presentacion, coaLote.tamano_lote);
+    if (loteN) ftMerge.lote = loteN;
+    if (fab) ftMerge.fecha_fabricacion = fab;
+    if (venc) ftMerge.fecha_vencimiento = venc;
+    if (fabte) ftMerge.fabricante = fabte;
+    if (pais) ftMerge.pais_origen = pais;
+    if (present) ftMerge.presentacion = present;
+
+    loadFtRef.current(ftMerge);
 
     if (coaData) {
       if (coaIdent.einces) setCoaEinces(String(coaIdent.einces));
@@ -1694,6 +1780,9 @@ function DocumentoCompletoTabContent({
         numero: String(ft.lote || ""),
         fabricante: String(ft.fabricante || ""),
         pais_origen: String(ft.pais_origen || ""),
+        fecha_fabricacion: String(ft.fecha_fabricacion || ""),
+        fecha_vencimiento: String(ft.fecha_vencimiento || ""),
+        tamano_lote: String(ft.presentacion || ""),
       },
       parametros: filasTresDesdeTexto(coaParametros),
       firma: {
@@ -1992,20 +2081,25 @@ function DocumentoCompletoTabContent({
           <p className="text-xs font-medium text-muted">Color del formato</p>
           <div className="flex flex-wrap gap-2">
             {[
-              { hex: "#069DC2", nombre: "Azul McKenna" },
-              { hex: "#003DA5", nombre: "Azul marino" },
-              { hex: "#5CB85C", nombre: "Verde claro" },
-              { hex: "#37474F", nombre: "Gris antracita" },
-              { hex: "#6A1B9A", nombre: "Morado" },
-              { hex: "#B71C1C", nombre: "Rojo" },
-              { hex: "#FFA040", nombre: "Naranja claro" },
-              { hex: "#000000", nombre: "Negro" },
-            ].map(({ hex, nombre: n }) => (
+              { hex: "#069DC2", nombre: "Azul McKenna", logo: "logo_azul" },
+              { hex: "#003DA5", nombre: "Azul marino", logo: "logo_azul" },
+              { hex: "#5CB85C", nombre: "Verde claro", logo: "logo_azul" },
+              { hex: "#37474F", nombre: "Gris antracita", logo: "logo_gris" },
+              { hex: "#6A1B9A", nombre: "Morado", logo: "logo_morado" },
+              { hex: "#B71C1C", nombre: "Rojo", logo: "logo_cafe" },
+              { hex: "#FFA040", nombre: "Naranja claro", logo: "logo_amarillo" },
+              { hex: "#000000", nombre: "Negro", logo: "logo_gris" },
+            ].map(({ hex, nombre: n, logo }) => (
               <button
                 key={hex}
                 type="button"
                 title={n}
-                onClick={() => setColorAcento(hex)}
+                onClick={() => {
+                  setColorAcento(hex);
+                  if (layoutOpciones?.cabezotes.some((c) => c.id === logo)) {
+                    setCabezoteId(logo);
+                  }
+                }}
                 className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
                 style={{
                   backgroundColor: hex,
@@ -2071,8 +2165,8 @@ function DocumentoCompletoTabContent({
                         <span className="text-[10px] font-medium">Sin cabezote</span>
                       </div>
                     ) : (
-                      <div className="relative h-14 w-full bg-white mck-paper-white">
-                        <img src={imgSrc} alt={c.nombre} className="h-full w-full object-contain p-1.5" />
+                      <div className="relative h-20 w-full bg-white mck-paper-white">
+                        <img src={imgSrc} alt={c.nombre} className="h-full w-full object-contain p-1" />
                         <button
                           type="button"
                           title="Vista previa"
@@ -2232,7 +2326,7 @@ function DocumentoCompletoTabContent({
             <p className="rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">{borradorMsg}</p>
           )}
           {resultado && (
-            <div className="flex items-center gap-3 rounded bg-surface-alt px-3 py-2">
+            <div className="flex flex-wrap items-center gap-3 rounded bg-surface-alt px-3 py-2">
               <span className="text-sm text-ink">
                 Generado: <span className="font-mono text-xs text-accent">{resultado.pdf_nombre}</span>
               </span>
@@ -2243,6 +2337,7 @@ function DocumentoCompletoTabContent({
               >
                 Descargar PDF
               </button>
+              <CargarDocumentosWebButton compact />
             </div>
           )}
         </div>
@@ -2400,6 +2495,7 @@ export default function FichasTecnicasPanel() {
         <h2 className="text-lg font-semibold text-ink">Documentos técnicos</h2>
         <p className="mt-1 text-sm text-muted">
           Catálogo de combos SIIGO, estado FT/COA/SDS, vista previa antes de generar y subida a Drive.
+          En Biblioteca, «Cargar en página web» publica solo documentos completos (FT + COA + SDS) en la tienda.
         </p>
       </div>
 

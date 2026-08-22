@@ -14,6 +14,9 @@ export interface FichaTecnicaFormState {
   paisOrigen: string;
   fabricante: string;
   fechaRevision: string;
+  fechaFabricacion: string;
+  fechaVencimiento: string;
+  presentacion: string;
   descripcion: string;
   apariencia: string;
   puntoFusion: string;
@@ -73,8 +76,31 @@ function fechaParaInput(fecha: string): string {
   const t = fecha.trim();
   const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) return t;
+  const ym = t.match(/^(\d{4})-(\d{2})$/);
+  if (ym) return `${ym[1]}-${ym[2]}-01`;
   const dmy = t.match(/^(\d{2})[\s/.-](\d{2})[\s/.-](\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  // DEC.2025 / Dec 2025 / DECEMBER 2025
+  const monMap: Record<string, string> = {
+    jan: "01", january: "01", ene: "01", enero: "01",
+    feb: "02", february: "02", febrero: "02",
+    mar: "03", march: "03", marzo: "03",
+    apr: "04", april: "04", abr: "04", abril: "04",
+    may: "05", mayo: "05",
+    jun: "06", june: "06", junio: "06",
+    jul: "07", july: "07", julio: "07",
+    aug: "08", august: "08", ago: "08", agosto: "08",
+    sep: "09", sept: "09", september: "09", septiembre: "09",
+    oct: "10", october: "10", octubre: "10",
+    nov: "11", november: "11", noviembre: "11",
+    dec: "12", december: "12", dic: "12", diciembre: "12",
+  };
+  const monYear = t.match(/^([A-Za-zÁÉÍÓÚáéíóú.]+)\s*[.\s/-]+\s*(\d{4})$/);
+  if (monYear) {
+    const mon = monYear[1].replace(/\./g, "").toLowerCase();
+    const mm = monMap[mon];
+    if (mm) return `${monYear[2]}-${mm}-01`;
+  }
   return "";
 }
 
@@ -220,6 +246,9 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
     pais_origen: state.paisOrigen,
     fabricante: state.fabricante,
     fecha_revision: state.fechaRevision,
+    fecha_fabricacion: state.fechaFabricacion,
+    fecha_vencimiento: state.fechaVencimiento,
+    presentacion: state.presentacion,
     descripcion: state.descripcion,
     caracteristicas_fisicas: {
       apariencia: state.apariencia,
@@ -292,6 +321,13 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
       fechaParaInput(String(datos.fecha_revision || datos.revision_date || "")) ||
       fechaParaInput(valorEnFilas(identidad, "fecha de revision", "revision date")) ||
       hoyIso(),
+    fechaFabricacion:
+      fechaParaInput(flat("fecha_fabricacion", "mfg_date", "manufacturing_date", "mfg date")) ||
+      flat("fecha_fabricacion", "mfg_date", "manufacturing_date"),
+    fechaVencimiento:
+      fechaParaInput(flat("fecha_vencimiento", "exp_date", "expiry", "expiration", "expiry_date")) ||
+      flat("fecha_vencimiento", "exp_date", "expiry", "expiration"),
+    presentacion: flat("presentacion", "quantity", "net_weight", "cantidad"),
     descripcion: flat("descripcion", "description"),
     apariencia:
       flat("apariencia", "appearance") ||
@@ -325,7 +361,7 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
       ? (datos.aplicaciones as string[]).join("\n\n")
       : flat("aplicaciones", "applications", "uses"),
     composicion: parseComposicion(datos, identidad),
-    recomendaciones: flat("recomendaciones", "recommendations", "storage"),
+    recomendaciones: flat("recomendaciones", "recommendations", "storage", "almacenamiento"),
     lote: flat("lote", "lot", "batch"),
     colorAcento: String(datos.color_acento || "#069DC2"),
   };
@@ -466,6 +502,24 @@ export default function FichaTecnicaForm({
         case "lot":
         case "batch":
           updates.lote = val; break;
+        case "fecha_fabricacion":
+        case "mfg_date":
+        case "manufacturing_date":
+          updates.fechaFabricacion = fechaParaInput(val) || val; break;
+        case "fecha_vencimiento":
+        case "exp_date":
+        case "expiry":
+        case "expiration":
+        case "expiry_date":
+          updates.fechaVencimiento = fechaParaInput(val) || val; break;
+        case "presentacion":
+        case "quantity":
+        case "net_weight":
+        case "cantidad":
+          updates.presentacion = val; break;
+        case "almacenamiento":
+        case "storage":
+          updates.recomendaciones = val; break;
       }
     }
     if (Object.keys(updates).length) patch(updates);
@@ -621,6 +675,27 @@ export default function FichaTecnicaForm({
             onChange={(v) => patch({ lote: v })}
             placeholder="Ej. LT-2025-001"
             mono
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Field
+            label="Fecha fabricación"
+            value={state.fechaFabricacion}
+            onChange={(v) => patch({ fechaFabricacion: v })}
+            placeholder="Ej. 2025-12 o DEC.2025"
+          />
+          <Field
+            label="Fecha vencimiento"
+            value={state.fechaVencimiento}
+            onChange={(v) => patch({ fechaVencimiento: v })}
+            placeholder="Ej. 2030-12 o DEC.2030"
+          />
+          <Field
+            label="Presentación / cantidad"
+            value={state.presentacion}
+            onChange={(v) => patch({ presentacion: v })}
+            placeholder="Ej. 75.000 PCS · 10 kg"
           />
         </div>
 

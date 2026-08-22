@@ -1,10 +1,7 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../icons";
-import { useDolarHora } from "../hooks/useDolarHora";
-
-const TV_SYMBOL = "FX_IDC:USDCOP";
-const TV_SYMBOL_FALLBACK = "FX:USDCOP";
+import { useDolarHora, type DolarPunto } from "../hooks/useDolarHora";
 
 function fmtCop(n: number, digits = 2): string {
   return n.toLocaleString("es-CO", {
@@ -13,99 +10,122 @@ function fmtCop(n: number, digits = 2): string {
   });
 }
 
-function panelIsDark(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.documentElement.classList.contains("dark");
+function fmtFechaCorta(t: string): string {
+  // t = "YYYY-MM-DD"
+  const [, m, d] = t.split("-");
+  return `${d}/${m}`;
 }
 
-function TradingViewEmbed({
-  kind,
-  height,
-  symbol = TV_SYMBOL,
-}: {
-  kind: "mini" | "advanced";
-  height: number;
-  symbol?: string;
-}) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const uid = useId().replace(/:/g, "");
-  const [theme, setTheme] = useState<"light" | "dark">(() => (panelIsDark() ? "dark" : "light"));
+type Periodo = "semana" | "mes";
 
-  useEffect(() => {
-    const sync = () => setTheme(panelIsDark() ? "dark" : "light");
-    sync();
-    const obs = new MutationObserver(sync);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
+/** Gráfico propio (sin TradingView): línea simple de la TRM BanRep diaria, con
+ * selector Semana/Mes — mismo estilo de gráfico SVG que el resto del panel
+ * (ver TendenciaChart en SaludNegocioPanel.tsx): sin librerías externas. */
+function DolarLineChart({ serie, height = 160 }: { serie: DolarPunto[]; height?: number }) {
+  const [periodo, setPeriodo] = useState<Periodo>("semana");
+  const puntos = useMemo(() => {
+    const dias = periodo === "semana" ? 7 : 30;
+    return serie.slice(-dias);
+  }, [serie, periodo]);
 
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    host.innerHTML = "";
-    const widget = document.createElement("div");
-    widget.className = "tradingview-widget-container__widget";
-    widget.style.height = "100%";
-    widget.style.width = "100%";
-    host.appendChild(widget);
+  const W = 480;
+  const H = height;
+  const padL = 44;
+  const padR = 10;
+  const padT = 14;
+  const padB = 20;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
 
-    const script = document.createElement("script");
-    script.async = true;
-    script.type = "text/javascript";
+  const valores = puntos.map((p) => p.v);
+  const minV = puntos.length ? Math.min(...valores) : 0;
+  const maxV = puntos.length ? Math.max(...valores) : 1;
+  const rango = Math.max(1, maxV - minV);
+  // Margen del 8% arriba/abajo para que la línea no toque los bordes
+  const yMin = minV - rango * 0.08;
+  const yMax = maxV + rango * 0.08;
 
-    if (kind === "mini") {
-      script.src =
-        "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
-      script.textContent = JSON.stringify({
-        symbol,
-        width: "100%",
-        height,
-        locale: "es",
-        dateRange: "1D",
-        colorTheme: theme,
-        isTransparent: true,
-        autosize: false,
-        largeChartUrl: "",
-      });
-    } else {
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-      script.textContent = JSON.stringify({
-        autosize: true,
-        symbol,
-        interval: "60",
-        timezone: "America/Bogota",
-        theme,
-        style: "1",
-        locale: "es",
-        allow_symbol_change: false,
-        calendar: false,
-        support_host: "https://www.tradingview.com",
-        hide_top_toolbar: false,
-        hide_legend: false,
-        save_image: false,
-      });
-    }
-    host.appendChild(script);
+  function x(i: number): number {
+    return puntos.length > 1 ? padL + (plotW * i) / (puntos.length - 1) : padL + plotW / 2;
+  }
+  function y(v: number): number {
+    return padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+  }
 
-    return () => {
-      host.innerHTML = "";
-    };
-  }, [kind, height, symbol, theme, uid]);
+  const tickCount = 3;
 
   return (
-    <div
-      ref={hostRef}
-      className="tradingview-widget-container h-full w-full overflow-hidden"
-      data-tv-id={uid}
-      style={{ height }}
-    />
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          TRM BanRep · últimos {puntos.length} días
+        </p>
+        <div className="flex shrink-0 gap-1 rounded-lg border border-border bg-surface-hover p-0.5">
+          {(["semana", "mes"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriodo(p)}
+              className={`rounded px-2 py-0.5 text-[10px] font-bold transition ${
+                periodo === p ? "bg-accent text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {p === "semana" ? "Semana" : "Mes"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {puntos.length < 2 ? (
+        <p className="py-6 text-center text-xs text-muted">Sin suficientes datos históricos todavía.</p>
+      ) : (
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="TRM BanRep histórica">
+          {Array.from({ length: tickCount + 1 }, (_, i) => {
+            const v = yMin + ((yMax - yMin) / tickCount) * i;
+            const yy = y(v);
+            return (
+              <g key={i}>
+                <line x1={padL} x2={W - padR} y1={yy} y2={yy} className="stroke-border" strokeWidth={1} />
+                <text x={0} y={yy + 3} className="fill-muted" fontSize={9}>
+                  {fmtCop(v, 0)}
+                </text>
+              </g>
+            );
+          })}
+
+          <polyline
+            points={puntos.map((p, i) => `${x(i)},${y(p.v)}`).join(" ")}
+            fill="none"
+            className="stroke-accent"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {puntos.map((p, i) => {
+            const isLast = i === puntos.length - 1;
+            const isFirst = i === 0;
+            if (!isLast && !isFirst && puntos.length > 10) return null;
+            return (
+              <g key={p.t}>
+                <circle cx={x(i)} cy={y(p.v)} r={isLast ? 3.5 : 2.5} className="fill-accent stroke-surface-panel" strokeWidth={1.5}>
+                  <title>{`${fmtFechaCorta(p.t)}: $${fmtCop(p.v)}`}</title>
+                </circle>
+                <text x={x(i)} y={H - padB + 12} textAnchor={isFirst ? "start" : isLast ? "end" : "middle"} className="fill-muted" fontSize={8}>
+                  {fmtFechaCorta(p.t)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      )}
+    </div>
   );
 }
 
 export default function DolarHoraGadget() {
   const { data, isLoading, isError, error, refetch, isFetching } = useDolarHora();
   const [ampliado, setAmpliado] = useState(false);
-  const [tvSymbol, setTvSymbol] = useState(TV_SYMBOL);
 
   useEffect(() => {
     if (!ampliado) return;
@@ -117,6 +137,7 @@ export default function DolarHoraGadget() {
   }, [ampliado]);
 
   const up = (data?.cambio_pct ?? 0) >= 0;
+  const serie = data?.serie_dia ?? [];
 
   return (
     <>
@@ -126,14 +147,14 @@ export default function DolarHoraGadget() {
             type="button"
             onClick={() => setAmpliado(true)}
             className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            title="Clic para ampliar el gráfico TradingView"
+            title="Clic para ampliar el gráfico"
             aria-expanded={ampliado}
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <Icon name="chartBar" size={20} weight="duotone" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Dólar hora · COP</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Dólar hoy · COP</p>
               {isLoading ? (
                 <p className="text-lg font-extrabold text-muted">Cargando…</p>
               ) : isError ? (
@@ -168,9 +189,6 @@ export default function DolarHoraGadget() {
             {isFetching ? "…" : "↻"}
           </button>
         </div>
-        <div className="border-t border-border px-1 pb-1 pt-0.5" aria-hidden={isError || isLoading}>
-          <TradingViewEmbed kind="mini" height={120} symbol={tvSymbol} />
-        </div>
       </div>
 
       {ampliado &&
@@ -186,8 +204,8 @@ export default function DolarHoraGadget() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label="Gráfico dólar USD/COP TradingView"
-              className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-paper-lg border-2 border-border bg-surface-panel shadow-paper-lg"
+              aria-label="Gráfico dólar USD/COP"
+              className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-paper-lg border-2 border-border bg-surface-panel shadow-paper-lg"
             >
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
                 <div>
@@ -197,33 +215,25 @@ export default function DolarHoraGadget() {
                   {data && (
                     <p className="text-[11px] text-muted">
                       TRM BanRep ${fmtCop(data.valor)}
-                      {data.trm_fecha ? ` · ${data.trm_fecha}` : ""} · gráfico TradingView (hora)
+                      {data.trm_fecha ? ` · ${data.trm_fecha}` : ""}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
-                  {tvSymbol !== TV_SYMBOL_FALLBACK && (
-                    <button
-                      type="button"
-                      onClick={() => setTvSymbol(TV_SYMBOL_FALLBACK)}
-                      className="rounded-lg px-2 py-0.5 text-[10px] font-semibold text-muted hover:bg-surface-hover hover:text-ink"
-                      title="Probar símbolo FX:USDCOP"
-                    >
-                      Alt. FX
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setAmpliado(false)}
-                    className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
-                    aria-label="Cerrar"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setAmpliado(false)}
+                  className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
               </div>
-              <div className="min-h-[420px] flex-1 p-2 sm:min-h-[520px]">
-                <TradingViewEmbed kind="advanced" height={520} symbol={tvSymbol} />
+              <div className="flex-1 overflow-y-auto p-4">
+                {serie.length >= 2 ? (
+                  <DolarLineChart serie={serie} height={280} />
+                ) : (
+                  <p className="py-10 text-center text-sm text-muted">Sin suficientes datos históricos todavía.</p>
+                )}
               </div>
             </div>
           </div>,

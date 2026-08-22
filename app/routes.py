@@ -4909,6 +4909,11 @@ def register_routes(app):
             except Exception:
                 pass
             log_line(f"✔ documento completo: {resultado.get('pdf_nombre')}")
+            try:
+                from app.services.documentos_web import invalidar_indice_documentos_web
+                invalidar_indice_documentos_web()
+            except Exception:
+                pass
             return jsonify(resultado)
         except Exception as e:
             from app.panel_activity import log_line
@@ -4975,37 +4980,61 @@ def register_routes(app):
         from app.services.ficha_tecnica import listar_borradores_completo
         return jsonify({"borradores": listar_borradores_completo()})
 
+    def _mime_bytes_scan(data: bytes) -> str:
+        if data[:4] == b"%PDF":
+            return "application/pdf"
+        if data[:4] == b"\x89PNG":
+            return "image/png"
+        if data[:4] in (b"RIFF",) or data[8:12] == b"WEBP":
+            return "image/webp"
+        if data[:3] == b"GIF":
+            return "image/gif"
+        return "image/jpeg"
+
+    def _archivos_scan_multipart(max_files: int = 8) -> list:
+        """Recoge una o varias imágenes/PDF del multipart (imagen, archivo, imagenes)."""
+        vistos: set[int] = set()
+        out = []
+        for key in ("imagen", "archivo", "imagenes", "files"):
+            for f in request.files.getlist(key):
+                if not f or not getattr(f, "filename", None):
+                    continue
+                oid = id(f)
+                if oid in vistos:
+                    continue
+                vistos.add(oid)
+                out.append(f)
+                if len(out) >= max_files:
+                    return out
+        return out
+
     @app.route("/app/api/fichas/coa/escanear-parametros", methods=["POST"])
     @app.route("/api/fichas/coa/escanear-parametros", methods=["POST"])
     def api_fichas_coa_escanear():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        archivo = request.files.get("imagen") or request.files.get("archivo")
-        if not archivo or not archivo.filename:
-            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        archivos = _archivos_scan_multipart(8)
+        if not archivos:
+            return jsonify({"error": "Envíe una o varias imágenes en el campo multipart «imagen»"}), 400
         try:
-            from google import genai
-            from google.genai import types as gtypes
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+            import re as _re
 
             api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
             if not api_key:
                 return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
 
-            data = archivo.read()
-            if data[:4] == b"%PDF":
-                mime_type = "application/pdf"
-            elif data[:4] == b"\x89PNG":
-                mime_type = "image/png"
-            elif data[:4] in (b"RIFF", b"WEBP") or data[8:12] == b"WEBP":
-                mime_type = "image/webp"
-            elif data[:3] == b"GIF":
-                mime_type = "image/gif"
-            else:
-                mime_type = "image/jpeg"
+            partes_bytes: list[tuple[bytes, str]] = []
+            for archivo in archivos:
+                data = archivo.read()
+                if not data:
+                    continue
+                if len(data) > 12 * 1024 * 1024:
+                    return jsonify({"error": f"Archivo demasiado grande: {archivo.filename} (máx. 12 MB)"}), 400
+                partes_bytes.append((data, _mime_bytes_scan(data)))
+            if not partes_bytes:
+                return jsonify({"error": "Los archivos enviados están vacíos"}), 400
 
             import json as _json
-            import re as _re
 
             catalogo_raw = (request.form.get("catalogo") or "").strip()
             catalogo: list[str] = []
@@ -5037,110 +5066,34 @@ def register_routes(app):
                     "omite archivo_biblioteca por completo.\n"
                 )
 
-            prompt = (
-                "Eres un especialista en control de calidad de materias primas farmaceuticas y cosmeticas.\n"
-                "Analiza esta imagen/PDF de un Certificado de Analisis (COA) u hoja de calidad.\n"
-                "1) Identifica la MATERIA PRIMA (producto analizado, no el laboratorio).\n"
-                "2) Extrae la tabla de parametros.\n"
-                "3) Extrae TODOS los datos visibles que puedan complementar un formulario tecnico "
-                "(solo si aparecen; no inventes).\n"
-                f"{catalogo_prompt}\n"
-                "Responde SOLO un JSON valido (sin markdown) con esta forma:\n"
-                "{\n"
-                '  "nombre_producto": "materia prima (ej. Acido Citrico Anhidro)",\n'
-                '  "archivo_biblioteca": "nombre exacto del catalogo si aplica",\n'
-                '  "nombre_comercial": "nombre comercial si difiere",\n'
-                '  "inci": "nombre INCI si aparece",\n'
-                '  "cas": "numero CAS",\n'
-                '  "einecs": "numero EINECS/EC",\n'
-                '  "formula_quimica": "formula molecular",\n'
-                '  "grado": "Cosmetico/Alimentos/Industrial/Farmaceutico/etc",\n'
-                '  "concentracion": "concentracion o pureza nominal",\n'
-                '  "lote": "numero de lote",\n'
-                '  "fecha_fabricacion": "fecha fabricacion (mejor YYYY-MM-DD)",\n'
-                '  "fecha_vencimiento": "fecha vencimiento o retest",\n'
-                '  "fecha_analisis": "fecha de analisis",\n'
-                '  "fecha_emision": "fecha emision del COA",\n'
-                '  "vida_util": "vida util / shelf life",\n'
-                '  "tamano_lote": "tamano del lote si aparece",\n'
-                '  "pais_origen": "pais de origen",\n'
-                '  "fabricante": "fabricante o proveedor",\n'
-                '  "apariencia": "aspecto fisico",\n'
-                '  "olor": "olor si aparece",\n'
-                '  "ph": "pH o rango",\n'
-                '  "solubilidad": "solubilidad si aparece",\n'
-                '  "humedad": "humedad / loss on drying si aparece fuera de tabla",\n'
-                '  "presentacion": "presentacion o empaque",\n'
-                '  "almacenamiento": "condiciones de almacenamiento",\n'
-                '  "firma_nombre": "nombre legible de quien firma o aprueba el COA",\n'
-                '  "firma_cargo": "cargo o rol legible de quien firma",\n'
-                '  "firma_organizacion": "empresa o laboratorio del firmante",\n'
-                '  "firma_bbox": [ymin, xmin, ymax, xmax],\n'
-                '  "parametros": "lineas Parametro|Especificacion|Resultado separadas por \\n"\n'
-                "}\n\n"
-                "Reglas:\n"
-                "- Omite claves vacias o no visibles.\n"
-                "- nombre_producto: SOLO el Product Name / Nombre del producto del ENCABEZADO "
-                "del COA (campo etiquetado Product Name, Product, Nombre). "
-                "Ej. 'Erythritol Crystal' → 'Eritritol' o 'Erythritol'. "
-                "PROHIBIDO inferirlo desde Appearance/Assay, desde el laboratorio, o desde el "
-                "catalogo de la biblioteca. "
-                "'crystalline powder' NO significa Celulosa; Eritritol NO es Eritrosina ni Celulosa. "
-                "No lo sustituyas por otra materia prima del catalogo.\n"
-                "- archivo_biblioteca: solo si el nombre del PDF es la MISMA sustancia que "
-                "nombre_producto. Si dudas, omite la clave.\n"
-                "- Para firma_nombre, firma_cargo y firma_organizacion revisa el bloque "
-                "Signed by, Approved by, Authorized by, Quality Control, firma o sello. "
-                "Extrae solo texto legible; no adivines nombres desde una rubrica ilegible.\n"
-                "- firma_bbox: caja de la RUBRICA manuscrita o firma digital (el trazo), "
-                "NO el nombre impreso debajo. Coordenadas normalizadas 0-1000 en orden "
-                "[ymin, xmin, ymax, xmax] respecto a la pagina/imagen analizada. "
-                "Si no hay firma visible, omite firma_bbox.\n"
-                "- Extrae TODOS los parametros de la tabla.\n"
-                "- Si el documento esta en ingles, traduce textos al espanol; "
-                "manten numeros y unidades. "
-                "Appearance→Aspecto, Assay→Valoracion, Loss on Drying→Perdida por Secado, "
-                "Heavy Metals→Metales Pesados, Conforms/Passes→Cumple.\n"
-                "- Responde SOLO JSON valido."
+            n_arch = len(partes_bytes)
+            multi_nota = (
+                f"Recibes {n_arch} imagen(es)/PDF del MISMO COA o de páginas/fotos "
+                "complementarias de la misma materia prima. Fusiona toda la información "
+                "en UN solo JSON (une parámetros sin duplicar; completa campos vacíos).\n"
+                if n_arch > 1
+                else ""
             )
 
-            def _llamar_gemini():
-                client = genai.Client(api_key=api_key)
-                return client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
+            from app.services.documento_scan_tablas import extraer_coa_desde_imagenes
+
+            try:
+                parsed = extraer_coa_desde_imagenes(
+                    partes_bytes,
+                    catalogo_prompt=catalogo_prompt,
+                    multi_nota=multi_nota,
                 )
-
-            with ThreadPoolExecutor(max_workers=1) as ex:
-                fut = ex.submit(_llamar_gemini)
-                try:
-                    response = fut.result(timeout=50)
-                except FutureTimeout:
-                    return jsonify({"error": "Gemini tardó demasiado — intente con una imagen más pequeña"}), 504
-
-            texto = (response.text or "").strip()
-            if not texto:
-                return jsonify({"error": "Gemini no pudo extraer datos de la imagen"}), 500
-
-            texto_limpio = texto.strip("`")
-            if texto_limpio.lower().startswith("json"):
-                texto_limpio = texto_limpio[4:].strip()
+            except TimeoutError:
+                return jsonify({"error": "Gemini tardó demasiado — intente con imágenes más pequeñas"}), 504
+            except Exception as e_scan:
+                return jsonify({"error": str(e_scan)}), 500
 
             campos = {}
-            try:
-                parsed = _json.loads(texto_limpio)
-            except Exception:
-                m = _re.search(r"\{.*\}", texto_limpio, _re.DOTALL)
-                try:
-                    parsed = _json.loads(m.group(0)) if m else None
-                except Exception:
-                    parsed = None
-
             firma_bbox_raw = None
             if isinstance(parsed, dict):
                 firma_bbox_raw = parsed.get("firma_bbox")
                 for k, v in parsed.items():
-                    if v is None or k == "firma_bbox":
+                    if v is None or k in ("firma_bbox", "_transcripcion"):
                         continue
                     if isinstance(v, (list, dict)):
                         continue
@@ -5148,8 +5101,8 @@ def register_routes(app):
                     if s:
                         campos[str(k)] = s
             else:
-                # Compatibilidad: respuesta antigua (solo lineas Parametro|Especificacion|Resultado)
-                campos["parametros"] = texto
+                campos = {}
+
 
             parametros = str(campos.get("parametros") or "").strip()
             nombre_producto = str(campos.get("nombre_producto") or "").strip()
@@ -5160,12 +5113,32 @@ def register_routes(app):
             if campos.get("einecs") and not campos.get("einces"):
                 campos["einces"] = campos["einecs"]
 
+            # Normalizar fechas basura tipo "2030-12-XX" / "Dec. 2025"
+            def _norm_fecha(v: str) -> str:
+                s = (v or "").strip()
+                if not s:
+                    return ""
+                s = _re.sub(r"(?i)[Xx]{1,2}\b", "", s).strip(" -/.")
+                m = _re.match(r"^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$", s)
+                if m:
+                    y, mo = m.group(1), int(m.group(2))
+                    d = int(m.group(3) or 1)
+                    if 1 <= mo <= 12 and 1 <= d <= 31:
+                        return f"{y}-{mo:02d}-{d:02d}"
+                return s
+
+            for fk in ("fecha_fabricacion", "fecha_vencimiento", "fecha_analisis", "fecha_emision"):
+                if campos.get(fk):
+                    campos[fk] = _norm_fecha(str(campos[fk]))
+
             # Recortar la rúbrica / línea de firma si Gemini devolvió bbox
+            # (usa la 1ª imagen; con varias páginas la bbox suele referirse a la que tiene firma)
             if firma_bbox_raw is not None:
                 try:
                     from app.services.coa_firma import recortar_firma_a_data_url
 
-                    firma_url = recortar_firma_a_data_url(data, mime_type, firma_bbox_raw)
+                    data0, mime0 = partes_bytes[0]
+                    firma_url = recortar_firma_a_data_url(data0, mime0, firma_bbox_raw)
                     if firma_url:
                         campos["firma_imagen_b64"] = firma_url
                         # El archivo escaneado es temporal. Archivar la rúbrica aquí
@@ -5303,80 +5276,52 @@ def register_routes(app):
     def api_fichas_ft_escanear():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        archivo = request.files.get("imagen") or request.files.get("archivo")
-        if not archivo or not archivo.filename:
-            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        archivos = _archivos_scan_multipart(8)
+        if not archivos:
+            return jsonify({"error": "Envíe una o varias imágenes en el campo multipart «imagen»"}), 400
         try:
-            from google import genai
-            from google.genai import types as gtypes
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
-            import json as _json
-
             api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
             if not api_key:
                 return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
 
-            data = archivo.read()
-            if data[:4] == b"%PDF":
-                mime_type = "application/pdf"
-            elif data[:4] == b"\x89PNG":
-                mime_type = "image/png"
-            elif data[8:12] == b"WEBP":
-                mime_type = "image/webp"
-            elif data[:3] == b"GIF":
-                mime_type = "image/gif"
-            else:
-                mime_type = "image/jpeg"
+            partes_bytes: list[tuple[bytes, str]] = []
+            for archivo in archivos:
+                data = archivo.read()
+                if not data:
+                    continue
+                if len(data) > 12 * 1024 * 1024:
+                    return jsonify({"error": f"Archivo demasiado grande: {archivo.filename} (máx. 12 MB)"}), 400
+                partes_bytes.append((data, _mime_bytes_scan(data)))
+            if not partes_bytes:
+                return jsonify({"error": "Los archivos enviados están vacíos"}), 400
 
-            prompt = (
-                "Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá).\n"
-                "Analiza este documento (puede ser una ficha técnica, etiqueta, hoja de datos, empaque, PDF o foto del producto).\n"
-                "La fuente puede estar en inglés: TRADUCE al español los valores de texto "
-                "(descripción, apariencia, olor, modo de uso, aplicaciones). No traduzcas CAS ni fórmulas.\n"
-                "Extrae toda la información técnica visible y devuelve un JSON con los campos que puedas identificar.\n\n"
-                "Campos posibles (usa solo los que aparecen en la imagen; claves en español):\n"
-                "{\n"
-                '  "nombre_producto": "nombre del ingrediente o producto",\n'
-                '  "cas": "número CAS",\n'
-                '  "descripcion": "descripción técnica del producto en español",\n'
-                '  "apariencia": "aspecto físico (color, estado, textura) en español",\n'
-                '  "olor": "olor característico en español",\n'
-                '  "punto_fusion": "punto de fusión con unidades",\n'
-                '  "ph": "pH o rango de pH",\n'
-                '  "solubilidad": "solubilidad en agua/solventes en español",\n'
-                '  "humedad": "contenido de humedad",\n'
-                '  "formula_quimica": "fórmula molecular",\n'
-                '  "modo_uso": "instrucciones de uso o incorporación en español",\n'
-                '  "propiedades_lista": "beneficios o propiedades (uno por línea como Nombre|Descripción)",\n'
-                '  "aplicaciones": "aplicaciones industriales (una por línea, en español)"\n'
-                "}\n\n"
-                "Responde SOLO JSON válido. Omite campos que no estén visibles. Sin markdown."
+            n_arch = len(partes_bytes)
+            multi_nota = (
+                f"Recibes {n_arch} imagen(es)/PDF del MISMO producto o ficha "
+                "(páginas distintas, zoom de tabla, etiqueta + hoja, etc.). "
+                "Fusiona toda la información en UN solo JSON: completa campos "
+                "vacíos con lo que aparezca en cualquier archivo; no inventes.\n"
+                if n_arch > 1
+                else ""
             )
 
-            def _llamar_gemini():
-                client = genai.Client(api_key=api_key)
-                return client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
-                )
+            from app.services.documento_scan_tablas import extraer_ft_desde_imagenes
 
-            with ThreadPoolExecutor(max_workers=1) as ex:
-                fut = ex.submit(_llamar_gemini)
-                try:
-                    response = fut.result(timeout=50)
-                except FutureTimeout:
-                    return jsonify({"error": "Gemini tardó demasiado — intente con un archivo más pequeño"}), 504
-
-            texto = (response.text or "").strip()
-            texto = texto.strip("`")
-            if texto.startswith("json"):
-                texto = texto[4:].strip()
             try:
-                campos = _json.loads(texto)
-            except Exception:
-                import re as _re
-                m = _re.search(r"\{.*\}", texto, _re.DOTALL)
-                campos = _json.loads(m.group(0)) if m else {}
+                campos_raw = extraer_ft_desde_imagenes(partes_bytes, multi_nota=multi_nota)
+            except TimeoutError:
+                return jsonify({"error": "Gemini tardó demasiado — intente con archivos más pequeños"}), 504
+
+            campos = {}
+            if isinstance(campos_raw, dict):
+                for k, v in campos_raw.items():
+                    if k.startswith("_") or v is None:
+                        continue
+                    if isinstance(v, (list, dict)):
+                        continue
+                    s = str(v).strip()
+                    if s:
+                        campos[str(k)] = s
 
             # Enriquecer campos vacíos con PubChem si tenemos nombre del producto
             nombre_prod = str(campos.get("nombre_producto") or "").strip()
@@ -5461,13 +5406,16 @@ def register_routes(app):
 
         prompt_campos = (
             "Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá).\n"
-            "Analiza este documento (ficha técnica / TDS / SDS / COA / etiqueta / página de proveedor).\n"
-            "La fuente puede estar en inglés, español u otro idioma: TRADUCE al español los valores de texto "
-            "(descripción, apariencia, olor, modo de uso, aplicaciones, propiedades). "
-            "No traduzcas nombres químicos, CAS, fórmulas ni unidades.\n"
+            "Analiza este documento (ficha técnica / TDS / SDS / COA / etiqueta de producto / página de proveedor).\n"
+            "La fuente puede estar en inglés, español, bilingüe u otro idioma: TRADUCE al español los valores de texto "
+            "(descripción, apariencia, olor, modo de uso, aplicaciones, propiedades, almacenamiento). "
+            "No traduzcas nombres químicos, CAS, fórmulas, códigos de lote ni unidades.\n"
             "Mapea etiquetas EN→ES: Appearance→apariencia, Odour/Odor→olor, Melting point→punto_fusion, "
             "Solubility→solubilidad, Molecular formula→formula_quimica, Applications/Uses→aplicaciones, "
-            "Description→descripcion, Storage/Handling→modo_uso o recomendaciones.\n"
+            "Description→descripcion, Storage/Handling/CAUTION→almacenamiento o recomendaciones, "
+            "BATCH/Lot/Lot No./Lote→lote, EXP DATE/Expiry/Expiration/Retest/Vencimiento→fecha_vencimiento, "
+            "MFG DATE/Manufacturing/Fabricación→fecha_fabricacion, QUANTITY/Cantidad/Net Weight→presentacion, "
+            "Manufacturer/Supplier→fabricante.\n"
             "Extrae toda la información técnica útil y devuelve un JSON con estos campos (solo los que existan):\n"
             "{\n"
             '  "nombre_producto": "nombre del ingrediente o producto",\n'
@@ -5484,8 +5432,16 @@ def register_routes(app):
             '  "propiedades_lista": "beneficios o propiedades (uno por línea: Nombre|Descripción en español)",\n'
             '  "aplicaciones": "aplicaciones (una por línea, en español)",\n'
             '  "fabricante": "fabricante o proveedor si aparece",\n'
-            '  "sinonimos": "sinónimos / INCI / otros nombres"\n'
+            '  "sinonimos": "sinónimos / INCI / otros nombres",\n'
+            '  "lote": "número de lote / BATCH (tal cual)",\n'
+            '  "fecha_fabricacion": "MFG DATE (YYYY-MM o YYYY-MM-DD)",\n'
+            '  "fecha_vencimiento": "EXP DATE / vencimiento (YYYY-MM o YYYY-MM-DD)",\n'
+            '  "presentacion": "cantidad / peso neto / empaque",\n'
+            '  "almacenamiento": "condiciones de almacenamiento en español",\n'
+            '  "pais_origen": "país de origen si aparece"\n'
             "}\n\n"
+            "Si ves BATCH, EXP DATE o MFG DATE (aunque solo en inglés), DEBES llenar lote / "
+            "fecha_vencimiento / fecha_fabricacion.\n"
             "Responde SOLO JSON válido con claves en español como arriba. Sin markdown."
         )
 
@@ -5813,9 +5769,35 @@ def register_routes(app):
             return jsonify({"error": "Archivo no encontrado o no permitido"}), 404
         try:
             path.unlink()
+            try:
+                from app.services.documentos_web import invalidar_indice_documentos_web
+                invalidar_indice_documentos_web()
+            except Exception:
+                pass
             return jsonify({"ok": True})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/biblioteca/cargar-web", methods=["POST"])
+    @app.route("/api/fichas/biblioteca/cargar-web", methods=["POST"])
+    def api_fichas_biblioteca_cargar_web():
+        """Publica documentos nuevos o cambios de la biblioteca en la ficha pública de la tienda."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.panel_activity import log_line
+            from app.services.documentos_web import publicar_documentos_en_web
+            resultado = publicar_documentos_en_web()
+            sitio = resultado.get("sitio") or {}
+            log_line(
+                f"✔ documentos cargar-web: {resultado.get('total')} en índice"
+                + ("" if sitio.get("ok") else f" (tienda: {sitio.get('error') or 'sin respuesta'})")
+            )
+            return jsonify(resultado)
+        except Exception as e:
+            from app.panel_activity import log_line
+            log_line(f"✖ fichas/biblioteca/cargar-web: {e!r}")
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/app/api/fichas/biblioteca/datos", methods=["GET"])
     @app.route("/api/fichas/biblioteca/datos", methods=["GET"])
@@ -7089,27 +7071,33 @@ def register_routes(app):
         if not isinstance(items, list) or not items:
             return jsonify({"error": "Se requiere items[] con nombre y costo_unitario"}), 400
 
-        # USD → COP: TRM BanRep de la fecha de compra si no viene tasa válida
-        moneda_u = (moneda or "USD").strip().upper()
-        if moneda_u == "COP":
-            trm = 1.0
-            trm_fuente = trm_fuente or "cop"
-        elif moneda_u == "USD" and trm <= 0:
-            from app.services.trm import obtener_trm, normalizar_fecha
+        # USD → COP: TRM BanRep del día de la compra. Facturas en dólares
+        # mal etiquetadas como COP (montos tipo $532) también se liquidan así.
+        from app.services.cuenta_cobro_cuota_manejo import resolver_tasa_cuenta_cobro
 
-            fecha_n = normalizar_fecha(fecha_compra)
-            trm_data = obtener_trm(fecha_n)
-            if trm_data.get("error"):
-                return jsonify({
-                    "error": trm_data["error"],
-                    "hint": "Indique fecha_compra (YYYY-MM-DD) para consultar la TRM BanRep",
-                }), 502
-            trm = float(trm_data["valor"])
-            trm_fuente = "banrep"
-            if not fecha_compra and trm_data.get("fecha"):
-                fecha_compra = str(trm_data["fecha"])
-        elif moneda_u == "USD" and not trm_fuente:
-            trm_fuente = "banrep" if fecha_compra else "manual"
+        moneda_u = (moneda or "USD").strip().upper()
+        resolved = resolver_tasa_cuenta_cobro(
+            moneda=moneda_u,
+            trm=trm,
+            fecha_compra=fecha_compra,
+            lineas=items if isinstance(items, list) else [],
+        )
+        if resolved.get("error"):
+            return jsonify({
+                "error": resolved["error"],
+                "hint": "Indique fecha_compra (YYYY-MM-DD) para consultar la TRM BanRep del día",
+            }), 502
+        moneda = str(resolved["moneda"])
+        moneda_u = moneda
+        trm = float(resolved["trm"])
+        trm_fuente = str(resolved.get("trm_fuente") or trm_fuente or "")
+        if not fecha_compra and resolved.get("fecha_trm"):
+            fecha_compra = str(resolved["fecha_trm"])
+        if (
+            resolved.get("corregido")
+            and (moneda_flete or "").strip().upper() in ("", "COP")
+        ):
+            moneda_flete = moneda
 
         from app.services.contabilidad_db import (
             actualizar_compra_exterior,
@@ -16187,7 +16175,56 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/api/publicaciones/<sku>/imagen/web", methods=["DELETE"])
+    @app.route("/api/publicaciones/<sku>/imagenes/desde-galeria", methods=["POST"])
+    @app.route("/app/api/publicaciones/<sku>/imagenes/desde-galeria", methods=["POST"])
+    def api_publicacion_imagenes_desde_galeria(sku: str):
+        """Copia fotos de la galería del catálogo o de recursos Studio a web/MeLi."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import (
+            adjuntar_imagenes_desde_galeria,
+            aplicar_overrides_a_cache,
+            refrescar_web,
+        )
+        body = request.get_json(silent=True) or {}
+        filenames = body.get("filenames") or body.get("archivos") or []
+        recursos = body.get("recursos") or []
+        if isinstance(filenames, str):
+            filenames = [filenames]
+        if isinstance(recursos, str):
+            recursos = [recursos]
+        targets_raw = body.get("targets") or body.get("destino") or "web"
+        if isinstance(targets_raw, str):
+            targets = [t.strip() for t in targets_raw.split(",") if t.strip()]
+        elif isinstance(targets_raw, list):
+            targets = [str(t).strip() for t in targets_raw if str(t).strip()]
+        else:
+            targets = ["web"]
+        meli_item_id = str(body.get("meli_item_id") or "").strip()
+        try:
+            res = adjuntar_imagenes_desde_galeria(
+                sku,
+                filenames=list(filenames),
+                recursos=list(recursos),
+                targets=targets,
+                meli_item_id=meli_item_id,
+            )
+            if res.get("ok") and "web" in {t.lower() for t in targets}:
+                def _refrescar_catalogo_web():
+                    try:
+                        aplicar_overrides_a_cache()
+                        refrescar_web()
+                    except Exception:
+                        pass
+                spawn_thread(_refrescar_catalogo_web, daemon=True)
+            if res.get("ok"):
+                return jsonify(res)
+            return jsonify({**res, "error": res.get("error") or "No se pudo agregar"}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagen/web", methods=["DELETE", "POST"])
+    @app.route("/app/api/publicaciones/<sku>/imagen/web", methods=["DELETE", "POST"])
     def api_publicacion_eliminar_imagen_web(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -16199,16 +16236,21 @@ def register_routes(app):
         try:
             result = eliminar_imagen_web(sku, filename)
             if result.get("ok"):
-                try:
-                    aplicar_overrides_a_cache()
-                    refrescar_web()
-                except Exception:
-                    pass
-            return jsonify(result)
+                def _refrescar_catalogo_web():
+                    try:
+                        aplicar_overrides_a_cache()
+                        refrescar_web()
+                    except Exception:
+                        pass
+
+                spawn_thread(_refrescar_catalogo_web, daemon=True)
+                return jsonify(result)
+            return jsonify({**result, "error": result.get("error") or "No se pudo eliminar"}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/api/publicaciones/<sku>/imagen/meli", methods=["DELETE"])
+    @app.route("/api/publicaciones/<sku>/imagen/meli", methods=["DELETE", "POST"])
+    @app.route("/app/api/publicaciones/<sku>/imagen/meli", methods=["DELETE", "POST"])
     def api_publicacion_eliminar_imagen_meli(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -16225,7 +16267,10 @@ def register_routes(app):
         if not meli_item_id:
             return jsonify({"error": "Sin ID de publicación MeLi"}), 400
         try:
-            return jsonify(eliminar_imagen_meli(meli_item_id, picture_id, sku=sku))
+            result = eliminar_imagen_meli(meli_item_id, picture_id, sku=sku)
+            if result.get("ok"):
+                return jsonify(result)
+            return jsonify({**result, "error": result.get("error") or "No se pudo eliminar"}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

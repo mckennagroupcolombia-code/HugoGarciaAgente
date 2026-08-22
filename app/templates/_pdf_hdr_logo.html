@@ -1,0 +1,8 @@
+{% if cabezote_src %}
+<div class="hdr-logo-cell">
+  <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group"
+       {% if cabezote_w_cm and cabezote_h_cm %}
+       style="width: {{ cabezote_w_cm }}cm; height: {{ cabezote_h_cm }}cm; max-width: none; max-height: none;"
+       {% endif %}>
+</div>
+{% endif %}
