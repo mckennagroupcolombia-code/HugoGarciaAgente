@@ -59,6 +59,8 @@ export default function NavCategoryHub({
         onClick={abrir}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        title={label}
+        aria-label={label}
         className={`group mck-nav-item mck-press flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left ${
           active
             ? "is-active bg-accent text-white"

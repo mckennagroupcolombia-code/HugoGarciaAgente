@@ -14,6 +14,7 @@ import {
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { esAdminPanel } from "../lib/adminAccess";
 import { ProseTextarea } from "./ProseTextarea";
+import { Icon } from "../icons";
 
 function sourceLabel(source?: string) {
   switch (source) {
@@ -227,9 +228,11 @@ function RespuestasRapidasSection() {
             <button
               type="button"
               onClick={() => setFormAbierto(true)}
-              className="w-full rounded-lg border border-dashed border-border px-2 py-1.5 text-[11px] font-medium text-accent-sky hover:bg-accent-sky/10 transition"
+              title="Agregar respuesta"
+              aria-label="Agregar respuesta"
+              className="flex w-full items-center justify-center rounded-lg border border-dashed border-border px-2 py-1.5 text-accent-sky hover:bg-accent-sky/10 transition"
             >
-              + Agregar respuesta
+              <Icon name="plus" size={16} weight="bold" />
             </button>
           )}
         </div>

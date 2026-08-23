@@ -63,20 +63,17 @@ export default function Layout({
     ? sectionLabel
     : panelInfo?.label ?? "Panel de operaciones";
 
-  const headerSubtitle =
-    panel === "perfil" || panel === "settings" ? "Cuenta" : null;
-
   /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
   const studioEtiquetasFill = panel === "etiquetas" && etiquetasStudioInmersivo;
   const contentScrollClass = isCentroMando
     ? hubIntegrado
-      ? "flex min-h-0 flex-col overflow-hidden px-3 pt-3 sm:px-5 sm:pt-4 lg:px-10 lg:pt-5"
-      : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-10 lg:py-6"
+      ? "flex min-h-0 flex-col overflow-hidden px-2 pt-2 sm:px-3 sm:pt-2.5 lg:px-4 lg:pt-3"
+      : "overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-3"
     : isHub
     ? studioEtiquetasFill
       ? "flex min-h-0 flex-col overflow-hidden"
-      : "flex min-h-0 flex-col overflow-hidden px-3 pt-2 sm:px-4 sm:pt-3 lg:px-10 lg:pt-4"
-    : "overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-10 lg:py-8";
+      : "flex min-h-0 flex-col overflow-hidden px-2 pt-1.5 sm:px-3 sm:pt-2 lg:px-4 lg:pt-2"
+    : "overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-3";
 
   const showHubTabs = isHub && sectionId;
 
@@ -122,23 +119,18 @@ export default function Layout({
 
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
               {isHub && sectionId ? (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                  <Icon name={HUB_SECTION_ICON[sectionId]} size={20} weight="duotone" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon name={HUB_SECTION_ICON[sectionId]} size={22} weight="duotone" />
                 </span>
               ) : panel === "perfil" || panel === "settings" ? (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                  <Icon name={panel === "perfil" ? "user" : "wrench"} size={20} weight="duotone" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon name={panel === "perfil" ? "user" : "wrench"} size={22} weight="duotone" />
                 </span>
               ) : null}
               <div className="min-w-0 flex-1">
-                <h1 className="mck-title truncate text-sm font-bold tracking-tight lg:text-base">
+                <h1 className="mck-title truncate text-[26px] font-bold leading-tight tracking-tight">
                   {headerTitle}
                 </h1>
-                {headerSubtitle && (
-                  <p className="mck-subtitle hidden truncate text-[10px] leading-snug lg:block">
-                    {headerSubtitle}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -210,7 +202,7 @@ export default function Layout({
                   <PanelTransition>{children}</PanelTransition>
                 </div>
               ) : (
-                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-2">
                   <PanelTransition>{children}</PanelTransition>
                 </div>
               )

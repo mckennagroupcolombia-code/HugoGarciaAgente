@@ -151,15 +151,11 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-ink">Catálogo de productos (combos SIIGO)</h3>
-        <p className="mt-1 text-sm text-muted">
-          Productos publicados en la tienda. Revise qué documentos existen (FT, COA, SDS), asocie archivos de Drive
-          o abra el generador para crear los faltantes.
-        </p>
         {data?.indices_drive && (
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted">
             PDFs indexados en Drive — FT: {data.indices_drive.ft ?? 0} · COA: {data.indices_drive.coa ?? 0} · SDS:{" "}
             {data.indices_drive.sds ?? 0}
             {data.drive_index?.origen === "pendiente" && (

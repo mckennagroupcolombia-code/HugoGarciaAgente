@@ -50,12 +50,13 @@ export default function DisenoNavTabs() {
             type="button"
             role="tab"
             aria-selected={selected}
+            aria-label={t.label}
+            title={t.label}
             onClick={() => irAEtiquetas(t.id)}
             className={hubTabClass(selected)}
           >
-            <Icon name={t.icon} size={16} weight={selected ? "fill" : "duotone"} className="shrink-0" />
-            <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>{t.label}</span>
-            <span className={`sm:hidden ${HUB_TAB_LABEL}`}>{t.shortLabel}</span>
+            <Icon name={t.icon} size={22} weight="bold" className="shrink-0" />
+            <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         );
       })}

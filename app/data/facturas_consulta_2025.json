@@ -21893,9 +21893,7 @@
       "fuente": "ad080025156905425FE22815826.xml"
     }
   ],
-  "actualizado": "2026-08-05T22:21:57.135985",
-  "fuente": "local",
-  "errores": [
-    "gmail: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/token_gmail.json'"
-  ]
+  "actualizado": "2026-08-22T11:20:24.412906",
+  "fuente": "gmail+local",
+  "errores": []
 }

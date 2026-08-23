@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, type CSSProperties } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { Icon, TopicIcon, TopicIconLabel } from "../icons";
+import { AddIconButton } from "./AddIconButton";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
 import { CorridaCronometroBlock, CronometroPanel, fmtTiempo, useCronometro } from "./Cronometro";
 import { ProseTextarea } from "./ProseTextarea";
@@ -1311,13 +1312,7 @@ export default function RecetasPanel({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={abrirNueva}
-          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover"
-        >
-          + Nueva receta
-        </button>
+        <AddIconButton title="Nueva receta" onClick={abrirNueva} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -1424,18 +1419,12 @@ export default function RecetasPanel({
         <div className="py-12 text-center space-y-3">
           <p className="text-sm text-muted">
             {filtroTipo === "reinos"
-              ? "Aún no hay recetas creadas en los reinos. Usa + Nueva receta y elige un reino."
+              ? "Aún no hay recetas creadas en los reinos. Usa el más para crear una y elige un reino."
               : filtroTipo === "catalogo"
                 ? "No hay recetas del catálogo con ese filtro."
                 : "No hay recetas con ese filtro."}
           </p>
-          <button
-            type="button"
-            onClick={abrirNueva}
-            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white"
-          >
-            + Crear tu primera receta
-          </button>
+          <AddIconButton title="Crear receta" onClick={abrirNueva} />
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
   type BannerInput,
   type BannerLinkTipo,
 } from "../hooks/useVitrinaWeb";
+import { AddIconButton } from "./AddIconButton";
 
 type Tab = "banners" | "origen";
 
@@ -231,13 +232,7 @@ function BannersTab() {
           Se muestran en el carrusel del inicio solo los que están activos y dentro de su rango de fechas.
         </p>
         {!creando && (
-          <button
-            type="button"
-            onClick={() => setCreando(true)}
-            className="min-h-9 shrink-0 rounded-paper border-2 border-accent bg-accent px-3 py-1.5 text-sm font-bold text-white"
-          >
-            + Nuevo banner
-          </button>
+          <AddIconButton title="Nuevo banner" onClick={() => setCreando(true)} />
         )}
       </div>
 
@@ -423,13 +418,9 @@ export default function VitrinaWebPanel() {
   const [tab, setTab] = useState<Tab>("banners");
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4 md:p-6">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2 sm:p-3">
       <header>
-        <h1 className="text-lg font-extrabold text-ink dark:text-white sm:text-xl">🖥️ Vitrina Web</h1>
-        <p className="mt-1 max-w-xl text-sm text-muted">
-          Banners de promociones y el origen de las materias primas que se muestran en el inicio de
-          mckennagroup.co (mapa de ruta + carrusel).
-        </p>
+        <h1 className="text-base font-bold text-ink dark:text-white">🖥️ Vitrina Web</h1>
       </header>
 
       <div className="flex gap-2">

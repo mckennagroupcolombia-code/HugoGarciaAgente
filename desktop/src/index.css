@@ -1304,13 +1304,12 @@
     line-height: 1.35;
   }
 
-  /* Opciones de select más legibles */
-  select { font-size: 0.9rem; min-height: 44px; }
+  /* Selects e inputs compactos (misma densidad que el resto del panel) */
+  select { font-size: 0.8rem; min-height: 1.7rem; }
 
-  /* Inputs más altos */
   input[type="text"], input[type="search"], .quest-input {
-    min-height: 44px;
-    font-size: 0.9rem;
+    min-height: 1.7rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -1946,8 +1945,8 @@ html[data-mck-skin="sakura"] .mck-help-text,
 html[data-mck-skin="barbie"] .text-sm.text-muted,
 html[data-mck-skin="barbie"] p.text-sm.text-ink-secondary,
 html[data-mck-skin="barbie"] .mck-help-text {
-  font-size: 0.95rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  line-height: 1.3;
 }
 
 html[data-mck-skin="atelier"] aside.mck-sidebar,
@@ -1966,9 +1965,9 @@ html[data-mck-skin="barbie"] aside.mck-sidebar {
 html[data-mck-skin="atelier"] .mck-nav-item,
 html[data-mck-skin="sakura"] .mck-nav-item,
 html[data-mck-skin="barbie"] .mck-nav-item {
-  padding-top: 0.7rem;
-  padding-bottom: 0.7rem;
-  border-radius: 0.9rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  border-radius: 0.65rem;
 }
 html[data-mck-skin="atelier"] .mck-nav-item:not(.is-active):hover {
   transform: translateX(5px);
@@ -2020,14 +2019,25 @@ html[data-mck-skin="sakura"] .mck-title,
 html[data-mck-skin="barbie"] .mck-header-glass h1,
 html[data-mck-skin="barbie"] .mck-title {
   font-family: "A Note", cursive !important;
-  font-size: 1.7rem !important;
   font-weight: 400 !important;
   font-style: normal !important;
   font-synthesis: none;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.15;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Título de cada ventana (Inicio, Atención…): px fijos, no rem ni menú lateral. */
+#root header.mck-header-glass h1.mck-title {
+  font-size: 26px !important;
+  line-height: 1.15 !important;
+}
+
+html[data-mck-skin="atelier"] .mck-header-glass h1,
+html[data-mck-skin="sakura"] .mck-header-glass h1,
+html[data-mck-skin="barbie"] .mck-header-glass h1 {
+  font-size: 26px !important;
 }
 
 .mck-title {
@@ -2053,11 +2063,11 @@ html[data-mck-skin="sakura"] .mck-header-glass [role="tab"],
 html[data-mck-skin="sakura"] .mck-scroll-tabs button,
 html[data-mck-skin="barbie"] .mck-header-glass [role="tab"],
 html[data-mck-skin="barbie"] .mck-scroll-tabs button {
-  font-size: 0.95rem;
-  padding-left: 0.9rem;
-  padding-right: 0.9rem;
-  padding-top: 0.45rem;
-  padding-bottom: 0.45rem;
+  font-size: 0.8rem;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+  padding-top: 0.28rem;
+  padding-bottom: 0.28rem;
 }
 
 html[data-mck-skin="atelier"] .mck-card {
@@ -2075,10 +2085,10 @@ html[data-mck-skin="atelier"] .mck-card-interactive:active {
 html[data-mck-skin="atelier"] .mck-btn,
 html[data-mck-skin="sakura"] .mck-btn,
 html[data-mck-skin="barbie"] .mck-btn {
-  font-size: 1rem;
-  min-height: 2.65rem;
-  padding-left: 1.1rem;
-  padding-right: 1.1rem;
+  font-size: 0.78rem;
+  min-height: 1.7rem;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
 }
 html[data-mck-skin="atelier"] .mck-btn-primary:hover {
   transform: translateY(-2px);
@@ -2095,12 +2105,12 @@ html[data-mck-skin="barbie"] .mck-btn-primary:active {
 html[data-mck-skin="atelier"] table,
 html[data-mck-skin="sakura"] table,
 html[data-mck-skin="barbie"] table {
-  font-size: 0.98rem;
+  font-size: 0.8rem;
 }
 html[data-mck-skin="atelier"] thead th,
 html[data-mck-skin="sakura"] thead th,
 html[data-mck-skin="barbie"] thead th {
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   letter-spacing: 0.02em;
 }
 
@@ -2113,8 +2123,8 @@ html[data-mck-skin="sakura"] textarea,
 html[data-mck-skin="barbie"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 html[data-mck-skin="barbie"] select,
 html[data-mck-skin="barbie"] textarea {
-  font-size: 1rem;
-  min-height: 2.7rem;
+  font-size: var(--mck-field-fs, 0.78rem);
+  min-height: var(--mck-field-h, 1.65rem);
 }
 
 html[data-mck-skin="atelier"] .mck-sidebar button,
@@ -2148,6 +2158,104 @@ html[data-mck-skin="barbie"] aside.mck-sidebar {
   border-right: 3px solid rgb(var(--mck-border));
 }
 
+/* Pestañas con icono: el texto queda oculto (tooltip / lector). El icono es lo visible.
+   No recortar .mck-illus-icon: es un span y es el dibujo, no la etiqueta. */
+.mck-hub-tab:has(.mck-icon, .mck-illus-icon) {
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.45rem;
+}
+.mck-hub-tab:has(.mck-icon, .mck-illus-icon) > .mck-hub-tab-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.mck-hub-tab .mck-illus-icon,
+.mck-hub-tab .mck-icon {
+  color: rgb(var(--mck-ink));
+}
+.mck-hub-tab.is-active .mck-illus-icon,
+.mck-hub-tab.is-active .mck-icon {
+  color: inherit;
+}
+html[data-mck-skin="barbie"] .mck-hub-tab:not(.is-active) .mck-illus-icon,
+html[data-mck-skin="barbie"] .mck-hub-tab:not(.is-active) .mck-icon,
+html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-illus-icon,
+html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
+  color: rgb(var(--mck-ink));
+}
+
+/* Botones de acción (Buscar, Verificar): cuadrado, solo icono. */
+#root button.mck-icon-btn {
+  box-sizing: border-box;
+  width: var(--mck-field-h, 1.65rem);
+  min-width: var(--mck-field-h, 1.65rem);
+  height: var(--mck-field-h, 1.65rem);
+  min-height: var(--mck-field-h, 1.65rem) !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+  line-height: 0;
+  gap: 0;
+}
+
+/* Campos de búsqueda y diligenciamiento compactos en toda la app.
+   No oculta ni elimina controles: solo baja padding, altura y cuerpo. */
+#root {
+  --mck-field-h: 1.65rem;
+  --mck-field-fs: 0.78rem;
+}
+
+#root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.paso-checklist-input):not(.mck-field-lg),
+#root select:not(.mck-field-lg):not(.quest-board-toolbar-select) {
+  box-sizing: border-box;
+  min-height: var(--mck-field-h) !important;
+  height: var(--mck-field-h);
+  font-size: var(--mck-field-fs) !important;
+  line-height: 1.2 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  border-radius: 0.4rem;
+}
+
+#root textarea:not(.mck-field-lg):not(.mck-paper-white) {
+  box-sizing: border-box;
+  min-height: 4rem !important;
+  height: auto !important;
+  font-size: var(--mck-field-fs) !important;
+  line-height: 1.35 !important;
+  padding: 0.35rem 0.5rem !important;
+  border-radius: 0.4rem;
+}
+
+#root .flex:has(> input:not([type="checkbox"]):not([type="radio"])):has(> button) > button,
+#root .flex:has(> select):has(> button) > button {
+  box-sizing: border-box;
+  min-height: var(--mck-field-h) !important;
+  height: var(--mck-field-h);
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  font-size: 0.68rem !important;
+  line-height: 1;
+  border-radius: 0.4rem;
+}
+
+@media (max-width: 767px) {
+  #root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  #root select,
+  #root textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html[data-mck-skin="atelier"] .mck-card-interactive:hover,
   html[data-mck-skin="atelier"] .mck-nav-item:not(.is-active):hover,
@@ -2159,5 +2267,50 @@ html[data-mck-skin="barbie"] aside.mck-sidebar {
   html[data-mck-skin="barbie"] .mck-nav-item:not(.is-active):hover,
   html[data-mck-skin="barbie"] .mck-btn-primary:hover {
     transform: none;
+  }
+}
+
+/* Densidad operativa: menos aire, títulos chicos, sin textos de descripción. */
+#root h1 + p.text-sm.text-muted,
+#root h1 + p.mck-subtitle,
+#root h1 + p.max-w-xl,
+#root h1 + p.max-w-sm,
+#root h2.mck-title + p.mck-subtitle,
+#root .mck-header-glass p.mck-subtitle,
+#root .mck-lede {
+  display: none !important;
+}
+
+#root .mck-panel-scroll h1[class*="text-lg"],
+#root .mck-panel-scroll h1[class*="text-xl"],
+#root .mck-panel-scroll h1[class*="text-2xl"] {
+  font-size: 1.21rem !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+}
+
+#root .mck-panel-scroll h2[class*="text-xl"],
+#root .mck-panel-scroll h2[class*="text-2xl"] {
+  font-size: 1.15rem !important;
+  line-height: 1.2 !important;
+}
+
+#root table td,
+#root table th {
+  padding-top: 0.28rem;
+  padding-bottom: 0.28rem;
+}
+
+#root .mck-panel-scroll > div.p-3,
+#root .mck-panel-scroll > div.p-4,
+#root .mck-panel-scroll > form.p-3,
+#root .mck-panel-scroll > form.p-4 {
+  padding: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  #root .mck-panel-scroll > div.md\:p-6,
+  #root .mck-panel-scroll > div[class*="md:p-6"] {
+    padding: 0.65rem;
   }
 }

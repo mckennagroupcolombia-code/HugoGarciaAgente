@@ -26,13 +26,13 @@ function ToolBtn({
   const tones = {
     sky: active
       ? "border-sky-600 bg-sky-600 text-white"
-      : "border-sky-500/50 bg-surface-panel text-sky-700 hover:border-sky-600 hover:bg-sky-600/10 dark:text-sky-300",
+      : "border-sky-600 bg-sky-600/15 text-sky-800 hover:bg-sky-600 hover:text-white dark:text-sky-200",
     ink: active
       ? "border-ink bg-ink text-white"
-      : "border-border bg-surface-panel text-ink hover:border-accent hover:text-accent",
+      : "border-ink/40 bg-surface-panel text-ink hover:border-ink hover:bg-ink hover:text-white",
     accent: active
       ? "border-accent bg-accent text-white"
-      : "border-accent/50 bg-surface-panel text-accent hover:border-accent hover:bg-accent/10",
+      : "border-accent bg-accent text-white hover:opacity-90",
   };
   return (
     <button
@@ -41,7 +41,7 @@ function ToolBtn({
       aria-label={title}
       aria-pressed={active}
       onClick={onClick}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 shadow-sm transition active:scale-95 sm:h-10 sm:w-10 sm:rounded-xl ${tones[tone]}`}
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 shadow-sm transition active:scale-95 ${tones[tone]}`}
     >
       {children}
     </button>
@@ -110,7 +110,7 @@ export default function ContabilidadHerramientas({
             tone="sky"
             onClick={() => toggle("crear")}
           >
-            <Icon name="package" size={18} weight={open("crear") ? "bold" : "regular"} />
+            <Icon name="package" size={22} weight="bold" />
           </ToolBtn>
         )}
         <ToolBtn
@@ -119,7 +119,7 @@ export default function ContabilidadHerramientas({
           tone="ink"
           onClick={() => toggle("facturas")}
         >
-          <Icon name="receipt" size={18} weight={open("facturas") ? "bold" : "regular"} />
+          <Icon name="receipt" size={22} weight="bold" />
         </ToolBtn>
         <ToolBtn
           active={open("calc")}
@@ -127,7 +127,7 @@ export default function ContabilidadHerramientas({
           tone="accent"
           onClick={() => toggle("calc")}
         >
-          <Icon name="calculator" size={18} weight={open("calc") ? "bold" : "regular"} />
+          <Icon name="calculator" size={22} weight="bold" />
         </ToolBtn>
       </div>
 

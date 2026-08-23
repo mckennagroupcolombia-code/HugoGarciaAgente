@@ -66,12 +66,12 @@ export default function ThemeModeToggle({
       title={label}
       aria-pressed={dark}
       aria-label={label}
-      className={`mck-press inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-surface-panel text-muted shadow-paper-sm transition-colors hover:border-accent/40 hover:bg-surface-hover hover:text-ink sm:h-9 sm:w-9 ${className}`.trim()}
+      className={`mck-press inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-surface-panel text-ink shadow-paper-sm transition-colors hover:border-accent hover:bg-accent hover:text-white ${className}`.trim()}
     >
       {dark ? (
-        <Icon name="sun" size={18} weight="regular" />
+        <Icon name="sun" size={20} weight="bold" />
       ) : (
-        <Icon name="moon" size={18} weight="regular" />
+        <Icon name="moon" size={20} weight="bold" />
       )}
     </button>
   );

@@ -24,10 +24,11 @@ import {
 } from "./QuestBoardStickyFrame";
 import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLayout";
 import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
+import { AddIconButton } from "./AddIconButton";
 import DolarHoraGadget from "./DolarHoraGadget";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
-import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs } from "./Cronometro";
+import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
 import UserAvatar from "./UserAvatar";
 import { useActividadEquipo } from "../hooks/useActividadEquipo";
 import { useGitLog } from "../hooks/useGitLog";
@@ -4290,42 +4291,7 @@ function CentroMandoHome({
 
       <DolarHoraGadget />
 
-      {/* ── Actividad del equipo — expandida acá; la tirita colapsada del cabezote sigue existiendo ── */}
-      {nivel >= 2 && (
-        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="👥" titulo="Actividad del equipo" />
-          <ActividadEquipoInicio />
-        </div>
-      )}
-
-      {/* ── Ecosistema: semáforo de servicios ── */}
-      {nivel >= 2 && (
-        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="🩺" titulo="Ecosistema" />
-          <EcosistemaSemaforo />
-        </div>
-      )}
-
-      {/* ── Árbol de commits (compacto) — versión completa en Sistemas → Control de Versiones ── */}
-      {nivel >= 2 && (
-        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="🌳" titulo="Árbol de commits"
-            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
-          <MiniArbolCommits />
-        </div>
-      )}
-
-      {/* ── Historial de cambios de la app (docs/team-recaps.md) ── */}
-      {nivel >= 2 && (
-        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-          <SeccionHeader icon="📝" titulo="Cambios recientes"
-            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
-          <RecapsRecientesInicio />
-        </div>
-      )}
-
-      {/* ── Acciones / Solicitudes — resumen sin botón propio: la pestaña de arriba
-          (Agenda/Acciones/Solicitudes) ya navega a las mismas pantallas. ── */}
+      {/* ── Acciones / Solicitudes — justo debajo de la TRM ── */}
       {(pVer("acciones") || pVer("solicitudes")) && (
         <div className="grid grid-cols-2 gap-2">
           {pVer("acciones") && (
@@ -4392,6 +4358,40 @@ function CentroMandoHome({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Actividad del equipo — expandida acá; la tirita colapsada del cabezote sigue existiendo ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="👥" titulo="Actividad del equipo" />
+          <ActividadEquipoInicio />
+        </div>
+      )}
+
+      {/* ── Ecosistema: semáforo de servicios ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="🩺" titulo="Ecosistema" />
+          <EcosistemaSemaforo />
+        </div>
+      )}
+
+      {/* ── Árbol de commits (compacto) — versión completa en Sistemas → Control de Versiones ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="🌳" titulo="Árbol de commits"
+            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
+          <MiniArbolCommits />
+        </div>
+      )}
+
+      {/* ── Historial de cambios de la app (docs/team-recaps.md) ── */}
+      {nivel >= 2 && (
+        <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
+          <SeccionHeader icon="📝" titulo="Cambios recientes"
+            onVerTodo={() => useAppStore.getState().setPanel("control-versiones")} />
+          <RecapsRecientesInicio />
         </div>
       )}
 
@@ -6189,10 +6189,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       ) : tab === "usuarios" ? (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => openModal("user")}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-              + Nuevo usuario
-            </button>
+            <AddIconButton title="Nuevo usuario" onClick={() => openModal("user")} />
           </div>
           {usuarios.map((u) => (
             <div key={u.id} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm">
@@ -6224,10 +6221,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       ) : tab === "roles" ? (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => openModal("rol")}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-              + Nuevo rol
-            </button>
+            <AddIconButton title="Nuevo rol" onClick={() => openModal("rol")} />
           </div>
           {roles.map((r) => (
             <div key={r.id} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm">
@@ -6246,10 +6240,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       ) : (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => openModal("dept")}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-              + Nuevo departamento
-            </button>
+            <AddIconButton title="Nuevo departamento" onClick={() => openModal("dept")} />
           </div>
           {depts.map((d) => (
             <div key={d.id} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm">
@@ -9039,17 +9030,11 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
         <div className="flex flex-wrap items-center gap-2">
           <InventarioCarritoBadge onOpen={abrirCarrito} />
           {canManageStock && (
-            <button
-              type="button"
+            <AddIconButton
+              title="Nuevo material"
+              open={showNuevo}
               onClick={() => { setShowNuevo((v) => !v); if (!showNuevo) setEditId(null); }}
-              className={`rounded-xl border-2 px-4 py-2 text-sm font-bold transition shadow-[0_2px_0_#045159] active:translate-y-0.5 active:shadow-none ${
-                showNuevo
-                  ? "border-border bg-surface-hover text-ink"
-                  : "border-accent bg-accent text-white hover:bg-accent-hover"
-              }`}
-            >
-              {showNuevo ? "Cerrar" : "+ Nuevo material"}
-            </button>
+            />
           )}
         </div>
       </div>
@@ -9781,8 +9766,10 @@ function CreateMisionView({
                     </div>
                   ))}
                   <button onClick={() => setPasoMats((ms) => [...ms, { n: "", c: "" }])}
-                    className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-                    + Agregar material
+                    title="Agregar material"
+                    aria-label="Agregar material"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-border text-muted transition hover:border-accent hover:text-accent">
+                    <Icon name="plus" size={16} weight="bold" />
                   </button>
                 </div>
               )}
@@ -11424,8 +11411,10 @@ function MisionDetailView({
               </div>
             ) : (
               <button onClick={() => setShowAddEtapa(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-paper border-2 border-dashed border-border py-2.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-                + Agregar ticket a esta misión
+                title="Agregar ticket a esta misión"
+                aria-label="Agregar ticket a esta misión"
+                className="flex w-full items-center justify-center rounded-paper border-2 border-dashed border-border py-2.5 text-muted transition hover:border-accent hover:text-accent">
+                <Icon name="plus" size={18} weight="bold" />
               </button>
             )}
           </div>
@@ -11629,13 +11618,7 @@ function WorkloadView({
             </button>
           )}
           {canManageAliados && (
-            <button
-              type="button"
-              onClick={abrirNuevo}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
-            >
-              + Agregar aliado
-            </button>
+            <AddIconButton title="Agregar aliado" onClick={abrirNuevo} />
           )}
         </div>
       </div>
@@ -11810,14 +11793,11 @@ function WorkloadView({
           {deptError && <p className="text-xs font-semibold text-red-600">{deptError}</p>}
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-muted">Existentes: {depts.length}</p>
-            <button
-              type="button"
-              onClick={() => void crearDepartamento()}
+            <AddIconButton
+              title="Crear departamento"
               disabled={deptSaving}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50"
-            >
-              {deptSaving ? "Creando…" : "+ Crear departamento"}
-            </button>
+              onClick={() => void crearDepartamento()}
+            />
           </div>
         </div>
       )}
@@ -11828,13 +11808,7 @@ function WorkloadView({
         <div className="py-12 text-center text-sm text-muted space-y-3">
           <p>No hay aliados registrados aún.</p>
           {canManageAliados && (
-            <button
-              type="button"
-              onClick={abrirNuevo}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white"
-            >
-              + Agregar el primero
-            </button>
+            <AddIconButton title="Agregar aliado" onClick={abrirNuevo} className="mx-auto" />
           )}
         </div>
       ) : (
@@ -13115,9 +13089,11 @@ function SolicitudListaChecklist({
                 type="button"
                 onClick={() => void agregarItem()}
                 disabled={busy || !nuevoNombre.trim()}
-                className="mt-auto rounded-xl border-2 border-accent px-4 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+                title="Agregar"
+                aria-label="Agregar"
+                className="mt-auto flex h-10 w-10 items-center justify-center rounded-xl border-2 border-accent text-accent hover:bg-accent hover:text-white disabled:opacity-40"
               >
-                + Agregar
+                <Icon name="plus" size={18} weight="bold" />
               </button>
             </div>
           )}
@@ -13454,6 +13430,35 @@ function SolicitudCard({
   const corridaActual = ticketEfectivo.corrida;
   const corridaEstado = corridaActual?.estado;
 
+  // Al reabrir el detalle, la lista a veces no traía `corrida` (solo se adjuntaba
+  // en acciones). Sin esto el cronómetro pausado desaparecía y no había forma de continuar.
+  useEffect(() => {
+    if (!detalleAmpliado) return;
+    let cancelado = false;
+    void (async () => {
+      try {
+        const t = await tapi(`/${ticket.id}`, token) as Ticket;
+        if (cancelado) return;
+        setTicketOverride((p) => {
+          if (p.corrida && (p.corrida.estado === "activa" || p.corrida.estado === "pausada")) {
+            return {
+              ...p,
+              estado: t.estado ?? p.estado,
+              segundos_trabajo: t.segundos_trabajo ?? p.segundos_trabajo,
+            };
+          }
+          return {
+            ...p,
+            corrida: t.corrida ?? p.corrida,
+            estado: t.estado ?? p.estado,
+            segundos_trabajo: t.segundos_trabajo ?? p.segundos_trabajo,
+          };
+        });
+      } catch { /* el override local o el prop de la lista siguen valiendo */ }
+    })();
+    return () => { cancelado = true; };
+  }, [detalleAmpliado, ticket.id, token]);
+
   // Tick cliente cada segundo mientras la corrida está activa — cronómetro fluido sin
   // pollear el servidor; el tiempo real se calcula desde iniciada_en/reanudada_en.
   const [tickNow, setTickNow] = useState(() => Date.now());
@@ -13480,6 +13485,7 @@ function SolicitudCard({
     try {
       const t = await tapi(`/corridas/${cid}/pausar`, token, { method: "POST" }) as Ticket;
       setTicketOverride((p) => ({ ...p, corrida: t.corrida }));
+      onChanged();
     } catch { /* ignore */ } finally { setBusy(false); }
   }
 
@@ -13489,7 +13495,8 @@ function SolicitudCard({
     setBusy(true);
     try {
       const t = await tapi(`/corridas/${cid}/reanudar`, token, { method: "POST" }) as Ticket;
-      setTicketOverride((p) => ({ ...p, corrida: t.corrida }));
+      setTicketOverride((p) => ({ ...p, corrida: t.corrida, estado: "en_proceso" }));
+      onChanged();
     } catch { /* ignore */ } finally { setBusy(false); }
   }
 
@@ -14056,7 +14063,7 @@ function SolicitudCard({
     if (!esAsignado || busy) return;
     setBusy(true);
     try {
-      const segPrev = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
+      const segPrev = ticketEfectivo.corrida?.segundos_acumulados ?? ticketEfectivo.segundos_trabajo ?? 0;
       const t1 = await tapi(`/${ticket.id}/corridas/iniciar`, token, {
         method: "POST",
         body: JSON.stringify({ segundos_previos: segPrev }),
@@ -14737,6 +14744,26 @@ function SolicitudCard({
                 </button>
               )
             )}
+          </div>
+        </div>
+      )}
+      {detalleAmpliado && !resuelta && esAsignado && !supervision
+        && corridaEstado !== "activa" && corridaEstado !== "pausada"
+        && ticketEfectivo.estado === "en_proceso" && (
+        <div className="shrink-0 rounded-2xl border-2 border-accent/40 bg-accent/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Cronómetro</p>
+              <p className="text-sm font-semibold text-ink">Pausado o no visible — continúa cuando quieras</p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void iniciarSolicitudConCronometro()}
+              className="rounded-xl border border-accent bg-accent px-4 py-2 text-sm font-bold text-white transition-colors disabled:opacity-40"
+            >
+              ▶ Continuar
+            </button>
           </div>
         </div>
       )}
@@ -15517,8 +15544,9 @@ function SolicitudCard({
               </div>
             ) : (
               <button type="button" onClick={() => setShowAddPaso(true)}
-                className="flex items-center gap-1 text-xs text-accent hover:underline pt-0.5">
-                <Icon name="plus" size={11} weight="bold" /> Agregar paso
+                title="Agregar paso" aria-label="Agregar paso"
+                className="flex items-center justify-center pt-0.5 text-accent hover:opacity-80">
+                <Icon name="plus" size={14} weight="bold" />
               </button>
             )
           )}
@@ -17365,9 +17393,11 @@ function NuevaAccionWizard({
               <button
                 type="button"
                 onClick={() => setListaCompras((ms) => [...ms, nuevoItemCompra()])}
-                className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+                title="Agregar producto"
+                aria-label="Agregar producto"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-border text-muted transition hover:border-accent hover:text-accent"
               >
-                + Agregar producto
+                <Icon name="plus" size={16} weight="bold" />
               </button>
 
               <div className="rounded-2xl border border-accent/30 bg-accent/30  p-3 space-y-2">
@@ -18224,9 +18254,11 @@ function AccionSimpleForm({
             <button
               type="button"
               onClick={() => setListaCompras((ms) => [...ms, nuevoItemCompra()])}
-              className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+              title="Agregar producto"
+              aria-label="Agregar producto"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-dashed border-border text-muted transition hover:border-accent hover:text-accent"
             >
-              + Agregar producto
+              <Icon name="plus" size={16} weight="bold" />
             </button>
           </div>
         )}
@@ -19075,9 +19107,11 @@ function NuevaSolicitudWizard({
                   type="button"
                   onClick={agregarItemCompra}
                   disabled={!compraNombre.trim()}
-                  className="mt-auto flex-1 rounded-xl border-2 border-accent px-3 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+                  title="Agregar"
+                  aria-label="Agregar"
+                  className="mt-auto flex h-10 w-10 items-center justify-center rounded-xl border-2 border-accent text-accent hover:bg-accent hover:text-white disabled:opacity-40"
                 >
-                  + Agregar
+                  <Icon name="plus" size={18} weight="bold" />
                 </button>
               </div>
             )}
@@ -19103,9 +19137,11 @@ function NuevaSolicitudWizard({
                   type="button"
                   onClick={agregarItemCompra}
                   disabled={!compraNombre.trim()}
-                  className="flex-1 rounded-xl border-2 border-accent px-3 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+                  title="Agregar"
+                  aria-label="Agregar"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-accent text-accent hover:bg-accent hover:text-white disabled:opacity-40"
                 >
-                  + Agregar
+                  <Icon name="plus" size={18} weight="bold" />
                 </button>
               </div>
             )}
@@ -19390,12 +19426,25 @@ function SolicitudResumenCard({
   const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
   const pasoTotal = ticket.pasos_total ?? 0;
   const pasoComp = ticket.pasos_completados ?? 0;
+  const corridaAbierta = ticket.corrida?.estado === "activa" || ticket.corrida?.estado === "pausada";
+  const corridaPausada = ticket.corrida?.estado === "pausada";
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (ticket.corrida?.estado !== "activa") return;
+    const iv = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(iv);
+  }, [ticket.corrida?.estado]);
+  const segCrono = corridaAbierta ? segundosDesdeCorrida(ticket.corrida) : 0;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group w-full rounded-2xl border-2 border-border bg-surface-panel/80 px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-surface-hover hover:shadow-paper-sm space-y-2"
+      className={`group w-full rounded-2xl border-2 px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-surface-hover hover:shadow-paper-sm space-y-2 ${
+        corridaAbierta
+          ? "border-accent bg-accent/10"
+          : "border-border bg-surface-panel/80"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -19408,6 +19457,20 @@ function SolicitudResumenCard({
           {ticket.prioridad ?? "media"}
         </span>
       </div>
+      {corridaAbierta && (
+        <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-surface px-3 py-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${corridaPausada ? "bg-muted" : "bg-emerald-500 animate-pulse"}`} />
+          <span className="text-[11px] font-extrabold uppercase tracking-wide text-accent">
+            {corridaPausada ? "En pausa" : "Trabajando"}
+          </span>
+          <span className="ml-auto font-mono text-lg font-black tabular-nums text-accent">
+            {fmtTiempo(segCrono)}
+          </span>
+          <span className="text-[11px] font-bold text-accent">
+            {corridaPausada ? "▶ Continuar" : "Ver"}
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
         <span>{esCreadoPorMi ? "📋 Tú" : `📋 ${ticket.creado_por_nombre ?? "?"}`}</span>
         {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
@@ -20206,10 +20269,7 @@ function ContratosView({
           ← Volver al Centro
         </button>
         <h2 className="text-xl font-extrabold text-ink">Contratos</h2>
-        <button type="button" onClick={onCreate}
-          className="ml-auto rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-          + Nueva solicitud de contrato
-        </button>
+        <AddIconButton title="Nueva solicitud de contrato" className="ml-auto" onClick={onCreate} />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700/50 dark:bg-slate-950/40 dark:text-slate-200">
@@ -20413,9 +20473,19 @@ function SolicitudesView({
     ? comprasDelegadas
     : asignadas.filter(esSolicitudCompraDelegada);
   const etiquetasPendientes = asignadas.filter(esSolicitudEtiquetaPanel);
-  const otrasAsignadas = asignadas.filter(
-    (t) => !esSolicitudCompraDelegada(t) && !esSolicitudEtiquetaPanel(t),
-  );
+  const otrasAsignadas = asignadas
+    .filter((t) => !esSolicitudCompraDelegada(t) && !esSolicitudEtiquetaPanel(t))
+    .slice()
+    .sort((a, b) => {
+      const rank = (t: Ticket) => {
+        const e = t.corrida?.estado;
+        if (e === "activa") return 0;
+        if (e === "pausada") return 1;
+        if (t.estado === "en_proceso") return 2;
+        return 3;
+      };
+      return rank(a) - rank(b);
+    });
   const creadas = solicitudes.filter(
     (t) => uidEq(t.creado_por, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
   );
@@ -20704,14 +20774,7 @@ function SolicitudesView({
             </span>
             <span className="text-sm font-bold text-ink">Solicitudes</span>
             <div className="ml-auto flex items-center gap-1.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowWizard(true)}
-                className={`${CENTRO_MANDO_CTA_BTN} bg-accent/50 hover:bg-accent shadow-[0_2px_0_#9f1239]`}
-              >
-                <Icon name="plus" size={13} weight="bold" />
-                Nueva solicitud
-              </button>
+              <AddIconButton title="Nueva solicitud" onClick={() => setShowWizard(true)} />
               <button
                 type="button"
                 onClick={() => void load(false)}
@@ -20752,14 +20815,7 @@ function SolicitudesView({
           >
             ← Volver a Solicitudes
           </button>
-          <button
-            type="button"
-            onClick={() => setShowWizard(true)}
-            className="ml-auto quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3 shrink-0"
-          >
-            <Icon name="plus" size={14} weight="bold" />
-            Nueva solicitud
-          </button>
+          <AddIconButton title="Nueva solicitud" className="ml-auto" onClick={() => setShowWizard(true)} />
         </div>
       )}
 
@@ -20801,6 +20857,16 @@ function SolicitudesView({
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Por resolver</p>
               <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Solicitudes que te asignaron y te están esperando. Ábrelas, ejecútalas y márcalas como listas.</p>
+              {(() => {
+                const crono = otrasAsignadas.find((t) => t.corrida?.estado === "activa" || t.corrida?.estado === "pausada");
+                if (!crono) return null;
+                return (
+                  <p className="text-sm font-extrabold text-accent">
+                    {crono.corrida?.estado === "pausada" ? "⏱ En pausa — entra para continuar" : "⏱ Cronómetro activo"}
+                    {" · "}{crono.titulo}
+                  </p>
+                );
+              })()}
             </button>
 
             <button type="button" onClick={() => setTab("creadas")}
@@ -21102,6 +21168,28 @@ function SolicitudesView({
 
       {tab === "asignadas" && !asignadaDetalle && !loading && otrasAsignadas.length > 0 && (
         <div className="space-y-2">
+          {otrasAsignadas.filter((t) => t.corrida?.estado === "activa" || t.corrida?.estado === "pausada").map((t) => (
+            <button
+              key={`crono-${t.id}`}
+              type="button"
+              onClick={() => setAsignadaDetalle(t)}
+              className="flex w-full items-center gap-3 rounded-2xl border-2 border-accent bg-accent/10 px-4 py-3 text-left transition hover:bg-accent/15"
+            >
+              <span className="text-xl">{t.corrida?.estado === "pausada" ? "⏸" : "⏱"}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-extrabold uppercase tracking-wide text-accent">
+                  {t.corrida?.estado === "pausada" ? "Cronómetro en pausa" : "Cronómetro corriendo"}
+                </span>
+                <span className="block truncate text-sm font-bold text-ink">{t.titulo}</span>
+              </span>
+              <span className="shrink-0 font-mono text-lg font-black tabular-nums text-accent">
+                {fmtTiempo(segundosDesdeCorrida(t.corrida))}
+              </span>
+              <span className="shrink-0 text-xs font-extrabold text-accent">
+                {t.corrida?.estado === "pausada" ? "▶ Continuar" : "Ver"}
+              </span>
+            </button>
+          ))}
           <p className="text-xs text-muted">
             {otrasAsignadas.length} solicitud{otrasAsignadas.length !== 1 ? "es" : ""} pendiente{otrasAsignadas.length !== 1 ? "s" : ""}
             {" · "}
@@ -22043,15 +22131,11 @@ function PendientesPanel({
             </span>
           )}
         </p>
-        <button
-          type="button"
+        <AddIconButton
+          title="Agregar"
+          open={showForm}
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
-            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-          }`}
-        >
-          {showForm ? "✕ Cancelar" : "+ Agregar"}
-        </button>
+        />
       </div>
 
       {/* Formulario colapsable */}
@@ -22110,13 +22194,7 @@ function PendientesPanel({
           <p className="text-3xl">🗓️</p>
           <p className="text-sm text-muted">Sin acciones futuras anotadas.</p>
           <p className="text-xs text-muted">Anota ideas o tareas para más adelante. Si necesitas alerta en una fecha, créala en Recordatorios.</p>
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]`}
-          >
-            + Nueva acción futura
-          </button>
+          <AddIconButton title="Nueva acción futura" className="mx-auto" onClick={() => setShowForm(true)} />
         </div>
       )}
 
@@ -22386,15 +22464,11 @@ function RecordatoriosPanel({
             ? `${recordatorios.length} recordatorio${recordatorios.length !== 1 ? "s" : ""}`
             : "Recordatorios con alerta"}
         </p>
-        <button
-          type="button"
+        <AddIconButton
+          title="Nuevo recordatorio"
+          open={showForm}
           onClick={() => { setShowForm((v) => !v); if (showForm) { resetForm(); setEditandoId(null); } }}
-          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
-            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-          }`}
-        >
-          {showForm ? "✕ Cancelar" : "+ Nuevo recordatorio"}
-        </button>
+        />
       </div>
 
       {/* Formulario */}
@@ -22687,13 +22761,7 @@ function RecordatoriosPanel({
           <p className="text-3xl">🔔</p>
           <p className="text-sm text-muted">Sin recordatorios programados.</p>
           <p className="text-xs text-muted">Crea tareas con alerta en la fecha que elijas — puntuales o recurrentes.</p>
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#4c1d95]`}
-          >
-            + Crear recordatorio
-          </button>
+          <AddIconButton title="Crear recordatorio" className="mx-auto" onClick={() => setShowForm(true)} />
         </div>
       )}
     </div>
@@ -22806,15 +22874,11 @@ function NuevoProcedimientoForm({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-ink">Procedimientos guardados</p>
-        <button
-          type="button"
+        <AddIconButton
+          title="Nuevo procedimiento"
+          open={showForm}
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
-            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-          }`}
-        >
-          {showForm ? "✕ Cancelar" : "+ Nuevo procedimiento"}
-        </button>
+        />
       </div>
 
       {showForm && (
@@ -22933,9 +22997,11 @@ function NuevoProcedimientoForm({
             <button
               type="button"
               onClick={() => setPasos((prev) => [...prev, { descripcion: "", fotos: [] }])}
-              className="text-xs font-bold text-accent hover:underline"
+              title="Agregar paso"
+              aria-label="Agregar paso"
+              className="inline-flex items-center justify-center text-accent hover:opacity-80"
             >
-              + Agregar paso
+              <Icon name="plus" size={16} weight="bold" />
             </button>
           </div>
           {error && <p className="text-xs text-danger">{error}</p>}
@@ -23423,9 +23489,11 @@ function ProcedimientoCard({
             <button
               type="button"
               onClick={() => setPasosDraft((prev) => [...prev, { descripcion: "", notas: "", adjuntos_ref: [] }])}
-              className="flex items-center gap-1 text-xs text-accent hover:underline"
+              title="Agregar paso"
+              aria-label="Agregar paso"
+              className="flex items-center justify-center text-accent hover:opacity-80"
             >
-              <Icon name="plus" size={11} weight="bold" /> Agregar paso
+              <Icon name="plus" size={14} weight="bold" />
             </button>
           </div>
 
@@ -23726,10 +23794,6 @@ function AdminSubhomePanel({
 }
 
 // ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
-/** CTA compacto del hero en Agenda (solicitudes / acciones / recordatorios). */
-const CENTRO_MANDO_CTA_BTN =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
-
 const ACCIONES_TAB_CFG = {
   subhome:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",   ctaBase: true  },
   activas:        { card: "border-accent/20  bg-accent/5",               icon: "bg-accent/70  text-accent",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_rgb(var(--mck-accent-hover))]",   ctaBase: true  },
@@ -24204,10 +24268,9 @@ function BolsilloSeguro({ token }: { token: string }) {
             ))}
           </div>
 
-          <button type="button" onClick={nuevaNota}
-            className="w-full rounded-xl border-2 border-dashed border-accent/30 dark:border-accent py-2.5 text-sm font-bold text-accent  hover:bg-accent/5  transition">
-            + Nueva nota
-          </button>
+          <div className="flex justify-center">
+            <AddIconButton title="Nueva nota" onClick={nuevaNota} />
+          </div>
           <p className="text-[10px] text-muted text-center">AES-256-GCM · el servidor solo guarda el blob cifrado</p>
         </div>
       )}
@@ -24956,10 +25019,10 @@ function AccionesView({
     || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user))
     || tabAcciones === "notas";
   const labelCtaCrear =
-    tabAcciones === "pendientes" ? "+ Nueva acción futura"
-    : tabAcciones === "agenda" ? "+ Nuevo recordatorio"
-    : tabAcciones === "notas" ? "+ Nueva nota"
-    : "+ Nuevo procedimiento";
+    tabAcciones === "pendientes" ? "Nueva acción futura"
+    : tabAcciones === "agenda" ? "Nuevo recordatorio"
+    : tabAcciones === "notas" ? "Nueva nota"
+    : "Nuevo procedimiento";
   function abrirFormularioCrear() {
     if (tabAcciones === "pendientes") setCrearPendienteSignal((n) => n + 1);
     else if (tabAcciones === "agenda") setCrearRecordatorioSignal((n) => n + 1);
@@ -24984,31 +25047,25 @@ function AccionesView({
           </span>
           <div className="ml-auto flex items-center gap-1.5 flex-wrap">
             {mostrarCta && (
-              <button
-                type="button"
-                onClick={async () => {
+              <AddIconButton
+                title="Iniciar acción"
+                onClick={() => {
+                  void (async () => {
                   setLoadingMenu(true);
                   setShowIniciarMenu(true);
                   try {
                     const data = await tapi("/protocolos", token);
                     setProtocolosMenu(Array.isArray(data) ? data : []);
                   } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
+                  })();
                 }}
-                className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
-              >
-                <Icon name="plus" size={16} weight="bold" />
-                Iniciar acción
-              </button>
+              />
             )}
             {mostrarCtaCrear && (
-              <button
-                type="button"
+              <AddIconButton
+                title={labelCtaCrear}
                 onClick={abrirFormularioCrear}
-                className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
-              >
-                <Icon name="plus" size={16} weight="bold" />
-                {labelCtaCrear}
-              </button>
+              />
             )}
             {tabAcciones === "subhome" && onInicio && (
               <button
@@ -25550,13 +25607,11 @@ function AccionesView({
             <div className="space-y-3 py-8 text-center">
               <p className="text-sm text-muted">Aún no tienes procedimientos guardados.</p>
               {puedeCrearProtocolos(user) && (
-                <button
-                  type="button"
+                <AddIconButton
+                  title="Nuevo procedimiento"
+                  className="mx-auto"
                   onClick={() => setCrearProcedimientoSignal((n) => n + 1)}
-                  className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]`}
-                >
-                  + Nuevo procedimiento
-                </button>
+                />
               )}
             </div>
           )}
@@ -26874,8 +26929,10 @@ function RevisionSolicitudView({
             ))}
 
             <button type="button" onClick={agregarItemAjuste}
-              className="flex items-center gap-1.5 text-xs text-accent  hover:underline font-bold">
-              + Agregar otro punto de ajuste
+              title="Agregar otro punto de ajuste"
+              aria-label="Agregar otro punto de ajuste"
+              className="flex items-center justify-center text-accent hover:opacity-80">
+              <Icon name="plus" size={16} weight="bold" />
             </button>
 
             <div className="flex gap-2">

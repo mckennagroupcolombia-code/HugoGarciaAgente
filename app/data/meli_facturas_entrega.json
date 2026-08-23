@@ -7237,6 +7237,189 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000017935915580": {
+      "shipping_id": "47770475306",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T08:16:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAGKg",
+            "nombre": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 54000.0
+          }
+        ],
+        "total": 54000.0,
+        "nombre_cliente": "Yisela ramos",
+        "identificacion": "222222222222",
+        "direccion_envio": "Ciénaga de oro cordoba Kr17 C2 SN, Ciénaga De Oro, Córdoba",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018041889160": {
+      "shipping_id": "47820272797",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T11:34:41",
+      "error": "No puedo emitir factura automática: Alginato De Sodio + Lactato De Calcio 50g C/u (MCO2059169393): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018024538428": {
+      "shipping_id": "47811862997",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T12:19:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 99750.0
+          }
+        ],
+        "total": 99750.0,
+        "nombre_cliente": "Camila Valentina Caicedo Martinez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 9 #13-29, El Cerrito, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018044672246": {
+      "shipping_id": "47821535429",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T13:42:40",
+      "error": "No puedo emitir factura automática: Agua Destilada  250 Ml (MCO2924070024): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018020667882": {
+      "shipping_id": "47810310188",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T15:11:33",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 21080.0
+          }
+        ],
+        "total": 21080.0,
+        "nombre_cliente": "Rosmy luz Miranda De la Hoz",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 36A #19A-20, Soledad, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018029249782": {
+      "shipping_id": "47814009293",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T15:29:18",
+      "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018028748070": {
+      "shipping_id": "47813745189",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T15:53:45",
+      "error": "No puedo emitir factura automática: Citrato De Calcio 500gr Ningún (MCO901663592): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018041277996": {
+      "shipping_id": "47820263554",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T16:27:01",
+      "error": "No puedo emitir factura automática: Ácido Azelaico Polvo 10 G Todo Tipo De Piel (MCO1609304141): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018036524688": {
+      "shipping_id": "47817929946",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T16:54:49",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TEGBET500mL",
+            "nombre": "Betaina De Coco 500ml",
+            "cantidad": 4.0,
+            "precio_unitario": 22705.0
+          }
+        ],
+        "total": 90820.0,
+        "nombre_cliente": "Maria Helena Pérez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Avenida santo domingo con callejon los naranjos guaduales verde alfaguara SN, Jamundí, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018045864014": {
+      "shipping_id": "47822057815",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T17:55:10",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VAS900g",
+            "nombre": "Vaselina Pura X 900 G",
+            "cantidad": 1.0,
+            "precio_unitario": 49000.0
+          }
+        ],
+        "total": 49000.0,
+        "nombre_cliente": "Jose David Reyes Torres",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 23 56eh-209, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017990026702": {
+      "shipping_id": "47795189477",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T20:06:42",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAGKg",
+            "nombre": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 54000.0
+          }
+        ],
+        "total": 54000.0,
+        "nombre_cliente": "Alex Ospina",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 46 #11-94, Pereira, Risaralda",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018050981508": {
+      "shipping_id": "47824611197",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-22T20:53:33",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 30500.0
+          }
+        ],
+        "total": 30500.0,
+        "nombre_cliente": "María José Gallego Gaviria",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 40 #40 F sur -143, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018028360150": {
+      "shipping_id": "47813859488",
+      "estado": "error",
+      "actualizado_en": "2026-08-22T21:46:11",
+      "error": "No puedo emitir factura automática: Agua Destilada  250 Ml (MCO2924070024): sin SKU (seller_custom_field) en MeLi"
     }
   }
 }

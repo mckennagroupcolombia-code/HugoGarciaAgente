@@ -29,17 +29,13 @@ export default function TareasProgramadasPanel() {
   const establecer = useEstablecerFrecuenciaCron();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-paper border-2 border-border bg-surface-panel text-2xl shadow-paper-sm">
-          <Icon name="clock" size={28} weight="bold" className="text-accent" />
+    <div className="mx-auto max-w-3xl space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-paper border border-border bg-surface-panel">
+          <Icon name="clock" size={20} weight="bold" className="text-accent" />
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Sistemas</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Tareas Programadas</h1>
-          <p className="mt-1 text-sm text-muted">
-            Frecuencia efectiva de los crons de la app — sin tocar el crontab del servidor.
-          </p>
+          <h1 className="text-base font-bold tracking-tight text-ink">Tareas Programadas</h1>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { AddIconButton } from "./AddIconButton";
 
 type Vista = "video" | "audio";
 type ModoZona = "franja" | "region";
@@ -232,14 +233,12 @@ function GeneradorVoz({ voz, disabled }: { voz: VozClonadaState; disabled?: bool
             ))}
           </select>
         </label>
-        <button
-          type="button"
+        <AddIconButton
+          title="Nueva voz"
+          open={voz.mostrarNuevaVoz}
           disabled={disabled}
           onClick={() => voz.setMostrarNuevaVoz(!voz.mostrarNuevaVoz)}
-          className="rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-ink hover:border-accent/50 disabled:opacity-50"
-        >
-          {voz.mostrarNuevaVoz ? "Cancelar" : "+ Nueva voz"}
-        </button>
+        />
       </div>
 
       {voz.mostrarNuevaVoz && (
@@ -652,12 +651,9 @@ export default function ContenidoPanel() {
     : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-3">
       <div>
-        <h2 className="text-xl font-extrabold text-ink">🎬 Contenido</h2>
-        <p className="mt-1 text-sm text-muted">
-          Quita una marca de agua estática y/o cambia el audio de un video, o genera audio de voz clonada para descargar aparte.
-        </p>
+        <h2 className="text-base font-bold text-ink">🎬 Contenido</h2>
       </div>
 
       <div className="flex gap-2">

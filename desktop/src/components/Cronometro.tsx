@@ -92,11 +92,12 @@ export function parseUtcTs(s: string): number {
 
 export function segundosDesdeCorrida(corrida: TicketCorridaLite | null | undefined): number {
   if (!corrida) return 0;
-  if (corrida.segundos_transcurridos != null) return corrida.segundos_transcurridos;
+  if (corrida.estado !== "activa") {
+    return corrida.segundos_acumulados ?? corrida.segundos_transcurridos ?? 0;
+  }
   const acc = corrida.segundos_acumulados ?? 0;
-  if (corrida.estado !== "activa") return acc;
   const anchor = corrida.reanudada_en || corrida.iniciada_en;
-  if (!anchor) return acc;
+  if (!anchor) return corrida.segundos_transcurridos ?? acc;
   return acc + Math.max(0, Math.floor((Date.now() - parseUtcTs(anchor)) / 1000));
 }
 

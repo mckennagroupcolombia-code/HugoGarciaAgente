@@ -44,7 +44,7 @@ export function IllustrationIcon({
   className,
   ...rest
 }: IllustrationIconProps) {
-  const glyph = Math.round(size * 0.52);
+  const glyph = Math.round(bubble ? size * 0.52 : size);
   const icon = (
     <Icon
       name={name}

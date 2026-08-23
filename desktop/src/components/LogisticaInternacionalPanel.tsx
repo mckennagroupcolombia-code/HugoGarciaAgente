@@ -86,20 +86,16 @@ export default function LogisticaInternacionalPanel() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-paper border-2 border-border bg-surface-panel shadow-paper-sm">
-          <Icon name={def.icon} size={28} weight="bold" className="text-accent" />
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-paper border border-border bg-surface-panel">
+          <Icon name={def.icon} size={20} weight="bold" className="text-accent" />
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-            Logística Internacional
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{def.titulo}</h1>
-          <p className="mt-1 text-sm text-muted">{def.descripcion}</p>
+          <h1 className="text-base font-bold tracking-tight text-ink">{def.titulo}</h1>
         </div>
       </div>
 
-      <div className="mt-8 rounded-paper border-2 border-border bg-surface-panel p-6 shadow-paper-sm">
+      <div className="mt-3 rounded-paper border border-border bg-surface-panel p-3">
         <h2 className="text-base font-bold text-ink">Próximamente</h2>
         <ul className="mt-3 space-y-2">
           {def.proximamente.map((item) => (

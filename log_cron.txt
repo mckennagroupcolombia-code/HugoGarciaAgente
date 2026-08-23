@@ -1351,3 +1351,119 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 uploads/tickets/e7cdcb7eb8c7468c897b189e0866660c.png
  create mode 100644 uploads/tickets/edbf6eeeb203482cbda6d00c96d632ad.png
 [2026-08-21 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-21 23:00'
+⏭  Cobertura MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-GELSIL250g GEL SILICA 250g
+INFO: Combo SIIGO omitido sin precio público: C-GOTPLA3mL10Un GOTERO PLASTICO 3mL 10 Un
+INFO: Combo SIIGO omitido sin precio público: GOTVID10mLX12Un GOTERO VIDRIO 10 mL x 12 Un
+INFO: Combo SIIGO omitido sin precio público: FOR-ACISALmL FORMULA ACIDO SALICILICO 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-VITC20PmL FORMULA VITAMINA C 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-AZUMETmL AZUL METILENO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-GLUTAR2PmL GLUTARALDEHIDO 2% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIABAJPESmL ACIDO HIALURINICO BAJO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIAALTPESmL ACIDO HIALURONICO ALTO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIKOJmL ACIDO KOJICO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACILAC85PmL ACIDO LACTICO 85% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIGLI50PmL ACIDO GLICOLICO 50% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-RET5PmL RETINOL 5% mL
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: Fotos/precios MeLi por SKU: 71 exactos, 35 alias, 187 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 116/293 combos SIIGO tienen publicación (se ocultan 177)
+INFO: Catálogo listo: 17 categorías, 84 fichas (15 con varias presentaciones), 116 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+   24 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 6 | Sospechosos (>2×): 16
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   133 órdenes canceladas en la ventana.
+⏳ Error de red listando facturas Siigo (página 97); reintento 1/3 en 3s: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=20)
+   3783 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3259 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-70100 -> NC-2-478 (Accepted) — MeLi: ✅
+   🔴 FV-2-69763: Error al crear nota crédito en Siigo: {"Status":400,"Errors":[{"Code":"parameter_inactive","Message":"The code is inactive: D-ACICIT250g","Params":["items[0].code"],"Detail":"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/parameter_inactive"}]}
+Resumen: 1 emitidas, 0 ya tenían NC (sin acción), 1 errores.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-22T18:00:01] resumen_actividad_sede_sur: 81 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 24 nuevas · 24 completadas · 24 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 10 nuevas, 12 completadas
+• Armando Garcia: 6 nuevas, 6 completadas
+• Gloria Stella: 3 nuevas, 2 completadas
+• Victor Garcia: 2 nuevas, 2 completadas
+• Cynthia Ruiz: 1 nueva, 2 completadas
+• Administrador: 2 nuevas, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-22) no es el último día del mes.

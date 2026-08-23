@@ -12,5 +12,5 @@ export function hubTabClass(selected: boolean, extra = ""): string {
     .join(" ");
 }
 
-/** Etiqueta de pestaña: respeta `data-mck-menu` vía CSS del nav-item. */
-export const HUB_TAB_LABEL = "text-[13px] font-semibold leading-none truncate";
+/** Etiqueta de pestaña: el CSS la oculta cuando hay icono (tooltip / aria-label). */
+export const HUB_TAB_LABEL = "mck-hub-tab-label text-[13px] font-semibold leading-none truncate";

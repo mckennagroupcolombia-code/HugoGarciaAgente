@@ -79,11 +79,13 @@ export default function HubNavTabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              aria-label={info?.label ?? id}
+              title={info?.label ?? id}
               onClick={() => irA(id)}
               className={hubTabClass(selected)}
             >
-              <PanelIcon panel={id} size={16} active={selected} bubble={false} />
-              <span className={`hidden sm:inline ${HUB_TAB_LABEL}`}>{info?.label ?? id}</span>
+              <PanelIcon panel={id} size={22} active={selected} bubble={false} />
+              <span className={HUB_TAB_LABEL}>{info?.label ?? id}</span>
             </button>
           );
         })}

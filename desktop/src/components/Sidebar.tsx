@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
@@ -18,7 +18,6 @@ import { modoAvanzadoEfectivo, puedeVerSeccionPanel } from "../lib/panelAccess";
 import { useUiMode } from "../stores/uiMode";
 import { PANEL_INFO, type PanelTier } from "../lib/panelInfo";
 import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
-import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon } from "../icons";
 
@@ -37,7 +36,6 @@ function NavItem({
   /** Etiqueta del menú (p. ej. «Diseño» en lugar del label del panel). */
   forceLabel?: string;
 }) {
-  const [hovered, setHovered] = useState(false);
   if (!puedeVerSeccionPanel(user, id)) return null;
   if (tier === "advanced" && !advanced) return null;
 
@@ -45,18 +43,17 @@ function NavItem({
   const active = panel === id || (id === "etiquetas" && panel === "etiquetas-config");
   const badge = badges[id] ?? 0;
   const label = forceLabel ?? info?.label ?? id;
-  const description = info?.description ?? "";
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => onNavigate(id)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className={`group mck-nav-item mck-press flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left ${
+        className={`group mck-nav-item mck-press flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left ${
           active ? "is-active" : "hover:bg-surface-hover hover:text-ink"
         }`}
+        title={label}
+        aria-label={label}
       >
         <PanelIcon panel={id} size={24} active={active} className="shrink-0" />
         <span className="min-w-0 flex-1 text-[13px] font-semibold leading-none truncate">{label}</span>
@@ -66,21 +63,6 @@ function NavItem({
           </span>
         )}
       </button>
-
-      {hovered && description && !active && (
-        <div className="mck-tooltip-fly pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel/95 p-3 shadow-paper-lg backdrop-blur-sm">
-          <p className="mb-1 flex items-center gap-2 text-xs font-bold text-ink">
-            <IllustrationIcon name={id} size={20} bubble={false} tone="accent" />
-            {label}
-          </p>
-          <p className="mck-help-text leading-snug text-ink-secondary">{description}</p>
-          {info?.tips?.[0] && (
-            <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted">
-              <span className="text-accent">✦</span> {info.tips[0]}
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

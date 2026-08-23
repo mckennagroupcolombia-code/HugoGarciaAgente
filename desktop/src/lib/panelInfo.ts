@@ -308,6 +308,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Alta de productos (insumos) y combos/kits de venta directamente en Siigo. Botón flotante en Contabilidad, junto a la calculadora.",
     tips: [
       "El botón redondo está arriba a la derecha, debajo de la calculadora.",
+      "Usa Buscar para localizar productos y combos ya creados en Siigo antes de dar de alta uno nuevo.",
       "Verifica el código antes de crear para evitar duplicados.",
       "Los combos usan prefijo C- y necesitan al menos un componente existente.",
     ],

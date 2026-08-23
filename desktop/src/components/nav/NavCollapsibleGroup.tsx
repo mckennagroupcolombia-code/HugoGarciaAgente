@@ -14,8 +14,10 @@ const SECTION_ICON: Partial<Record<NavCategory, UiIconName>> = {
   diseno: "tag",
   docs: "file",
   contabilidad: "receipt",
+  inventario: "listChecks",
   publicaciones: "megaphone",
   placas: "package",
+  contenido: "camera",
   sistemas: "monitor",
 };
 

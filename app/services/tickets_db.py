@@ -3641,18 +3641,18 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
         """, params).fetchall()
         result = [dict(r) for r in rows]
 
-        # Corrida abierta por ticket (acciones) — para el cronómetro en vivo del
-        # tablero de Acciones (una consulta batch, no N+1 por fila).
-        ids_accion = [r["id"] for r in result if r.get("tipo") == "accion"]
-        if ids_accion:
+        # Corrida abierta por ticket (acciones y solicitudes) — cronómetro en vivo
+        # en el tablero y en Por resolver (una consulta batch, no N+1 por fila).
+        ids_con_corrida = [r["id"] for r in result]
+        if ids_con_corrida:
             from app.services.recetas_ops import _segundos_corrida
 
-            placeholders = ",".join("?" for _ in ids_accion)
+            placeholders = ",".join("?" for _ in ids_con_corrida)
             corridas = db.execute(
                 f"""SELECT * FROM ticket_corridas
                     WHERE ticket_id IN ({placeholders}) AND estado IN ('activa','pausada')
                     ORDER BY id DESC""",
-                ids_accion,
+                ids_con_corrida,
             ).fetchall()
             por_ticket: dict[int, dict] = {}
             for c in corridas:

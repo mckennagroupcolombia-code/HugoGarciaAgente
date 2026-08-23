@@ -16,9 +16,7 @@ import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
-import DocumentosCatalogoTab, {
-  type ProductoDocumentacion,
-} from "./documentos/DocumentosCatalogoTab";
+import { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
 import {
   PARAMETROS_COA_FALLBACK,
   parseParamRows,
@@ -26,13 +24,14 @@ import {
   type ParamRow,
 } from "../lib/coaParametros";
 import { formatearFormulaMolecular } from "../lib/formulaMolecular";
+import { Icon, type UiIconName } from "../icons";
+import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
-type TabDoc = "catalogo" | "ft" | "coa" | "sds" | "completo" | "biblioteca";
+type TabDoc = "ft" | "coa" | "sds" | "completo" | "biblioteca";
 
-const TABS: { id: TabDoc; label: string }[] = [
-  { id: "biblioteca", label: "Biblioteca" },
-  { id: "completo", label: "Ficha Técnica COA SDS" },
-  { id: "catalogo", label: "Catálogo productos" },
+const TABS: { id: TabDoc; label: string; icon: UiIconName }[] = [
+  { id: "biblioteca", label: "Biblioteca", icon: "books" },
+  { id: "completo", label: "Ficha Técnica COA SDS", icon: "file" },
 ];
 
 interface ArchivoGenerado {
@@ -1452,9 +1451,11 @@ function CoaSection({
         <button
           type="button"
           onClick={addRow}
-          className="mt-2 rounded border border-border px-3 py-1 text-xs text-muted hover:border-accent hover:text-accent"
+          title="Agregar fila"
+          aria-label="Agregar fila"
+          className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded border border-border text-muted hover:border-accent hover:text-accent"
         >
-          + Agregar fila
+          <Icon name="plus" size={14} weight="bold" />
         </button>
       </div>
     </div>
@@ -2416,16 +2417,10 @@ function DocumentoCompletoTabContent({
 
 export default function FichasTecnicasPanel() {
   const [tab, setTab] = useState<TabDoc>("biblioteca");
-  const [producto, setProducto] = useState<ProductoDocumentacion | null>(null);
   const [ftPreload, setFtPreload] = useState<Record<string, unknown> | null>(null);
   const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
   const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
   const [completoPreload, setCompletoPreload] = useState<Record<string, unknown> | null>(null);
-
-  const abrirGenerador = (p: ProductoDocumentacion) => {
-    setProducto(p);
-    setTab("completo");
-  };
 
   const handleEditar = (r: BibliotecaDatosResult) => {
     const hoy = (() => {
@@ -2490,37 +2485,33 @@ export default function FichasTecnicasPanel() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-8">
+    <div className="mx-auto max-w-4xl space-y-3 pb-4">
       <div>
-        <h2 className="text-lg font-semibold text-ink">Documentos técnicos</h2>
-        <p className="mt-1 text-sm text-muted">
-          Catálogo de combos SIIGO, estado FT/COA/SDS, vista previa antes de generar y subida a Drive.
-          En Biblioteca, «Cargar en página web» publica solo documentos completos (FT + COA + SDS) en la tienda.
-        </p>
+        <h2 className="text-base font-semibold text-ink">Documentos técnicos</h2>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-border">
+      <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface-panel p-1" role="tablist" aria-label="Documentos técnicos">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            aria-label={t.label}
+            title={t.label}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.id
-                ? "border-b-2 border-accent text-accent"
-                : "text-muted hover:text-ink"
-            }`}
+            className={hubTabClass(tab === t.id)}
           >
-            {t.label}
+            <Icon name={t.icon} size={22} weight="bold" />
+            <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         ))}
       </div>
 
-      {tab === "catalogo" && <DocumentosCatalogoTab onGenerar={abrirGenerador} />}
-      {tab === "ft" && <FichaTecnicaTabContent producto={producto} preload={ftPreload} />}
-      {tab === "coa" && <CoaTabContent producto={producto} preload={coaPreload} />}
-      {tab === "sds" && <SdsTabContent producto={producto} preload={sdsPreload} />}
-      {tab === "completo" && <DocumentoCompletoTabContent producto={producto} preload={completoPreload} />}
+      {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
+      {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
+      {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
+      {tab === "completo" && <DocumentoCompletoTabContent producto={null} preload={completoPreload} />}
       {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
     </div>
   );

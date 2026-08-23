@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
 import { ConsultarFacturaPorProducto } from "./FacturasCompraPanel";
 import FloatingToolWindow, { defaultFloatRect } from "./FloatingToolWindow";
+import { AddIconButton } from "./AddIconButton";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1056,10 +1057,7 @@ function TabNomina() {
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-ink">Empleados</h3>
-        <button type="button" onClick={() => { setShowForm(true); setEditando(null); }}
-          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
-          + Agregar
-        </button>
+        <AddIconButton title="Agregar empleado" onClick={() => { setShowForm(true); setEditando(null); }} />
       </div>
 
       {showForm && !editando && (
@@ -1489,10 +1487,7 @@ export function TabServicios() {
           >
             {syncingGmail ? "Escaneando Gmail…" : "↻ Sync Gmail suscripciones"}
           </button>
-          <button type="button" onClick={() => setShowForm((v) => !v)}
-            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
-            {showForm ? "Cancelar" : "+ Agregar servicio"}
-          </button>
+          <AddIconButton title="Agregar servicio" open={showForm} onClick={() => setShowForm((v) => !v)} />
         </div>
       </div>
 

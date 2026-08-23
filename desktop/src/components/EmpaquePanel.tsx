@@ -389,7 +389,7 @@ export default function EmpaquePanel() {
         >
           {CANAL_META[sel.canal]?.label}
         </span>
-        <h2 className="mt-2 text-lg font-extrabold text-ink break-words [overflow-wrap:anywhere]">
+        <h2 className="mt-1 text-sm font-bold text-ink break-words [overflow-wrap:anywhere]">
           {sel.cliente || "Sin nombre"}
         </h2>
         <p className="font-mono text-xs text-muted break-all">{sel.id}</p>
@@ -533,35 +533,31 @@ export default function EmpaquePanel() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4 md:p-6">
+    <div className="flex h-full min-h-0 flex-col gap-2 p-2 sm:gap-2.5 sm:p-3">
       <CamaraEvidenciaModal
         open={camaraOpen}
         onClose={() => setCamaraOpen(false)}
         onCapture={subirArchivo}
       />
 
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-lg font-extrabold text-ink dark:text-white sm:text-xl">
+          <h1 className="text-base font-bold text-ink dark:text-white">
             Empaque · Evidencia
           </h1>
-          <p className="mt-1 hidden max-w-xl text-sm text-muted sm:block">
-            Ventas de Mercado Libre, página web y WhatsApp. Toma foto del paquete
-            para evitar reclamos por faltantes.
-          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             onClick={() => setShowWaForm((v) => !v)}
-            className="min-h-10 rounded-paper border-2 border-border bg-surface-panel px-3 py-2 text-sm font-semibold text-ink hover:border-accent"
+            className="min-h-8 rounded-paper border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-ink hover:border-accent"
           >
             + Pedido WhatsApp
           </button>
           <button
             type="button"
             onClick={() => refetch()}
-            className="min-h-10 rounded-paper border-2 border-accent bg-accent px-3 py-2 text-sm font-semibold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5"
+            className="min-h-8 rounded-paper border border-accent bg-accent px-2.5 py-1 text-xs font-semibold text-white"
           >
             {isFetching ? "Actualizando…" : "Actualizar"}
           </button>
@@ -795,30 +791,30 @@ export default function EmpaquePanel() {
       </div>
 
       {/* ── Escritorio: tabla + aside ── */}
-      <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-[1fr_360px]">
+      <div className="hidden min-h-0 flex-1 gap-3 lg:grid lg:grid-cols-[1fr_300px]">
         <div className="mck-table-wrap min-h-0 overflow-auto rounded-paper border-2 border-border bg-surface-panel shadow-paper">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-border bg-surface-panel text-[11px] uppercase tracking-wide text-muted">
               <tr>
-                <th className="px-3 py-2 font-bold">Canal</th>
-                <th className="px-3 py-2 font-bold">Fecha</th>
-                <th className="px-3 py-2 font-bold">Cliente / ID</th>
-                <th className="px-3 py-2 font-bold">Productos</th>
-                <th className="px-3 py-2 font-bold">Total</th>
-                <th className="px-3 py-2 font-bold">Fotos</th>
+                <th className="px-2 py-1.5 font-bold">Canal</th>
+                <th className="px-2 py-1.5 font-bold">Fecha</th>
+                <th className="px-2 py-1.5 font-bold">Cliente / ID</th>
+                <th className="px-2 py-1.5 font-bold">Productos</th>
+                <th className="px-2 py-1.5 font-bold">Total</th>
+                <th className="px-2 py-1.5 font-bold">Fotos</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-muted">
+                  <td colSpan={6} className="px-2 py-4 text-center text-muted">
                     Cargando ventas…
                   </td>
                 </tr>
               )}
               {!isLoading && ventas.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-muted">
+                  <td colSpan={6} className="px-2 py-4 text-center text-muted">
                     No hay ventas en este filtro.
                   </td>
                 </tr>
@@ -834,28 +830,28 @@ export default function EmpaquePanel() {
                       active ? "bg-accent/10" : ""
                     }`}
                   >
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-1">
                       <span
                         className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${meta.cls}`}
                       >
                         {meta.label}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-muted">{fmtDate(v.fecha)}</td>
-                    <td className="px-3 py-2">
-                      <div className="font-semibold text-ink">{v.cliente || "—"}</div>
-                      <div className="font-mono text-[11px] text-muted">{v.id}</div>
+                    <td className="whitespace-nowrap px-2 py-1 text-muted">{fmtDate(v.fecha)}</td>
+                    <td className="px-2 py-1">
+                      <div className="text-[13px] font-semibold leading-tight text-ink">{v.cliente || "—"}</div>
+                      <div className="font-mono text-[10px] text-muted">{v.id}</div>
                     </td>
                     <td
-                      className="max-w-[14rem] truncate px-3 py-2 text-muted"
+                      className="max-w-[14rem] truncate px-2 py-1 text-muted"
                       title={v.items_resumen}
                     >
                       {v.items_resumen || "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-semibold text-ink">
+                    <td className="whitespace-nowrap px-2 py-1 font-semibold text-ink">
                       {fmtCOP(v.total)}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-1">
                       {v.evidencias_count > 0 ? (
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
                           {v.evidencias_count} ✓
@@ -871,14 +867,8 @@ export default function EmpaquePanel() {
           </table>
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-3 overflow-auto rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper">
-          {!sel ? (
-            <p className="text-sm text-muted">
-              Elige una venta de la lista para ver el detalle y tomar fotos del paquete.
-            </p>
-          ) : (
-            detalleEvidencia
-          )}
+        <aside className="flex min-h-0 flex-col gap-2 overflow-auto rounded-paper border border-border bg-surface-panel p-2.5">
+          {sel ? detalleEvidencia : null}
         </aside>
       </div>
     </div>

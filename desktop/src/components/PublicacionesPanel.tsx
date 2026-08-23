@@ -1988,13 +1988,9 @@ function CatalogoClienteView() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 py-2">
+    <div className="mx-auto max-w-2xl space-y-3 py-1">
       <div>
         <h3 className="text-base font-bold text-ink">Catálogo para clientes</h3>
-        <p className="mt-1 text-sm text-muted">
-          Un link a la tienda web, siempre con las fotos, presentaciones y precios actuales —
-          reemplaza el PDF que se enviaba antes. Compártelo directo por WhatsApp o cópialo.
-        </p>
       </div>
 
       <div>
@@ -2088,12 +2084,6 @@ function VerificarPreciosView() {
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="shrink-0">
         <h3 className="text-base font-bold text-ink">Verificar precios por canal</h3>
-        <p className="mt-1 text-sm text-muted">
-          Mercado Libre es la referencia. Siigo debería tener el mismo precio, y Web un 10%
-          menos. Filas en rojo necesitan revisión — corrige desde{" "}
-          <span className="font-semibold text-ink">Rentabilidad → Ganancia</span>. Las marcadas
-          "Pausado" no se están vendiendo en MeLi ahora mismo, así que igualarlas no es urgente.
-        </p>
       </div>
 
       <form
@@ -2295,52 +2285,66 @@ export default function PublicacionesPanel() {
       {/* Switcher de vista principal */}
       <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
         <button
+          title="Catálogo"
+          aria-label="Catálogo"
           onClick={() => setMainView("catalogo")}
           className={hubTabClass(mainView === "catalogo", "flex-1 justify-center")}
         >
-          <Icon name="folder" size={16} weight="regular" />
+          <Icon name="folder" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Catálogo</span>
         </button>
         <button
+          title="Galería"
+          aria-label="Galería"
           onClick={() => setMainView("galeria")}
           className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
         >
-          <Icon name="image" size={16} weight="regular" />
+          <Icon name="image" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Galería</span>
         </button>
         <button
+          title="Catálogo cliente"
+          aria-label="Catálogo cliente"
           onClick={() => setMainView("catalogo-cliente")}
           className={hubTabClass(mainView === "catalogo-cliente", "flex-1 justify-center")}
         >
-          <Icon name="link" size={16} weight="regular" />
+          <Icon name="link" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Catálogo cliente</span>
         </button>
         <button
+          title="Verificar precios"
+          aria-label="Verificar precios"
           onClick={() => setMainView("precios")}
           className={hubTabClass(mainView === "precios", "flex-1 justify-center")}
         >
-          <Icon name="calculator" size={16} weight="regular" />
+          <Icon name="calculator" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Verificar precios</span>
         </button>
         <button
+          title="Competencia"
+          aria-label="Competencia"
           onClick={() => setMainView("competencia")}
           className={hubTabClass(mainView === "competencia", "flex-1 justify-center")}
         >
-          <Icon name="target" size={16} weight="regular" />
+          <Icon name="target" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Competencia</span>
         </button>
         <button
+          title="Republicar MeLi"
+          aria-label="Republicar MeLi"
           onClick={() => setMainView("compliance")}
           className={hubTabClass(mainView === "compliance", "flex-1 justify-center")}
         >
-          <Icon name="refresh" size={16} weight="regular" />
+          <Icon name="refresh" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Republicar MeLi</span>
         </button>
         <button
+          title="Crear desde cero"
+          aria-label="Crear desde cero"
           onClick={() => setMainView("crear")}
           className={hubTabClass(mainView === "crear", "flex-1 justify-center")}
         >
-          <Icon name="plus" size={16} weight="regular" />
+          <Icon name="plus" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Crear desde cero</span>
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { AddIconButton } from "./AddIconButton";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -322,13 +323,7 @@ function TabHallazgos() {
           </button>
         ))}
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => setNuevoAbierto((v) => !v)}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
-        >
-          + Nuevo hallazgo
-        </button>
+        <AddIconButton title="Nuevo hallazgo" open={nuevoAbierto} onClick={() => setNuevoAbierto((v) => !v)} />
       </div>
 
       {nuevoAbierto && (

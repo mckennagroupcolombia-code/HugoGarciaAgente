@@ -3,6 +3,725 @@
   "facturas": [
     {
       "origen": "archivo-2026",
+      "id": "archivo-2026-FV0000",
+      "sufijo": "0000",
+      "numero_factura": "FV0000",
+      "proveedor": "Proveedor Desconocido",
+      "nit": "999999999",
+      "fecha": "2026-08-22",
+      "total": 0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-22T12:00:00",
+      "items_resumen": [],
+      "items_count": 0,
+      "fuente": "evento.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-BO16917",
+      "sufijo": "6917",
+      "numero_factura": "BO16917",
+      "proveedor": "PRODUCTOS 3A SAS",
+      "nit": "800158432",
+      "fecha": "2026-08-21",
+      "total": 4772425.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-21T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MANI TRITURADO TOSTADO CAJA 25 KG RMCA",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 240000.0,
+          "precio_neto": null,
+          "subtotal": 240000.0
+        },
+        {
+          "nombre": "SEMILLA DE CALABAZA CAJA 25 KG GRADO AA",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 665000.0,
+          "precio_neto": null,
+          "subtotal": 1995000.0
+        },
+        {
+          "nombre": "AJONJOLI TOSTADO BULTO 25 KG",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 380000.0,
+          "precio_neto": null,
+          "subtotal": 380000.0
+        },
+        {
+          "nombre": "BICARBONATO DE SODIO BULTO 25 KG",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 60000.0,
+          "precio_neto": null,
+          "subtotal": 180000.0
+        },
+        {
+          "nombre": "AVENA EN HOJUELAS BULTO 25 KG PACIFICO",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 85500.0,
+          "precio_neto": null,
+          "subtotal": 85500.0
+        },
+        {
+          "nombre": "MANI TOSTADO NATURAL CAJA 25 KG RMCA",
+          "codigo": "",
+          "cantidad": 5.0,
+          "unidad": "",
+          "precio_unitario": 228000.0,
+          "precio_neto": null,
+          "subtotal": 1140000.0
+        }
+      ],
+      "items_count": 6,
+      "fuente": "ad08001584320162600004215.xml"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FEE102832",
+      "sufijo": "2832",
+      "numero_factura": "FEE102832",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "fecha": "2026-08-21",
+      "total": 3220642.5,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-21T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "PRO-B 80",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 42000.0,
+          "precio_neto": null,
+          "subtotal": 840000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - PROLINA CAS: 147-85-3",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 102000.0,
+          "precio_neto": null,
+          "subtotal": 102000.0
+        },
+        {
+          "nombre": "ACIDO CITRICO/CITRIC ACID ANHY  30-100  WEIFANG",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 5300.0,
+          "precio_neto": null,
+          "subtotal": 132500.0
+        },
+        {
+          "nombre": "AMINOACIDO CREATINA MONOHIDRATO",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 20000.0,
+          "precio_neto": null,
+          "subtotal": 1000000.0
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "",
+          "cantidad": 75.0,
+          "unidad": "",
+          "precio_unitario": 9200.0,
+          "precio_neto": null,
+          "subtotal": 690000.0
+        }
+      ],
+      "items_count": 5,
+      "fuente": "ad08000778280002600562939.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FEV78637",
+      "sufijo": "8637",
+      "numero_factura": "FEV78637",
+      "proveedor": "ENVASAR S A S",
+      "nit": "830062441",
+      "fecha": "2026-08-21",
+      "total": 383760.72,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-21T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "TAPA  PRESION  BLANCA PARA ENV. 1/4",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 1016.0,
+          "precio_neto": null,
+          "subtotal": 12192.0
+        },
+        {
+          "nombre": "ENV. 1/4 PRESION BLANCO S/T",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 1508.0,
+          "precio_neto": null,
+          "subtotal": 18096.0
+        },
+        {
+          "nombre": "TAPA POTE GRASERO DE 160 BLANCA",
+          "codigo": "",
+          "cantidad": 300.0,
+          "unidad": "",
+          "precio_unitario": 479.0,
+          "precio_neto": null,
+          "subtotal": 143700.0
+        },
+        {
+          "nombre": "ENV. CILINDRICO 160CC B. ANCHA SIN TAPA",
+          "codigo": "",
+          "cantidad": 300.0,
+          "unidad": "",
+          "precio_unitario": 495.0,
+          "precio_neto": null,
+          "subtotal": 148500.0
+        }
+      ],
+      "items_count": 4,
+      "fuente": "z08300624410082600002397.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-GQ10434",
+      "sufijo": "0434",
+      "numero_factura": "GQ10434",
+      "proveedor": "GLOBALQUIMIA LIMITADA",
+      "nit": "900143599",
+      "fecha": "2026-08-20",
+      "total": 6111288.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-20T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "TRANSPARENTE/TRANSPARENTE No 00 (0107000624)",
+          "codigo": "",
+          "cantidad": 75.0,
+          "unidad": "",
+          "precio_unitario": 18000.0,
+          "precio_neto": null,
+          "subtotal": 1350000.0
+        },
+        {
+          "nombre": "TRANSPARENTE/TRANSPARENTE No 0 (010301521)",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 13500.0,
+          "precio_neto": null,
+          "subtotal": 1350000.0
+        },
+        {
+          "nombre": "AZUL/BLANCO No 0 (0107010484)",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 13500.0,
+          "precio_neto": null,
+          "subtotal": 1350000.0
+        },
+        {
+          "nombre": "VERDE/BLANCO No 0 (0107010450)",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 13500.0,
+          "precio_neto": null,
+          "subtotal": 1350000.0
+        }
+      ],
+      "items_count": 4,
+      "fuente": "z09001435990112600010434.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE38029",
+      "sufijo": "8029",
+      "numero_factura": "FE38029",
+      "proveedor": "ALEXANDRA KATHERINE BENAVIDES SALAMANCA",
+      "nit": "1026262496",
+      "fecha": "2026-08-20",
+      "total": 1353680.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-20T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "FARMA 30ML AZUL",
+          "codigo": "",
+          "cantidad": 880.0,
+          "unidad": "",
+          "precio_unitario": 828.571429,
+          "precio_neto": null,
+          "subtotal": 729142.86
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM NEGRO",
+          "codigo": "",
+          "cantidad": 880.0,
+          "unidad": "",
+          "precio_unitario": 420.168067,
+          "precio_neto": null,
+          "subtotal": 369747.9
+        },
+        {
+          "nombre": "PERA 18MM BLANCA",
+          "codigo": "",
+          "cantidad": 200.0,
+          "unidad": "",
+          "precio_unitario": 193.277311,
+          "precio_neto": null,
+          "subtotal": 38655.46
+        }
+      ],
+      "items_count": 3,
+      "fuente": "88ab04d2-55cd-4b4b-b42b-353c755eb175.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE77920527",
+      "sufijo": "0527",
+      "numero_factura": "FE77920527",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-20",
+      "total": 30500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-20T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202951038",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202951676",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12000.0,
+          "precio_neto": null,
+          "subtotal": 12000.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z080025156905426FE77920527.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-PYLF3838",
+      "sufijo": "3838",
+      "numero_factura": "PYLF3838",
+      "proveedor": "DISEÑO PLASTICO PYL S.A.S",
+      "nit": "900961437",
+      "fecha": "2026-08-20",
+      "total": 618800.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-20T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "Cuchara en polipropileno blanco de 1gramo",
+          "codigo": "",
+          "cantidad": 2000.0,
+          "unidad": "",
+          "precio_unitario": 260.0,
+          "precio_neto": null,
+          "subtotal": 520000.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z09009614370082600000efe.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-BO16906",
+      "sufijo": "6906",
+      "numero_factura": "BO16906",
+      "proveedor": "PRODUCTOS 3A SAS",
+      "nit": "800158432",
+      "fecha": "2026-08-20",
+      "total": 4843825.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-20T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MANI TRITURADO TOSTADO CAJA 25 KG RMCA",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 240000.0,
+          "precio_neto": null,
+          "subtotal": 1440000.0
+        },
+        {
+          "nombre": "SEMILLA DE CALABAZA CAJA 25 KG GRADO AA",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 665000.0,
+          "precio_neto": null,
+          "subtotal": 1995000.0
+        },
+        {
+          "nombre": "AJONJOLI TOSTADO BULTO 25 KG",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 380000.0,
+          "precio_neto": null,
+          "subtotal": 380000.0
+        },
+        {
+          "nombre": "BICARBONATO DE SODIO BULTO 25 KG",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 60000.0,
+          "precio_neto": null,
+          "subtotal": 180000.0
+        },
+        {
+          "nombre": "AVENA EN HOJUELAS BULTO 25 KG PACIFICO",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 85500.0,
+          "precio_neto": null,
+          "subtotal": 85500.0
+        }
+      ],
+      "items_count": 5,
+      "fuente": "z0800158432016260000420a.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77825490",
+      "sufijo": "5490",
+      "numero_factura": "FE77825490",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-19",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-19T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202828551",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad080025156905426FE77825490.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77732368",
+      "sufijo": "2368",
+      "numero_factura": "FE77732368",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-18",
+      "total": 50700.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-18T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202708541",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202706864",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 8800.0,
+          "precio_neto": null,
+          "subtotal": 8800.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202708012",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "ad080025156905426FE77732368.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77742766",
+      "sufijo": "2766",
+      "numero_factura": "FE77742766",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-18",
+      "total": 23400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-18T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202719668",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE77742766.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-F2867",
+      "sufijo": "2867",
+      "numero_factura": "F2867",
+      "proveedor": "INDUPLASTEM SAS",
+      "nit": "901650107",
+      "fecha": "2026-08-13",
+      "total": 448334.88,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-13T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "PLASTICO BURBUJA X50X50",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 21000.0,
+          "precio_neto": null,
+          "subtotal": 126000.0
+        },
+        {
+          "nombre": "CINTA ADHESIVA DE 200 MTS",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 10152.0,
+          "precio_neto": null,
+          "subtotal": 60912.0
+        },
+        {
+          "nombre": "VINIPEL INDUSTRIAL TRANSPARENTE MEDIDAS 12CM POR 500 MTS COMERCIALES",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 7560.0,
+          "precio_neto": null,
+          "subtotal": 151200.0
+        },
+        {
+          "nombre": "VINIPEL INDUSTRIAL NEGRO MEDIDAS 12 CM POR 500 MTS COMERCIALES",
+          "codigo": "",
+          "cantidad": 4.0,
+          "unidad": "",
+          "precio_unitario": 7560.0,
+          "precio_neto": null,
+          "subtotal": 30240.0
+        },
+        {
+          "nombre": "VINIPEL INDUSTRIAL TRANSPARENTE MEDIDAS 30CM POR 300 MTS COMERCIALES",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 8400.0,
+          "precio_neto": null,
+          "subtotal": 8400.0
+        }
+      ],
+      "items_count": 5,
+      "fuente": "z09016501070892600000498.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77400774",
+      "sufijo": "0774",
+      "numero_factura": "FE77400774",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-13",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-13T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202375280",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE77400774.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-A69792",
+      "sufijo": "9792",
+      "numero_factura": "A69792",
+      "proveedor": "MCKENNA GROUP S.A.S",
+      "nit": "901316016",
+      "fecha": "2026-08-12",
+      "total": 35105.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-12T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "Gotero Vidrio 10 Ml  Azul - Verde - Ambar  X 12 Unidades - Marrón",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 29500.0,
+          "precio_neto": null,
+          "subtotal": 29500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad090131601600826000110a0.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77291480",
+      "sufijo": "1480",
+      "numero_factura": "FE77291480",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-12",
+      "total": 28600.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-12T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202263758",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 28600.0,
+          "precio_neto": null,
+          "subtotal": 28600.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE77291480.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77167239",
+      "sufijo": "7239",
+      "numero_factura": "FE77167239",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-11",
+      "total": 87700.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-11T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700202146006",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 42800.0,
+          "precio_neto": null,
+          "subtotal": 42800.0
+        },
+        {
+          "nombre": "CARGA TERRESTRE 700202146694",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 44900.0,
+          "precio_neto": null,
+          "subtotal": 44900.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z080025156905426FE77167239.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76766443",
+      "sufijo": "6443",
+      "numero_factura": "FE76766443",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-06",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-06T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201809859",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad080025156905426FE76766443.xml"
+    },
+    {
+      "origen": "archivo-2026",
       "id": "archivo-2026-FE76661035",
       "sufijo": "1035",
       "numero_factura": "FE76661035",
@@ -26,6 +745,112 @@
       ],
       "items_count": 1,
       "fuente": "z080025156905426FE76661035.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEE101678",
+      "sufijo": "1678",
+      "numero_factura": "FEE101678",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "fecha": "2026-08-05",
+      "total": 2674840.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-05T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "GELATINA FG 280 BLOOM /GELATIN FG 280",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 25000.0,
+          "precio_neto": null,
+          "subtotal": 625000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - TRIPTOFANO",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 98000.0,
+          "precio_neto": null,
+          "subtotal": 196000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - ARGININA BASE",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 75000.0,
+          "precio_neto": null,
+          "subtotal": 75000.0
+        },
+        {
+          "nombre": "CITRATO DE POTASIO/POTASSIUM CITRATE",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 9600.0,
+          "precio_neto": null,
+          "subtotal": 480000.0
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 9200.0,
+          "precio_neto": null,
+          "subtotal": 920000.0
+        }
+      ],
+      "items_count": 5,
+      "fuente": "ad08000778280002600522713.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE76672101",
+      "sufijo": "2101",
+      "numero_factura": "FE76672101",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-05",
+      "total": 49000.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-05T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201696119",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201700914",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12000.0,
+          "precio_neto": null,
+          "subtotal": 12000.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700201700310",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "ad080025156905426FE76672101.xml"
     },
     {
       "origen": "archivo-2026",
@@ -8130,9 +8955,7 @@
       "fuente": "z080025156905426FE56701926.zip"
     }
   ],
-  "actualizado": "2026-08-05T22:21:58.499782",
-  "fuente": "local",
-  "errores": [
-    "gmail: [Errno 13] Permission denied: '/home/mckg/mi-agente/app/tools/token_gmail.json'"
-  ]
+  "actualizado": "2026-08-22T11:21:14.948515",
+  "fuente": "gmail+local",
+  "errores": []
 }

@@ -1270,10 +1270,7 @@ function HistorialFacturas({
       <div className="rounded-xl border-2 border-border bg-surface-panel p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-ink">Historial de facturas</h2>
-            <p className="mt-1 text-sm text-muted">
-              Solo {new Date().getFullYear()}: inventario, gasto u omitidas (fecha de factura).
-            </p>
+            <h2 className="text-base font-bold text-ink">Historial de facturas</h2>
           </div>
           <button type="button" onClick={onRefresh} className="text-xs text-muted hover:text-accent">
             Actualizar
@@ -1538,16 +1535,11 @@ export function ConsultarFacturaPorProducto({
       <div className={compact ? "space-y-3" : "rounded-xl border-2 border-border bg-surface-panel p-4"}>
         {!compact && (
           <>
-            <h2 className="text-lg font-bold text-ink">Consultar factura</h2>
-            <p className="mt-1 text-sm text-muted">
-              Busca facturas de proveedores por nombre o código (pendientes, historial y archivo desde {ANIO_MIN}).
-            </p>
+            <h2 className="text-base font-bold text-ink">Consultar factura</h2>
           </>
         )}
         {compact && (
-          <p className="text-sm text-muted">
-            Busca por nombre o código en facturas de proveedores (archivo desde {ANIO_MIN}).
-          </p>
+          <p className="text-xs font-semibold text-ink">Consultar factura</p>
         )}
         <div className={`flex flex-wrap gap-1 ${compact ? "" : "mt-3"}`}>
           {[{ id: "todos" as const, label: "Todos" }, ...ANIOS.map((y) => ({ id: y, label: y }))].map((opt) => (

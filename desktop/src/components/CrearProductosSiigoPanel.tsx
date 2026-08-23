@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { Icon } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 type Modo = "producto" | "combo";
@@ -31,6 +32,21 @@ interface CodigoCheck {
 interface BusquedaItem {
   codigo: string;
   nombre: string;
+  type?: string;
+}
+
+function esComboSiigo(item: BusquedaItem): boolean {
+  const t = (item.type || "").toLowerCase();
+  if (t === "combo") return true;
+  if (t === "product") return false;
+  return item.codigo.toUpperCase().startsWith("C-");
+}
+
+function mapUnidadSiigo(raw?: string): "Un" | "mL" | "g" {
+  const u = (raw || "").toLowerCase();
+  if (u.includes("gram") || u === "g" || u.includes("grm")) return "g";
+  if (u.includes("mili") || u.includes("ml") || u.includes("mlt")) return "mL";
+  return "Un";
 }
 
 interface ComponenteLinea {
@@ -82,6 +98,13 @@ export default function CrearProductosSiigoPanel({
   const [sugerencias, setSugerencias] = useState<BusquedaItem[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [lineaActiva, setLineaActiva] = useState<string | null>(null);
+
+  const [catalogoQ, setCatalogoQ] = useState("");
+  const [catalogoItems, setCatalogoItems] = useState<BusquedaItem[]>([]);
+  const [catalogoBuscando, setCatalogoBuscando] = useState(false);
+  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
+  const catalogoRef = useRef<HTMLDivElement>(null);
+  const catalogoInputRef = useRef<HTMLInputElement>(null);
 
   const [check, setCheck] = useState<CodigoCheck | null>(null);
   const [resultado, setResultado] = useState<CrearResp | null>(null);
@@ -158,6 +181,45 @@ export default function CrearProductosSiigoPanel({
   });
 
   useEffect(() => {
+    if (!catalogoAbierto) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!catalogoRef.current?.contains(e.target as Node)) setCatalogoAbierto(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [catalogoAbierto]);
+
+  useEffect(() => {
+    if (!catalogoAbierto) return;
+    const q = catalogoQ.trim();
+    if (q.length < 1) {
+      setCatalogoItems([]);
+      return;
+    }
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      setCatalogoBuscando(true);
+      void api
+        .get<{ items: BusquedaItem[] }>(
+          `/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=40&excluir_combos=0`,
+        )
+        .then((data) => {
+          if (!cancelled) setCatalogoItems(data.items ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setCatalogoItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setCatalogoBuscando(false);
+        });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [catalogoQ, catalogoAbierto]);
+
+  useEffect(() => {
     const q = busqueda.trim();
     if (q.length < 1 || !lineaActiva) {
       setSugerencias([]);
@@ -217,6 +279,58 @@ export default function CrearProductosSiigoPanel({
     }
   }
 
+  function aplicarHallazgo(item: BusquedaItem) {
+    const combo = esComboSiigo(item);
+    setResultado(null);
+    setCatalogoAbierto(false);
+    if (combo) {
+      setModo("combo");
+      setComboCodigo(item.codigo);
+      setComboNombre(item.nombre);
+    } else {
+      setModo("producto");
+      setCodigo(item.codigo);
+      setNombre(item.nombre);
+    }
+    setCheck({
+      codigo: item.codigo,
+      existe_en_siigo: true,
+      duplicado: true,
+      siigo_producto: {
+        codigo: item.codigo,
+        nombre: item.nombre,
+        type: item.type,
+      },
+    });
+    verificarCodigo.mutate(item.codigo, {
+      onSuccess: (data) => {
+        const unidadSiigo = data.siigo_producto?.unidad;
+        if (!combo && unidadSiigo) setUnidad(mapUnidadSiigo(unidadSiigo));
+        if (data.siigo_producto?.nombre) {
+          if (combo) setComboNombre(data.siigo_producto.nombre);
+          else setNombre(data.siigo_producto.nombre);
+        }
+      },
+    });
+  }
+
+  function onBuscarCatalogo() {
+    setCatalogoAbierto(true);
+    const q = catalogoQ.trim();
+    if (q.length < 1) {
+      catalogoInputRef.current?.focus();
+      return;
+    }
+    setCatalogoBuscando(true);
+    void api
+      .get<{ items: BusquedaItem[] }>(
+        `/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=40&excluir_combos=0`,
+      )
+      .then((data) => setCatalogoItems(data.items ?? []))
+      .catch(() => setCatalogoItems([]))
+      .finally(() => setCatalogoBuscando(false));
+  }
+
   function onVerificar() {
     const c = codigoActivo.trim();
     if (c.length < 2) return;
@@ -230,26 +344,25 @@ export default function CrearProductosSiigoPanel({
   }
 
   return (
-    <div className={`mx-auto space-y-4 ${compact ? "max-w-none" : "max-w-3xl space-y-5"}`}>
+    <div className={`mx-auto space-y-2.5 ${compact ? "max-w-none" : "max-w-3xl space-y-3"}`}>
       {!compact && (
         <div>
-          <h2 className="text-lg font-semibold text-ink">Crear productos y combos en Siigo</h2>
-          <p className="mt-1 text-sm text-muted">
-            Alta directa en el ERP: insumos (Product) o kits de venta (Combo con componentes).
-          </p>
+          <h2 className="text-base font-semibold text-ink">Crear productos y combos en Siigo</h2>
         </div>
       )}
 
       <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
         {(
           [
-            { id: "producto" as const, label: "Producto / insumo" },
-            { id: "combo" as const, label: "Combo / kit" },
+            { id: "producto" as const, label: "Producto / insumo", icon: "package" as const },
+            { id: "combo" as const, label: "Combo / kit", icon: "barcode" as const },
           ] as const
         ).map((t) => (
           <button
             key={t.id}
             type="button"
+            title={t.label}
+            aria-label={t.label}
             onClick={() => {
               setModo(t.id);
               setResultado(null);
@@ -257,14 +370,95 @@ export default function CrearProductosSiigoPanel({
             }}
             className={hubTabClass(modo === t.id, "flex-1 justify-center")}
           >
+            <Icon name={t.icon} size={22} weight="bold" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         ))}
       </div>
 
+      <div ref={catalogoRef} className="space-y-1 rounded-xl border-2 border-accent bg-accent/10 p-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-accent">
+          Buscar productos y combos en Siigo
+        </p>
+        <div className="relative">
+          <div className="flex gap-2">
+            <input
+              ref={catalogoInputRef}
+              type="search"
+              value={catalogoQ}
+              onChange={(e) => {
+                setCatalogoQ(e.target.value);
+                setCatalogoAbierto(true);
+              }}
+              onFocus={() => {
+                if (catalogoQ.trim().length >= 1 || catalogoItems.length > 0) {
+                  setCatalogoAbierto(true);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const first = catalogoItems[0];
+                  if (first) aplicarHallazgo(first);
+                  else onBuscarCatalogo();
+                }
+              }}
+              placeholder="Código o nombre (ej. CARBON, C-AGUDES…)"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={onBuscarCatalogo}
+              className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm hover:opacity-90"
+              title="Buscar productos y combos existentes en Siigo"
+              aria-label="Buscar"
+            >
+              <Icon name="search" size={16} weight="bold" />
+            </button>
+          </div>
+          {catalogoAbierto && (catalogoQ.trim().length >= 1 || catalogoBuscando || catalogoItems.length > 0) && (
+            <div className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-xl">
+              {catalogoBuscando && (
+                <p className="px-3 py-2 text-[11px] text-muted">Buscando en Siigo…</p>
+              )}
+              {!catalogoBuscando && catalogoQ.trim().length >= 1 && catalogoItems.length === 0 && (
+                <p className="px-3 py-2 text-[11px] text-muted">
+                  Sin coincidencias — puedes crear el producto o combo abajo
+                </p>
+              )}
+              {catalogoItems.map((s) => {
+                const combo = esComboSiigo(s);
+                return (
+                  <button
+                    key={s.codigo}
+                    type="button"
+                    className="flex w-full flex-col items-start gap-0.5 border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-accent/10"
+                    onClick={() => aplicarHallazgo(s)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                      <span
+                        className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
+                          combo
+                            ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
+                            : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
+                        }`}
+                      >
+                        {combo ? "Combo" : "Producto"}
+                      </span>
+                    </span>
+                    <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {modo === "producto" ? (
-        <div className="space-y-4 rounded-xl border border-border bg-surface-panel p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2.5 rounded-xl border border-border bg-surface-panel p-2.5">
+          <div className="grid gap-2 sm:grid-cols-2">
             <label className="block space-y-1 sm:col-span-1">
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Código</span>
               <div className="flex gap-2">
@@ -282,9 +476,25 @@ export default function CrearProductosSiigoPanel({
                   type="button"
                   onClick={onVerificar}
                   disabled={codigo.trim().length < 2 || verificarCodigo.isPending}
-                  className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                  className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-border text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                  title="Verificar código en Siigo"
+                  aria-label="Verificar"
                 >
-                  {verificarCodigo.isPending ? "…" : "Verificar"}
+                  {verificarCodigo.isPending ? "…" : <Icon name="check" size={16} weight="bold" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (codigo.trim() && catalogoQ.trim().length < 1) setCatalogoQ(codigo.trim());
+                    setCatalogoAbierto(true);
+                    window.setTimeout(() => catalogoInputRef.current?.focus(), 30);
+                    catalogoInputRef.current?.scrollIntoView({ block: "nearest" });
+                  }}
+                  className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-accent bg-accent text-white hover:opacity-90"
+                  title="Buscar productos y combos en Siigo"
+                  aria-label="Buscar"
+                >
+                  <Icon name="search" size={16} weight="bold" />
                 </button>
               </div>
             </label>
@@ -353,8 +563,8 @@ export default function CrearProductosSiigoPanel({
           </label>
         </div>
       ) : (
-        <div className="space-y-4 rounded-xl border border-border bg-surface-panel p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2.5 rounded-xl border border-border bg-surface-panel p-2.5">
+          <div className="grid gap-2 sm:grid-cols-2">
             <label className="block space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
                 Código combo
@@ -374,9 +584,27 @@ export default function CrearProductosSiigoPanel({
                   type="button"
                   onClick={onVerificar}
                   disabled={comboCodigo.trim().length < 2 || verificarCodigo.isPending}
-                  className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                  className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-border text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+                  title="Verificar código en Siigo"
+                  aria-label="Verificar"
                 >
-                  {verificarCodigo.isPending ? "…" : "Verificar"}
+                  {verificarCodigo.isPending ? "…" : <Icon name="check" size={16} weight="bold" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (comboCodigo.trim() && catalogoQ.trim().length < 1) {
+                      setCatalogoQ(comboCodigo.trim());
+                    }
+                    setCatalogoAbierto(true);
+                    window.setTimeout(() => catalogoInputRef.current?.focus(), 30);
+                    catalogoInputRef.current?.scrollIntoView({ block: "nearest" });
+                  }}
+                  className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-accent bg-accent text-white hover:opacity-90"
+                  title="Buscar productos y combos en Siigo"
+                  aria-label="Buscar"
+                >
+                  <Icon name="search" size={16} weight="bold" />
                 </button>
               </div>
               <p className="text-[10px] text-muted">Convención McKenna: prefijo C-</p>
@@ -425,9 +653,11 @@ export default function CrearProductosSiigoPanel({
               <button
                 type="button"
                 onClick={() => setComponentes((prev) => [...prev, nuevaLinea()])}
-                className="text-xs font-bold text-accent hover:underline"
+                title="Agregar línea"
+                aria-label="Agregar línea"
+                className="inline-flex items-center justify-center text-accent hover:opacity-80"
               >
-                + Agregar línea
+                <Icon name="plus" size={16} weight="bold" />
               </button>
             </div>
             <p className="text-[10px] text-muted">
@@ -515,7 +745,9 @@ export default function CrearProductosSiigoPanel({
                             </span>
                           </button>
                         )}
-                        {sugerencias.map((s) => (
+                        {sugerencias.map((s) => {
+                          const comboSug = esComboSiigo(s);
+                          return (
                           <button
                             key={s.codigo}
                             type="button"
@@ -533,10 +765,22 @@ export default function CrearProductosSiigoPanel({
                               setSugerencias([]);
                             }}
                           >
-                            <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                              <span
+                                className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
+                                  comboSug
+                                    ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
+                                    : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
+                                }`}
+                              >
+                                {comboSug ? "Combo" : "Producto"}
+                              </span>
+                            </span>
                             <span className="text-[10px] text-muted">{s.nombre}</span>
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -620,7 +864,7 @@ export default function CrearProductosSiigoPanel({
                 || !comboNombre.trim()
                 || componentes.every((c) => !c.codigo.trim()))
           }
-          className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
+          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
         >
           {creando
             ? "Creando en Siigo…"
@@ -631,7 +875,7 @@ export default function CrearProductosSiigoPanel({
         <button
           type="button"
           onClick={resetFormulario}
-          className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-ink hover:border-accent hover:text-accent"
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent hover:text-accent"
         >
           Limpiar
         </button>

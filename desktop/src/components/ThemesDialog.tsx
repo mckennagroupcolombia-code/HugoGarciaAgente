@@ -51,12 +51,9 @@ export default function ThemesDialog() {
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
-            <h2 id="mck-temas-title" className="mck-title text-lg font-bold tracking-tight">
+            <h2 id="mck-temas-title" className="mck-title text-base font-bold tracking-tight">
               Temas
             </h2>
-            <p className="mck-subtitle text-sm">
-              Matrix, Sakura o crea el tuyo. Se guarda en tu cuenta.
-            </p>
           </div>
           <button
             type="button"

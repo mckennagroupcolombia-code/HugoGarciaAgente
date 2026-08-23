@@ -154,7 +154,7 @@ export default function DocumentoGeneradorTab({
   apiPrefix,
   queryKey,
   tituloSeccion,
-  descripcion,
+  descripcion: _descripcion,
   botonGenerar,
   carpetaDriveLabel,
   children,
@@ -461,10 +461,9 @@ export default function DocumentoGeneradorTab({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-ink">{tituloSeccion}</h3>
-        <p className="mt-1 text-sm text-muted">{descripcion}</p>
       </div>
 
       {showDrive && config && (

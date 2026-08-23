@@ -371,18 +371,15 @@ export default function InventarioControlPanel() {
   const filtrados = useMemo(() => items.filter((it) => coincideFiltro(it, filtro)), [items, filtro]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4 md:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2 sm:gap-2.5 sm:p-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-lg font-extrabold text-ink dark:text-white sm:text-xl">📋 Control de Inventario</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted">
-            Revisa, agrega stock o pide compra al instante — sin esperar el reporte del grupo de WhatsApp.
-          </p>
+          <h1 className="text-base font-bold text-ink dark:text-white">📋 Control de Inventario</h1>
         </div>
         <button
           type="button"
           onClick={() => refetch()}
-          className="min-h-10 rounded-paper border-2 border-accent bg-accent px-3 py-2 text-sm font-semibold text-white shadow-[0_3px_0_#045159] active:translate-y-0.5"
+          className="min-h-8 rounded-paper border border-accent bg-accent px-2.5 py-1 text-xs font-semibold text-white"
         >
           {isFetching ? "Actualizando…" : "Actualizar"}
         </button>

@@ -21,10 +21,10 @@ const RADIUS_PX: Record<PanelThemeConfig["radius"], string> = {
 };
 
 const FONT_SCALE_PX: Record<FontScale, string> = {
-  sm: "15px",
-  md: "16px",
-  lg: "18px",
-  xl: "20px",
+  sm: "13px",
+  md: "14px",
+  lg: "15px",
+  xl: "17px",
 };
 
 function resolveDark(mode: ThemeMode): boolean {

@@ -100,10 +100,12 @@ export default function OperativosPanel() {
               type="button"
               role="tab"
               aria-selected={selected}
+              aria-label={t.label}
+              title={t.label}
               onClick={() => setSub(t.id)}
               className={hubTabClass(selected)}
             >
-              <PanelIcon panel={iconFor(t.id)} size={16} active={selected} bubble={false} />
+              <PanelIcon panel={iconFor(t.id)} size={22} active={selected} bubble={false} />
               <span className={HUB_TAB_LABEL}>{t.label}</span>
             </button>
           );

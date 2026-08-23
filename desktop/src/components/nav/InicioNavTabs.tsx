@@ -79,10 +79,12 @@ export default function InicioNavTabs() {
         type="button"
         role="tab"
         aria-selected={agendaActiva}
+        aria-label="Agenda"
+        title="Agenda"
         onClick={irAgenda}
         className={hubTabClass(agendaActiva)}
       >
-        <Icon name="target" size={16} weight={agendaActiva ? "fill" : "regular"} />
+        <Icon name="target" size={22} weight="bold" />
         <span className={HUB_TAB_LABEL}>Agenda</span>
       </button>
       {showAcciones && (
@@ -90,10 +92,12 @@ export default function InicioNavTabs() {
           type="button"
           role="tab"
           aria-selected={accionesActiva}
+          aria-label="Acciones"
+          title="Acciones"
           onClick={irAcciones}
           className={hubTabClass(accionesActiva)}
         >
-          <Icon name="lightning" size={16} weight={accionesActiva ? "fill" : "regular"} />
+          <Icon name="lightning" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Acciones</span>
         </button>
       )}
@@ -102,10 +106,12 @@ export default function InicioNavTabs() {
           type="button"
           role="tab"
           aria-selected={solicitudesActiva}
+          aria-label="Solicitudes"
+          title="Solicitudes"
           onClick={irSolicitudes}
           className={hubTabClass(solicitudesActiva)}
         >
-          <Icon name="listChecks" size={16} weight={solicitudesActiva ? "fill" : "regular"} />
+          <Icon name="listChecks" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Solicitudes</span>
         </button>
       )}
@@ -113,10 +119,12 @@ export default function InicioNavTabs() {
         type="button"
         role="tab"
         aria-selected={metricasActiva}
+        aria-label="Métricas"
+        title="Métricas"
         onClick={irMetricas}
         className={hubTabClass(metricasActiva)}
       >
-        <PanelIcon panel="dashboard" size={16} active={metricasActiva} bubble={false} />
+        <PanelIcon panel="dashboard" size={22} active={metricasActiva} bubble={false} />
         <span className={HUB_TAB_LABEL}>Métricas</span>
       </button>
     </ScrollableTabList>

@@ -1,13 +1,148 @@
-# Recaps del Equipo
+### 2026-08-22 13:39 - Inicio: Acciones debajo de la TRM
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En Inicio, Acciones / Solicitudes / Recordatorios quedan justo debajo de la TRM del dólar. Actividad, Ecosistema y commits van después.
+- **Archivos Modificados:** `TicketsPanel.tsx`
 
-Registro corto y visual de cada tarea/sesión de trabajo con la IA sobre este repositorio: qué se implementó, quién lo hizo y qué archivos tocó. Se muestra en el panel `/app` → Sistemas → **Control de Versiones**, sección "Cambios recientes" (arriba, antes del árbol de commits), leído por `app/tools/team_recaps.py` vía `GET /api/team-recaps`.
+### 2026-08-22 13:36 - Títulos de ventana visibles (26px)
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Inicio / Atención no se notaban más grandes porque medían en rem (casi el mismo tamaño que el menú). Ahora van a 26px fijos y se recompila el panel.
+- **Archivos Modificados:** `index.css`, `Layout.tsx`, `desktop/dist`
 
-No reemplaza otros registros existentes, que tienen propósito distinto:
+### 2026-08-22 13:26 - Títulos de ventana, no del menú
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Inicio, Atención y el título de cada ventana suben un 15%. El menú lateral no cambia de tamaño.
+- **Archivos Modificados:** `index.css`, `Layout.tsx`
 
-- `HISTORIAL_MODIFICACIONES.md` — bitácora larga de sesiones técnicas (motivación/lección).
-- `docs/agentic/DECISIONS.md` — decisiones de metodología/arquitectura agentic.
+### 2026-08-22 13:21 - Títulos del cabezote un 15% más grandes
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Títulos como Inicio (y los de cada ventana) subieron un 15%: se leían demasiado chicos tras compactar.
+- **Archivos Modificados:** `index.css`
 
-Este archivo es para el equipo humano: recaps cortos y parseables, uno por tarea significativa.
+### 2026-08-22 13:10 - Botones de agregar solo icono
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Iniciar acción, Nueva receta, Nuevo banner y el resto de botones de agregar quedaron solo con el más. El nombre sale al pasar el mouse.
+- **Archivos Modificados:** `AddIconButton.tsx`, `TicketsPanel.tsx`, `RecetasPanel.tsx`, `VitrinaWebPanel.tsx`, `RRHHPanel.tsx`, `ImportacionesPanel.tsx`, `LibroMayorPanel.tsx`, `RentabilidadPanel.tsx`, `ContenidoPanel.tsx`, `WhatsAppPanel.tsx`, `FichasTecnicasPanel.tsx`, `WebChatPanel.tsx`, `CrearProductosSiigoPanel.tsx`
+
+
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - El botón «+ Nueva solicitud» quedó solo con el más. El nombre aparece al pasar el mouse.
+- **Archivos Modificados:** `TicketsPanel.tsx`
+
+
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En todo el panel: menos aire (márgenes del layout), títulos más pequeños y se ocultaron los textos de descripción bajo los encabezados.
+  - Empaque y otras ventanas quedan más compactas: filas de tabla más juntas, sin párrafo de ayuda ni caja vacía a la derecha.
+- **Archivos Modificados:** `index.css`, `Layout.tsx`, `applyTheme.ts`, `presets.ts`, `EmpaquePanel.tsx`, `Sidebar.tsx` y paneles de cabecera (Inventario, Vitrina, Libro Mayor, Tareas, Contenido, Importaciones, Docs, Facturas, etc.)
+
+### 2026-08-22 12:50 - Cronómetro de solicitudes al pausar
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Bugfix
+- **Qué se implementó:**
+  - Al pausar el cronómetro de una solicitud y salir, ahora se ve en Por resolver (barra y tarjeta) y al reabrir aparece Reanudar. Antes el tiempo se perdía de la lista.
+- **Archivos Modificados:** `tickets_db.py`, `TicketsPanel.tsx`, `Cronometro.tsx`
+
+### 2026-08-22 12:45 - Sin pills Estilo en el cabezote
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Se quitaron los botones Matrix / Sakura / Barbie Agenda del cabezote de Inicio. El cambio de variante queda solo en Temas.
+- **Archivos Modificados:** `Layout.tsx`, `ThemePackPicker.tsx`
+
+### 2026-08-22 11:10 - Estilo solo en Inicio
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Matrix / Sakura / Barbie ya no aparecen en Libro Mayor ni en otras ventanas. El selector Estilo queda solo en Inicio.
+- **Archivos Modificados:** `LibroMayorPanel.tsx`, `Layout.tsx`, `ThemePackPicker.tsx`
+
+### 2026-08-22 11:05 - Libro Mayor: botones más compactos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Las tarjetas de Ingreso/Egreso/etc. ya no son cajas altas vacías: icono y nombre van en una sola fila, con poco padding.
+- **Archivos Modificados:** `libroMayor.css`, `LibroMayorPanel.tsx`
+
+### 2026-08-22 11:00 - Libro Mayor sin textos descriptivos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En Libro Mayor se quitó el párrafo de partida doble y las frases bajo Ingreso/Egreso/etc. Quedan icono y nombre; el detalle al pasar el mouse.
+- **Archivos Modificados:** `LibroMayorPanel.tsx`
+
+### 2026-08-22 10:58 - Sin pestaña Catálogo en Docs técnicos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Se quitó el botón/pestaña «Catálogo productos» de Documentos técnicos. Quedan Biblioteca y Ficha Técnica COA SDS.
+- **Archivos Modificados:** `FichasTecnicasPanel.tsx`
+
+### 2026-08-22 10:55 - Docs técnicos: pestañas solo icono
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En Documentos técnicos las pestañas internas son solo iconos (el nombre al pasar el mouse).
+- **Archivos Modificados:** `FichasTecnicasPanel.tsx`
+
+### 2026-08-22 10:50 - Iconos del cabezote visibles
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Las pestañas de Contabilidad (y las demás) ya no escondían el icono junto con el texto.
+  - Cubo, factura, calculadora y temas van más grandes, en trazo grueso y con mejor contraste en Barbie.
+- **Archivos Modificados:** `index.css`, `IllustrationIcon.tsx`, `HubNavTabs.tsx`, `ContabilidadHerramientas.tsx`
+
+### 2026-08-22 10:45 - Buscar y Verificar solo icono
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En Crear en Siigo, Buscar es solo la lupa y Verificar solo el check; el nombre queda al pasar el mouse.
+- **Archivos Modificados:** `CrearProductosSiigoPanel.tsx`, `index.css`
+
+### 2026-08-22 10:40 - Pestañas con iconos, no textos
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En las pestañas del panel se ve el icono; el nombre queda al pasar el mouse (tooltip).
+  - El menú lateral vuelve a mostrar icono + nombre para reconocer cada sección.
+- **Archivos Modificados:** pestañas de hubs (Inicio, Diseño, WhatsApp, Publicaciones, Facturación, Siigo), menú, MobileHub, `index.css`
+
+### 2026-08-22 10:20 - Sin iconos redundantes junto al texto
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Menú, pestañas y botones con etiqueta ya no muestran icono al lado: el texto basta y se gana espacio.
+  - Se mantienen los controles solo-icono (cerrar, menú, temas, calculadora, crear Siigo).
+- **Archivos Modificados:** menú/nav, Layout, MobileHub, pestañas de hubs, `index.css`
+
+### 2026-08-22 10:05 - Casillas de búsqueda y formulario más compactas
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En todo el panel, los campos de búsqueda, texto, número y select son más bajos (sin quitar controles).
+  - El tema Barbie/Sakura ya no fuerza casillas de 2.7rem; los botones junto a un campo (Buscar, Verificar) quedan a la misma altura.
+- **Archivos Modificados:** `desktop/src/index.css`, `CrearProductosSiigoPanel.tsx`
+
+### 2026-08-22 09:55 - Buscar productos y combos en Crear Siigo
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Crear en Siigo hay buscador de productos y combos (caja arriba + botón Buscar al lado de Verificar).
+  - Se recompiló el panel para que se vea al recargar `/app`.
+- **Archivos Modificados:** `CrearProductosSiigoPanel.tsx`, `panelInfo.ts`, `desktop/dist/`
 
 ### 2026-08-21 15:40 - Cuenta de cobro en pesos con TRM del día
 - **Autor:** Cursor Grok

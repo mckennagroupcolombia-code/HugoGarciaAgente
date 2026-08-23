@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { ProseTextarea } from "./ProseTextarea";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { Icon, type UiIconName } from "../icons";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -58,20 +59,24 @@ function tiempoRelativo(ts: string): string {
 type Tab = "cuenta" | "voz" | "actividad" | "contactos";
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "cuenta",    label: "Cuenta" },
-    { id: "voz",       label: "Enviar Voz" },
-    { id: "actividad", label: "Actividad" },
-    { id: "contactos", label: "Contactos" },
+  const tabs: { id: Tab; label: string; icon: UiIconName }[] = [
+    { id: "cuenta",    label: "Cuenta",     icon: "user" },
+    { id: "voz",       label: "Enviar Voz", icon: "megaphone" },
+    { id: "actividad", label: "Actividad",  icon: "lightning" },
+    { id: "contactos", label: "Contactos",  icon: "users" },
   ];
   return (
     <div className="flex gap-1 rounded-xl border border-border bg-surface-panel p-1 mb-4">
       {tabs.map((t) => (
         <button
           key={t.id}
+          type="button"
+          title={t.label}
+          aria-label={t.label}
           onClick={() => onChange(t.id)}
           className={hubTabClass(active === t.id, "flex-1 justify-center")}
         >
+          <Icon name={t.icon} size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>{t.label}</span>
         </button>
       ))}

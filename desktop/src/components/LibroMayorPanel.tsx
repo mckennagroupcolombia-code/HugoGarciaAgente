@@ -5,6 +5,7 @@ import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { AddIconButton } from "./AddIconButton";
 import "./libroMayor.css";
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
@@ -199,7 +200,6 @@ function invalidarTodo(qc: ReturnType<typeof useQueryClient>) {
 export default function LibroMayorPanel() {
   const [vista, setVista] = useState<"simple" | "avanzada">(leerVista);
   const skin = usePanelTheme((s) => s.skin);
-  const applyPack = usePanelTheme((s) => s.applyPack);
 
   function cambiarVista(v: "simple" | "avanzada") {
     setVista(v);
@@ -211,52 +211,22 @@ export default function LibroMayorPanel() {
   }
 
   return (
-    <div className="lm-root mx-auto space-y-4 px-0.5 pb-8 sm:px-0" data-skin={skin}>
+    <div className="lm-root mx-auto space-y-3 px-0.5 pb-3 sm:px-0" data-skin={skin}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 max-w-xl">
-          <h2 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Libro Mayor</h2>
-          <p className="mt-1.5 text-base leading-snug text-muted">
-            Partida doble propia: ingresos, egresos, compras de socios y proveedores.
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="text-muted">Estilo</span>
-            <button
-              type="button"
-              onClick={() => applyPack("matrix")}
-              className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
-                skin === "matrix" ? "bg-accent text-white" : "bg-surface-hover text-ink hover:text-accent"
-              }`}
-            >
-              Matrix
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPack("sakura")}
-              className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
-                skin === "sakura" ? "bg-accent text-white" : "bg-surface-hover text-ink hover:text-accent"
-              }`}
-            >
-              Sakura
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPack("barbie")}
-              className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
-                skin === "barbie" ? "bg-accent text-white" : "bg-surface-hover text-ink hover:text-accent"
-              }`}
-            >
-              Barbie
-            </button>
-          </div>
+          <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
         </div>
         <div className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm">
           {(["simple", "avanzada"] as const).map((v) => (
             <button
               key={v}
               type="button"
+              title={v === "simple" ? "Simple" : "Avanzada"}
+              aria-label={v === "simple" ? "Simple" : "Avanzada"}
               onClick={() => cambiarVista(v)}
               className={hubTabClass(vista === v)}
             >
+              <Icon name={v === "simple" ? "listChecks" : "flask"} size={22} weight="bold" />
               <span className={HUB_TAB_LABEL}>{v === "simple" ? "Simple" : "Avanzada"}</span>
             </button>
           ))}
@@ -325,10 +295,9 @@ function VistaSimple() {
             className={`lm-action ${accion === a.id ? "is-active" : ""}`}
           >
             <span className="lm-action-icon">
-              <Icon name={a.icon} size={18} weight="duotone" />
+              <Icon name={a.icon} size={16} weight="bold" />
             </span>
             <span className="lm-action-label">{a.label}</span>
-            <span className="lm-action-desc">{a.desc}</span>
           </button>
         ))}
       </div>
@@ -1004,13 +973,13 @@ function FormCompraProveedor({
 
 type SubvistaAvanzada = "plan-cuentas" | "terceros" | "movimientos" | "cuentas-t" | "balance" | "asiento-manual";
 
-const SUBTABS: { id: SubvistaAvanzada; label: string }[] = [
-  { id: "plan-cuentas", label: "Plan de cuentas" },
-  { id: "terceros", label: "Terceros" },
-  { id: "movimientos", label: "Movimientos" },
-  { id: "cuentas-t", label: "Cuentas T" },
-  { id: "balance", label: "Balance de comprobación" },
-  { id: "asiento-manual", label: "Asiento manual" },
+const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
+  { id: "plan-cuentas", label: "Plan de cuentas", icon: "book" },
+  { id: "terceros", label: "Terceros", icon: "users" },
+  { id: "movimientos", label: "Movimientos", icon: "listChecks" },
+  { id: "cuentas-t", label: "Cuentas T", icon: "receipt" },
+  { id: "balance", label: "Balance de comprobación", icon: "chartBar" },
+  { id: "asiento-manual", label: "Asiento manual", icon: "pencil" },
 ];
 
 function VistaAvanzada() {
@@ -1022,9 +991,12 @@ function VistaAvanzada() {
           <button
             key={t.id}
             type="button"
+            title={t.label}
+            aria-label={t.label}
             onClick={() => setSub(t.id)}
             className={hubTabClass(sub === t.id)}
           >
+            <Icon name={t.icon} size={22} weight="bold" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>
           </button>
         ))}
@@ -1069,9 +1041,7 @@ function PlanCuentasTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">{cuentas.length} cuentas en el plan contable.</p>
-        <button type="button" onClick={() => setShowForm((v) => !v)} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white">
-          {showForm ? "Cancelar" : "+ Nueva cuenta"}
-        </button>
+        <AddIconButton title="Nueva cuenta" open={showForm} onClick={() => setShowForm((v) => !v)} />
       </div>
       {msg && <p className="text-xs font-semibold text-emerald-600">{msg}</p>}
       {showForm && (
@@ -1180,9 +1150,7 @@ function TercerosTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">{lista.length} terceros registrados.</p>
-        <button type="button" onClick={() => setShowForm((v) => !v)} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white">
-          {showForm ? "Cancelar" : "+ Nuevo tercero"}
-        </button>
+        <AddIconButton title="Nuevo tercero" open={showForm} onClick={() => setShowForm((v) => !v)} />
       </div>
       {msg && <p className="text-xs font-semibold text-emerald-600">{msg}</p>}
       {showForm && (

@@ -13,6 +13,7 @@ import {
   type CotizacionImportacion,
 } from "../hooks/useImportaciones";
 import { ESTADO_STYLES, PRIORIDAD_STYLES } from "../lib/questStyles";
+import { AddIconButton } from "./AddIconButton";
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente: "Pendiente",
@@ -219,19 +220,13 @@ export default function ImportacionesPanel() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-paper border-2 border-border bg-surface-panel shadow-paper-sm">
-          <Icon name="logistica-importaciones" size={28} weight="bold" className="text-accent" />
+    <div className="mx-auto max-w-3xl space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-paper border border-border bg-surface-panel">
+          <Icon name="logistica-importaciones" size={20} weight="bold" className="text-accent" />
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-            Logística Internacional
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Importaciones</h1>
-          <p className="mt-1 text-sm text-muted">
-            Aliados DDP e importación ordinaria, cotizador y seguimiento de procesos.
-          </p>
+          <h1 className="text-base font-bold tracking-tight text-ink">Importaciones</h1>
         </div>
       </div>
 
@@ -455,13 +450,11 @@ export default function ImportacionesPanel() {
               className="mt-1 w-48 rounded-paper border border-border bg-surface-input px-2 py-1.5 text-sm text-ink"
             />
           </label>
-          <button
-            onClick={onCrearProceso}
+          <AddIconButton
+            title="Nuevo proceso"
             disabled={crearProceso.isPending || !titulo.trim()}
-            className="rounded-paper border-2 border-border bg-accent px-4 py-2 text-sm font-bold text-white shadow-paper-sm disabled:opacity-50"
-          >
-            {crearProceso.isPending ? "Creando…" : "+ Nuevo proceso"}
-          </button>
+            onClick={onCrearProceso}
+          />
         </div>
         {mensajeProceso && <p className="mt-2 text-xs text-muted">{mensajeProceso}</p>}
 

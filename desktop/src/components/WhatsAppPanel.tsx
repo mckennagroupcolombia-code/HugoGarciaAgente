@@ -5,6 +5,8 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import ImageLightbox from "./ImageLightbox";
 import WhatsAppMetricas from "./WhatsAppMetricas";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { Icon, type UiIconName } from "../icons";
+import { AddIconButton } from "./AddIconButton";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -170,23 +172,27 @@ interface BridgeStatus {
 }
 
 function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab) => void; noLeidos?: number }) {
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "chats",         label: "Chats" },
-    { id: "filtro",        label: "Filtro" },
-    { id: "metricas",      label: "Métricas" },
-    { id: "control",       label: "Control" },
-    { id: "cuenta",        label: "Cuenta WA" },
-    { id: "numeros",       label: "Números" },
-    { id: "interacciones", label: "Actividad" },
+  const tabs: { id: Tab; label: string; icon: UiIconName }[] = [
+    { id: "chats",         label: "Chats",     icon: "chat" },
+    { id: "filtro",        label: "Filtro",    icon: "funnel" },
+    { id: "metricas",      label: "Métricas",  icon: "chartBar" },
+    { id: "control",       label: "Control",   icon: "wrench" },
+    { id: "cuenta",        label: "Cuenta WA", icon: "user" },
+    { id: "numeros",       label: "Números",   icon: "phone" },
+    { id: "interacciones", label: "Actividad", icon: "lightning" },
   ];
   return (
     <div className="flex gap-1 rounded-xl border border-border bg-surface-panel p-1 mb-4">
       {tabs.map((t) => (
         <button
           key={t.id}
+          type="button"
+          title={t.label}
+          aria-label={t.label}
           onClick={() => onChange(t.id)}
           className={hubTabClass(active === t.id, "relative flex-1 justify-center")}
         >
+          <Icon name={t.icon} size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>{t.label}</span>
           {t.id === "chats" && (noLeidos ?? 0) > 0 && (
             <span className="absolute -top-1 -right-1 rounded-full bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center">
@@ -859,12 +865,11 @@ function TabNumeros() {
             ? "Sin números en listas especiales"
             : `${humano.length} en modo humano · ${silenciados.length} silenciados`}
         </p>
-        <button
+        <AddIconButton
+          title="Agregar número"
+          open={showAddForm}
           onClick={() => setShowAddForm((v) => !v)}
-          className="rounded-lg bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 flex items-center gap-1.5"
-        >
-          {showAddForm ? "✕ Cancelar" : "+ Agregar número"}
-        </button>
+        />
       </div>
 
       {/* Formulario agregar */}
@@ -1371,16 +1376,11 @@ function BibliotecaDrawer({ jid, onClose }: { jid: string; onClose: () => void }
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0">
         <span className="text-sm font-bold text-ink flex-1">Biblioteca</span>
-        <button
+        <AddIconButton
+          title="Agregar"
+          open={modoGestion}
           onClick={() => setModoGestion(!modoGestion)}
-          className={`text-xs px-2.5 py-1 rounded-lg border transition font-semibold ${
-            modoGestion
-              ? "bg-accent text-white border-accent"
-              : "border-border text-muted hover:text-ink hover:border-accent"
-          }`}
-        >
-          {modoGestion ? "← Cerrar" : "+ Agregar"}
-        </button>
+        />
         <button onClick={onClose} className="text-muted hover:text-ink text-lg leading-none transition">×</button>
       </div>
 
@@ -1447,7 +1447,7 @@ function BibliotecaDrawer({ jid, onClose }: { jid: string; onClose: () => void }
           <p className="text-xs text-muted text-center py-4">Cargando…</p>
         ) : items.length === 0 ? (
           <p className="text-xs text-muted text-center py-4">
-            La biblioteca está vacía. Usa el botón <strong>+ Agregar</strong> para guardar textos, links o archivos de acceso rápido.
+            La biblioteca está vacía. Usa el botón + para guardar textos, links o archivos de acceso rápido.
           </p>
         ) : (
           CATEGORIAS_BLIB.filter((cat) => porCategoria[cat].length > 0).map((cat) => (
