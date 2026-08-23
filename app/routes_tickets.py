@@ -2057,6 +2057,7 @@ def register_tickets_routes(app):
             data.get("descripcion", ""),
             request.tickets_usuario["id"],
             int(paso_id) if paso_id else None,
+            subtipo=(data.get("subtipo") or "").strip() or None,
         )
         if err:
             return jsonify({"error": err}), 400

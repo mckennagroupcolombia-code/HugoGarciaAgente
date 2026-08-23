@@ -3227,12 +3227,30 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
     else:
         d["asignado_a_info"] = None
 
+    # Nombres planos: el detalle (`GET /api/tickets/<id>`) los expone igual que
+    # `listar_tickets`, para que el panel no tenga que resolverlos con fetches extra.
+    d["creado_por_nombre"] = (d.get("creado_por_info") or {}).get("nombre")
+    d["asignado_a_nombre"] = (d.get("asignado_a_info") or {}).get("nombre")
+    if d.get("ticket_padre_id"):
+        padre = db.execute(
+            "SELECT numero, titulo FROM tickets WHERE id=?", (d["ticket_padre_id"],),
+        ).fetchone()
+        d["ticket_padre_numero"] = padre["numero"] if padre else None
+        d["ticket_padre_titulo"] = padre["titulo"] if padre else None
+    else:
+        d["ticket_padre_numero"] = d["ticket_padre_titulo"] = None
+
     # Bloqueado por (y desbloqueo automático si el ticket anterior ya está resuelto)
     bloqueado = d.get("bloqueado_por")
     if bloqueado:
         pred = db.execute(
-            "SELECT id, estado, numero FROM tickets WHERE id=?", (bloqueado,),
+            "SELECT b.id, b.estado, b.numero, b.subtipo, b.titulo, u.nombre AS asignado_nombre "
+            "FROM tickets b LEFT JOIN usuarios u ON u.id = b.asignado_a WHERE b.id=?",
+            (bloqueado,),
         ).fetchone()
+        d["bloqueado_por_subtipo"] = pred["subtipo"] if pred else None
+        d["bloqueado_por_titulo"] = pred["titulo"] if pred else None
+        d["bloqueado_por_asignado_nombre"] = pred["asignado_nombre"] if pred else None
         if pred and pred["estado"] == "resuelto":
             db.execute(
                 "UPDATE tickets SET bloqueado_por=NULL, estado='en_proceso', "
@@ -3246,10 +3264,16 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
             d["bloqueado_por"] = None
             d["estado"] = "en_proceso"
             d["bloqueado_por_numero"] = None
+            d["bloqueado_por_subtipo"] = None
+            d["bloqueado_por_titulo"] = None
+            d["bloqueado_por_asignado_nombre"] = None
         else:
             d["bloqueado_por_numero"] = pred["numero"] if pred else None
     else:
         d["bloqueado_por_numero"] = None
+        d["bloqueado_por_subtipo"] = None
+        d["bloqueado_por_titulo"] = None
+        d["bloqueado_por_asignado_nombre"] = None
 
     # Mision context
     if d.get("mision_id"):
@@ -3394,19 +3418,32 @@ def set_datos_sensibles(ticket_id: int, texto: str, usuario: dict) -> tuple:
 # ── INTERVENCIÓN (sub-solicitud que bloquea el ticket padre) ─────────────────
 
 def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
-                       descripcion: str, usuario_id: int, paso_id: int | None = None) -> tuple:
+                       descripcion: str, usuario_id: int, paso_id: int | None = None,
+                       subtipo: str | None = None) -> tuple:
+    """Crea una sub-solicitud que bloquea el ticket padre hasta resolverse.
+
+    `subtipo='pregunta'` marca el caso más común: el ejecutor necesita una aclaración
+    de quien pidió la solicitud (no delegarle una tarea). Cambia el texto del WhatsApp
+    que recibe el destinatario y cómo se pinta el sub-ticket en el panel.
+    """
+    subtipo = (subtipo or "").strip() or None
     with _conn() as db:
         t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
         if not t:
             return None, "Ticket no encontrado"
         if t["estado"] not in ("en_proceso", "pendiente"):
             return None, "Solo se puede pedir intervención en tickets activos"
+        if int(asignado_a) == int(usuario_id):
+            return None, "No puedes pedirte intervención a ti mismo"
+        if t["bloqueado_por"]:
+            return None, "Esta solicitud ya está pausada esperando otra intervención"
 
         numero = _generar_numero(db)
         db.execute("""
             INSERT INTO tickets (numero, titulo, categoria, descripcion, prioridad,
-                                 creado_por, asignado_a, tipo, ticket_padre_id, paso_origen_id)
-            VALUES (?,?,?,?,?,?,?,'solicitud',?,?)
+                                 creado_por, asignado_a, tipo, ticket_padre_id, paso_origen_id,
+                                 subtipo)
+            VALUES (?,?,?,?,?,?,?,'solicitud',?,?,?)
         """, (
             numero,
             titulo.strip(),
@@ -3417,6 +3454,7 @@ def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
             asignado_a,
             ticket_id,
             paso_id,
+            subtipo,
         ))
         nueva_id = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
         _log(db, nueva_id, usuario_id, "ticket_creado",
@@ -3435,7 +3473,35 @@ def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
             "INSERT OR IGNORE INTO ticket_participantes (ticket_id, usuario_id, rol) VALUES (?,?,?)",
             (ticket_id, asignado_a, "colaborador"),
         )
+        # Dejar la pregunta en el hilo del padre: el reporte de la solicitud debe
+        # mostrar por qué quedó en pausa sin tener que abrir el sub-ticket.
+        destino_nombre = db.execute(
+            "SELECT nombre FROM usuarios WHERE id=?", (asignado_a,),
+        ).fetchone()
+        destino_nombre = destino_nombre["nombre"] if destino_nombre else "un compañero"
+        if subtipo == "pregunta":
+            aviso = (
+                f"⏸ Solicitud en pausa — se le preguntó a {destino_nombre}:\n\n"
+                f"{titulo.strip()}"
+            )
+        else:
+            aviso = (
+                f"⏸ Solicitud en pausa — se pidió intervención de {destino_nombre} "
+                f"({numero}):\n\n{titulo.strip()}"
+            )
+        db.execute(
+            "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) "
+            "VALUES (?,?,?,0)",
+            (ticket_id, usuario_id, aviso),
+        )
         db.commit()
+
+    try:
+        from app.services.tickets_notificaciones import notificar_intervencion_solicitada
+        from app.observability import spawn_thread
+        spawn_thread(notificar_intervencion_solicitada, (nueva_id,), daemon=True)
+    except Exception as exc:
+        print(f"[tickets] notificar intervención {nueva_id}: {exc}")
 
     return get_ticket(ticket_id, {"id": usuario_id, "rol": {"nivel": 3}}), None
 
@@ -3461,17 +3527,12 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             subtipo = (data.get("subtipo") or "").strip() or None
             if subtipo and tipo not in ("solicitud", "accion"):
                 subtipo = None
-            # Una acción propia nueva arranca directo en_proceso más abajo — misma
-            # regla de "una a la vez" que cambiar_estado(): no crearla si ya hay otra
-            # en curso (se pierde el borrador del wizard, pero evita dejar acciones
-            # abiertas sin cerrar).
-            if tipo == "accion" and asignado_a:
-                bloqueante = accion_en_proceso_de(asignado_a)
-                if bloqueante:
-                    return None, (
-                        f"Ya tienes en curso \"{bloqueante['titulo']}\" ({bloqueante['numero']}) — "
-                        "termínala o pausa antes de iniciar otra."
-                    )
+            # Trabajo en paralelo: un usuario puede tener varias acciones en curso a la
+            # vez (y varias solicitudes en resolución). Antes se bloqueaba la segunda
+            # acción aquí y en cambiar_estado(); en la operación real se atienden varias
+            # labores intercaladas y el gate solo obligaba a pausar/cerrar en falso.
+            # Cada acción lleva su propio cronómetro (`ticket_corridas`, una corrida por
+            # ticket), así que el tiempo sigue midiéndose bien por separado.
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
@@ -3530,12 +3591,12 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             return None, str(e)
 
 
-def accion_en_proceso_de(usuario_id: int, excluir_ticket_id: int | None = None) -> dict | None:
-    """Acción 'en_proceso' del usuario (id, numero, titulo), si tiene una.
+def acciones_en_proceso_de(usuario_id: int, excluir_ticket_id: int | None = None) -> list[dict]:
+    """Acciones 'en_proceso' del usuario (id, numero, titulo), de la más reciente a la más vieja.
 
-    Usada para impedir iniciar una segunda acción en paralelo (una a la vez por
-    usuario) — ver crear_ticket() y cambiar_estado(). `excluir_ticket_id` deja
-    pasar la reanudación de la misma acción que ya está en curso.
+    Informativa: se pueden llevar varias en paralelo. La usan el panel (contador de
+    labores abiertas) y `usuario_tiene_accion_en_proceso` (silenciar recordatorios push
+    mientras el operador está trabajando).
     """
     with _conn() as db:
         q = """SELECT id, numero, titulo FROM tickets
@@ -3544,9 +3605,14 @@ def accion_en_proceso_de(usuario_id: int, excluir_ticket_id: int | None = None) 
         if excluir_ticket_id:
             q += " AND id != ?"
             params.append(excluir_ticket_id)
-        q += " LIMIT 1"
-        row = db.execute(q, params).fetchone()
-        return dict(row) if row else None
+        q += " ORDER BY actualizado_en DESC, id DESC"
+        return [dict(r) for r in db.execute(q, params).fetchall()]
+
+
+def accion_en_proceso_de(usuario_id: int, excluir_ticket_id: int | None = None) -> dict | None:
+    """La acción en curso más reciente del usuario, o None."""
+    acciones = acciones_en_proceso_de(usuario_id, excluir_ticket_id)
+    return acciones[0] if acciones else None
 
 
 def usuario_tiene_accion_en_proceso(usuario_id: int) -> bool:
@@ -3614,6 +3680,8 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                    m.reino    AS mision_reino,
                    m.zona_id  AS mision_zona_id,
                    bt.numero  AS bloqueado_por_numero,
+                   bt.subtipo AS bloqueado_por_subtipo,
+                   uab.nombre AS bloqueado_por_asignado_nombre,
                    tp.numero  AS ticket_padre_numero,
                    tp.titulo  AS ticket_padre_titulo,
                    ucp.nombre AS ticket_padre_solicitante,
@@ -3628,6 +3696,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
             LEFT JOIN usuarios ua  ON ua.id  = t.asignado_a
             LEFT JOIN misiones m   ON m.id   = t.mision_id
             LEFT JOIN tickets  bt  ON bt.id  = t.bloqueado_por
+            LEFT JOIN usuarios uab ON uab.id = bt.asignado_a
             LEFT JOIN tickets  tp  ON tp.id  = t.ticket_padre_id
             LEFT JOIN usuarios ucp ON ucp.id = tp.creado_por
             LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
@@ -3801,16 +3870,9 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                         (ticket_id,),
                     ).fetchone()["n"]
                     return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
-        if nuevo_estado == "en_proceso" and t["tipo"] == "accion" and t["asignado_a"]:
-            # Una sola acción en curso a la vez por usuario — evita dejar acciones
-            # abiertas sin cerrar mientras se empieza otra (ver crear_ticket() para
-            # el mismo gate al crear una acción nueva que arranca directo en_proceso).
-            bloqueante = accion_en_proceso_de(t["asignado_a"], excluir_ticket_id=ticket_id)
-            if bloqueante:
-                return False, (
-                    f"Ya tienes en curso \"{bloqueante['titulo']}\" ({bloqueante['numero']}) — "
-                    "termínala o pausa antes de iniciar otra."
-                )
+        # (Sin gate de "una acción a la vez": ver crear_ticket(). Varias acciones y
+        # varias solicitudes pueden estar en_proceso simultáneamente para el mismo
+        # usuario; cada una acumula su tiempo en su propia corrida.)
         if nuevo_estado == "rechazado" and nivel < 2:
             # El creador puede rechazar una solicitud que espera su revisión
             rechaza_creador = (

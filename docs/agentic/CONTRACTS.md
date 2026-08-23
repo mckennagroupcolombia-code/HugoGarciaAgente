@@ -195,6 +195,34 @@ Cierran directo (sin revisión): acciones, solicitudes auto-asignadas, las cread
 con `ticket_padre_id` (su cierre desbloquea al padre) y los subtipos `compra` / `etiqueta`, cuyo
 checklist ya debe quedar completo.
 
+### Trabajo en paralelo
+
+Un usuario puede tener **varias acciones `en_proceso` y varias solicitudes en resolución al
+mismo tiempo**. Hasta ago-2026 `crear_ticket` y `cambiar_estado` devolvían
+*"Ya tienes en curso … termínala o pausa antes de iniciar otra"* al intentar una segunda
+acción; ese gate se retiró. Cada labor lleva su propia corrida en `ticket_corridas`, así que
+los cronómetros corren en paralelo sin mezclar tiempos. `acciones_en_proceso_de(usuario_id)`
+devuelve la lista completa (informativa); `usuario_tiene_accion_en_proceso` sigue existiendo
+solo para silenciar recordatorios push mientras el operador trabaja.
+
+### Pausar una solicitud para pedir una aclaración
+
+`POST /api/tickets/<id>/pedir-intervencion` — body `titulo` (la pregunta), `asignado_a`,
+`descripcion?`, `paso_id?`, **`subtipo?`**. Con `subtipo="pregunta"` y `asignado_a` = quien creó
+la solicitud, es el caso "necesito que me aclaren algo para poder resolver":
+
+- crea el sub-ticket (tipo `solicitud`, `ticket_padre_id` = el padre) y deja el padre en
+  `pendiente` con `bloqueado_por` = sub-ticket (pausa: no se puede terminar mientras tanto);
+- deja la pregunta como comentario en el hilo del padre (queda en el reporte);
+- **envía WhatsApp al destinatario** vía `tickets_notificaciones.notificar_intervencion_solicitada`
+  ("necesita tu respuesta… la solicitud quedó en pausa"). Antes de ago-2026 esta ruta no
+  notificaba a nadie: el sub-ticket aparecía en el panel del otro usuario sin aviso.
+
+Al resolver el sub-ticket, `cambiar_estado` copia la respuesta al hilo del padre, lo desbloquea
+(`en_proceso`) y avisa por WhatsApp a quien preguntó. Rechaza pedir intervención a uno mismo o
+sobre una solicitud ya pausada. `GET /api/tickets/<id>` y el listado exponen
+`bloqueado_por_subtipo` / `bloqueado_por_asignado_nombre` para pintar "esperando respuesta de X".
+
 ## Empaque / evidencia fotográfica (panel Atención)
 
 Auth: Bearer `CHAT_API_TOKEN` **o** JWT de tickets (operarios con permiso `empaque`).

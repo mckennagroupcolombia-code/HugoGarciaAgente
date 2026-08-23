@@ -195,6 +195,9 @@ interface Ticket {
   etapa_id?: number | null;
   bloqueado_por?: number | null;
   bloqueado_por_numero?: string | null;
+  /** 'pregunta' = aclaración pedida a quien creó la solicitud (pausa hasta que responda). */
+  bloqueado_por_subtipo?: string | null;
+  bloqueado_por_asignado_nombre?: string | null;
   ticket_padre_id?: number | null;
   ticket_padre_numero?: string | null;
   ticket_padre_titulo?: string | null;
@@ -12270,9 +12273,10 @@ function AccionCardOperativa({
     try {
       const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
       if (nuevoEstado === "en_proceso") {
-        // Una acción en curso a la vez por usuario (ver cambiar_estado en
-        // tickets_db.py) — se confirma con el servidor ANTES de arrancar el
-        // timer local, así no queda una corrida optimista huérfana si lo bloquea.
+        // Se pueden llevar varias acciones en curso a la vez (cada una con su
+        // cronómetro). Aun así se confirma el estado con el servidor ANTES de
+        // arrancar el timer local, para no dejar una corrida optimista huérfana
+        // si el PUT falla (permisos, ticket bloqueado por intervención, red).
         try {
           await tapi(`/${ticket.id}/estado`, token, {
             method: "PUT", body: JSON.stringify({ estado: "en_proceso" }),
@@ -13309,6 +13313,11 @@ function SolicitudCard({
   const puedeEnviarChat = !resuelta && puedeVerChat && !ticket.bloqueado_por;
   const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
   const puedeSubirAdjuntos = (esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta;
+  // Quien está resolviendo puede pedirle una aclaración a quien pidió la solicitud:
+  // se crea un sub-ticket que la deja en pausa hasta que llegue la respuesta.
+  const puedePreguntarSolicitante =
+    esAsignado && !supervision && !resuelta && !esIntervencion
+    && !ticket.bloqueado_por && !esCreadoPorMi && !!ticket.creado_por;
 
   // Pasos/checklist
   const [pasos, setPasos] = useState<Paso[]>([]);
@@ -13330,9 +13339,9 @@ function SolicitudCard({
   const [resultadosBusq, setResultadosBusq] = useState<ProductoCatalogo[]>([]);
   const [agregandoCompra, setAgregandoCompra] = useState(false);
 
-  // Intervención (blocker)
+  // Intervención (blocker). `modo: "pregunta"` = aclaración a quien pidió la solicitud.
   const [showIntervencion, setShowIntervencion] = useState(false);
-  const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 });
+  const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0, modo: "" });
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [creandoInter, setCreandoInter] = useState(false);
 
@@ -13851,7 +13860,21 @@ function SolicitudCard({
       descripcion: "",
       paso_ref: `Paso ${paso.orden}: ${paso.descripcion}`,
       paso_id: paso.id,
+      modo: "",
     }));
+  }
+
+  /** Pregunta al solicitante: destinatario fijo y la solicitud queda en pausa. */
+  function abrirPreguntaSolicitante() {
+    void abrirIntervencion();
+    setInterForm({
+      titulo: "",
+      descripcion: "",
+      asignado_a: String(ticket.creado_por),
+      paso_ref: "",
+      paso_id: 0,
+      modo: "pregunta",
+    });
   }
 
   async function resolver() {
@@ -14132,11 +14155,13 @@ function SolicitudCard({
           descripcion: desc,
           asignado_a: Number(interForm.asignado_a),
           paso_id: interForm.paso_id || undefined,
+          subtipo: interForm.modo === "pregunta" ? "pregunta" : undefined,
         }),
       });
       setShowIntervencion(false);
-      setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 });
+      setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0, modo: "" });
       await cargarPasos();
+      await cargarComentarios();
       onChanged();
     } catch (e: any) {
       setMsg(e.message ?? "Error al crear intervencion");
@@ -14813,13 +14838,17 @@ function SolicitudCard({
       {esIntervencion && (
         <div className="rounded-lg border border-accent/60 bg-accent/60  px-3 py-2.5 space-y-1">
           <div className="flex items-center gap-2 text-xs font-bold text-accent">
-            <span>🛑</span>
-            <span>Intervención solicitada</span>
+            <span>{ticket.subtipo === "pregunta" ? "🙋" : "🛑"}</span>
+            <span>{ticket.subtipo === "pregunta" ? "Esperan tu respuesta" : "Intervención solicitada"}</span>
           </div>
           <p className="text-xs text-accent/80  leading-snug">
-            <strong>{ticket.creado_por_nombre ?? "Un compañero"}</strong> necesita tu ayuda
-            para continuar{ticket.ticket_padre_numero ? ` el ticket ${ticket.ticket_padre_numero}` : ""}.
+            <strong>{ticket.creado_por_nombre ?? "Un compañero"}</strong>{" "}
+            {ticket.subtipo === "pregunta"
+              ? "necesita que le aclares esto para poder continuar"
+              : "necesita tu ayuda para continuar"}
+            {ticket.ticket_padre_numero ? ` el ticket ${ticket.ticket_padre_numero}` : ""}.
             {ticket.ticket_padre_titulo ? ` — ${ticket.ticket_padre_titulo}` : ""}
+            {ticket.subtipo === "pregunta" && " Esa solicitud está en pausa hasta que respondas."}
           </p>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
             <p className="text-xs text-accent/70  italic">
@@ -14850,7 +14879,9 @@ function SolicitudCard({
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/50 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Icon name="check" size={15} weight="bold" />
-              {busy ? "Resolviendo…" : "Resolver intervención"}
+              {busy
+                ? "Enviando…"
+                : ticket.subtipo === "pregunta" ? "Enviar respuesta" : "Resolver intervención"}
             </button>
             <button
               type="button"
@@ -14897,7 +14928,10 @@ function SolicitudCard({
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <span>
-              Esperando intervención <strong>{ticket.bloqueado_por_numero}</strong>
+              {ticket.bloqueado_por_subtipo === "pregunta"
+                ? <>En pausa — esperando la respuesta de{" "}
+                    <strong>{ticket.bloqueado_por_asignado_nombre ?? ticket.creado_por_nombre ?? "el solicitante"}</strong></>
+                : <>Esperando intervención <strong>{ticket.bloqueado_por_numero}</strong></>}
             </span>
           </div>
           {onIrAIntervencion && (
@@ -14906,11 +14940,15 @@ function SolicitudCard({
               onClick={() => onIrAIntervencion(ticket.bloqueado_por!)}
               className="w-full rounded-lg border border-accent/60 bg-accent/80  px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/80 transition-colors"
             >
-              Ir a resolver {ticket.bloqueado_por_numero} →
+              {ticket.bloqueado_por_subtipo === "pregunta"
+                ? <>Ver la pregunta ({ticket.bloqueado_por_numero}) →</>
+                : <>Ir a resolver {ticket.bloqueado_por_numero} →</>}
             </button>
           )}
           <p className="text-[10px] text-accent/80">
-            La solicitud se desbloquea cuando el asignado a esa intervención la resuelve.
+            {ticket.bloqueado_por_subtipo === "pregunta"
+              ? "Ya le llegó el aviso por WhatsApp. La solicitud se reactiva sola apenas responda y la respuesta queda en el hilo."
+              : "La solicitud se desbloquea cuando el asignado a esa intervención la resuelve."}
           </p>
         </div>
       )}
@@ -15157,6 +15195,16 @@ function SolicitudCard({
                     e.target.value = "";
                   }}
                 />
+                {puedePreguntarSolicitante && (
+                  <button
+                    type="button"
+                    title={`Pedir una aclaración a ${ticket.creado_por_nombre ?? "quien pidió la solicitud"} — la solicitud queda en pausa hasta que responda`}
+                    onClick={abrirPreguntaSolicitante}
+                    className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
+                  >
+                    🙋 Pedir intervención
+                  </button>
+                )}
                 <div className="flex-1" />
                 <button
                   type="button"
@@ -15167,6 +15215,14 @@ function SolicitudCard({
                   {enviandoChat ? "…" : "Enviar"}
                 </button>
               </div>
+              {puedePreguntarSolicitante && (
+                <p className="text-[10px] text-muted">
+                  Un mensaje queda como reporte en el hilo. Si necesitas que{" "}
+                  {ticket.creado_por_nombre ?? "quien la pidió"} te aclare algo para poder
+                  continuar, usa <strong>Pedir intervención</strong>: le llega un WhatsApp y la
+                  solicitud queda en pausa hasta que responda.
+                </p>
+              )}
             </div>
           ) : (
             <div className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5">
@@ -15558,10 +15614,14 @@ function SolicitudCard({
         <div className="rounded-xl border border-accent/50 bg-accent/30  p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-accent  flex items-center gap-1">
-              🛑 Pedir intervención
-              <InfoTooltip text="Crea una sub-solicitud para otro usuario. Esta solicitud quedará PAUSADA hasta que el otro usuario resuelva su tarea. Cuando termine, la solicitud se reactiva sola y puedes continuar donde quedaste." />
+              {interForm.modo === "pregunta"
+                ? `🙋 Preguntarle a ${ticket.creado_por_nombre ?? "quien pidió la solicitud"}`
+                : "🛑 Pedir intervención"}
+              <InfoTooltip text={interForm.modo === "pregunta"
+                ? "Le llega un WhatsApp avisando que esperas su respuesta para continuar. Esta solicitud queda PAUSADA hasta que responda; cuando lo haga, se reactiva sola y la respuesta aparece en el hilo."
+                : "Crea una sub-solicitud para otro usuario. Esta solicitud quedará PAUSADA hasta que el otro usuario resuelva su tarea. Cuando termine, la solicitud se reactiva sola y puedes continuar donde quedaste."} />
             </span>
-            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-muted hover:text-ink text-xs">✕</button>
+            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0, modo: "" }); }} className="text-muted hover:text-ink text-xs">✕</button>
           </div>
           {interForm.paso_ref && (
             <p className="text-[10px] text-accent/80 bg-accent/50  rounded px-2 py-1">
@@ -15570,27 +15630,38 @@ function SolicitudCard({
           )}
           <ProseInput
             className="quest-input w-full text-sm"
-            placeholder="¿Qué necesita hacer el otro usuario?"
+            placeholder={interForm.modo === "pregunta"
+              ? "¿Qué necesitas que te aclare? Ej: ¿entrego en la sede norte o en la bodega?"
+              : "¿Qué necesita hacer el otro usuario?"}
             value={interForm.titulo}
             onChange={(e) => setInterForm((f) => ({ ...f, titulo: e.target.value }))}
           />
           <ProseTextarea
             className="quest-input w-full text-xs resize-none"
             rows={2}
-            placeholder="Contexto adicional — ¿por qué se necesita esta intervención?"
+            placeholder={interForm.modo === "pregunta"
+              ? "Contexto adicional (opcional) — qué ya intentaste o por qué te frena"
+              : "Contexto adicional — ¿por qué se necesita esta intervención?"}
             value={interForm.descripcion}
             onChange={(e) => setInterForm((f) => ({ ...f, descripcion: e.target.value }))}
           />
-          <select
-            className="quest-input w-full text-sm"
-            value={interForm.asignado_a}
-            onChange={(e) => setInterForm((f) => ({ ...f, asignado_a: e.target.value }))}
-          >
-            <option value="">Selecciona a quién necesitas…</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre}</option>
-            ))}
-          </select>
+          {interForm.modo === "pregunta" ? (
+            <p className="rounded-lg bg-accent/40 px-2 py-1.5 text-[11px] text-accent/90">
+              Se le envía a <strong>{ticket.creado_por_nombre ?? "quien pidió la solicitud"}</strong>,
+              que recibirá un WhatsApp avisando que esperas su respuesta.
+            </p>
+          ) : (
+            <select
+              className="quest-input w-full text-sm"
+              value={interForm.asignado_a}
+              onChange={(e) => setInterForm((f) => ({ ...f, asignado_a: e.target.value }))}
+            >
+              <option value="">Selecciona a quién necesitas…</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>{u.nombre}</option>
+              ))}
+            </select>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
@@ -15598,9 +15669,13 @@ function SolicitudCard({
               onClick={crearIntervencion}
               className="quest-btn-primary px-3 py-1.5 text-xs"
             >
-              {creandoInter ? "Creando…" : "Solicitar intervención — pausar esta solicitud"}
+              {creandoInter
+                ? "Enviando…"
+                : interForm.modo === "pregunta"
+                  ? "Enviar pregunta — pausar esta solicitud"
+                  : "Solicitar intervención — pausar esta solicitud"}
             </button>
-            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-xs text-muted hover:text-ink">Cancelar</button>
+            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0, modo: "" }); }} className="text-xs text-muted hover:text-ink">Cancelar</button>
           </div>
         </div>
       )}
@@ -24701,10 +24776,11 @@ function AccionesView({
     try {
       const resume = await cargarEstadoReanudacion(t.id, token);
       if (t.estado === "pendiente") {
-        // El PUT /estado es el gate autoritativo ("una acción en curso a la vez",
-        // cambiar_estado en tickets_db.py) — si lo rechaza, debe propagar al catch
-        // de abajo y NO abrir el wizard. /corridas/iniciar solo arranca el
-        // cronómetro; si falla por algo transitorio, el wizard sincroniza al abrir.
+        // El PUT /estado es el gate autoritativo (permisos, bloqueos por
+        // intervención) — si lo rechaza, debe propagar al catch de abajo y NO abrir
+        // el wizard. Ya no limita a una acción en curso: se pueden llevar varias en
+        // paralelo. /corridas/iniciar solo arranca el cronómetro; si falla por algo
+        // transitorio, el wizard sincroniza al abrir.
         const segPrev = resume.ticket.corrida?.segundos_acumulados ?? resume.ticket.segundos_trabajo ?? 0;
         await tapi(`/${t.id}/estado`, token, {
           method: "PUT",
@@ -27016,15 +27092,18 @@ function ResolverActividadChat({
   const [terminando, setTerminando] = useState(false);
   const [error, setError] = useState("");
   const [showIntervencion, setShowIntervencion] = useState(false);
-  const [modoIntervencion, setModoIntervencion] = useState<"pausar" | "colaborar">("pausar");
+  const [modoIntervencion, setModoIntervencion] = useState<"preguntar" | "pausar" | "colaborar">("preguntar");
   const [participantes, setParticipantes] = useState<{ usuario_id: number; usuario_nombre: string; rol: string }[]>([]);
   const [usuarios, setUsuarios] = useState<{ id: number; nombre: string }[]>([]);
   const [interUsuario, setInterUsuario] = useState("");
   const [interTitulo, setInterTitulo] = useState("");
   const [creandoInter, setCreandoInter] = useState(false);
+  // Id de quien pidió la solicitud — destinatario por defecto de las aclaraciones
+  const [solicitanteId, setSolicitanteId] = useState<number | null>(null);
   // Bloqueo por intervención pendiente
   const [bloqueadoPorNumero, setBloqueadoPorNumero] = useState<string | null>(null);
   const [bloqueadoPorNombre, setBloqueadoPorNombre] = useState<string | null>(null);
+  const [bloqueadoEsPregunta, setBloqueadoEsPregunta] = useState(false);
   // Contexto del ticket padre (cuando este es un sub-ticket de intervención)
   const [padreInfo, setPadreInfo] = useState<{ titulo: string; numero: string; notasPadre: Nota[] } | null>(null);
   const [showPadre, setShowPadre] = useState(false);
@@ -27062,9 +27141,12 @@ function ResolverActividadChat({
         type AdjRow = { id: number; nombre_archivo: string; mime: string | null; nombre_original: string; creado_en: string; creado_por_nombre?: string };
         type TktRow = {
           descripcion?: string;
+          creado_por?: number | null;
           participantes?: { usuario_id: number; usuario_nombre: string; rol: string }[];
           bloqueado_por?: number | null;
           bloqueado_por_numero?: string | null;
+          bloqueado_por_subtipo?: string | null;
+          bloqueado_por_asignado_nombre?: string | null;
           asignado_a_nombre?: string | null;
           ticket_padre_id?: number | null;
           ticket_padre_titulo?: string | null;
@@ -27076,18 +27158,17 @@ function ResolverActividadChat({
         const adjs: AdjRow[]        = resAdjs.ok  ? await resAdjs.json() : [];
 
         if (tkt.participantes) setParticipantes(tkt.participantes);
+        if (tkt.creado_por) setSolicitanteId(Number(tkt.creado_por));
 
         // Detectar bloqueo por intervención pendiente
         if (tkt.bloqueado_por) {
           setBloqueadoPorNumero(tkt.bloqueado_por_numero ?? null);
-          // Obtener el nombre del asignado del sub-ticket (bloqueador)
-          try {
-            const resBloq = await fetch(`/api/tickets/${tkt.bloqueado_por}`, { headers: hdrs });
-            if (resBloq.ok) {
-              const bloqTkt: { asignado_a_nombre?: string } = await resBloq.json();
-              setBloqueadoPorNombre(bloqTkt.asignado_a_nombre ?? null);
-            }
-          } catch { /* silencioso */ }
+          setBloqueadoPorNombre(tkt.bloqueado_por_asignado_nombre ?? null);
+          setBloqueadoEsPregunta((tkt.bloqueado_por_subtipo ?? "") === "pregunta");
+        } else {
+          setBloqueadoPorNumero(null);
+          setBloqueadoPorNombre(null);
+          setBloqueadoEsPregunta(false);
         }
 
         // Si este ticket ES un sub-ticket (intervención), cargar el hilo del ticket padre
@@ -27279,10 +27360,40 @@ function ResolverActividadChat({
   }
 
   async function crearIntervencion() {
-    if (!interUsuario) return;
+    // En modo "preguntar" el destinatario es siempre quien pidió la solicitud
+    const destino = modoIntervencion === "preguntar" ? solicitanteId : Number(interUsuario);
+    if (!destino) return;
     setCreandoInter(true);
     try {
-      if (modoIntervencion === "colaborar") {
+      if (modoIntervencion === "preguntar") {
+        const pregunta = interTitulo.trim();
+        if (!pregunta) return;
+        const padre = await tapi(`/${solicitud.id}/pedir-intervencion`, token, {
+          method: "POST",
+          body: JSON.stringify({
+            titulo: pregunta,
+            descripcion: "",
+            asignado_a: destino,
+            subtipo: "pregunta",
+          }),
+        });
+        setShowIntervencion(false);
+        setInterTitulo("");
+        setNotas(prev => [...prev, {
+          id: ++notaIdRef.current,
+          texto: `⏸ Solicitud en pausa — se le preguntó a ${solicitud.creado_por_nombre ?? "el solicitante"}:\n\n${pregunta}`,
+          autorNombre: "Sistema",
+          esSolicitante: false,
+          tipo: "sistema",
+        }]);
+        setBloqueadoEsPregunta(true);
+        setBloqueadoPorNumero(padre?.bloqueado_por_numero ?? "—");
+        setBloqueadoPorNombre(padre?.bloqueado_por_asignado_nombre ?? solicitud.creado_por_nombre ?? null);
+        setError(
+          `Pregunta enviada a ${solicitud.creado_por_nombre ?? "el solicitante"}. `
+          + "La solicitud queda en pausa hasta que responda.",
+        );
+      } else if (modoIntervencion === "colaborar") {
         // Agregar como participante/colaborador sin pausar
         await tapi(`/${solicitud.id}/participantes`, token, {
           method: "POST",
@@ -27355,9 +27466,12 @@ function ResolverActividadChat({
   const hayContenido = notas.length > 0;
 
   if (showIntervencion) {
-    const canSubmit = modoIntervencion === "colaborar"
-      ? !!interUsuario
-      : !!interTitulo.trim() && !!interUsuario;
+    const puedePreguntarSolicitante = !!solicitanteId && solicitanteId !== currentUser?.id;
+    const canSubmit = modoIntervencion === "preguntar"
+      ? !!interTitulo.trim() && puedePreguntarSolicitante
+      : modoIntervencion === "colaborar"
+        ? !!interUsuario
+        : !!interTitulo.trim() && !!interUsuario;
     return (
       <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
         <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
@@ -27368,6 +27482,23 @@ function ResolverActividadChat({
         <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
           {/* Selector de modo */}
           <div className="grid grid-cols-2 gap-2">
+            {puedePreguntarSolicitante && (
+              <button type="button"
+                onClick={() => setModoIntervencion("preguntar")}
+                className={`col-span-2 rounded-2xl border-2 px-4 py-3 text-left transition ${
+                  modoIntervencion === "preguntar"
+                    ? "border-accent/40 bg-accent/5"
+                    : "border-border bg-surface hover:border-accent/50"
+                }`}>
+                <p className="text-sm font-extrabold text-ink">
+                  ❓ Preguntarle a {solicitud.creado_por_nombre || "quien la pidió"}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted leading-snug">
+                  Le llega un WhatsApp avisando que esperas su respuesta. La solicitud queda
+                  en pausa y se reactiva sola cuando responda.
+                </p>
+              </button>
+            )}
             <button type="button"
               onClick={() => setModoIntervencion("pausar")}
               className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
@@ -27390,30 +27521,49 @@ function ResolverActividadChat({
             </button>
           </div>
 
-          {/* Compañero */}
-          <div className="space-y-2">
-            <label className="text-xs font-extrabold uppercase tracking-wide text-muted">¿A quién?</label>
-            {usuarios.length === 0
-              ? <button type="button" onClick={cargarUsuarios} className="text-sm text-accent font-bold">Cargar compañeros…</button>
-              : <select value={interUsuario} onChange={e => setInterUsuario(e.target.value)}
-                  className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-accent transition">
-                  <option value="">Elegí un compañero</option>
-                  {usuarios.filter(u => u.id !== currentUser?.id).map(u => (
-                    <option key={u.id} value={u.id}>{u.nombre}</option>
-                  ))}
-                </select>
-            }
-          </div>
+          {/* Compañero — en modo pregunta el destinatario es fijo: quien pidió la solicitud */}
+          {modoIntervencion === "preguntar" ? (
+            <div className="rounded-xl border-2 border-border bg-surface px-4 py-3">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Le preguntas a</p>
+              <p className="mt-0.5 text-sm font-bold text-ink">
+                {solicitud.creado_por_nombre || "Quien pidió la solicitud"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-xs font-extrabold uppercase tracking-wide text-muted">¿A quién?</label>
+              {usuarios.length === 0
+                ? <button type="button" onClick={cargarUsuarios} className="text-sm text-accent font-bold">Cargar compañeros…</button>
+                : <select value={interUsuario} onChange={e => setInterUsuario(e.target.value)}
+                    className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-accent transition">
+                    <option value="">Elegí un compañero</option>
+                    {usuarios.filter(u => u.id !== currentUser?.id).map(u => (
+                      <option key={u.id} value={u.id}>{u.nombre}</option>
+                    ))}
+                  </select>
+              }
+            </div>
+          )}
 
-          {/* Título/motivo — solo en modo pausar, opcional en colaborar */}
+          {/* Título/motivo — obligatorio al preguntar o delegar, opcional en colaborar */}
           <div className="space-y-2">
             <label className="text-xs font-extrabold uppercase tracking-wide text-muted">
-              {modoIntervencion === "pausar" ? "¿Qué necesitás que haga? *" : "Contexto para el compañero (opcional)"}
+              {modoIntervencion === "preguntar"
+                ? "¿Qué necesitas que te aclare? *"
+                : modoIntervencion === "pausar"
+                  ? "¿Qué necesitás que haga? *"
+                  : "Contexto para el compañero (opcional)"}
             </label>
             <input
               value={interTitulo}
               onChange={e => setInterTitulo(e.target.value)}
-              placeholder={modoIntervencion === "pausar" ? "Ej: Preparar el informe de inventario" : "Ej: Revisá la sección de facturación"}
+              placeholder={
+                modoIntervencion === "preguntar"
+                  ? "Ej: ¿Entrego en la sede norte o en la bodega?"
+                  : modoIntervencion === "pausar"
+                    ? "Ej: Preparar el informe de inventario"
+                    : "Ej: Revisá la sección de facturación"
+              }
               className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition"
             />
           </div>
@@ -27428,9 +27578,11 @@ function ResolverActividadChat({
             }`}>
             {creandoInter
               ? "Enviando…"
-              : modoIntervencion === "colaborar"
-                ? "👥 Invitar a colaborar"
-                : "🛑 Crear sub-ticket y pausar"}
+              : modoIntervencion === "preguntar"
+                ? "❓ Enviar pregunta y pausar"
+                : modoIntervencion === "colaborar"
+                  ? "👥 Invitar a colaborar"
+                  : "🛑 Crear sub-ticket y pausar"}
           </button>
         </div>
       </div>
@@ -27479,10 +27631,17 @@ function ResolverActividadChat({
             </div>
           )}
           <button type="button"
-            onClick={() => { setShowIntervencion(true); void cargarUsuarios(); }}
-            className="shrink-0 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
-            title="Pedir intervención de un compañero">
-            🤝 Intervenir
+            onClick={() => {
+              setModoIntervencion(
+                solicitanteId && solicitanteId !== currentUser?.id ? "preguntar" : "pausar",
+              );
+              setShowIntervencion(true);
+              void cargarUsuarios();
+            }}
+            disabled={!!bloqueadoPorNumero}
+            className="shrink-0 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition disabled:opacity-40"
+            title="Preguntarle al solicitante o pedir intervención de un compañero">
+            🙋 Pedir ayuda
           </button>
         </div>
       </div>
@@ -27495,9 +27654,13 @@ function ResolverActividadChat({
           <div className="rounded-2xl border-2 border-accent/70 bg-accent/5  px-4 py-3 flex items-start gap-3">
             <span className="text-xl shrink-0">⏳</span>
             <div>
-              <p className="text-xs font-extrabold text-accent  uppercase tracking-wide">Esperando intervención</p>
+              <p className="text-xs font-extrabold text-accent  uppercase tracking-wide">
+                {bloqueadoEsPregunta ? "En pausa — esperando respuesta" : "Esperando intervención"}
+              </p>
               <p className="text-sm text-accent  leading-snug mt-0.5">
-                Sub-ticket <strong>{bloqueadoPorNumero}</strong>{bloqueadoPorNombre ? ` asignado a ${bloqueadoPorNombre}` : ""} debe resolverse antes de poder marcar esta solicitud como terminada. Puedes seguir comunicándote en el hilo.
+                {bloqueadoEsPregunta
+                  ? <>Le preguntaste a <strong>{bloqueadoPorNombre ?? solicitud.creado_por_nombre ?? "el solicitante"}</strong> y ya le llegó el aviso por WhatsApp. La solicitud se reactiva sola cuando responda; mientras tanto no se puede marcar como terminada.</>
+                  : <>Sub-ticket <strong>{bloqueadoPorNumero}</strong>{bloqueadoPorNombre ? ` asignado a ${bloqueadoPorNombre}` : ""} debe resolverse antes de poder marcar esta solicitud como terminada. Puedes seguir comunicándote en el hilo.</>}
               </p>
             </div>
           </div>
@@ -27672,12 +27835,17 @@ function ResolverActividadChat({
           className="w-full rounded-2xl bg-accent/50 hover:bg-accent/40 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
           {terminando ? "Enviando para revisión…"
             : notas.some(n => n.guardando) ? "Guardando…"
-            : bloqueadoPorNumero ? `⏳ Esperando intervención ${bloqueadoPorNumero}`
+            : bloqueadoPorNumero
+              ? (bloqueadoEsPregunta
+                  ? `⏳ En pausa — esperando respuesta de ${bloqueadoPorNombre ?? solicitud.creado_por_nombre ?? "el solicitante"}`
+                  : `⏳ Esperando intervención ${bloqueadoPorNumero}`)
             : "✅ Listo — enviar para confirmación"}
         </button>
         <p className="text-center text-[10px] text-gray-400 dark:text-white/30 mt-1.5">
           {bloqueadoPorNumero
-            ? "Primero debe resolverse la intervención pendiente."
+            ? (bloqueadoEsPregunta
+                ? "La solicitud se reanuda apenas responda tu pregunta."
+                : "Primero debe resolverse la intervención pendiente.")
             : hayContenido ? "El solicitante recibirá aviso para confirmar."
             : "Podés marcar sin notas — el solicitante deberá confirmar."}
         </p>

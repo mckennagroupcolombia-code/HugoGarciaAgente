@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
-import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
+import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
 import MobileHub, { useMobileLayout } from "./components/MobileHub";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
@@ -155,7 +155,13 @@ function PanelRouterInner() {
   }
 }
 
-function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser, apiToken?: string | null) => void }) {
+function AppLoginView({
+  onLogin,
+  bootstrapUntil,
+}: {
+  onLogin: (token: string, user: TicketsUser, apiToken?: string | null) => void;
+  bootstrapUntil: { current: number };
+}) {
   const [authError, setAuthError] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     return decodeURIComponent(p.get("auth_error") || "");
@@ -168,10 +174,15 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
     fetch("/api/tickets/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((u) => {
         if (u?.id) {
+          bootstrapUntil.current = Date.now() + OAUTH_BOOTSTRAP_MS;
           onLogin(token, u as TicketsUser, u.api_token ?? null);
+          mckennaAndroidBridge()?.clearWebHistory?.();
         } else {
           setAuthError("Sesión inválida. Intenta de nuevo.");
           setLoading(false);
@@ -181,7 +192,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
         setAuthError("Error al verificar sesión. Intenta de nuevo.");
         setLoading(false);
       });
-  }, [onLogin]);
+  }, [onLogin, bootstrapUntil]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -198,8 +209,11 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
       setAuthError(decodeURIComponent(err));
       return;
     }
-    if (token) consumeToken(token);
-  }, [consumeToken]);
+    if (token) {
+      bootstrapUntil.current = Date.now() + OAUTH_BOOTSTRAP_MS;
+      consumeToken(token);
+    }
+  }, [consumeToken, bootstrapUntil]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4">
@@ -269,18 +283,27 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   return Boolean(p[panel]);
 }
 
+const OAUTH_BOOTSTRAP_MS = 4000;
+
+function readUrlAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("_token");
+}
+
 async function refreshTicketsSession(
   token: string,
   setAuth: (token: string, user: TicketsUser, apiToken?: string | null) => void,
   clear: () => void,
+  opts?: { bootstrapUntil?: { current: number } },
 ) {
+  if (opts?.bootstrapUntil && Date.now() < opts.bootstrapUntil.current) return;
   try {
     const res = await fetch(`/api/tickets/auth/me?_t=${Date.now()}`, {
       headers: { Authorization: `Bearer ${token}`, Pragma: "no-cache" },
       cache: "no-store",
     });
     if (!res.ok) {
-      clear();
+      if (res.status === 401) clear();
       return;
     }
     const u = await res.json();
@@ -296,12 +319,14 @@ async function refreshTicketsSession(
 }
 
 export default function App() {
-  const { user, token, setAuth, clear } = useTicketsAuth();
+  const { user, token, setAuth, clear, _hasHydrated: authHydrated } = useTicketsAuth();
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const hasHydrated = useAppStore((s) => s._hasHydrated);
   const lastAppliedPrefs = useRef<string | null>(null);
+  const bootstrapUntil = useRef(0);
+  const pendingUrlToken = useRef(readUrlAuthToken());
   const isMobile = useMobileLayout();
   const mobileShell = useAppStore((s) => s.mobileShell);
   const setMobileShell = useAppStore((s) => s.setMobileShell);
@@ -315,6 +340,21 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.remove("mck-apk");
+  }, []);
+
+  useEffect(() => {
+    if (useTicketsAuth.persist.hasHydrated()) {
+      ensureTicketsAuthHydrated();
+      return;
+    }
+    const unsub = useTicketsAuth.persist.onFinishHydration(() => {
+      ensureTicketsAuthHydrated();
+    });
+    const fallback = window.setTimeout(() => ensureTicketsAuthHydrated(), 600);
+    return () => {
+      unsub();
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   useEffect(() => {
@@ -376,12 +416,29 @@ export default function App() {
     resetAppNavHistory();
   }, [user, token, hasHydrated]);
 
+  useEffect(() => {
+    if (!authHydrated) return;
+    if (token && user) pendingUrlToken.current = null;
+  }, [authHydrated, token, user]);
+
   // Revalidar sesión al abrir y al volver a la app (evita user.id obsoleto en filtros del móvil)
   useEffect(() => {
-    if (!token) return;
-    void refreshTicketsSession(token, setAuth, clear);
-    return onPanelResume(() => { void refreshTicketsSession(token, setAuth, clear); });
-  }, [token, setAuth, clear]);
+    if (!token || !authHydrated) return;
+    if (pendingUrlToken.current) return;
+    void refreshTicketsSession(token, setAuth, clear, { bootstrapUntil });
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefresh = () => {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        void refreshTicketsSession(token, setAuth, clear, { bootstrapUntil });
+      }, 900);
+    };
+    const unsubResume = onPanelResume(debouncedRefresh);
+    return () => {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      unsubResume();
+    };
+  }, [token, authHydrated, setAuth, clear]);
 
   // Centro de Mando quedó integrado en Hugo (misma ruta de panel)
   useEffect(() => {
@@ -397,12 +454,26 @@ export default function App() {
     }
   }, [user, panel, setPanel, hasHydrated]);
 
-  if (!user || !token) {
+  if (!authHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    );
+  }
+
+  const needsLogin = !user || !token;
+
+  if (needsLogin) {
     return (
       <AppLoginView
+        bootstrapUntil={bootstrapUntil}
         onLogin={(t, u, apiToken) => {
+          pendingUrlToken.current = null;
+          bootstrapUntil.current = Date.now() + OAUTH_BOOTSTRAP_MS;
           setAuth(t, u, apiToken);
           if (apiToken) mckennaAndroidBridge()?.saveApiToken?.(apiToken);
+          mckennaAndroidBridge()?.clearWebHistory?.();
           void waitForAppHydration().then(() => {
             const current = useAppStore.getState().panel;
             if (!puedeVerPanel(u, current)) {

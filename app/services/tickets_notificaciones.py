@@ -196,6 +196,15 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
                     p = _ticket_row(db, int(t["ticket_padre_id"]))
                     if p:
                         texto += f" Puedes seguir con {_titulo_corto(p.get('titulo') or 'pendiente', 40)}."
+            elif t.get("ticket_padre_id"):
+                # Intervención/pregunta resuelta: el que espera es quien la pidió
+                p = _ticket_row(db, int(t["ticket_padre_id"])) or {}
+                padre_titulo = _titulo_corto(p.get("titulo") or "tu solicitud", 40)
+                verbo = "respondió tu pregunta" if subtipo == "pregunta" else "resolvió la intervención"
+                texto = (
+                    f"{resolvio} {verbo}: {titulo}. "
+                    f"«{padre_titulo}» se reactivó, puedes continuar."
+                )
             else:
                 texto = f"{resolvio} resolvió tu solicitud: {titulo}"
             _programar(creador, texto)
@@ -214,6 +223,46 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
                         f"{_titulo_corto(padre.get('titulo') or 'pendiente', 40)}."
                     )
                     _programar(uid, texto)
+
+
+def notificar_intervencion_solicitada(intervencion_id: int) -> None:
+    """Avisa a quien debe responder que una solicitud quedó PAUSADA esperándolo.
+
+    `intervencion_id` es el sub-ticket creado por `pedir_intervencion`. Si el
+    destinatario es quien pidió la solicitud original (caso `subtipo='pregunta'`),
+    el texto lo dice explícitamente: están esperando su respuesta para continuar.
+    """
+    with _conn_ctx() as db:
+        t = _ticket_row(db, intervencion_id)
+        if not t or not t.get("ticket_padre_id"):
+            return
+        destino = t.get("asignado_a")
+        if not destino or destino == t.get("creado_por"):
+            return
+        padre = _ticket_row(db, int(t["ticket_padre_id"])) or {}
+        quien = _primer_nombre(_nombre_usuario(db, t.get("creado_por")))
+        padre_titulo = _titulo_corto(padre.get("titulo") or "una solicitud", 48)
+        detalle = _titulo_corto(t.get("titulo") or "", 120)
+        es_pregunta = (t.get("subtipo") or "").strip() == "pregunta"
+        es_solicitante = padre.get("creado_por") == destino
+
+        if es_pregunta and es_solicitante:
+            texto = (
+                f"{quien} está atendiendo tu solicitud «{padre_titulo}» y necesita tu "
+                f"respuesta para continuar:\n\n“{detalle}”\n\n"
+                f"La solicitud quedó en pausa hasta que respondas en el panel."
+            )
+        elif es_pregunta:
+            texto = (
+                f"{quien} necesita tu respuesta para continuar con «{padre_titulo}»:\n\n"
+                f"“{detalle}”\n\nEsa solicitud quedó en pausa hasta que respondas."
+            )
+        else:
+            texto = (
+                f"{quien} necesita tu intervención para continuar «{padre_titulo}»: "
+                f"{detalle}. Esa solicitud quedó en pausa hasta que la resuelvas."
+            )
+    _programar(destino, texto)
 
 
 def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:

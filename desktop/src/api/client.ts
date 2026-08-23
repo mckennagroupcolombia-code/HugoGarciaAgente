@@ -61,9 +61,12 @@ export function alternateMutatingApiUrl(
   return null;
 }
 
-/** Bearer para /api/* del panel: admins pueden usar CHAT_API_TOKEN; operarios usan JWT de tickets. */
-function panelBearerToken(): string | null {
+/** Bearer para /api/* del panel: JWT en rutas tickets; CHAT_API_TOKEN en el resto (admins). */
+function panelBearerToken(path: string): string | null {
   const tickets = useTicketsAuth.getState();
+  if (path.startsWith("/api/tickets/")) {
+    return tickets.token || null;
+  }
   return tickets.apiToken || tickets.token || useAuthStore.getState().token || null;
 }
 
@@ -77,7 +80,7 @@ async function request<T>(
   path: string,
   opts: RequestInit = {},
 ): Promise<T> {
-  const token = panelBearerToken();
+  const token = panelBearerToken(path);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -136,7 +139,20 @@ async function request<T>(
 
   if (res.status === 401) {
     const tickets = useTicketsAuth.getState();
-    if (path.startsWith("/api/tickets/")) {
+    const body401 = await res.clone().json().catch(() => ({}));
+    const errMsg = String((body401 as { error?: string }).error ?? "").toLowerCase();
+    const invalidSession =
+      errMsg.includes("sesión") ||
+      errMsg.includes("sesion") ||
+      errMsg.includes("expirada") ||
+      errMsg.includes("inválida") ||
+      errMsg.includes("invalida");
+    if (
+      path.startsWith("/api/tickets/") &&
+      tickets.token &&
+      token === tickets.token &&
+      invalidSession
+    ) {
       tickets.clear();
     } else if (!tickets.token) {
       // Login legacy solo con CHAT_API_TOKEN en authStore
@@ -217,7 +233,7 @@ export const api = {
     form: FormData,
     options?: { timeoutMs?: number },
   ): Promise<T> => {
-    const token = panelBearerToken();
+    const token = panelBearerToken(path);
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     let url = resolvePanelApiUrl(path, "POST");
     const headers: Record<string, string> = {

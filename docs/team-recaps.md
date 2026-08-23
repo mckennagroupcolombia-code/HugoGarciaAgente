@@ -1,3 +1,12 @@
+### 2026-08-23 10:42 - Guardar repositorio en GitHub
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - Copia en GitHub del trabajo local: `https://github.com/mckennagroupcolombia-code/HugoGarciaAgente` (rama `cursor/wa-metricas-panel`).
+  - Panel Android: la sesión OAuth no se pisa con localStorage viejo; el Bearer de tickets va solo a `/api/tickets/*`.
+  - Tickets: se puede pedir aclaración al solicitante (pausa hasta que responda) y llevar varias acciones en curso a la vez.
+- **Archivos Modificados:** `App.tsx`, `client.ts`, `ticketsAuth.ts`, `TicketsPanel.tsx`, `tickets_db.py`, `tickets_notificaciones.py`, `routes_tickets.py`, `CONTRACTS.md`, tests de tickets
+
 ### 2026-08-22 13:39 - Inicio: Acciones debajo de la TRM
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Mejora
