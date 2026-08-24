@@ -24,6 +24,21 @@ WEB_DESCUENTO_VS_MELI = float(os.getenv("MELI_COMMISSION_WEB", "0.10"))
 MELI_COMMISSION = WEB_DESCUENTO_VS_MELI  # alias histórico (panel / docs)
 
 _TARIFAS_PATH = Path(__file__).resolve().parents[1] / "data" / "tarifas_interrapidisimo.json"
+_DESCUENTOS_WEB_SKU_PATH = Path(__file__).resolve().parents[1] / "data" / "descuentos_web_por_sku.json"
+
+
+def _descuento_web_para_sku(sku: str) -> float:
+    """Descuento web sobre la lista Siigo para un SKU puntual, si tiene una
+    excepción registrada (ej. líneas donde MeLi ya publica con un descuento
+    propio distinto al 10% general); si no, el descuento global."""
+    try:
+        overrides = json.loads(_DESCUENTOS_WEB_SKU_PATH.read_text(encoding="utf-8"))
+        valor = overrides.get((sku or "").strip())
+        if valor is not None:
+            return float(valor)
+    except Exception:
+        pass
+    return WEB_DESCUENTO_VS_MELI
 
 DOCUMENTACION_PRECIOS = {
     "titulo": "Prioridad y lógica de precios por canal",
@@ -148,9 +163,10 @@ def resolver_precios_multicanal(
 
     envio_ref = envio_estimado_por_sku(sku)
     es_combo = es_combo_multipack(sku, nombre)
-    web_producto = int(round(referencia * (1 - MELI_COMMISSION)))
+    descuento_web = _descuento_web_para_sku(sku)
+    web_producto = int(round(referencia * (1 - descuento_web)))
     ahorro_web = referencia - web_producto
-    pct = int(round(MELI_COMMISSION * 100))
+    pct = int(round(descuento_web * 100))
 
     meli = {
         "prioridad": 1,

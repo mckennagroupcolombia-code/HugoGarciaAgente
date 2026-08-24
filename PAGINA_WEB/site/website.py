@@ -727,14 +727,31 @@ def _elegir_item_por_identidad(cands: list[dict], nombre: str) -> dict | None:
     return pool[0]
 
 
+def _elegir_item_por_sku_exacto(cands: list[dict]) -> dict | None:
+    """SKU SIIGO idéntico al SELLER_SKU de MeLi ya es identidad suficiente (los
+    códigos "C-" son únicos por producto) — no exigir además que el título MeLi
+    (a menudo con palabras de marketing/talla que no están en el nombre SIIGO)
+    coincida token a token, ver _identidades_compatibles."""
+    if not cands:
+        return None
+    activos = [it for it in cands if _item_meli_activo(it)]
+    pool = activos if activos else cands
+    ids = {it.get("id") for it in pool}
+    if len(ids) > 1:
+        if len(activos) == 1:
+            return activos[0]
+        return None
+    return pool[0]
+
+
 def _meli_item_para_combo(code: str, by_sku: dict, by_compact: dict, nombre: str = "") -> tuple[dict | None, str]:
-    """SKU exacto o alias compacto, solo si el título MeLi es el mismo producto."""
+    """SKU exacto (identidad por sí sola) o alias compacto (requiere título compatible)."""
     u = (code or "").strip().upper()
     if not u:
         return None, ""
     exact = list(by_sku.get(u) or [])
     if exact:
-        item = _elegir_item_por_identidad(exact, nombre)
+        item = _elegir_item_por_sku_exacto(exact)
         return (item, "sku") if item else (None, "")
     ck = _compact_sku_for_photo(u)
     cands = list(by_compact.get(ck) or [])
