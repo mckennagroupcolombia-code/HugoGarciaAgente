@@ -1596,3 +1596,18 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-23) no es el último día del mes.
+[cursor/wa-metricas-panel dd37a0b] Auto-commit: actualizacion diaria 2026-08-23 23:00
+ 43 files changed, 6156 insertions(+), 770 deletions(-)
+ create mode 100644 desktop/src/lib/capturaCompetenciaMeli.ts
+ create mode 100644 importaciones_productos/BO16917 codigos siigo.xml
+ create mode 100644 importaciones_productos/FE38029 codigos siigo.xml
+ create mode 100644 importaciones_productos/FEE102832 codigos siigo.xml
+ create mode 100644 importaciones_productos/GQ10434 codigos siigo.xml
+ create mode 100644 importaciones_productos/PYLF3838 codigos siigo.xml
+ create mode 100644 reportes/Astroselling_codigo_no_vinculado_2026-01-01_2026-08-23.json
+ create mode 100644 reportes/Astroselling_codigo_no_vinculado_2026-01-01_2026-08-23.pdf
+ create mode 100644 reportes/_cache_meli_ordenes.json
+ create mode 100644 reportes/_cache_siigo_ids.json
+ create mode 100644 reportes/_generar_codigo_no_vinculado.py
+ create mode 100644 uploads/tickets/bf9499b6bf6040b39a8df80cafc4a622.png
+[2026-08-23 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-23 23:00'
