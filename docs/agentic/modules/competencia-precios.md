@@ -1,9 +1,9 @@
-# Module: Competencia a ojo (MeLi)
+# Module: Competencia MeLi (pantallazo)
 
 ## Proposito
 
-Ranking de **más vendidos McKenna** + comparación **manual** de precios: el operador
-abre el listado de Mercado Libre **en su navegador**, ve el precio y lo anota en el panel.
+Ranking de **más vendidos McKenna** + reporte de competencia por **pantallazo**
+del listado que el operador abre en su navegador.
 
 **No** scraping, **no** `/sites/MCO/search`, **no** GET de ítems ajenos.
 
@@ -11,20 +11,25 @@ abre el listado de Mercado Libre **en su navegador**, ve el precio y lo anota en
 
 - `app/tools/analisis_competencia_precios.py`
 - `desktop/src/components/CompetenciaPreciosPanel.tsx`
+- `desktop/src/lib/capturaCompetenciaMeli.ts`
 - `app/data/analisis_competencia_precios.json` — ranking propio
-- `app/data/competencia_observaciones_manual.json` — precios anotados a ojo
+- `app/data/competencia_observaciones_manual.json` — precios (ojo o visión)
+- `app/data/competencia_reportes_captura.json` — último reporte por item
 
 ## Flujo
 
 1. «Actualizar más vendidos» → órdenes pagadas + nuestros `/items`.
-2. En cada producto, «Buscar en MeLi (tu navegador)» abre `listado.mercadolibre.com.co/...` (pestaña nueva).
-3. El operador anota precio (y opcional vendedor/link). Se guarda en JSON local.
-4. El veredicto (más caros / similares / más baratos) se calcula contra esas anotaciones.
+2. «Buscar en MeLi y armar reporte» abre `listado.mercadolibre.com.co/...` y pide
+   capturar esa pestaña (o Ctrl+V / subir imagen).
+3. Gemini Flash lee **solo esa imagen** y arma el reporte (precios, vendedor, veredicto).
+4. Esos precios se guardan como observaciones `fuente=captura_vision`.
+5. Sigue existiendo el formulario para anotar un precio a mano.
 
 ## Invariantes
 
 - El servidor no descarga listados ni publicaciones ajenas.
 - Un permalink solo se guarda si es `mercadolibre.com.co`; no se visita.
+- Cada clic de reporte = 1 llamada Gemini (pasa por `llm_budget`).
 - No WhatsApp automático de competencia.
 
 ## Validar

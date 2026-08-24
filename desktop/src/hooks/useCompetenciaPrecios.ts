@@ -10,6 +10,7 @@ export interface ObservacionManual {
   permalink?: string;
   notas?: string;
   visto_en?: string;
+  fuente?: string;
 }
 
 export type VeredictoCompetencia =
@@ -17,6 +18,29 @@ export type VeredictoCompetencia =
   | "mas_barato"
   | "similar"
   | "sin_competencia";
+
+export interface ListadoCaptura {
+  titulo: string;
+  precio: number;
+  vendedor?: string;
+  permalink?: string;
+  vendidos?: number | null;
+  envio_gratis?: boolean;
+  delta_pct?: number | null;
+}
+
+export interface ReporteCaptura {
+  item_id: string;
+  generado_en?: string;
+  nuestro_precio?: number;
+  n_vistos?: number;
+  n_comparables?: number;
+  min_precio?: number | null;
+  veredicto?: VeredictoCompetencia;
+  delta_pct_vs_min?: number | null;
+  resumen?: string;
+  listados?: ListadoCaptura[];
+}
 
 export interface ProductoCompetencia {
   item_id: string;
@@ -32,6 +56,7 @@ export interface ProductoCompetencia {
   delta_pct_vs_min?: number | null;
   n_competidores: number;
   observaciones_manual?: ObservacionManual[];
+  reporte_captura?: ReporteCaptura | null;
 }
 
 export interface ResumenCompetencia {
@@ -95,6 +120,33 @@ export function useGuardarObservacionCompetencia() {
       permalink?: string;
       notas?: string;
     }) => api.post<AnalisisCompetencia>("/api/meli/competencia-precios/observacion", body),
+    onSuccess: (data) => {
+      qc.setQueryData(["meli-competencia-precios"], data);
+    },
+  });
+}
+
+export function useReporteCapturaCompetencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      item_id: string;
+      titulo?: string;
+      precio?: number;
+      imagen: Blob;
+    }) => {
+      const form = new FormData();
+      form.append("item_id", args.item_id);
+      if (args.titulo) form.append("titulo", args.titulo);
+      if (args.precio != null) form.append("precio", String(args.precio));
+      const name = args.imagen.type.includes("png") ? "captura.png" : "captura.jpg";
+      form.append("imagen", args.imagen, name);
+      return api.upload<AnalisisCompetencia & { reporte?: ReporteCaptura }>(
+        "/api/meli/competencia-precios/reporte-captura",
+        form,
+        { timeoutMs: 120_000 },
+      );
+    },
     onSuccess: (data) => {
       qc.setQueryData(["meli-competencia-precios"], data);
     },

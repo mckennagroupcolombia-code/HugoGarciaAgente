@@ -22,6 +22,30 @@ Validacion:
 Archivos:
 ```
 
+## 2026-08-23 - Competencia MeLi por pantallazo, no por API ajena
+
+Contexto:
+
+MeLi responde 403 y penaliza `/sites/MCO/search` y GET de ítems de otros vendedores. El panel ya abría el listado en el navegador, pero el operador tenía que anotar precios a mano.
+
+Decision:
+
+En cada clic de «Buscar en MeLi» se abre el listado y se arma un reporte a partir del pantallazo (pestaña compartida, Ctrl+V o archivo). Gemini Flash extrae precios visibles. El servidor no visita Mercado Libre.
+
+Motivo:
+
+Es la única vía que respeta la política de MeLi y le da al operador el reporte por publicación que pedía.
+
+Validacion:
+
+`./venv/bin/python -m pytest tests/test_analisis_competencia_precios.py tests/test_smoke.py::test_api_competencia_precios_json_en_ambos_prefijos -q`
+
+Archivos:
+
+- `app/tools/analisis_competencia_precios.py`, `app/routes.py`
+- `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`
+- `docs/agentic/modules/competencia-precios.md`
+
 ## 2026-04-26 - Metodologia agentica por capas
 
 Contexto:

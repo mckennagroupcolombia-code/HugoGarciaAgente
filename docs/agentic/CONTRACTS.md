@@ -315,10 +315,11 @@ Query: `periodicidad=dia|semana|mes`, `n` (tope 120/26/24), `refresh=1` opcional
 
 Auth Bearer. Prefijos `/api` y `/app/api`. No muta precios; solo lee MeLi y persiste `app/data/analisis_competencia_precios.json`.
 
-- `GET /api/meli/competencia-precios` — último ranking propio + observaciones anotadas a ojo.
+- `GET /api/meli/competencia-precios` — último ranking propio + observaciones (ojo o pantallazo).
 - `POST /api/meli/competencia-precios/analizar` — body `{top_n, dias, consulta}`. Solo cuenta McKenna.
 - `POST /api/meli/competencia-precios/observacion` — body `{item_id, precio, vendedor?, permalink?, titulo?, notas?}`. El servidor **no** visita el permalink.
 - `DELETE /api/meli/competencia-precios/observacion?id=` — quita una anotación.
+- `POST /api/meli/competencia-precios/reporte-captura` — multipart `imagen` + `item_id` (o JSON base64). Gemini lee el pantallazo; el servidor **no** visita MeLi.
 
 Tool Claude: `analizar_competencia_precios` (texto compacto). Cron: `scripts/analisis_competencia_precios_cron.py` (job `competencia_precios`).
 

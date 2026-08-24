@@ -1,0 +1,1971 @@
+{
+  "generado_en": "2026-08-23T16:44:36",
+  "desde": "2026-01-01",
+  "hasta": "2026-08-23",
+  "ordenes_meli": 12825,
+  "facturas_siigo": 8675,
+  "indice_local": 3263,
+  "skus_siigo": 1884,
+  "ventas": [
+    {
+      "orden_id": "2000014534607980",
+      "pack_id": "2000010829057217",
+      "fecha": "2026-01-01T15:04:48.000-04:00",
+      "estado_meli": "paid",
+      "total": 33900,
+      "lineas": [
+        {
+          "sku": "CTRKLB",
+          "titulo": "Citrato De Potasio 500 Gr",
+          "meli_id": "MCO616763443",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRKLB"
+      ]
+    },
+    {
+      "orden_id": "2000014535999022",
+      "pack_id": "2000014535999022",
+      "fecha": "2026-01-01T18:04:53.000-04:00",
+      "estado_meli": "paid",
+      "total": 115900,
+      "lineas": [
+        {
+          "sku": "MNTKLB",
+          "titulo": "Manteca Karite 100% Orgánica Amarilla 500 Gr",
+          "meli_id": "MCO576064483",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "MNTKLB"
+      ]
+    },
+    {
+      "orden_id": "2000014536324330",
+      "pack_id": "2000014536324330",
+      "fecha": "2026-01-01T18:39:27.000-04:00",
+      "estado_meli": "paid",
+      "total": 20800,
+      "lineas": [
+        {
+          "sku": "LCTSYLB",
+          "titulo": "Lecitina De Soya Polvo 500gr Lecitina",
+          "meli_id": "MCO896116153",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "LCTSYLB"
+      ]
+    },
+    {
+      "orden_id": "2000014536382328",
+      "pack_id": "2000014536382328",
+      "fecha": "2026-01-01T18:46:20.000-04:00",
+      "estado_meli": "paid",
+      "total": 28900,
+      "lineas": [
+        {
+          "sku": "CTRZNLB",
+          "titulo": "Citrato De Zinc 500gr N/a",
+          "meli_id": "MCO1702310176",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRZNLB"
+      ]
+    },
+    {
+      "orden_id": "2000014539721408",
+      "pack_id": "2000010835095197",
+      "fecha": "2026-01-02T03:24:56.000-04:00",
+      "estado_meli": "paid",
+      "total": 86000,
+      "lineas": [
+        {
+          "sku": "EXTMLTLB",
+          "titulo": "Extracto De Malta Polvo 500 Gr",
+          "meli_id": "MCO1518232374",
+          "cantidad": 4,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "EXTMLTLB"
+      ]
+    },
+    {
+      "orden_id": "2000014540917600",
+      "pack_id": "2000010836157297",
+      "fecha": "2026-01-02T09:04:42.000-04:00",
+      "estado_meli": "paid",
+      "total": 17000,
+      "lineas": [
+        {
+          "sku": "ARCLB",
+          "titulo": "Arcilla Blanca Usp Caolín 500gr",
+          "meli_id": "MCO845634553",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ARCLB"
+      ]
+    },
+    {
+      "orden_id": "2000014541485704",
+      "pack_id": "2000010837226787",
+      "fecha": "2026-01-02T10:00:21.000-04:00",
+      "estado_meli": "paid",
+      "total": 49000,
+      "lineas": [
+        {
+          "sku": "AS-92",
+          "titulo": "Vaselina Pura X 900 G",
+          "meli_id": "MCO2519770564",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-92"
+      ]
+    },
+    {
+      "orden_id": "2000014543416210",
+      "pack_id": "2000010839532117",
+      "fecha": "2026-01-02T12:29:46.000-04:00",
+      "estado_meli": "paid",
+      "total": 27000,
+      "lineas": [
+        {
+          "sku": "FRCTLB",
+          "titulo": "Fructosa  Pura 500gr N/a",
+          "meli_id": "MCO1235506437",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "FRCTLB"
+      ]
+    },
+    {
+      "orden_id": "2000014543416208",
+      "pack_id": "2000010839532117",
+      "fecha": "2026-01-02T12:29:46.000-04:00",
+      "estado_meli": "paid",
+      "total": 10400,
+      "lineas": [
+        {
+          "sku": "MLTDXLB",
+          "titulo": "Maltodextrina Alimentos 500 Gr Dulce",
+          "meli_id": "MCO648703323",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "MLTDXLB"
+      ]
+    },
+    {
+      "orden_id": "2000014544627306",
+      "pack_id": "2000010840993289",
+      "fecha": "2026-01-02T13:59:59.000-04:00",
+      "estado_meli": "paid",
+      "total": 40500,
+      "lineas": [
+        {
+          "sku": "GLTSSNBRLB",
+          "titulo": "Gelatina Sin Sabor 500 Gr",
+          "meli_id": "MCO1276565211",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "GLTSSNBRLB"
+      ]
+    },
+    {
+      "orden_id": "2000014545228784",
+      "pack_id": "2000010841678265",
+      "fecha": "2026-01-02T14:43:58.000-04:00",
+      "estado_meli": "paid",
+      "total": 61000,
+      "lineas": [
+        {
+          "sku": "AS-9-V2",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014546271962",
+      "pack_id": "2000010842951585",
+      "fecha": "2026-01-02T16:01:09.000-04:00",
+      "estado_meli": "paid",
+      "total": 17700,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 3,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000014546822490",
+      "pack_id": "2000010843578817",
+      "fecha": "2026-01-02T16:41:36.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014547811954",
+      "pack_id": "2000014547811954",
+      "fecha": "2026-01-02T18:01:12.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "CRBCALB",
+          "titulo": "Carbonato De Calcio Alimenticio 500 Gr/envío Gratis",
+          "meli_id": "MCO550687424",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CRBCALB"
+      ]
+    },
+    {
+      "orden_id": "2000014550789918",
+      "pack_id": "2000010848281609",
+      "fecha": "2026-01-02T21:57:54.000-04:00",
+      "estado_meli": "paid",
+      "total": 26900,
+      "lineas": [
+        {
+          "sku": "PRTASLSYLB",
+          "titulo": "Proteína Aislada De Soya 500gr N/a",
+          "meli_id": "MCO1050274777",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "PRTASLSYLB"
+      ]
+    },
+    {
+      "orden_id": "2000014554567996",
+      "pack_id": "2000014554567996",
+      "fecha": "2026-01-03T10:25:28.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "CRBCALB",
+          "titulo": "Carbonato De Calcio Alimenticio 500 Gr/envío Gratis",
+          "meli_id": "MCO550687424",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CRBCALB"
+      ]
+    },
+    {
+      "orden_id": "2000014560182872",
+      "pack_id": "2000010859464885",
+      "fecha": "2026-01-03T18:43:09.000-04:00",
+      "estado_meli": "paid",
+      "total": 33900,
+      "lineas": [
+        {
+          "sku": "CTRKLB",
+          "titulo": "Citrato De Potasio 500 Gr",
+          "meli_id": "MCO616763443",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRKLB"
+      ]
+    },
+    {
+      "orden_id": "2000014561690122",
+      "pack_id": "2000010861274447",
+      "fecha": "2026-01-03T20:59:51.000-04:00",
+      "estado_meli": "paid",
+      "total": 21500,
+      "lineas": [
+        {
+          "sku": "EXTMLTLB",
+          "titulo": "Extracto De Malta Polvo 500 Gr",
+          "meli_id": "MCO1518232374",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "EXTMLTLB"
+      ]
+    },
+    {
+      "orden_id": "2000014567081516",
+      "pack_id": "2000010867728917",
+      "fecha": "2026-01-04T12:36:20.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014567820680",
+      "pack_id": "2000014567820680",
+      "fecha": "2026-01-04T13:41:46.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014568352004",
+      "pack_id": "2000010869273235",
+      "fecha": "2026-01-04T14:25:12.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014572489584",
+      "pack_id": "2000010874177461",
+      "fecha": "2026-01-04T19:52:46.000-04:00",
+      "estado_meli": "paid",
+      "total": 11800,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000014574014502",
+      "pack_id": "2000010875922099",
+      "fecha": "2026-01-04T21:49:05.000-04:00",
+      "estado_meli": "paid",
+      "total": 38900,
+      "lineas": [
+        {
+          "sku": "ACDSLCLB",
+          "titulo": "Ácido Salicílico Usp 500 Gr Todo Tipo De Piel",
+          "meli_id": "MCO581496163",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ACDSLCLB"
+      ]
+    },
+    {
+      "orden_id": "2000014575311856",
+      "pack_id": "2000010877421001",
+      "fecha": "2026-01-04T23:59:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014576144276",
+      "pack_id": "2000014576144276",
+      "fecha": "2026-01-05T02:39:09.000-04:00",
+      "estado_meli": "paid",
+      "total": 36900,
+      "lineas": [
+        {
+          "sku": "ALLSLB",
+          "titulo": "Alulosa Endulzante 500g",
+          "meli_id": "MCO3105735890",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ALLSLB"
+      ]
+    },
+    {
+      "orden_id": "2000014580270050",
+      "pack_id": "2000010883089527",
+      "fecha": "2026-01-05T11:39:03.000-04:00",
+      "estado_meli": "paid",
+      "total": 8500,
+      "lineas": [
+        {
+          "sku": "ARCLB",
+          "titulo": "Arcilla Blanca Usp Caolín 500gr",
+          "meli_id": "MCO845634553",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ARCLB"
+      ]
+    },
+    {
+      "orden_id": "2000014581290016",
+      "pack_id": "2000010884318183",
+      "fecha": "2026-01-05T12:45:08.000-04:00",
+      "estado_meli": "paid",
+      "total": 63900,
+      "lineas": [
+        {
+          "sku": "CLGNHDLB",
+          "titulo": "Colageno Hidrolizado 100% 500gr N/a",
+          "meli_id": "MCO845640667",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CLGNHDLB"
+      ]
+    },
+    {
+      "orden_id": "2000014588836384",
+      "pack_id": "2000014588836384",
+      "fecha": "2026-01-05T20:59:43.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V2",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014590989204",
+      "pack_id": "2000014590989204",
+      "fecha": "2026-01-06T00:23:43.000-04:00",
+      "estado_meli": "paid",
+      "total": 21900,
+      "lineas": [
+        {
+          "sku": "CRABJRFLB",
+          "titulo": "Cera De Abejas  Blanca 500gr",
+          "meli_id": "MCO1912833896",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CRABJRFLB"
+      ]
+    },
+    {
+      "orden_id": "2000014605816688",
+      "pack_id": "2000010913176897",
+      "fecha": "2026-01-06T22:45:50.000-04:00",
+      "estado_meli": "paid",
+      "total": 25200,
+      "lineas": [
+        {
+          "sku": "CRABJRFLB",
+          "titulo": "Cera De Abejas Amarilla Refinada X 500 Gr",
+          "meli_id": "MCO590695436",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CRABJRFLB"
+      ]
+    },
+    {
+      "orden_id": "2000014609615586",
+      "pack_id": "2000010917630415",
+      "fecha": "2026-01-07T09:32:30.000-04:00",
+      "estado_meli": "paid",
+      "total": 27200,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 4,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000014617893106",
+      "pack_id": "2000010927260459",
+      "fecha": "2026-01-07T18:20:57.000-04:00",
+      "estado_meli": "paid",
+      "total": 33250,
+      "lineas": [
+        {
+          "sku": "CTRCALB",
+          "titulo": "Citrato De Calcio 500gr Ningún",
+          "meli_id": "MCO901663592",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRCALB"
+      ]
+    },
+    {
+      "orden_id": "2000014617913872",
+      "pack_id": "2000010927333507",
+      "fecha": "2026-01-07T18:22:38.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V1",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V1"
+      ]
+    },
+    {
+      "orden_id": "2000014630034728",
+      "pack_id": "2000010941621991",
+      "fecha": "2026-01-08T14:22:37.000-04:00",
+      "estado_meli": "paid",
+      "total": 76000,
+      "lineas": [
+        {
+          "sku": "AS-84",
+          "titulo": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+          "meli_id": "MCO2268688672",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-84"
+      ]
+    },
+    {
+      "orden_id": "2000014660807830",
+      "pack_id": "2000010978089293",
+      "fecha": "2026-01-10T19:42:15.000-04:00",
+      "estado_meli": "paid",
+      "total": 70000,
+      "lineas": [
+        {
+          "sku": "AS-9-V2",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014667988628",
+      "pack_id": "2000010986539595",
+      "fecha": "2026-01-11T13:57:48.000-04:00",
+      "estado_meli": "paid",
+      "total": 11000,
+      "lineas": [
+        {
+          "sku": "AS-105-V2",
+          "titulo": "Aceite Corporal X 120 Ml",
+          "meli_id": "MCO2803031276",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-105-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014674296228",
+      "pack_id": "2000014674296228",
+      "fecha": "2026-01-11T22:45:37.000-04:00",
+      "estado_meli": "paid",
+      "total": 36000,
+      "lineas": [
+        {
+          "sku": "(sin código)",
+          "titulo": "Injerto Germinacion Enraizante Clonador De Raices Bola X5 Un",
+          "meli_id": "MCO1765424925",
+          "cantidad": 1,
+          "motivo": "sin_codigo",
+          "detalle": "Publicación sin SKU — no hay código para vincular"
+        }
+      ],
+      "skus_error": [
+        "(sin código)"
+      ]
+    },
+    {
+      "orden_id": "2000014681069090",
+      "pack_id": "2000014681069090",
+      "fecha": "2026-01-12T13:10:18.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V1",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V1"
+      ]
+    },
+    {
+      "orden_id": "2000014685259314",
+      "pack_id": "2000011007071567",
+      "fecha": "2026-01-12T17:39:32.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V1",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V1"
+      ]
+    },
+    {
+      "orden_id": "2000014714506242",
+      "pack_id": "2000014714506242",
+      "fecha": "2026-01-14T15:30:17.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V1",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V1"
+      ]
+    },
+    {
+      "orden_id": "2000014727145750",
+      "pack_id": "2000014727145750",
+      "fecha": "2026-01-15T12:52:24.000-04:00",
+      "estado_meli": "paid",
+      "total": 36000,
+      "lineas": [
+        {
+          "sku": "AS-35-V2",
+          "titulo": "Llanta Juguete Para Perro",
+          "meli_id": "MCO1380566023",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-35-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014752909160",
+      "pack_id": "2000011087349895",
+      "fecha": "2026-01-17T11:33:38.000-04:00",
+      "estado_meli": "paid",
+      "total": 17150,
+      "lineas": [
+        {
+          "sku": "URCSM250G",
+          "titulo": "Urea Cosmética 250 Gr",
+          "meli_id": "MCO820157855",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "URCSM250G"
+      ]
+    },
+    {
+      "orden_id": "2000014752918496",
+      "pack_id": "2000011087349895",
+      "fecha": "2026-01-17T11:33:38.000-04:00",
+      "estado_meli": "paid",
+      "total": 6800,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000014764530046",
+      "pack_id": "2000011101167315",
+      "fecha": "2026-01-18T12:53:50.000-04:00",
+      "estado_meli": "paid",
+      "total": 6800,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000014764523990",
+      "pack_id": "2000011101167315",
+      "fecha": "2026-01-18T12:53:50.000-04:00",
+      "estado_meli": "paid",
+      "total": 35000,
+      "lineas": [
+        {
+          "sku": "AS-9-V1",
+          "titulo": "Gotero Vidrio 30 Ml  Azul - Verde - Ambar  X 10 Unidades",
+          "meli_id": "MCO562642394",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-9-V1"
+      ]
+    },
+    {
+      "orden_id": "2000014912511656",
+      "pack_id": "2000011277332803",
+      "fecha": "2026-01-29T07:43:26.000-04:00",
+      "estado_meli": "paid",
+      "total": 11000,
+      "lineas": [
+        {
+          "sku": "AS-105-V2",
+          "titulo": "Aceite Corporal X 120 Ml",
+          "meli_id": "MCO2803031276",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-105-V2"
+      ]
+    },
+    {
+      "orden_id": "2000014929355076",
+      "pack_id": "2000011297532591",
+      "fecha": "2026-01-30T11:26:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 76000,
+      "lineas": [
+        {
+          "sku": "AS-84",
+          "titulo": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+          "meli_id": "MCO2268688672",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-84"
+      ]
+    },
+    {
+      "orden_id": "2000014935461358",
+      "pack_id": "2000014935461358",
+      "fecha": "2026-01-30T19:01:25.000-04:00",
+      "estado_meli": "paid",
+      "total": 40000,
+      "lineas": [
+        {
+          "sku": "CMCPH102LB",
+          "titulo": "Celulosa Microcristalina Avicel Ph 102 500gr",
+          "meli_id": "MCO2147842082",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CMCPH102LB"
+      ]
+    },
+    {
+      "orden_id": "2000015009131828",
+      "pack_id": "2000011392425401",
+      "fecha": "2026-02-04T19:23:33.000-04:00",
+      "estado_meli": "paid",
+      "total": 58000,
+      "lineas": [
+        {
+          "sku": "AS-44-V4",
+          "titulo": "Collar De Perro En Cuero  Raza Mediana",
+          "meli_id": "MCO1535056853",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-44-V4"
+      ]
+    },
+    {
+      "orden_id": "2000015024138720",
+      "pack_id": "2000015024138720",
+      "fecha": "2026-02-05T18:40:43.000-04:00",
+      "estado_meli": "paid",
+      "total": 38000,
+      "lineas": [
+        {
+          "sku": "AS-84",
+          "titulo": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+          "meli_id": "MCO2268688672",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-84"
+      ]
+    },
+    {
+      "orden_id": "2000015142677696",
+      "pack_id": "2000011551036133",
+      "fecha": "2026-02-13T20:41:44.000-04:00",
+      "estado_meli": "paid",
+      "total": 160000,
+      "lineas": [
+        {
+          "sku": "(sin código)",
+          "titulo": "Set Bowls Tazones Acero Inoxidable 7 Unidades Gris",
+          "meli_id": "MCO2719308680",
+          "cantidad": 1,
+          "motivo": "sin_codigo",
+          "detalle": "Publicación sin SKU — no hay código para vincular"
+        }
+      ],
+      "skus_error": [
+        "(sin código)"
+      ]
+    },
+    {
+      "orden_id": "2000015171412102",
+      "pack_id": "2000015171412102",
+      "fecha": "2026-02-16T16:01:09.000-04:00",
+      "estado_meli": "paid",
+      "total": 150000,
+      "lineas": [
+        {
+          "sku": "(sin código)",
+          "titulo": "Regulador De Tanque Gas Argón Soldadura  Amarillo 110v",
+          "meli_id": "MCO1428195659",
+          "cantidad": 1,
+          "motivo": "sin_codigo",
+          "detalle": "Publicación sin SKU — no hay código para vincular"
+        }
+      ],
+      "skus_error": [
+        "(sin código)"
+      ]
+    },
+    {
+      "orden_id": "2000015208242252",
+      "pack_id": "2000015208242252",
+      "fecha": "2026-02-19T11:06:20.000-04:00",
+      "estado_meli": "paid",
+      "total": 88000,
+      "lineas": [
+        {
+          "sku": "EXTELC5MTS",
+          "titulo": "Extensión Eléctrica Profesional Certificada Retie  5 Mts",
+          "meli_id": "MCO2766883252",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "EXTELC5MTS"
+      ]
+    },
+    {
+      "orden_id": "2000015275427376",
+      "pack_id": "2000015275427376",
+      "fecha": "2026-02-24T13:48:53.000-04:00",
+      "estado_meli": "paid",
+      "total": 40000,
+      "lineas": [
+        {
+          "sku": "CMCPH102LB",
+          "titulo": "Celulosa Microcristalina Avicel Ph 102 500gr",
+          "meli_id": "MCO2147842082",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CMCPH102LB"
+      ]
+    },
+    {
+      "orden_id": "2000015281988288",
+      "pack_id": "2000011716960207",
+      "fecha": "2026-02-24T21:23:56.000-04:00",
+      "estado_meli": "paid",
+      "total": 14900,
+      "lineas": [
+        {
+          "sku": "ACDCTRLB",
+          "titulo": "Ácido Cítrico  Usp 500 Gr  N/a",
+          "meli_id": "MCO953116239",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ACDCTRLB"
+      ]
+    },
+    {
+      "orden_id": "2000015281977292",
+      "pack_id": "2000011716960207",
+      "fecha": "2026-02-24T21:23:56.000-04:00",
+      "estado_meli": "paid",
+      "total": 29800,
+      "lineas": [
+        {
+          "sku": "URCSMLB",
+          "titulo": "Urea Cosmética 500 Gr",
+          "meli_id": "MCO577075253",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "URCSMLB"
+      ]
+    },
+    {
+      "orden_id": "2000015304314918",
+      "pack_id": "2000011745941745",
+      "fecha": "2026-02-26T09:41:28.000-04:00",
+      "estado_meli": "paid",
+      "total": 42550,
+      "lineas": [
+        {
+          "sku": "GMXTNLB",
+          "titulo": "Goma Xanthan Certificada 500gr  Goma Xanthan",
+          "meli_id": "MCO592969350",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "GMXTNLB"
+      ]
+    },
+    {
+      "orden_id": "2000015308369624",
+      "pack_id": "2000015308369624",
+      "fecha": "2026-02-26T14:28:57.000-04:00",
+      "estado_meli": "paid",
+      "total": 38000,
+      "lineas": [
+        {
+          "sku": "AS-84",
+          "titulo": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+          "meli_id": "MCO2268688672",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-84"
+      ]
+    },
+    {
+      "orden_id": "2000015343607908",
+      "pack_id": "2000015343607908",
+      "fecha": "2026-03-01T09:57:08.000-04:00",
+      "estado_meli": "paid",
+      "total": 33250,
+      "lineas": [
+        {
+          "sku": "CTRCALB",
+          "titulo": "Citrato De Calcio 500gr Ningún",
+          "meli_id": "MCO901663592",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRCALB"
+      ]
+    },
+    {
+      "orden_id": "2000015343991444",
+      "pack_id": "2000011793246745",
+      "fecha": "2026-03-01T10:28:51.000-04:00",
+      "estado_meli": "paid",
+      "total": 28900,
+      "lineas": [
+        {
+          "sku": "CTRZNLB",
+          "titulo": "Citrato De Zinc 500gr N/a",
+          "meli_id": "MCO1702310176",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CTRZNLB"
+      ]
+    },
+    {
+      "orden_id": "2000015346089010",
+      "pack_id": "2000011795879811",
+      "fecha": "2026-03-01T13:25:51.000-04:00",
+      "estado_meli": "paid",
+      "total": 21900,
+      "lineas": [
+        {
+          "sku": "CRABJRFLB",
+          "titulo": "Cera De Abejas  Blanca 500gr",
+          "meli_id": "MCO1912833896",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CRABJRFLB"
+      ]
+    },
+    {
+      "orden_id": "2000015346270122",
+      "pack_id": "2000015346270122",
+      "fecha": "2026-03-01T13:40:10.000-04:00",
+      "estado_meli": "paid",
+      "total": 120000,
+      "lineas": [
+        {
+          "sku": "CMCPH102LB",
+          "titulo": "Celulosa Microcristalina Avicel Ph 102 500gr",
+          "meli_id": "MCO2147842082",
+          "cantidad": 3,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "CMCPH102LB"
+      ]
+    },
+    {
+      "orden_id": "2000015348263376",
+      "pack_id": "2000011798560893",
+      "fecha": "2026-03-01T16:19:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 6800,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000015349611746",
+      "pack_id": "2000015349611746",
+      "fecha": "2026-03-01T18:08:02.000-04:00",
+      "estado_meli": "paid",
+      "total": 6800,
+      "lineas": [
+        {
+          "sku": "AGDST250mL",
+          "titulo": "Agua Destilada  250 Ml",
+          "meli_id": "MCO2924070024",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AGDST250mL"
+      ]
+    },
+    {
+      "orden_id": "2000015350310716",
+      "pack_id": "2000011801059459",
+      "fecha": "2026-03-01T18:57:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 31000,
+      "lineas": [
+        {
+          "sku": "FRCTLB",
+          "titulo": "Fructosa  Pura 500gr N/a",
+          "meli_id": "MCO1235506437",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "FRCTLB"
+      ]
+    },
+    {
+      "orden_id": "2000015350303536",
+      "pack_id": "2000011801059459",
+      "fecha": "2026-03-01T18:57:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 35700,
+      "lineas": [
+        {
+          "sku": "MLTDXLB",
+          "titulo": "Maltodextrina Alimentos 500 Gr Dulce",
+          "meli_id": "MCO648703323",
+          "cantidad": 3,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "MLTDXLB"
+      ]
+    },
+    {
+      "orden_id": "2000015476832712",
+      "pack_id": "2000015476832712",
+      "fecha": "2026-03-09T22:21:19.000-04:00",
+      "estado_meli": "paid",
+      "total": 45000,
+      "lineas": [
+        {
+          "sku": "AS-26",
+          "titulo": "Caja Guantes Nitrilo X 100 Unidades Negro L",
+          "meli_id": "MCO1306036594",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-26"
+      ]
+    },
+    {
+      "orden_id": "2000015773635340",
+      "pack_id": "2000012291795557",
+      "fecha": "2026-03-31T00:19:29.000-04:00",
+      "estado_meli": "paid",
+      "total": 46455,
+      "lineas": [
+        {
+          "sku": "AS-25",
+          "titulo": "Kit Aceites Esenciales 5 Ml X 3",
+          "meli_id": "MCO1375347501",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-25"
+      ]
+    },
+    {
+      "orden_id": "2000016054983020",
+      "pack_id": "2000016054983020",
+      "fecha": "2026-04-19T16:10:34.000-04:00",
+      "estado_meli": "paid",
+      "total": 29000,
+      "lineas": [
+        {
+          "sku": "(sin código)",
+          "titulo": "Codo 6 Cm Acero Inoxidoble Tubo De Calefacción",
+          "meli_id": "MCO3602382454",
+          "cantidad": 1,
+          "motivo": "sin_codigo",
+          "detalle": "Publicación sin SKU — no hay código para vincular"
+        }
+      ],
+      "skus_error": [
+        "(sin código)"
+      ]
+    },
+    {
+      "orden_id": "2000016215420048",
+      "pack_id": "2000012753781445",
+      "fecha": "2026-04-30T17:00:45.000-04:00",
+      "estado_meli": "paid",
+      "total": 27900,
+      "lineas": [
+        {
+          "sku": "C-ACEIJOJ30mL",
+          "titulo": "Aceite De Jojoba",
+          "meli_id": "MCO657561094",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEIJOJ30mL"
+      ]
+    },
+    {
+      "orden_id": "2000016215960590",
+      "pack_id": "2000012754328319",
+      "fecha": "2026-04-30T17:46:57.000-04:00",
+      "estado_meli": "paid",
+      "total": 55800,
+      "lineas": [
+        {
+          "sku": "C-ACEIJOJ30mL",
+          "titulo": "Aceite De Jojoba",
+          "meli_id": "MCO657561094",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEIJOJ30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017224875692",
+      "pack_id": "2000013820044637",
+      "fecha": "2026-07-02T22:49:10.000-04:00",
+      "estado_meli": "paid",
+      "total": 27900,
+      "lineas": [
+        {
+          "sku": "C-ACEIJOJ30mL",
+          "titulo": "Aceite De Jojoba",
+          "meli_id": "MCO657561094",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEIJOJ30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017441138044",
+      "pack_id": "2000014044161655",
+      "fecha": "2026-07-15T23:42:26.000-04:00",
+      "estado_meli": "paid",
+      "total": 30500,
+      "lineas": [
+        {
+          "sku": "C-ALMNAL500g",
+          "titulo": "Almendra Natural 500g",
+          "meli_id": "MCO4158454446",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ALMNAL500g"
+      ]
+    },
+    {
+      "orden_id": "2000017471100996",
+      "pack_id": "2000014074571883",
+      "fecha": "2026-07-17T19:53:42.000-04:00",
+      "estado_meli": "paid",
+      "total": 29500,
+      "lineas": [
+        {
+          "sku": "AS-10",
+          "titulo": "Gotero Vidrio 10 Ml  Azul - Verde - Ambar  X 12 Unidades",
+          "meli_id": "MCO562642847",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-10"
+      ]
+    },
+    {
+      "orden_id": "2000017578144698",
+      "pack_id": "2000017578144698",
+      "fecha": "2026-07-24T16:25:58.000-04:00",
+      "estado_meli": "paid",
+      "total": 12800,
+      "lineas": [
+        {
+          "sku": "ESPCCRCRV22CM",
+          "titulo": "Espátula Laboratorio Acero Inóxidable",
+          "meli_id": "MCO833595832",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "ESPCCRCRV22CM"
+      ]
+    },
+    {
+      "orden_id": "2000017590553440",
+      "pack_id": "2000017590553440",
+      "fecha": "2026-07-25T15:38:52.000-04:00",
+      "estado_meli": "paid",
+      "total": 125900,
+      "lineas": [
+        {
+          "sku": "AS-15",
+          "titulo": "Perilla De Palanca De Cambios Manual Universal",
+          "meli_id": "MCO821527986",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-15"
+      ]
+    },
+    {
+      "orden_id": "2000017617036206",
+      "pack_id": "2000014221832255",
+      "fecha": "2026-07-27T14:25:56.000-04:00",
+      "estado_meli": "paid",
+      "total": 29500,
+      "lineas": [
+        {
+          "sku": "AS-10",
+          "titulo": "Gotero Vidrio 10 Ml  Azul - Verde - Ambar  X 12 Unidades",
+          "meli_id": "MCO562642847",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-10"
+      ]
+    },
+    {
+      "orden_id": "2000017776793196",
+      "pack_id": "2000017776793196",
+      "fecha": "2026-08-05T17:50:55.000-04:00",
+      "estado_meli": "paid",
+      "total": 25000,
+      "lineas": [
+        {
+          "sku": "C-JABPOTLt",
+          "titulo": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+          "meli_id": "MCO3793586824",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-JABPOTLt"
+      ]
+    },
+    {
+      "orden_id": "2000017783452884",
+      "pack_id": "2000017783452884",
+      "fecha": "2026-08-06T00:47:35.000-04:00",
+      "estado_meli": "paid",
+      "total": 20900,
+      "lineas": [
+        {
+          "sku": "C-ACIKOJDPAL30mL",
+          "titulo": "Ácido Kojico Dpalmitato 5% 30ml",
+          "meli_id": "MCO2876880906",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACIKOJDPAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017821186196",
+      "pack_id": "2000014422941795",
+      "fecha": "2026-08-08T02:55:47.000-04:00",
+      "estado_meli": "paid",
+      "total": 20900,
+      "lineas": [
+        {
+          "sku": "C-ACIKOJDPAL30mL",
+          "titulo": "Ácido Kojico Dpalmitato 5% 30ml",
+          "meli_id": "MCO2876880906",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACIKOJDPAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017840897246",
+      "pack_id": "2000014441479113",
+      "fecha": "2026-08-09T11:01:42.000-04:00",
+      "estado_meli": "paid",
+      "total": 20900,
+      "lineas": [
+        {
+          "sku": "C-ACIKOJDPAL30mL",
+          "titulo": "Ácido Kojico Dpalmitato 5% 30ml",
+          "meli_id": "MCO2876880906",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACIKOJDPAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017841039002",
+      "pack_id": "2000014441576029",
+      "fecha": "2026-08-09T11:11:31.000-04:00",
+      "estado_meli": "paid",
+      "total": 25000,
+      "lineas": [
+        {
+          "sku": "C-JABPOTLt",
+          "titulo": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+          "meli_id": "MCO3793586824",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-JABPOTLt"
+      ]
+    },
+    {
+      "orden_id": "2000017843781978",
+      "pack_id": "2000014444255021",
+      "fecha": "2026-08-09T14:31:06.000-04:00",
+      "estado_meli": "paid",
+      "total": 25000,
+      "lineas": [
+        {
+          "sku": "C-JABPOTLt",
+          "titulo": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+          "meli_id": "MCO3793586824",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-JABPOTLt"
+      ]
+    },
+    {
+      "orden_id": "2000017846905526",
+      "pack_id": "2000014447234963",
+      "fecha": "2026-08-09T18:03:16.000-04:00",
+      "estado_meli": "paid",
+      "total": 20900,
+      "lineas": [
+        {
+          "sku": "C-ACIKOJDPAL30mL",
+          "titulo": "Ácido Kojico Dpalmitato 5% 30ml",
+          "meli_id": "MCO2876880906",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACIKOJDPAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017899450516",
+      "pack_id": "2000014497692789",
+      "fecha": "2026-08-12T13:56:57.000-04:00",
+      "estado_meli": "paid",
+      "total": 34020,
+      "lineas": [
+        {
+          "sku": "C-LISO100g",
+          "titulo": "L Isoleucina 100gr - G A $239 N/a",
+          "meli_id": "MCO1839132084",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-LISO100g"
+      ]
+    },
+    {
+      "orden_id": "2000017927805086",
+      "pack_id": "2000014524935399",
+      "fecha": "2026-08-13T23:46:49.000-04:00",
+      "estado_meli": "paid",
+      "total": 6000,
+      "lineas": [
+        {
+          "sku": "C-VERMAL30mL",
+          "titulo": "Verde Malaquita 30ml",
+          "meli_id": "MCO2604821524",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-VERMAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017937956724",
+      "pack_id": "2000014534621545",
+      "fecha": "2026-08-14T16:02:59.000-04:00",
+      "estado_meli": "paid",
+      "total": 39900,
+      "lineas": [
+        {
+          "sku": "C-KITACIHIA30mL",
+          "titulo": "Kit Hidratante Ácido Hialurónico",
+          "meli_id": "MCO2829978702",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-KITACIHIA30mL"
+      ]
+    },
+    {
+      "orden_id": "2000017971439616",
+      "pack_id": "2000014566593215",
+      "fecha": "2026-08-16T21:59:11.000-04:00",
+      "estado_meli": "paid",
+      "total": 18500,
+      "lineas": [
+        {
+          "sku": "C-FRBSGL120mL",
+          "titulo": "Fragancias Para Base De Glicerina Para Hacer Jabón 120 Ml",
+          "meli_id": "MCO3141408788",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-FRBSGL120mL"
+      ]
+    },
+    {
+      "orden_id": "2000017987509694",
+      "pack_id": "2000014581889349",
+      "fecha": "2026-08-17T19:55:51.000-04:00",
+      "estado_meli": "paid",
+      "total": 12400,
+      "lineas": [
+        {
+          "sku": "C-ARCVRT250g",
+          "titulo": "Arcilla Verde 250 Gr Todo Tipo De Piel",
+          "meli_id": "MCO616771341",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ARCVRT250g"
+      ]
+    },
+    {
+      "orden_id": "2000017994700564",
+      "pack_id": "2000014588977037",
+      "fecha": "2026-08-18T09:10:44.000-04:00",
+      "estado_meli": "paid",
+      "total": 35900,
+      "lineas": [
+        {
+          "sku": "C-CERABREFKg",
+          "titulo": "Cera De Abejas Amarilla Refinada X 1 Kg",
+          "meli_id": "MCO560569172",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-CERABREFKg"
+      ]
+    },
+    {
+      "orden_id": "2000018000312692",
+      "pack_id": "2000014594194627",
+      "fecha": "2026-08-18T14:17:27.000-04:00",
+      "estado_meli": "paid",
+      "total": 19900,
+      "lineas": [
+        {
+          "sku": "C-ACEESEBER5mL",
+          "titulo": "Aceite Esencial Bergamota 5 Ml Mckenna Group Aromaterapia Y Masajes",
+          "meli_id": "MCO3123285366",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEESEBER5mL"
+      ]
+    },
+    {
+      "orden_id": "2000018000312690",
+      "pack_id": "2000014594194627",
+      "fecha": "2026-08-18T14:17:27.000-04:00",
+      "estado_meli": "paid",
+      "total": 6000,
+      "lineas": [
+        {
+          "sku": "C-VERMAL30mL",
+          "titulo": "Verde Malaquita 30ml",
+          "meli_id": "MCO2604821524",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-VERMAL30mL"
+      ]
+    },
+    {
+      "orden_id": "2000018007712812",
+      "pack_id": "2000014601363131",
+      "fecha": "2026-08-18T21:12:11.000-04:00",
+      "estado_meli": "paid",
+      "total": 27900,
+      "lineas": [
+        {
+          "sku": "C-ACEIJOJ30mL",
+          "titulo": "Aceite De Jojoba",
+          "meli_id": "MCO657561094",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEIJOJ30mL"
+      ]
+    },
+    {
+      "orden_id": "2000018007716612",
+      "pack_id": "2000014601363131",
+      "fecha": "2026-08-18T21:12:11.000-04:00",
+      "estado_meli": "paid",
+      "total": 35900,
+      "lineas": [
+        {
+          "sku": "C-CERABREFKg",
+          "titulo": "Cera De Abejas Amarilla Refinada X 1 Kg",
+          "meli_id": "MCO560569172",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-CERABREFKg"
+      ]
+    },
+    {
+      "orden_id": "2000018009184052",
+      "pack_id": "2000014602716957",
+      "fecha": "2026-08-18T22:47:03.000-04:00",
+      "estado_meli": "paid",
+      "total": 27900,
+      "lineas": [
+        {
+          "sku": "C-ACEIJOJ30mL",
+          "titulo": "Aceite De Jojoba",
+          "meli_id": "MCO657561094",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-ACEIJOJ30mL"
+      ]
+    },
+    {
+      "orden_id": "2000018015151778",
+      "pack_id": "2000014608615943",
+      "fecha": "2026-08-19T10:55:04.000-04:00",
+      "estado_meli": "paid",
+      "total": 27402,
+      "lineas": [
+        {
+          "sku": "C-CEBCOR150g",
+          "titulo": "Sebo De Cordero Orgánico 150 G",
+          "meli_id": "MCO574694976",
+          "cantidad": 1,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-CEBCOR150g"
+      ]
+    },
+    {
+      "orden_id": "2000018020060648",
+      "pack_id": "2000014613318665",
+      "fecha": "2026-08-19T15:26:11.000-04:00",
+      "estado_meli": "paid",
+      "total": 71800,
+      "lineas": [
+        {
+          "sku": "C-CERABREFKg",
+          "titulo": "Cera De Abejas Amarilla Refinada X 1 Kg",
+          "meli_id": "MCO560569172",
+          "cantidad": 2,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "C-CERABREFKg"
+      ]
+    },
+    {
+      "orden_id": "2000018077123836",
+      "pack_id": "2000014668644615",
+      "fecha": "2026-08-23T11:28:11.000-04:00",
+      "estado_meli": "paid",
+      "total": 75000,
+      "lineas": [
+        {
+          "sku": "AS-80",
+          "titulo": "Empaque Plástico Airpack Darnel 1/4 Libra X 50 Und",
+          "meli_id": "MCO2179884476",
+          "cantidad": 3,
+          "motivo": "no_existe",
+          "detalle": "El producto con este código no existe en Siigo (no vinculado)"
+        }
+      ],
+      "skus_error": [
+        "AS-80"
+      ]
+    }
+  ]
+}

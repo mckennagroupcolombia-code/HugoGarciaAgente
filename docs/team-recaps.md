@@ -1,3 +1,12 @@
+### 2026-08-23 16:50 - Competencia: reporte por pantallazo al buscar en MeLi
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Publicaciones → Competencia, «Buscar en MeLi y armar reporte» abre el listado y genera un reporte de esa publicación (precios visibles, veredicto).
+  - El servidor no entra a Mercado Libre (MeLi bloquea esa API). Se usa el pantallazo de la pestaña, Ctrl+V o una imagen subida.
+  - Los precios leídos quedan como observaciones y alimentan «A revisar / Más baratos».
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `routes.py`, `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`, `capturaCompetenciaMeli.ts`, tests y contratos
+
 ### 2026-08-23 10:42 - Guardar repositorio en GitHub
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Mejora técnica

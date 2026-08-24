@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-08-23">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>BO16917</NumeroFacturaProveedor>
+    <FechaFactura>2026-08-21</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800158432</NIT>
+      <Nombre>PRODUCTOS 3A SAS</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="6">
+    <Item numero="1">
+      <CodigoSiigo>MANTRITOSg</CodigoSiigo>
+      <DescripcionOriginalProveedor>MANI TRITURADO TOSTADO CAJA 25 KG RMCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>240000.00</Subtotal>
+        <IVA>45600.00</IVA>
+        <Total>285600.00</Total>
+        <PrecioUnitarioMin>11.4200</PrecioUnitarioMin>
+        <PrecioNetoMin>9.600000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 285600.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>SEMCALGRAg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SEMILLA DE CALABAZA CAJA 25 KG GRADO AA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">75000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 3.0 × 1 = 75000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1995000.00</Subtotal>
+        <IVA>379050.00</IVA>
+        <Total>2374050.00</Total>
+        <PrecioUnitarioMin>31.6500</PrecioUnitarioMin>
+        <PrecioNetoMin>26.600000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 2374050.00 COP / 75000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>AJOTOSg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AJONJOLI TOSTADO BULTO 25 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>380000.00</Subtotal>
+        <IVA>72200.00</IVA>
+        <Total>452200.00</Total>
+        <PrecioUnitarioMin>18.0900</PrecioUnitarioMin>
+        <PrecioNetoMin>15.200000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 452200.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>BICSODg</CodigoSiigo>
+      <DescripcionOriginalProveedor>BICARBONATO DE SODIO BULTO 25 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">75000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 3.0 × 1 = 75000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>180000.00</Subtotal>
+        <IVA>34200.00</IVA>
+        <Total>214200.00</Total>
+        <PrecioUnitarioMin>2.8600</PrecioUnitarioMin>
+        <PrecioNetoMin>2.400000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 214200.00 COP / 75000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>AVEHOJg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AVENA EN HOJUELAS BULTO 25 KG PACIFICO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 1.0 × 1 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>85500.00</Subtotal>
+        <IVA>4275.00</IVA>
+        <Total>89775.00</Total>
+        <PrecioUnitarioMin>3.5900</PrecioUnitarioMin>
+        <PrecioNetoMin>3.420000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 89775.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>MANTOSNATg</CodigoSiigo>
+      <DescripcionOriginalProveedor>MANI TOSTADO NATURAL CAJA 25 KG RMCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">5.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">125000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 5.0 × 1 = 125000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1140000.00</Subtotal>
+        <IVA>216600.00</IVA>
+        <Total>1356600.00</Total>
+        <PrecioUnitarioMin>10.8500</PrecioUnitarioMin>
+        <PrecioNetoMin>9.120000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1356600.00 COP / 125000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>4020500.00</Subtotal>
+    <TotalIVA>751925.00</TotalIVA>
+    <TotalGeneral>4772425.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: BO16917 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

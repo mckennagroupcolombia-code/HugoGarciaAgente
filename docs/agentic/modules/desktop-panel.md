@@ -23,7 +23,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Cambios en endpoint deben reflejarse en hook/tipo UI.
 - Panel `empaque` (Atención): ventas MeLi/web/WA + fotos en `/api/empaque/*`; permiso `permisos_secciones.empaque`.
 - Docs técnicos → Biblioteca: `POST /api/fichas/biblioteca/cargar-web` publica **solo** FT/COA/SDS completos en las fichas de producto (`documentos_web` exige COA y SDS diligenciados + PDF; `POST :8083/api/documentos/refresh`).
-- Publicaciones → pestaña **Competencia**: `GET/POST /api/meli/competencia-precios*`.
+- Publicaciones → pestaña **Competencia**: `GET/POST /api/meli/competencia-precios*`; `POST .../reporte-captura` arma el reporte desde un pantallazo (el servidor no visita MeLi).
 - Publicaciones → Catálogo pestaña **Sitios**: `GET /api/publicaciones/<sku>?live_meli=1` (`vista_sitios`); `POST /api/publicaciones/<sku>/estado-meli` (`active`\|`paused`). **Agregar fotos** abre la galería (`POST /api/publicaciones/<sku>/imagenes/desde-galeria`). Lista: query `canal`.
 - Inicio (Agenda y Métricas): gadget USD/COP — cifra TRM BanRep (`GET /api/inicio/dolar-hora`) + mini TradingView; clic amplía gráfico horario TV.
 - Contabilidad → **Créditos adquiridos**: `GET/POST /api/contabilidad/creditos*`; tasa EA o N.A.M.V., cuota y amortización.

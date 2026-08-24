@@ -8,6 +8,8 @@ de marketplace. Solo usamos APIs de vendedor: órdenes e ítems propios.
 
 from __future__ import annotations
 
+import base64
+import io
 import json
 import os
 import re
@@ -24,7 +26,14 @@ import requests
 _APP_DIR = Path(__file__).resolve().parent.parent
 _CACHE_PATH = _APP_DIR / "data" / "analisis_competencia_precios.json"
 _OBS_PATH = _APP_DIR / "data" / "competencia_observaciones_manual.json"
+_REPORTES_PATH = _APP_DIR / "data" / "competencia_reportes_captura.json"
 _CACHE_TTL_H = 6
+_MAX_IMAGEN_CAPTURA = 5_500_000
+_MODELO_VISION_CAPTURA = (
+    os.getenv("GEMINI_VISION_COMPETENCIA_MODEL", "").strip()
+    or os.getenv("GEMINI_VISION_MODEL", "").strip()
+    or "gemini-2.5-flash"
+)
 
 _STOPWORDS = frozenset({
     "de", "del", "la", "el", "los", "las", "en", "con", "para", "por", "y", "o",
@@ -268,6 +277,7 @@ def aplicar_observaciones_manuales(analisis: dict) -> dict:
         mid = str(row.get("item_id") or "").upper()
         if mid:
             por_item.setdefault(mid, []).append(row)
+    reportes_por_item = _indice_ultimo_reporte_captura()
     for p in productos:
         mid = str(p.get("item_id") or "").upper()
         p["url_busqueda_meli"] = url_busqueda_meli_navegador(p.get("query") or p.get("titulo") or "")
@@ -286,12 +296,14 @@ def aplicar_observaciones_manuales(analisis: dict) -> dict:
             p["delta_pct_vs_min"] = None
             p["n_competidores"] = 0
         p["competidores"] = []
+        p["reporte_captura"] = reportes_por_item.get(mid)
     out["productos"] = productos
     if productos or out.get("ok"):
         out["resumen"] = _recontar_resumen(productos)
     out["aviso"] = (
-        "Comparación a ojo: abrí la búsqueda de MeLi en tu navegador, anotá el precio "
-        "que ves y guardalo acá. El servidor no visita publicaciones ajenas."
+        "Al buscar en MeLi se abre el listado en tu navegador. Pegá o capturá el "
+        "pantallazo y armamos el reporte de competencia. El servidor no visita "
+        "publicaciones ajenas (MeLi lo bloquea)."
     )
     return out
 
@@ -303,6 +315,7 @@ def registrar_observacion_manual(
     titulo: str = "",
     permalink: str = "",
     notas: str = "",
+    fuente: str = "navegador_manual",
 ) -> dict:
     mid = str(item_id or "").strip().upper()
     if not mid.startswith("MCO"):
@@ -319,7 +332,7 @@ def registrar_observacion_manual(
         "permalink": permalink_meli_seguro(permalink),
         "notas": (notas or "").strip()[:240],
         "visto_en": _ahora_iso(),
-        "fuente": "navegador_manual",
+        "fuente": (fuente or "navegador_manual").strip()[:40] or "navegador_manual",
     }
     rows = _cargar_observaciones()
     rows.append(row)
@@ -791,3 +804,367 @@ def analizar_competencia_precios(
         enviar_whatsapp=bool(enviar_whatsapp),
     )
     return formatear_reporte_texto(analisis)
+
+
+# ── Reporte por pantallazo (el operador abre MeLi; el servidor no lo visita) ─
+
+
+def decodificar_imagen_b64(raw: str) -> tuple[bytes, str]:
+    s = (raw or "").strip()
+    mime = "image/jpeg"
+    if s.startswith("data:"):
+        header, _, b64 = s.partition(",")
+        hl = header.lower()
+        if "image/png" in hl:
+            mime = "image/png"
+        elif "image/webp" in hl:
+            mime = "image/webp"
+        elif "image/gif" in hl:
+            mime = "image/gif"
+        s = b64
+    if not s:
+        return b"", mime
+    pad = (-len(s)) % 4
+    if pad:
+        s += "=" * pad
+    try:
+        data = base64.b64decode(s, validate=False)
+    except Exception:
+        return b"", mime
+    return data, mime
+
+
+def comprimir_imagen_captura(data: bytes, mime: str = "") -> tuple[bytes, str]:
+    if not data:
+        raise ValueError("Imagen vacía.")
+    if len(data) > _MAX_IMAGEN_CAPTURA:
+        raise ValueError("La imagen pesa demasiado (máx. 5 MB).")
+    try:
+        from PIL import Image
+
+        im = Image.open(io.BytesIO(data))
+        im = im.convert("RGB")
+        w, h = im.size
+        max_w = 1400
+        if w > max_w and w > 0:
+            nh = max(1, int(h * max_w / w))
+            im = im.resize((max_w, nh), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=72, optimize=True)
+        out = buf.getvalue()
+        if len(out) > 1_200_000:
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=55, optimize=True)
+            out = buf.getvalue()
+        return out, "image/jpeg"
+    except ValueError:
+        raise
+    except Exception:
+        if data[:3] == b"\xff\xd8\xff":
+            return data, "image/jpeg"
+        if data[:8] == b"\x89PNG\r\n\x1a\n":
+            return data, "image/png"
+        raise ValueError("No pude leer la imagen. Probá JPEG o PNG.")
+
+
+def _cargar_reportes_captura() -> list[dict]:
+    if not _REPORTES_PATH.exists():
+        return []
+    try:
+        data = json.loads(_REPORTES_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    rows = data.get("reportes") if isinstance(data, dict) else data
+    return [r for r in (rows or []) if isinstance(r, dict)]
+
+
+def _guardar_reportes_captura(rows: list[dict]) -> None:
+    _REPORTES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _REPORTES_PATH.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps({"version": 1, "reportes": rows[-40:]}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    os.replace(tmp, _REPORTES_PATH)
+
+
+def _indice_ultimo_reporte_captura() -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for row in _cargar_reportes_captura():
+        mid = str(row.get("item_id") or "").upper()
+        if mid:
+            out[mid] = row
+    return out
+
+
+def _parsear_json_modelo(texto: str) -> dict:
+    raw = (texto or "").strip()
+    if not raw:
+        return {}
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.I)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not m:
+            return {}
+        try:
+            data = json.loads(m.group(0))
+            return data if isinstance(data, dict) else {}
+        except json.JSONDecodeError:
+            return {}
+
+
+def _normalizar_listado_vision(raw) -> dict | None:
+    if not isinstance(raw, dict):
+        return None
+    titulo = str(raw.get("titulo") or raw.get("title") or "").strip()[:180]
+    precio = parsear_precio_cop(raw.get("precio") if "precio" in raw else raw.get("price"))
+    if not titulo or not precio:
+        return None
+    vendidos = raw.get("vendidos")
+    try:
+        vendidos_n = int(vendidos) if vendidos not in (None, "") else None
+    except (TypeError, ValueError):
+        vendidos_n = None
+    return {
+        "titulo": titulo,
+        "precio": precio,
+        "vendedor": str(raw.get("vendedor") or raw.get("seller") or "").strip()[:80],
+        "permalink": permalink_meli_seguro(str(raw.get("permalink") or raw.get("url") or "")),
+        "vendidos": vendidos_n,
+        "envio_gratis": bool(raw.get("envio_gratis") or raw.get("free_shipping")),
+        "parece_nuestra": bool(raw.get("parece_nuestra") or raw.get("is_ours")),
+    }
+
+
+def filtrar_listados_comparables(
+    nuestro_titulo: str,
+    nuestro_item_id: str,
+    nuestro_precio: float,
+    listados: list[dict],
+) -> list[dict]:
+    ours = str(nuestro_item_id or "").upper()
+    out: list[dict] = []
+    vistos: set[str] = set()
+    for raw in listados or []:
+        row = _normalizar_listado_vision(raw)
+        if not row:
+            continue
+        perm = (row.get("permalink") or "").upper()
+        if ours and ours in perm:
+            continue
+        if row.get("parece_nuestra"):
+            continue
+        nick = _norm(row.get("vendedor") or "")
+        if "mckenna" in nick:
+            continue
+        ok, score = titulos_relacionados(nuestro_titulo, row.get("titulo") or "")
+        if not ok:
+            continue
+        if abs(float(row["precio"]) - float(nuestro_precio or 0)) < 1 and score >= 0.85:
+            continue
+        key = f"{row['precio']:.0f}|{_norm(row.get('titulo') or '')[:40]}"
+        if key in vistos:
+            continue
+        vistos.add(key)
+        d_pct = delta_pct(float(nuestro_precio or 0), float(row["precio"]))
+        out.append({
+            **row,
+            "relacion_titulo": score,
+            "delta_pct": d_pct,
+            "comparable": True,
+        })
+    out.sort(key=lambda c: float(c.get("precio") or 0))
+    return out[:12]
+
+
+def armar_reporte_captura(
+    *,
+    item_id: str,
+    titulo: str,
+    precio: float,
+    listados_visibles: list[dict],
+) -> dict:
+    comps = filtrar_listados_comparables(titulo, item_id, precio, listados_visibles)
+    precios = [float(c["precio"]) for c in comps if c.get("precio")]
+    minimo = min(precios) if precios else None
+    veredicto = clasificar_vs_min(float(precio or 0), minimo)
+    delta = delta_pct(float(precio or 0), minimo) if minimo else None
+    if not comps:
+        resumen = (
+            "Vi el pantallazo pero no encontré publicaciones comparables "
+            "(mismo producto / presentación). Probá bajar un poco para que "
+            "se vean más tarjetas, o anotá un precio a mano."
+        )
+    elif veredicto == "mas_caro":
+        resumen = (
+            f"Hay {len(comps)} publicación(es) comparable(s). La más barata está "
+            f"en {_cop(minimo)} ({delta:+.1f}% vs nosotros {_cop(precio)}). Conviene revisar precio."
+        )
+    elif veredicto == "mas_barato":
+        resumen = (
+            f"Hay {len(comps)} comparable(s). Estamos por debajo del mínimo "
+            f"({_cop(minimo)}). Nosotros {_cop(precio)}."
+        )
+    else:
+        resumen = (
+            f"Hay {len(comps)} comparable(s). Andamos parecidos al mínimo "
+            f"({_cop(minimo)}). Nosotros {_cop(precio)}."
+        )
+    return {
+        "item_id": str(item_id or "").upper(),
+        "generado_en": _ahora_iso(),
+        "nuestro_titulo": titulo,
+        "nuestro_precio": float(precio or 0),
+        "n_vistos": len(listados_visibles or []),
+        "n_comparables": len(comps),
+        "min_precio": minimo,
+        "veredicto": veredicto,
+        "delta_pct_vs_min": delta,
+        "resumen": resumen,
+        "listados": comps,
+        "fuente": "captura_vision",
+    }
+
+
+def _invocar_vision_captura(
+    imagen: bytes,
+    mime: str,
+    titulo: str,
+    precio: float,
+) -> list[dict]:
+    """Lee el pantallazo con Gemini. Mockeable en tests. No llama a MeLi."""
+    api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("Falta GOOGLE_API_KEY para leer el pantallazo.")
+
+    from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+    modelo = _MODELO_VISION_CAPTURA
+    ok, motivo = permitir_llamada(modelo, contexto="competencia_captura")
+    if not ok:
+        raise RuntimeError(motivo or "Presupuesto LLM agotado.")
+
+    from google import genai
+    from google.genai import types
+
+    prompt = (
+        "Sos un extractor de listados de Mercado Libre Colombia. "
+        "La imagen es un pantallazo del RESULTADO DE BÚSQUEDA (tarjetas). "
+        "Solo extraé lo visible; no inventes.\n\n"
+        f"Nuestra publicación de referencia:\n- título: {titulo}\n- precio nuestro: {precio}\n\n"
+        'Devolvé SOLO JSON válido: {"listados":[{"titulo":"","precio":24900,'
+        '"vendedor":"","permalink":"","vendidos":null,"envio_gratis":false,'
+        '"parece_nuestra":false}]}\n\n'
+        "Reglas: precio en COP sin puntos de miles; parece_nuestra=true si es "
+        "McKenna o el mismo título/precio de referencia; permalink solo si se "
+        "lee mercadolibre.com.co; máximo 15 tarjetas visibles."
+    )
+    client = genai.Client(api_key=api_key)
+    resp = client.models.generate_content(
+        model=modelo,
+        contents=[
+            types.Part.from_bytes(data=imagen, mime_type=mime or "image/jpeg"),
+            prompt,
+        ],
+    )
+    try:
+        tin, tout = usage_gemini(resp)
+        registrar_llamada(modelo, tin, tout, contexto="competencia_captura")
+    except Exception:
+        pass
+    payload = _parsear_json_modelo(getattr(resp, "text", "") or "")
+    rows = payload.get("listados") or payload.get("listings") or []
+    if not isinstance(rows, list):
+        return []
+    out = []
+    for r in rows:
+        n = _normalizar_listado_vision(r)
+        if n:
+            out.append(n)
+    return out
+
+
+def _reemplazar_observaciones_captura(item_id: str, comps: list[dict]) -> None:
+    mid = str(item_id or "").upper()
+    rows = [
+        r for r in _cargar_observaciones()
+        if not (
+            str(r.get("item_id") or "").upper() == mid
+            and str(r.get("fuente") or "") == "captura_vision"
+        )
+    ]
+    for c in comps[:8]:
+        monto = parsear_precio_cop(c.get("precio"))
+        if not monto:
+            continue
+        rows.append({
+            "id": uuid.uuid4().hex[:12],
+            "item_id": mid,
+            "precio": monto,
+            "vendedor": str(c.get("vendedor") or "").strip()[:80],
+            "titulo": str(c.get("titulo") or "").strip()[:180],
+            "permalink": permalink_meli_seguro(str(c.get("permalink") or "")),
+            "notas": "Leído del pantallazo del listado MeLi",
+            "visto_en": _ahora_iso(),
+            "fuente": "captura_vision",
+        })
+    _guardar_observaciones(rows)
+
+
+def generar_reporte_competencia_captura(
+    item_id: str,
+    imagen: bytes,
+    mime: str = "image/jpeg",
+    titulo: str = "",
+    precio=None,
+) -> dict:
+    """
+    Arma el reporte de competencia a partir de un pantallazo que tomó el operador.
+    El servidor NO visita Mercado Libre.
+    """
+    mid = str(item_id or "").strip().upper()
+    if not mid.startswith("MCO"):
+        return {"ok": False, "error": "item_id MeLi requerido (MCO…)."}
+    if not imagen:
+        return {"ok": False, "error": "Falta la imagen del listado."}
+
+    cache = _cargar_cache() or {}
+    prod = None
+    for p in cache.get("productos") or []:
+        if str(p.get("item_id") or "").upper() == mid:
+            prod = p
+            break
+    titulo_n = (titulo or (prod or {}).get("titulo") or "").strip()
+    precio_n = parsear_precio_cop(precio)
+    if precio_n is None:
+        precio_n = parsear_precio_cop((prod or {}).get("precio")) or 0
+
+    try:
+        jpeg, mime_out = comprimir_imagen_captura(imagen, mime)
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+
+    try:
+        listados = _invocar_vision_captura(jpeg, mime_out, titulo_n, float(precio_n or 0))
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)[:400]}
+    except Exception as e:
+        return {"ok": False, "error": f"No pude leer el pantallazo: {str(e)[:240]}"}
+
+    reporte = armar_reporte_captura(
+        item_id=mid,
+        titulo=titulo_n,
+        precio=float(precio_n or 0),
+        listados_visibles=listados,
+    )
+    _reemplazar_observaciones_captura(mid, reporte.get("listados") or [])
+    hist = [r for r in _cargar_reportes_captura() if str(r.get("item_id") or "").upper() != mid]
+    hist.append(reporte)
+    _guardar_reportes_captura(hist)
+    analisis = obtener_ultimo_analisis_competencia()
+    return {"ok": True, "reporte": reporte, **analisis}

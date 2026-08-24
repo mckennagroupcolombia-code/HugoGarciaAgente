@@ -108,6 +108,8 @@ export interface SolicitudBoot {
   prefillTitulo?: string;
   prefillDescripcion?: string;
   abrirTicketId?: number;
+  /** Abre el detalle de solo lectura de una solicitud ya cerrada (pestaña Historial). */
+  abrirHistorialTicketId?: number;
 }
 
 export type AccionesBootTab =

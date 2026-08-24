@@ -20056,6 +20056,44 @@ function HistorialSolicitudDetalle({
         )}
       </div>
 
+      {/* Conversación completa — va aquí arriba, no al final: es lo que más se consulta
+          de una solicitud cerrada (qué escribió cada quien mientras se resolvía). */}
+      <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-ink">
+            💬 Conversación de la solicitud
+            {comentarios.length > 0 && (
+              <span className="ml-1 font-normal normal-case tracking-normal text-muted">
+                ({comentarios.length} mensaje{comentarios.length !== 1 ? "s" : ""})
+              </span>
+            )}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            Todo lo que se escribió mientras se resolvía, de ambas partes.
+          </p>
+        </div>
+        {comentarios.length === 0 ? (
+          <p className="text-sm text-muted italic">No se escribieron mensajes en esta solicitud.</p>
+        ) : (
+          <div className="space-y-4">
+            {comentarios.map((c) => (
+              <div key={c.id} className="flex gap-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-border text-xs font-extrabold text-ink/60">
+                  {(c.autor_nombre || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
+                    <span className="text-xs font-bold text-ink">{c.autor_nombre ?? "—"}</span>
+                    <span className="text-[10px] text-muted">{_fmtFechaHist(c.creado_en)}</span>
+                  </div>
+                  <p className="text-sm text-ink/90 whitespace-pre-wrap leading-relaxed">{c.texto}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Estadísticas de tiempo */}
       <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
@@ -20169,29 +20207,6 @@ function HistorialSolicitudDetalle({
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Timeline de comentarios / actividad */}
-      {comentarios.length > 0 && (
-        <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-4">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-ink">💬 Actividad</p>
-          <div className="space-y-4">
-            {comentarios.map((c) => (
-              <div key={c.id} className="flex gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-border text-xs font-extrabold text-ink/60">
-                  {(c.autor_nombre || "?").charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
-                    <span className="text-xs font-bold text-ink">{c.autor_nombre ?? "—"}</span>
-                    <span className="text-[10px] text-muted">{_fmtFechaHist(c.creado_en)}</span>
-                  </div>
-                  <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{c.texto}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -20517,8 +20532,18 @@ function SolicitudesView({
           .catch(() => { /* ignore */ });
       }
     }
+    if (boot.abrirHistorialTicketId != null) {
+      // Entrada directa al hilo de una solicitud cerrada (desde Hugo o el móvil):
+      // sin esto había que entrar a Historial y buscarla dentro del grupo de quien la atendió.
+      const id = boot.abrirHistorialTicketId;
+      setTab("historial");
+      void cargarHistorial();
+      tapi(`/${id}`, token)
+        .then((t) => setSelectedHistorialTicket(normalizeTicketForList(t)))
+        .catch(() => { /* ignore */ });
+    }
     onBootConsumed?.();
-  }, [boot, onBootConsumed, solicitudes, solicitudesEquipo, token]);
+  }, [boot, onBootConsumed, solicitudes, solicitudesEquipo, token, cargarHistorial]);
 
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
@@ -21078,6 +21103,15 @@ function SolicitudesView({
               ↻ Recargar historial
             </button>
           )}
+          {tab === "creadas" && (
+            <button
+              type="button"
+              onClick={() => setTab("historial")}
+              className="text-xs text-accent hover:underline"
+            >
+              📜 Ver las que ya cerraron y su conversación
+            </button>
+          )}
         </div>
       )}
 
@@ -21280,6 +21314,18 @@ function SolicitudesView({
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === "creadas" && !loading && creadas.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setTab("historial")}
+            className="text-xs font-semibold text-accent hover:underline"
+          >
+            📜 Ver las que ya cerraron y su conversación
+          </button>
         </div>
       )}
 
@@ -28168,6 +28214,7 @@ function AgenteMandoView({
     }
     chips.push({ tipo: "util", label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
     chips.push({ tipo: "util", label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+    chips.push({ tipo: "util", label: "📜 Solicitudes cerradas", onTap: () => void mostrarCerradas() });
     return chips;
   }
 
@@ -28287,6 +28334,7 @@ function AgenteMandoView({
     }
     chips.push({ tipo: "util", label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
     chips.push({ tipo: "util", label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+    chips.push({ tipo: "util", label: "📜 Solicitudes cerradas", onTap: () => void mostrarCerradas() });
 
     if (opts?.trasActividad) {
       const preguntas: string[] = [];
@@ -28389,6 +28437,45 @@ function AgenteMandoView({
 
   function mostrarActivas() {
     agregarBurbuja("agente", "Acá están sus acciones en curso. Tóquele a una para continuar.");
+  }
+
+  /** Solicitudes ya cerradas (que pedí o que atendí) para releer la conversación. */
+  async function mostrarCerradas() {
+    setPensando(true);
+    try {
+      const data = await tapi("/?tipo=solicitud", token) as Ticket[];
+      const cerradas = (Array.isArray(data) ? data : [])
+        .filter((t) => t.estado === "resuelto" || t.estado === "rechazado")
+        .sort((a, b) => String(b.resuelto_en ?? b.actualizado_en ?? "")
+          .localeCompare(String(a.resuelto_en ?? a.actualizado_en ?? "")))
+        .slice(0, 8);
+      if (cerradas.length === 0) {
+        agregarBurbuja("agente", "Todavía no hay solicitudes cerradas para revisar.");
+        return;
+      }
+      agregarBurbuja(
+        "agente",
+        "Estas son las últimas solicitudes cerradas. Tóquele a una para leer la conversación y ver qué le respondieron.",
+        cerradas.map((t) => ({
+          tipo: "util" as const,
+          label: `📜 ${truncarTituloChip(t.titulo)}`,
+          subtitulo: uidEq(t.creado_por, user.id)
+            ? `La atendió ${t.asignado_a_nombre ?? "—"}`
+            : `Se la pidió ${t.creado_por_nombre ?? "—"}`,
+          onTap: () => abrirHistorialSolicitud(t.id),
+        })),
+      );
+    } catch {
+      agregarBurbuja("agente", "No pude cargar las solicitudes cerradas. Intente de nuevo.");
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  /** Abre el hilo completo (solo lectura) de una solicitud cerrada en el panel Solicitudes. */
+  function abrirHistorialSolicitud(id: number) {
+    useAppStore.getState().setSolicitudBoot({ abrirHistorialTicketId: id });
+    onGoSolicitudes();
   }
 
   async function continuarAccion(a: any) {
@@ -28713,10 +28800,19 @@ function AgenteMandoView({
               method: "PUT",
               body: JSON.stringify({ estado: "resuelto" }),
             });
+            const cerradaId = revisionSolicitud.id;
+            const cerradaTitulo = revisionSolicitud.titulo;
             setRevisionSolicitud(null);
             setConfirmandoSolicitud(null);
-            setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== revisionSolicitud.id));
-            void reiniciarTrasActividad();
+            setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== cerradaId));
+            // Esperar el refresco (reemplaza las burbujas) antes de añadir el acceso al hilo.
+            await reiniciarTrasActividad();
+            // La conversación no se pierde al cerrar: acceso directo al hilo guardado.
+            agregarBurbuja(
+              "agente",
+              `Listo, «${truncarTituloChip(cerradaTitulo, 40)}» quedó cerrada. Puede releer la conversación cuando quiera.`,
+              [{ tipo: "util", label: "📜 Ver la conversación", onTap: () => abrirHistorialSolicitud(cerradaId) }],
+            );
           } catch {
             agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Agenda.");
             setRevisionSolicitud(null);

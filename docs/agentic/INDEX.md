@@ -19,7 +19,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Panel React | `docs/agentic/modules/desktop-panel.md` | `desktop/src/api/client.ts`, hooks, panel afectado, `app/routes.py` | `cd desktop && npm run qa:full` |
 | Etiquetas MeLi / materia prima | `docs/agentic/modules/meli-materia-prima.md` | `desktop/src/lib/etiquetasNormativa.ts`, `app/tools/etiquetas_ficha.py`, `EtiquetasStudioPanel.tsx` | Studio → Alternativa + checklist prompt |
 | Monitor compliance MeLi | `docs/agentic/modules/meli-compliance-monitor.md` | `app/tools/meli_compliance_monitor.py`, `scripts/meli_compliance_monitor_cron.py` | crear-nueva dry_run + cron |
-| Más vendidos MeLi (sin competencia ajena) | `docs/agentic/modules/competencia-precios.md` | `app/tools/analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx` | `pytest tests/test_analisis_competencia_precios.py` |
+| Más vendidos MeLi + reporte por pantallazo | `docs/agentic/modules/competencia-precios.md` | `app/tools/analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx` | `pytest tests/test_analisis_competencia_precios.py` |
 | Operacion/systemd | `docs/agentic/modules/ops-systemd.md` | `scripts/systemd/*`, `scripts/*.sh`, `start.sh` | diagnostico en maquina destino |
 | Tests/CI | `docs/agentic/modules/backend-qa.md` | `tests/*`, `.github/workflows/*`, `app/tools/script_audit.py` | `pytest`, workflow local si aplica |
 | Contratos API | `docs/agentic/CONTRACTS.md` | `app/routes.py`, `webhook_meli.py`, `desktop/src/api/client.ts` | smoke + cliente afectado |

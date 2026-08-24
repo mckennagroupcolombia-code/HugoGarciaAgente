@@ -301,3 +301,107 @@ def test_observacion_manual_marca_mas_caro(tmp_path, monkeypatch):
     p2 = ac.obtener_ultimo_analisis_competencia()["productos"][0]
     assert p2["veredicto"] == "sin_competencia"
     assert p2["observaciones_manual"] == []
+
+
+def test_filtrar_listados_comparables_omite_nuestra_y_ajenos(monkeypatch):
+    listados = [
+        {
+            "titulo": "Urea Cosmética 250 Gr McKenna",
+            "precio": 45000,
+            "vendedor": "MCKENNAGROUP",
+            "parece_nuestra": True,
+        },
+        {
+            "titulo": "Urea Cosmetica Pura 250g Grado Farmacéutico",
+            "precio": 38000,
+            "vendedor": "OTROLAB",
+        },
+        {
+            "titulo": "Niacinamida 100g Cosmética",
+            "precio": 20000,
+            "vendedor": "OTRA",
+        },
+    ]
+    comps = ac.filtrar_listados_comparables(
+        "Urea Cosmética 250 Gr",
+        "MCO111",
+        45000,
+        listados,
+    )
+    assert len(comps) == 1
+    assert comps[0]["vendedor"] == "OTROLAB"
+    assert comps[0]["precio"] == 38000
+
+
+def test_armar_reporte_captura_mas_caro():
+    listados = [
+        {"titulo": "Urea Cosmetica 250g", "precio": 38000, "vendedor": "OTROLAB"},
+        {"titulo": "Urea Cosmetica 250 gramos", "precio": 40000, "vendedor": "LAB2"},
+    ]
+    r = ac.armar_reporte_captura(
+        item_id="MCO111",
+        titulo="Urea Cosmética 250 Gr",
+        precio=45000,
+        listados_visibles=listados,
+    )
+    assert r["veredicto"] == "mas_caro"
+    assert r["n_comparables"] == 2
+    assert r["min_precio"] == 38000
+    assert "Conviene revisar" in r["resumen"] or "más barata" in r["resumen"].lower()
+
+
+def test_generar_reporte_captura_no_toca_meli(monkeypatch, tmp_path):
+    monkeypatch.setattr(ac, "_CACHE_PATH", tmp_path / "c.json")
+    monkeypatch.setattr(ac, "_OBS_PATH", tmp_path / "o.json")
+    monkeypatch.setattr(ac, "_REPORTES_PATH", tmp_path / "r.json")
+    ac._guardar_cache({
+        "version": 1,
+        "generado_en": "2026-08-23T12:00:00",
+        "dias": 30,
+        "top_n": 1,
+        "consulta": "",
+        "productos": [{
+            "item_id": "MCO111",
+            "titulo": "Urea Cosmética 250 Gr",
+            "precio": 45000,
+            "query": "urea cosmetica 250g",
+            "unidades_periodo": 10,
+        }],
+        "resumen": {},
+    })
+
+    def boom(*_a, **_k):
+        raise AssertionError("no debe haber requests a MeLi")
+
+    monkeypatch.setattr(ac.requests, "get", boom)
+
+    def fake_vision(*_a, **_k):
+        return [{
+            "titulo": "Urea Cosmetica 250g Pura",
+            "precio": 36000,
+            "vendedor": "OTROLAB",
+            "permalink": "",
+            "parece_nuestra": False,
+        }]
+
+    monkeypatch.setattr(ac, "_invocar_vision_captura", fake_vision)
+    jpeg = b"\xff\xd8\xff\xd9"
+    monkeypatch.setattr(
+        ac,
+        "comprimir_imagen_captura",
+        lambda data, mime="": (data, "image/jpeg"),
+    )
+    out = ac.generar_reporte_competencia_captura(
+        "MCO111",
+        jpeg,
+        mime="image/jpeg",
+        titulo="Urea Cosmética 250 Gr",
+        precio=45000,
+    )
+    assert out["ok"] is True
+    assert out["reporte"]["veredicto"] == "mas_caro"
+    p = out["productos"][0]
+    assert p["veredicto"] == "mas_caro"
+    assert p["observaciones_manual"]
+    assert p["observaciones_manual"][0]["fuente"] == "captura_vision"
+    assert p["reporte_captura"]["n_comparables"] == 1

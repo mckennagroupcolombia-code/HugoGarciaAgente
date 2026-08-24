@@ -695,6 +695,13 @@
       "nc": "NC-2-478",
       "subida_meli": true,
       "actualizado_en": "2026-08-22T07:23:05"
+    },
+    "2000017884270974": {
+      "estado": "ya_tenia_nc",
+      "factura": "FV-2-69763",
+      "nc": "NC-2-479",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-23T07:22:22"
     }
   }
 }

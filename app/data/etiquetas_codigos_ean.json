@@ -1243,13 +1243,14 @@
     {
       "id": "358bdba52d25",
       "sku": "C-CAPVACGEL00TRA1000Un",
-      "nombre_producto": "CAPSULAS VACIAS GELATINA TRANSPARENTES 1000 Un",
+      "nombre_producto": "CAPSULAS VACIAS GELATINA 0 TRANSPARENTES 1000 Un",
       "numero_producto": 112,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701120012630",
-      "creado_at": "2026-08-21T13:59:49"
+      "creado_at": "2026-08-21T13:59:49",
+      "actualizado_at": "2026-08-23T09:44:32"
     },
     {
       "id": "3b2e13efb2d3",
@@ -1419,6 +1420,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "08e8c185af15",
+      "sku": "C-CAPGELVAC0VERBLA1000UN",
+      "nombre_producto": "CAPSULAS GELATINA VACIA VERDE BLANCO 1000 UN",
+      "numero_producto": 128,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701280012631",
+      "creado_at": "2026-08-23T09:35:22"
+    },
+    {
       "id": "bbf5338e9e8e",
       "sku": "C-CITPOTKg",
       "nombre_producto": "CITRATO POTASO Kg",
@@ -1439,6 +1451,17 @@
       "bimestre": 3,
       "codigo": "7701305002630",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "6c9f6931ade7",
+      "sku": "C-CAPGELVAC0TRA1000UN",
+      "nombre_producto": "CAPSULAS GELATINA VACIAS 0 TRANSPARENTES 1000 UN",
+      "numero_producto": 131,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 3,
+      "codigo": "7701310012631",
+      "creado_at": "2026-08-23T09:36:00"
     },
     {
       "id": "9fb00070d189",

@@ -16675,6 +16675,53 @@ def register_routes(app):
             return jsonify({"ok": False, "error": str(e)}), 500
         return jsonify(out), (200 if out.get("ok") else 400)
 
+    @app.route("/app/api/meli/competencia-precios/reporte-captura", methods=["POST"])
+    @app.route("/api/meli/competencia-precios/reporte-captura", methods=["POST"])
+    def api_meli_competencia_precios_reporte_captura():
+        """Arma el reporte con un pantallazo del listado. El servidor no visita MeLi."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import (
+            decodificar_imagen_b64,
+            generar_reporte_competencia_captura,
+        )
+
+        item_id = ""
+        titulo = ""
+        precio = None
+        raw = b""
+        mime = "image/jpeg"
+        f = request.files.get("imagen") or request.files.get("file")
+        if f and getattr(f, "filename", None):
+            raw = f.read() or b""
+            mime = ((f.mimetype or "image/jpeg").split(";")[0] or "image/jpeg")
+            item_id = (request.form.get("item_id") or "").strip()
+            titulo = (request.form.get("titulo") or "").strip()
+            precio = request.form.get("precio")
+        else:
+            body = request.get_json(silent=True) or {}
+            item_id = (body.get("item_id") or "").strip()
+            titulo = (body.get("titulo") or "").strip()
+            precio = body.get("precio")
+            img = body.get("imagen") or body.get("imagen_base64") or ""
+            if isinstance(img, (bytes, bytearray)):
+                raw = bytes(img)
+            elif isinstance(img, str) and img.strip():
+                raw, mime = decodificar_imagen_b64(img)
+        if len(raw) > 5_500_000:
+            return jsonify({"ok": False, "error": "La imagen pesa demasiado (máx. 5 MB)."}), 400
+        try:
+            out = generar_reporte_competencia_captura(
+                item_id=item_id,
+                imagen=raw,
+                mime=mime,
+                titulo=titulo,
+                precio=precio,
+            )
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:400]}), 500
+        return jsonify(out), (200 if out.get("ok") else 400)
+
     # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
 
     def _color_int_to_hex(color_int: int) -> str:
