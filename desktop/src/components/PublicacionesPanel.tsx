@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
 import CompetenciaPreciosPanel from "./CompetenciaPreciosPanel";
+import DesenfoqueFotoModal, { DesenfoqueLoteDialog } from "./DesenfoqueFotoModal";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { Icon } from "../icons/Icon";
 import {
@@ -130,32 +131,54 @@ function ProductoCard({
   selectedSku,
   onClick,
   onSelectPresentacion,
+  loteChecked,
+  onToggleLote,
 }: {
   item: PublicacionItem;
   selected: boolean;
   selectedSku: string | null;
   onClick: () => void;
   onSelectPresentacion: (sku: string) => void;
+  loteChecked?: boolean;
+  onToggleLote?: () => void;
 }) {
   const presentaciones = item.presentaciones || [];
   const tieneVarias = presentaciones.length > 1;
+  const tieneMeli = Boolean(item.meli_id);
 
   return (
     <div className="border-b border-border/60 last:border-b-0">
-      <button
-        type="button"
-        onClick={onClick}
-        className={`w-full px-2 py-2 text-left text-sm transition ${
-          selected
-            ? "bg-accent/10 font-semibold text-accent"
-            : "text-ink hover:bg-surface-hover"
-        }`}
-      >
-        <span className="line-clamp-2 leading-snug">{item.nombre}</span>
-      </button>
+      <div className="flex items-start gap-1 px-1">
+        {onToggleLote && (
+          <label
+            className={`mt-1.5 flex shrink-0 items-center ${tieneMeli ? "cursor-pointer" : "cursor-not-allowed opacity-30"}`}
+            title={tieneMeli ? "Seleccionar para desenfoque lote" : "Sin MeLi"}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(loteChecked)}
+              disabled={!tieneMeli}
+              onChange={() => onToggleLote()}
+              className="h-3.5 w-3.5 accent-blue-600"
+            />
+          </label>
+        )}
+        <button
+          type="button"
+          onClick={onClick}
+          className={`min-w-0 flex-1 px-1 py-1.5 text-left text-sm transition ${
+            selected
+              ? "bg-accent/10 font-semibold text-accent"
+              : "text-ink hover:bg-surface-hover"
+          }`}
+        >
+          <span className="line-clamp-2 leading-snug">{item.nombre}</span>
+        </button>
+      </div>
 
       {tieneVarias && selected && (
-        <div className="space-y-0.5 pb-1.5 pl-3">
+        <div className="space-y-0.5 pb-1.5 pl-7">
           {presentaciones.map((pres) => (
             <button
               key={pres.sku}
@@ -210,6 +233,7 @@ function ImageGrid({
   onToggleSelect,
   onCopyFromOther,
   dropHint,
+  onDesenfocar,
 }: {
   items: ImgItem[];
   plataforma: "web" | "meli";
@@ -221,6 +245,7 @@ function ImageGrid({
   onToggleSelect?: (id: string) => void;
   onCopyFromOther?: (payload: FotoDragPayload) => void;
   dropHint?: string;
+  onDesenfocar?: (item: ImgItem) => void;
 }) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
@@ -373,6 +398,21 @@ function ImageGrid({
                     </button>
                   )}
                   {item.principal && <span className="flex-1" />}
+                  {onDesenfocar && plataforma === "meli" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onDesenfocar(item);
+                      }}
+                      disabled={saving}
+                      title="Desenfocar McKenna / datos empresa"
+                      className="ml-0.5 inline-flex items-center justify-center rounded p-0.5 text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                    >
+                      <Icon name="eye" size={10} weight="regular" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -395,6 +435,7 @@ function ImageGrid({
             <span>
               ☰ Ordenar · ★ = primera · Arrastra al otro sitio para copiar
               {selectable ? " · ☑ eliminar" : ""}
+              {onDesenfocar ? " · 👁 desenfocar" : ""}
             </span>
           </div>
         </div>
@@ -780,7 +821,7 @@ function fmtCopSitio(n: number | null | undefined): string {
 function FotoSitio({ src, alt }: { src: string; alt: string }) {
   const url = src ? resolverFotoPreview(src) : "";
   return (
-    <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-surface-hover">
+    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-hover">
       {url ? (
         <img
           src={url}
@@ -823,6 +864,10 @@ function SitiosTab({
   const fileWebRef = useRef<HTMLInputElement>(null);
   const fileMeliRef = useRef<HTMLInputElement>(null);
   const [galeriaDestino, setGaleriaDestino] = useState<"web" | "meli" | null>(null);
+  const [desenfoqueFoto, setDesenfoqueFoto] = useState<{
+    pictureId: string;
+    url: string;
+  } | null>(null);
 
   const vista: VistaSitios | undefined = data.vista_sitios;
   const web = vista?.web;
@@ -1074,10 +1119,10 @@ function SitiosTab({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 lg:grid-cols-2">
+    <div className="space-y-2">
+      <div className="grid gap-2 lg:grid-cols-2">
         {/* ── WEB ── */}
-        <section className="flex flex-col gap-3 rounded-xl border-2 border-green-200 bg-green-50/40 p-4">
+        <section className="flex flex-col gap-2 rounded-xl border-2 border-green-200 bg-green-50/40 p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="text-sm font-bold text-ink">Página web</h4>
@@ -1094,7 +1139,7 @@ function SitiosTab({
             </span>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <FotoSitio src={web?.foto || data.foto_efectiva} alt={web?.nombre || data.nombre} />
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-semibold leading-tight text-ink">{web?.nombre || data.nombre}</p>
@@ -1130,7 +1175,7 @@ function SitiosTab({
             type="button"
             disabled={guardarMut.isPending || syncWebMut.isPending}
             onClick={() => void handleOcultarWeb(!ocultoWeb)}
-            className={`w-full rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition disabled:opacity-40 ${
+            className={`w-full rounded-lg border-2 px-2.5 py-2 text-sm font-bold transition disabled:opacity-40 ${
               ocultoWeb
                 ? "border-green-400 bg-green-100 text-green-900 hover:bg-green-200"
                 : "border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100"
@@ -1148,7 +1193,7 @@ function SitiosTab({
             </p>
           )}
 
-          <div className="border-t border-green-200/80 pt-3 space-y-2">
+          <div className="border-t border-green-200/80 pt-2 space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-bold text-ink">
                 Fotos en la web ({fotos?.web.total ?? webOrder?.length ?? 0})
@@ -1226,7 +1271,7 @@ function SitiosTab({
         </section>
 
         {/* ── MELI ── */}
-        <section className="flex flex-col gap-3 rounded-xl border-2 border-blue-200 bg-blue-50/40 p-4">
+        <section className="flex flex-col gap-2 rounded-xl border-2 border-blue-200 bg-blue-50/40 p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="text-sm font-bold text-ink">Mercado Libre</h4>
@@ -1247,7 +1292,7 @@ function SitiosTab({
             </span>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <FotoSitio src={meli?.foto || data.foto_efectiva} alt={meli?.titulo || data.nombre} />
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-semibold leading-tight text-ink">
@@ -1336,7 +1381,7 @@ function SitiosTab({
             </p>
           )}
 
-          <div className="border-t border-blue-200/80 pt-3 space-y-2">
+          <div className="border-t border-blue-200/80 pt-2 space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-bold text-ink">
                 Fotos en MeLi ({fotos?.meli.total ?? meliOrder?.length ?? 0})
@@ -1393,6 +1438,9 @@ function SitiosTab({
                 onToggleSelect={(id) => toggleSel(selMeli, id, setSelMeli)}
                 onCopyFromOther={(p) => void handleCopiarFoto("meli", p)}
                 dropHint="Arrastra aquí una foto de la web para copiarla a MeLi"
+                onDesenfocar={(item) =>
+                  setDesenfoqueFoto({ pictureId: item.id, url: item.url })
+                }
               />
             )}
             <input
@@ -1452,6 +1500,18 @@ function SitiosTab({
           onCerrar={() => setGaleriaDestino(null)}
           onConfirmar={(sel) => handleDesdeGaleria(galeriaDestino, sel)}
           onSubirArchivos={(files) => handleSubir(files, galeriaDestino)}
+        />
+      )}
+
+      {desenfoqueFoto && meliItemId && (
+        <DesenfoqueFotoModal
+          open
+          sku={sku}
+          meliItemId={meliItemId}
+          pictureId={desenfoqueFoto.pictureId}
+          imageUrl={desenfoqueFoto.url}
+          onClose={() => setDesenfoqueFoto(null)}
+          onDone={() => void refetchFotos()}
         />
       )}
 
@@ -1540,8 +1600,8 @@ export function EditorPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <h3 className="text-base font-bold leading-tight text-ink">{data.nombre}</h3>
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-bold leading-tight text-ink">{data.nombre}</h3>
 
       {data.meli_compliance_reemplazo?.url_meli && (
         <div className="space-y-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
@@ -1698,16 +1758,17 @@ function GaleriaPublicacionesView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div>
-          <p className="text-sm font-bold text-ink">Galería · imagen + código SKU</p>
-          <p className="text-xs text-muted">
-            Estándar: 1000×1000 px con fondo blanco.
+    <div className="flex h-full min-h-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 shrink-0">
+        <p className="min-w-0 text-xs font-bold text-ink">
+          Galería catálogo web · fotos por SKU
+          <span className="font-normal text-muted">
+            {" "}· carpeta <span className="font-mono">IMAGENES_PRODUCTOS_CATALOGO</span>
+            {" "}· 1000×1000
             {data ? ` · ${data.total_imagenes} fotos · ${data.total_skus} SKUs` : ""}
             {sinEstandar > 0 ? ` · ${sinEstandar} sin estándar` : ""}
-          </p>
-        </div>
+          </span>
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           {sinEstandar > 0 && (
             <button
@@ -1780,11 +1841,11 @@ function GaleriaPublicacionesView({
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
           placeholder="Filtrar por SKU o nombre…"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
         />
         <button
           type="submit"
-          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover"
+          className="rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover"
         >
           Buscar
         </button>
@@ -1809,7 +1870,7 @@ function GaleriaPublicacionesView({
           setDropOver(false);
           tomarArchivos(e.dataTransfer.files);
         }}
-        className={`shrink-0 rounded-xl border-2 border-dashed px-3 py-3 transition ${
+        className={`shrink-0 rounded-lg border border-dashed px-2 py-1.5 transition ${
           dropOver ? "border-accent bg-accent/5" : "border-border bg-surface"
         }`}
       >
@@ -1817,11 +1878,11 @@ function GaleriaPublicacionesView({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex w-full flex-col items-center gap-1 py-2 text-center"
+            className="flex w-full items-center justify-between gap-2 py-0.5 text-left"
           >
-            <span className="text-sm font-semibold text-ink">Cargar fotos desde el computador</span>
-            <span className="text-[11px] text-muted">
-              Arrastra JPG, PNG o WEBP aquí, o haz clic para elegir · se normalizan a 1000×1000
+            <span className="text-xs font-semibold text-ink">Cargar fotos desde el computador</span>
+            <span className="hidden text-[10px] text-muted sm:inline">
+              Arrastra o clic · JPG/PNG/WEBP
             </span>
           </button>
         ) : (
@@ -1896,22 +1957,22 @@ function GaleriaPublicacionesView({
         <p className="text-sm text-muted">No hay imágenes enlazadas a SKUs.</p>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
           {tarjetas.map(({ sku, nombre, img }) => (
             <button
               key={`${sku}-${img.filename}`}
               type="button"
               onClick={() => onAbrirSku(sku)}
               title={`${sku} · ${nombre}`}
-              className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel text-left transition hover:border-accent/50 hover:shadow-sm"
+              className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface-panel text-left transition hover:border-accent/50 hover:shadow-sm"
             >
-              <div className="relative aspect-square bg-surface">
+              <div className="relative h-24 bg-surface sm:h-28">
                 <img
                   src={imgSrcGaleria(img.url, img.path, img.filename)}
                   alt={`${sku} — ${img.filename}`}
                   loading="lazy"
-                  className="h-full w-full object-contain p-1"
+                  className="h-full w-full object-contain p-0.5"
                   onError={(e) => {
                     const el = e.currentTarget as HTMLImageElement;
                     el.style.display = "none";
@@ -1939,11 +2000,11 @@ function GaleriaPublicacionesView({
                   </span>
                 ) : null}
               </div>
-              <div className="border-t border-border px-2 py-2 space-y-0.5">
-                <p className="font-mono text-xs font-bold text-ink break-all leading-tight">
+              <div className="border-t border-border px-1.5 py-1 space-y-0.5">
+                <p className="font-mono text-[10px] font-bold text-ink break-all leading-tight">
                   {sku}
                 </p>
-                <p className="text-[11px] text-muted line-clamp-2 leading-snug">{nombre}</p>
+                <p className="text-[10px] text-muted line-clamp-1 leading-snug">{nombre}</p>
               </div>
             </button>
           ))}
@@ -1988,13 +2049,11 @@ function CatalogoClienteView() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl space-y-3 py-1">
-      <div>
-        <h3 className="text-base font-bold text-ink">Catálogo para clientes</h3>
-      </div>
+    <div className="space-y-2">
+      <h3 className="text-sm font-bold text-ink">Catálogo para clientes</h3>
 
       <div>
-        <p className="mb-2 text-xs font-semibold text-ink">Filtrar por línea (opcional)</p>
+        <p className="mb-1.5 text-xs font-semibold text-ink">Filtrar por línea (opcional)</p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -2025,11 +2084,11 @@ function CatalogoClienteView() {
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-border bg-surface p-4">
-        <p className="mb-1.5 text-xs font-semibold text-ink">
+      <div className="rounded-xl border border-border bg-surface p-2.5">
+        <p className="mb-1 text-xs font-semibold text-ink">
           {lineaNombre ? `Link — ${lineaNombre}` : "Link — catálogo completo"}
         </p>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input px-2.5 py-1.5">
           <code className="min-w-0 flex-1 truncate text-sm text-ink">{link}</code>
           <button
             type="button"
@@ -2039,12 +2098,12 @@ function CatalogoClienteView() {
             {copiado ? "✓ Copiado" : "Copiar"}
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           <a
             href={`https://wa.me/?text=${mensajeWa}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700"
           >
             ✆ Compartir por WhatsApp
           </a>
@@ -2052,7 +2111,7 @@ function CatalogoClienteView() {
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent/40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/40"
           >
             ↗ Ver como cliente
           </a>
@@ -2081,13 +2140,11 @@ function VerificarPreciosView() {
   const items = data?.items ?? [];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="shrink-0">
-        <h3 className="text-base font-bold text-ink">Verificar precios por canal</h3>
-      </div>
+    <div className="flex h-full min-h-0 flex-col gap-1.5">
+      <h3 className="shrink-0 text-sm font-bold text-ink">Verificar precios por canal</h3>
 
       <form
-        className="flex shrink-0 flex-wrap items-center gap-2"
+        className="flex shrink-0 flex-wrap items-center gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           setQ(buscar.trim());
@@ -2097,11 +2154,11 @@ function VerificarPreciosView() {
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
           placeholder="Buscar SKU o nombre…"
-          className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-ink outline-none focus:border-accent"
         />
         <button
           type="submit"
-          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent/50"
+          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-accent/50"
         >
           Buscar
         </button>
@@ -2109,14 +2166,14 @@ function VerificarPreciosView() {
           type="button"
           disabled={isFetching}
           onClick={() => void refetch()}
-          className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent/50 disabled:opacity-40"
+          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-accent/50 disabled:opacity-40"
         >
           {isFetching ? "Actualizando…" : "🔄 Actualizar"}
         </button>
       </form>
 
       {data && (
-        <div className="flex shrink-0 flex-wrap items-center gap-3 text-xs">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
           <span className="text-muted">{data.total} producto(s)</span>
           <span
             className={
@@ -2163,13 +2220,13 @@ function VerificarPreciosView() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                <td colSpan={5} className="px-3 py-4 text-center text-muted">
                   Cargando…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                <td colSpan={5} className="px-3 py-4 text-center text-muted">
                   Sin resultados.
                 </td>
               </tr>
@@ -2260,6 +2317,8 @@ export default function PublicacionesPanel() {
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [buscarAbierto, setBuscarAbierto] = useState(false);
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
+  const [loteSkus, setLoteSkus] = useState<Set<string>>(() => new Set());
+  const [loteDialogOpen, setLoteDialogOpen] = useState(false);
   const buscarInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce búsqueda
@@ -2280,8 +2339,28 @@ export default function PublicacionesPanel() {
 
   const items = data?.items ?? [];
 
+  const loteItems = useMemo(() => {
+    const out: Array<{ sku: string; meli_item_id: string }> = [];
+    for (const item of items) {
+      if (!loteSkus.has(item.sku)) continue;
+      const mid = (item.meli_id || "").trim();
+      if (!mid) continue;
+      out.push({ sku: item.sku, meli_item_id: mid });
+    }
+    return out;
+  }, [items, loteSkus]);
+
+  function toggleLoteSku(sku: string) {
+    setLoteSkus((prev) => {
+      const next = new Set(prev);
+      if (next.has(sku)) next.delete(sku);
+      else next.add(sku);
+      return next;
+    });
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-1">
       {/* Switcher de vista principal */}
       <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
         <button
@@ -2294,13 +2373,13 @@ export default function PublicacionesPanel() {
           <span className={HUB_TAB_LABEL}>Catálogo</span>
         </button>
         <button
-          title="Galería"
-          aria-label="Galería"
+          title="Galería catálogo web (IMAGENES_PRODUCTOS_CATALOGO)"
+          aria-label="Galería catálogo web"
           onClick={() => setMainView("galeria")}
           className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
         >
           <Icon name="image" size={22} weight="bold" />
-          <span className={HUB_TAB_LABEL}>Galería</span>
+          <span className={HUB_TAB_LABEL}>Galería catálogo</span>
         </button>
         <button
           title="Catálogo cliente"
@@ -2351,7 +2430,7 @@ export default function PublicacionesPanel() {
 
       {/* Vista galería */}
       {mainView === "galeria" && (
-        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-4">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-2">
           <GaleriaPublicacionesView
             onAbrirSku={(sku) => {
               setSelectedSku(sku);
@@ -2363,21 +2442,21 @@ export default function PublicacionesPanel() {
 
       {/* Vista catálogo cliente */}
       {mainView === "catalogo-cliente" && (
-        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
           <CatalogoClienteView />
         </div>
       )}
 
       {/* Vista verificar precios */}
       {mainView === "precios" && (
-        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-4">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-2">
           <VerificarPreciosView />
         </div>
       )}
 
       {/* Vista crear desde cero */}
       {mainView === "crear" && (
-        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
           <CrearDesdeCeroPanel onDone={() => setMainView("compliance")} />
         </div>
       )}
@@ -2397,10 +2476,10 @@ export default function PublicacionesPanel() {
 
       {/* Vista catálogo — listado → editor Web | MeLi */}
       {mainView === "catalogo" && (
-      <div className="flex flex-1 min-h-0 flex-col gap-4 lg:flex-row">
+      <div className="flex flex-1 min-h-0 flex-col gap-2 lg:flex-row">
       {/* Columna izquierda: solo listado */}
       <div
-        className={`flex flex-col gap-3 lg:w-[320px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
+        className={`flex flex-col gap-2 lg:w-[280px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
       >
         <div className="flex items-center gap-2">
           {buscarAbierto || buscar ? (
@@ -2441,6 +2520,28 @@ export default function PublicacionesPanel() {
           )}
         </div>
 
+        {loteItems.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/80 px-2 py-1.5">
+            <span className="text-[11px] font-semibold text-blue-900">
+              {loteItems.length} con MeLi
+            </span>
+            <button
+              type="button"
+              onClick={() => setLoteDialogOpen(true)}
+              className="rounded bg-blue-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-blue-700"
+            >
+              Desenfocar pie
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoteSkus(new Set())}
+              className="rounded border border-blue-200 px-2 py-1 text-[11px] text-blue-800"
+            >
+              Limpiar
+            </button>
+          </div>
+        )}
+
         {/* Lista de productos — solo nombres */}
         <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel pr-0.5">
           {isLoading && (
@@ -2471,6 +2572,8 @@ export default function PublicacionesPanel() {
                 selectedSku={selectedSku}
                 onClick={() => setSelectedSku(item.sku === selectedSku ? null : item.sku)}
                 onSelectPresentacion={(sku) => setSelectedSku(sku === selectedSku ? null : sku)}
+                loteChecked={loteSkus.has(item.sku)}
+                onToggleLote={() => toggleLoteSku(item.sku)}
               />
             );
           })}
@@ -2479,23 +2582,29 @@ export default function PublicacionesPanel() {
 
       {/* Columna derecha: editor */}
       {selectedSku ? (
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
           <EditorPanel sku={selectedSku} onClose={() => setSelectedSku(null)} />
         </div>
       ) : (
-        <div className="hidden flex-1 items-center justify-center rounded-xl border-2 border-dashed border-border text-muted lg:flex">
-          <div className="max-w-sm px-6 text-center">
+        <div className="hidden flex-1 items-center justify-center rounded-xl border border-dashed border-border text-muted lg:flex">
+          <div className="max-w-sm px-4 text-center">
             <p className="text-sm font-semibold text-ink">Elige un producto del listado</p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
               Se abren dos ventanas: <span className="font-semibold text-ink">Página web</span> y{" "}
               <span className="font-semibold text-ink">Mercado Libre</span> — ocultar en tienda,
-              precio MeLi y fotos de cada sitio.
+              precio MeLi y fotos de cada sitio. Marca ☑ para desenfoque lote del pie McKenna.
             </p>
           </div>
         </div>
       )}
       </div>
       )}
+
+      <DesenfoqueLoteDialog
+        open={loteDialogOpen}
+        onClose={() => setLoteDialogOpen(false)}
+        items={loteItems}
+      />
     </div>
   );
 }

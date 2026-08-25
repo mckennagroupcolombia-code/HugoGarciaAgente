@@ -27,6 +27,8 @@ _APP_DIR = Path(__file__).resolve().parent.parent
 _CACHE_PATH = _APP_DIR / "data" / "analisis_competencia_precios.json"
 _OBS_PATH = _APP_DIR / "data" / "competencia_observaciones_manual.json"
 _REPORTES_PATH = _APP_DIR / "data" / "competencia_reportes_captura.json"
+_EVIDENCIAS_DIR = _APP_DIR / "data" / "competencia_evidencias"
+_LOGO_EVIDENCIA = _APP_DIR.parent / "DISENO CORPORATIVO " / "LOGO MORADO.png"
 _CACHE_TTL_H = 6
 _MAX_IMAGEN_CAPTURA = 5_500_000
 _MODELO_VISION_CAPTURA = (
@@ -115,6 +117,75 @@ def presentacion_texto(pres: Optional[dict]) -> str:
     if cant >= 1000 and cant % 1000 == 0:
         return f"{cant // 1000}l"
     return f"{cant}ml"
+
+
+def presentacion_casilla(pres: Optional[dict]) -> str:
+    """Texto de columna: '250 g', '100 ml', '1 kg'."""
+    if not pres:
+        return "—"
+    cant = pres["cantidad"]
+    if pres["canonica"] == "g":
+        if cant >= 1000 and cant % 1000 == 0:
+            return f"{cant // 1000} kg"
+        return f"{cant} g"
+    if cant >= 1000 and cant % 1000 == 0:
+        return f"{cant // 1000} L"
+    return f"{cant} ml"
+
+
+def misma_presentacion(
+    pres_n: Optional[dict],
+    pres_c: Optional[dict],
+    *,
+    tolerancia_pct: float = 0.05,
+) -> bool:
+    """
+    True si competidor ofrece la misma cantidad en la misma unidad (g o ml).
+    Ej.: 250 g vs 250 g sí; 250 g vs 500 g o 250 ml no.
+    """
+    if not pres_n or not pres_c:
+        return False
+    if pres_n.get("canonica") != pres_c.get("canonica"):
+        return False
+    cn = int(pres_n["cantidad"])
+    cc = int(pres_c["cantidad"])
+    if cn <= 0 or cc <= 0:
+        return False
+    tol = max(1, int(cn * tolerancia_pct))
+    return abs(cn - cc) <= tol
+
+
+def _presentacion_desde_vision(raw: Optional[dict], titulo: str) -> Optional[dict]:
+    if isinstance(raw, dict):
+        unidad = str(raw.get("unidad") or raw.get("unidad_cantidad") or "").strip()
+        cant = raw.get("cantidad")
+        if cant in (None, ""):
+            if unidad.lower() in ("ml", "mls", "cc", "l", "lt", "litro", "litros"):
+                cant = raw.get("ml")
+            else:
+                cant = raw.get("gramos") or raw.get("ml")
+        try:
+            n = float(str(cant).replace(",", "."))
+        except (TypeError, ValueError):
+            n = 0.0
+        if n > 0:
+            pres = extraer_presentacion(f"{n} {unidad or 'g'}")
+            if pres:
+                return pres
+    return extraer_presentacion(titulo)
+
+
+def enriquecer_fila_comparacion(
+    titulo: str,
+    precio: float,
+    raw: Optional[dict] = None,
+) -> dict:
+    pres = _presentacion_desde_vision(raw if isinstance(raw, dict) else None, titulo)
+    return {
+        "nombre": (titulo or "").strip()[:180],
+        "cantidad": presentacion_casilla(pres),
+        "valor_total": float(precio or 0),
+    }
 
 
 def query_busqueda(titulo: str) -> str:
@@ -282,6 +353,15 @@ def aplicar_observaciones_manuales(analisis: dict) -> dict:
         mid = str(p.get("item_id") or "").upper()
         p["url_busqueda_meli"] = url_busqueda_meli_navegador(p.get("query") or p.get("titulo") or "")
         obs = list(por_item.get(mid) or [])
+        pres_n = extraer_presentacion(p.get("titulo") or "")
+        if pres_n:
+            obs = [
+                o for o in obs
+                if misma_presentacion(
+                    pres_n,
+                    extraer_presentacion(str(o.get("titulo") or "")),
+                )
+            ]
         p["observaciones_manual"] = obs
         precios = [float(o["precio"]) for o in obs if o.get("precio")]
         minimo = min(precios) if precios else None
@@ -363,6 +443,87 @@ def obtener_ultimo_analisis_competencia() -> dict:
     except Exception:
         data["stale"] = True
     return aplicar_observaciones_manuales(data)
+
+
+def actualizar_precio_base_competencia(
+    item_id: str,
+    precio,
+    sku: str = "",
+    push_meli: bool = True,
+) -> dict:
+    """Actualiza el precio base de nuestra publicación (cache + MeLi) y rearma el reporte."""
+    mid = str(item_id or "").strip().upper()
+    if not mid.startswith("MCO"):
+        return {"ok": False, "error": "item_id MeLi requerido (MCO…)."}
+    monto = parsear_precio_cop(precio)
+    if not monto:
+        return {"ok": False, "error": "Precio inválido."}
+
+    cache = _cargar_cache() or {}
+    encontrado = False
+    titulo = ""
+    for p in cache.get("productos") or []:
+        if str(p.get("item_id") or "").upper() != mid:
+            continue
+        p["precio"] = monto
+        pres = p.get("presentacion") or extraer_presentacion(p.get("titulo") or "")
+        p["presentacion"] = pres
+        p["precio_por_100"] = precio_por_100(monto, pres)
+        titulo = str(p.get("titulo") or "")
+        if not sku:
+            sku = str(p.get("sku") or "")
+        encontrado = True
+        break
+    if encontrado:
+        try:
+            _guardar_cache(cache)
+        except Exception:
+            pass
+
+    reportes = _cargar_reportes_captura()
+    hist = []
+    for r in reportes:
+        if str(r.get("item_id") or "").upper() != mid:
+            hist.append(r)
+            continue
+        listados = r.get("listados") or []
+        tit = str(r.get("nuestro_titulo") or titulo or "")
+        nuevo = armar_reporte_captura(
+            item_id=mid,
+            titulo=tit,
+            precio=monto,
+            listados_visibles=listados,
+        )
+        try:
+            nuevo["evidencia_png"] = render_evidencia_tabla_competencia(nuevo, sku=sku)
+        except Exception:
+            nuevo["evidencia_png"] = r.get("evidencia_png")
+        hist.append(nuevo)
+    if hist != reportes:
+        _guardar_reportes_captura(hist)
+
+    meli = None
+    if push_meli:
+        try:
+            from app.services.meli import actualizar_precio_meli_por_sku
+
+            meli = actualizar_precio_meli_por_sku(sku or "", monto, meli_id=mid)
+        except Exception as e:
+            meli = {"ok": False, "msg": str(e)[:240]}
+
+    analisis = obtener_ultimo_analisis_competencia()
+    out = {
+        "ok": True,
+        "precio": monto,
+        "item_id": mid,
+        "cache_ok": encontrado,
+        **analisis,
+    }
+    if meli is not None:
+        out["meli"] = meli
+        if not meli.get("ok"):
+            out["aviso_meli"] = meli.get("msg") or "No se pudo publicar el precio en MeLi."
+    return out
 
 
 def _cache_fresco(data: dict, dias: int, top_n: int, consulta: str) -> bool:
@@ -557,11 +718,9 @@ def competidores_de_publicacion(
         if precio_c <= 0:
             continue
         pres_c = extraer_presentacion(titulo_c)
-        misma = bool(
-            pres_n and pres_c
-            and pres_n.get("canonica") == pres_c.get("canonica")
-            and abs(int(pres_n["cantidad"]) - int(pres_c["cantidad"])) <= max(1, int(pres_n["cantidad"]) * 0.05)
-        )
+        misma = misma_presentacion(pres_n, pres_c)
+        if pres_n and not misma:
+            continue
         unit_c = precio_por_100(precio_c, pres_c)
         # Comparar por unidad cuando hay presentación comparable; si no, precio de lista
         base_n = unit_n if (misma and unit_n and unit_c) else precio_n
@@ -589,7 +748,7 @@ def competidores_de_publicacion(
 
 def _veredicto_producto(nuestro: dict, comps: list[dict]) -> tuple[str, Optional[float], Optional[float]]:
     misma = [c for c in comps if c.get("misma_presentacion")]
-    pool = misma or comps
+    pool = misma
     if not pool:
         return "sin_competencia", None, None
     # Precio comparable: unidad si todos tienen; si no, lista de misma presentación
@@ -930,6 +1089,7 @@ def _normalizar_listado_vision(raw) -> dict | None:
         vendidos_n = int(vendidos) if vendidos not in (None, "") else None
     except (TypeError, ValueError):
         vendidos_n = None
+    pres = _presentacion_desde_vision(raw if isinstance(raw, dict) else None, titulo)
     return {
         "titulo": titulo,
         "precio": precio,
@@ -938,6 +1098,8 @@ def _normalizar_listado_vision(raw) -> dict | None:
         "vendidos": vendidos_n,
         "envio_gratis": bool(raw.get("envio_gratis") or raw.get("free_shipping")),
         "parece_nuestra": bool(raw.get("parece_nuestra") or raw.get("is_ours")),
+        "presentacion": pres,
+        **enriquecer_fila_comparacion(titulo, precio, raw),
     }
 
 
@@ -948,6 +1110,7 @@ def filtrar_listados_comparables(
     listados: list[dict],
 ) -> list[dict]:
     ours = str(nuestro_item_id or "").upper()
+    pres_n = extraer_presentacion(nuestro_titulo)
     out: list[dict] = []
     vistos: set[str] = set()
     for raw in listados or []:
@@ -965,6 +1128,9 @@ def filtrar_listados_comparables(
         ok, score = titulos_relacionados(nuestro_titulo, row.get("titulo") or "")
         if not ok:
             continue
+        pres_c = row.get("presentacion") or extraer_presentacion(row.get("titulo") or "")
+        if pres_n and not misma_presentacion(pres_n, pres_c):
+            continue
         if abs(float(row["precio"]) - float(nuestro_precio or 0)) < 1 and score >= 0.85:
             continue
         key = f"{row['precio']:.0f}|{_norm(row.get('titulo') or '')[:40]}"
@@ -976,6 +1142,7 @@ def filtrar_listados_comparables(
             **row,
             "relacion_titulo": score,
             "delta_pct": d_pct,
+            "misma_presentacion": bool(pres_n and misma_presentacion(pres_n, pres_c)),
             "comparable": True,
         })
     out.sort(key=lambda c: float(c.get("precio") or 0))
@@ -990,36 +1157,58 @@ def armar_reporte_captura(
     listados_visibles: list[dict],
 ) -> dict:
     comps = filtrar_listados_comparables(titulo, item_id, precio, listados_visibles)
+    pres_n = extraer_presentacion(titulo)
+    pres_txt = presentacion_casilla(pres_n)
     precios = [float(c["precio"]) for c in comps if c.get("precio")]
     minimo = min(precios) if precios else None
     veredicto = clasificar_vs_min(float(precio or 0), minimo)
     delta = delta_pct(float(precio or 0), minimo) if minimo else None
+    pres_nota = f" (misma presentación: {pres_txt})" if pres_txt and pres_txt != "—" else ""
     if not comps:
         resumen = (
             "Vi el pantallazo pero no encontré publicaciones comparables "
-            "(mismo producto / presentación). Probá bajar un poco para que "
-            "se vean más tarjetas, o anotá un precio a mano."
+            f"(mismo producto y misma cantidad{pres_nota or ''}). "
+            "Probá bajar un poco para que se vean tarjetas con la misma "
+            "presentación en g o ml, o anotá un precio a mano."
         )
     elif veredicto == "mas_caro":
         resumen = (
-            f"Hay {len(comps)} publicación(es) comparable(s). La más barata está "
+            f"Hay {len(comps)} publicación(es) comparable(s){pres_nota}. La más barata está "
             f"en {_cop(minimo)} ({delta:+.1f}% vs nosotros {_cop(precio)}). Conviene revisar precio."
         )
     elif veredicto == "mas_barato":
         resumen = (
-            f"Hay {len(comps)} comparable(s). Estamos por debajo del mínimo "
+            f"Hay {len(comps)} comparable(s){pres_nota}. Estamos por debajo del mínimo "
             f"({_cop(minimo)}). Nosotros {_cop(precio)}."
         )
     else:
         resumen = (
-            f"Hay {len(comps)} comparable(s). Andamos parecidos al mínimo "
+            f"Hay {len(comps)} comparable(s){pres_nota}. Andamos parecidos al mínimo "
             f"({_cop(minimo)}). Nosotros {_cop(precio)}."
         )
+    nuestra = {
+        **enriquecer_fila_comparacion(titulo, float(precio or 0)),
+        "es_nuestra": True,
+        "vendedor": "Nosotros",
+    }
+    tabla = [nuestra]
+    for c in comps:
+        tabla.append({
+            **c,
+            "es_nuestra": False,
+            "nombre": c.get("nombre") or c.get("titulo") or "",
+            "cantidad": c.get("cantidad") or enriquecer_fila_comparacion(
+                str(c.get("titulo") or ""), float(c.get("precio") or 0), c,
+            )["cantidad"],
+            "valor_total": c.get("valor_total") if c.get("valor_total") is not None else c.get("precio"),
+        })
     return {
         "item_id": str(item_id or "").upper(),
         "generado_en": _ahora_iso(),
         "nuestro_titulo": titulo,
         "nuestro_precio": float(precio or 0),
+        "nuestra_cantidad": nuestra["cantidad"],
+        "presentacion_requerida": pres_txt if pres_txt != "—" else None,
         "n_vistos": len(listados_visibles or []),
         "n_comparables": len(comps),
         "min_precio": minimo,
@@ -1027,6 +1216,7 @@ def armar_reporte_captura(
         "delta_pct_vs_min": delta,
         "resumen": resumen,
         "listados": comps,
+        "tabla": tabla,
         "fuente": "captura_vision",
     }
 
@@ -1056,13 +1246,17 @@ def _invocar_vision_captura(
         "Sos un extractor de listados de Mercado Libre Colombia. "
         "La imagen es un pantallazo del RESULTADO DE BÚSQUEDA (tarjetas). "
         "Solo extraé lo visible; no inventes.\n\n"
-        f"Nuestra publicación de referencia:\n- título: {titulo}\n- precio nuestro: {precio}\n\n"
+        f"Nuestra publicación de referencia:\n- título: {titulo}\n- precio nuestro: {precio}\n"
+        f"- presentación nuestra: {presentacion_casilla(extraer_presentacion(titulo))}\n\n"
         'Devolvé SOLO JSON válido: {"listados":[{"titulo":"","precio":24900,'
-        '"vendedor":"","permalink":"","vendidos":null,"envio_gratis":false,'
-        '"parece_nuestra":false}]}\n\n'
-        "Reglas: precio en COP sin puntos de miles; parece_nuestra=true si es "
-        "McKenna o el mismo título/precio de referencia; permalink solo si se "
-        "lee mercadolibre.com.co; máximo 15 tarjetas visibles."
+        '"cantidad":250,"unidad":"g","vendedor":"","permalink":"","vendidos":null,'
+        '"envio_gratis":false,"parece_nuestra":false}]}\n\n'
+        "Reglas: precio = valor TOTAL de la publicación en COP (sin puntos de miles); "
+        "cantidad y unidad (g o ml) obligatorias si se ven en el título; "
+        "solo incluí tarjetas del MISMO producto y la MISMA cantidad/unidad que la "
+        "referencia (ej. si somos 250 g, no listes 500 g ni 100 ml); "
+        "parece_nuestra=true si es McKenna o el mismo título/precio de referencia; "
+        "permalink solo si se lee mercadolibre.com.co; máximo 15 tarjetas visibles."
     )
     client = genai.Client(api_key=api_key)
     resp = client.models.generate_content(
@@ -1116,6 +1310,262 @@ def _reemplazar_observaciones_captura(item_id: str, comps: list[dict]) -> None:
     _guardar_observaciones(rows)
 
 
+def _fmt_fecha_evidencia(iso: str | None) -> str:
+    raw = (iso or _ahora_iso()).replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return raw.replace("T", " ")[:16]
+    return dt.strftime("%d/%m/%Y %H:%M")
+
+
+def _evidencia_filename(item_id: str, generado_en: str | None) -> str:
+    mid = re.sub(r"[^\w-]", "", str(item_id or "item").upper())[:24]
+    ts = (generado_en or _ahora_iso()).replace(":", "").replace("-", "")
+    ts = re.sub(r"[^\dT]", "", ts)[:15] or datetime.now().strftime("%Y%m%dT%H%M%S")
+    return f"{mid}_{ts}.png"
+
+
+def _pil_font(size: int, bold: bool = False):
+    from PIL import ImageFont
+
+    paths = (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
+        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    )
+    for path in paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _pil_fit_text(draw, text: str, font, max_w: int) -> str:
+    text = (text or "").strip() or "—"
+    if draw.textbbox((0, 0), text, font=font)[2] <= max_w:
+        return text
+    ell = "…"
+    lo, hi = 0, len(text)
+    best = ell
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        cand = text[:mid].rstrip() + ell
+        if draw.textbbox((0, 0), cand, font=font)[2] <= max_w:
+            best = cand
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return best
+
+
+def render_evidencia_tabla_competencia(reporte: dict, *, sku: str = "") -> str:
+    """
+    Dibuja la tabla comparativa como PNG (evidencia de revisión humana).
+    Retorna el nombre de archivo (sin ruta) guardado en app/data/competencia_evidencias/.
+    """
+    from PIL import Image, ImageDraw
+
+    tabla = reporte.get("tabla") or []
+    if not tabla:
+        nuestra = {
+            **enriquecer_fila_comparacion(
+                str(reporte.get("nuestro_titulo") or ""),
+                float(reporte.get("nuestro_precio") or 0),
+            ),
+            "es_nuestra": True,
+            "vendedor": "Nosotros",
+        }
+        tabla = [nuestra]
+        for c in reporte.get("listados") or []:
+            tabla.append({
+                **c,
+                "es_nuestra": False,
+                "nombre": c.get("nombre") or c.get("titulo") or "",
+                "cantidad": c.get("cantidad") or presentacion_casilla(
+                    extraer_presentacion(str(c.get("titulo") or "")),
+                ),
+                "valor_total": c.get("valor_total") if c.get("valor_total") is not None else c.get("precio"),
+            })
+
+    # Paleta clara (evidencia imprimible / WhatsApp)
+    _BG = (255, 252, 254)
+    _PANEL = (253, 242, 248)
+    _PANEL2 = (250, 245, 255)
+    _BORDER = (236, 72, 153, 80)
+    _TEXT = (30, 27, 38)
+    _MUTED = (100, 116, 139)
+    _ACCENT = (225, 29, 122)
+    _ROW_OURS = (252, 231, 243)
+
+    W = 1080
+    PAD = 16
+    header_h = 72
+    meta_h = 52
+    resumen_h = 44
+    row_h = 28
+    table_head_h = 26
+    n_rows = max(1, len(tabla))
+    table_h = table_head_h + n_rows * row_h + 8
+    footer_h = 28
+    H = PAD + header_h + meta_h + resumen_h + table_h + footer_h + PAD
+
+    img = Image.new("RGB", (W, H), _BG)
+    draw = ImageDraw.Draw(img)
+    f_brand = _pil_font(11, False)
+    f_title = _pil_font(18, True)
+    f_sub = _pil_font(11, False)
+    f_sec = _pil_font(12, True)
+    f_th = _pil_font(10, True)
+    f_row = _pil_font(11, False)
+    f_row_b = _pil_font(11, True)
+    f_small = _pil_font(9, False)
+
+    y = PAD
+    draw.rounded_rectangle((PAD, y, W - PAD, y + header_h), radius=8, fill=_PANEL)
+    logo_x = PAD + 12
+    if _LOGO_EVIDENCIA.is_file():
+        try:
+            logo = Image.open(_LOGO_EVIDENCIA).convert("RGBA")
+            lh = 44
+            lw = max(1, int(logo.width * lh / max(logo.height, 1)))
+            logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
+            img.paste(logo, (logo_x, y + 14), logo)
+            logo_x += lw + 12
+        except Exception:
+            pass
+    draw.text((logo_x, y + 10), "McKenna Group", font=f_brand, fill=_ACCENT)
+    draw.text((logo_x, y + 26), "Análisis competencia MeLi", font=f_title, fill=_TEXT)
+    fecha = _fmt_fecha_evidencia(reporte.get("generado_en"))
+    draw.text((logo_x, y + 50), f"Fecha de análisis: {fecha}", font=f_sub, fill=_MUTED)
+    badge = "Evidencia · revisión humana"
+    bb = draw.textbbox((0, 0), badge, font=f_small)
+    bw = bb[2] - bb[0] + 16
+    bx = W - PAD - 12 - bw
+    draw.rounded_rectangle((bx, y + 22, bx + bw, y + 44), radius=6, fill=_ACCENT)
+    draw.text((bx + 8, y + 28), badge, font=f_small, fill=(255, 255, 255))
+
+    y += header_h + 8
+    titulo = str(reporte.get("nuestro_titulo") or "Publicación")[:120]
+    item_id = str(reporte.get("item_id") or "").upper()
+    meta_line = item_id
+    pres_req = reporte.get("presentacion_requerida") or reporte.get("nuestra_cantidad")
+    if pres_req and pres_req != "—":
+        meta_line = f"{meta_line} · solo {pres_req}" if meta_line else f"Solo {pres_req}"
+    if sku:
+        meta_line = f"{meta_line} · SKU {sku}" if meta_line else f"SKU {sku}"
+    draw.rounded_rectangle((PAD, y, W - PAD, y + meta_h), radius=6, fill=_PANEL2)
+    draw.text((PAD + 12, y + 8), _pil_fit_text(draw, titulo, f_sec, W - 2 * PAD - 24), font=f_sec, fill=_TEXT)
+    draw.text((PAD + 12, y + 28), meta_line, font=f_sub, fill=_MUTED)
+    y += meta_h + 8
+
+    resumen = str(reporte.get("resumen") or "").strip()
+    if resumen:
+        draw.rounded_rectangle((PAD, y, W - PAD, y + resumen_h), radius=6, fill=_PANEL)
+        draw.text(
+            (PAD + 12, y + 8),
+            _pil_fit_text(draw, resumen, f_sub, W - 2 * PAD - 24),
+            font=f_sub,
+            fill=_TEXT,
+        )
+        comps = reporte.get("n_comparables")
+        min_p = reporte.get("min_precio")
+        extra = []
+        if comps is not None:
+            extra.append(f"{comps} comparable(s)")
+        if min_p is not None:
+            extra.append(f"mínimo {_cop(float(min_p))}")
+        if extra:
+            draw.text((PAD + 12, y + 26), " · ".join(extra), font=f_small, fill=_MUTED)
+        y += resumen_h + 8
+
+    col_nombre = PAD + 12
+    col_cant = W - PAD - 12 - 230
+    col_total = W - PAD - 12 - 110
+    name_w = col_cant - col_nombre - 16
+
+    draw.rounded_rectangle((PAD, y, W - PAD, y + table_h), radius=8, fill=(255, 255, 255))
+    draw.line((PAD + 8, y + table_head_h, W - PAD - 8, y + table_head_h), fill=(244, 114, 182), width=1)
+    ty = y + 6
+    draw.text((col_nombre, ty), "NOMBRE", font=f_th, fill=_MUTED)
+    draw.text((col_cant, ty), "CANTIDAD", font=f_th, fill=_MUTED)
+    draw.text((col_total, ty), "VALOR TOTAL", font=f_th, fill=_MUTED)
+    ty = y + table_head_h + 4
+
+    for idx, fila in enumerate(tabla):
+        es_nuestra = bool(fila.get("es_nuestra"))
+        nombre = str(fila.get("nombre") or fila.get("titulo") or "—")
+        if es_nuestra:
+            nombre = f"{nombre} (nosotros)"
+        cant = str(fila.get("cantidad") or presentacion_casilla(
+            extraer_presentacion(nombre),
+        ) or "—")
+        total = fila.get("valor_total")
+        if total is None:
+            total = fila.get("precio")
+        total_s = _cop(float(total or 0)) if total is not None else "—"
+        bg = _ROW_OURS if es_nuestra else (_PANEL if idx % 2 == 0 else _BG)
+        draw.rounded_rectangle((PAD + 6, ty, W - PAD - 6, ty + row_h - 2), radius=4, fill=bg)
+        if es_nuestra:
+            draw.rectangle((PAD + 6, ty + 4, PAD + 9, ty + row_h - 6), fill=_ACCENT)
+        font_n = f_row_b if es_nuestra else f_row
+        draw.text((col_nombre + 6, ty + 6), _pil_fit_text(draw, nombre, font_n, name_w), font=font_n, fill=_TEXT)
+        draw.text((col_cant, ty + 6), cant, font=f_row, fill=_TEXT)
+        draw.text((col_total, ty + 6), total_s, font=f_row_b if es_nuestra else f_row, fill=_TEXT)
+        ty += row_h
+
+    fy = H - footer_h
+    draw.text(
+        (PAD, fy),
+        "Generado desde pantallazo MeLi + tabla comparativa · McKenna Group",
+        font=f_small,
+        fill=_MUTED,
+    )
+    draw.text((W - PAD - 220, fy), fecha, font=f_small, fill=_MUTED)
+
+    _EVIDENCIAS_DIR.mkdir(parents=True, exist_ok=True)
+    fname = _evidencia_filename(str(reporte.get("item_id") or ""), reporte.get("generado_en"))
+    path = _EVIDENCIAS_DIR / fname
+    img.save(path, format="PNG", optimize=True)
+    return fname
+
+
+def ruta_evidencia_competencia(item_id: str, *, regenerar_si_falta: bool = True) -> Path | None:
+    """Ruta absoluta al PNG de evidencia del último reporte de captura del ítem."""
+    mid = str(item_id or "").strip().upper()
+    if not mid:
+        return None
+    reporte = _indice_ultimo_reporte_captura().get(mid)
+    if not reporte:
+        return None
+    fname = str(reporte.get("evidencia_png") or "").strip()
+    if fname:
+        p = _EVIDENCIAS_DIR / Path(fname).name
+        if p.is_file():
+            return p
+    if not regenerar_si_falta:
+        return None
+    sku = ""
+    cache = _cargar_cache() or {}
+    for prod in cache.get("productos") or []:
+        if str(prod.get("item_id") or "").upper() == mid:
+            sku = str(prod.get("sku") or "").strip()
+            break
+    try:
+        fname = render_evidencia_tabla_competencia(reporte, sku=sku)
+    except Exception:
+        return None
+    reporte["evidencia_png"] = fname
+    hist = _cargar_reportes_captura()
+    for i, row in enumerate(hist):
+        if str(row.get("item_id") or "").upper() == mid:
+            hist[i] = {**row, "evidencia_png": fname}
+            break
+    _guardar_reportes_captura(hist)
+    p = _EVIDENCIAS_DIR / fname
+    return p if p.is_file() else None
+
+
 def generar_reporte_competencia_captura(
     item_id: str,
     imagen: bytes,
@@ -1162,6 +1612,11 @@ def generar_reporte_competencia_captura(
         precio=float(precio_n or 0),
         listados_visibles=listados,
     )
+    sku_n = str((prod or {}).get("sku") or "").strip()
+    try:
+        reporte["evidencia_png"] = render_evidencia_tabla_competencia(reporte, sku=sku_n)
+    except Exception:
+        reporte["evidencia_png"] = None
     _reemplazar_observaciones_captura(mid, reporte.get("listados") or [])
     hist = [r for r in _cargar_reportes_captura() if str(r.get("item_id") or "").upper() != mid]
     hist.append(reporte)

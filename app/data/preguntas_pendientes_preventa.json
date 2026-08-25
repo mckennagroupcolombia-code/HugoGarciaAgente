@@ -2181,6 +2181,21 @@
       "timestamp": "2026-08-23T22:25:03.562880",
       "respondida": true,
       "nota": "Respondida automáticamente por monitor (reintento) 2026-08-23"
+    },
+    {
+      "question_id": "13647088820",
+      "titulo_producto": "Aceite De Ricino 10 Ml",
+      "pregunta": "Hola, Cómo se usa el aceite de ricino para pestañas y cejas?",
+      "timestamp": "2026-08-24T10:08:15.341401",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro! 😊\n\nPara pestañas y cejas, puede aplicar una pequeña cantidad de aceite de ricino directamente sobre ellas usando un hisopo limpio o un cepillo para cejas. Se masajea suavemente sobre el área y se deja actuar. Muchas personas lo aplican en las noches antes de dormir para mejores resultados.\n\nEl aceite ayuda a estimular el crecimiento, prevenir la rotura y fortalecer tanto las pestañas como las cejas. Eso sí, le recomendamos hacer primero una pequeña prueba de sensibilidad en la piel para verificar que no haya ningún tipo de irritación antes de usar con regularidad. 🌿"
+    },
+    {
+      "question_id": "13647325518",
+      "titulo_producto": "Cera De Abejas  Blanca 500gr",
+      "pregunta": "Hola como estas, el precio es con iva incluido? Das factura electronica? Gracias",
+      "timestamp": "2026-08-24T15:28:39.889428",
+      "respondida": true
     }
   ]
 }

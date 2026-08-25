@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-08-23T07:22:22"
+    "ultima_ejecucion": "2026-08-24T07:23:44"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,11 +21,11 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-08-23T18:00:01"
+    "ultima_ejecucion": "2026-08-24T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-15T01:50:51"
+    "ultima_ejecucion": "2026-08-24T08:16:36"
   },
   "informe_reposicion_mensual": {
     "intervalo_horas": 168,
@@ -33,22 +33,26 @@
   },
   "archivar_gasto_ads": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-15T05:19:12"
+    "ultima_ejecucion": "2026-08-24T08:22:42"
   },
   "resumen_costos_llm": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-17T07:45:01"
+    "ultima_ejecucion": "2026-08-24T07:45:01"
   },
   "recordatorio_inventario": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-17T08:32:37"
+    "ultima_ejecucion": "2026-08-24T08:31:31"
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-08-23T07:06:19"
+    "ultima_ejecucion": "2026-08-24T15:09:57"
   },
   "cobertura_meli": {
     "intervalo_horas": 168,
     "ultima_ejecucion": "2026-08-21T06:51:52"
+  },
+  "competencia_precios": {
+    "intervalo_horas": 168,
+    "ultima_ejecucion": "2026-08-24T09:00:01"
   }
 }

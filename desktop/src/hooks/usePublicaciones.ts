@@ -625,3 +625,85 @@ export function useAdjuntarDesdeGaleria(sku: string) {
     },
   });
 }
+
+export type RegionDesenfoque = { x: number; y: number; w: number; h: number };
+
+export interface DesenfoquePreviewResult {
+  ok: boolean;
+  preview_base64?: string;
+  meta?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface DesenfoqueAplicarItemResult {
+  ok: boolean;
+  sku?: string;
+  meli_item_id?: string;
+  picture_id?: string;
+  picture_id_origen?: string;
+  adjuntada?: boolean;
+  url?: string;
+  error?: string;
+  error_adjuntar?: string;
+  nota?: string;
+}
+
+export interface DesenfoqueAplicarResult {
+  ok: boolean;
+  procesados?: number;
+  ok_count?: number;
+  error_count?: number;
+  resultados?: DesenfoqueAplicarItemResult[];
+  error?: string;
+  adjuntada?: boolean;
+  picture_id?: string;
+  sku?: string;
+  nota?: string;
+}
+
+export function useDesenfoquePreview() {
+  return useMutation({
+    mutationFn: (body: {
+      url?: string;
+      meli_item_id?: string;
+      picture_id?: string;
+      modo?: "pie" | "regiones";
+      pie_pct?: number;
+      regiones?: RegionDesenfoque[];
+      radio?: number;
+    }) =>
+      api.post<DesenfoquePreviewResult>(
+        "/api/publicaciones/imagenes/desenfoque/preview",
+        body,
+      ),
+  });
+}
+
+export function useDesenfoqueAplicar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      items?: Array<{
+        sku?: string;
+        meli_item_id?: string;
+        picture_ids?: "principal" | "todas" | string[];
+      }>;
+      sku?: string;
+      meli_item_id?: string;
+      picture_id?: string;
+      modo?: "pie" | "regiones";
+      pie_pct?: number;
+      regiones?: RegionDesenfoque[];
+      radio?: number;
+    }) =>
+      api.post<DesenfoqueAplicarResult>(
+        "/api/publicaciones/imagenes/desenfoque/aplicar",
+        body,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fotos-actuales"] });
+      qc.invalidateQueries({ queryKey: ["publicacion"] });
+      qc.invalidateQueries({ queryKey: ["publicaciones"] });
+    },
+  });
+}

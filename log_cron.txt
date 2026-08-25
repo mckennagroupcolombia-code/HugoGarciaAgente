@@ -1611,3 +1611,394 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 reportes/_generar_codigo_no_vinculado.py
  create mode 100644 uploads/tickets/bf9499b6bf6040b39a8df80cafc4a622.png
 [2026-08-23 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-23 23:00'
+⏭  Cobertura MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 796, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 975, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+               ^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 483, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 527, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1042, in _create
+    self.do_handshake()
+  File "/usr/lib/python3.12/ssl.py", line 1320, in do_handshake
+    self._sslobj.do_handshake()
+TimeoutError: _ssl.c:983: The handshake operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/adapters.py", line 644, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/retry.py", line 490, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/util.py", line 39, in reraise
+    raise value
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 466, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 367, in _raise_timeout
+    raise ReadTimeoutError(
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.mercadolibre.com', port=443): Read timed out. (read timeout=20)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/scripts/reconciliar_precios_meli_cron.py", line 165, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/mckg/mi-agente/scripts/reconciliar_precios_meli_cron.py", line 136, in main
+    resultado = reconciliar_precios_meli(dry_run=False)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/services/precios_canales.py", line 480, in reconciliar_precios_meli
+    meli_data = _obtener_precios_activos_meli(token, seller_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/services/precios_canales.py", line 372, in _obtener_precios_activos_meli
+    r = requests.get(
+        ^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/adapters.py", line 690, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.mercadolibre.com', port=443): Read timed out. (read timeout=20)
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   132 órdenes canceladas en la ventana.
+   4230 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3460 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-70384 -> NC-2-725 (Accepted) — MeLi: ✅
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-70370 -> NC-2-726 (Accepted) — MeLi: ✅
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-70366 -> NC-2-727 (Accepted) — MeLi: ✅
+Resumen: 3 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-08-24T07:45:01] resumen_costos_llm:
+💸 *Costos IA vía API — resumen semanal*
+Semana 2026-08-18 → 2026-08-24
+Total: *US$2.09* en 189 llamadas (promedio US$0.30/día)
+Día más alto: 2026-08-21 con US$0.58
+*Por canal:*
+  • WhatsApp/Web clientes: US$1.78
+  • Preventa MeLi: US$0.24
+  • ft_escanear_url: US$0.02
+  • coa_scan_estructurar: US$0.02
+  • ft_scan_estructurar: US$0.01
+  • ft_scan_tablas: US$0.01
+  • coa_scan_tablas: US$0.01
+*Por modelo:*
+  • claude-sonnet-4-6: US$2.02
+  • gemini-2.5-flash: US$0.07
+
+Límites: alerta US$1.00/día, bloqueo US$3.00/día. Detalle diario en el monitor: http://localhost:3000/monitor
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo de sistemas
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[2026-08-24T08:16:36] publicidad_recomendaciones: pausar=35 revisar=62 ok=59 alertas_campanas=102
+✅ Centro de Mando (tickets DB) inicializado
+📢 *Publicidad MeLi — revisión de ACOS*
+Período: últimos 30 días
+🔴 Pausar: *35* productos ($3,752,815 COP)
+🟠 Revisar: *62* productos ($5,264,643 COP)
+🟢 OK: 59 dentro de objetivo para su rotación
+ℹ️ 17 sin dato de rotación (evaluados conservador)
+
+Top candidatos a pausar:
+• Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro — $1,604,932 COP, ACOS 59.1%
+• Aceite De Jojoba — $117,973 COP, ACOS 146.0%
+• Kit Hidratante Ácido Hialurónico — $73,410 COP, ACOS 184.0%
+• Vaselina Pura X 900 G — $65,978 COP, ACOS 55.5%
+• Lactato De Calcio Polvo 250gr N/a — $37,021 COP, ACOS 77.5%
+
+📥 *41* con venta real, falta migrar a una campaña:
+• Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura → Media rotación
+• Manteca De Karité Orgánica Amarilla Sin Refinar 250 Gr → Media rotación
+• Manteca De Cacao 100% Orgánica Prensada En Frío 500 Gr  → Alta rotación
+• Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr → Media rotación
+• Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado → Alta rotación
+
+⏸ *16* ya migrados sin ninguna venta — pausar, no reasignar:
+• Cera Carnauba   500gr (Baja rotación)
+• Cera Carnauba   250 Gr (Baja rotación)
+• Coco Deshidratado Hilos Puro 500g (Baja rotación)
+• Ácido Sórbico 1 Kg  N/a (Baja rotación)
+• Nuez Del Brasil Partida 500g (Baja rotación)
+
+🔀 *45* cambiaron de rotación, mover de campaña:
+• Creatina Monohidrato 500g N/a — Baja rotación → Alta rotación
+• D-pantenol Vitamina B5 75% — Media rotación → Alta rotación
+• Carbón Activado Pellets Filtro Olores 800g — Baja rotación → Media rotación
+• Alginato De Sodio + Lactato De Calcio 50g C/u — Baja rotación → Alta rotación
+• Kit Reparador #3 Cosmético  Todo Tipo De Piel — Baja rotación → Media rotación
+
+🏢 Centro de Mando: ticket #TKT-2026-0936
+Detalle completo: /app → Contabilidad → Publicidad
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado por WhatsApp
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[2026-08-24T08:22:42] archivar_gasto_ads: 12 semanas revisadas, 2 archivadas en esta corrida, 0 sin dato y por vencerse.
+✅ Todas las semanas dentro de la ventana de 90 días están archivadas.
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+ℹ️ [STOCK] Omitidas 46 publicaciones closed/inactive (ya no operables en MeLi).
+ℹ️ [STOCK] +168 publicaciones pausadas MeLi no listadas en Sheets añadidas al resumen.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+Resumen: agotados=147 criticos=29 bajos=68 divergentes=2
+✅ Reporte enviado a WhatsApp con éxito.
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 2/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 796, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 975, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+               ^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 483, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 527, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1042, in _create
+    self.do_handshake()
+  File "/usr/lib/python3.12/ssl.py", line 1320, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/adapters.py", line 644, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/retry.py", line 490, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 796, in connect
+    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/connection.py", line 975, in _ssl_wrap_socket_and_match_hostname
+    ssl_sock = ssl_wrap_socket(
+               ^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 483, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/urllib3/util/ssl_.py", line 527, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 455, in wrap_socket
+    return self.sslsocket_class._create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1042, in _create
+    self.do_handshake()
+  File "/usr/lib/python3.12/ssl.py", line 1320, in do_handshake
+    self._sslobj.do_handshake()
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 63, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 40, in main
+    analisis = ejecutar_analisis_competencia(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 710, in ejecutar_analisis_competencia
+    base = nuestros_mas_vendidos(dias=dias, top_n=top_n, consulta=consulta)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 443, in nuestros_mas_vendidos
+    ventas = obtener_ventas_meli_por_item(dias=dias, refresh=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/sync.py", line 936, in obtener_ventas_meli_por_item
+    r = requests.get(url, headers=headers, timeout=40)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/venv/lib/python3.12/site-packages/requests/adapters.py", line 659, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-CERABREFKg CERA ABEJAS REFINADA AMARILLA Kg
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA Kg
+INFO: Combo SIIGO omitido sin precio público: C-ALFARB10g ALFA ARBUTINA 10g
+INFO: Combo SIIGO omitido sin precio público: C-LPRO100g L PROLINA 100g
+INFO: Combo SIIGO omitido sin precio público: C-VAS900g VASELINA 900g
+INFO: Combo SIIGO omitido sin precio público: C-GELSILCRI250g GEL SILICA 250g
+INFO: Combo SIIGO omitido sin precio público: C-GOTPLA3mL10Un GOTERO PLASTICO 3mL 10 Un
+INFO: Combo SIIGO omitido sin precio público: GOTVID10mLX12Un GOTERO VIDRIO 10 mL x 12 Un
+INFO: Combo SIIGO omitido sin precio público: FOR-ACISALmL FORMULA ACIDO SALICILICO 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-VITC20PmL FORMULA VITAMINA C 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-AZUMETmL AZUL METILENO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-GLUTAR2PmL GLUTARALDEHIDO 2% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIABAJPESmL ACIDO HIALURINICO BAJO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIAALTPESmL ACIDO HIALURONICO ALTO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIKOJmL ACIDO KOJICO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACILAC85PmL ACIDO LACTICO 85% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIGLI50PmL ACIDO GLICOLICO 50% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-RET5PmL RETINOL 5% mL
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: Fotos/precios MeLi por SKU: 198 exactos, 36 alias, 70 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 236/304 combos SIIGO tienen publicación (se ocultan 68)
+INFO: Catálogo listo: 21 categorías, 176 fichas (33 con varias presentaciones), 236 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+   29 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 14 | Sospechosos (>2×): 13
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-08-24T18:00:01] resumen_actividad_sede_sur: 66 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 20 nuevas · 19 completadas · 24 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 7 nuevas, 7 completadas
+• Armando Garcia: 5 nuevas, 4 completadas
+• Cynthia Ruiz: 3 nuevas, 4 completadas
+• Gloria Stella: 2 nuevas, 2 completadas
+• Victor Garcia: 1 nueva, 2 completadas
+• Administrador: 2 nuevas, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-24) no es el último día del mes.

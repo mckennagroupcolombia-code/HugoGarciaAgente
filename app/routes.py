@@ -1703,6 +1703,32 @@ def register_routes(app):
     def _mckenna_bind_request_id():
         bind_flask_request(request)
 
+    def _pide_json_api() -> bool:
+        p = request.path or ""
+        return p.startswith("/api/") or p.startswith("/app/api/")
+
+    @app.errorhandler(413)
+    def _api_413(_e):
+        if _pide_json_api():
+            return jsonify({
+                "error": "Las fotos pesan demasiado. Use imágenes más livianas o un PDF comprimido.",
+            }), 413
+        return _e
+
+    @app.errorhandler(429)
+    def _api_429(_e):
+        if _pide_json_api():
+            return jsonify({"error": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."}), 429
+        return _e
+
+    @app.errorhandler(500)
+    def _api_500(e):
+        if _pide_json_api():
+            orig = getattr(e, "original_exception", None)
+            msg = str(orig or e)[:300] or "Error interno del servidor"
+            return jsonify({"error": msg}), 500
+        return e
+
     @app.before_request
     def _check_acceso_red():
         remote = request.remote_addr
@@ -1711,6 +1737,14 @@ def register_routes(app):
         if request.method == "OPTIONS":
             return
         if not _leer_acceso_red():
+            path = request.path or ""
+            if path.startswith("/api/") or path.startswith("/app/api/"):
+                return jsonify({
+                    "error": (
+                        "Acceso restringido. Activa el acceso desde red local en Ajustes, "
+                        "o abre el panel en este mismo equipo."
+                    ),
+                }), 403
             from flask import Response as _R
             return _R(
                 "<html><body style='font-family:sans-serif;padding:2rem'>"
@@ -4995,7 +5029,12 @@ def register_routes(app):
         """Recoge una o varias imágenes/PDF del multipart (imagen, archivo, imagenes)."""
         vistos: set[int] = set()
         out = []
-        for key in ("imagen", "archivo", "imagenes", "files"):
+        preferidos = ("imagen", "archivo", "imagenes", "files", "files[]")
+        keys = [k for k in preferidos if k in request.files]
+        for k in request.files:
+            if k not in keys:
+                keys.append(k)
+        for key in keys:
             for f in request.files.getlist(key):
                 if not f or not getattr(f, "filename", None):
                     continue
@@ -5017,8 +5056,6 @@ def register_routes(app):
         if not archivos:
             return jsonify({"error": "Envíe una o varias imágenes en el campo multipart «imagen»"}), 400
         try:
-            import re as _re
-
             api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
             if not api_key:
                 return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
@@ -5075,120 +5112,49 @@ def register_routes(app):
                 else ""
             )
 
-            from app.services.documento_scan_tablas import extraer_coa_desde_imagenes
+            from app.services.coa_scan_jobs import iniciar_coa_scan_job
 
-            try:
-                parsed = extraer_coa_desde_imagenes(
-                    partes_bytes,
-                    catalogo_prompt=catalogo_prompt,
-                    multi_nota=multi_nota,
-                )
-            except TimeoutError:
-                return jsonify({"error": "Gemini tardó demasiado — intente con imágenes más pequeñas"}), 504
-            except Exception as e_scan:
-                return jsonify({"error": str(e_scan)}), 500
-
-            campos = {}
-            firma_bbox_raw = None
-            if isinstance(parsed, dict):
-                firma_bbox_raw = parsed.get("firma_bbox")
-                for k, v in parsed.items():
-                    if v is None or k in ("firma_bbox", "_transcripcion"):
-                        continue
-                    if isinstance(v, (list, dict)):
-                        continue
-                    s = str(v).strip()
-                    if s:
-                        campos[str(k)] = s
-            else:
-                campos = {}
-
-
-            parametros = str(campos.get("parametros") or "").strip()
-            nombre_producto = str(campos.get("nombre_producto") or "").strip()
-            if not parametros and not nombre_producto and not campos.get("cas"):
-                return jsonify({"error": "Gemini no pudo extraer informacion util de la imagen"}), 500
-
-            # Alias frecuentes
-            if campos.get("einecs") and not campos.get("einces"):
-                campos["einces"] = campos["einecs"]
-
-            # Normalizar fechas basura tipo "2030-12-XX" / "Dec. 2025"
-            def _norm_fecha(v: str) -> str:
-                s = (v or "").strip()
-                if not s:
-                    return ""
-                s = _re.sub(r"(?i)[Xx]{1,2}\b", "", s).strip(" -/.")
-                m = _re.match(r"^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$", s)
-                if m:
-                    y, mo = m.group(1), int(m.group(2))
-                    d = int(m.group(3) or 1)
-                    if 1 <= mo <= 12 and 1 <= d <= 31:
-                        return f"{y}-{mo:02d}-{d:02d}"
-                return s
-
-            for fk in ("fecha_fabricacion", "fecha_vencimiento", "fecha_analisis", "fecha_emision"):
-                if campos.get(fk):
-                    campos[fk] = _norm_fecha(str(campos[fk]))
-
-            # Recortar la rúbrica / línea de firma si Gemini devolvió bbox
-            # (usa la 1ª imagen; con varias páginas la bbox suele referirse a la que tiene firma)
-            if firma_bbox_raw is not None:
-                try:
-                    from app.services.coa_firma import recortar_firma_a_data_url
-
-                    data0, mime0 = partes_bytes[0]
-                    firma_url = recortar_firma_a_data_url(data0, mime0, firma_bbox_raw)
-                    if firma_url:
-                        campos["firma_imagen_b64"] = firma_url
-                        # El archivo escaneado es temporal. Archivar la rúbrica aquí
-                        # permite reutilizarla aunque el formulario no llegue a guardarse.
-                        from app.services.firmas_guardadas import guardar_firma
-
-                        guardar_firma(
-                            firma_url,
-                            nombre=str(campos.get("firma_nombre") or ""),
-                            cargo=str(campos.get("firma_cargo") or ""),
-                            organizacion=str(campos.get("firma_organizacion") or ""),
-                        )
-                except Exception as e_firma:
-                    print(f"⚠️ No se pudo recortar firma del COA: {e_firma}")
-
-            archivo_bib = str(campos.get("archivo_biblioteca") or "").strip()
-            if archivo_bib and catalogo:
-                # Resolver a un nombre exacto del catálogo (tolerante a mayúsculas / sin .pdf)
-                low = archivo_bib.lower().removesuffix(".pdf")
-                exact = next(
-                    (
-                        n
-                        for n in catalogo
-                        if n.lower() == archivo_bib.lower()
-                        or n.lower().removesuffix(".pdf") == low
-                    ),
-                    None,
-                )
-                archivo_bib = exact or ""
-            elif not catalogo:
-                archivo_bib = ""  # sin catálogo no validamos sugerencia de archivo
-
-            # No devolver Celulosa/Eritrosina si el Product Name del COA es Eritritol, etc.
-            if archivo_bib and nombre_producto:
-                from app.services.coa_biblioteca_match import validar_archivo_biblioteca
-
-                archivo_bib = validar_archivo_biblioteca(nombre_producto, archivo_bib)
-
+            job_id = iniciar_coa_scan_job(
+                partes_bytes,
+                catalogo=catalogo,
+                catalogo_prompt=catalogo_prompt,
+                multi_nota=multi_nota,
+            )
             return jsonify({
                 "ok": True,
-                "parametros": parametros,
-                "nombre_producto": nombre_producto,
-                "archivo_biblioteca": archivo_bib,
-                "cas": str(campos.get("cas") or "").strip(),
-                "lote": str(campos.get("lote") or "").strip(),
-                "firma_imagen_b64": str(campos.get("firma_imagen_b64") or ""),
-                "campos": campos,
-            })
+                "status": "pending",
+                "job_id": job_id,
+                "imagenes": n_arch,
+            }), 202
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/coa/escanear-parametros/<job_id>", methods=["GET"])
+    @app.route("/api/fichas/coa/escanear-parametros/<job_id>", methods=["GET"])
+    def api_fichas_coa_escanear_estado(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa_scan_jobs import estado_coa_scan_job
+
+        job = estado_coa_scan_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Trabajo no encontrado o expirado"}), 404
+        status = job.get("status") or "pending"
+        if status == "error":
+            return jsonify({
+                "ok": False,
+                "status": "error",
+                "error": job.get("error") or "Error al analizar el documento",
+            })
+        if status == "done":
+            resultado = job.get("resultado") or {}
+            return jsonify({"ok": True, "status": "done", **resultado})
+        return jsonify({
+            "ok": True,
+            "status": "pending",
+            "progreso": job.get("progreso") or "",
+            "imagenes": job.get("imagenes") or 0,
+        })
 
     @app.route("/app/api/fichas/firma/extraer-trazo", methods=["POST"])
     @app.route("/api/fichas/firma/extraer-trazo", methods=["POST"])
@@ -5305,52 +5271,44 @@ def register_routes(app):
                 else ""
             )
 
-            from app.services.documento_scan_tablas import extraer_ft_desde_imagenes
+            from app.services.coa_scan_jobs import iniciar_ft_scan_job
 
-            try:
-                campos_raw = extraer_ft_desde_imagenes(partes_bytes, multi_nota=multi_nota)
-            except TimeoutError:
-                return jsonify({"error": "Gemini tardó demasiado — intente con archivos más pequeños"}), 504
-
-            campos = {}
-            if isinstance(campos_raw, dict):
-                for k, v in campos_raw.items():
-                    if k.startswith("_") or v is None:
-                        continue
-                    if isinstance(v, (list, dict)):
-                        continue
-                    s = str(v).strip()
-                    if s:
-                        campos[str(k)] = s
-
-            # Enriquecer campos vacíos con PubChem si tenemos nombre del producto
-            nombre_prod = str(campos.get("nombre_producto") or "").strip()
-            campos_vacios = [
-                k for k in ("cas", "formula_quimica")
-                if not str(campos.get(k) or "").strip()
-            ]
-            if nombre_prod and campos_vacios:
-                try:
-                    from app.services.documento_cientifico import buscar_pubchem as _bp
-                    from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FT2
-                    with _TPE(max_workers=1) as ex2:
-                        fut2 = ex2.submit(lambda: _bp(nombre_prod))
-                        try:
-                            pc = fut2.result(timeout=8)
-                        except _FT2:
-                            pc = {}
-                    if not campos.get("cas") and pc.get("cas"):
-                        campos["cas"] = pc["cas"]
-                        campos["_cas_fuente"] = "pubchem"
-                    if not campos.get("formula_quimica") and pc.get("formula_molecular"):
-                        campos["formula_quimica"] = pc["formula_molecular"]
-                        campos["_formula_fuente"] = "pubchem"
-                except Exception:
-                    pass
-
-            return jsonify({"ok": True, "campos": campos})
+            job_id = iniciar_ft_scan_job(partes_bytes, multi_nota=multi_nota)
+            return jsonify({
+                "ok": True,
+                "status": "pending",
+                "job_id": job_id,
+                "imagenes": n_arch,
+            }), 202
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/ft/escanear-imagen/<job_id>", methods=["GET"])
+    @app.route("/api/fichas/ft/escanear-imagen/<job_id>", methods=["GET"])
+    def api_fichas_ft_escanear_estado(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa_scan_jobs import estado_ft_scan_job
+
+        job = estado_ft_scan_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Trabajo no encontrado o expirado"}), 404
+        status = job.get("status") or "pending"
+        if status == "error":
+            return jsonify({
+                "ok": False,
+                "status": "error",
+                "error": job.get("error") or "Error al analizar el documento",
+            })
+        if status == "done":
+            resultado = job.get("resultado") or {}
+            return jsonify({"ok": True, "status": "done", **resultado})
+        return jsonify({
+            "ok": True,
+            "status": "pending",
+            "progreso": job.get("progreso") or "",
+            "imagenes": job.get("imagenes") or 0,
+        })
 
     @app.route("/app/api/fichas/ft/escanear-url", methods=["POST"])
     @app.route("/api/fichas/ft/escanear-url", methods=["POST"])
@@ -5409,7 +5367,8 @@ def register_routes(app):
             "Analiza este documento (ficha técnica / TDS / SDS / COA / etiqueta de producto / página de proveedor).\n"
             "La fuente puede estar en inglés, español, bilingüe u otro idioma: TRADUCE al español los valores de texto "
             "(descripción, apariencia, olor, modo de uso, aplicaciones, propiedades, almacenamiento). "
-            "No traduzcas nombres químicos, CAS, fórmulas, códigos de lote ni unidades.\n"
+            "Lo que se registre en el formulario debe quedar en español. "
+            "No traduzcas nombres INCI, CAS, fórmulas, códigos de lote ni unidades.\n"
             "Mapea etiquetas EN→ES: Appearance→apariencia, Odour/Odor→olor, Melting point→punto_fusion, "
             "Solubility→solubilidad, Molecular formula→formula_quimica, Applications/Uses→aplicaciones, "
             "Description→descripcion, Storage/Handling/CAUTION→almacenamiento o recomendaciones, "
@@ -5707,6 +5666,9 @@ def register_routes(app):
                 except Exception:
                     pass
 
+            from app.services.documento_traducir_es import espanolizar_campos_documento
+
+            campos = espanolizar_campos_documento(campos)
             campos["_fuente_url"] = raw_url
             return jsonify({"ok": True, "campos": campos})
         except Exception as e:
@@ -6696,6 +6658,23 @@ def register_routes(app):
             return jsonify({"items": items, "total": len(items)})
         except Exception as e:
             return jsonify({"error": str(e), "items": []}), 502
+
+    @app.route("/api/siigo/productos/detalle", methods=["GET"])
+    @app.route("/app/api/siigo/productos/detalle", methods=["GET"])
+    def api_siigo_productos_detalle():
+        """Detalle de un producto/combo Siigo (receta para duplicar combo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        codigo = (request.args.get("codigo") or "").strip()
+        if not codigo:
+            return jsonify({"ok": False, "error": "codigo es obligatorio"}), 400
+        try:
+            from app.services.siigo import detalle_producto_siigo
+            resultado = detalle_producto_siigo(codigo)
+            status = 200 if resultado.get("ok") else 404
+            return jsonify(resultado), status
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 502
 
     # ── Rentabilidad ─────────────────────────────────────────────────────────
 
@@ -16008,6 +15987,158 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/publicaciones/imagenes/desenfoque/preview", methods=["POST"])
+    @app.route("/app/api/publicaciones/imagenes/desenfoque/preview", methods=["POST"])
+    def api_publicaciones_desenfoque_preview():
+        """Preview de desenfoque (pie o rectángulos) sin escribir en MeLi."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.imagen_desenfoque import preview_desde_fuente
+
+        body = request.get_json(silent=True) or {}
+        modo = (body.get("modo") or "pie").strip().lower()
+        try:
+            pie_pct = float(body.get("pie_pct") if body.get("pie_pct") is not None else 0.15)
+        except (TypeError, ValueError):
+            pie_pct = 0.15
+        try:
+            radio = int(body.get("radio") if body.get("radio") is not None else 28)
+        except (TypeError, ValueError):
+            radio = 28
+        regiones = body.get("regiones") if isinstance(body.get("regiones"), list) else None
+
+        file_bytes = None
+        if request.content_type and "multipart/form-data" in request.content_type:
+            f = request.files.get("file") or (request.files.getlist("file") or [None])[0]
+            if f and f.filename:
+                file_bytes = f.read()
+            modo = (request.form.get("modo") or modo).strip().lower()
+            try:
+                pie_pct = float(request.form.get("pie_pct") or pie_pct)
+            except (TypeError, ValueError):
+                pass
+            try:
+                radio = int(request.form.get("radio") or radio)
+            except (TypeError, ValueError):
+                pass
+            import json as _json
+            reg_raw = request.form.get("regiones")
+            if reg_raw:
+                try:
+                    parsed = _json.loads(reg_raw)
+                    if isinstance(parsed, list):
+                        regiones = parsed
+                except Exception:
+                    pass
+            url = (request.form.get("url") or "").strip()
+            meli_item_id = (request.form.get("meli_item_id") or "").strip()
+            picture_id = (request.form.get("picture_id") or "").strip()
+        else:
+            url = (body.get("url") or "").strip()
+            meli_item_id = (body.get("meli_item_id") or "").strip()
+            picture_id = (body.get("picture_id") or "").strip()
+
+        try:
+            result = preview_desde_fuente(
+                url=url,
+                meli_item_id=meli_item_id,
+                picture_id=picture_id,
+                file_bytes=file_bytes,
+                modo=modo,
+                pie_pct=pie_pct,
+                regiones=regiones,
+                radio=radio,
+            )
+            status = 200 if result.get("ok") else 400
+            return jsonify(result), status
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/publicaciones/imagenes/desenfoque/aplicar", methods=["POST"])
+    @app.route("/app/api/publicaciones/imagenes/desenfoque/aplicar", methods=["POST"])
+    def api_publicaciones_desenfoque_aplicar():
+        """Aplica desenfoque a una o varias fotos MeLi (reemplazo en el listing)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.imagen_desenfoque import (
+            aplicar_desenfoque_lote,
+            reemplazar_foto_meli_desenfocada,
+        )
+        from app.services.publicaciones import obtener_publicacion
+
+        body = request.get_json(silent=True) or {}
+        modo = (body.get("modo") or "pie").strip().lower()
+        try:
+            pie_pct = float(body.get("pie_pct") if body.get("pie_pct") is not None else 0.15)
+        except (TypeError, ValueError):
+            pie_pct = 0.15
+        try:
+            radio = int(body.get("radio") if body.get("radio") is not None else 28)
+        except (TypeError, ValueError):
+            radio = 28
+        regiones = body.get("regiones") if isinstance(body.get("regiones"), list) else None
+
+        items = body.get("items")
+        if isinstance(items, list) and items:
+            resolved = []
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                row = dict(it)
+                mid = (row.get("meli_item_id") or "").strip()
+                sku = (row.get("sku") or "").strip()
+                if not mid and sku:
+                    pub = obtener_publicacion(sku)
+                    if pub:
+                        mid = (
+                            pub.get("meli_id_efectivo")
+                            or pub.get("meli_item_id")
+                            or ""
+                        ).strip()
+                        row["meli_item_id"] = mid
+                resolved.append(row)
+            try:
+                result = aplicar_desenfoque_lote(
+                    resolved,
+                    modo=modo,
+                    pie_pct=pie_pct,
+                    regiones=regiones,
+                    radio=radio,
+                )
+                return jsonify(result)
+            except Exception as e:
+                return jsonify({"ok": False, "error": str(e)}), 500
+
+        meli_item_id = (body.get("meli_item_id") or "").strip()
+        picture_id = (body.get("picture_id") or "").strip()
+        sku = (body.get("sku") or "").strip()
+        if not meli_item_id and sku:
+            pub = obtener_publicacion(sku)
+            if pub:
+                meli_item_id = (
+                    pub.get("meli_id_efectivo") or pub.get("meli_item_id") or ""
+                ).strip()
+        if not meli_item_id or not picture_id:
+            return jsonify({
+                "ok": False,
+                "error": "Indica items[] o meli_item_id + picture_id",
+            }), 400
+        try:
+            result = reemplazar_foto_meli_desenfocada(
+                meli_item_id,
+                picture_id,
+                modo=modo,
+                pie_pct=pie_pct,
+                regiones=regiones,
+                radio=radio,
+                sku=sku,
+            )
+            result["sku"] = sku
+            status = 200 if result.get("ok") else 400
+            return jsonify(result), status
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/publicaciones/<sku>/imagen", methods=["POST"])
     def api_publicacion_imagen(sku: str):
         if not _api_token_valido():
@@ -16721,6 +16852,62 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:400]}), 500
         return jsonify(out), (200 if out.get("ok") else 400)
+
+    @app.route("/app/api/meli/competencia-precios/precio-base", methods=["POST"])
+    @app.route("/api/meli/competencia-precios/precio-base", methods=["POST"])
+    def api_meli_competencia_precios_precio_base():
+        """Edita el precio base de nuestra publicación (MeLi + ranking de competencia)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import actualizar_precio_base_competencia
+
+        body = request.get_json(silent=True) or {}
+        try:
+            out = actualizar_precio_base_competencia(
+                item_id=body.get("item_id") or "",
+                precio=body.get("precio"),
+                sku=body.get("sku") or "",
+            )
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:400]}), 500
+        return jsonify(out), (200 if out.get("ok") else 400)
+
+    @app.route("/app/api/meli/competencia-precios/evidencia/<item_id>", methods=["GET"])
+    @app.route("/api/meli/competencia-precios/evidencia/<item_id>", methods=["GET"])
+    def api_meli_competencia_precios_evidencia(item_id: str):
+        """PNG de evidencia (tabla comparativa + fecha) del último análisis por captura."""
+        autorizado = _api_token_valido()
+        if not autorizado:
+            tok = (request.args.get("token") or "").strip()
+            if tok:
+                try:
+                    from app.services.tickets_db import get_usuario_by_token as _gut
+                    from app.api_auth import normalize_api_token, chat_api_token_expected
+                    import hmac as _hmac
+
+                    nt = normalize_api_token(tok)
+                    expected = chat_api_token_expected()
+                    if expected and _hmac.compare_digest(nt, expected):
+                        autorizado = True
+                    elif _gut(nt) is not None:
+                        autorizado = True
+                except Exception:
+                    autorizado = False
+        if not autorizado:
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+        from app.tools.analisis_competencia_precios import ruta_evidencia_competencia
+
+        path = ruta_evidencia_competencia(item_id, regenerar_si_falta=True)
+        if not path or not path.is_file():
+            return jsonify({"error": "No hay evidencia para esta publicación"}), 404
+        dl = request.args.get("download") in ("1", "true", "yes")
+        return send_file(
+            path,
+            mimetype="image/png",
+            as_attachment=dl,
+            download_name=path.name,
+        )
 
     # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
 

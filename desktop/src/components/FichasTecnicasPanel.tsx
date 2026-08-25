@@ -24,6 +24,7 @@ import {
   type ParamRow,
 } from "../lib/coaParametros";
 import { formatearFormulaMolecular } from "../lib/formulaMolecular";
+import { esperarJobScan } from "../lib/scanJobPoll";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
@@ -978,25 +979,52 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
   const [progreso, setProgreso] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingFilesRef = useRef<File[]>([]);
+  const scanGenRef = useRef(0);
 
   const MAX_ARCHIVOS = 8;
   const esValido = (f: File) => f.type.startsWith("image/") || f.type === "application/pdf";
 
   const enviar = async (files: File[]) => {
     if (!files.length) return;
+    const gen = ++scanGenRef.current;
     setError(null); setOk(false); setScanning(true);
-    setProgreso(files.length > 1 ? `Extrayendo de ${files.length} archivos…` : "Extrayendo…");
+    setProgreso(files.length > 1 ? `Subiendo ${files.length} archivos…` : "Subiendo archivo…");
     try {
-      const { api } = await import("../api/client");
       const fd = new FormData();
       for (const file of files.slice(0, MAX_ARCHIVOS)) {
         fd.append("imagen", file);
       }
-      const json = await api.upload<{
+      const inicio = await api.upload<{
         ok?: boolean;
+        job_id?: string;
+        status?: string;
         campos?: Record<string, unknown>;
         error?: string;
-      }>("/api/fichas/ft/escanear-imagen", fd, { timeoutMs: 180000 });
+        imagenes?: number;
+        progreso?: string;
+      }>("/api/fichas/ft/escanear-imagen", fd, { timeoutMs: 45000 });
+      if (gen !== scanGenRef.current) return;
+      if (inicio.error && !inicio.job_id) throw new Error(inicio.error);
+
+      let json = inicio;
+      if (inicio.job_id && !inicio.campos) {
+        setProgreso(
+          inicio.imagenes && inicio.imagenes > 1
+            ? `Leyendo ${inicio.imagenes} archivos…`
+            : "Leyendo el documento…",
+        );
+        json = await esperarJobScan(
+          (id) => `/api/fichas/ft/escanear-imagen/${encodeURIComponent(id)}`,
+          inicio.job_id,
+          {
+            onProgreso: (msg) => {
+              if (gen === scanGenRef.current) setProgreso(msg);
+            },
+            isStale: () => gen !== scanGenRef.current,
+          },
+        );
+      }
+      if (gen !== scanGenRef.current) return;
       if (json.error) throw new Error(json.error);
       const campos = json.campos || {};
       const llenos = Object.entries(campos).filter(
@@ -1008,6 +1036,8 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       onCamposExtraidos(campos);
       setOk(true);
     } catch (e: unknown) {
+      if (gen !== scanGenRef.current) return;
+      if (e instanceof DOMException && e.name === "AbortError") return;
       const msg = e instanceof Error ? e.message : String(e);
       setError(
         /NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)
@@ -1017,6 +1047,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
             : msg,
       );
     } finally {
+      if (gen !== scanGenRef.current) return;
       setScanning(false);
       setProgreso(null);
     }
@@ -1111,6 +1142,8 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       if (p.isImage && p.url) URL.revokeObjectURL(p.url);
     }
     pendingFilesRef.current = [];
+    scanGenRef.current += 1;
+    setScanning(false);
     setPreviews([]); setOk(false); setError(null); setProgreso(null);
   };
 

@@ -2688,7 +2688,7 @@ export default function MeliComplianceTab() {
 
   if (modoCrear) {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+      <div className="flex h-full min-h-0 flex-col overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
         <CrearDesdeCeroPanel onDone={cerrarWorkspace} />
       </div>
     );
@@ -2696,9 +2696,9 @@ export default function MeliComplianceTab() {
 
   if (selectedItem) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+      <div className="flex h-full min-h-0 flex-col gap-2 lg:flex-row">
         {/* Lista colapsada en mobile */}
-        <div className="hidden lg:flex lg:w-[360px] lg:shrink-0 flex-col gap-3">
+        <div className="hidden lg:flex lg:w-[300px] lg:shrink-0 flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-bold text-ink">
               {data?.total ?? 0} publicación(es) bajadas/pausadas
@@ -2736,7 +2736,7 @@ export default function MeliComplianceTab() {
         </div>
 
         {/* Workspace */}
-        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel p-5">
+        <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
           <ItemWorkspace
             key={selectedItem.item_id}
             item={selectedItem}
@@ -2748,13 +2748,13 @@ export default function MeliComplianceTab() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       {/* Header explicativo */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5 space-y-2">
-        <p className="text-sm font-bold text-blue-900">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 space-y-1">
+        <p className="text-xs font-bold text-blue-900">
           Republicar productos bajados en MeLi — Compliance McKenna
         </p>
-        <p className="text-xs text-blue-800 leading-relaxed">
+        <p className="text-[11px] text-blue-800 leading-snug">
           Por defecto muestra publicaciones <strong>prohibidas por política MeLi</strong> (las bajas
           urgentes). Diagnostica señales de riesgo, genera contenido corregido según materia prima
           reenvasada <strong>(Res. 2674/2013 Art. 37-3)</strong>. Si la publicación está prohibida,
@@ -2763,7 +2763,7 @@ export default function MeliComplianceTab() {
         <button
           type="button"
           onClick={() => setModoCrear(true)}
-          className="rounded-lg bg-teal-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700"
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-teal-700"
         >
           ✦ Crear publicación desde cero
         </button>
@@ -2771,7 +2771,7 @@ export default function MeliComplianceTab() {
 
       <ComplianceWatchlist />
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+      <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border bg-surface px-3 py-2">
         <input
           type="checkbox"
           checked={incluirPausadas}
@@ -2789,27 +2789,27 @@ export default function MeliComplianceTab() {
 
       {/* Stats */}
       {data && data.ok && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center dark:border-red-800 dark:bg-red-950/35">
-            <p className="text-xl font-black text-red-700">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-2 text-center dark:border-red-800 dark:bg-red-950/35">
+            <p className="text-lg font-black text-red-700">
               {conteos?.forbidden ?? data.items.filter((i) => esProhibida(i)).length}
             </p>
             <p className="text-[11px] font-semibold text-red-600">Prohibidas</p>
           </div>
-          <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-center dark:border-teal-700 dark:bg-teal-950/35">
-            <p className="text-xl font-black text-teal-700">
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-2 text-center dark:border-teal-700 dark:bg-teal-950/35">
+            <p className="text-lg font-black text-teal-700">
               {conteos?.sales_minerales ?? data.items.filter((i) => i.categoria_catalogo === "Sales Minerales").length}
             </p>
             <p className="text-[11px] font-semibold text-teal-600">Sales Minerales</p>
           </div>
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-center dark:border-yellow-700 dark:bg-yellow-950/35">
-            <p className="text-xl font-black text-yellow-700">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-2 text-center dark:border-yellow-700 dark:bg-yellow-950/35">
+            <p className="text-lg font-black text-yellow-700">
               {conteos?.paused ?? data.items.filter((i) => i.status === "paused").length}
             </p>
             <p className="text-[11px] font-semibold text-yellow-600">Pausadas</p>
           </div>
-          <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-center dark:border-orange-700 dark:bg-orange-950/35">
-            <p className="text-xl font-black text-orange-700">
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-2 text-center dark:border-orange-700 dark:bg-orange-950/35">
+            <p className="text-lg font-black text-orange-700">
               {conteos?.under_review ?? data.items.filter((i) => i.status === "under_review").length}
             </p>
             <p className="text-[11px] font-semibold text-orange-600">En revisión</p>
@@ -2874,7 +2874,7 @@ export default function MeliComplianceTab() {
       {data?.ok && !isLoading && (
         <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
           {items.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
               <p className="text-4xl opacity-20">✅</p>
               <p className="mt-3 text-sm font-semibold text-ink">
                 {buscar ? "Sin resultados para esa búsqueda" : "No hay publicaciones pausadas o bajadas"}
@@ -2890,9 +2890,9 @@ export default function MeliComplianceTab() {
               <button
                 key={it.item_id}
                 onClick={() => setSelectedItem(it)}
-                className="w-full rounded-xl border-2 border-border p-4 text-left transition hover:border-accent/40 hover:bg-surface-hover group"
+                className="w-full rounded-xl border-2 border-border p-2.5 text-left transition hover:border-accent/40 hover:bg-surface-hover group"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-ink text-sm leading-tight truncate group-hover:text-accent">
                       {tituloLista(it)}

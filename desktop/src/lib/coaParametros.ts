@@ -34,14 +34,21 @@ export function rowsToParamString(rows: ParamRow[]): string {
 
 export function mergeParamStrings(existing: string, incoming: string): string {
   const merged = new Map<string, ParamRow>();
-  for (const row of parseParamRows(existing)) {
+  const order: string[] = [];
+  const take = (row: ParamRow, fillCells: boolean) => {
     const key = row.parametro.trim().toLowerCase();
-    if (key) merged.set(key, row);
-  }
-  for (const row of parseParamRows(incoming)) {
-    const key = row.parametro.trim().toLowerCase();
-    if (key) merged.set(key, row);
-  }
-  const rows = [...merged.values()];
-  return rowsToParamString(rows);
+    if (!key) return;
+    const prev = merged.get(key);
+    if (!prev) {
+      merged.set(key, { ...row });
+      order.push(key);
+      return;
+    }
+    if (!fillCells) return;
+    if (row.especificacion.trim()) prev.especificacion = row.especificacion;
+    if (row.resultado.trim()) prev.resultado = row.resultado;
+  };
+  for (const row of parseParamRows(existing)) take(row, false);
+  for (const row of parseParamRows(incoming)) take(row, true);
+  return rowsToParamString(order.map((k) => merged.get(k)!));
 }

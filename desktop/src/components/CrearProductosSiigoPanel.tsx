@@ -6,6 +6,29 @@ import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 type Modo = "producto" | "combo";
 
+export type SiigoAltaInicial = { codigo: string; nombre: string };
+
+function esCodigoCombo(codigo: string): boolean {
+  return codigo.trim().toUpperCase().startsWith("C-");
+}
+
+function sugerirConsultaOrigen(sku: string): string {
+  const s = sku.replace(/^c-\s*/i, "").trim();
+  const stem = s.replace(/\d.*$/u, "").replace(/[-_]+$/g, "");
+  return stem.length >= 2 ? stem : s;
+}
+
+interface DetalleComboSiigo {
+  ok: boolean;
+  error?: string;
+  codigo?: string;
+  nombre?: string;
+  es_combo?: boolean;
+  precio_lista?: number;
+  iva?: boolean;
+  componentes?: Array<{ codigo: string; nombre: string; cantidad: number }>;
+}
+
 interface SiigoResumen {
   codigo?: string;
   nombre?: string;
@@ -75,22 +98,42 @@ function nuevaLinea(): ComponenteLinea {
 
 export default function CrearProductosSiigoPanel({
   compact = false,
+  onCreado,
+  inicial = null,
+  accion = "crear",
 }: {
   compact?: boolean;
+  onCreado?: (info: { codigo: string; nombre: string }) => void;
+  /** Precarga SKU y nombre (p. ej. desde una fila de Códigos EAN). */
+  inicial?: SiigoAltaInicial | null;
+  /** duplicar: fuerza combo y pide un combo origen para copiar la receta. */
+  accion?: "crear" | "duplicar";
 }) {
-  const [modo, setModo] = useState<Modo>("producto");
+  const modoCompacto = compact;
+  const duplicarCombo = accion === "duplicar";
+  const codigoInicial = (inicial?.codigo || "").trim();
+  const nombreInicial = (inicial?.nombre || "").trim();
+  const naceComoCombo = duplicarCombo || esCodigoCombo(codigoInicial);
+  const comboCodigoInicial = naceComoCombo
+    ? esCodigoCombo(codigoInicial)
+      ? codigoInicial
+      : codigoInicial
+        ? `C-${codigoInicial}`
+        : "C-"
+    : "C-";
+  const [modo, setModo] = useState<Modo>(naceComoCombo ? "combo" : "producto");
 
   // Producto
-  const [codigo, setCodigo] = useState("");
-  const [nombre, setNombre] = useState("");
+  const [codigo, setCodigo] = useState(naceComoCombo ? "" : codigoInicial);
+  const [nombre, setNombre] = useState(naceComoCombo ? "" : nombreInicial);
   const [unidad, setUnidad] = useState<"Un" | "mL" | "g">("Un");
   const [precioCosto, setPrecioCosto] = useState("");
   const [precioVenta, setPrecioVenta] = useState("");
   const [iva, setIva] = useState(true);
 
   // Combo
-  const [comboCodigo, setComboCodigo] = useState("C-");
-  const [comboNombre, setComboNombre] = useState("");
+  const [comboCodigo, setComboCodigo] = useState(comboCodigoInicial);
+  const [comboNombre, setComboNombre] = useState(naceComoCombo ? nombreInicial : "");
   const [comboPrecio, setComboPrecio] = useState("");
   const [comboIva, setComboIva] = useState(true);
   const [componentes, setComponentes] = useState<ComponenteLinea[]>([nuevaLinea()]);
@@ -99,12 +142,18 @@ export default function CrearProductosSiigoPanel({
   const [buscando, setBuscando] = useState(false);
   const [lineaActiva, setLineaActiva] = useState<string | null>(null);
 
-  const [catalogoQ, setCatalogoQ] = useState("");
+  const [catalogoQ, setCatalogoQ] = useState(
+    duplicarCombo ? sugerirConsultaOrigen(codigoInicial) : codigoInicial,
+  );
   const [catalogoItems, setCatalogoItems] = useState<BusquedaItem[]>([]);
   const [catalogoBuscando, setCatalogoBuscando] = useState(false);
-  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
+  const [catalogoAbierto, setCatalogoAbierto] = useState(duplicarCombo);
   const catalogoRef = useRef<HTMLDivElement>(null);
   const catalogoInputRef = useRef<HTMLInputElement>(null);
+
+  const [origenCombo, setOrigenCombo] = useState<{ codigo: string; nombre: string } | null>(null);
+  const [cargandoReceta, setCargandoReceta] = useState(false);
+  const [errorReceta, setErrorReceta] = useState<string | null>(null);
 
   const [check, setCheck] = useState<CodigoCheck | null>(null);
   const [resultado, setResultado] = useState<CrearResp | null>(null);
@@ -119,6 +168,14 @@ export default function CrearProductosSiigoPanel({
       setResultado(null);
     },
   });
+
+  const autoCheckHecho = useRef(false);
+  useEffect(() => {
+    if (autoCheckHecho.current) return;
+    if (codigoInicial.length < 2) return;
+    autoCheckHecho.current = true;
+    verificarCodigo.mutate(codigoInicial);
+  }, [codigoInicial, verificarCodigo]);
 
   const crearProducto = useMutation({
     mutationFn: () =>
@@ -135,12 +192,15 @@ export default function CrearProductosSiigoPanel({
     onSuccess: (res) => {
       setResultado(res);
       if (res.ok) {
+        const creadoCodigo = res.siigo_producto?.codigo || codigo.trim();
+        const creadoNombre = res.siigo_producto?.nombre || nombre.trim();
         setCheck({
-          codigo: res.siigo_producto?.codigo || codigo.trim(),
+          codigo: creadoCodigo,
           existe_en_siigo: true,
           duplicado: true,
           siigo_producto: res.siigo_producto || null,
         });
+        onCreado?.({ codigo: creadoCodigo, nombre: creadoNombre });
       }
     },
     onError: (err: Error) => {
@@ -167,12 +227,15 @@ export default function CrearProductosSiigoPanel({
     onSuccess: (res) => {
       setResultado(res);
       if (res.ok) {
+        const creadoCodigo = res.siigo_producto?.codigo || comboCodigo.trim();
+        const creadoNombre = res.siigo_producto?.nombre || comboNombre.trim();
         setCheck({
-          codigo: res.siigo_producto?.codigo || comboCodigo.trim(),
+          codigo: creadoCodigo,
           existe_en_siigo: true,
           duplicado: true,
           siigo_producto: res.siigo_producto || null,
         });
+        onCreado?.({ codigo: creadoCodigo, nombre: creadoNombre });
       }
     },
     onError: (err: Error) => {
@@ -279,7 +342,60 @@ export default function CrearProductosSiigoPanel({
     }
   }
 
+  function copiarRecetaCombo(codigoOrigen: string) {
+    const origen = codigoOrigen.trim();
+    if (origen.length < 2) return;
+    setCatalogoAbierto(false);
+    setErrorReceta(null);
+    setCargandoReceta(true);
+    void api
+      .get<DetalleComboSiigo>(
+        `/api/siigo/productos/detalle?codigo=${encodeURIComponent(origen)}`,
+      )
+      .then((data) => {
+        if (!data.ok) {
+          setErrorReceta(data.error || `No se pudo leer ${origen} en Siigo`);
+          return;
+        }
+        if (!data.es_combo) {
+          setErrorReceta(`${data.codigo || origen} no es un combo en Siigo`);
+          return;
+        }
+        const comps = (data.componentes || []).filter((c) => (c.codigo || "").trim());
+        if (comps.length < 1) {
+          setErrorReceta(`${data.codigo} no tiene componentes para copiar`);
+          return;
+        }
+        setModo("combo");
+        setOrigenCombo({
+          codigo: data.codigo || origen,
+          nombre: data.nombre || "",
+        });
+        setComponentes(
+          comps.map((c) => ({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            codigo: c.codigo,
+            nombre: c.nombre || "",
+            cantidad: String(c.cantidad || 1),
+          })),
+        );
+        if (Number(data.precio_lista || 0) > 0) {
+          setComboPrecio(String(Math.round(Number(data.precio_lista))));
+        }
+        if (typeof data.iva === "boolean") setComboIva(data.iva);
+        setResultado(null);
+      })
+      .catch((err: Error) => {
+        setErrorReceta(err.message || "Error al copiar la receta");
+      })
+      .finally(() => setCargandoReceta(false));
+  }
+
   function aplicarHallazgo(item: BusquedaItem) {
+    if (duplicarCombo) {
+      copiarRecetaCombo(item.codigo);
+      return;
+    }
     const combo = esComboSiigo(item);
     setResultado(null);
     setCatalogoAbierto(false);
@@ -344,11 +460,28 @@ export default function CrearProductosSiigoPanel({
   }
 
   return (
-    <div className={`mx-auto space-y-2.5 ${compact ? "max-w-none" : "max-w-3xl space-y-3"}`}>
-      {!compact && (
+    <div className={`mx-auto space-y-2.5 ${modoCompacto ? "max-w-none" : "max-w-3xl space-y-3"}`}>
+      {!modoCompacto && (
         <div>
           <h2 className="text-base font-semibold text-ink">Crear productos y combos en Siigo</h2>
         </div>
+      )}
+      {codigoInicial && (
+        <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-ink">
+          {duplicarCombo ? (
+            <>
+              Duplicar combo hacia{" "}
+              <span className="font-mono font-semibold text-accent">{comboCodigoInicial}</span>
+              {nombreInicial ? ` · ${nombreInicial}` : ""}. Elige un combo existente para copiar
+              su receta; el SKU y el nombre nuevos se mantienen.
+            </>
+          ) : (
+            <>
+              Datos del EAN: <span className="font-mono font-semibold text-accent">{codigoInicial}</span>
+              {nombreInicial ? ` · ${nombreInicial}` : ""}. Puedes cambiar entre producto y combo; SKU y nombre se conservan.
+            </>
+          )}
+        </p>
       )}
 
       <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
@@ -364,6 +497,21 @@ export default function CrearProductosSiigoPanel({
             title={t.label}
             aria-label={t.label}
             onClick={() => {
+              if (t.id !== modo) {
+                if (t.id === "combo") {
+                  const c = codigo.trim();
+                  if (c && comboCodigo.replace(/^c-/i, "").trim() === "") {
+                    setComboCodigo(esCodigoCombo(c) ? c : `C-${c}`);
+                  }
+                  if (nombre.trim() && !comboNombre.trim()) setComboNombre(nombre);
+                } else {
+                  const c = comboCodigo.trim();
+                  if (c && !codigo.trim()) {
+                    setCodigo(c.replace(/^c-/i, ""));
+                  }
+                  if (comboNombre.trim() && !nombre.trim()) setNombre(comboNombre);
+                }
+              }
               setModo(t.id);
               setResultado(null);
               setCheck(null);
@@ -378,7 +526,7 @@ export default function CrearProductosSiigoPanel({
 
       <div ref={catalogoRef} className="space-y-1 rounded-xl border-2 border-accent bg-accent/10 p-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-accent">
-          Buscar productos y combos en Siigo
+          {duplicarCombo ? "Combo origen (copiar receta)" : "Buscar productos y combos en Siigo"}
         </p>
         <div className="relative">
           <div className="flex gap-2">
@@ -398,12 +546,15 @@ export default function CrearProductosSiigoPanel({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  const first = catalogoItems[0];
+                  const visibles = duplicarCombo
+                    ? catalogoItems.filter(esComboSiigo)
+                    : catalogoItems;
+                  const first = visibles[0];
                   if (first) aplicarHallazgo(first);
                   else onBuscarCatalogo();
                 }
               }}
-              placeholder="Código o nombre (ej. CARBON, C-AGUDES…)"
+              placeholder={duplicarCombo ? "Busca el combo a copiar (ej. C-UREA250g)" : "Código o nombre (ej. CARBON, C-AGUDES…)"}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
             />
             <button
@@ -423,10 +574,12 @@ export default function CrearProductosSiigoPanel({
               )}
               {!catalogoBuscando && catalogoQ.trim().length >= 1 && catalogoItems.length === 0 && (
                 <p className="px-3 py-2 text-[11px] text-muted">
-                  Sin coincidencias — puedes crear el producto o combo abajo
+                  {duplicarCombo
+                    ? "Sin coincidencias. Prueba el código del combo origen (C-…)."
+                    : "Sin coincidencias — puedes crear el producto o combo abajo"}
                 </p>
               )}
-              {catalogoItems.map((s) => {
+              {(duplicarCombo ? catalogoItems.filter(esComboSiigo) : catalogoItems).map((s) => {
                 const combo = esComboSiigo(s);
                 return (
                   <button
@@ -455,6 +608,25 @@ export default function CrearProductosSiigoPanel({
           )}
         </div>
       </div>
+      {duplicarCombo && (
+        <div className="space-y-1">
+          {cargandoReceta && (
+            <p className="text-xs text-muted">Leyendo receta del combo origen en Siigo…</p>
+          )}
+          {errorReceta && (
+            <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+              {errorReceta}
+            </p>
+          )}
+          {origenCombo && !errorReceta && (
+            <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-ink">
+              Receta copiada de{" "}
+              <span className="font-mono font-semibold">{origenCombo.codigo}</span>
+              {origenCombo.nombre ? ` · ${origenCombo.nombre}` : ""}. Revisa componentes y crea el combo nuevo.
+            </p>
+          )}
+        </div>
+      )}
 
       {modo === "producto" ? (
         <div className="space-y-2.5 rounded-xl border border-border bg-surface-panel p-2.5">
@@ -881,7 +1053,7 @@ export default function CrearProductosSiigoPanel({
         </button>
       </div>
 
-      <p className={`text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
+      <p className={`text-muted ${modoCompacto ? "text-[10px]" : "text-xs"}`}>
         Los productos usan categoría de inventario 297 (Productos). Los combos heredan la
         clasificación de un combo existente. Requiere plan Siigo Nube Premium para combos.
       </p>

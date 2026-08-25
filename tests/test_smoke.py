@@ -638,6 +638,7 @@ def test_api_competencia_precios_json_en_ambos_prefijos(monkeypatch):
             json={"item_id": "MCO1"},
         )
         assert r401.status_code == 401
+        assert c.post("/api/meli/competencia-precios/precio-base", json={}).status_code == 401
 
 
 def test_api_5s_workspace_get_put_roundtrip(monkeypatch, tmp_path):

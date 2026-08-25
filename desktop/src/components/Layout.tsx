@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import ActivityLog from "./ActivityLog";
 import SystemAlertsBanner from "./SystemAlertsBanner";
 import TeamActivityBanner from "./TeamActivityBanner";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
@@ -15,7 +14,7 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
-import { esAdminPanel, modoAvanzadoEfectivo } from "../lib/adminAccess";
+import { modoAvanzadoEfectivo } from "../lib/adminAccess";
 import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import {
   esSeccionHub,
@@ -44,7 +43,6 @@ export default function Layout({
   const toggle = useAppStore((s) => s.toggleSidebar);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   const user = useTicketsAuth((s) => s.user);
-  const isAdmin = esAdminPanel(user);
   const { advanced: advancedToggle } = useUiMode();
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
@@ -210,11 +208,6 @@ export default function Layout({
               <PanelTransition>{children}</PanelTransition>
             )}
           </div>
-          {isAdmin && !hubIntegrado && panel !== "stock" && !studioEtiquetasFill && (
-            <div className="hidden shrink-0 border-t border-border bg-surface-panel/90 px-4 pb-3 pt-2 shadow-paper-sm backdrop-blur-sm md:block lg:px-8">
-              <ActivityLog />
-            </div>
-          )}
         </div>
       </main>
     </div>

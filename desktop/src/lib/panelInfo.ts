@@ -305,9 +305,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   "productos-siigo": {
     emoji: "📦",
     label: "Crear en Siigo",
-    description: "Alta de productos (insumos) y combos/kits de venta directamente en Siigo. Botón flotante en Contabilidad, junto a la calculadora.",
+    description: "Alta de productos (insumos) y combos/kits de venta directamente en Siigo. Disponible en Contabilidad (icono del encabezado) y en Diseño → Códigos EAN.",
     tips: [
-      "El botón redondo está arriba a la derecha, debajo de la calculadora.",
+      "En Códigos EAN selecciona un producto y pulsa Crear en Siigo, o Duplicar combo para copiar la receta de un combo existente al SKU elegido.",
+      "En Contabilidad el icono está en el encabezado, junto a la calculadora.",
       "Usa Buscar para localizar productos y combos ya creados en Siigo antes de dar de alta uno nuevo.",
       "Verifica el código antes de crear para evitar duplicados.",
       "Los combos usan prefijo C- y necesitan al menos un componente existente.",

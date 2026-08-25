@@ -1,3 +1,108 @@
+### 2026-08-24 22:15 - Competencia: UI más compacta
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Botones más chicos (Actualizar, Publicar, Buscar MeLi, Capturar, Subir).
+  - Ocultos textos secundarios: ranking/timestamp, MCO/uds, instrucciones de flujo, detalle de % y fechas en promociones.
+- **Archivos Modificados:** `CompetenciaPreciosPanel.tsx`, `MeliPromocionesItem.tsx`
+
+### 2026-08-24 22:10 - Quitar «actividad del servidor» / Limpiar log del panel
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Se eliminó el pie «Mostrar actividad del servidor» y el botón «Limpiar log» del Layout, Stock y Stock simple.
+  - También se quitó la sección «Salida del Sistema» de Ajustes.
+- **Archivos Modificados:** `Layout.tsx`, `StockPanel.tsx`, `StockPanelSimple.tsx`, `Settings.tsx`, `TerminalLog.tsx`
+
+### 2026-08-24 16:35 - Competencia: interfaz maestro-detalle más práctica
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Layout en dos columnas: lista de productos a la izquierda (búsqueda + filtros KPI) y panel de trabajo a la derecha.
+  - Flujo visible «1 Buscar en MeLi → 2 Pegar pantallazo» con zona de captura grande; pestañas Comparación / Promociones / Anotar en lugar de acordeones anidados.
+  - Auto-selección del primer producto «a revisar»; precio y publicación en MeLi en un solo bloque superior.
+- **Archivos Modificados:** `CompetenciaPreciosPanel.tsx`, `team-recaps.md`
+
+### 2026-08-24 16:28 - Competencia: comparar solo misma cantidad (g/ml)
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección / regla de negocio
+- **Qué se implementó:**
+  - La tabla y el veredicto solo incluyen publicaciones con la misma presentación que la nuestra (ej. 250 g vs 250 g; se excluyen 500 g o 250 ml).
+  - Aplica al pantallazo, observaciones manuales y evidencia PNG; Gemini recibe la presentación de referencia en el prompt.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, tests
+
+### 2026-08-24 16:20 - Competencia: evidencia PNG del análisis con fecha
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Tras analizar un pantallazo, el sistema genera automáticamente una imagen PNG (tabla Nombre / Cantidad / Valor total, logo McKenna, fecha de análisis e ítem MeLi) como evidencia del trabajo humano.
+  - En el panel se ve la miniatura, con enlaces Descargar PNG y Abrir imagen; reportes anteriores se regeneran al pedir la evidencia.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, `routes.py`, tests
+
+### 2026-08-24 16:01 - Competencia: tabla con cantidad, promociones aparte y precio base
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - La comparación es una tabla: Nombre, Cantidad (g o ml) y Valor total. Nuestra fila permite editar el precio base y publicarlo en MeLi.
+  - Captura / Buscar en MeLi y Promociones van en desplegables separados.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`, `routes.py`, tests
+
+### 2026-08-24 15:52 - Competencia: pegar pantallazo en la publicación y analizar
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Al abrir un producto, el recuadro de captura queda listo: Ctrl+V, arrastrar o subir el pantallazo arma el reporte de competencia.
+  - Ya no hay que pulsar antes «Buscar en MeLi»; ese botón solo abre el listado.
+- **Archivos Modificados:** `CompetenciaPreciosPanel.tsx`, ficha competencia-precios
+
+### 2026-08-24 15:45 - Competencia: vincular publicación a promociones MeLi
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Publicaciones → Competencia, al abrir un producto aparece «Promociones ofertadas»: campañas que MeLi ofrece para esa publicación.
+  - Se puede vincular o quitar con el mismo flujo que Stock (precio promo y fechas si MeLi las pide).
+- **Archivos Modificados:** `MeliPromocionesItem.tsx`, `CompetenciaPreciosPanel.tsx`, ficha competencia-precios
+
+### 2026-08-24 13:30 - Escáner de ficha técnica: mismo job en segundo plano
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «Escanear ficha técnica» seguía esperando a Gemini en el POST y el proxy cortaba a ~100 s (el mismo aviso rosa que en el COA).
+  - Ahora también responde al instante con `job_id` y el panel muestra el progreso hasta terminar.
+- **Archivos Modificados:** `coa_scan_jobs.py`, `routes.py`, `FichasTecnicasPanel.tsx`, `scanJobPoll.ts`, tests, contratos
+
+### 2026-08-24 12:55 - Escáner COA: análisis en segundo plano (sin corte de proxy)
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El análisis de varias fotos tardaba más de ~100 s y el túnel/proxy cortaba con 502/504 («el análisis tardó demasiado»).
+  - El POST ahora responde al instante con un `job_id`; el panel consulta el estado hasta que Gemini termina. Las fotos enormes se reducen antes de enviarlas.
+- **Archivos Modificados:** `coa_scan_jobs.py`, `routes.py`, `documento_scan_tablas.py`, `CoaDocumentosScanner.tsx`, tests, contratos
+
+### 2026-08-24 11:45 - Escáner COA: error HTML en lugar de JSON
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Si el escáner fallaba, el panel mostraba «el servidor devolvió HTML» (timeout, 403 de red o error 500).
+  - Las rutas `/api` ahora responden JSON en esos casos; no se reintenta un segundo análisis con el formulario vacío.
+- **Archivos Modificados:** `routes.py`, `client.ts`, `documento_scan_tablas.py`, `agente_pro.py`, tests
+
+### 2026-08-24 11:15 - Documentos técnicos: leer todas las fotos del COA
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El escáner de COA leía una sola foto aunque se adjuntaran varias (Gemini ignoraba el resto y un escaneo viejo podía pisar el lote).
+  - Ahora cada foto se transcribe por separado, se fusionan parámetros y si se agregan más mientras analiza, al terminar reanaliza el lote completo.
+- **Archivos Modificados:** `documento_scan_tablas.py`, `CoaDocumentosScanner.tsx`, `coaParametros.ts`, `routes.py`, tests
+
+### 2026-08-24 10:40 - Documentos técnicos: extraer en inglés, registrar en español
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Al adjuntar pantallazos o PDF en Documentos técnicos, si el COA/ficha está en inglés, la información extraída se traduce y queda registrada en español en el formulario (aspecto, parámetros, almacenamiento, nombre comercial, rangos «to»→«a», «max»→«máx.»).
+  - No se traducen CAS, fórmulas, número de lote, INCI ni el nombre del fabricante.
+- **Archivos Modificados:** `documento_traducir_es.py`, `documento_scan_tablas.py`, `routes.py`, tests
+
 ### 2026-08-23 16:50 - Competencia: reporte por pantallazo al buscar en MeLi
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Nueva funcionalidad

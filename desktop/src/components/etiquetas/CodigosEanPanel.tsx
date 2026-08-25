@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { calcCheck, generarEAN13 } from "../../lib/ean13";
 import {
   BIMESTRE_LABEL,
@@ -14,7 +14,9 @@ import {
   useSincronizarBarcodesEanSiigo,
   type CodigoEan,
 } from "../../lib/etiquetasCodigosEan";
-import { Banner, Button, Card, IconButton, Spinner } from "./ui";
+import { Banner, Button, Card, IconButton, Modal, Spinner } from "./ui";
+
+const CrearProductosSiigoPanel = lazy(() => import("../CrearProductosSiigoPanel"));
 
 const MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -59,6 +61,10 @@ export function CodigosEanPanel() {
   const syncBarcodeSiigo = useSincronizarBarcodesEanSiigo();
 
   const [filaEditandoId, setFilaEditandoId] = useState<string | null>(null);
+  const [filaSeleccionadaId, setFilaSeleccionadaId] = useState<string | null>(null);
+  const [crearSiigoAbierto, setCrearSiigoAbierto] = useState(false);
+  const [accionSiigo, setAccionSiigo] = useState<"crear" | "duplicar">("crear");
+  const [siigoInicial, setSiigoInicial] = useState<{ codigo: string; nombre: string } | null>(null);
   const [busquedaLista, setBusquedaLista] = useState("");
   const [sku, setSku] = useState("");
   const [nombreProducto, setNombreProducto] = useState("");
@@ -132,6 +138,11 @@ export function CodigosEanPanel() {
     [codigos, busquedaLista],
   );
 
+  const seleccionado = useMemo(
+    () => (codigos ?? []).find((c) => c.id === filaSeleccionadaId) ?? null,
+    [codigos, filaSeleccionadaId],
+  );
+
   const puedeGuardar = sku.trim().length > 0 && numeroValido && !numeroDuplicado && !guardando;
 
   function duplicar(c: CodigoEan) {
@@ -152,6 +163,30 @@ export function CodigosEanPanel() {
   function onNombreChange(valor: string) {
     presentacionManual.current = false;
     setNombreProducto(valor);
+  }
+
+  function onProductoSiigoCreado(info: { codigo: string; nombre: string }) {
+    setCrearSiigoAbierto(false);
+    setSiigoInicial(null);
+    if (info.codigo.toUpperCase().startsWith("C-")) {
+      onSkuChange(info.codigo);
+      onNombreChange(info.nombre);
+    }
+  }
+
+  function abrirCrearSiigo(accion: "crear" | "duplicar" = "crear") {
+    if (!seleccionado) return;
+    setAccionSiigo(accion);
+    setSiigoInicial({
+      codigo: seleccionado.sku,
+      nombre: seleccionado.nombre_producto || "",
+    });
+    setCrearSiigoAbierto(true);
+  }
+
+  function cerrarCrearSiigo() {
+    setCrearSiigoAbierto(false);
+    setSiigoInicial(null);
   }
 
   function guardar() {
@@ -404,6 +439,43 @@ export function CodigosEanPanel() {
               ? ` (${busquedaLista.trim() ? `${listaFiltrada.length} de ${codigos.length}` : codigos.length})`
               : ""}
           </p>
+          <Button
+            variant="primary"
+            size="sm"
+            icon="package"
+            disabled={!seleccionado}
+            onClick={() => abrirCrearSiigo("crear")}
+            title={
+              seleccionado
+                ? `Crear ${seleccionado.sku} en Siigo`
+                : "Selecciona un producto del listado"
+            }
+          >
+            {seleccionado
+              ? `Crear ${seleccionado.sku} en Siigo`
+              : "Crear en Siigo"}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="plus"
+            disabled={!seleccionado}
+            onClick={() => abrirCrearSiigo("duplicar")}
+            title={
+              seleccionado
+                ? `Duplicar un combo existente hacia ${seleccionado.sku}`
+                : "Selecciona un producto del listado"
+            }
+          >
+            Duplicar combo
+          </Button>
+          {seleccionado ? (
+            <p className="max-w-[220px] truncate text-[11px] text-muted">
+              Seleccionado: {seleccionado.nombre_producto || seleccionado.sku}
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted">Selecciona un producto del listado</p>
+          )}
           <input
             type="search"
             value={busquedaLista}
@@ -430,6 +502,9 @@ export function CodigosEanPanel() {
             <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="bg-surface-panel text-[10px] uppercase text-muted">
                 <tr>
+                  <th className="w-10 px-3 py-2">
+                    <span className="sr-only">Seleccionar</span>
+                  </th>
                   <th className="px-3 py-2">SKU</th>
                   <th className="px-3 py-2">Producto</th>
                   <th className="px-3 py-2">#</th>
@@ -450,7 +525,27 @@ export function CodigosEanPanel() {
                       onCerrar={() => setFilaEditandoId(null)}
                     />
                   ) : (
-                    <tr key={c.id} className="hover:bg-surface-hover">
+                    <tr
+                      key={c.id}
+                      className={`cursor-pointer hover:bg-surface-hover ${
+                        filaSeleccionadaId === c.id ? "bg-accent/10" : ""
+                      }`}
+                      aria-selected={filaSeleccionadaId === c.id}
+                      onClick={() =>
+                        setFilaSeleccionadaId((id) => (id === c.id ? null : c.id))
+                      }
+                    >
+                      <td className="px-3 py-2">
+                        <input
+                          type="radio"
+                          name="ean-seleccion-siigo"
+                          checked={filaSeleccionadaId === c.id}
+                          onChange={() => setFilaSeleccionadaId(c.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Seleccionar ${c.sku}`}
+                          className="accent-accent"
+                        />
+                      </td>
                       <td className="px-3 py-2 font-mono text-accent">{c.sku}</td>
                       <td className="max-w-[220px] truncate px-3 py-2">{c.nombre_producto || "—"}</td>
                       <td className="px-3 py-2 font-mono">{String(c.numero_producto).padStart(3, "0")}</td>
@@ -459,7 +554,7 @@ export function CodigosEanPanel() {
                       <td className="px-3 py-2">{BIMESTRE_LABEL[c.bimestre] ?? c.bimestre}</td>
                       <td className="px-3 py-2 font-mono tracking-wide">{c.codigo}</td>
                       <td className="px-3 py-2 text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <IconButton
                             icon="pencil"
                             label={`Editar código de ${c.sku}`}
@@ -482,6 +577,7 @@ export function CodigosEanPanel() {
                             onClick={() => {
                               if (window.confirm(`¿Eliminar el código EAN de ${c.sku}?`)) {
                                 if (filaEditandoId === c.id) setFilaEditandoId(null);
+                                if (filaSeleccionadaId === c.id) setFilaSeleccionadaId(null);
                                 eliminar.mutate(c.id);
                               }
                             }}
@@ -496,6 +592,32 @@ export function CodigosEanPanel() {
           </div>
         )}
       </Card>
+
+      {crearSiigoAbierto && (
+        <Modal
+          title={
+            siigoInicial
+              ? accionSiigo === "duplicar"
+                ? `Duplicar combo · ${siigoInicial.codigo}`
+                : `Crear en Siigo · ${siigoInicial.codigo}`
+              : "Crear producto o combo en Siigo"
+          }
+          onClose={cerrarCrearSiigo}
+          maxWidthClassName="max-w-xl"
+        >
+          <div className="p-4">
+            <Suspense fallback={<p className="py-8 text-center text-sm text-muted">Cargando…</p>}>
+              <CrearProductosSiigoPanel
+                key={`${accionSiigo}|${siigoInicial?.codigo || "nuevo"}|${siigoInicial?.nombre || ""}`}
+                compact
+                inicial={siigoInicial}
+                accion={accionSiigo}
+                onCreado={onProductoSiigoCreado}
+              />
+            </Suspense>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -562,6 +684,7 @@ function FilaEdicionEan({
   return (
     <>
       <tr className="bg-surface-panel">
+        <td className="px-3 py-2" />
         <td className="px-3 py-2">
           <div className="flex items-center overflow-hidden rounded border border-border bg-surface focus-within:border-accent">
             <span className="shrink-0 select-none border-r border-border bg-surface-panel px-1 py-1 font-mono text-xs font-semibold text-muted">
@@ -652,7 +775,7 @@ function FilaEdicionEan({
       </tr>
       {(numeroDuplicado || (numeroProducto && !numeroValido) || actualizar.isError) && (
         <tr className="bg-surface-panel">
-          <td colSpan={8} className="px-3 pb-2 pt-0">
+          <td colSpan={9} className="px-3 pb-2 pt-0">
             <p className="text-[10px] text-danger">
               {actualizar.isError
                 ? actualizar.error instanceof Error

@@ -291,7 +291,12 @@ def test_observacion_manual_marca_mas_caro(tmp_path, monkeypatch):
         }],
         "resumen": {},
     })
-    out = ac.registrar_observacion_manual("MCO111", "$38.000", vendedor="Banquete")
+    out = ac.registrar_observacion_manual(
+        "MCO111",
+        "$38.000",
+        vendedor="Banquete",
+        titulo="Urea Cosmetica 250g competidor",
+    )
     assert out["ok"] is True
     p = out["productos"][0]
     assert p["veredicto"] == "mas_caro"
@@ -301,6 +306,44 @@ def test_observacion_manual_marca_mas_caro(tmp_path, monkeypatch):
     p2 = ac.obtener_ultimo_analisis_competencia()["productos"][0]
     assert p2["veredicto"] == "sin_competencia"
     assert p2["observaciones_manual"] == []
+
+
+def test_misma_presentacion_gramos_y_ml():
+    p250 = ac.extraer_presentacion("Urea 250 g")
+    p500 = ac.extraer_presentacion("Urea 500 g")
+    p250ml = ac.extraer_presentacion("Urea 250 ml")
+    assert ac.misma_presentacion(p250, p250) is True
+    assert ac.misma_presentacion(p250, p500) is False
+    assert ac.misma_presentacion(p250, p250ml) is False
+
+
+def test_filtrar_listados_exige_misma_presentacion():
+    listados = [
+        {
+            "titulo": "Urea Cosmetica Pura 250g Grado Farmacéutico",
+            "precio": 38000,
+            "vendedor": "OTROLAB",
+        },
+        {
+            "titulo": "Urea Cosmetica Pura 500g",
+            "precio": 30000,
+            "vendedor": "BARATO",
+        },
+        {
+            "titulo": "Urea Cosmetica 250 ml liquida",
+            "precio": 35000,
+            "vendedor": "LIQ",
+        },
+    ]
+    comps = ac.filtrar_listados_comparables(
+        "Urea Cosmética 250 Gr",
+        "MCO111",
+        45000,
+        listados,
+    )
+    assert len(comps) == 1
+    assert comps[0]["vendedor"] == "OTROLAB"
+    assert comps[0]["misma_presentacion"] is True
 
 
 def test_filtrar_listados_comparables_omite_nuestra_y_ajenos(monkeypatch):
@@ -348,12 +391,98 @@ def test_armar_reporte_captura_mas_caro():
     assert r["n_comparables"] == 2
     assert r["min_precio"] == 38000
     assert "Conviene revisar" in r["resumen"] or "más barata" in r["resumen"].lower()
+    assert r["tabla"][0]["es_nuestra"] is True
+    assert r["tabla"][0]["nombre"].startswith("Urea")
+    assert r["tabla"][0]["cantidad"] == "250 g"
+    assert r["tabla"][0]["valor_total"] == 45000
+    assert r["tabla"][1]["cantidad"] == "250 g"
+    assert r["tabla"][1]["valor_total"] == 38000
+    assert r["presentacion_requerida"] == "250 g"
+
+
+def test_armar_reporte_captura_excluye_otra_presentacion():
+    listados = [
+        {"titulo": "Urea Cosmetica 250g", "precio": 38000, "vendedor": "OTROLAB"},
+        {"titulo": "Urea Cosmetica 500g", "precio": 28000, "vendedor": "BARATO"},
+    ]
+    r = ac.armar_reporte_captura(
+        item_id="MCO111",
+        titulo="Urea Cosmética 250 Gr",
+        precio=45000,
+        listados_visibles=listados,
+    )
+    assert r["n_comparables"] == 1
+    assert r["min_precio"] == 38000
+
+
+def test_presentacion_casilla_ml_y_gramos():
+    assert ac.presentacion_casilla(ac.extraer_presentacion("Aceite 100 ml")) == "100 ml"
+    assert ac.presentacion_casilla(ac.extraer_presentacion("Urea 250 Gr")) == "250 g"
+    fila = ac.enriquecer_fila_comparacion("Glicerina 1 L", 12000)
+    assert fila["cantidad"] == "1 L"
+    assert fila["valor_total"] == 12000
+
+
+def test_actualizar_precio_base_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(ac, "_CACHE_PATH", tmp_path / "c.json")
+    monkeypatch.setattr(ac, "_OBS_PATH", tmp_path / "o.json")
+    monkeypatch.setattr(ac, "_REPORTES_PATH", tmp_path / "r.json")
+    ac._guardar_cache({
+        "version": 1,
+        "generado_en": "2026-08-23T12:00:00",
+        "dias": 30,
+        "top_n": 1,
+        "consulta": "",
+        "productos": [{
+            "item_id": "MCO111",
+            "titulo": "Urea Cosmética 250 Gr",
+            "sku": "UREA250",
+            "precio": 45000,
+            "query": "urea cosmetica 250g",
+            "unidades_periodo": 10,
+        }],
+        "resumen": {},
+    })
+    ac._guardar_reportes_captura([
+        ac.armar_reporte_captura(
+            item_id="MCO111",
+            titulo="Urea Cosmética 250 Gr",
+            precio=45000,
+            listados_visibles=[{"titulo": "Urea Cosmetica 250g", "precio": 38000, "vendedor": "X"}],
+        )
+    ])
+    out = ac.actualizar_precio_base_competencia("MCO111", 42000, sku="UREA250", push_meli=False)
+    assert out["ok"] is True
+    assert out["precio"] == 42000
+    prod = next(p for p in out["productos"] if p["item_id"] == "MCO111")
+    assert prod["precio"] == 42000
+    assert prod["reporte_captura"]["nuestro_precio"] == 42000
+    assert prod["reporte_captura"]["tabla"][0]["valor_total"] == 42000
+
+
+def test_render_evidencia_tabla(monkeypatch, tmp_path):
+    monkeypatch.setattr(ac, "_EVIDENCIAS_DIR", tmp_path)
+    reporte = ac.armar_reporte_captura(
+        item_id="MCO999",
+        titulo="Urea Cosmética 250 Gr",
+        precio=45000,
+        listados_visibles=[{
+            "titulo": "Urea 250g Pura",
+            "precio": 36000,
+            "vendedor": "Lab X",
+        }],
+    )
+    fname = ac.render_evidencia_tabla_competencia(reporte, sku="C-UREA250")
+    assert fname.endswith(".png")
+    assert (tmp_path / fname).is_file()
+    assert reporte["tabla"][0]["es_nuestra"] is True
 
 
 def test_generar_reporte_captura_no_toca_meli(monkeypatch, tmp_path):
     monkeypatch.setattr(ac, "_CACHE_PATH", tmp_path / "c.json")
     monkeypatch.setattr(ac, "_OBS_PATH", tmp_path / "o.json")
     monkeypatch.setattr(ac, "_REPORTES_PATH", tmp_path / "r.json")
+    monkeypatch.setattr(ac, "_EVIDENCIAS_DIR", tmp_path / "evidencias")
     ac._guardar_cache({
         "version": 1,
         "generado_en": "2026-08-23T12:00:00",
@@ -405,3 +534,5 @@ def test_generar_reporte_captura_no_toca_meli(monkeypatch, tmp_path):
     assert p["observaciones_manual"]
     assert p["observaciones_manual"][0]["fuente"] == "captura_vision"
     assert p["reporte_captura"]["n_comparables"] == 1
+    assert p["reporte_captura"].get("evidencia_png")
+    assert (tmp_path / "evidencias" / p["reporte_captura"]["evidencia_png"]).is_file()

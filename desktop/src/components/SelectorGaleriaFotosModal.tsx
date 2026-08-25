@@ -174,11 +174,11 @@ export default function SelectorGaleriaFotosModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[600] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[600] flex items-center justify-center bg-ink/40 p-2 backdrop-blur-sm"
       onClick={onCerrar}
     >
       <div
-        className="flex max-h-[min(92vh,760px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+        className="flex max-h-[min(92vh,780px)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-lg"
         onClick={(e) => e.stopPropagation()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -191,11 +191,12 @@ export default function SelectorGaleriaFotosModal({
           if (dropped?.length) void onSubirArchivos(Array.from(dropped));
         }}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-          <div>
-            <h3 className="font-bold text-ink">Agregar fotos a {labelDestino}</h3>
-            <p className="mt-0.5 text-xs text-muted">
-              Elige imágenes de la galería o súbelas desde el computador. SKU {skuActual}.
+        <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-ink">Agregar fotos a {labelDestino}</h3>
+            <p className="text-[10px] leading-snug text-muted">
+              SKU {skuActual}. Catálogo web = <span className="font-mono">IMAGENES_PRODUCTOS_CATALOGO</span>
+              {" "}· Studio = <span className="font-mono">Recursos PNG</span>.
             </p>
           </div>
           <button
@@ -207,30 +208,32 @@ export default function SelectorGaleriaFotosModal({
           </button>
         </div>
 
-        <div className="flex gap-1 border-b border-border px-4 py-2">
+        <div className="flex flex-wrap gap-1 border-b border-border px-3 py-1.5">
           <button
             type="button"
             onClick={() => setFuente("catalogo")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
               fuente === "catalogo" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"
             }`}
+            title="IMAGENES_PRODUCTOS_CATALOGO — fotos por SKU del catálogo web"
           >
-            Catálogo
+            Catálogo web (SKU)
           </button>
           <button
             type="button"
             onClick={() => setFuente("recursos")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
               fuente === "recursos" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"
             }`}
+            title="Documentos/Etiquetas McKenna/Recursos PNG — galería del Studio de Diseño"
           >
-            Galería McKenna
+            Recursos PNG (Studio)
           </button>
         </div>
 
         {fuente === "catalogo" && (
           <form
-            className="flex gap-2 border-b border-border px-4 py-2"
+            className="flex gap-1.5 border-b border-border px-3 py-1.5"
             onSubmit={(e) => {
               e.preventDefault();
               setQ(buscar.trim());
@@ -252,15 +255,15 @@ export default function SelectorGaleriaFotosModal({
           </form>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {fuente === "catalogo" && (
             <>
               {(fotosWeb.length > 0 || fotosMeli.length > 0) && (
-                <div className="mb-4 space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                <div className="mb-2 space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
                     Fotos de este producto
                   </p>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                  <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
                     {destino === "meli" &&
                       fotosWeb.map((img) => {
                         const sel = selCat.has(img.filename);
@@ -274,8 +277,8 @@ export default function SelectorGaleriaFotosModal({
                               sel ? "border-accent ring-2 ring-accent/30" : "border-green-300"
                             }`}
                           >
-                            <div className="aspect-square bg-white">
-                              <img src={img.url} alt="" className="h-full w-full object-contain p-1" />
+                            <div className="h-20 bg-white">
+                              <img src={img.url} alt="" className="h-full w-full object-contain p-0.5" />
                             </div>
                             <span className="absolute left-1 top-1 rounded bg-green-700/90 px-1 py-0.5 text-[9px] font-bold text-white">
                               Web
@@ -301,8 +304,8 @@ export default function SelectorGaleriaFotosModal({
                               sel ? "border-accent ring-2 ring-accent/30" : "border-blue-300"
                             }`}
                           >
-                            <div className="aspect-square bg-white">
-                              <img src={img.url} alt="" className="h-full w-full object-contain p-1" />
+                            <div className="h-20 bg-white">
+                              <img src={img.url} alt="" className="h-full w-full object-contain p-0.5" />
                             </div>
                             <span className="absolute left-1 top-1 rounded bg-blue-700/90 px-1 py-0.5 text-[9px] font-bold text-white">
                               MeLi
@@ -330,11 +333,11 @@ export default function SelectorGaleriaFotosModal({
                 </p>
               )}
               {catalogoVisible.length > 0 && (
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted">
-                  Galería catálogo
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">
+                  IMAGENES_PRODUCTOS_CATALOGO
                 </p>
               )}
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
                 {catalogoVisible.map(({ sku, nombre, img }) => {
                   const key = img.filename;
                   const sel = selCat.has(key);
@@ -349,15 +352,15 @@ export default function SelectorGaleriaFotosModal({
                         sel ? "border-accent ring-2 ring-accent/30" : "border-border hover:border-accent/50"
                       }`}
                     >
-                      <div className="aspect-square bg-white">
+                      <div className="h-20 bg-white">
                         <img
                           src={srcCatalogo(img.filename)}
                           alt={img.filename}
-                          className="h-full w-full object-contain p-1"
+                          className="h-full w-full object-contain p-0.5"
                           loading="lazy"
                         />
                       </div>
-                      <span className="truncate px-1.5 py-1 font-mono text-[10px] font-bold text-ink">
+                      <span className="truncate px-1 py-0.5 font-mono text-[9px] font-bold text-ink">
                         {sku}
                       </span>
                       {mio && (
@@ -388,7 +391,8 @@ export default function SelectorGaleriaFotosModal({
 
           {fuente === "recursos" && (
             <>
-              <div className="mb-3 flex flex-wrap items-center gap-1 text-xs">
+              <div className="mb-2 flex flex-wrap items-center gap-1 text-[10px]">
+                <span className="text-muted">Recursos PNG ·</span>
                 <button
                   type="button"
                   onClick={() => setCarpeta("")}
@@ -414,8 +418,8 @@ export default function SelectorGaleriaFotosModal({
                   );
                 })}
               </div>
-              {recLoading && <p className="text-sm text-muted">Cargando galería McKenna…</p>}
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              {recLoading && <p className="text-xs text-muted">Cargando Recursos PNG…</p>}
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
                 {(recData?.carpetas ?? []).map((name) => {
                   const rel = carpeta ? `${carpeta}/${name}` : name;
                   return (
@@ -423,10 +427,10 @@ export default function SelectorGaleriaFotosModal({
                       key={rel}
                       type="button"
                       onClick={() => setCarpeta(rel)}
-                      className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-surface hover:border-accent"
+                      className="flex h-20 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-border bg-surface hover:border-accent"
                     >
-                      <span className="text-3xl">📁</span>
-                      <span className="w-full truncate px-1 text-[10px] text-ink">{name}</span>
+                      <span className="text-xl">📁</span>
+                      <span className="w-full truncate px-1 text-[9px] text-ink">{name}</span>
                     </button>
                   );
                 })}
@@ -444,10 +448,10 @@ export default function SelectorGaleriaFotosModal({
                         sel ? "border-accent ring-2 ring-accent/30" : "border-border hover:border-accent/50"
                       }`}
                     >
-                      <div className="aspect-square bg-white">
+                      <div className="h-20 bg-white">
                         <MiniaturaRecurso src={src} thumbB64={r.thumb_b64} alt={r.nombre} />
                       </div>
-                      <span className="truncate px-1.5 py-1 text-[10px] text-muted">{r.nombre}</span>
+                      <span className="truncate px-1 py-0.5 text-[9px] text-muted">{r.nombre}</span>
                       {sel && (
                         <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
                           ✓
@@ -468,7 +472,7 @@ export default function SelectorGaleriaFotosModal({
           <p className="px-4 pb-2 text-xs text-danger">{errorLocal}</p>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
           <div className="flex items-center gap-2">
             <input
               ref={fileRef}

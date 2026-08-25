@@ -702,6 +702,27 @@
       "nc": "NC-2-479",
       "subida_meli": true,
       "actualizado_en": "2026-08-23T07:22:22"
+    },
+    "2000014652707835": {
+      "estado": "emitida",
+      "factura": "FV-2-70384",
+      "nc": "NC-2-725",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-24T07:23:05"
+    },
+    "2000018054175880": {
+      "estado": "emitida",
+      "factura": "FV-2-70370",
+      "nc": "NC-2-726",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-24T07:23:24"
+    },
+    "2000014644514005": {
+      "estado": "emitida",
+      "factura": "FV-2-70366",
+      "nc": "NC-2-727",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-24T07:23:44"
     }
   }
 }

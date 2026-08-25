@@ -11,6 +11,7 @@ del listado que el operador abre en su navegador.
 
 - `app/tools/analisis_competencia_precios.py`
 - `desktop/src/components/CompetenciaPreciosPanel.tsx`
+- `desktop/src/components/MeliPromocionesItem.tsx`
 - `desktop/src/lib/capturaCompetenciaMeli.ts`
 - `app/data/analisis_competencia_precios.json` — ranking propio
 - `app/data/competencia_observaciones_manual.json` — precios (ojo o visión)
@@ -19,11 +20,17 @@ del listado que el operador abre en su navegador.
 ## Flujo
 
 1. «Actualizar más vendidos» → órdenes pagadas + nuestros `/items`.
-2. «Buscar en MeLi y armar reporte» abre `listado.mercadolibre.com.co/...` y pide
-   capturar esa pestaña (o Ctrl+V / subir imagen).
-3. Gemini Flash lee **solo esa imagen** y arma el reporte (precios, vendedor, veredicto).
-4. Esos precios se guardan como observaciones `fuente=captura_vision`.
-5. Sigue existiendo el formulario para anotar un precio a mano.
+2. Clic en el producto abre **Captura y buscar en MeLi** (desplegable). Pegar
+   (Ctrl+V), arrastrar o subir el pantallazo analiza esa publicación.
+   «Buscar en MeLi» solo abre el listado. **Promociones ofertadas** es otro
+   desplegable, aparte.
+3. La tabla de comparación trae Nombre, Cantidad (g/ml) y Valor total.
+   El precio base de nuestra publicación se edita y se publica en MeLi.
+4. **Promociones ofertadas** (desplegable aparte) lista campañas candidatas
+   y permite vincular/quitar (`/api/stock/promociones/*`).
+5. Gemini Flash lee **solo esa imagen** y arma el reporte.
+6. Esos precios se guardan como observaciones `fuente=captura_vision`.
+7. Sigue existiendo el formulario para anotar un precio a mano.
 
 ## Invariantes
 

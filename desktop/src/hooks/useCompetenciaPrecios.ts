@@ -21,18 +21,25 @@ export type VeredictoCompetencia =
 
 export interface ListadoCaptura {
   titulo: string;
+  nombre?: string;
   precio: number;
+  cantidad?: string;
+  valor_total?: number;
   vendedor?: string;
   permalink?: string;
   vendidos?: number | null;
   envio_gratis?: boolean;
   delta_pct?: number | null;
+  es_nuestra?: boolean;
 }
 
 export interface ReporteCaptura {
   item_id: string;
   generado_en?: string;
   nuestro_precio?: number;
+  nuestro_titulo?: string;
+  nuestra_cantidad?: string;
+  presentacion_requerida?: string | null;
   n_vistos?: number;
   n_comparables?: number;
   min_precio?: number | null;
@@ -40,6 +47,8 @@ export interface ReporteCaptura {
   delta_pct_vs_min?: number | null;
   resumen?: string;
   listados?: ListadoCaptura[];
+  tabla?: ListadoCaptura[];
+  evidencia_png?: string | null;
 }
 
 export interface ProductoCompetencia {
@@ -144,9 +153,24 @@ export function useReporteCapturaCompetencia() {
       return api.upload<AnalisisCompetencia & { reporte?: ReporteCaptura }>(
         "/api/meli/competencia-precios/reporte-captura",
         form,
-        { timeoutMs: 120_000 },
+        { timeoutMs: 180_000 },
       );
     },
+    onSuccess: (data) => {
+      qc.setQueryData(["meli-competencia-precios"], data);
+    },
+  });
+}
+
+export function useActualizarPrecioBaseCompetencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { item_id: string; precio: number; sku?: string }) =>
+      api.post<AnalisisCompetencia & { precio?: number; aviso_meli?: string; meli?: { ok?: boolean; msg?: string } }>(
+        "/api/meli/competencia-precios/precio-base",
+        body,
+        { timeoutMs: 60_000 },
+      ),
     onSuccess: (data) => {
       qc.setQueryData(["meli-competencia-precios"], data);
     },

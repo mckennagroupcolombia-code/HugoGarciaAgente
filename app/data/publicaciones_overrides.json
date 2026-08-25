@@ -211,7 +211,12 @@
   },
   "C-ACIAZE10g": {
     "meli_item_id": "MCO1609304141",
-    "updated_at": "2026-06-12T01:49:25.925427"
+    "updated_at": "2026-08-24T11:44:47.575694",
+    "imagenes_web": [
+      "C-ACIAZE10g.jpg",
+      "C-ACIAZE10g_2.png",
+      "C-ACIAZE10g_3.png"
+    ]
   },
   "FOR-AZUMETmL": {
     "meli_item_id": "MCO3141492374",

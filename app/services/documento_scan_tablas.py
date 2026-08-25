@@ -11,16 +11,26 @@ import io
 import json
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout, as_completed
+from typing import Any, Callable
+
+from app.services.documento_traducir_es import (
+    espanolizar_campos_documento,
+    instruccion_traducir_es,
+    traducir_parametros,
+)
 
 log = logging.getLogger(__name__)
 
 _MODELO = "gemini-2.5-flash"
 
 
+_LADO_MAX_VISION = 1800
+_LADO_MIN_OBJETIVO = 1400
+
+
 def _mejorar_imagen_para_tablas(data: bytes, mime: str) -> tuple[bytes, str]:
-    """Amplía fotos chicas (típicas de COA escaneado) para que las tablas se lean mejor."""
+    """Ajusta tamaño para Gemini: baja fotos enormes; sube escaneos chicos (tope 2.5×)."""
     if mime == "application/pdf" or data[:4] == b"%PDF":
         return data, mime
     try:
@@ -29,19 +39,27 @@ def _mejorar_imagen_para_tablas(data: bytes, mime: str) -> tuple[bytes, str]:
         im = Image.open(io.BytesIO(data))
         im = im.convert("RGB")
         w, h = im.size
+        lado_max = max(w, h)
         lado_min = min(w, h)
-        # COA densos suelen llegar a 400–700 px: subir a ~1600 en el lado corto
-        if lado_min < 1200:
-            scale = max(2.0, 1600 / float(lado_min))
-            scale = min(scale, 4.0)
+        changed = False
+        if lado_max > _LADO_MAX_VISION:
+            scale = _LADO_MAX_VISION / float(lado_max)
+            im = im.resize(
+                (max(1, int(w * scale)), max(1, int(h * scale))),
+                Image.Resampling.LANCZOS,
+            )
+            changed = True
+        elif lado_min < 900:
+            scale = min(_LADO_MIN_OBJETIVO / float(lado_min), 2.5)
             nw, nh = int(w * scale), int(h * scale)
-            im = im.resize((nw, nh), Image.Resampling.LANCZOS)
+            if max(nw, nh) > _LADO_MAX_VISION:
+                s2 = _LADO_MAX_VISION / float(max(nw, nh))
+                nw, nh = int(nw * s2), int(nh * s2)
+            im = im.resize((max(1, nw), max(1, nh)), Image.Resampling.LANCZOS)
+            changed = True
+        if changed or mime not in ("image/jpeg", "image/jpg") or len(data) > 1_500_000:
             buf = io.BytesIO()
-            im.save(buf, format="JPEG", quality=92, optimize=True)
-            return buf.getvalue(), "image/jpeg"
-        if mime == "image/png" and len(data) > 2_500_000:
-            buf = io.BytesIO()
-            im.save(buf, format="JPEG", quality=90, optimize=True)
+            im.save(buf, format="JPEG", quality=85, optimize=True)
             return buf.getvalue(), "image/jpeg"
     except Exception as e:
         log.debug("mejorar_imagen_para_tablas: %s", e)
@@ -245,9 +263,7 @@ def _prompt_estructurar_coa(transcripcion: str, catalogo_prompt: str, multi_nota
         "- parametros: incluye CADA fila de tablas de ensayo/dimensiones/composicion/microbiologia/"
         "metales. Formato Parametro|Especificacion|Resultado. Si solo hay 2 columnas, usa "
         "Parametro|Especificacion| (resultado vacio) o Parametro||Resultado segun corresponda.\n"
-        "- Traduce etiquetas de parametros al espanol; mantén numeros, unidades y codigos de lote.\n"
-        "- Appearance→Aspecto, Assay→Valoracion, Loss on Drying→Perdida por Secado, "
-        "Heavy Metals→Metales Pesados, Conforms/Passes/Passed→Cumple.\n"
+        f"- {instruccion_traducir_es()}\n"
         "- Responde SOLO JSON valido."
     )
 
@@ -305,7 +321,7 @@ def _prompt_estructurar_ft(transcripcion: str, multi_nota: str) -> str:
         '  "almacenamiento": "...",\n'
         '  "pais_origen": "..."\n'
         "}\n"
-        "Traduce textos al español; no traduzcas CAS, fórmulas ni códigos de lote.\n"
+        f"{instruccion_traducir_es()}\n"
         "SOLO JSON válido, sin markdown."
     )
 
@@ -368,6 +384,103 @@ def _parametros_desde_transcripcion(transcripcion: str) -> str:
     return "\n".join(uniq)
 
 
+def fusionar_texto_parametros(existente: str, nuevo: str) -> str:
+    """Une filas Parametro|Espec|Resultado. Celdas vacías no pisan las que ya tenían valor."""
+    filas: dict[str, list[str]] = {}
+    orden: list[str] = []
+
+    def _aplicar(texto: str, pisa_celda: bool) -> None:
+        for raw in (texto or "").splitlines():
+            ln = raw.strip()
+            if "|" not in ln:
+                continue
+            parts = [p.strip() for p in ln.split("|")]
+            while len(parts) < 3:
+                parts.append("")
+            nombre, espec, rest = parts[0], parts[1], " | ".join(parts[2:])
+            if not nombre:
+                continue
+            clave = nombre.lower()
+            if clave not in filas:
+                filas[clave] = [nombre, espec, rest]
+                orden.append(clave)
+                continue
+            if not pisa_celda:
+                continue
+            cur = filas[clave]
+            if espec:
+                cur[1] = espec
+            if rest:
+                cur[2] = rest
+
+    _aplicar(existente, False)
+    _aplicar(nuevo, True)
+    return "\n".join(f"{filas[k][0]}|{filas[k][1]}|{filas[k][2]}" for k in orden)
+
+
+def fusionar_campos_coa(base: dict[str, Any] | None, extra: dict[str, Any] | None) -> dict[str, Any]:
+    """Completa campos vacíos y une parámetros de varias fotos del mismo COA."""
+    out: dict[str, Any] = dict(base or {})
+    for k, v in (extra or {}).items():
+        if v is None:
+            continue
+        if k.startswith("_"):
+            if k == "_transcripcion":
+                prev = str(out.get(k) or "").strip()
+                chunk = str(v).strip()
+                if chunk:
+                    out[k] = (f"{prev}\n\n{chunk}" if prev else chunk)[:12000]
+            continue
+        if k == "parametros":
+            out[k] = fusionar_texto_parametros(str(out.get(k) or ""), str(v or ""))
+            continue
+        if isinstance(v, str) and v.strip() and not str(out.get(k) or "").strip():
+            out[k] = v.strip()
+    return out
+
+
+def _transcribir_paginas(
+    partes_ok: list[tuple[bytes, str]],
+    prompt_base: str,
+    *,
+    timeout_s: float,
+    contexto: str,
+) -> str:
+    """Una llamada Vision por foto: Gemini suele ignorar las imágenes 2..N si van juntas."""
+    n = len(partes_ok)
+    if n <= 1:
+        return _gemini_vision(partes_ok, prompt_base, timeout_s=timeout_s, contexto=contexto)
+
+    def _una(i: int, parte: tuple[bytes, str]) -> str:
+        nota = (
+            f"Esta es la foto/página {i + 1} de {n}. "
+            "Transcribe ESTA imagen por completo; no asumas que ya leíste las demás.\n"
+        )
+        return _gemini_vision(
+            [parte],
+            nota + prompt_base,
+            timeout_s=timeout_s,
+            contexto=contexto,
+        )
+
+    bloques: list[str] = [""] * n
+    with ThreadPoolExecutor(max_workers=min(3, n)) as ex:
+        futs = {ex.submit(_una, i, p): i for i, p in enumerate(partes_ok)}
+        for fut in as_completed(futs):
+            i = futs[fut]
+            try:
+                bloques[i] = fut.result() or ""
+            except Exception as e:
+                log.warning("%s foto %s/%s: %s", contexto, i + 1, n, e)
+
+    partes_txt = [
+        f"=== FOTO {i + 1} DE {n} ===\n{t.strip()}"
+        for i, t in enumerate(bloques)
+        if (t or "").strip()
+    ]
+    return "\n\n".join(partes_txt)
+
+
 def _extraer_coa_un_paso(
     partes: list[tuple[bytes, str]],
     catalogo_prompt: str,
@@ -382,13 +495,30 @@ def _extraer_coa_un_paso(
             multi_nota,
         )
     )
-    texto = _gemini_vision(
-        partes,
-        prompt,
-        timeout_s=min(150, 50 + 25 * max(1, len(partes))),
-        contexto="coa_scan_un_paso",
-    )
-    return parsear_json_objeto(texto) or {}
+    if len(partes) <= 1:
+        texto = _gemini_vision(
+            partes,
+            prompt,
+            timeout_s=min(150, 50 + 25 * max(1, len(partes))),
+            contexto="coa_scan_un_paso",
+        )
+        return espanolizar_campos_documento(parsear_json_objeto(texto) or {})
+
+    fused: dict[str, Any] = {}
+    for i, parte in enumerate(partes):
+        nota = f"Foto {i + 1} de {len(partes)}. Extrae solo lo visible en ESTA imagen.\n"
+        try:
+            texto = _gemini_vision(
+                [parte],
+                nota + prompt,
+                timeout_s=90,
+                contexto="coa_scan_un_paso",
+            )
+        except Exception as e:
+            log.warning("coa_scan_un_paso foto %s: %s", i + 1, e)
+            continue
+        fused = fusionar_campos_coa(fused, parsear_json_objeto(texto) or {})
+    return espanolizar_campos_documento(fused)
 
 
 def extraer_coa_desde_imagenes(
@@ -396,30 +526,50 @@ def extraer_coa_desde_imagenes(
     *,
     catalogo_prompt: str = "",
     multi_nota: str = "",
+    on_progreso: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """Pipeline COA: tablas → JSON. Devuelve dict de campos."""
+    def _p(msg: str) -> None:
+        if not on_progreso:
+            return
+        try:
+            on_progreso(msg)
+        except Exception:
+            pass
+
     partes_ok = preparar_partes(partes)
     n = max(1, len(partes_ok))
-    t1 = min(120, 40 + 20 * n)
+    t1 = 50 if n > 1 else min(120, 40 + 20 * n)
     t2 = min(90, 35 + 10 * n)
 
     prompt1 = _PROMPT_TABLAS_COA
     if multi_nota:
         prompt1 = multi_nota + "\n" + prompt1
 
+    _p(f"Leyendo {n} foto(s)…")
     try:
-        transcripcion = _gemini_vision(
+        transcripcion = _transcribir_paginas(
             partes_ok, prompt1, timeout_s=t1, contexto="coa_scan_tablas"
         )
     except TimeoutError:
         raise
     except Exception as e:
         log.warning("coa_scan_tablas falló: %s — fallback un paso", e)
+        if n > 1:
+            raise RuntimeError(
+                "No se pudieron leer las fotos. Pruebe con imágenes más livianas."
+            ) from e
         return _extraer_coa_un_paso(partes_ok, catalogo_prompt, multi_nota)
 
     if not transcripcion or len(transcripcion) < 40:
+        if n > 1:
+            raise RuntimeError(
+                "No se pudo leer el contenido de las fotos. "
+                "Pruebe con imágenes más livianas o adjúntelas de una en una."
+            )
         return _extraer_coa_un_paso(partes_ok, catalogo_prompt, multi_nota)
 
+    _p("Armando el formulario…")
     try:
         texto_json = _gemini_texto(
             _prompt_estructurar_coa(transcripcion, catalogo_prompt, multi_nota),
@@ -428,6 +578,11 @@ def extraer_coa_desde_imagenes(
         )
     except Exception as e:
         log.warning("coa_scan_estructurar falló: %s — fallback un paso", e)
+        if n > 1:
+            raise RuntimeError(
+                "Se leyeron las fotos pero no se pudieron armar los campos. "
+                "Intente de nuevo o adjunte las páginas de una en una."
+            ) from e
         parsed_fb = _extraer_coa_un_paso(partes_ok, catalogo_prompt, multi_nota)
         if parsed_fb:
             parsed_fb["_transcripcion"] = transcripcion[:8000]
@@ -435,10 +590,15 @@ def extraer_coa_desde_imagenes(
 
     parsed = parsear_json_objeto(texto_json or "")
     if not parsed:
-        parsed = _extraer_coa_un_paso(partes_ok, catalogo_prompt, multi_nota)
-        if parsed:
-            parsed["_transcripcion"] = transcripcion[:8000]
-        return parsed or {}
+        if n == 1:
+            parsed = _extraer_coa_un_paso(partes_ok, catalogo_prompt, multi_nota)
+            if parsed:
+                parsed["_transcripcion"] = transcripcion[:8000]
+            return parsed or {}
+        raise RuntimeError(
+            "Se leyeron las fotos pero no se pudo armar el JSON. "
+            "Intente de nuevo o adjunte las páginas de una en una."
+        )
 
     params = str(parsed.get("parametros") or "")
     n_lineas_params = len([ln for ln in params.splitlines() if "|" in ln and ln.strip()])
@@ -450,31 +610,46 @@ def extraer_coa_desde_imagenes(
         ]
     )
     if n_filas_ocr >= 8 and n_lineas_params < max(5, n_filas_ocr // 3):
-        extra = _parametros_desde_transcripcion(transcripcion)
+        extra = traducir_parametros(_parametros_desde_transcripcion(transcripcion))
         if extra:
-            parsed["parametros"] = extra
+            parsed["parametros"] = fusionar_texto_parametros(
+                str(parsed.get("parametros") or ""), extra
+            )
 
     parsed["_transcripcion"] = transcripcion[:8000]
-    return parsed
+    parsed["_imagenes"] = n
+    return espanolizar_campos_documento(parsed)
 
 
 def extraer_ft_desde_imagenes(
     partes: list[tuple[bytes, str]],
     *,
     multi_nota: str = "",
+    on_progreso: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
+    def _p(msg: str) -> None:
+        if not on_progreso:
+            return
+        try:
+            on_progreso(msg)
+        except Exception:
+            pass
+
     partes_ok = preparar_partes(partes)
     n = max(1, len(partes_ok))
     prompt1 = (multi_nota + "\n" if multi_nota else "") + _PROMPT_TABLAS_FT
+    t1 = 50 if n > 1 else min(120, 40 + 20 * n)
+    _p(f"Leyendo {n} archivo(s)…")
     try:
-        transcripcion = _gemini_vision(
-            partes_ok, prompt1, timeout_s=min(120, 40 + 20 * n), contexto="ft_scan_tablas"
+        transcripcion = _transcribir_paginas(
+            partes_ok, prompt1, timeout_s=t1, contexto="ft_scan_tablas"
         )
     except Exception as e:
         log.warning("ft_scan_tablas falló: %s", e)
         transcripcion = ""
 
     if not transcripcion or len(transcripcion) < 40:
+        _p("Reintentando lectura…")
         texto = _gemini_vision(
             partes_ok,
             "PRIMERO lee todas las tablas; LUEGO JSON.\n"
@@ -482,8 +657,9 @@ def extraer_ft_desde_imagenes(
             timeout_s=min(150, 45 + 25 * n),
             contexto="ft_scan_un_paso",
         )
-        return parsear_json_objeto(texto) or {}
+        return espanolizar_campos_documento(parsear_json_objeto(texto) or {})
 
+    _p("Armando el formulario…")
     texto_json = _gemini_texto(
         _prompt_estructurar_ft(transcripcion, multi_nota),
         timeout_s=min(90, 35 + 10 * n),
@@ -492,4 +668,6 @@ def extraer_ft_desde_imagenes(
     parsed = parsear_json_objeto(texto_json or "") or {}
     if parsed:
         parsed["_transcripcion"] = transcripcion[:8000]
-    return parsed
+        parsed["_imagenes"] = n
+    return espanolizar_campos_documento(parsed)
+

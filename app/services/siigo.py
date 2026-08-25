@@ -2282,6 +2282,60 @@ def _codigo_desde_componente_siigo(comp: dict, headers: dict) -> str:
     return ""
 
 
+def detalle_producto_siigo(codigo: str) -> dict:
+    """Lee un producto/combo de Siigo (código, tipo, precio y receta)."""
+    codigo_limpio = (codigo or "").strip()
+    if not codigo_limpio:
+        return {"ok": False, "error": "Código obligatorio"}
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con SIIGO"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+    prod = _obtener_producto_siigo_por_codigo(codigo_limpio, headers)
+    if not prod:
+        return {"ok": False, "error": f"No se encontró {codigo_limpio} en Siigo"}
+    tipo = (prod.get("type") or "Product").strip() or "Product"
+    es_combo = tipo.lower() == "combo"
+    componentes: list[dict] = []
+    for sub in prod.get("components") or []:
+        if not isinstance(sub, dict):
+            continue
+        sub_code = _codigo_desde_componente_siigo(sub, headers)
+        if not sub_code:
+            continue
+        try:
+            qty = float(sub.get("quantity") or 1)
+        except (TypeError, ValueError):
+            qty = 1.0
+        if qty <= 0:
+            continue
+        componentes.append({
+            "codigo": sub_code,
+            "nombre": (sub.get("name") or "").strip(),
+            "cantidad": qty,
+        })
+    precio_lista = 0.0
+    try:
+        precio_lista = float(prod["prices"][0]["price_list"][0]["value"])
+    except (TypeError, ValueError, KeyError, IndexError):
+        precio_lista = 0.0
+    return {
+        "ok": True,
+        "codigo": (prod.get("code") or codigo_limpio).strip(),
+        "nombre": (prod.get("name") or "").strip(),
+        "type": tipo,
+        "es_combo": es_combo,
+        "precio_lista": precio_lista,
+        "iva": bool(prod.get("taxes")),
+        "activo": prod.get("active", True) is not False,
+        "componentes": componentes,
+    }
+
+
 def _expandir_lineas_componentes_combo(
     lineas: list[tuple[str, float]],
     headers: dict,

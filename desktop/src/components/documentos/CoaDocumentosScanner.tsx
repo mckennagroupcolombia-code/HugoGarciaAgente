@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
+import { esperarJobScan } from "../../lib/scanJobPoll";
 import {
   filasTresDesdeTexto,
   textoDesdeFilasTres,
@@ -45,6 +46,20 @@ function fillEmpty(
 }
 
 export type CoaScanCampos = Record<string, string>;
+
+type CoaScanApi = {
+  ok?: boolean;
+  error?: string;
+  job_id?: string;
+  status?: string;
+  progreso?: string;
+  parametros?: string;
+  campos?: Record<string, unknown>;
+  nombre_producto?: string;
+  archivo_biblioteca?: string;
+  imagenes_procesadas?: number;
+  imagenes?: number;
+};
 
 /** Complementa casillas vacías del documento con datos extraídos del COA. */
 export function mergeCoaEnDatos(
@@ -185,6 +200,7 @@ export default function CoaDocumentosScanner({
   const scanFileRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
+  const [scanProgreso, setScanProgreso] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreviews, setScanPreviews] = useState<{ url: string; name: string }[]>([]);
   const [scanLightbox, setScanLightbox] = useState<string | null>(null);
@@ -204,6 +220,9 @@ export default function CoaDocumentosScanner({
   const [camposComplementados, setCamposComplementados] = useState<string[]>([]);
   const camposRef = useRef<CoaScanCampos>({});
   const parametrosRef = useRef("");
+  const scanningRef = useRef(false);
+  const scanGenRef = useRef(0);
+  const rescanPendienteRef = useRef(false);
 
   const opcionesDoc = archivos.filter((a) => a.nombre.toLowerCase().endsWith(".pdf"));
 
@@ -317,14 +336,16 @@ export default function CoaDocumentosScanner({
     async (files: File[]) => {
       const lote = files.slice(0, 8);
       if (!lote.length) return;
+      const gen = ++scanGenRef.current;
+      scanningRef.current = true;
       setScanError(null);
       setAplicarOk(false);
       setAsociacionMsg(null);
       setCamposComplementados([]);
       setPendienteAbrir(false);
       setScanning(true);
+      setScanProgreso("Subiendo fotos…");
       try {
-        const { api } = await import("../../api/client");
         const fd = new FormData();
         for (const file of lote) {
           fd.append("imagen", file);
@@ -335,13 +356,33 @@ export default function CoaDocumentosScanner({
         if (catalogo.length) {
           fd.append("catalogo", JSON.stringify(catalogo));
         }
-        const json = await api.upload<{
-          error?: string;
-          parametros?: string;
-          campos?: Record<string, unknown>;
-          nombre_producto?: string;
-          archivo_biblioteca?: string;
-        }>("/api/fichas/coa/escanear-parametros", fd, { timeoutMs: 180000 });
+        const inicio = await api.upload<CoaScanApi>(
+          "/api/fichas/coa/escanear-parametros",
+          fd,
+          { timeoutMs: 45000 },
+        );
+        if (gen !== scanGenRef.current) return;
+        if (inicio.error && !inicio.job_id) throw new Error(inicio.error);
+
+        let json: CoaScanApi = inicio;
+        if (inicio.job_id && !inicio.parametros && !inicio.campos) {
+          setScanProgreso(
+            inicio.imagenes && inicio.imagenes > 1
+              ? `Leyendo ${inicio.imagenes} fotos…`
+              : "Leyendo el documento…",
+          );
+          json = await esperarJobScan<CoaScanApi>(
+            (id) => `/api/fichas/coa/escanear-parametros/${encodeURIComponent(id)}`,
+            inicio.job_id,
+            {
+              onProgreso: (msg) => {
+                if (gen === scanGenRef.current) setScanProgreso(msg);
+              },
+              isStale: () => gen !== scanGenRef.current,
+            },
+          );
+        }
+        if (gen !== scanGenRef.current) return;
         if (json.error) throw new Error(json.error);
 
         const nuevosParams = String(json.parametros || "");
@@ -354,8 +395,6 @@ export default function CoaDocumentosScanner({
               )
             : {};
 
-        // Re-análisis con el lote completo: Gemini ya fusionó las N imágenes.
-        // Preferimos el JSON fresco; solo rellenamos huecos con lo que ya teníamos.
         const acumulados: CoaScanCampos = { ...camposIn };
         for (const [k, v] of Object.entries(camposRef.current)) {
           if (k === "parametros" || k === "archivo_biblioteca") continue;
@@ -367,10 +406,13 @@ export default function CoaDocumentosScanner({
           acumulados.nombre_producto || json.nombre_producto || "",
         ).trim();
 
-        const paramsFinal = nuevosParams.trim() || parametrosRef.current;
+        const paramsFinal = mergeParamStrings(parametrosRef.current, nuevosParams);
         parametrosRef.current = paramsFinal;
         setParametros(paramsFinal);
-        setFotosCapturadas(lote.length);
+        const nProc = Number(json.imagenes_procesadas);
+        setFotosCapturadas(
+          Number.isFinite(nProc) && nProc > 0 ? nProc : lote.length,
+        );
 
         const loteTxt = acumulados.lote ? `lote ${acumulados.lote}` : "";
         const vencTxt = acumulados.fecha_vencimiento
@@ -407,9 +449,18 @@ export default function CoaDocumentosScanner({
         }
         setPendienteAbrir(true);
       } catch (e: unknown) {
+        if (gen !== scanGenRef.current) return;
+        if (e instanceof DOMException && e.name === "AbortError") return;
         setScanError(e instanceof Error ? e.message : String(e));
       } finally {
+        if (gen !== scanGenRef.current) return;
+        scanningRef.current = false;
         setScanning(false);
+        setScanProgreso(null);
+        if (rescanPendienteRef.current) {
+          rescanPendienteRef.current = false;
+          void escanearArchivo(pendingFilesRef.current);
+        }
       }
     },
     [archivos],
@@ -454,7 +505,10 @@ export default function CoaDocumentosScanner({
           .map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
       });
 
-      // Reanalizar TODAS las fotos juntas (no borra: Gemini fusiona; el formulario no se abre aún)
+      if (scanningRef.current) {
+        rescanPendienteRef.current = true;
+        return;
+      }
       void escanearArchivo(mergedFiles);
     },
     [escanearArchivo],
@@ -490,6 +544,11 @@ export default function CoaDocumentosScanner({
     setScanPreviews([]);
     setScanLightbox(null);
     pendingFilesRef.current = [];
+    scanGenRef.current += 1;
+    rescanPendienteRef.current = false;
+    scanningRef.current = false;
+    setScanning(false);
+    setScanProgreso(null);
     setParametros("");
     parametrosRef.current = "";
     camposRef.current = {};
@@ -537,24 +596,24 @@ export default function CoaDocumentosScanner({
             Escáner de documentos COA
           </h3>
           <p className="mt-1 text-xs text-muted">
-            Sube varias fotos del COA (etiqueta + certificado, zoom de tablas…). Se acumulan y
-            la IA las fusiona. Cuando termines, pulsa «Abrir documento» para pasar lote, fechas
-            y parámetros al formulario — así no se borra nada al agregar la 2.ª foto.
+            Sube varias fotos del COA (páginas distintas, zoom de tablas…). Cada foto se lee
+            por separado y se fusiona. Si agregas más mientras analiza, espera y se reanaliza
+            el lote completo. Al terminar, pulsa «Abrir documento».
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => abrirCamaraCaptura({ cameraInputRef, setCamaraOpen })}
-            disabled={scanning || aplicando}
+            disabled={aplicando}
             className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-accent-hover disabled:opacity-40"
           >
-            {scanning ? "Analizando COA…" : aplicando ? "Asociando…" : "📷 Escáner de documentos COA"}
+            {aplicando ? "Asociando…" : scanning ? "📷 Agregar otra foto…" : "📷 Escáner de documentos COA"}
           </button>
           <button
             type="button"
             onClick={() => scanFileRef.current?.click()}
-            disabled={scanning || aplicando}
+            disabled={aplicando}
             className="rounded-lg border border-accent/40 px-3 py-2 text-xs font-medium text-accent hover:bg-accent/10 disabled:opacity-40"
           >
             Adjuntar imágenes / PDF
@@ -627,9 +686,24 @@ export default function CoaDocumentosScanner({
         <p className="text-xs text-amber-700 dark:text-amber-300">{asociacionMsg}</p>
       )}
 
-      {fotosCapturadas > 0 && (
+      {scanPreviews.length > 0 && (
         <p className="text-xs font-medium text-emerald-600">
-          {fotosCapturadas} foto{fotosCapturadas !== 1 ? "s" : ""} procesada{fotosCapturadas !== 1 ? "s" : ""}
+          {scanPreviews.length} foto{scanPreviews.length !== 1 ? "s" : ""} adjuntada
+          {scanPreviews.length !== 1 ? "s" : ""}
+          {scanning
+            ? ` · ${scanProgreso || "leyendo cada una…"}`
+            : fotosCapturadas > 0
+              ? ` · ${fotosCapturadas} procesada${fotosCapturadas !== 1 ? "s" : ""}`
+              : ""}
+          {filas.length > 0
+            ? ` · ${filas.length} parámetro${filas.length !== 1 ? "s" : ""} acumulado${filas.length !== 1 ? "s" : ""}`
+            : ""}
+        </p>
+      )}
+      {scanPreviews.length === 0 && fotosCapturadas > 0 && (
+        <p className="text-xs font-medium text-emerald-600">
+          {fotosCapturadas} foto{fotosCapturadas !== 1 ? "s" : ""} procesada
+          {fotosCapturadas !== 1 ? "s" : ""}
           · {filas.length} parámetro{filas.length !== 1 ? "s" : ""} acumulado{filas.length !== 1 ? "s" : ""}
         </p>
       )}

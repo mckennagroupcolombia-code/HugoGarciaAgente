@@ -17,7 +17,23 @@
     "96654078292060@lid",
     "573142754107@c.us",
     "134488579391643@lid",
-    "573138559425@c.us"
+    "573138559425@c.us",
+    "573195486090@c.us",
+    "33616776187980@lid",
+    "573175764579@c.us",
+    "233706501468198@lid",
+    "210444857946255@lid",
+    "573132269371@c.us",
+    "573224649821@c.us",
+    "199531799027775@lid",
+    "573202705050@c.us",
+    "135025232183389@lid",
+    "573183792585@c.us",
+    "30146425798727@lid",
+    "573053106833@c.us",
+    "112000482979882@lid",
+    "573107386545@c.us",
+    "93235233980530@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -38,98 +54,194 @@
     "96654078292060@lid": 1787409528.4917848,
     "573142754107@c.us": 1787409528.4917848,
     "134488579391643@lid": 1787412263.0248208,
-    "573138559425@c.us": 1787412263.0248208
+    "573138559425@c.us": 1787412263.0248208,
+    "573195486090@c.us": 1787579340.6682014,
+    "33616776187980@lid": 1787579340.6682014,
+    "573175764579@c.us": 1787579394.5403416,
+    "233706501468198@lid": 1787579394.5403416,
+    "210444857946255@lid": 1787586371.1293223,
+    "573132269371@c.us": 1787586371.1293223,
+    "573224649821@c.us": 1787587191.6909115,
+    "199531799027775@lid": 1787587191.6909115,
+    "573202705050@c.us": 1787593178.049353,
+    "135025232183389@lid": 1787593178.049353,
+    "573183792585@c.us": 1787609462.2643323,
+    "30146425798727@lid": 1787609462.2643323,
+    "573053106833@c.us": 1787611030.5374446,
+    "112000482979882@lid": 1787611030.5374446,
+    "573107386545@c.us": 1787615202.5061274,
+    "93235233980530@lid": 1787615202.5061274
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1787286826.2066438,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "178817356279987@lid": {
       "timestamp": 1787335500.9884021,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573113334194@c.us": {
       "timestamp": 1787335500.9884021,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "76111534919853@lid": {
       "timestamp": 1787341970.1468103,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "246158098219139@lid": {
       "timestamp": 1787343610.7642312,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573008910032@c.us": {
       "timestamp": 1787343610.7642312,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "211230820171855@lid": {
       "timestamp": 1787344823.055703,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573163397382@c.us": {
       "timestamp": 1787344823.055703,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "53330776715390@lid": {
       "timestamp": 1787346146.812328,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573004718700@c.us": {
       "timestamp": 1787346146.812328,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias"
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573118688120@c.us": {
       "timestamp": 1787407154.6943269,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "249030961586267@lid": {
       "timestamp": 1787407154.6943269,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "264965139202232@lid": {
       "timestamp": 1787407197.76297,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573506046641@c.us": {
       "timestamp": 1787407197.76297,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "96654078292060@lid": {
       "timestamp": 1787409528.4917848,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573142754107@c.us": {
       "timestamp": 1787409528.4917848,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "134488579391643@lid": {
       "timestamp": 1787412263.0248208,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     },
     "573138559425@c.us": {
       "timestamp": 1787412263.0248208,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573195486090@c.us": {
+      "timestamp": 1787579340.6682014,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "33616776187980@lid": {
+      "timestamp": 1787579340.6682014,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573175764579@c.us": {
+      "timestamp": 1787579394.5403416,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "233706501468198@lid": {
+      "timestamp": 1787579394.5403416,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "210444857946255@lid": {
+      "timestamp": 1787586371.1293223,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573132269371@c.us": {
+      "timestamp": 1787586371.1293223,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573224649821@c.us": {
+      "timestamp": 1787587191.6909115,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "199531799027775@lid": {
+      "timestamp": 1787587191.6909115,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573202705050@c.us": {
+      "timestamp": 1787593178.049353,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "135025232183389@lid": {
+      "timestamp": 1787593178.049353,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573183792585@c.us": {
+      "timestamp": 1787609462.2643323,
+      "razon": "r\u00e1faga de 7 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "30146425798727@lid": {
+      "timestamp": 1787609462.2643323,
+      "razon": "r\u00e1faga de 7 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573053106833@c.us": {
+      "timestamp": 1787611030.5374446,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "112000482979882@lid": {
+      "timestamp": 1787611030.5374446,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "573107386545@c.us": {
+      "timestamp": 1787615202.5061274,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
+    },
+    "93235233980530@lid": {
+      "timestamp": 1787615202.5061274,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Cu\u00e1l es el horario para hablar con un asesor ?"
     }
   }
 }

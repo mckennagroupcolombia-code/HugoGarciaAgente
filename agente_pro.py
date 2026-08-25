@@ -65,6 +65,7 @@ def create_app():
         print(f"⚠️ Rate limiting no disponible: {e}")
 
     configurar_ia(app)
+    app.config.setdefault("MAX_CONTENT_LENGTH", 48 * 1024 * 1024)
     register_routes(app)
 
     try:

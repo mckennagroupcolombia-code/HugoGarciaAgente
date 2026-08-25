@@ -188,6 +188,36 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+/** Clona FormData: el body se consume en el primer fetch y el reintento iría vacío. */
+export function cloneFormData(form: FormData): FormData {
+  const copy = new FormData();
+  form.forEach((value, key) => {
+    copy.append(key, value);
+  });
+  return copy;
+}
+
+function mensajeSiHtml(status: number, preview: string): string {
+  if (status === 413) {
+    return "Las fotos pesan demasiado. Use imágenes más livianas o un PDF comprimido.";
+  }
+  if (status === 403) {
+    return "Acceso restringido. En Ajustes activa el acceso desde red, o abre el panel en este equipo.";
+  }
+  if (status === 502 || status === 504 || status === 524) {
+    return "El análisis tardó demasiado y el servidor cortó la conexión. Espera a que termine o adjunta las páginas de una en una.";
+  }
+  if (preview.startsWith("<")) {
+    return (
+      `El servidor devolvió HTML (HTTP ${status}) en lugar de JSON. ` +
+      "Recarga el panel; si el agente se acaba de reiniciar, espera unos segundos e inténtalo de nuevo."
+    );
+  }
+  return preview
+    ? `Respuesta no JSON (HTTP ${status}): ${preview}`
+    : `Respuesta vacía o no JSON (HTTP ${status}).`;
+}
+
 export const api = {
   get: <T>(path: string, options?: { timeoutMs?: number }) => {
     const ms = options?.timeoutMs;
@@ -254,22 +284,19 @@ export const api = {
     let res: Response;
     try {
       res = await doFetch(url);
-      // SPA/proxy: 404/405 o HTML → reintentar el otro prefijo /api ↔ /app/api
-      const ct0 = (res.headers.get("content-type") ?? "").toLowerCase();
+      // Solo 404/405: otro prefijo /api ↔ /app/api. No reintentar HTML 5xx
+      // (el análisis ya pudo haber arrancado; un 2.º POST vacío o duplicado empeora).
       const needsAlt =
         origin &&
         path.startsWith("/api/") &&
-        (res.status === 404 ||
-          res.status === 405 ||
-          !ct0.includes("application/json"));
+        (res.status === 404 || res.status === 405);
       if (needsAlt) {
         const alt = alternateMutatingApiUrl(url, path, "POST", origin);
         if (alt) {
-          // Releer el body: algunos navegadores consumen FormData al primer fetch
           const retry = await fetch(alt, {
             method: "POST",
             headers,
-            body: form,
+            body: cloneFormData(form),
             signal: ctrl?.signal,
           });
           const ctR = (retry.headers.get("content-type") ?? "").toLowerCase();
@@ -301,13 +328,9 @@ export const api = {
     if (!ct.includes("application/json")) {
       const preview = (await res.clone().text()).slice(0, 120).trim();
       throw new Error(
-        preview.startsWith("<")
-          ? "El servidor devolvió HTML en lugar de JSON. Reinicia el agente (:8081) y recarga el panel; si el archivo es muy grande, usa una foto más liviana o PDF comprimido."
-          : res.status === 404
-            ? "Ruta no encontrada (404). Recarga el panel o reinicia el agente."
-            : preview
-              ? `Respuesta no JSON (HTTP ${res.status}): ${preview}`
-              : `Respuesta vacía o no JSON (HTTP ${res.status}).`,
+        res.status === 404
+          ? "Ruta no encontrada (404). Recarga el panel o reinicia el agente."
+          : mensajeSiHtml(res.status, preview),
       );
     }
     const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;

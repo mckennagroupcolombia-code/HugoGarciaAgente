@@ -179,7 +179,13 @@ Endpoints usados por React:
 | `/api/publicaciones/<sku>` | GET | `live_meli=1` opcional | Detalle + `vista_sitios` `{web, meli, presentaciones}` (cómo se ve en tienda vs listing) |
 | `/api/publicaciones/<sku>/estado-meli` | POST | `estado`: `active`\|`paused` | Pausa/activa la publicación MeLi vinculada |
 | `/api/publicaciones/<sku>/imagenes/desde-galeria` | POST | `filenames[]` (catálogo), `recursos[]` (Studio), `targets` (`web` y/o `meli`), `meli_item_id?` | Copia fotos ya existentes de la galería al sitio; no borra el origen |
+| `/api/publicaciones/imagenes/desenfoque/preview` | POST | `modo` (`pie`\|`regiones`), `pie_pct?` (default 0.15), `regiones?` `[{x,y,w,h}]` 0–1, `radio?` (default 28), fuente: `url` o `meli_item_id`+`picture_id` o multipart `file` | Preview sin escribir: `{ok, preview_base64, meta}` |
+| `/api/publicaciones/imagenes/desenfoque/aplicar` | POST | `items[{sku?, meli_item_id, picture_ids?: "principal"\|"todas"\|ids}]` o individual `meli_item_id`+`picture_id`; mismos params de modo | Blur → CDN → reemplaza picture en listing; lote en serie. `{ok, resultados[]}` |
 | `/api/fichas/biblioteca/cargar-web` | POST | - | Publica **solo** documentos completos (FT+COA+SDS diligenciados + PDF) en la tienda. `{ok, total, con_coa, con_sds, titulos, omitidos_incompletos, omitidos_titulos, sitio}`. También `/app/api/...`. |
+| `/api/fichas/coa/escanear-parametros` | POST | multipart `imagen` (1..8) + `catalogo?` | Arranca análisis Gemini en hilo. `202` `{ok, status: pending, job_id, imagenes}`. También `/app/api/...`. |
+| `/api/fichas/coa/escanear-parametros/<job_id>` | GET | — | `{status: pending, progreso}` / `{status: done, parametros, campos, imagenes_procesadas, …}` / `{status: error, error}` (JSON 200). Job en memoria ~10 min. |
+| `/api/fichas/ft/escanear-imagen` | POST | multipart `imagen` (1..8) | Arranca análisis Gemini en hilo. `202` `{ok, status: pending, job_id, imagenes}`. También `/app/api/...`. |
+| `/api/fichas/ft/escanear-imagen/<job_id>` | GET | — | `{status: pending, progreso}` / `{status: done, campos}` / `{status: error, error}` (JSON 200). |
 
 También existen bajo `/app/api/publicaciones*`. La tienda web **solo muestra SKUs con `meli_id` MCO**; `oculto_web` los deja en vitrina sin compra.
 

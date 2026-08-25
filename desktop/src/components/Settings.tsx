@@ -5,7 +5,6 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { esAdminPanel } from "../lib/adminAccess";
 import { useStatus } from "../hooks/useStatus";
 import { api } from "../api/client";
-import TerminalLog from "./TerminalLog";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import AppearancePanel from "./AppearancePanel";
 import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
@@ -102,46 +101,24 @@ export default function Settings() {
   const { data: status } = useStatus();
   const qc = useQueryClient();
 
-  // Terminal log (polls panel_activity)
-  const [logLines, setLogLines] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchLogs = useCallback(async () => {
-    try {
-      const d = await api.get<{ lines: string[]; count: number }>("/api/panel/logs?limit=200");
-      if (d.lines) setLogLines(d.lines);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    fetchLogs();
-    const ms = isRunning ? 800 : 3000;
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(fetchLogs, ms);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchLogs, isRunning]);
-
-  // Detect job completion
-  useEffect(() => {
-    if (!isRunning || logLines.length === 0) return;
-    const recent = logLines.slice(-6);
-    if (recent.some((l) => /[✔✖]/.test(l))) {
-      if (runTimerRef.current) clearTimeout(runTimerRef.current);
-      runTimerRef.current = setTimeout(() => {
-        setIsRunning(false);
-        qc.invalidateQueries({ queryKey: ["servicios"] });
-        qc.invalidateQueries({ queryKey: ["git-status"] });
-      }, 1500);
-    }
-  }, [logLines, isRunning, qc]);
 
   const markRunning = () => {
     if (runTimerRef.current) clearTimeout(runTimerRef.current);
     setIsRunning(true);
-    runTimerRef.current = setTimeout(() => setIsRunning(false), 120_000);
+    runTimerRef.current = setTimeout(() => {
+      setIsRunning(false);
+      qc.invalidateQueries({ queryKey: ["servicios"] });
+      qc.invalidateQueries({ queryKey: ["git-status"] });
+    }, 120_000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (runTimerRef.current) clearTimeout(runTimerRef.current);
+    };
+  }, []);
 
   // Network access
   interface AccesoRed { habilitado: boolean; ip_lan: string | null; puerto: number; url: string | null }
@@ -209,10 +186,6 @@ export default function Settings() {
       setTimeout(() => refetchGit(), 5000);
     },
   });
-
-  const clearLogs = async () => {
-    try { await api.delete("/api/panel/logs"); setLogLines([]); } catch {}
-  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -427,9 +400,6 @@ export default function Settings() {
 
       {/* ── Gestión de usuarios ── */}
       {isAdmin && <UsuariosSection />}
-
-      {/* ── Terminal ── */}
-      {isAdmin && <TerminalSection logLines={logLines} isRunning={isRunning} onClear={clearLogs} />}
     </div>
   );
 }
@@ -660,48 +630,6 @@ function SupervisorSection({ onMarkRunning }: { onMarkRunning: () => void }) {
 
       {indexMutation.isSuccess && (
         <p className="text-xs text-emerald-400">Indexación iniciada en segundo plano — puede tomar ~30 s</p>
-      )}
-    </section>
-  );
-}
-
-// ── Terminal colapsable (admin) ────────────────────────────────────────────
-
-function TerminalSection({
-  logLines,
-  isRunning,
-  onClear,
-}: {
-  logLines: string[];
-  isRunning: boolean;
-  onClear: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <section className="rounded-xl border border-border bg-surface-panel overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-surface-hover"
-      >
-        <h3 className="text-sm font-semibold text-ink">Salida del Sistema</h3>
-        <svg
-          className={`h-4 w-4 text-muted transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {open && (
-        <div className="px-5 pb-5">
-          <TerminalLog
-            lines={logLines}
-            isRunning={isRunning}
-            onClear={onClear}
-            className="h-72"
-          />
-        </div>
       )}
     </section>
   );

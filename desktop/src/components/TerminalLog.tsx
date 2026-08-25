@@ -49,7 +49,7 @@ export default function TerminalLog({ lines, isRunning = false, onClear, onStop,
           <div className="w-3 h-3 rounded-full bg-green-500/60" />
         </div>
         <span className="ml-2 text-[11px] font-mono text-gray-500 tracking-wide">
-          actividad del servidor
+          salida de sync
         </span>
         {isRunning && (
           <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">

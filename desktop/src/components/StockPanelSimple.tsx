@@ -2,9 +2,6 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import ActivityLog from "./ActivityLog";
-import { esAdminPanel } from "../lib/adminAccess";
-import { useTicketsAuth } from "../stores/ticketsAuth";
 interface StockItem {
   meli_id: string;
   sku: string;
@@ -1380,8 +1377,6 @@ export default function StockPanelSimple() {
   const forceRefreshVentasRef = useRef(false);
   const tablaScrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  const ticketsUser = useTicketsAuth((s) => s.user);
-  const esAdmin = esAdminPanel(ticketsUser);
 
   useEffect(() => {
     guardarFiltrosStock({ search });
@@ -1884,11 +1879,6 @@ export default function StockPanelSimple() {
           Reportes WA
         </span>
         <MenuReportesStock />
-        {esAdmin && (
-          <div className="relative ml-auto flex min-w-0 items-center">
-            <ActivityLog compact />
-          </div>
-        )}
       </section>
 
       {detalleProducto && (

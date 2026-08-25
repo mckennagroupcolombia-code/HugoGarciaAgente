@@ -111,7 +111,7 @@ function MiniaturaGaleria({
         title={item.nombre}
         className="flex flex-1 flex-col text-left hover:border-accent"
       >
-        <div className="flex aspect-square items-center justify-center bg-zinc-100 p-1 dark:bg-zinc-800/40">
+        <div className="flex aspect-[5/4] items-center justify-center bg-zinc-100 p-0.5 dark:bg-zinc-800/40 sm:aspect-auto sm:h-20">
           {src ? (
             <img
               src={src}
@@ -120,10 +120,10 @@ function MiniaturaGaleria({
               draggable={false}
             />
           ) : (
-            <div className="h-10 w-10 animate-pulse rounded bg-surface-hover" />
+            <div className="h-8 w-8 animate-pulse rounded bg-surface-hover" />
           )}
         </div>
-        <span className="truncate px-1.5 py-1 text-[10px] text-muted group-hover:text-ink">
+        <span className="truncate px-1 py-0.5 text-[9px] text-muted group-hover:text-ink">
           {item.nombre}
         </span>
       </button>
@@ -556,18 +556,19 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[600] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[600] flex items-center justify-center bg-ink/40 p-2 backdrop-blur-sm"
       onClick={onCerrar}
     >
       <div
-        className="flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+        className="flex max-h-[min(92vh,780px)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-          <div>
-            <h3 className="font-bold text-ink">Galería de imágenes</h3>
-            <p className="mt-0.5 text-xs text-muted">
-              Recursos compartidos de McKenna y subidas del editor. Pasa el cursor y ✕ para eliminar.
+        <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-ink">Galería Studio · Recursos PNG</h3>
+            <p className="text-[10px] leading-snug text-muted">
+              Carpeta <span className="font-mono">Documentos/Etiquetas McKenna/Recursos PNG</span>
+              {" "}— logos, fondos y recursos de diseño. No es la galería de fotos por SKU del catálogo web.
             </p>
           </div>
           <button
@@ -579,7 +580,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1 border-b border-border px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1 border-b border-border px-3 py-1.5 text-xs">
           <button
             type="button"
             onClick={() => irACarpeta("")}
@@ -651,12 +652,12 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-1.5">
           <input
             value={buscar}
             onChange={(e) => setBuscar(e.target.value)}
             placeholder="Buscar imagen…"
-            className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2.5 py-1 text-sm"
           />
 
           {imagenes.length > 0 && (
@@ -823,19 +824,19 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
           </p>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {loadingRecursos || loadingEditor ? (
-            <div className="flex justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <div className="flex justify-center py-8">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
             </div>
           ) : imagenes.length === 0 && subcarpetas.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted">
+            <div className="py-8 text-center text-xs text-muted">
               {buscar.trim()
                 ? "No hay imágenes ni carpetas con ese nombre."
                 : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7">
               {subcarpetas.map((nombreCarpeta) => {
                 const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
                 const enHoverDrop = carpetaHoverDrop === rel;
@@ -865,7 +866,7 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                       e.preventDefault();
                       soltarEnCarpeta(rel);
                     }}
-                    className={`group/carpeta relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center transition ${
+                    className={`group/carpeta relative flex h-20 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed p-1.5 text-center transition ${
                       enHoverDrop
                         ? "border-accent bg-accent/10"
                         : "border-border bg-surface hover:border-accent hover:bg-surface-hover"
@@ -882,8 +883,8 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
                     >
                       ✎
                     </button>
-                    <span className="text-3xl">📁</span>
-                    <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
+                    <span className="text-xl">📁</span>
+                    <span className="w-full truncate text-[9px] text-ink">{nombreCarpeta}</span>
                   </div>
                 );
               })}

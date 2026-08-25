@@ -1,13 +1,15 @@
-/** Captura la pestaña del listado MeLi que el operador acaba de abrir. */
+/** Captura la pestaña del listado MeLi. Hay que llamarla desde un clic directo. */
 
-export async function capturarPestanaComoJpeg(esperaMs = 2800): Promise<Blob> {
+export async function capturarPestanaComoJpeg(esperaMs = 400): Promise<Blob> {
   if (!navigator.mediaDevices?.getDisplayMedia) {
     throw new Error("Este navegador no permite capturar pestaña. Pegá el pantallazo (Ctrl+V).");
   }
+  // getDisplayMedia exige gesto de usuario en el mismo turno. No abrir pestañas
+  // ni await-ear nada antes: window.open consume la activación transitoria.
   const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: 5 },
+    video: { frameRate: 5, displaySurface: "browser" },
     audio: false,
-  });
+  } as DisplayMediaStreamOptions);
   try {
     const video = document.createElement("video");
     video.srcObject = stream;
@@ -38,10 +40,24 @@ export async function capturarPestanaComoJpeg(esperaMs = 2800): Promise<Blob> {
   }
 }
 
+export function puedeCapturarPestana(): boolean {
+  return typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia;
+}
+
 export function esCancelacionCaptura(err: unknown): boolean {
+  const texto = err instanceof Error ? `${err.name} ${err.message}` : String(err);
+  if (/transient activation|user gesture/i.test(texto)) return false;
   return (
     (err instanceof DOMException &&
       (err.name === "NotAllowedError" || err.name === "AbortError")) ||
-    (err instanceof Error && /notallowed|abort|permission/i.test(err.name + err.message))
+    /notallowed|abort|permission/i.test(texto)
   );
+}
+
+export function mensajeErrorCaptura(err: unknown): string {
+  const raw = err instanceof Error ? err.message : "No pude capturar la pestaña.";
+  if (/transient activation|user gesture/i.test(raw)) {
+    return "El navegador pide un clic directo. Tocá otra vez «Capturar pestaña».";
+  }
+  return raw;
 }
