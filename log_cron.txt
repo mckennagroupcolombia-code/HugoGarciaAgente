@@ -2002,3 +2002,22 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-24) no es el último día del mes.
+[cursor/wa-metricas-panel 6a4c7fa] Auto-commit: actualizacion diaria 2026-08-24 23:00
+ 74 files changed, 9872 insertions(+), 2071 deletions(-)
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260824T161640.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260824T162728.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260824T162957.png
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/coa_scan_jobs.py
+ create mode 100644 app/services/documento_traducir_es.py
+ create mode 100644 app/services/imagen_desenfoque.py
+ create mode 100644 desktop/src/components/DesenfoqueFotoModal.tsx
+ create mode 100644 desktop/src/components/MeliPromocionesItem.tsx
+ create mode 100644 desktop/src/lib/scanJobPoll.ts
+ create mode 100644 tests/test_documento_scan_fusion.py
+ create mode 100644 tests/test_documento_traducir_es.py
+ create mode 100644 tests/test_imagen_desenfoque.py
+ create mode 100644 uploads/tickets/50ffb3c96eae409d8950ffb0386d65f1.png
+ create mode 100644 uploads/tickets/818a744df9194209bcc27dd4f3fc9bd1.png
+[2026-08-24 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-24 23:00'
