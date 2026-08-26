@@ -2174,3 +2174,67 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-25) no es el último día del mes.
+[cursor/wa-metricas-panel 337fc7a] Auto-commit: actualizacion diaria 2026-08-25 23:00
+ 105 files changed, 5474 insertions(+), 1834 deletions(-)
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/ACEITE DE NEEM 60mL.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260825T085930.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260825T090019.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260825T092900.png
+ create mode 100644 app/data/competencia_evidencias/MCO1262287931_20260825T141111.png
+ create mode 100644 app/data/competencia_evidencias/MCO1336703989_20260824T162611.png
+ create mode 100644 app/data/competencia_evidencias/MCO1636834856_20260825T143325.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T143700.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T150630.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T150647.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T150734.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T151007.png
+ create mode 100644 app/data/competencia_evidencias/MCO2059169393_20260825T151043.png
+ create mode 100644 app/data/competencia_evidencias/MCO2158622860_20260825T083510.png
+ create mode 100644 app/data/competencia_evidencias/MCO2829965506_20260825T152851.png
+ create mode 100644 app/data/competencia_evidencias/MCO2924070024_20260825T134529.png
+ create mode 100644 app/data/competencia_evidencias/MCO4074246724_20260824T155815.png
+ create mode 100644 app/data/competencia_evidencias/MCO4083547534_20260825T134635.png
+ create mode 100644 app/data/competencia_evidencias/MCO4083547534_20260825T140037.png
+ create mode 100644 app/data/competencia_evidencias/MCO4160901374_20260825T150930.png
+ create mode 100644 app/data/competencia_evidencias/MCO560569172_20260825T152025.png
+ create mode 100644 app/data/competencia_evidencias/MCO577035616_20260824T155748.png
+ create mode 100644 app/data/competencia_evidencias/MCO577035616_20260825T152759.png
+ create mode 100644 app/data/competencia_evidencias/MCO577035616_20260825T153149.png
+ create mode 100644 app/data/competencia_evidencias/MCO585538997_20260825T121300.png
+ create mode 100644 app/data/competencia_evidencias/MCO585538997_20260825T160847.png
+ create mode 100644 app/data/competencia_evidencias/MCO585538997_20260825T160848.png
+ create mode 100644 app/data/competencia_evidencias/MCO587476373_20260825T151718.png
+ create mode 100644 app/data/competencia_evidencias/MCO587476373_20260825T161046.png
+ create mode 100644 app/data/competencia_evidencias/MCO587476373_20260825T161216.png
+ create mode 100644 app/data/competencia_evidencias/MCO591391033_20260825T151302.png
+ create mode 100644 app/data/competencia_evidencias/MCO592968863_20260825T152003.png
+ create mode 100644 app/data/competencia_evidencias/MCO592968863_20260825T152022.png
+ create mode 100644 app/data/competencia_evidencias/MCO594012281_20260825T152530.png
+ create mode 100644 app/data/competencia_evidencias/MCO600359078_20260825T143419.png
+ create mode 100644 app/data/competencia_evidencias/MCO600431364_20260825T152123.png
+ create mode 100644 app/data/competencia_evidencias/MCO602225162_20260824T162852.png
+ create mode 100644 app/data/competencia_evidencias/MCO616763443_20260825T151148.png
+ create mode 100644 app/data/competencia_evidencias/MCO627419803_20260825T140326.png
+ create mode 100644 app/data/competencia_evidencias/MCO627419803_20260825T140958.png
+ create mode 100644 app/data/competencia_evidencias/MCO859831102_20260825T143355.png
+ create mode 100644 app/data/competencia_evidencias/MCO859831102_20260825T143419.png
+ create mode 100644 app/data/competencia_evidencias/MCO859831102_20260825T143431.png
+ create mode 100644 app/data/competencia_evidencias/MCO890848439_20260825T153026.png
+ create mode 100644 app/data/competencia_presentaciones_manual.json
+ create mode 100644 app/data/compras_exterior_soportes/20260825_112612_2fbbe61c_imagen.png.png
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/services/competencia_captura_jobs.py
+ create mode 100644 tests/test_acciones_frecuentes.py
+ create mode 100644 tests/test_meli_promotions.py
+ create mode 100644 uploads/tickets/1e18268daafe48c38590069fa2d06b15.jpg
+ create mode 100644 uploads/tickets/41416ddf3b9c45beb7935a8d206d586c.png
+ create mode 100644 uploads/tickets/432ea708903e4a4e88a958546312cb17.jpg
+ create mode 100644 uploads/tickets/44f50b177b154cc7bcb53d45a328dad5.jpg
+ create mode 100644 uploads/tickets/52503d6e9e5b4925902f7af6d76e89e1.jpg
+ create mode 100644 uploads/tickets/75797889f96b46b0bf090743a45b7d39.jpg
+ create mode 100644 uploads/tickets/7fa7b5b746ae404caf578a6fb20eda09.jpg
+ create mode 100644 uploads/tickets/a30fc55714d4463194c213978246690a.jpg
+ create mode 100644 uploads/tickets/c436f38aba7d48eb88ecb7112530bda7.jpg
+ create mode 100644 uploads/tickets/dc8c3e22c81e45ef886ece94fafb3b29.jpg
+[2026-08-25 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-25 23:00'
