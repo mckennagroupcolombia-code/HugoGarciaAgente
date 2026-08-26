@@ -24,7 +24,9 @@ del listado que el operador abre en su navegador.
    (Ctrl+V), arrastrar o subir el pantallazo analiza esa publicación.
    «Buscar en MeLi» solo abre el listado. **Promociones ofertadas** es otro
    desplegable, aparte.
-3. La tabla de comparación trae Nombre, Cantidad (g/ml) y Valor total.
+3. La comparación es por **precio de la unidad** ($ / g o $ / ml),
+   en barras (más larga = más caro). Se admiten otros tamaños de la misma
+   unidad (250 g vs 500 g); no se mezclan gramos con mililitros.
    El precio base de nuestra publicación se edita y se publica en MeLi.
 4. **Promociones ofertadas** (desplegable aparte) lista campañas candidatas
    y permite vincular/quitar (`/api/stock/promociones/*`).

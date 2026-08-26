@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "por_item": {
+    "MCO585538997": {
+      "valor": 50.0,
+      "unidad_raw": "ml",
+      "canonica": "ml",
+      "cantidad": 50,
+      "manual": true,
+      "texto": "50 ml",
+      "actualizado_en": "2026-08-25T16:08:48"
+    }
+  }
+}

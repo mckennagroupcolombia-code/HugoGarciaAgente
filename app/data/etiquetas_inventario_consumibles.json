@@ -178,16 +178,16 @@
       "ancho_pulg": 2.992,
       "alto_pulg": 2.598,
       "unidades_por_rollo": 410,
-      "rollos": 9.0,
-      "etiquetas_sueltas": 13,
+      "rollos": 8.0,
+      "etiquetas_sueltas": 402,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "250 g",
       "notas": "",
-      "cantidad": 9.0,
+      "cantidad": 8.0,
       "unidad": "rollos",
-      "total_etiquetas": 3703,
-      "updated_at": "2026-08-24T10:26:18"
+      "total_etiquetas": 3682,
+      "updated_at": "2026-08-25T11:59:44"
     },
     {
       "id": "1c1159488549",

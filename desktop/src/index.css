@@ -2248,6 +2248,23 @@ html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
   border-radius: 0.4rem;
 }
 
+/* Chips/filtros densos (p. ej. Competencia): ganan a min-height 44px del PWA
+   y al alto de campo de botones junto a inputs. */
+#root button.mck-chip-compact,
+#root .flex:has(> input:not([type="checkbox"]):not([type="radio"])):has(> button) > button.mck-chip-compact,
+#root .flex:has(> select):has(> button) > button.mck-chip-compact {
+  box-sizing: border-box;
+  height: 1.2rem !important;
+  min-height: 1.2rem !important;
+  min-width: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
+  font-size: 0.625rem !important;
+  line-height: 1 !important;
+}
+
 @media (max-width: 767px) {
   #root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
   #root select,

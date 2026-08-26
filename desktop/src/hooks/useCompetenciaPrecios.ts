@@ -25,6 +25,9 @@ export interface ListadoCaptura {
   precio: number;
   cantidad?: string;
   valor_total?: number;
+  precio_por_100?: number | null;
+  precio_por_unidad?: number | null;
+  unidad_canonica?: "g" | "ml" | string | null;
   vendedor?: string;
   permalink?: string;
   vendidos?: number | null;
@@ -43,12 +46,25 @@ export interface ReporteCaptura {
   n_vistos?: number;
   n_comparables?: number;
   min_precio?: number | null;
+  min_precio_por_100?: number | null;
+  min_precio_por_unidad?: number | null;
+  unidad_comparacion?: string | null;
   veredicto?: VeredictoCompetencia;
   delta_pct_vs_min?: number | null;
   resumen?: string;
   listados?: ListadoCaptura[];
   tabla?: ListadoCaptura[];
   evidencia_png?: string | null;
+  fuente?: string;
+  instrumento_pesaje?: boolean;
+  precision_medicion?: string | null;
+}
+
+export interface PalabrasClaveMeli {
+  nombre?: string[];
+  cantidad?: string | null;
+  porcentajes?: string[];
+  query?: string;
 }
 
 export interface ProductoCompetencia {
@@ -59,6 +75,7 @@ export interface ProductoCompetencia {
   permalink: string;
   unidades_periodo: number;
   query: string;
+  palabras_clave_meli?: PalabrasClaveMeli;
   url_busqueda_meli?: string;
   veredicto: VeredictoCompetencia;
   min_competencia?: number | null;
@@ -66,6 +83,10 @@ export interface ProductoCompetencia {
   n_competidores: number;
   observaciones_manual?: ObservacionManual[];
   reporte_captura?: ReporteCaptura | null;
+  /** Cantidad g/ml efectiva (título o manual). */
+  cantidad_efectiva?: string | null;
+  presentacion_manual?: string | null;
+  presentacion_es_manual?: boolean;
 }
 
 export interface ResumenCompetencia {
@@ -143,6 +164,7 @@ export function useReporteCapturaCompetencia() {
       titulo?: string;
       precio?: number;
       imagen: Blob;
+      onProgreso?: (msg: string) => void;
     }) => {
       const form = new FormData();
       form.append("item_id", args.item_id);
@@ -150,11 +172,34 @@ export function useReporteCapturaCompetencia() {
       if (args.precio != null) form.append("precio", String(args.precio));
       const name = args.imagen.type.includes("png") ? "captura.png" : "captura.jpg";
       form.append("imagen", args.imagen, name);
-      return api.upload<AnalisisCompetencia & { reporte?: ReporteCaptura }>(
+      type CapturaStart = AnalisisCompetencia & {
+        reporte?: ReporteCaptura;
+        job_id?: string;
+        status?: string;
+        progreso?: string;
+        error?: string;
+      };
+      const started = await api.upload<CapturaStart>(
         "/api/meli/competencia-precios/reporte-captura",
         form,
-        { timeoutMs: 180_000 },
+        { timeoutMs: 60_000 },
       );
+      if (started.job_id && (started.status === "processing" || started.status === "pending")) {
+        args.onProgreso?.(started.progreso || "Analizando pantallazo…");
+        const { esperarJobScan } = await import("../lib/scanJobPoll");
+        return esperarJobScan<CapturaStart>(
+          (id) => `/api/meli/competencia-precios/reporte-captura/${encodeURIComponent(id)}`,
+          started.job_id,
+          {
+            onProgreso: args.onProgreso,
+            timeoutMs: 8 * 60 * 1000,
+          },
+        );
+      }
+      if (started.error && !started.reporte) {
+        throw new Error(started.error);
+      }
+      return started;
     },
     onSuccess: (data) => {
       qc.setQueryData(["meli-competencia-precios"], data);
@@ -171,6 +216,26 @@ export function useActualizarPrecioBaseCompetencia() {
         body,
         { timeoutMs: 60_000 },
       ),
+    onSuccess: (data) => {
+      qc.setQueryData(["meli-competencia-precios"], data);
+    },
+  });
+}
+
+export function useActualizarPresentacionCompetencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      item_id: string;
+      cantidad: string | number;
+      unidad?: "g" | "ml" | string;
+    }) =>
+      api.post<
+        AnalisisCompetencia & {
+          presentacion?: string | null;
+          presentacion_manual?: string | null;
+        }
+      >("/api/meli/competencia-precios/presentacion", body, { timeoutMs: 60_000 }),
     onSuccess: (data) => {
       qc.setQueryData(["meli-competencia-precios"], data);
     },

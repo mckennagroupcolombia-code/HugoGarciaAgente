@@ -36,6 +36,9 @@ TYPES_DEAL_PRICE = frozenset(
     }
 )
 
+# Relámpago / oferta del día: MeLi exige stock reservado en el POST.
+TYPES_REQUIRE_STOCK = frozenset({"LIGHTNING", "DOD"})
+
 # Estados de campaña en los que aún se puede sumar ítems.
 STATUSES_JOINABLE = frozenset({"started", "pending"})
 
@@ -78,6 +81,29 @@ def _seller_id(token: str) -> int:
     r = requests.get(f"{MELI_API}/users/me", headers=_headers(token), timeout=20)
     r.raise_for_status()
     return int(r.json()["id"])
+
+
+def stock_reservar(stock: Any) -> int | None:
+    """Stock a reservar en opt-in. Acepta int o `{min, max}` del candidato MeLi."""
+    if isinstance(stock, dict):
+        for k in ("min", "min_stock"):
+            v = stock.get(k)
+            if v is None:
+                continue
+            try:
+                n = int(v)
+            except (TypeError, ValueError):
+                continue
+            if n > 0:
+                return n
+        return None
+    if isinstance(stock, bool) or stock is None:
+        return None
+    try:
+        n = int(stock)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
 
 
 def modo_optin(promotion_type: str) -> str:
@@ -263,7 +289,7 @@ def promociones_del_item(meli_id: str) -> dict[str, Any]:
             "start_date": start,
             "finish_date": finish,
             "deadline_date": (camp or {}).get("deadline_date") or p.get("deadline_date"),
-            "stock": p.get("stock"),
+            "stock": stock_reservar(p.get("stock")),
             "modo_optin": modo_optin(ptype),
             "precio_sugerido": sugerido,
         }
@@ -280,6 +306,74 @@ def promociones_del_item(meli_id: str) -> dict[str, Any]:
     }
 
 
+def cuerpo_optin_meli(
+    *,
+    promotion_type: str,
+    promotion_id: str = "",
+    offer_id: str | None = None,
+    deal_price: float | None = None,
+    top_deal_price: float | None = None,
+    start_date: str | None = None,
+    finish_date: str | None = None,
+    stock: int | None = None,
+) -> dict[str, Any]:
+    """Arma el JSON de POST /seller-promotions/items/{id} (sin llamar a MeLi)."""
+    promotion_type = (promotion_type or "").strip().upper()
+    promotion_id = (promotion_id or "").strip()
+    if not promotion_type:
+        raise ValueError("promotion_type es requerido")
+    if not promotion_id and promotion_type != "PRICE_DISCOUNT":
+        raise ValueError("promotion_id es requerido")
+
+    body: dict[str, Any] = {"promotion_type": promotion_type}
+    if promotion_id:
+        body["promotion_id"] = promotion_id
+
+    mode = modo_optin(promotion_type)
+    oid = (offer_id or "").strip()
+    sd = (start_date or "").strip()
+    fd = (finish_date or "").strip()
+
+    if mode == "deal_price" or (
+        deal_price is not None and promotion_type in TYPES_DEAL_PRICE
+    ):
+        if deal_price is None or float(deal_price) <= 0:
+            raise ValueError("deal_price requerido y debe ser > 0")
+        body["deal_price"] = float(deal_price)
+        if top_deal_price is not None and float(top_deal_price) > 0:
+            body["top_deal_price"] = float(top_deal_price)
+        if promotion_type == "PRICE_DISCOUNT":
+            if not sd or not fd:
+                raise ValueError(
+                    "PRICE_DISCOUNT requiere start_date y finish_date (máx. 14 días)"
+                )
+            body["start_date"] = sd
+            body["finish_date"] = fd
+        if oid:
+            body["offer_id"] = oid
+    else:
+        if not oid:
+            raise ValueError(
+                "offer_id (candidato) requerido para este tipo de promoción"
+            )
+        body["offer_id"] = oid
+        # SMART Relámpago rechaza si falta START_DATE.
+        if sd:
+            body["start_date"] = sd
+        if fd:
+            body["finish_date"] = fd
+
+    if promotion_type in TYPES_REQUIRE_STOCK:
+        n = stock_reservar(stock)
+        if n is None:
+            raise ValueError(
+                "Lightning / oferta del día exige stock reservado (mínimo del candidato)"
+            )
+        body["stock"] = n
+
+    return body
+
+
 def agregar_item_a_promocion(
     meli_id: str,
     *,
@@ -290,6 +384,7 @@ def agregar_item_a_promocion(
     top_deal_price: float | None = None,
     start_date: str | None = None,
     finish_date: str | None = None,
+    stock: int | None = None,
 ) -> dict[str, Any]:
     """POST /seller-promotions/items/{ITEM_ID}?app_version=v2"""
     meli_id = (meli_id or "").strip().upper()
@@ -305,54 +400,48 @@ def agregar_item_a_promocion(
     if not token:
         raise RuntimeError("Token MeLi no disponible")
 
-    body: dict[str, Any] = {
-        "promotion_type": promotion_type,
-    }
-    if promotion_id:
-        body["promotion_id"] = promotion_id
-
-    mode = modo_optin(promotion_type)
-    if mode == "deal_price" or (
-        deal_price is not None and promotion_type in TYPES_DEAL_PRICE
-    ):
-        if deal_price is None or float(deal_price) <= 0:
-            raise ValueError("deal_price requerido y debe ser > 0")
-        body["deal_price"] = float(deal_price)
-        if top_deal_price is not None and float(top_deal_price) > 0:
-            body["top_deal_price"] = float(top_deal_price)
-        if promotion_type == "PRICE_DISCOUNT":
-            sd = (start_date or "").strip()
-            fd = (finish_date or "").strip()
-            if not sd or not fd:
-                raise ValueError(
-                    "PRICE_DISCOUNT requiere start_date y finish_date (máx. 14 días)"
-                )
-            body["start_date"] = sd
-            body["finish_date"] = fd
-    else:
-        oid = (offer_id or "").strip()
-        if not oid:
+    oid = (offer_id or "").strip() or None
+    sd = (start_date or "").strip() or None
+    fd = (finish_date or "").strip() or None
+    st = stock_reservar(stock)
+    need_lookup = (
+        (modo_optin(promotion_type) == "offer_id" and not oid)
+        or (promotion_type == "SMART" and (not sd or not fd))
+        or (promotion_type in TYPES_REQUIRE_STOCK and st is None)
+    )
+    if need_lookup:
+        try:
             info = promociones_del_item(meli_id)
-            for c in info.get("candidatas") or []:
-                if (c.get("id") or "") == promotion_id and (c.get("ref_id") or ""):
-                    oid = str(c["ref_id"])
-                    break
-        if not oid:
-            raise ValueError(
-                "offer_id (candidato) requerido para este tipo de promoción"
+        except Exception:
+            info = {}
+        for c in info.get("candidatas") or []:
+            cid = str(c.get("id") or "")
+            ctype = str(c.get("type") or "").upper()
+            same = (cid and cid == promotion_id) or (
+                not promotion_id and ctype == promotion_type
             )
-        body["offer_id"] = oid
-        # Algunas campañas SMART (ej. "Ofertas Relámpago") sí exigen fechas
-        # propias aunque el modo de opt-in sea offer_id — confirmado ago-2026:
-        # MeLi rechaza con "START_DATE - The start date cannot be null" si se
-        # omiten. El candidato ya las trae en `promociones_del_item` cuando
-        # aplica; se reenvían tal cual si el caller las pasó.
-        sd = (start_date or "").strip()
-        fd = (finish_date or "").strip()
-        if sd:
-            body["start_date"] = sd
-        if fd:
-            body["finish_date"] = fd
+            if not same:
+                continue
+            if not oid and c.get("ref_id"):
+                oid = str(c["ref_id"])
+            if not sd and c.get("start_date"):
+                sd = str(c["start_date"])
+            if not fd and c.get("finish_date"):
+                fd = str(c["finish_date"])
+            if st is None:
+                st = stock_reservar(c.get("stock"))
+            break
+
+    body = cuerpo_optin_meli(
+        promotion_type=promotion_type,
+        promotion_id=promotion_id,
+        offer_id=oid,
+        deal_price=deal_price,
+        top_deal_price=top_deal_price,
+        start_date=sd,
+        finish_date=fd,
+        stock=st,
+    )
 
     r = requests.post(
         f"{MELI_API}/seller-promotions/items/{meli_id}",

@@ -27,6 +27,7 @@ _APP_DIR = Path(__file__).resolve().parent.parent
 _CACHE_PATH = _APP_DIR / "data" / "analisis_competencia_precios.json"
 _OBS_PATH = _APP_DIR / "data" / "competencia_observaciones_manual.json"
 _REPORTES_PATH = _APP_DIR / "data" / "competencia_reportes_captura.json"
+_PRES_MANUAL_PATH = _APP_DIR / "data" / "competencia_presentaciones_manual.json"
 _EVIDENCIAS_DIR = _APP_DIR / "data" / "competencia_evidencias"
 _LOGO_EVIDENCIA = _APP_DIR.parent / "DISENO CORPORATIVO " / "LOGO MORADO.png"
 _CACHE_TTL_H = 6
@@ -48,6 +49,34 @@ _STOPWORDS = frozenset({
 
 _RX_PRESENTACION = re.compile(
     r"\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b",
+    re.IGNORECASE,
+)
+# 2x50g · 2 x 50 g · 3×100ml
+_RX_PRESENTACION_NX = re.compile(
+    r"\b(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b",
+    re.IGNORECASE,
+)
+# 50g + 50g (mismo tamaño dos veces)
+_RX_PRESENTACION_SUMA = re.compile(
+    r"\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)"
+    r"\s*[+]\s*"
+    r"(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b",
+    re.IGNORECASE,
+)
+# 50g c/u · 50 g cada uno
+_RX_PRESENTACION_CU = re.compile(
+    r"\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)"
+    r"\s*(?:c\s*/\s*u\.?|c/?u\.?|cada\s+un[oa])\b",
+    re.IGNORECASE,
+)
+# Capacidad de balanza/gramera: «Hasta 50 Gr»
+_RX_HASTA_CAPACIDAD = re.compile(
+    r"\bhasta\s+(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?)\b",
+    re.IGNORECASE,
+)
+# Precisión de medición: «0.001 G» / «0,01 g» / «1 mg»
+_RX_PRECISION_MEDICION = re.compile(
+    r"\b(0[.,]\d+|\d+[.,]\d+)\s*(g|grs?|gramos?|mg)\b",
     re.IGNORECASE,
 )
 
@@ -86,30 +115,286 @@ def tokens_significativos(titulo: str) -> list[str]:
     return out
 
 
-def extraer_presentacion(titulo: str) -> Optional[dict]:
-    """
-    Primera presentación del título.
-    Unidad canónica: g (masa) o ml (volumen). kg→g, L→ml.
-    """
-    m = _RX_PRESENTACION.search(titulo or "")
-    if not m:
-        return None
-    raw = float(m.group(1).replace(",", "."))
-    unidad = m.group(2).lower()
+_RX_PCT = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(?:%|pct)", re.I)
+_RX_VIT = re.compile(r"\b(?:vitamina\s+)?([a-z]\d+)\b", re.I)
+_RX_HIFEN = re.compile(r"\b[\w]+(?:-[\w]+)+\b", re.I)
+
+
+def _extraer_porcentajes(titulo: str) -> list[str]:
+    out: list[str] = []
+    for m in _RX_PCT.finditer(titulo or ""):
+        pct = m.group(1).replace(",", ".")
+        if "." in pct:
+            pct = pct.rstrip("0").rstrip(".")
+        s = f"{pct}%"
+        if s not in out:
+            out.append(s)
+    return out
+
+
+def _tokens_nombre_busqueda(titulo: str) -> list[str]:
+    """Nombre del producto: químicos con guión, vitaminas B5/B12 y tokens ≥3 letras."""
+    t = titulo or ""
+    extra: list[str] = []
+    for m in _RX_HIFEN.finditer(t):
+        h = m.group(0).lower()
+        h = unicodedata.normalize("NFD", h)
+        h = "".join(c for c in h if unicodedata.category(c) != "Mn")
+        if len(re.sub(r"[^a-z0-9]", "", h)) >= 3:
+            extra.append(h)
+        for w in _norm(m.group(0)).split():
+            if w and w not in _STOPWORDS and (len(w) >= 3 or re.fullmatch(r"[a-z]\d+", w)):
+                extra.append(w)
+    for m in _RX_VIT.finditer(t):
+        extra.append(m.group(1).lower())
+    base = _norm(titulo_base_producto(t))
+    base = _RX_PCT.sub(" ", base)
+    out: list[str] = []
+    vistos: set[str] = set()
+    for w in extra + base.split():
+        w = w.strip()
+        if not w or w in vistos or w in _STOPWORDS:
+            continue
+        if len(w) >= 3 or re.fullmatch(r"[a-z]\d+", w):
+            vistos.add(w)
+            out.append(w)
+    return out[:6]
+
+
+def keywords_busqueda_meli(titulo: str, item_id: str = "") -> str:
+    """Arma la búsqueda MeLi: nombre + cantidad (g/ml) + concentración (%)."""
+    t = titulo or ""
+    partes: list[str] = []
+    vistos: set[str] = set()
+
+    def add(s: str) -> None:
+        s = (s or "").strip()
+        if not s:
+            return
+        k = s.lower()
+        if k in vistos:
+            return
+        vistos.add(k)
+        partes.append(s)
+
+    for w in _tokens_nombre_busqueda(t):
+        add(w)
+    pres = presentacion_efectiva(item_id, t) if item_id else extraer_presentacion(t)
+    pt = presentacion_texto(pres)
+    if pt:
+        add(pt)
+    for pct in _extraer_porcentajes(t):
+        add(pct)
+    return " ".join(partes).strip() or (t[:80])
+
+
+def desglosar_palabras_clave_meli(titulo: str, item_id: str = "") -> dict:
+    """Desglose para UI: nombre, cantidad, porcentajes y query final."""
+    t = titulo or ""
+    pres = presentacion_efectiva(item_id, t) if item_id else extraer_presentacion(t)
+    return {
+        "nombre": _tokens_nombre_busqueda(t),
+        "cantidad": presentacion_texto(pres) or None,
+        "porcentajes": _extraer_porcentajes(t),
+        "query": keywords_busqueda_meli(t, item_id),
+    }
+
+
+def _canonizar_cantidad(raw: float, unidad: str) -> Optional[dict]:
+    unidad = (unidad or "").lower()
     if unidad in ("kg", "kilo", "kilos"):
         return {"valor": raw, "unidad_raw": unidad, "canonica": "g", "cantidad": int(round(raw * 1000))}
     if unidad in ("g", "gr", "grs", "gramo", "gramos"):
         return {"valor": raw, "unidad_raw": unidad, "canonica": "g", "cantidad": int(round(raw))}
     if unidad in ("l", "lt", "lts", "litro", "litros"):
         return {"valor": raw, "unidad_raw": unidad, "canonica": "ml", "cantidad": int(round(raw * 1000))}
-    # ml, mls, cc
-    return {"valor": raw, "unidad_raw": unidad, "canonica": "ml", "cantidad": int(round(raw))}
+    if unidad in ("ml", "mls", "cc"):
+        return {"valor": raw, "unidad_raw": unidad, "canonica": "ml", "cantidad": int(round(raw))}
+    return None
+
+
+def _multiplicador_kit(titulo: str, hasta: int) -> int:
+    """Cuántas unidades del tamaño indicado (c/u, 2 frascos, A + B, etc.)."""
+    head = (titulo or "")[: max(0, hasta)]
+    m = re.search(
+        r"\b(\d+)\s*(?:und|unidades?|pcs?|piezas?|frascos?|potes?|sobres?|botellas?)\b",
+        head,
+        re.IGNORECASE,
+    )
+    if m:
+        n = int(m.group(1))
+        if 2 <= n <= 20:
+            return n
+    if re.search(r"\b(?:duo|par|pareja|kit\s*(?:de\s*)?2|pack\s*(?:de\s*)?2)\b", head, re.IGNORECASE):
+        return 2
+    # "Alginato + Lactato … 50g c/u" → 2 componentes (ignora "+ envío")
+    partes = [
+        p.strip()
+        for p in re.split(r"\s*\+\s*", head)
+        if p.strip() and not re.match(r"(?i)^env[ií]o\b", p.strip())
+    ]
+    if len(partes) >= 2:
+        return min(len(partes), 6)
+    return 1
+
+
+def _es_instrumento_pesaje(titulo: str) -> bool:
+    """Gramera/balanza: el 'g' del título es capacidad o precisión, no contenido a vender."""
+    t = _norm(titulo)
+    return any(
+        k in t
+        for k in (
+            "gramera",
+            "balanza",
+            "bascula",
+            "pesa digital",
+            "pesa gramera",
+            "bascule",
+        )
+    )
+
+
+def extraer_precision_medicion(titulo: str) -> Optional[str]:
+    """p. ej. '0.001 g' — resolución de la báscula, no presentación de venta."""
+    for m in _RX_PRECISION_MEDICION.finditer(titulo or ""):
+        raw = float(m.group(1).replace(",", "."))
+        u = m.group(2).lower()
+        if u == "mg":
+            if raw <= 0:
+                continue
+            return f"{m.group(1).replace(',', '.')} mg"
+        # Precisión en gramos: solo fracciones < 1 g (0.001 g, 0.01 g)
+        if 0 < raw < 1:
+            return f"{m.group(1).replace(',', '.')} g"
+    return None
+
+
+def _es_precision_no_cantidad(raw: float, unidad: str) -> bool:
+    """True si el match parece resolución (0.001 g), no empaque."""
+    u = (unidad or "").lower()
+    if u in ("mg",):
+        return True
+    if u in ("g", "gr", "grs", "gramo", "gramos") and 0 < raw < 1:
+        return True
+    return False
+
+
+def _anotar_instrumento(pres: Optional[dict], titulo: str) -> Optional[dict]:
+    instrumento = _es_instrumento_pesaje(titulo)
+    prec = extraer_precision_medicion(titulo)
+    if not pres:
+        if not instrumento and not prec:
+            return None
+        out: dict = {
+            "valor": 0,
+            "unidad_raw": "g",
+            "canonica": "g",
+            "cantidad": 0,
+        }
+        if instrumento:
+            out["instrumento_pesaje"] = True
+        if prec:
+            out["precision"] = prec
+        return out
+    out = dict(pres)
+    if instrumento:
+        out["instrumento_pesaje"] = True
+    if prec:
+        out["precision"] = prec
+    return out
+
+
+def extraer_presentacion(titulo: str) -> Optional[dict]:
+    """
+    Presentación total del título (para $/g o $/ml).
+    Unidad canónica: g (masa) o ml (volumen). kg→g, L→ml.
+
+    Kits: «2x50g», «50g + 50g», «A + B 50g c/u» → cantidad total (p. ej. 100 g).
+    Instrumentos: «0.001 G … Hasta 50 Gr» → capacidad 50 g (no la precisión).
+    """
+    t = titulo or ""
+    m_hasta = _RX_HASTA_CAPACIDAD.search(t)
+    if m_hasta:
+        base = _canonizar_cantidad(
+            float(m_hasta.group(1).replace(",", ".")),
+            m_hasta.group(2),
+        )
+        if base and int(base["cantidad"]) > 0:
+            return _anotar_instrumento(base, t)
+
+    m_nx = _RX_PRESENTACION_NX.search(t)
+    if m_nx:
+        n_pack = int(m_nx.group(1))
+        raw = float(m_nx.group(2).replace(",", "."))
+        if not _es_precision_no_cantidad(raw, m_nx.group(3)):
+            base = _canonizar_cantidad(raw, m_nx.group(3))
+            if base and 1 <= n_pack <= 20 and int(base["cantidad"]) > 0:
+                unitaria = int(base["cantidad"])
+                return _anotar_instrumento(
+                    {
+                        **base,
+                        "cantidad": unitaria * n_pack,
+                        "unidades_kit": n_pack,
+                        "cantidad_unitaria": unitaria,
+                    },
+                    t,
+                )
+
+    m_sum = _RX_PRESENTACION_SUMA.search(t)
+    if m_sum:
+        a = _canonizar_cantidad(float(m_sum.group(1).replace(",", ".")), m_sum.group(2))
+        b = _canonizar_cantidad(float(m_sum.group(3).replace(",", ".")), m_sum.group(4))
+        if (
+            a and b
+            and a["canonica"] == b["canonica"]
+            and int(a["cantidad"]) > 0
+            and int(b["cantidad"]) > 0
+            and not _es_precision_no_cantidad(float(m_sum.group(1).replace(",", ".")), m_sum.group(2))
+        ):
+            return _anotar_instrumento(
+                {
+                    **a,
+                    "cantidad": int(a["cantidad"]) + int(b["cantidad"]),
+                    "unidades_kit": 2,
+                    "cantidad_unitaria": int(a["cantidad"]),
+                },
+                t,
+            )
+
+    m_cu = _RX_PRESENTACION_CU.search(t)
+    if m_cu:
+        raw = float(m_cu.group(1).replace(",", "."))
+        if not _es_precision_no_cantidad(raw, m_cu.group(2)):
+            base = _canonizar_cantidad(raw, m_cu.group(2))
+            if base and int(base["cantidad"]) > 0:
+                mult = _multiplicador_kit(t, m_cu.start())
+                unitaria = int(base["cantidad"])
+                return _anotar_instrumento(
+                    {
+                        **base,
+                        "cantidad": unitaria * mult,
+                        "unidades_kit": mult,
+                        "cantidad_unitaria": unitaria,
+                    },
+                    t,
+                )
+
+    for m in _RX_PRESENTACION.finditer(t):
+        raw = float(m.group(1).replace(",", "."))
+        if _es_precision_no_cantidad(raw, m.group(2)):
+            continue
+        base = _canonizar_cantidad(raw, m.group(2))
+        if base and int(base["cantidad"]) > 0:
+            return _anotar_instrumento(base, t)
+    return _anotar_instrumento(None, t) if _es_instrumento_pesaje(t) else None
 
 
 def presentacion_texto(pres: Optional[dict]) -> str:
     if not pres:
         return ""
-    cant = pres["cantidad"]
+    cant = int(pres.get("cantidad") or 0)
+    if cant <= 0:
+        return ""
     if pres["canonica"] == "g":
         if cant >= 1000 and cant % 1000 == 0:
             return f"{cant // 1000}kg"
@@ -120,17 +405,208 @@ def presentacion_texto(pres: Optional[dict]) -> str:
 
 
 def presentacion_casilla(pres: Optional[dict]) -> str:
-    """Texto de columna: '250 g', '100 ml', '1 kg'."""
+    """Texto de columna: '250 g', '100 ml', '2×50 g', '50 g · prec. 0.001 g'."""
     if not pres:
         return "—"
-    cant = pres["cantidad"]
-    if pres["canonica"] == "g":
-        if cant >= 1000 and cant % 1000 == 0:
-            return f"{cant // 1000} kg"
-        return f"{cant} g"
-    if cant >= 1000 and cant % 1000 == 0:
-        return f"{cant // 1000} L"
-    return f"{cant} ml"
+    kit = int(pres.get("unidades_kit") or 1)
+    unitaria = pres.get("cantidad_unitaria")
+    if kit > 1 and unitaria:
+        u = "ml" if pres["canonica"] == "ml" else "g"
+        if pres["canonica"] == "g" and int(unitaria) >= 1000 and int(unitaria) % 1000 == 0:
+            base = f"{kit}×{int(unitaria) // 1000} kg"
+        elif pres["canonica"] == "ml" and int(unitaria) >= 1000 and int(unitaria) % 1000 == 0:
+            base = f"{kit}×{int(unitaria) // 1000} L"
+        else:
+            base = f"{kit}×{int(unitaria)} {u}"
+    else:
+        cant = int(pres.get("cantidad") or 0)
+        if cant <= 0:
+            base = "—"
+        elif pres["canonica"] == "g":
+            if cant >= 1000 and cant % 1000 == 0:
+                base = f"{cant // 1000} kg"
+            else:
+                base = f"{cant} g"
+        elif cant >= 1000 and cant % 1000 == 0:
+            base = f"{cant // 1000} L"
+        else:
+            base = f"{cant} ml"
+    prec = str(pres.get("precision") or "").strip()
+    if prec and base != "—":
+        return f"{base} · prec. {prec}"
+    if prec and base == "—":
+        return f"prec. {prec}"
+    return base
+
+
+def _cargar_pres_manual() -> dict[str, dict]:
+    if not _PRES_MANUAL_PATH.exists():
+        return {}
+    try:
+        data = json.loads(_PRES_MANUAL_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    rows = data.get("por_item") if isinstance(data, dict) else {}
+    out: dict[str, dict] = {}
+    if isinstance(rows, dict):
+        for k, v in rows.items():
+            mid = str(k or "").strip().upper()
+            if mid.startswith("MCO") and isinstance(v, dict) and int(v.get("cantidad") or 0) > 0:
+                out[mid] = dict(v)
+    return out
+
+
+def _guardar_pres_manual(por_item: dict[str, dict]) -> None:
+    _PRES_MANUAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _PRES_MANUAL_PATH.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps({"version": 1, "por_item": por_item}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    os.replace(tmp, _PRES_MANUAL_PATH)
+
+
+def parsear_cantidad_manual(cantidad, unidad: str = "g") -> Optional[dict]:
+    """Convierte número + unidad (g/ml) o texto '100 g' en presentación canónica."""
+    if isinstance(cantidad, str) and re.search(r"[a-zA-Z]", cantidad):
+        pres = extraer_presentacion(cantidad.strip())
+        if pres and int(pres.get("cantidad") or 0) > 0:
+            out = dict(pres)
+            out["manual"] = True
+            return out
+    try:
+        n = float(str(cantidad).replace(",", ".").strip())
+    except (TypeError, ValueError):
+        return None
+    if not (n > 0):
+        return None
+    u = (unidad or "g").strip().lower()
+    if u in ("ml", "mls", "cc", "l", "lt", "lts", "litro", "litros"):
+        if u in ("l", "lt", "lts", "litro", "litros"):
+            n = n * 1000
+            u = "ml"
+        base = _canonizar_cantidad(n, "ml")
+    else:
+        if u in ("kg", "kilo", "kilos"):
+            n = n * 1000
+            u = "g"
+        base = _canonizar_cantidad(n, "g")
+    if not base or int(base.get("cantidad") or 0) <= 0:
+        return None
+    out = dict(base)
+    out["manual"] = True
+    return out
+
+
+def presentacion_efectiva(item_id: str = "", titulo: str = "") -> Optional[dict]:
+    """Manual del operador gana sobre lo leído del título."""
+    mid = str(item_id or "").strip().upper()
+    if mid:
+        man = _cargar_pres_manual().get(mid)
+        if man and int(man.get("cantidad") or 0) > 0:
+            out = dict(man)
+            out["manual"] = True
+            return out
+    return extraer_presentacion(titulo or "")
+
+
+def actualizar_presentacion_manual(
+    item_id: str,
+    cantidad,
+    unidad: str = "g",
+) -> dict:
+    """Guarda g/ml a mano cuando el título no trae empaque; rearma el reporte de captura."""
+    mid = str(item_id or "").strip().upper()
+    if not mid.startswith("MCO"):
+        return {"ok": False, "error": "item_id MeLi requerido (MCO…)."}
+    texto = str(cantidad or "").strip()
+    if texto.lower() in ("", "-", "—", "borrar", "limpiar", "none", "null"):
+        por = _cargar_pres_manual()
+        por.pop(mid, None)
+        _guardar_pres_manual(por)
+        pres = None
+    else:
+        pres = parsear_cantidad_manual(cantidad, unidad)
+        if not pres:
+            return {"ok": False, "error": "Cantidad inválida. Ej.: 100 y unidad g, o «250 ml»."}
+        por = _cargar_pres_manual()
+        por[mid] = {
+            "valor": pres.get("valor"),
+            "unidad_raw": pres.get("unidad_raw"),
+            "canonica": pres.get("canonica"),
+            "cantidad": int(pres["cantidad"]),
+            "manual": True,
+            "texto": presentacion_casilla(pres),
+            "actualizado_en": _ahora_iso(),
+        }
+        _guardar_pres_manual(por)
+
+    cache = _cargar_cache() or {}
+    titulo = ""
+    sku = ""
+    precio = 0.0
+    for p in cache.get("productos") or []:
+        if str(p.get("item_id") or "").upper() != mid:
+            continue
+        titulo = str(p.get("titulo") or "")
+        sku = str(p.get("sku") or "")
+        precio = float(p.get("precio") or 0)
+        ef = presentacion_efectiva(mid, titulo)
+        p["presentacion"] = ef
+        p["presentacion_manual"] = presentacion_casilla(ef) if (ef or {}).get("manual") else None
+        p["precio_por_100"] = precio_por_100(precio, ef)
+        p["precio_por_unidad"] = precio_por_unidad(precio, ef)
+        kw = desglosar_palabras_clave_meli(titulo, mid)
+        p["palabras_clave_meli"] = kw
+        p["query"] = kw["query"]
+        p["url_busqueda_meli"] = url_busqueda_meli_navegador(kw["query"])
+        break
+    try:
+        if cache.get("productos"):
+            _guardar_cache(cache)
+    except Exception:
+        pass
+
+    reportes = _cargar_reportes_captura()
+    hist = []
+    for r in reportes:
+        if str(r.get("item_id") or "").upper() != mid:
+            hist.append(r)
+            continue
+        listados = r.get("listados") or []
+        tit = str(r.get("nuestro_titulo") or titulo or "")
+        monto = parsear_precio_cop(r.get("nuestro_precio")) or precio
+        nuevo = armar_reporte_captura(
+            item_id=mid,
+            titulo=tit,
+            precio=float(monto or 0),
+            listados_visibles=listados,
+        )
+        try:
+            nuevo["evidencia_png"] = render_evidencia_tabla_competencia(nuevo, sku=sku)
+        except Exception as e:
+            print(f"[competencia] evidencia al guardar cantidad {mid}: {e}")
+            nuevo["evidencia_png"] = r.get("evidencia_png")
+        hist.append(nuevo)
+    if hist != reportes:
+        _guardar_reportes_captura(hist)
+
+    analisis = obtener_ultimo_analisis_competencia()
+    return {
+        "ok": True,
+        "item_id": mid,
+        "presentacion": presentacion_casilla(pres) if pres else None,
+        "presentacion_manual": presentacion_casilla(pres) if pres else None,
+        **analisis,
+    }
+
+
+def misma_unidad_medida(pres_n: Optional[dict], pres_c: Optional[dict]) -> bool:
+    """True si ambos son masa (g) o ambos volumen (ml). 250 g vs 500 g sí; 250 g vs 250 ml no."""
+    if not pres_n or not pres_c:
+        return False
+    un, uc = pres_n.get("canonica"), pres_c.get("canonica")
+    return un in ("g", "ml") and un == uc
 
 
 def misma_presentacion(
@@ -143,9 +619,7 @@ def misma_presentacion(
     True si competidor ofrece la misma cantidad en la misma unidad (g o ml).
     Ej.: 250 g vs 250 g sí; 250 g vs 500 g o 250 ml no.
     """
-    if not pres_n or not pres_c:
-        return False
-    if pres_n.get("canonica") != pres_c.get("canonica"):
+    if not misma_unidad_medida(pres_n, pres_c):
         return False
     cn = int(pres_n["cantidad"])
     cc = int(pres_c["cantidad"])
@@ -153,6 +627,17 @@ def misma_presentacion(
         return False
     tol = max(1, int(cn * tolerancia_pct))
     return abs(cn - cc) <= tol
+
+
+def etiqueta_unidad(pres: Optional[dict]) -> str:
+    if not pres:
+        return ""
+    return "/ ml" if pres.get("canonica") == "ml" else "/ g"
+
+
+def etiqueta_por_100(pres: Optional[dict]) -> str:
+    """Alias: la comparación se muestra por g o ml, no por 100."""
+    return etiqueta_unidad(pres)
 
 
 def _presentacion_desde_vision(raw: Optional[dict], titulo: str) -> Optional[dict]:
@@ -169,9 +654,12 @@ def _presentacion_desde_vision(raw: Optional[dict], titulo: str) -> Optional[dic
         except (TypeError, ValueError):
             n = 0.0
         if n > 0:
+            # 0.001 g es precisión de báscula, no empaque
+            if n < 1 and (unidad or "g").lower() in ("g", "gr", "grs", "gramo", "gramos", ""):
+                return extraer_presentacion(titulo)
             pres = extraer_presentacion(f"{n} {unidad or 'g'}")
-            if pres:
-                return pres
+            if pres and int(pres.get("cantidad") or 0) > 0:
+                return _anotar_instrumento(pres, titulo) if _es_instrumento_pesaje(titulo) else pres
     return extraer_presentacion(titulo)
 
 
@@ -181,18 +669,19 @@ def enriquecer_fila_comparacion(
     raw: Optional[dict] = None,
 ) -> dict:
     pres = _presentacion_desde_vision(raw if isinstance(raw, dict) else None, titulo)
+    total = float(precio or 0)
     return {
         "nombre": (titulo or "").strip()[:180],
         "cantidad": presentacion_casilla(pres),
-        "valor_total": float(precio or 0),
+        "valor_total": total,
+        "precio_por_100": precio_por_100(total, pres),
+        "precio_por_unidad": precio_por_unidad(total, pres),
+        "unidad_canonica": (pres or {}).get("canonica"),
     }
 
 
-def query_busqueda(titulo: str) -> str:
-    toks = tokens_significativos(titulo)[:4]
-    pres = presentacion_texto(extraer_presentacion(titulo))
-    partes = toks + ([pres] if pres else [])
-    return " ".join(partes).strip() or (titulo or "")[:80]
+def query_busqueda(titulo: str, item_id: str = "") -> str:
+    return keywords_busqueda_meli(titulo, item_id)
 
 
 def url_busqueda_meli_navegador(query: str) -> str:
@@ -258,10 +747,22 @@ def titulos_relacionados(nuestro: str, competidor: str) -> tuple[bool, float]:
     return True, round(score, 3)
 
 
-def precio_por_100(precio: float, pres: Optional[dict]) -> Optional[float]:
-    if not pres or not precio or pres["cantidad"] <= 0:
+def precio_por_unidad(precio: float, pres: Optional[dict]) -> Optional[float]:
+    """COP por 1 g o 1 ml. No aplica a grameras/balanzas (capacidad ≠ contenido)."""
+    if not pres or not precio:
         return None
-    return round(float(precio) * 100.0 / pres["cantidad"], 2)
+    if pres.get("instrumento_pesaje"):
+        return None
+    if int(pres.get("cantidad") or 0) <= 0:
+        return None
+    return round(float(precio) / int(pres["cantidad"]), 2)
+
+
+def precio_por_100(precio: float, pres: Optional[dict]) -> Optional[float]:
+    unit = precio_por_unidad(precio, pres)
+    if unit is None:
+        return None
+    return round(unit * 100.0, 2)
 
 
 def delta_pct(nuestro: float, otro: float) -> Optional[float]:
@@ -351,30 +852,58 @@ def aplicar_observaciones_manuales(analisis: dict) -> dict:
     reportes_por_item = _indice_ultimo_reporte_captura()
     for p in productos:
         mid = str(p.get("item_id") or "").upper()
-        p["url_busqueda_meli"] = url_busqueda_meli_navegador(p.get("query") or p.get("titulo") or "")
+        tit = p.get("titulo") or ""
+        kw = desglosar_palabras_clave_meli(tit, mid)
+        p["palabras_clave_meli"] = kw
+        p["query"] = kw["query"]
+        p["url_busqueda_meli"] = url_busqueda_meli_navegador(kw["query"])
         obs = list(por_item.get(mid) or [])
-        pres_n = extraer_presentacion(p.get("titulo") or "")
-        if pres_n:
+        pres_n = presentacion_efectiva(mid, tit)
+        if (pres_n or {}).get("manual"):
+            p["presentacion_manual"] = presentacion_casilla(pres_n)
+            p["presentacion_es_manual"] = True
+        else:
+            p["presentacion_manual"] = None
+            p["presentacion_es_manual"] = False
+        p["cantidad_efectiva"] = presentacion_casilla(pres_n)
+        p["presentacion"] = pres_n
+        if pres_n and int(pres_n.get("cantidad") or 0) > 0:
             obs = [
                 o for o in obs
-                if misma_presentacion(
+                if misma_unidad_medida(
                     pres_n,
                     extraer_presentacion(str(o.get("titulo") or "")),
                 )
             ]
         p["observaciones_manual"] = obs
-        precios = [float(o["precio"]) for o in obs if o.get("precio")]
-        minimo = min(precios) if precios else None
-        if precios and minimo:
-            p["veredicto"] = clasificar_vs_min(float(p.get("precio") or 0), minimo)
+        unit_n = precio_por_unidad(float(p.get("precio") or 0), pres_n)
+        units = []
+        for o in obs:
+            pu = precio_por_unidad(
+                float(o.get("precio") or 0),
+                extraer_presentacion(str(o.get("titulo") or "")),
+            )
+            if pu:
+                units.append(pu)
+        if unit_n and units:
+            minimo = min(units)
+            p["veredicto"] = clasificar_vs_min(float(unit_n), minimo)
             p["min_competencia"] = minimo
-            p["delta_pct_vs_min"] = delta_pct(float(p.get("precio") or 0), minimo)
+            p["delta_pct_vs_min"] = delta_pct(float(unit_n), minimo)
             p["n_competidores"] = len(obs)
         else:
-            p["veredicto"] = "sin_competencia"
-            p["min_competencia"] = None
-            p["delta_pct_vs_min"] = None
-            p["n_competidores"] = 0
+            precios = [float(o["precio"]) for o in obs if o.get("precio")]
+            minimo = min(precios) if precios else None
+            if precios and minimo:
+                p["veredicto"] = clasificar_vs_min(float(p.get("precio") or 0), minimo)
+                p["min_competencia"] = minimo
+                p["delta_pct_vs_min"] = delta_pct(float(p.get("precio") or 0), minimo)
+                p["n_competidores"] = len(obs)
+            else:
+                p["veredicto"] = "sin_competencia"
+                p["min_competencia"] = None
+                p["delta_pct_vs_min"] = None
+                p["n_competidores"] = 0
         p["competidores"] = []
         p["reporte_captura"] = reportes_por_item.get(mid)
     out["productos"] = productos
@@ -466,9 +995,11 @@ def actualizar_precio_base_competencia(
         if str(p.get("item_id") or "").upper() != mid:
             continue
         p["precio"] = monto
-        pres = p.get("presentacion") or extraer_presentacion(p.get("titulo") or "")
+        pres = presentacion_efectiva(mid, p.get("titulo") or "")
         p["presentacion"] = pres
+        p["presentacion_manual"] = presentacion_casilla(pres) if (pres or {}).get("manual") else None
         p["precio_por_100"] = precio_por_100(monto, pres)
+        p["precio_por_unidad"] = precio_por_unidad(monto, pres)
         titulo = str(p.get("titulo") or "")
         if not sku:
             sku = str(p.get("sku") or "")
@@ -496,7 +1027,8 @@ def actualizar_precio_base_competencia(
         )
         try:
             nuevo["evidencia_png"] = render_evidencia_tabla_competencia(nuevo, sku=sku)
-        except Exception:
+        except Exception as e:
+            print(f"[competencia] evidencia al actualizar precio {mid}: {e}")
             nuevo["evidencia_png"] = r.get("evidencia_png")
         hist.append(nuevo)
     if hist != reportes:
@@ -654,7 +1186,8 @@ def nuestros_mas_vendidos(
             "nivel": slot.get("nivel") or "",
             "presentacion": pres,
             "precio_por_100": precio_por_100(precio, pres),
-            "query": query_busqueda(titulo),
+            "precio_por_unidad": precio_por_unidad(precio, pres),
+            "query": query_busqueda(titulo, str(d.get("id") or "")),
         })
         if len(items) >= top_n:
             break
@@ -698,7 +1231,9 @@ def competidores_de_publicacion(
     our_item = str(nuestro.get("item_id") or "").upper()
     pres_n = nuestro.get("presentacion")
     precio_n = float(nuestro.get("precio") or 0)
-    unit_n = nuestro.get("precio_por_100")
+    unit_n = nuestro.get("precio_por_unidad")
+    if not unit_n and nuestro.get("precio_por_100"):
+        unit_n = float(nuestro["precio_por_100"]) / 100.0
     out: list[dict] = []
     vistos: set[str] = set()
     for res in raw:
@@ -718,13 +1253,13 @@ def competidores_de_publicacion(
         if precio_c <= 0:
             continue
         pres_c = extraer_presentacion(titulo_c)
-        misma = misma_presentacion(pres_n, pres_c)
-        if pres_n and not misma:
+        misma_u = misma_unidad_medida(pres_n, pres_c)
+        if pres_n and not misma_u:
             continue
-        unit_c = precio_por_100(precio_c, pres_c)
-        # Comparar por unidad cuando hay presentación comparable; si no, precio de lista
-        base_n = unit_n if (misma and unit_n and unit_c) else precio_n
-        base_c = unit_c if (misma and unit_n and unit_c) else precio_c
+        misma = misma_presentacion(pres_n, pres_c)
+        unit_c = precio_por_unidad(precio_c, pres_c)
+        base_n = unit_n if (unit_n and unit_c) else precio_n
+        base_c = unit_c if (unit_n and unit_c) else precio_c
         vistos.add(cid)
         out.append({
             "item_id": res.get("id"),
@@ -738,33 +1273,44 @@ def competidores_de_publicacion(
             "free_shipping": bool((res.get("shipping") or {}).get("free_shipping")),
             "misma_presentacion": misma,
             "presentacion": pres_c,
-            "precio_por_100": unit_c,
+            "precio_por_100": precio_por_100(precio_c, pres_c),
+            "precio_por_unidad": unit_c,
             "relacion_titulo": score,
             "delta_pct": delta_pct(base_n, base_c) if base_n and base_c else None,
         })
-    out.sort(key=lambda c: (0 if c["misma_presentacion"] else 1, c.get("precio") or 0))
+    out.sort(key=lambda c: (
+        float(c.get("precio_por_unidad") or c.get("precio_por_100") or 1e18),
+        float(c.get("precio") or 0),
+    ))
     return out[:15], metodo
 
 
 def _veredicto_producto(nuestro: dict, comps: list[dict]) -> tuple[str, Optional[float], Optional[float]]:
-    misma = [c for c in comps if c.get("misma_presentacion")]
-    pool = misma
-    if not pool:
+    if not comps:
         return "sin_competencia", None, None
-    # Precio comparable: unidad si todos tienen; si no, lista de misma presentación
+    use_gramo = bool(nuestro.get("precio_por_unidad")) or any(
+        c.get("precio_por_unidad") for c in comps
+    )
     precios: list[float] = []
-    for c in pool:
-        if c.get("misma_presentacion") and nuestro.get("precio_por_100") and c.get("precio_por_100"):
+    for c in comps:
+        if use_gramo and c.get("precio_por_unidad"):
+            precios.append(float(c["precio_por_unidad"]))
+        elif (not use_gramo) and c.get("precio_por_100"):
             precios.append(float(c["precio_por_100"]))
-        else:
+        elif c.get("precio"):
             precios.append(float(c.get("precio") or 0))
     precios = [p for p in precios if p > 0]
     if not precios:
         return "sin_competencia", None, None
     minimo = min(precios)
-    ref = float(nuestro.get("precio_por_100") or 0) if (
-        misma and nuestro.get("precio_por_100")
-    ) else float(nuestro.get("precio") or 0)
+    if use_gramo:
+        ref = float(nuestro.get("precio_por_unidad") or 0)
+        if not ref and nuestro.get("precio_por_100"):
+            ref = float(nuestro["precio_por_100"]) / 100.0
+    elif nuestro.get("precio_por_100"):
+        ref = float(nuestro["precio_por_100"])
+    else:
+        ref = float(nuestro.get("precio") or 0)
     return clasificar_vs_min(ref, minimo), minimo, delta_pct(ref, minimo) if ref else None
 
 
@@ -1004,16 +1550,17 @@ def comprimir_imagen_captura(data: bytes, mime: str = "") -> tuple[bytes, str]:
         im = Image.open(io.BytesIO(data))
         im = im.convert("RGB")
         w, h = im.size
-        max_w = 1400
+        # Más chico = Gemini más rápido (Cloudflare corta ~100s si el POST espera).
+        max_w = 1200
         if w > max_w and w > 0:
             nh = max(1, int(h * max_w / w))
             im = im.resize((max_w, nh), Image.Resampling.LANCZOS)
         buf = io.BytesIO()
-        im.save(buf, format="JPEG", quality=72, optimize=True)
+        im.save(buf, format="JPEG", quality=65, optimize=True)
         out = buf.getvalue()
-        if len(out) > 1_200_000:
+        if len(out) > 900_000:
             buf = io.BytesIO()
-            im.save(buf, format="JPEG", quality=55, optimize=True)
+            im.save(buf, format="JPEG", quality=50, optimize=True)
             out = buf.getvalue()
         return out, "image/jpeg"
     except ValueError:
@@ -1110,7 +1657,10 @@ def filtrar_listados_comparables(
     listados: list[dict],
 ) -> list[dict]:
     ours = str(nuestro_item_id or "").upper()
-    pres_n = extraer_presentacion(nuestro_titulo)
+    pres_n = presentacion_efectiva(nuestro_item_id, nuestro_titulo)
+    instrumento = bool((pres_n or {}).get("instrumento_pesaje")) or _es_instrumento_pesaje(
+        nuestro_titulo
+    )
     out: list[dict] = []
     vistos: set[str] = set()
     for raw in listados or []:
@@ -1129,7 +1679,8 @@ def filtrar_listados_comparables(
         if not ok:
             continue
         pres_c = row.get("presentacion") or extraer_presentacion(row.get("titulo") or "")
-        if pres_n and not misma_presentacion(pres_n, pres_c):
+        # Grameras: no filtrar por "misma unidad de contenido" (capacidad ≠ empaque).
+        if pres_n and not instrumento and not misma_unidad_medida(pres_n, pres_c):
             continue
         if abs(float(row["precio"]) - float(nuestro_precio or 0)) < 1 and score >= 0.85:
             continue
@@ -1137,15 +1688,29 @@ def filtrar_listados_comparables(
         if key in vistos:
             continue
         vistos.add(key)
-        d_pct = delta_pct(float(nuestro_precio or 0), float(row["precio"]))
+        d_pct = None
+        unit_n = precio_por_unidad(float(nuestro_precio or 0), pres_n)
+        unit_c = precio_por_unidad(float(row["precio"]), pres_c)
+        if instrumento:
+            unit_n = None
+            unit_c = None
+        if unit_n and unit_c:
+            d_pct = delta_pct(unit_n, unit_c)
+        else:
+            d_pct = delta_pct(float(nuestro_precio or 0), float(row["precio"]))
         out.append({
             **row,
             "relacion_titulo": score,
             "delta_pct": d_pct,
+            "precio_por_100": None if instrumento else precio_por_100(float(row["precio"]), pres_c),
+            "precio_por_unidad": unit_c,
             "misma_presentacion": bool(pres_n and misma_presentacion(pres_n, pres_c)),
             "comparable": True,
         })
-    out.sort(key=lambda c: float(c.get("precio") or 0))
+    out.sort(key=lambda c: (
+        float(c.get("precio_por_unidad") or 1e18),
+        float(c.get("precio") or 0),
+    ))
     return out[:12]
 
 
@@ -1157,40 +1722,105 @@ def armar_reporte_captura(
     listados_visibles: list[dict],
 ) -> dict:
     comps = filtrar_listados_comparables(titulo, item_id, precio, listados_visibles)
-    pres_n = extraer_presentacion(titulo)
+    pres_n = presentacion_efectiva(item_id, titulo)
     pres_txt = presentacion_casilla(pres_n)
-    precios = [float(c["precio"]) for c in comps if c.get("precio")]
-    minimo = min(precios) if precios else None
-    veredicto = clasificar_vs_min(float(precio or 0), minimo)
-    delta = delta_pct(float(precio or 0), minimo) if minimo else None
-    pres_nota = f" (misma presentación: {pres_txt})" if pres_txt and pres_txt != "—" else ""
+    instrumento = bool((pres_n or {}).get("instrumento_pesaje")) or _es_instrumento_pesaje(titulo)
+    prec = str((pres_n or {}).get("precision") or extraer_precision_medicion(titulo) or "").strip()
+    sufijo = etiqueta_unidad(pres_n)
+    unit_n = None if instrumento else precio_por_unidad(float(precio or 0), pres_n)
+    units = (
+        []
+        if instrumento
+        else [float(c["precio_por_unidad"]) for c in comps if c.get("precio_por_unidad")]
+    )
+    min_unit = min(units) if units else None
+    if comps:
+        cheapest = min(
+            comps,
+            key=lambda c: (
+                float(c.get("precio_por_unidad") or 1e18),
+                float(c.get("precio") or 0),
+            ),
+        )
+        minimo_total = float(cheapest.get("precio") or 0) or None
+    else:
+        minimo_total = None
+    if unit_n and min_unit:
+        veredicto = clasificar_vs_min(float(unit_n), min_unit)
+        delta = delta_pct(float(unit_n), min_unit)
+        ref_txt = f"{_cop(unit_n)} {sufijo}".strip()
+        min_txt = f"{_cop(min_unit)} {sufijo}".strip()
+    else:
+        precios = [float(c["precio"]) for c in comps if c.get("precio")]
+        minimo_total = min(precios) if precios else minimo_total
+        veredicto = clasificar_vs_min(float(precio or 0), minimo_total)
+        delta = delta_pct(float(precio or 0), minimo_total) if minimo_total else None
+        ref_txt = _cop(precio)
+        min_txt = _cop(minimo_total) if minimo_total else "—"
+    unidad_nota = ""
+    if instrumento:
+        unidad_nota = " (instrumentos de pesaje)"
+    elif (pres_n or {}).get("canonica") == "g":
+        unidad_nota = " (gramos; se pueden comparar 250 g vs 500 g)"
+    elif (pres_n or {}).get("canonica") == "ml":
+        unidad_nota = " (ml; se pueden comparar 100 ml vs 250 ml)"
     if not comps:
         resumen = (
             "Vi el pantallazo pero no encontré publicaciones comparables "
-            f"(mismo producto y misma cantidad{pres_nota or ''}). "
-            "Probá bajar un poco para que se vean tarjetas con la misma "
-            "presentación en g o ml, o anotá un precio a mano."
+            f"(mismo producto y misma unidad{unidad_nota}). "
+            "No mezcles g con ml. Si no hay tarjetas, anotá un precio a mano."
+        )
+    elif instrumento and veredicto == "mas_caro" and prec:
+        resumen = (
+            f"Hay {len(comps)} gramera(s)/balanza(s) en el listado. "
+            f"Nuestro precio {ref_txt} vs más barato {min_txt}"
+            f"{f' ({delta:+.1f}%)' if delta is not None else ''}. "
+            f"La nuestra mide con precisión {prec} (miligramos); "
+            "eso suele explicar un precio más alto frente a grameras de cocina "
+            "o de menor resolución. Compará por calidad de medición, no solo por precio."
+        )
+    elif instrumento and veredicto == "mas_caro":
+        resumen = (
+            f"Hay {len(comps)} instrumento(s) de pesaje. "
+            f"Estamos {delta:+.1f}% vs el más barato ({min_txt}). Nosotros {ref_txt}. "
+            "Compará por precisión y capacidad, no solo por precio."
+        )
+    elif instrumento and veredicto == "mas_barato":
+        resumen = (
+            f"Hay {len(comps)} instrumento(s) de pesaje. "
+            f"Estamos por debajo del mínimo ({min_txt}). Nosotros {ref_txt}."
+        )
+    elif instrumento:
+        resumen = (
+            f"Hay {len(comps)} instrumento(s) de pesaje. "
+            f"Andamos parecidos al mínimo ({min_txt}). Nosotros {ref_txt}."
         )
     elif veredicto == "mas_caro":
         resumen = (
-            f"Hay {len(comps)} publicación(es) comparable(s){pres_nota}. La más barata está "
-            f"en {_cop(minimo)} ({delta:+.1f}% vs nosotros {_cop(precio)}). Conviene revisar precio."
+            f"Hay {len(comps)} comparable(s) por unidad de medida. "
+            f"Estamos {delta:+.1f}% vs el más barato ({min_txt}). Nosotros {ref_txt}. "
+            "Conviene revisar precio."
         )
     elif veredicto == "mas_barato":
         resumen = (
-            f"Hay {len(comps)} comparable(s){pres_nota}. Estamos por debajo del mínimo "
-            f"({_cop(minimo)}). Nosotros {_cop(precio)}."
+            f"Hay {len(comps)} comparable(s) por unidad. Estamos por debajo del mínimo "
+            f"({min_txt}). Nosotros {ref_txt}."
         )
     else:
         resumen = (
-            f"Hay {len(comps)} comparable(s){pres_nota}. Andamos parecidos al mínimo "
-            f"({_cop(minimo)}). Nosotros {_cop(precio)}."
+            f"Hay {len(comps)} comparable(s) por unidad. Andamos parecidos al mínimo "
+            f"({min_txt}). Nosotros {ref_txt}."
         )
     nuestra = {
         **enriquecer_fila_comparacion(titulo, float(precio or 0)),
         "es_nuestra": True,
         "vendedor": "Nosotros",
     }
+    if pres_n:
+        nuestra["cantidad"] = presentacion_casilla(pres_n)
+        nuestra["precio_por_unidad"] = precio_por_unidad(float(precio or 0), pres_n)
+        nuestra["precio_por_100"] = precio_por_100(float(precio or 0), pres_n)
+        nuestra["unidad_canonica"] = (pres_n or {}).get("canonica")
     tabla = [nuestra]
     for c in comps:
         tabla.append({
@@ -1211,13 +1841,18 @@ def armar_reporte_captura(
         "presentacion_requerida": pres_txt if pres_txt != "—" else None,
         "n_vistos": len(listados_visibles or []),
         "n_comparables": len(comps),
-        "min_precio": minimo,
+        "min_precio": minimo_total,
+        "min_precio_por_100": round(min_unit * 100.0, 2) if min_unit else None,
+        "min_precio_por_unidad": min_unit,
+        "unidad_comparacion": None if instrumento else (sufijo.strip() or None),
         "veredicto": veredicto,
         "delta_pct_vs_min": delta,
         "resumen": resumen,
         "listados": comps,
         "tabla": tabla,
         "fuente": "captura_vision",
+        "instrumento_pesaje": instrumento,
+        "precision_medicion": prec or None,
     }
 
 
@@ -1226,6 +1861,7 @@ def _invocar_vision_captura(
     mime: str,
     titulo: str,
     precio: float,
+    item_id: str = "",
 ) -> list[dict]:
     """Lee el pantallazo con Gemini. Mockeable en tests. No llama a MeLi."""
     api_key = (os.getenv("GOOGLE_API_KEY") or "").strip()
@@ -1242,23 +1878,32 @@ def _invocar_vision_captura(
     from google import genai
     from google.genai import types
 
+    pres_txt = presentacion_casilla(presentacion_efectiva(item_id, titulo))
     prompt = (
         "Sos un extractor de listados de Mercado Libre Colombia. "
         "La imagen es un pantallazo del RESULTADO DE BÚSQUEDA (tarjetas). "
         "Solo extraé lo visible; no inventes.\n\n"
         f"Nuestra publicación de referencia:\n- título: {titulo}\n- precio nuestro: {precio}\n"
-        f"- presentación nuestra: {presentacion_casilla(extraer_presentacion(titulo))}\n\n"
+        f"- presentación nuestra: {pres_txt}\n\n"
         'Devolvé SOLO JSON válido: {"listados":[{"titulo":"","precio":24900,'
         '"cantidad":250,"unidad":"g","vendedor":"","permalink":"","vendidos":null,'
         '"envio_gratis":false,"parece_nuestra":false}]}\n\n'
         "Reglas: precio = valor TOTAL de la publicación en COP (sin puntos de miles); "
-        "cantidad y unidad (g o ml) obligatorias si se ven en el título; "
-        "solo incluí tarjetas del MISMO producto y la MISMA cantidad/unidad que la "
-        "referencia (ej. si somos 250 g, no listes 500 g ni 100 ml); "
+        "cantidad y unidad (g o ml) = empaque/contenido si es materia prima; "
+        "si es gramera/balanza, cantidad = capacidad (p. ej. Hasta 50 g), "
+        "NUNCA uses 0.001 g u otra precisión como cantidad; "
+        "solo incluí tarjetas del MISMO producto y la MISMA unidad (g con g, ml con ml). "
+        "SÍ incluí otros tamaños (250 g y 500 g). NO mezcles gramos con mililitros; "
         "parece_nuestra=true si es McKenna o el mismo título/precio de referencia; "
         "permalink solo si se lee mercadolibre.com.co; máximo 15 tarjetas visibles."
     )
-    client = genai.Client(api_key=api_key)
+    try:
+        client = genai.Client(
+            api_key=api_key,
+            http_options={"timeout": 180_000},
+        )
+    except TypeError:
+        client = genai.Client(api_key=api_key)
     resp = client.models.generate_content(
         model=modelo,
         contents=[
@@ -1403,8 +2048,8 @@ def render_evidencia_tabla_competencia(reporte: dict, *, sku: str = "") -> str:
     header_h = 72
     meta_h = 52
     resumen_h = 44
-    row_h = 28
-    table_head_h = 26
+    row_h = 44
+    table_head_h = 24
     n_rows = max(1, len(tabla))
     table_h = table_head_h + n_rows * row_h + 8
     footer_h = 28
@@ -1451,7 +2096,13 @@ def render_evidencia_tabla_competencia(reporte: dict, *, sku: str = "") -> str:
     meta_line = item_id
     pres_req = reporte.get("presentacion_requerida") or reporte.get("nuestra_cantidad")
     if pres_req and pres_req != "—":
-        meta_line = f"{meta_line} · solo {pres_req}" if meta_line else f"Solo {pres_req}"
+        unidad_cmp = reporte.get("unidad_comparacion") or etiqueta_unidad(
+            extraer_presentacion(str(reporte.get("nuestro_titulo") or "")),
+        )
+        meta_line = (
+            f"{meta_line} · por unidad {unidad_cmp or pres_req}"
+            if meta_line else f"Por unidad {unidad_cmp or pres_req}"
+        )
     if sku:
         meta_line = f"{meta_line} · SKU {sku}" if meta_line else f"SKU {sku}"
     draw.rounded_rectangle((PAD, y, W - PAD, y + meta_h), radius=6, fill=_PANEL2)
@@ -1469,65 +2120,131 @@ def render_evidencia_tabla_competencia(reporte: dict, *, sku: str = "") -> str:
             fill=_TEXT,
         )
         comps = reporte.get("n_comparables")
-        min_p = reporte.get("min_precio")
+        min_u = reporte.get("min_precio_por_unidad")
+        if min_u is None and reporte.get("min_precio_por_100"):
+            min_u = float(reporte["min_precio_por_100"]) / 100.0
         extra = []
         if comps is not None:
             extra.append(f"{comps} comparable(s)")
-        if min_p is not None:
-            extra.append(f"mínimo {_cop(float(min_p))}")
+        if min_u is not None:
+            extra.append(f"mínimo {_cop(float(min_u))} {reporte.get('unidad_comparacion') or ''}".strip())
+        elif reporte.get("min_precio") is not None:
+            extra.append(f"mínimo {_cop(float(reporte['min_precio']))}")
         if extra:
             draw.text((PAD + 12, y + 26), " · ".join(extra), font=f_small, fill=_MUTED)
         y += resumen_h + 8
 
+    sufijo = str(reporte.get("unidad_comparacion") or "").strip()
+    if not sufijo or "100" in sufijo:
+        sufijo = etiqueta_unidad(extraer_presentacion(str(reporte.get("nuestro_titulo") or ""))) or "/ g"
+    _GREEN = (5, 150, 105)
+    _BAR_BG = (241, 245, 249)
+    _BAR_OTHER = (196, 181, 253)
+
+    def _pu_de(fila: dict) -> Optional[float]:
+        pu = fila.get("precio_por_unidad")
+        if pu:
+            try:
+                n = float(pu)
+                return n if n > 0 else None
+            except (TypeError, ValueError):
+                pass
+        total = fila.get("valor_total")
+        if total is None:
+            total = fila.get("precio")
+        txt = f"{fila.get('nombre') or fila.get('titulo') or ''} {fila.get('cantidad') or ''}"
+        derivado = precio_por_unidad(float(total or 0), extraer_presentacion(str(txt)))
+        if derivado:
+            return derivado
+        p100 = fila.get("precio_por_100")
+        if p100:
+            try:
+                n = float(p100) / 100.0
+                return n if n > 0 else None
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    filas_bar = list(tabla)
+    pus = [p for p in (_pu_de(f) for f in filas_bar) if p]
+    max_pu = max(pus) if pus else 1.0
+    min_pu = min(pus) if pus else None
+    filas_bar.sort(key=lambda f: (_pu_de(f) is None, _pu_de(f) or 1e18))
+
     col_nombre = PAD + 12
-    col_cant = W - PAD - 12 - 230
-    col_total = W - PAD - 12 - 110
-    name_w = col_cant - col_nombre - 16
+    col_bar = PAD + 300
+    col_unit = W - PAD - 16
+    name_w = col_bar - col_nombre - 12
+    bar_w = col_unit - col_bar - 150
 
     draw.rounded_rectangle((PAD, y, W - PAD, y + table_h), radius=8, fill=(255, 255, 255))
     draw.line((PAD + 8, y + table_head_h, W - PAD - 8, y + table_head_h), fill=(244, 114, 182), width=1)
-    ty = y + 6
-    draw.text((col_nombre, ty), "NOMBRE", font=f_th, fill=_MUTED)
-    draw.text((col_cant, ty), "CANTIDAD", font=f_th, fill=_MUTED)
-    draw.text((col_total, ty), "VALOR TOTAL", font=f_th, fill=_MUTED)
+    ty = y + 5
+    draw.text((col_nombre, ty), "PUBLICACIÓN", font=f_th, fill=_MUTED)
+    draw.text((col_bar, ty), f"PRECIO {sufijo}  (barra más larga = más caro)", font=f_th, fill=_MUTED)
     ty = y + table_head_h + 4
 
-    for idx, fila in enumerate(tabla):
+    for idx, fila in enumerate(filas_bar):
         es_nuestra = bool(fila.get("es_nuestra"))
         nombre = str(fila.get("nombre") or fila.get("titulo") or "—")
         if es_nuestra:
-            nombre = f"{nombre} (nosotros)"
+            nombre = "★ Nosotros"
         cant = str(fila.get("cantidad") or presentacion_casilla(
-            extraer_presentacion(nombre),
+            extraer_presentacion(str(fila.get("nombre") or fila.get("titulo") or "")),
         ) or "—")
         total = fila.get("valor_total")
         if total is None:
             total = fila.get("precio")
         total_s = _cop(float(total or 0)) if total is not None else "—"
+        pu = _pu_de(fila)
+        pu_s = f"{_cop(pu)} {sufijo}".strip() if pu else "—"
         bg = _ROW_OURS if es_nuestra else (_PANEL if idx % 2 == 0 else _BG)
         draw.rounded_rectangle((PAD + 6, ty, W - PAD - 6, ty + row_h - 2), radius=4, fill=bg)
         if es_nuestra:
             draw.rectangle((PAD + 6, ty + 4, PAD + 9, ty + row_h - 6), fill=_ACCENT)
         font_n = f_row_b if es_nuestra else f_row
         draw.text((col_nombre + 6, ty + 6), _pil_fit_text(draw, nombre, font_n, name_w), font=font_n, fill=_TEXT)
-        draw.text((col_cant, ty + 6), cant, font=f_row, fill=_TEXT)
-        draw.text((col_total, ty + 6), total_s, font=f_row_b if es_nuestra else f_row, fill=_TEXT)
+        draw.text((col_nombre + 6, ty + 22), f"{cant}  ·  total {total_s}", font=f_small, fill=_MUTED)
+        bx0, by0 = col_bar, ty + 14
+        bx1, by1 = col_bar + max(8, bar_w), ty + 28
+        draw.rounded_rectangle((bx0, by0, bx1, by1), radius=4, fill=_BAR_BG)
+        if pu and max_pu:
+            fill_w = max(8, int(bar_w * (pu / max_pu)))
+            es_min = min_pu is not None and abs(pu - min_pu) < 0.05
+            fill = _ACCENT if es_nuestra else (_GREEN if es_min else _BAR_OTHER)
+            draw.rounded_rectangle((bx0, by0, bx0 + fill_w, by1), radius=4, fill=fill)
+        unit_bb = draw.textbbox((0, 0), pu_s, font=f_row_b)
+        draw.text((col_unit - (unit_bb[2] - unit_bb[0]), ty + 14), pu_s, font=f_row_b, fill=_TEXT)
         ty += row_h
 
     fy = H - footer_h
     draw.text(
         (PAD, fy),
-        "Generado desde pantallazo MeLi + tabla comparativa · McKenna Group",
+        "Generado desde pantallazo MeLi · comparación por unidad de medida · McKenna Group",
         font=f_small,
         fill=_MUTED,
     )
     draw.text((W - PAD - 220, fy), fecha, font=f_small, fill=_MUTED)
 
-    _EVIDENCIAS_DIR.mkdir(parents=True, exist_ok=True)
+    _asegurar_dir_evidencias()
     fname = _evidencia_filename(str(reporte.get("item_id") or ""), reporte.get("generado_en"))
     path = _EVIDENCIAS_DIR / fname
     img.save(path, format="PNG", optimize=True)
     return fname
+
+
+def _asegurar_dir_evidencias() -> None:
+    """Crea el directorio de PNGs y comprueba que el proceso pueda escribir."""
+    _EVIDENCIAS_DIR.mkdir(parents=True, exist_ok=True)
+    probe = _EVIDENCIAS_DIR / f".write_probe_{os.getpid()}"
+    try:
+        probe.write_bytes(b"ok")
+        probe.unlink(missing_ok=True)
+    except OSError as e:
+        raise RuntimeError(
+            f"Sin permiso de escritura en {_EVIDENCIAS_DIR} "
+            f"(el usuario del servicio Flask debe poder crear archivos ahí): {e}"
+        ) from e
 
 
 def ruta_evidencia_competencia(item_id: str, *, regenerar_si_falta: bool = True) -> Path | None:
@@ -1545,6 +2262,8 @@ def ruta_evidencia_competencia(item_id: str, *, regenerar_si_falta: bool = True)
             return p
     if not regenerar_si_falta:
         return None
+    if not (reporte.get("tabla") or reporte.get("listados")):
+        return None
     sku = ""
     cache = _cargar_cache() or {}
     for prod in cache.get("productos") or []:
@@ -1553,15 +2272,19 @@ def ruta_evidencia_competencia(item_id: str, *, regenerar_si_falta: bool = True)
             break
     try:
         fname = render_evidencia_tabla_competencia(reporte, sku=sku)
-    except Exception:
+    except Exception as e:
+        print(f"[competencia] no se pudo regenerar evidencia {mid}: {e}")
         return None
     reporte["evidencia_png"] = fname
-    hist = _cargar_reportes_captura()
-    for i, row in enumerate(hist):
-        if str(row.get("item_id") or "").upper() == mid:
-            hist[i] = {**row, "evidencia_png": fname}
-            break
-    _guardar_reportes_captura(hist)
+    try:
+        hist = _cargar_reportes_captura()
+        for i, row in enumerate(hist):
+            if str(row.get("item_id") or "").upper() == mid:
+                hist[i] = {**row, "evidencia_png": fname}
+                break
+        _guardar_reportes_captura(hist)
+    except Exception as e:
+        print(f"[competencia] evidencia {mid} generada pero no se pudo actualizar JSON: {e}")
     p = _EVIDENCIAS_DIR / fname
     return p if p.is_file() else None
 
@@ -1600,7 +2323,9 @@ def generar_reporte_competencia_captura(
         return {"ok": False, "error": str(e)}
 
     try:
-        listados = _invocar_vision_captura(jpeg, mime_out, titulo_n, float(precio_n or 0))
+        listados = _invocar_vision_captura(
+            jpeg, mime_out, titulo_n, float(precio_n or 0), item_id=mid,
+        )
     except RuntimeError as e:
         return {"ok": False, "error": str(e)[:400]}
     except Exception as e:
@@ -1615,7 +2340,8 @@ def generar_reporte_competencia_captura(
     sku_n = str((prod or {}).get("sku") or "").strip()
     try:
         reporte["evidencia_png"] = render_evidencia_tabla_competencia(reporte, sku=sku_n)
-    except Exception:
+    except Exception as e:
+        print(f"[competencia] evidencia al generar captura {mid}: {e}")
         reporte["evidencia_png"] = None
     _reemplazar_observaciones_captura(mid, reporte.get("listados") or [])
     hist = [r for r in _cargar_reportes_captura() if str(r.get("item_id") or "").upper() != mid]

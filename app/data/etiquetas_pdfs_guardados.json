@@ -1,6 +1,48 @@
 {
   "archivos": [
     {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
+      "subido_at": "2026-08-25T11:59:43",
+      "bytes": 678100
+    },
+    {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115844.pdf",
+      "subido_at": "2026-08-25T11:58:45",
+      "bytes": 678100
+    },
+    {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115801.pdf",
+      "subido_at": "2026-08-25T11:58:01",
+      "bytes": 678100
+    },
+    {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115712.pdf",
+      "subido_at": "2026-08-25T11:57:12",
+      "bytes": 678100
+    },
+    {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115643.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115643.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115643.pdf",
+      "subido_at": "2026-08-25T11:56:43",
+      "bytes": 678100
+    },
+    {
+      "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x.pdf",
+      "subido_at": "2026-08-25T11:56:06",
+      "bytes": 678100
+    },
+    {
       "nombre": "CREATINA_MONOHIDRATO_1000g_6.25x_20260824_102616.pdf",
       "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260824_102616.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_1000g_6.25x_20260824_102616.pdf",
@@ -1357,48 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
       "subido_at": "2026-07-21T12:16:55",
       "bytes": 263860
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x_20260721_121608.pdf",
-      "subido_at": "2026-07-21T12:16:08",
-      "bytes": 256268
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_250g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_250g_6.25x.pdf",
-      "subido_at": "2026-07-21T12:15:53",
-      "bytes": 256268
-    },
-    {
-      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
-      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121513.pdf",
-      "subido_at": "2026-07-21T12:15:13",
-      "bytes": 298707
-    },
-    {
-      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
-      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121459.pdf",
-      "subido_at": "2026-07-21T12:14:59",
-      "bytes": 298707
-    },
-    {
-      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
-      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260721_121435.pdf",
-      "subido_at": "2026-07-21T12:14:35",
-      "bytes": 298707
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260721_121340.pdf",
-      "subido_at": "2026-07-21T12:13:40",
-      "bytes": 257697
     }
   ]
 }

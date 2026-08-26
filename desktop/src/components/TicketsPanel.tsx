@@ -229,6 +229,8 @@ interface Ticket {
   subtipo?: string | null;
   tiene_datos_sensibles?: boolean;
   notas_accion?: string | null;
+  resultado_cantidad?: number | null;
+  resultado_unidad?: string | null;
 }
 
 interface TicketCorrida {
@@ -12244,7 +12246,10 @@ function AccionCardOperativa({
         : null)
       : null)
   );
-  const [resolucionInfo, setResolucionInfo] = useState<{ duracion: number; horario: string } | null>(null);
+  const [resolucionInfo, setResolucionInfo] = useState<{ duracion: number; horario: string; cantidad?: number; unidad?: string } | null>(null);
+  const [cantidadCierre, setCantidadCierre] = useState("");
+  const [unidadCierre, setUnidadCierre] = useState("und");
+  const pideCantidad = accionPideCantidad(ticket.titulo);
 
   // Limpiar segLive cuando corridaActiva cambia a false (para display)
   useEffect(() => {
@@ -12357,17 +12362,35 @@ function AccionCardOperativa({
 
   async function resolver() {
     if (busy) return;
-    if (!confirm(`¿Marcar "${ticket.titulo}" como terminada?\n\nEsta acción no se puede deshacer.`)) return;
+    if (pideCantidad && !cantidadCierre.trim()) {
+      setMsg("Completa el reporte de unidades empacadas antes de cerrar");
+      setTimeout(() => setMsg(""), 5000);
+      return;
+    }
+    const cantLabel = pideCantidad && cantidadCierre.trim()
+      ? `\n\nUnidades: ${cantidadCierre.trim()} ${unidadCierre}`
+      : "";
+    if (!confirm(`¿Marcar "${ticket.titulo}" como terminada?${cantLabel}\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
     setMsg("");
     try {
       if (corridaId) {
         try { await tapi(`/corridas/${corridaId}/finalizar`, token, { method: "POST" }); } catch {}
       }
-      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      const body: Record<string, unknown> = { estado: "resuelto" };
+      if (pideCantidad && cantidadCierre.trim()) {
+        body.resultado_cantidad = Number(cantidadCierre.replace(",", "."));
+        body.resultado_unidad = unidadCierre;
+      }
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify(body) });
       const duracion = segDisplay;
       const horario = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
-      setResolucionInfo({ duracion, horario });
+      setResolucionInfo({
+        duracion,
+        horario,
+        cantidad: pideCantidad && cantidadCierre.trim() ? Number(cantidadCierre.replace(",", ".")) : undefined,
+        unidad: pideCantidad ? unidadCierre : undefined,
+      });
       setCorridaActiva(false);
       inicioRef.current = null;
       _timerStore.delete(ticket.id);
@@ -12485,10 +12508,23 @@ function AccionCardOperativa({
       {resolucionInfo && (
         <div className="rounded-lg border border-accent/30 bg-accent/5  px-2 py-1.5 text-xs text-accent">
           ✓ Completada a las <strong>{resolucionInfo.horario}</strong> · {fmtTiempo(resolucionInfo.duracion)} de trabajo
+          {resolucionInfo.cantidad != null && (
+            <> · <strong>{resolucionInfo.cantidad}</strong> {resolucionInfo.unidad || "und"}</>
+          )}
         </div>
       )}
 
       {msg && <p className="text-[11px] font-semibold text-red-500 text-center">{msg}</p>}
+
+      {!resuelta && !resolucionInfo && !readOnly && pideCantidad && (
+        <CampoCantidadCierre
+          titulo={ticket.titulo}
+          cantidad={cantidadCierre}
+          unidad={unidadCierre}
+          onCantidadChange={setCantidadCierre}
+          onUnidadChange={setUnidadCierre}
+        />
+      )}
 
       {!resuelta && !resolucionInfo && !readOnly && (
         <div className="flex flex-col gap-2 pt-1">
@@ -12705,6 +12741,208 @@ function plantillaDesdeApi(d: PlantillaAccionApi): PlantillaAccion {
       adjuntos_ref: (paso as any).adjuntos_ref ?? [],
     })),
   };
+}
+
+interface AccionFrecuente {
+  titulo: string;
+  veces: number;
+  ultima_vez?: string;
+  protocolo_id?: number | null;
+  pide_cantidad?: boolean;
+}
+
+const EMPAQUE_CANTIDAD_RE = /\b(empac|etiquet|embal|alist|despach|pastiller|goter|bols|vaso|inocul|marcar\s+bols)\w*/i;
+
+function accionPideCantidad(titulo: string): boolean {
+  return EMPAQUE_CANTIDAD_RE.test((titulo || "").trim());
+}
+
+/** Título de acción de empaque a partir de lo que la operaria escribe hoy. */
+function tituloDesdeEmpaque(queEmpacar: string): string {
+  const q = (queEmpacar || "").trim();
+  if (!q) return "Empacar";
+  const yaEmpaca = /^empac/i.test(q);
+  return yaEmpaca ? q : `Empacar: ${q}`;
+}
+
+function FlujoEmpaqueHoy({
+  stt,
+  onConfirm,
+  onVolver,
+  loading = false,
+}: {
+  stt: ReturnType<typeof useStt>;
+  onConfirm: (titulo: string) => void;
+  onVolver: () => void;
+  loading?: boolean;
+}) {
+  const [que, setQue] = useState("");
+
+  return (
+    <div className="space-y-6 mck-slide-up">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">Empaque</p>
+        <h2 className="text-3xl font-extrabold text-ink leading-tight">
+          ¿Qué vas a<br />empacar hoy?
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          Productos, presentación o pedido — lo que vayas a preparar ahora.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <ProseInput
+          autoFocus
+          className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-lg font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
+          placeholder="Ej: té matcha pastilleros 100 g, urea 250 g, cápsulas…"
+          value={que}
+          onChange={(e) => setQue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && que.trim() && !loading) {
+              onConfirm(tituloDesdeEmpaque(que));
+            }
+          }}
+          maxLength={150}
+        />
+        <SttInlineBtn
+          stt={stt}
+          onStart={() => void stt.iniciar((t) => setQue(proseText(t)))}
+        />
+      </div>
+      <ProseHint />
+      <button
+        type="button"
+        disabled={!que.trim() || loading}
+        onClick={() => onConfirm(tituloDesdeEmpaque(que))}
+        className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+      >
+        {loading ? "Iniciando…" : "Empezar a empacar →"}
+      </button>
+      <button
+        type="button"
+        onClick={onVolver}
+        className="w-full rounded-2xl border-2 border-border py-3 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+      >
+        ← Elegir otra acción
+      </button>
+    </div>
+  );
+}
+
+function AccionesFrecuentesSugeridas({
+  token,
+  onElegir,
+  onEmpacarHoy,
+  className = "",
+}: {
+  token: string;
+  onElegir: (accion: AccionFrecuente) => void;
+  /** Atajo fijo «Empacar hoy» (pregunta qué productos). */
+  onEmpacarHoy?: () => void;
+  className?: string;
+}) {
+  const [items, setItems] = useState<AccionFrecuente[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    tapi("/acciones/frecuentes?limite=8", token)
+      .then((data) => {
+        if (cancelled) return;
+        const lista = Array.isArray((data as { acciones?: AccionFrecuente[] })?.acciones)
+          ? (data as { acciones: AccionFrecuente[] }).acciones
+          : [];
+        setItems(lista);
+      })
+      .catch(() => { if (!cancelled) setItems([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (loading) {
+    return <p className={`text-xs text-muted ${className}`}>Cargando tus acciones frecuentes…</p>;
+  }
+  if (items.length === 0 && !onEmpacarHoy) return null;
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-muted">Tus acciones frecuentes</p>
+      <div className="flex flex-wrap gap-2">
+        {onEmpacarHoy && (
+          <button
+            type="button"
+            onClick={onEmpacarHoy}
+            className="rounded-xl border-2 border-accent/50 bg-accent/10 px-3 py-2 text-left text-xs font-extrabold text-accent transition hover:bg-accent/15"
+          >
+            <span className="block">📦 Empacar hoy</span>
+            <span className="text-[10px] font-normal text-muted">Indica qué productos</span>
+          </button>
+        )}
+        {items.map((a) => (
+          <button
+            key={a.titulo}
+            type="button"
+            onClick={() => onElegir(a)}
+            className="rounded-xl border border-border bg-surface-panel px-3 py-2 text-left text-xs font-semibold text-ink transition hover:border-accent hover:bg-accent/5"
+            title={`${a.veces} veces · última: ${a.ultima_vez ? fmtFecha(a.ultima_vez) : "—"}`}
+          >
+            <span className="block max-w-[220px] truncate">{a.titulo}</span>
+            <span className="text-[10px] font-normal text-muted">{a.veces}×</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CampoCantidadCierre({
+  titulo,
+  cantidad,
+  unidad,
+  onCantidadChange,
+  onUnidadChange,
+}: {
+  titulo: string;
+  cantidad: string;
+  unidad: string;
+  onCantidadChange: (v: string) => void;
+  onUnidadChange: (v: string) => void;
+}) {
+  if (!accionPideCantidad(titulo)) return null;
+  return (
+    <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-2">
+      <label className="text-xs font-bold uppercase tracking-wide text-accent">
+        Reporte de unidades empacadas
+      </label>
+      <p className="text-xs text-muted">
+        Antes de cerrar, registra cuántas unidades, paquetes o bolsas terminaste (obligatorio para empaque).
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input
+          type="number"
+          min="0"
+          step="any"
+          inputMode="decimal"
+          placeholder="Ej: 24"
+          value={cantidad}
+          onChange={(e) => onCantidadChange(e.target.value)}
+          className="min-w-[120px] flex-1 rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-lg font-bold text-ink outline-none focus:border-accent"
+        />
+        <select
+          value={unidad}
+          onChange={(e) => onUnidadChange(e.target.value)}
+          className="rounded-xl border-2 border-border bg-surface-input px-3 py-3 text-sm font-bold text-ink outline-none focus:border-accent"
+          aria-label="Unidad"
+        >
+          <option value="und">Unidades</option>
+          <option value="paq">Paquetes</option>
+          <option value="kg">Kg</option>
+          <option value="g">Gramos</option>
+          <option value="lote">Lotes</option>
+        </select>
+      </div>
+    </div>
+  );
 }
 
 function parseListaComprasDesdeNotas(notas: string): ItemCompraAccion[] {
@@ -16595,6 +16833,9 @@ function NuevaAccionWizard({
   );
   const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(plantillaEff?.pasos ?? []);
   const [reporteSolicitud, setReporteSolicitud] = useState("");
+  const [cantidadCierre, setCantidadCierre] = useState("");
+  const [unidadCierre, setUnidadCierre] = useState("und");
+  const [modoEmpaque, setModoEmpaque] = useState(false);
   const [guardarComoProcedimiento, setGuardarComoProcedimiento] = useState(false);
   const [alcanceProcedimiento, setAlcanceProcedimiento] = useState<"personal" | "global">("personal");
   const [pasoNombre, setPasoNombre] = useState("");
@@ -16723,20 +16964,21 @@ function NuevaAccionWizard({
     setError("");
   }
 
-  async function asegurarTicketIniciado(): Promise<number> {
+  async function asegurarTicketIniciado(tituloOverride?: string): Promise<number> {
     if (ticketId) return ticketId;
+    const tituloEff = (tituloOverride ?? titulo).trim();
     const ticket = await tapi("/", token, {
       method: "POST",
       body: JSON.stringify({
-        titulo: titulo.trim(),
-        descripcion: detalle.trim() || titulo.trim(),
+        titulo: tituloEff,
+        descripcion: detalle.trim() || tituloEff,
         prioridad: "media",
         categoria: solicitudPadreId ? "logistica" : "logistica",
         asignado_a: user.id,
         tipo: "accion",
         ticket_padre_id: solicitudPadreId ?? undefined,
         protocolo_id: plantilla?.protocoloId,
-        subtipo: plantilla?.protocoloId ? "procedimiento" : undefined,
+        subtipo: plantilla?.protocoloId ? "procedimiento" : (accionPideCantidad(tituloEff) ? "simple" : undefined),
       }),
     }) as Ticket;
     const tid = ticket.id;
@@ -17123,13 +17365,17 @@ function NuevaAccionWizard({
   }
 
   async function completarAccionEnServidor(tid: number, itemsLista: ItemCompraAccion[]) {
-    const payload = {
+    const payload: Record<string, unknown> = {
       reporte: reporteSolicitud.trim(),
       lista_compras: itemsLista,
       cerrar_solicitud: !!solicitudPadreId,
       guardar_como_procedimiento: guardarComoProcedimiento,
       alcance_procedimiento: alcanceProcedimiento,
     };
+    if (accionPideCantidad(titulo) && cantidadCierre.trim()) {
+      payload.resultado_cantidad = Number(cantidadCierre.replace(",", "."));
+      payload.resultado_unidad = unidadCierre;
+    }
     const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
       method: "POST",
       headers: {
@@ -17180,6 +17426,10 @@ function NuevaAccionWizard({
   async function terminarAccion() {
     if (solicitudPadreId && !reporteSolicitud.trim()) {
       setError("Escribe el reporte para quien solicitó la acción");
+      return;
+    }
+    if (accionPideCantidad(titulo) && !cantidadCierre.trim()) {
+      setError("Indica cuántas unidades empacaste o procesaste");
       return;
     }
     setLoading(true);
@@ -17328,7 +17578,32 @@ function NuevaAccionWizard({
         </p>
       )}
 
-      {fase === "titulo" && (
+      {fase === "titulo" && modoEmpaque && (
+        <FlujoEmpaqueHoy
+          stt={stt}
+          loading={loading}
+          onVolver={() => setModoEmpaque(false)}
+          onConfirm={(tituloFinal) => {
+            setTitulo(tituloFinal);
+            setModoEmpaque(false);
+            void (async () => {
+              setLoading(true);
+              setError("");
+              try {
+                const tid = await asegurarTicketIniciado(tituloFinal);
+                await iniciarCorridaSiNecesario(tid);
+                irFase("cierre");
+              } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "No se pudo iniciar la acción");
+              } finally {
+                setLoading(false);
+              }
+            })();
+          }}
+        />
+      )}
+
+      {fase === "titulo" && !modoEmpaque && (
         <div key="acc-p1" className={`space-y-6 ${slide}`}>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
@@ -17373,6 +17648,30 @@ function NuevaAccionWizard({
             </div>
             <ProseHint />
           </div>
+          <AccionesFrecuentesSugeridas
+            token={token}
+            className="pt-1"
+            onEmpacarHoy={() => setModoEmpaque(true)}
+            onElegir={(a) => {
+              if (a.pide_cantidad || accionPideCantidad(a.titulo)) {
+                setModoEmpaque(true);
+                return;
+              }
+              setTitulo(a.titulo);
+              if (a.protocolo_id) {
+                void tapi(`/protocolos/${a.protocolo_id}`, token)
+                  .then((p) => {
+                    const pl = plantillaDesdeProtocolo(p as Protocolo);
+                    setPasosGuardados(pl.pasos);
+                    if (pl.listaCompras.length > 0) {
+                      setListaCompras(pl.listaCompras);
+                      setConCompras(true);
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
+          />
           <button
             type="button"
             disabled={!titulo.trim() || loading}
@@ -17984,6 +18283,14 @@ function NuevaAccionWizard({
             </div>
           )}
 
+          <CampoCantidadCierre
+            titulo={titulo}
+            cantidad={cantidadCierre}
+            unidad={unidadCierre}
+            onCantidadChange={setCantidadCierre}
+            onUnidadChange={setUnidadCierre}
+          />
+
           <div
             className="rounded-2xl border-2 border-dashed border-border bg-surface-panel p-4 space-y-3"
             onPasteCapture={handlePasteCierreArchivo}
@@ -18089,17 +18396,23 @@ function AccionSimpleForm({
   token,
   user,
   chatApiToken,
+  tituloInicial = "",
+  iniciarEmpaque = false,
   onCancel,
   onCreated,
 }: {
   token: string;
   user: TicketsUser;
   chatApiToken: string | null | undefined;
+  tituloInicial?: string;
+  /** Abre directo en «¿Qué vas a empacar hoy?». */
+  iniciarEmpaque?: boolean;
   onCancel: () => void;
   onCreated: (ticketId: number) => void;
 }) {
   const stt = useStt(token, chatApiToken);
-  const [titulo, setTitulo] = useState("");
+  const [titulo, setTitulo] = useState(tituloInicial);
+  const [modoEmpaque, setModoEmpaque] = useState(iniciarEmpaque);
   const [detalle, setDetalle] = useState("");
   const [mostrarFoto, setMostrarFoto] = useState(false);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
@@ -18115,16 +18428,17 @@ function AccionSimpleForm({
     setFotoPreview(file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
   }
 
-  async function iniciarAccionSimple() {
-    if (!titulo.trim() || loading) return;
+  async function iniciarAccionSimple(tituloOverride?: string) {
+    const tituloEff = (tituloOverride ?? titulo).trim();
+    if (!tituloEff || loading) return;
     setLoading(true);
     setError("");
     try {
       const ticket = await tapi("/", token, {
         method: "POST",
         body: JSON.stringify({
-          titulo: titulo.trim(),
-          descripcion: detalle.trim() || titulo.trim(),
+          titulo: tituloEff,
+          descripcion: detalle.trim() || tituloEff,
           prioridad: "media",
           categoria: "logistica",
           asignado_a: user.id,
@@ -18179,6 +18493,18 @@ function AccionSimpleForm({
       )}
 
       <div className="space-y-6">
+        {modoEmpaque ? (
+          <FlujoEmpaqueHoy
+            stt={stt}
+            loading={loading}
+            onVolver={() => { setModoEmpaque(false); if (iniciarEmpaque) onCancel(); }}
+            onConfirm={(tituloFinal) => {
+              setTitulo(tituloFinal);
+              void iniciarAccionSimple(tituloFinal);
+            }}
+          />
+        ) : (
+        <>
         <div>
           <h2 className="text-3xl font-extrabold text-ink leading-tight">
             ¿Qué vas<br />a hacer?
@@ -18220,6 +18546,18 @@ function AccionSimpleForm({
           </div>
           <ProseHint />
         </div>
+
+        <AccionesFrecuentesSugeridas
+          token={token}
+          onEmpacarHoy={() => setModoEmpaque(true)}
+          onElegir={(a) => {
+            if (a.pide_cantidad || accionPideCantidad(a.titulo)) {
+              setModoEmpaque(true);
+            } else {
+              setTitulo(a.titulo);
+            }
+          }}
+        />
 
         {/* ── Extras opcionales, ocultos detrás de "+" ── */}
         <div className="flex flex-wrap gap-2">
@@ -18346,6 +18684,8 @@ function AccionSimpleForm({
         >
           {loading ? "Iniciando…" : "Iniciar acción"}
         </button>
+        </>
+        )}
       </div>
     </div>
   );
@@ -21425,6 +21765,8 @@ function RepetirAccionWizard({
   const [pasosIds, setPasosIds] = useState<number[]>(reanudar?.pasosIds ?? []);
   const [pasoIdx, setPasoIdx] = useState(reanudar?.startPasoIdx ?? 0);
   const [reporteTexto, setReporteTexto] = useState("");
+  const [cantidadCierre, setCantidadCierre] = useState("");
+  const [unidadCierre, setUnidadCierre] = useState("und");
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState("");
   const [listaCompras, setListaCompras] = useState<ItemCompraAccion[]>(() =>
@@ -21588,6 +21930,10 @@ function RepetirAccionWizard({
       setError("Escribe el reporte para quien te hizo la solicitud");
       return;
     }
+    if (accionPideCantidad(plantilla.titulo) && !cantidadCierre.trim()) {
+      setError("Indica cuántas unidades empacaste o procesaste");
+      return;
+    }
     setCompletando(true);
     setError("");
     try {
@@ -21606,21 +21952,31 @@ function RepetirAccionWizard({
           });
         } catch { /* no crítico */ }
       }
+      const payload: Record<string, unknown> = {
+        reporte: reporteTexto.trim(),
+        lista_compras: listaCompras,
+        cerrar_solicitud: !!solicitudPadreId,
+      };
+      if (accionPideCantidad(plantilla.titulo) && cantidadCierre.trim()) {
+        payload.resultado_cantidad = Number(cantidadCierre.replace(",", "."));
+        payload.resultado_unidad = unidadCierre;
+      }
       const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reporte: reporteTexto.trim(),
-          lista_compras: listaCompras,
-          cerrar_solicitud: !!solicitudPadreId,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok && res.status !== 404) {
         const d = await res.json().catch(() => ({}));
         throw new Error((d as any).error || `Error ${res.status}`);
       }
       if (res.status === 404) {
-        await tapi(`/${tid}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+        const body: Record<string, unknown> = { estado: "resuelto" };
+        if (accionPideCantidad(plantilla.titulo) && cantidadCierre.trim()) {
+          body.resultado_cantidad = Number(cantidadCierre.replace(",", "."));
+          body.resultado_unidad = unidadCierre;
+        }
+        await tapi(`/${tid}/estado`, token, { method: "PUT", body: JSON.stringify(body) });
         if (solicitudPadreId) {
           await tapi(`/${solicitudPadreId}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
         }
@@ -22044,6 +22400,14 @@ function RepetirAccionWizard({
             <p className="text-sm text-muted">¿Todo listo? Marca la acción como completada.</p>
           )}
 
+          <CampoCantidadCierre
+            titulo={plantilla.titulo}
+            cantidad={cantidadCierre}
+            unidad={unidadCierre}
+            onCantidadChange={setCantidadCierre}
+            onUnidadChange={setUnidadCierre}
+          />
+
           <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
             ${cierreFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
             <span className="text-xl">{cierreFile ? "📎" : "📷"}</span>
@@ -22069,7 +22433,7 @@ function RepetirAccionWizard({
 
           <button
             type="button"
-            disabled={completando || (!!solicitudPadreId && !reporteTexto.trim())}
+            disabled={completando || (!!solicitudPadreId && !reporteTexto.trim()) || (accionPideCantidad(plantilla.titulo) && !cantidadCierre.trim())}
             onClick={() => void completar()}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
           >
@@ -24459,6 +24823,7 @@ function AccionesView({
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto" | "rechazado">(""); // "" = activas
   const [showWizard, setShowWizard] = useState(false);
   const [showAccionSimple, setShowAccionSimple] = useState(false);
+  const [accionSimpleEmpaque, setAccionSimpleEmpaque] = useState(false);
   const [showIniciarMenu, setShowIniciarMenu] = useState(false);
   const [protocolosMenu, setProtocolosMenu] = useState<Protocolo[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
@@ -25050,6 +25415,7 @@ function AccionesView({
     sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, false, false);
     setShowWizard(false);
     setShowAccionSimple(false);
+    setAccionSimpleEmpaque(false);
     setWizardTituloInicial("");
     setPlantillaWizard(undefined);
     setReanudarWizard(null);
@@ -25107,7 +25473,9 @@ function AccionesView({
         token={token}
         user={user}
         chatApiToken={chatApiToken}
-        onCancel={() => setShowAccionSimple(false)}
+        tituloInicial={wizardTituloInicial}
+        iniciarEmpaque={accionSimpleEmpaque}
+        onCancel={() => { setShowAccionSimple(false); setAccionSimpleEmpaque(false); setWizardTituloInicial(""); }}
         onCreated={(id) => void onAccionCreada(id)}
       />
     );
@@ -25210,10 +25578,40 @@ function AccionesView({
             <p className="text-xs font-bold uppercase tracking-widest text-accent">¿Cómo quieres empezar?</p>
             <button type="button" onClick={() => setShowIniciarMenu(false)} className="text-muted hover:text-ink text-sm">✕</button>
           </div>
+          <AccionesFrecuentesSugeridas
+            token={token}
+            onEmpacarHoy={() => {
+              setShowIniciarMenu(false);
+              setAccionSimpleEmpaque(true);
+              setShowAccionSimple(true);
+            }}
+            onElegir={(a) => {
+              setShowIniciarMenu(false);
+              if (a.protocolo_id && !(a.pide_cantidad || accionPideCantidad(a.titulo))) {
+                void repetirProcedimiento(a.protocolo_id);
+                return;
+              }
+              if (a.pide_cantidad || accionPideCantidad(a.titulo)) {
+                setAccionSimpleEmpaque(true);
+                setShowAccionSimple(true);
+                return;
+              }
+              setWizardTituloInicial(a.titulo);
+              setShowAccionSimple(true);
+            }}
+          />
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => { setShowIniciarMenu(false); setShowAccionSimple(true); }}
+              onClick={() => { setShowIniciarMenu(false); setAccionSimpleEmpaque(true); setShowAccionSimple(true); }}
+              className="text-left rounded-2xl border-2 border-accent/40 bg-accent/5 px-4 py-4 transition hover:border-accent hover:bg-accent/10 group sm:col-span-2"
+            >
+              <p className="text-sm font-extrabold text-accent group-hover:text-accent transition-colors">📦 Empacar hoy</p>
+              <p className="mt-1 text-xs text-muted">Indica qué productos vas a empacar y registra unidades al terminar.</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowIniciarMenu(false); setAccionSimpleEmpaque(false); setShowAccionSimple(true); }}
               className="text-left rounded-2xl border-2 border-border bg-surface px-4 py-4 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-sm font-extrabold text-ink group-hover:text-accent transition-colors">⚡ Acción simple</p>

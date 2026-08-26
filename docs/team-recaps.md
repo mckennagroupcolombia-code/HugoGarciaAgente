@@ -1,3 +1,91 @@
+### 2026-08-25 16:00 - Competencia: Buscar MeLi con palabras clave
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - La URL de «Buscar MeLi» arma la búsqueda con nombre, cantidad (g/ml), porcentaje/concentración y códigos tipo B5.
+  - Si hay cantidad manual guardada, entra en la query; el panel muestra las palabras clave junto al botón.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, tests
+
+### 2026-08-25 15:40 - Competencia: cantidad g/ml a mano
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Casilla Cant. (número + g/ml) junto al precio para publicaciones cuyo título no trae empaque.
+  - Se guarda por ítem y rearma la comparación/$/g; vacío + Guardar vuelve al título.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `routes.py`, `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`, tests
+
+### 2026-08-25 15:20 - Competencia: grameras por precisión, no $/g
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - «0.001 G» ya no se toma como cantidad (salía 0 g); se usa «Hasta 50 Gr» como capacidad.
+  - En grameras/balanzas se compara precio total y el resumen explica que el premium suele ser por precisión en miligramos.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, `useCompetenciaPrecios.ts`, tests
+
+### 2026-08-25 15:05 - Competencia: kits 50g c/u cuentan el total
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Títulos tipo «A + B 50g C/u» o «2x50g» ya suman el contenido total (100 g), no solo 50 g.
+  - El $/g de «Nosotros» se recalcula desde el título en el panel.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, tests
+
+### 2026-08-25 14:40 - Competencia: captura sin cortar por Cloudflare
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El análisis del pantallazo ya no espera en el POST (Cloudflare cortaba ~100s con 502/524).
+  - Ahora encola un job, el panel consulta el estado y muestra progreso; la imagen se comprime un poco más.
+- **Archivos Modificados:** `competencia_captura_jobs.py`, `routes.py`, `useCompetenciaPrecios.ts`, `CompetenciaPreciosPanel.tsx`, `analisis_competencia_precios.py`
+
+### 2026-08-25 14:05 - Competencia: detalle al clic en cada oferta
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - En Promociones, cada campaña (activa o candidata) se abre al clic y muestra tipo, descuento, vigencia, rango, stock e IDs.
+  - Precio/fechas de opt-in quedan en el detalle; Vincular/Quitar siguen visibles en la fila.
+- **Archivos Modificados:** `MeliPromocionesItem.tsx`, `docs/team-recaps.md`
+
+### 2026-08-25 14:00 - Competencia: Ver evidencia PNG
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El botón Ver fallaba con «No hay evidencia» porque Flask (`mckg`) no podía escribir en `competencia_evidencias/` (permisos) y el error se tragaba en silencio.
+  - Se regeneraron los PNG faltantes; el directorio queda usable por el servicio; los fallos de render ahora se loguean.
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `app/data/competencia_evidencias/`, `docs/team-recaps.md`
+
+### 2026-08-25 09:25 - Competencia: precio por gramo o ml
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Las barras y el PNG muestran $ / g o $ / ml (ya no $ / 100 g).
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, tests
+
+### 2026-08-25 08:55 - Competencia: comparar por precio unitario en barras
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - La comparación ya no exige el mismo empaque: 250 g vs 500 g sí, gramos vs ml no.
+  - El veredicto usa $ / 100 g o $ / 100 ml. El panel y el PNG muestran barras (más larga = más caro).
+- **Archivos Modificados:** `analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx`, tests
+
+### 2026-08-25 08:45 - Competencia: lista de promociones en una línea
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Cada campaña (activa o a vincular) cabe en una sola fila: nombre, precio/fechas y Vincular/Quitar.
+  - Menos padding entre tarjetas; botones más bajos. El clic de Vincular sigue con `mck-btn-no-fx`.
+- **Archivos Modificados:** `MeliPromocionesItem.tsx`
+
+### 2026-08-25 08:40 - Competencia: Vincular promociones MeLi
+- **Autor:** Cursor Grok
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Los botones Vincular ya no quedan inactivos ni bloqueados por el CSS compacto.
+  - Lightning/oferta del día envían el stock reservado que MeLi exige; SMART manda offer_id y fechas.
+  - Si MeLi rechaza, el error se ve arriba de la lista (caja roja).
+- **Archivos Modificados:** `meli_promotions.py`, `MeliPromocionesItem.tsx`, `routes.py`, tests
+
 ### 2026-08-24 22:15 - Competencia: UI más compacta
 - **Autor:** Cursor Grok
 - **Tipo de Cambio:** Mejora de interfaz

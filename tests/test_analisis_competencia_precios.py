@@ -17,6 +17,27 @@ def test_query_incluye_presentacion():
     assert "500g" in q
 
 
+def test_query_incluye_porcentaje_y_vitamina():
+    q = ac.query_busqueda("D-pantenol Vitamina B5 75%")
+    assert "pantenol" in q
+    assert "vitamina" in q
+    assert "b5" in q
+    assert "75%" in q
+    kw = ac.desglosar_palabras_clave_meli("D-pantenol Vitamina B5 75%")
+    assert "75%" in kw["porcentajes"]
+    assert "b5" in kw["nombre"]
+    assert kw["cantidad"] is None
+
+
+def test_query_usa_cantidad_manual(tmp_path, monkeypatch):
+    monkeypatch.setattr(ac, "_PRES_MANUAL_PATH", tmp_path / "pres.json")
+    ac.actualizar_presentacion_manual("MCO777", 100, "g")
+    q = ac.keywords_busqueda_meli("D-pantenol Vitamina B5 75%", "MCO777")
+    assert "100g" in q
+    assert "75%" in q
+    assert "pantenol" in q
+
+
 def test_titulos_relacionados_nucleo():
     ok, score = ac.titulos_relacionados(
         "Urea Cosmética 250 Gr",
@@ -47,7 +68,83 @@ def test_presentacion_y_precio_unitario():
     ml = ac.extraer_presentacion("Aceite de Jojoba 250 ml")
     assert ml is not None and ml["canonica"] == "ml" and ml["cantidad"] == 250
     assert ac.precio_por_100(45000, p) == 450000.0
+    assert ac.precio_por_unidad(45000, p) == 4500.0
     assert ac.presentacion_texto(kg) == "1kg"
+
+
+def test_presentacion_kit_c_u_dos_componentes():
+    """Alginato + Lactato 50g c/u → 2×50 g = 100 g totales."""
+    titulo = "Alginato De Sodio + Lactato De Calcio 50g C/u"
+    p = ac.extraer_presentacion(titulo)
+    assert p is not None
+    assert p["cantidad"] == 100
+    assert p["canonica"] == "g"
+    assert p.get("unidades_kit") == 2
+    assert ac.presentacion_casilla(p) == "2×50 g"
+    assert ac.precio_por_unidad(29900, p) == 299.0
+
+
+def test_presentacion_kit_nx_y_suma():
+    assert ac.extraer_presentacion("Urea 2x250g")["cantidad"] == 500
+    assert ac.extraer_presentacion("Kit 50g + 50g")["cantidad"] == 100
+    assert ac.extraer_presentacion("Urea Cosmética 250 Gr")["cantidad"] == 250
+
+
+def test_gramera_precision_no_es_cantidad():
+    titulo = "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro"
+    p = ac.extraer_presentacion(titulo)
+    assert p is not None
+    assert p["cantidad"] == 50
+    assert p.get("instrumento_pesaje") is True
+    assert p.get("precision") == "0.001 g"
+    assert "prec. 0.001 g" in ac.presentacion_casilla(p)
+    assert ac.precio_por_unidad(105000, p) is None  # no $/g de capacidad
+
+    r = ac.armar_reporte_captura(
+        item_id="MCO1",
+        titulo=titulo,
+        precio=105000,
+        listados_visibles=[
+            {"titulo": "Gramera Balanza 200g Digital", "precio": 18000, "vendedor": "X"},
+            {"titulo": "Pesa Gramera 500g Cocina", "precio": 49990, "vendedor": "Y"},
+        ],
+    )
+    assert r.get("instrumento_pesaje") is True
+    assert "miligramos" in (r.get("resumen") or "").lower() or "precisión" in (r.get("resumen") or "").lower()
+    assert r.get("min_precio_por_unidad") is None
+    assert "Conviene revisar precio" not in (r.get("resumen") or "")
+
+
+def test_presentacion_manual_sin_cantidad_en_titulo(tmp_path, monkeypatch):
+    monkeypatch.setattr(ac, "_PRES_MANUAL_PATH", tmp_path / "pres.json")
+    monkeypatch.setattr(ac, "_CACHE_PATH", tmp_path / "c.json")
+    monkeypatch.setattr(ac, "_REPORTES_PATH", tmp_path / "r.json")
+    monkeypatch.setattr(ac, "_OBS_PATH", tmp_path / "o.json")
+    monkeypatch.setattr(ac, "_EVIDENCIAS_DIR", tmp_path / "ev")
+    titulo = "D-pantenol Vitamina B5 75%"
+    assert ac.extraer_presentacion(titulo) is None
+    ac._guardar_cache({
+        "version": 1,
+        "generado_en": "2026-08-25T12:00:00",
+        "dias": 30,
+        "top_n": 1,
+        "consulta": "",
+        "productos": [{
+            "item_id": "MCO999",
+            "titulo": titulo,
+            "precio": 22900,
+            "sku": "PAN75",
+            "query": "d pantenol",
+            "unidades_periodo": 1,
+        }],
+        "resumen": {},
+    })
+    out = ac.actualizar_presentacion_manual("MCO999", 100, "g")
+    assert out["ok"] is True
+    assert out.get("presentacion_manual") == "100 g"
+    ef = ac.presentacion_efectiva("MCO999", titulo)
+    assert ef is not None and ef["cantidad"] == 100
+    assert ac.precio_por_unidad(22900, ef) == 229.0
 
 
 def test_clasificar_vs_min():
@@ -315,9 +412,14 @@ def test_misma_presentacion_gramos_y_ml():
     assert ac.misma_presentacion(p250, p250) is True
     assert ac.misma_presentacion(p250, p500) is False
     assert ac.misma_presentacion(p250, p250ml) is False
+    assert ac.misma_unidad_medida(p250, p500) is True
+    assert ac.misma_unidad_medida(p250, p250ml) is False
+    assert ac.etiqueta_unidad(p250) == "/ g"
+    assert ac.etiqueta_unidad(p250ml) == "/ ml"
+    assert ac.etiqueta_por_100(p250) == "/ g"
 
 
-def test_filtrar_listados_exige_misma_presentacion():
+def test_filtrar_listados_misma_unidad_incluye_otro_tamano():
     listados = [
         {
             "titulo": "Urea Cosmetica Pura 250g Grado Farmacéutico",
@@ -341,9 +443,15 @@ def test_filtrar_listados_exige_misma_presentacion():
         45000,
         listados,
     )
-    assert len(comps) == 1
-    assert comps[0]["vendedor"] == "OTROLAB"
-    assert comps[0]["misma_presentacion"] is True
+    assert len(comps) == 2
+    vendedores = {c["vendedor"] for c in comps}
+    assert vendedores == {"OTROLAB", "BARATO"}
+    assert "LIQ" not in vendedores
+    barato = next(c for c in comps if c["vendedor"] == "BARATO")
+    assert barato["precio_por_unidad"] == ac.precio_por_unidad(
+        30000, ac.extraer_presentacion("Urea 500g"),
+    )
+    assert comps[0]["vendedor"] == "BARATO"
 
 
 def test_filtrar_listados_comparables_omite_nuestra_y_ajenos(monkeypatch):
@@ -395,12 +503,15 @@ def test_armar_reporte_captura_mas_caro():
     assert r["tabla"][0]["nombre"].startswith("Urea")
     assert r["tabla"][0]["cantidad"] == "250 g"
     assert r["tabla"][0]["valor_total"] == 45000
-    assert r["tabla"][1]["cantidad"] == "250 g"
-    assert r["tabla"][1]["valor_total"] == 38000
-    assert r["presentacion_requerida"] == "250 g"
+    assert r["tabla"][0]["precio_por_unidad"] == ac.precio_por_unidad(
+        45000, ac.extraer_presentacion("Urea Cosmética 250 Gr"),
+    )
+    assert r["min_precio_por_unidad"] == ac.precio_por_unidad(
+        38000, ac.extraer_presentacion("Urea 250g"),
+    )
 
 
-def test_armar_reporte_captura_excluye_otra_presentacion():
+def test_armar_reporte_captura_compara_otro_tamano_por_unidad():
     listados = [
         {"titulo": "Urea Cosmetica 250g", "precio": 38000, "vendedor": "OTROLAB"},
         {"titulo": "Urea Cosmetica 500g", "precio": 28000, "vendedor": "BARATO"},
@@ -411,8 +522,13 @@ def test_armar_reporte_captura_excluye_otra_presentacion():
         precio=45000,
         listados_visibles=listados,
     )
-    assert r["n_comparables"] == 1
-    assert r["min_precio"] == 38000
+    assert r["n_comparables"] == 2
+    assert r["min_precio"] == 28000
+    assert r["min_precio_por_unidad"] == ac.precio_por_unidad(
+        28000, ac.extraer_presentacion("Urea 500g"),
+    )
+    assert r["veredicto"] == "mas_caro"
+    assert r["unidad_comparacion"] == "/ g"
 
 
 def test_presentacion_casilla_ml_y_gramos():
@@ -421,6 +537,8 @@ def test_presentacion_casilla_ml_y_gramos():
     fila = ac.enriquecer_fila_comparacion("Glicerina 1 L", 12000)
     assert fila["cantidad"] == "1 L"
     assert fila["valor_total"] == 12000
+    assert fila["precio_por_unidad"] == ac.precio_por_unidad(12000, ac.extraer_presentacion("Glicerina 1 L"))
+    assert fila["unidad_canonica"] == "ml"
 
 
 def test_actualizar_precio_base_cache(tmp_path, monkeypatch):

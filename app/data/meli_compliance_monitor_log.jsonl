@@ -100,3 +100,4 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4354281272", "sku": "C-COCDESHIL250G", "origen": "MCO4354278002", "ts": "2026-08-21T13:44:58"}
 {"tipo": "registro_seguimiento", "item_id": "MCO4354293808", "sku": "C-COCDESHIL500G", "origen": "reemplazo", "ts": "2026-08-21T13:46:06"}
 {"tipo": "publicacion_nueva", "item_id": "MCO4354293808", "sku": "C-COCDESHIL500G", "origen": "MCO4354252044", "ts": "2026-08-21T13:46:10"}
+{"tipo": "revision_diaria", "revisadas": 18, "alertas": 2, "activas": 11, "problemas": 7, "ts": "2026-08-25T08:30:57"}

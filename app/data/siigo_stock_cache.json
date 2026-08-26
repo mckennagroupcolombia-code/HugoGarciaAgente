@@ -1,7 +1,35 @@
 {
-  "ts": 1787578269.9602878,
-  "actualizado_en": "2026-08-24T08:31:31",
+  "ts": 1787704004.5192313,
+  "actualizado_en": "2026-08-25T19:27:05",
   "por_codigo": {
+    "C-COCDESHIL500g": {
+      "nombre": "COCO DESHIDRATADO HILOS 250g",
+      "stock_siigo": 0
+    },
+    "ACEJOJmL": {
+      "nombre": "ACEITE DE JOJOBA mL",
+      "stock_siigo": 0
+    },
+    "C-ACEESENAR5mL": {
+      "nombre": "ACEITE ESENCIAL NARANJA 5mL",
+      "stock_siigo": 0
+    },
+    "C-CAPGELVAC0TRA1000UN": {
+      "nombre": "CAPSULAS GELATINA VACIAS 0 TRANSPARENTES 1000 UN",
+      "stock_siigo": 0
+    },
+    "C-CAPGELVAC0VERBLA1000UN": {
+      "nombre": "CAPSULAS GELATINA VACIA 0 VERDE BLANCO 1000 UN",
+      "stock_siigo": 0
+    },
+    "C-CAPVACGEL0AZUBLA1000UN": {
+      "nombre": "CAPSULAS VACIAS GELATINA 0 AZUL BLANCO 1000 UN",
+      "stock_siigo": 0
+    },
+    "C-CAPVACGEL00TRA1000Un": {
+      "nombre": "CAPSULAS VACIAS GELATINA 00 TRANSPARENTES 1000 Un",
+      "stock_siigo": 0
+    },
     "EMPPLA1-4Lb50Un": {
       "nombre": "EMPQUE PLASTICO DARNEL 1-4 Lb 50uN",
       "stock_siigo": -3
@@ -28,7 +56,7 @@
     },
     "C-ACIKOJDPAL30mL": {
       "nombre": "ACIDO KOJICO D PALMITATO 30 mL",
-      "stock_siigo": -4
+      "stock_siigo": -5
     },
     "MCO2695686912": {
       "nombre": "Cápsulas Gelatina Vacía Aprox 1000 Un Tamaño 0 Transparente",
@@ -220,7 +248,7 @@
     },
     "C-DHA10g": {
       "nombre": "Autobronceador Polvo Dha 10g",
-      "stock_siigo": -1
+      "stock_siigo": -2
     },
     "C-ACEESENLIM5mL": {
       "nombre": "Aceite Esencial De Limon",
@@ -232,7 +260,7 @@
     },
     "C-LTEA100g": {
       "nombre": "L Teanina 100gr N/a",
-      "stock_siigo": -1
+      "stock_siigo": -2
     },
     "AS-4": {
       "nombre": "Fragancias Hidrosolubles Para Difusores 30 Ml",
@@ -256,7 +284,7 @@
     },
     "C-VERMAL30mL": {
       "nombre": "Verde Malaquita 30ml",
-      "stock_siigo": -2
+      "stock_siigo": -3
     },
     "AS-26": {
       "nombre": "Caja Guantes Nitrilo X 100 Unidades Negro L",
@@ -280,7 +308,7 @@
     },
     "C-ACEESEBER5mL": {
       "nombre": "Aceite Esencial Bergamota 5 Ml Mckenna Group Aromaterapia Y Masajes",
-      "stock_siigo": -3
+      "stock_siigo": -4
     },
     "AS-35": {
       "nombre": "Llanta Juguete Para Perro",
@@ -315,19 +343,19 @@
       "stock_siigo": 0
     },
     "CAPGELVAC0VERBLA": {
-      "nombre": "VERDE/BLANCO No 0 (0107010450)",
-      "stock_siigo": 0
+      "nombre": "CAPSULA VERDE/BLANCO No 0",
+      "stock_siigo": 20000
     },
     "CAPGELVAC0AZUBLA": {
-      "nombre": "AZUL/BLANCO No 0 (0107010484)",
-      "stock_siigo": 0
+      "nombre": "CAPSULA AZUL/BLANCO No 0 (0107010484)",
+      "stock_siigo": 20000
     },
     "CAPGELVAC0TRA": {
-      "nombre": "TRANSPARENTE/TRANSPARENTE No 0 (010301521)",
-      "stock_siigo": 0
+      "nombre": "CAPSULA TRANSPARENTE/TRANSPARENTE No 0",
+      "stock_siigo": 20000
     },
     "CAPGELVAC00TRA": {
-      "nombre": "TRANSPARENTE/TRANSPARENTE No 00 (0107000624)",
+      "nombre": "CAPSULA TRANSPARENTE/TRANSPARENTE No 00",
       "stock_siigo": 0
     },
     "AVEHOJg": {
@@ -420,7 +448,7 @@
     },
     "GOTPLA3mL": {
       "nombre": "GOTERO PLASTICO 3 mL Un",
-      "stock_siigo": -70
+      "stock_siigo": -80
     },
     "C-VITE30mL": {
       "nombre": "VITAMINA E 30mL",
@@ -1316,7 +1344,7 @@
     },
     "ALBHUEg": {
       "nombre": "ALBUMINA DE HUEVO g",
-      "stock_siigo": -500
+      "stock_siigo": -1500
     },
     "D-ALGSODCLOCAL100g": {
       "nombre": "ALGINATO DE SODIO + CLORURO DE CALCIO 100g",
@@ -1384,7 +1412,7 @@
     },
     "ACEESEYLAmL": {
       "nombre": "ACEITE ESENCIAL YLANG YLANG",
-      "stock_siigo": -10
+      "stock_siigo": -15
     },
     "ACEESEZANmL": {
       "nombre": "ACEITE ESENCIAL ZANAHORIA mL",
@@ -1392,7 +1420,7 @@
     },
     "ALGSODg": {
       "nombre": "ALGINATO DE SODIO g",
-      "stock_siigo": -2550
+      "stock_siigo": -2850
     },
     "D-ACERIC250mL": {
       "nombre": "ACEITE DE RICINO 250mL",
@@ -1428,7 +1456,7 @@
     },
     "WEB-ENVIO-VAR": {
       "nombre": "Envío Interrapidísimo pedido web (valor variable)",
-      "stock_siigo": -6
+      "stock_siigo": -12
     },
     "D-SEMCAL500g": {
       "nombre": "SEMILLAS DE CALABAZA 500g",
@@ -1456,7 +1484,7 @@
     },
     "ESP15cms": {
       "nombre": "ESPATULA 15 Cms",
-      "stock_siigo": -21
+      "stock_siigo": -25
     },
     "D-ALMNAT500g": {
       "nombre": "ALMENDRA NATURAL 500g",
@@ -1568,7 +1596,7 @@
     },
     "TAP38MBLAUn": {
       "nombre": "TAPA 38mm BLANCA  C/BANDA DE SEG. SIN LINER",
-      "stock_siigo": 210
+      "stock_siigo": 195
     },
     "ENVBOT500Un": {
       "nombre": "ENV. BOTERO 500CC ORIG. B.38MM SIN TAPA S/TP",
@@ -1580,7 +1608,7 @@
     },
     "LINPASUn": {
       "nombre": "LINNER # 36, 9 PASTILLERO",
-      "stock_siigo": -90
+      "stock_siigo": -105
     },
     "PETPBD3SUn": {
       "nombre": "PET/PBD 3S ZIPP  METAL",
@@ -1608,7 +1636,7 @@
     },
     "SEMCALGRAg": {
       "nombre": "SEMILLA DE CALABAZA CAJA 25 KG GRADO AA",
-      "stock_siigo": 5750
+      "stock_siigo": 4750
     },
     "PISTOSSALg": {
       "nombre": "PISTACHOS TOSTADOS SALADOS WONDERFUL CAJA 11.34 KG",
@@ -1620,7 +1648,7 @@
     },
     "MANTOSNATg": {
       "nombre": "MANI TOSTADO NATURAL CAJA 25 KG RMCA",
-      "stock_siigo": 10500
+      "stock_siigo": 7000
     },
     "GIRKERg": {
       "nombre": "GIRASOL KERNEL BULTO 25 KG",
@@ -1628,15 +1656,15 @@
     },
     "COCDESHILg": {
       "nombre": "COCO DESHIDRATADO HILOS BULTO  25  KG ELMAR",
-      "stock_siigo": 25000
+      "stock_siigo": 24750
     },
     "ARADESg": {
       "nombre": "ARANDANOS DESHIDRATADOS CAJA  11.34 KG OCEAN SPRAY",
-      "stock_siigo": 5590
+      "stock_siigo": 4090
     },
     "ALMNATg": {
       "nombre": "ALMENDRA NATURAL AMERICANA CAJA 22.68 KG",
-      "stock_siigo": 15680
+      "stock_siigo": 15180
     },
     "CLR50g": {
       "nombre": "Colorante Alimentos rojo 30G",
@@ -1740,7 +1768,7 @@
     },
     "BOX11X4X4": {
       "nombre": "CAJA 11 X 4 X 4",
-      "stock_siigo": -894
+      "stock_siigo": -912
     },
     "LANOLINA40g": {
       "nombre": "LANOLINA 40g",
@@ -1800,7 +1828,7 @@
     },
     "PILAAA": {
       "nombre": "PILA AAA ECO PAR",
-      "stock_siigo": -103
+      "stock_siigo": -105
     },
     "ERLMYR250ML": {
       "nombre": "ERLEN MEYER MATRAZ 250mL",
@@ -1832,7 +1860,7 @@
     },
     "WEB-ENVIO-18000": {
       "nombre": "Envío Interrapidísimo pedido web $18.000 COP",
-      "stock_siigo": -42
+      "stock_siigo": -44
     },
     "WEB-ENVIO-17000": {
       "nombre": "Envío Interrapidísimo pedido web $17.000 COP",
@@ -1860,7 +1888,7 @@
     },
     "WEB-ENVIO-8800": {
       "nombre": "Envío Interrapidísimo pedido web $8.800 COP",
-      "stock_siigo": -45
+      "stock_siigo": -52
     },
     "ACIKOJDPALg": {
       "nombre": "ACIDO KOLICO D PALMITATO mL",
@@ -1900,7 +1928,7 @@
     },
     "L-AMIPROg": {
       "nombre": "L AMINOACIDO PROLINA g",
-      "stock_siigo": -300
+      "stock_siigo": -600
     },
     "D-TENSCIKg": {
       "nombre": "TENSO ACTIVO SCI Kg",
@@ -1932,7 +1960,7 @@
     },
     "TENSCIg": {
       "nombre": "TENSOACTIVO SCI g",
-      "stock_siigo": -9950
+      "stock_siigo": -10950
     },
     "C-POLTWE20P500mL": {
       "nombre": "POLISORBATO TWEEN 20 500mL",
@@ -1940,7 +1968,7 @@
     },
     "POLTWE20Pg": {
       "nombre": "POLISORBATO 20% g",
-      "stock_siigo": -9500
+      "stock_siigo": -9000
     },
     "C-GLU2P500mL": {
       "nombre": "GLUTARALDEHIDO 2% 500mL",
@@ -1952,7 +1980,7 @@
     },
     "NIAg": {
       "nombre": "NIACINAMIDA g",
-      "stock_siigo": -2000
+      "stock_siigo": -2300
     },
     "D-GLIVEGLt": {
       "nombre": "GLICERINA VEGETAL Lt",
@@ -1960,7 +1988,7 @@
     },
     "BOTGLILt": {
       "nombre": "BOTERO GLICERINA Lt",
-      "stock_siigo": -18
+      "stock_siigo": -21
     },
     "D-SHA705250mL": {
       "nombre": "SHAROMIX 705 250 mL",
@@ -1976,7 +2004,7 @@
     },
     "SHA705mL": {
       "nombre": "SHAROMIX 705 mL",
-      "stock_siigo": -18700
+      "stock_siigo": -18750
     },
     "MANCACREF500g": {
       "nombre": "MANTECA CACAO REFINADA 500g",
@@ -2072,7 +2100,7 @@
     },
     "CITZINg": {
       "nombre": "CITRATO ZINC g",
-      "stock_siigo": -19500
+      "stock_siigo": -20000
     },
     "C-AZUMMET30mL": {
       "nombre": "AZUL METILENO 30mL",
@@ -2080,7 +2108,7 @@
     },
     "BANDTER30mL": {
       "nombre": "BANDA TERMICA 30mL",
-      "stock_siigo": -99
+      "stock_siigo": -101
     },
     "FOR-AZUMETmL": {
       "nombre": "AZUL METILENO mL",
@@ -2088,11 +2116,11 @@
     },
     "AZUMETg": {
       "nombre": "AZUL METILENO g",
-      "stock_siigo": -2970
+      "stock_siigo": -3030
     },
     "DOSGOT30mL": {
       "nombre": "DOSIFICADOR GOTERO PLASTICO 30mL",
-      "stock_siigo": -99
+      "stock_siigo": -101
     },
     "D-ACENEE60mL": {
       "nombre": "ACEITE NEEM 60mL",
@@ -2104,11 +2132,11 @@
     },
     "BANTER60mL": {
       "nombre": "BANDA TERMICA 60mL",
-      "stock_siigo": -12
+      "stock_siigo": -17
     },
     "TAPFLITOP": {
       "nombre": "TAPA FLIP TOP 120mL",
-      "stock_siigo": -20
+      "stock_siigo": -24
     },
     "TAPSPR250mL": {
       "nombre": "TAPA SPRAY 250mL",
@@ -2120,15 +2148,15 @@
     },
     "ENVPET60mL": {
       "nombre": "ENVASE PET 60mL",
-      "stock_siigo": -10
+      "stock_siigo": -14
     },
     "TAPGOTPLA30mL": {
       "nombre": "TAPA GOTERO PLASTICO 30mL",
-      "stock_siigo": -99
+      "stock_siigo": -101
     },
     "GOTPLA30mL": {
       "nombre": "GOTERO PLASTICO 30mL",
-      "stock_siigo": -99
+      "stock_siigo": -101
     },
     "AMILISO100g": {
       "nombre": "AMINOACIDO L ISOLEUCINA 100g",
@@ -2148,7 +2176,7 @@
     },
     "BOLMET8X10cms": {
       "nombre": "BOLSA METALIZADA 8 X 10cms",
-      "stock_siigo": -63
+      "stock_siigo": -67
     },
     "DHIg": {
       "nombre": "DIHIDROXIACETONA g",
@@ -2236,7 +2264,7 @@
     },
     "LACCALg": {
       "nombre": "LACTATO CALCIO g",
-      "stock_siigo": -7700
+      "stock_siigo": -8750
     },
     "ACEESEHIEBUE5m": {
       "nombre": "ACEITE ESENCIAL HIERBA BUENA 5mL",
@@ -2264,7 +2292,7 @@
     },
     "PARg": {
       "nombre": "PARAFINA g",
-      "stock_siigo": -4000
+      "stock_siigo": -5000
     },
     "D-ACIMAL100g": {
       "nombre": "ACIDO MALICO 100g",
@@ -2272,7 +2300,7 @@
     },
     "ACIMALg": {
       "nombre": "ACIDO MALICO g",
-      "stock_siigo": -900
+      "stock_siigo": -1000
     },
     "D-DIOTIT500": {
       "nombre": "DIOXIDO TITANIO 500g",
@@ -2300,7 +2328,7 @@
     },
     "CAFANHCHIg": {
       "nombre": "CAFEINA g",
-      "stock_siigo": -9200
+      "stock_siigo": -9300
     },
     "AGUDES250mL": {
       "nombre": "AGUA DESTILADA 250mL",
@@ -2308,7 +2336,7 @@
     },
     "ENVGAR250mL": {
       "nombre": "ENVASE GARRAFA 250mL",
-      "stock_siigo": -285
+      "stock_siigo": -288
     },
     "D-ACEESENAR5mL": {
       "nombre": "ACEITE ESENCIAL NARANJA 5 mL",
@@ -2316,7 +2344,7 @@
     },
     "ACEESENARmL": {
       "nombre": "ACEITE ESENCIAL NARANJA mL",
-      "stock_siigo": -20
+      "stock_siigo": -25
     },
     "D-ACEESEMANZ5mL": {
       "nombre": "ACEITE ESENCIAL MANZANILLA 5mL",
@@ -2348,7 +2376,7 @@
     },
     "GELSINSABg": {
       "nombre": "GELATINA SIN SABOR g",
-      "stock_siigo": -13000
+      "stock_siigo": -14500
     },
     "D-MANKARAMA500g": {
       "nombre": "MANTECA KARITE AMARILLA 500g",
@@ -2404,7 +2432,7 @@
     },
     "ACIHIABAPESg": {
       "nombre": "ACIDO HIALURONICO BAJO PESO mL",
-      "stock_siigo": -4110
+      "stock_siigo": -4140
     },
     "FOR-ACILAC85PmL": {
       "nombre": "ACIDO LACTICO 85% mL",
@@ -2428,7 +2456,7 @@
     },
     "ACITRAg": {
       "nombre": "ACIDO TRANEXAMICO g",
-      "stock_siigo": -30
+      "stock_siigo": -70
     },
     "VITAg": {
       "nombre": "VITAMINA A g",
@@ -2436,7 +2464,7 @@
     },
     "ACIHIAALTPESg": {
       "nombre": "ACIDO HALURONICO ALTO PESO g",
-      "stock_siigo": -7741
+      "stock_siigo": -7891
     },
     "ACILACg": {
       "nombre": "ACIDO LACTICO g",
@@ -2484,7 +2512,7 @@
     },
     "UREg": {
       "nombre": "UREA g",
-      "stock_siigo": -21750
+      "stock_siigo": -22000
     },
     "C-RET5P30m": {
       "nombre": "RETINOL 5% 30mL",
@@ -2540,7 +2568,7 @@
     },
     "SORPOTg": {
       "nombre": "SORBATO POTASIO g",
-      "stock_siigo": -7450
+      "stock_siigo": -7950
     },
     "LANg": {
       "nombre": "LANOLINA g",
@@ -2548,7 +2576,7 @@
     },
     "AGUDESmL": {
       "nombre": "AGUA DESTILADA mL",
-      "stock_siigo": -95045
+      "stock_siigo": -96426
     },
     "D-GLU100": {
       "nombre": "L GLUTAMINA 100g",
@@ -2568,7 +2596,7 @@
     },
     "MENCRIg": {
       "nombre": "MENTOL CRISTAL g",
-      "stock_siigo": -2200
+      "stock_siigo": -2300
     },
     "D-ACEESELIM5mL": {
       "nombre": "ACEITE ESENCIAL LIMON 5mL",
@@ -2592,7 +2620,7 @@
     },
     "FRUg": {
       "nombre": "FRUCTOSA g",
-      "stock_siigo": -29500
+      "stock_siigo": -30000
     },
     "D-DPAN50m": {
       "nombre": "DPANTENOL 50mL",
@@ -2612,7 +2640,7 @@
     },
     "ACEESEEUCg": {
       "nombre": "ACEITE ESENCIAL EUCALIPTO mL",
-      "stock_siigo": -60
+      "stock_siigo": -70
     },
     "D-ACEESNMEN5mL": {
       "nombre": "ACEITE ESENCIAL MENTA 5mL",
@@ -2628,11 +2656,11 @@
     },
     "ETQCIR55mm": {
       "nombre": "ETIQUETA CIRCULAR 55m",
-      "stock_siigo": -232
+      "stock_siigo": -233
     },
     "MANKARAMAg": {
       "nombre": "MANTECA KARITE AMARILLA g",
-      "stock_siigo": -29875
+      "stock_siigo": -30000
     },
     "D-SORPOLKg": {
       "nombre": "SORBITOL POLVO Kg",
@@ -2668,7 +2696,7 @@
     },
     "ACEARGmL": {
       "nombre": "ACEITE ARGAN mL",
-      "stock_siigo": -4950
+      "stock_siigo": -5000
     },
     "D-ACEESEROM5mL": {
       "nombre": "ACETE ESENCIAL ROMERO 5mL",
@@ -2704,7 +2732,7 @@
     },
     "AMILARGBASg": {
       "nombre": "AMINOACIDO L ARGININA g",
-      "stock_siigo": -1400
+      "stock_siigo": -2100
     },
     "D-PAP100g": {
       "nombre": "PAPAINA 100g",
@@ -2772,7 +2800,7 @@
     },
     "VITCACIASCg": {
       "nombre": "VITAMINA C ACIDO ASCORBICO g",
-      "stock_siigo": -37151
+      "stock_siigo": -37501
     },
     "D-AMIBCA250g": {
       "nombre": "AMINOACIDO BCAA 250g",
@@ -2784,7 +2812,7 @@
     },
     "CLOMAGHEXg": {
       "nombre": "CLORURO MAGNESIO HEXAHIDRATADO g",
-      "stock_siigo": -13000
+      "stock_siigo": -16000
     },
     "EXTTEMATVER100g": {
       "nombre": "EXTRACTO TE VERDE MATCHA 100g",
@@ -2808,7 +2836,7 @@
     },
     "BANPAS180mm": {
       "nombre": "BANDA PASTILLERO 180mm",
-      "stock_siigo": -267
+      "stock_siigo": -288
     },
     "D-CREMON500g": {
       "nombre": "CREATINA MONOHIDRATO 500g",
@@ -2820,7 +2848,7 @@
     },
     "AMICREMONg": {
       "nombre": "CREATINA MONOHIDRATO g",
-      "stock_siigo": -76700
+      "stock_siigo": -76950
     },
     "INU250g": {
       "nombre": "INULINA 250g",
@@ -2856,7 +2884,7 @@
     },
     "ACEESEJAZmL": {
       "nombre": "ACEITE ESENCIAL JAZMIN mL",
-      "stock_siigo": -170
+      "stock_siigo": -185
     },
     "D-POLTWE80P500mL": {
       "nombre": "POLISORBATO TWEEN 80P 500mL",
@@ -2864,11 +2892,11 @@
     },
     "SOBSEG23X28": {
       "nombre": "SOBRE SEGURIDAD PORTAGUIA 23X28Cms",
-      "stock_siigo": -495
+      "stock_siigo": -516
     },
     "BOLVACL": {
       "nombre": "BOLSA VACIO L",
-      "stock_siigo": -195
+      "stock_siigo": -210
     },
     "D-SURLECDULKg": {
       "nombre": "SUERO LECHE DULCE Kg",
@@ -2876,11 +2904,11 @@
     },
     "SCO30g": {
       "nombre": "CUCHARA MEDIDORA 30g",
-      "stock_siigo": -256
+      "stock_siigo": -270
     },
     "SCO5g": {
       "nombre": "CUCHARA MEDIDORA 5g",
-      "stock_siigo": -603
+      "stock_siigo": -605
     },
     "SUELECDULg": {
       "nombre": "SUERO LECHE DULCE g",
@@ -2892,15 +2920,15 @@
     },
     "FLOSECLAVg": {
       "nombre": "FLORES SECAS LAVANDA g",
-      "stock_siigo": -3900
+      "stock_siigo": -4000
     },
     "BOLMET500g": {
       "nombre": "BOLSA METALIZADA 500g",
-      "stock_siigo": -79
+      "stock_siigo": -78
     },
     "BOLMET1000g": {
       "nombre": "BOLSA METALIZADA Kg",
-      "stock_siigo": -176
+      "stock_siigo": -190
     },
     "D-ELAHID30m": {
       "nombre": "ELASTINA HIDROLIZADA 30mL",
@@ -2908,7 +2936,7 @@
     },
     "ELAHIDg": {
       "nombre": "ELASTINA HIDROLIZADA g mL",
-      "stock_siigo": -790
+      "stock_siigo": -850
     },
     "D-COLHID30m": {
       "nombre": "COLAGENO HIDROLIZADO 30mL",
@@ -2936,7 +2964,7 @@
     },
     "TEGBETg": {
       "nombre": "TEGO BETAINA COCO g",
-      "stock_siigo": -27250
+      "stock_siigo": -28000
     },
     "D-ACENEE500mL": {
       "nombre": "ACEITE NEEM 500mL",
@@ -2944,7 +2972,7 @@
     },
     "ACENEEmL": {
       "nombre": "ACEITE NEEM mL",
-      "stock_siigo": -4220
+      "stock_siigo": -4460
     },
     "D-COCPROBET500m": {
       "nombre": "COCOAMIDA PROPIL BETAINA 500mL",
@@ -3020,7 +3048,7 @@
     },
     "COPDOS30mL": {
       "nombre": "COPA DOSIFICADORA NATU 30,L FARMECEUTICA (IDL11)",
-      "stock_siigo": -860
+      "stock_siigo": -876
     },
     "D-CITMAG500g": {
       "nombre": "CITRATO MAGNESIO 500g",
@@ -3028,7 +3056,7 @@
     },
     "BOLVAC8X12": {
       "nombre": "BOLSA VACIO 8X12",
-      "stock_siigo": -2564
+      "stock_siigo": -2630
     },
     "D-ACERIC500mL": {
       "nombre": "ACEITE RICINO 500mL",
@@ -3040,11 +3068,11 @@
     },
     "LNRIND36.2mm": {
       "nombre": "Liner Induccion 36,2mm",
-      "stock_siigo": -1016
+      "stock_siigo": -1037
     },
     "ENVBTR250cc": {
       "nombre": "ENVASE BOTERO 250cc",
-      "stock_siigo": -245
+      "stock_siigo": -250
     },
     "D-ACERIC10mL": {
       "nombre": "ACEITE RICINO 10mL",
@@ -3052,15 +3080,15 @@
     },
     "TBPST10mL": {
       "nombre": "Envase Tubo Rimel 10mL",
-      "stock_siigo": -191
+      "stock_siigo": -195
     },
     "OPRMNM4MN": {
       "nombre": "Operativos Minimos 1 min",
-      "stock_siigo": -14423
+      "stock_siigo": -14471
     },
     "ETQTRM": {
       "nombre": "ETIQUETA TERMICA 10 X 15",
-      "stock_siigo": -4361
+      "stock_siigo": -4467
     },
     "CRT10X10X10cms": {
       "nombre": "Pieza Carton 10 x 10 x 10 cms",
@@ -3068,15 +3096,15 @@
     },
     "PPLBRB10cms": {
       "nombre": "Papel Burbuja 10cm",
-      "stock_siigo": -11726
+      "stock_siigo": -11982
     },
     "CNTADH20cms": {
       "nombre": "Cinta Adhesiva 20cms",
-      "stock_siigo": -80
+      "stock_siigo": -88
     },
     "VNP20cms": {
       "nombre": "VINIPEL 20 CMS",
-      "stock_siigo": -5717
+      "stock_siigo": -5841
     },
     "CIR36-24-EC40-GX22-YES-OFF-1": {
       "nombre": "Etiqueta 2\" Circle Blank Label Roll",
@@ -3084,11 +3112,11 @@
     },
     "ETQ10g": {
       "nombre": "Etiqueta 2\" x 2.375\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -441
+      "stock_siigo": -464
     },
     "ETQ100g": {
       "nombre": "Etiqueta 2.75\" x 2\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -212
+      "stock_siigo": -236
     },
     "ETQ5mL": {
       "nombre": "Etiqueta 2.5\" x 0.9\" Rounded-Corner Rectangle Blank Label Roll",
@@ -3100,23 +3128,23 @@
     },
     "ETQ30mL": {
       "nombre": "Etiqueta 4\" x 1.5\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -2393
+      "stock_siigo": -2434
     },
     "ETQ250g": {
       "nombre": "Etiqueta 3\" x 2.625\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -4007
+      "stock_siigo": -4098
     },
     "BANPVCMICUn": {
       "nombre": "BANDA PVC 35 MICRAS",
-      "stock_siigo": 2607
+      "stock_siigo": 2566
     },
     "GLIVEGg": {
       "nombre": "GLICERINA VEGETAL g",
-      "stock_siigo": -61281
+      "stock_siigo": -64782
     },
     "FARAZU30mL": {
       "nombre": "FARMA AZUL 30mL",
-      "stock_siigo": 24651
+      "stock_siigo": 24625
     },
     "FARCRI30mL": {
       "nombre": "FARMA CRISTAL 30mL",
@@ -3132,7 +3160,7 @@
     },
     "FARAMB30mL": {
       "nombre": "FARMA AMBAR 30mL",
-      "stock_siigo": 6477
+      "stock_siigo": 6472
     },
     "FARAZU10mL": {
       "nombre": "FARMA AZUL 10mL",
@@ -3140,7 +3168,7 @@
     },
     "FARAMB5mL": {
       "nombre": "FARMA AMBAR 5mL",
-      "stock_siigo": 3644
+      "stock_siigo": 3636
     },
     "UNIHOTPAVUn": {
       "nombre": "UNION 1/2 HOTPRO PAV",
@@ -3200,7 +3228,7 @@
     },
     "PASBLA180mL": {
       "nombre": "PASTILLERO BLANCO 180mL",
-      "stock_siigo": -234
+      "stock_siigo": -254
     },
     "CEBCORg": {
       "nombre": "CEBO CORDERO g",
@@ -3256,7 +3284,7 @@
     },
     "PROCONSUEg": {
       "nombre": "PROTEINA CONCENTRADA SUERO 80% WPC (LW)",
-      "stock_siigo": -32000
+      "stock_siigo": -42000
     },
     "INU90%g": {
       "nombre": "INULINA 90%",
@@ -3268,15 +3296,15 @@
     },
     "VITETOC99Pg": {
       "nombre": "VITAMINA E ATFA g",
-      "stock_siigo": -4340
+      "stock_siigo": -4430
     },
     "CITPOTPOTg": {
       "nombre": "CITRATO DE POTASIO/POTASSIUM CITRATE",
-      "stock_siigo": -14250
+      "stock_siigo": -16500
     },
     "CITMAGFCCg": {
       "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
-      "stock_siigo": -149000
+      "stock_siigo": -158750
     },
     "ALUALLg": {
       "nombre": "ALULOSA/ALLULOSE",
@@ -3292,11 +3320,11 @@
     },
     "COLHIDg": {
       "nombre": "COLAGENO POLVO HIDROLIZADO",
-      "stock_siigo": 13500
+      "stock_siigo": 13000
     },
     "AMITEAg": {
       "nombre": "AMINOACIDO L - TEANINA",
-      "stock_siigo": 2600
+      "stock_siigo": 2400
     },
     "CLOCALg": {
       "nombre": "CLORURO CALCIO g",
@@ -3312,7 +3340,7 @@
     },
     "ACETEATREg": {
       "nombre": "ACEITE DE ARBOL DE TE mL",
-      "stock_siigo": 1445
+      "stock_siigo": 1290
     },
     "FRAVAICARmL": {
       "nombre": "FRAGANCIA VAINILLA CARAMELO mL",
@@ -3324,7 +3352,7 @@
     },
     "EXTALOVERg": {
       "nombre": "EXTRACTO ALOE VERA g",
-      "stock_siigo": -3190
+      "stock_siigo": -3220
     },
     "CARCALg": {
       "nombre": "CARBONATO DE CALCIO g",
@@ -3336,7 +3364,7 @@
     },
     "BTM50g": {
       "nombre": "BTMS-50",
-      "stock_siigo": 17000
+      "stock_siigo": 16875
     },
     "SORPOLg": {
       "nombre": "SORBITOL POLVO",
@@ -3348,15 +3376,15 @@
     },
     "CERABEREFAMAg": {
       "nombre": "CERA DE ABEJAS AMARILLA g",
-      "stock_siigo": 9500
+      "stock_siigo": 10000
     },
     "CERABEREFBLAg": {
       "nombre": "CERA DE ABEJAS BLANCA g",
-      "stock_siigo": 1200
+      "stock_siigo": 700
     },
     "ACISALg": {
       "nombre": "ACIDO SALICILICO g",
-      "stock_siigo": 18000
+      "stock_siigo": 17499
     },
     "CAOUSPg": {
       "nombre": "CAOLIN USP",
@@ -3372,11 +3400,11 @@
     },
     "ALCCETg": {
       "nombre": "ALCOHOL CETILICO",
-      "stock_siigo": 8000
+      "stock_siigo": 7750
     },
     "GOTPIPNEG77mm": {
       "nombre": "GOTERO PIPETA NEGRO 77MM",
-      "stock_siigo": 775
+      "stock_siigo": 773
     },
     "GOTPIP77MNEGUn": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",
@@ -3384,11 +3412,11 @@
     },
     "TAP38MSENUn": {
       "nombre": "TAPA 38MM SENCILLA BLANCA",
-      "stock_siigo": -1136
+      "stock_siigo": -1162
     },
     "PAS180BLAUn": {
       "nombre": "PASTILLERO 180ML BLANCO",
-      "stock_siigo": -35
+      "stock_siigo": -37
     },
     "GOTPIP55MUn": {
       "nombre": "GOTERO PIPETA 55MM NEGRA",
@@ -3400,7 +3428,7 @@
     },
     "MANCACREFg": {
       "nombre": "MANTECA CACAO REFINADA g",
-      "stock_siigo": -84000
+      "stock_siigo": -85000
     },
     "ACEESEROMg": {
       "nombre": "ACEITE ESENCIAL DE ROMERO",
@@ -3408,7 +3436,7 @@
     },
     "ACEGIRg": {
       "nombre": "ACEITE DE GIRASOL",
-      "stock_siigo": 7500
+      "stock_siigo": 6500
     },
     "ACEJOJGOLg": {
       "nombre": "ACEITE DE JOJOBA GOLDEN mL",
@@ -3416,7 +3444,7 @@
     },
     "ACIGLIg": {
       "nombre": "ACIDO GLICOLICO",
-      "stock_siigo": -1248
+      "stock_siigo": -1488
     },
     "GOMGUAg": {
       "nombre": "GOMA GUAR",
@@ -3436,11 +3464,11 @@
     },
     "DIPg": {
       "nombre": "DIPROPILENGLICOL g",
-      "stock_siigo": -6000
+      "stock_siigo": -6500
     },
     "ACERICg": {
       "nombre": "ACEITE DE RICINO g/mL",
-      "stock_siigo": -50660
+      "stock_siigo": -53700
     },
     "OXIZINg": {
       "nombre": "OXIDO DE ZINC",
@@ -3452,7 +3480,7 @@
     },
     "CITCALg": {
       "nombre": "CITRATO DE CALCIO",
-      "stock_siigo": -44000
+      "stock_siigo": -44500
     },
     "FRAHERg": {
       "nombre": "FRAGANCIA HERBAL",
@@ -3468,7 +3496,7 @@
     },
     "ALAg": {
       "nombre": "ALANTOINA",
-      "stock_siigo": 4700
+      "stock_siigo": 4600
     },
     "FAR50MAMBUn": {
       "nombre": "FARMA 50ML AMBAR",
@@ -3496,27 +3524,27 @@
     },
     "TAPPERSEGNEG18mm": {
       "nombre": "TAPA PERFORADA SEGURIDAD NEGRA 18mm",
-      "stock_siigo": -1800
+      "stock_siigo": -1828
     },
     "GOTPIPNEG90mmUn": {
       "nombre": "GOTERO PIPETA NEGRO 90MM",
-      "stock_siigo": -79
+      "stock_siigo": -81
     },
     "GOTPIP77MUn": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",
-      "stock_siigo": -545
+      "stock_siigo": -569
     },
     "TAPAIR18MUn": {
       "nombre": "TAPON AIREADOR BLANCO ECO 18MM",
-      "stock_siigo": 1082
+      "stock_siigo": 1069
     },
     "TAPSEGBLA18mm": {
       "nombre": "TAPA SEGURIDAD ECO BLANCA 18mm",
-      "stock_siigo": 1082
+      "stock_siigo": 1069
     },
     "BOLSEGBLAUn": {
       "nombre": "Bolsa de Seguridad Blanca con Portaguia 12x20",
-      "stock_siigo": -4082
+      "stock_siigo": -4174
     },
     "CMCPH101Kg": {
       "nombre": "Celulosa Microcristalina Avicel Ph 101 KG",
@@ -3600,7 +3628,7 @@
     },
     "333": {
       "nombre": "FARMA 50ML AMBAR",
-      "stock_siigo": -340
+      "stock_siigo": -342
     },
     "181": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",
@@ -3648,15 +3676,15 @@
     },
     "ENVBTR500cc": {
       "nombre": "ENV. BOTERO 500cc PEAD BCO ORIG C/TPON S/TAPA",
-      "stock_siigo": -409
+      "stock_siigo": -417
     },
     "ENVCIL160cc": {
       "nombre": "ENV. CILINDRICO ANCHA SIN TAPA 160cc",
-      "stock_siigo": 172
+      "stock_siigo": 171
     },
     "TAPPOTGRA160cc": {
       "nombre": "TAPA POTE GRASERO BLANCA 160cc",
-      "stock_siigo": 172
+      "stock_siigo": 171
     },
     "CC*KILO": {
       "nombre": "CLORURO DE CALCIO * KILOGRAMO",
@@ -3688,11 +3716,11 @@
     },
     "SCO1g": {
       "nombre": "CUCHARA DOSIFICADORA g",
-      "stock_siigo": -1261
+      "stock_siigo": -1308
     },
     "BLSMTL13X21cms": {
       "nombre": "Bolsa 13 x 21 cms",
-      "stock_siigo": -4563
+      "stock_siigo": -4680
     },
     "ETQ76X68mm": {
       "nombre": "Etiqueta 76 X 68mm",
@@ -3704,7 +3732,7 @@
     },
     "DHA10g": {
       "nombre": "DHZ Autobronceador 10g",
-      "stock_siigo": -11
+      "stock_siigo": -10
     },
     "ALCCETO": {
       "nombre": "Alcohol Ceto estearilico KG",
@@ -3800,7 +3828,7 @@
     },
     "AGDSTgL": {
       "nombre": "Agua Destilada gL",
-      "stock_siigo": -15573
+      "stock_siigo": -15753
     },
     "PLSTWEN20": {
       "nombre": "Polisorbato Tween 20 Usp 500ml",
@@ -3812,7 +3840,7 @@
     },
     "ACDKJCDPLM30mL": {
       "nombre": "Ácido Kójico Dpalmitato 30 mL",
-      "stock_siigo": -146
+      "stock_siigo": -145
     },
     "ACLCTGLC30mL": {
       "nombre": "Ácido Láctico + Ácido glicólico 30 mL",
@@ -3908,7 +3936,7 @@
     },
     "ALGSOD500g": {
       "nombre": "Alginato de Sodio LB",
-      "stock_siigo": -16
+      "stock_siigo": -18
     },
     "KTEXTART18PZS": {
       "nombre": "Repuestos Extrusor Compatible Artillery Sidewinder Genius",
@@ -4056,7 +4084,7 @@
     },
     "TDS/EH/PH/TEMP": {
       "nombre": "Medidor de pH 4 en 1",
-      "stock_siigo": -172
+      "stock_siigo": -174
     },
     "CTMG500g": {
       "nombre": "Citrato De Magnesio Suplemento",
@@ -4320,7 +4348,7 @@
     },
     "CMCPH102500g": {
       "nombre": "Celulosa Microcristalina Ph 102 500 g",
-      "stock_siigo": -117
+      "stock_siigo": -120
     },
     "COLPNG30GR": {
       "nombre": "Envase Colapsible Negro X 30 GR",
@@ -4470,7 +4498,7 @@
       "nombre": "Barra Imán  4 x 10 mm x 5 un",
       "stock_siigo": -3
     },
-    "CPSGLT0AZLBLN1000UN": {
+    "CPSGLTO0AZLBLN1000UN": {
       "nombre": "Capsulas Gelatina Azul Blanco x 1000 Un",
       "stock_siigo": -413
     },
@@ -4484,7 +4512,7 @@
     },
     "CPSVCGLTTRN1000UN": {
       "nombre": "Capsulas Gelatina 0 Transparentes x 1000 Un",
-      "stock_siigo": -371
+      "stock_siigo": -351
     },
     "SRBK250g": {
       "nombre": "Sorbato Potasio 250g",
@@ -4712,7 +4740,7 @@
     },
     "PLS20250ML": {
       "nombre": "Polisorbato 20 250ml",
-      "stock_siigo": -70
+      "stock_siigo": -71
     },
     "DCTALMNGR6P10MT": {
       "nombre": "Ducto Aluminio Negro 6 x 10 mts",
@@ -5388,7 +5416,7 @@
     },
     "GTRPLS3ML10UN": {
       "nombre": "Gotero Plástico 3ml - Pipeta Pasteur Formas Decorativas",
-      "stock_siigo": -423
+      "stock_siigo": -422
     },
     "SBRCRNAHMLB": {
       "nombre": "Sabor Carne Ahumada  500 gr",
@@ -5588,7 +5616,7 @@
     },
     "OILRCNGL": {
       "nombre": "Aceite Ricino De Ricino Cástor Oil Puro 10 lt",
-      "stock_siigo": -7
+      "stock_siigo": -9
     },
     "CRLN50P20LT": {
       "nombre": "Creolina al 50% x 20 Litros",
@@ -6364,7 +6392,7 @@
     },
     "HDTN": {
       "nombre": "Hidantoina 300ML",
-      "stock_siigo": -144
+      "stock_siigo": -150
     },
     "ACDSLCKG": {
       "nombre": "Ácido Salicílico Kg",
@@ -6464,7 +6492,7 @@
     },
     "BURB": {
       "nombre": "Plastico Burbuja de  bola pequeña 50 metros(ancho)  por 25 metros",
-      "stock_siigo": -81
+      "stock_siigo": -87
     },
     "VINP": {
       "nombre": "Vinipel Industrial Transparente 12.5 cm x 300 metros",
@@ -6472,7 +6500,7 @@
     },
     "CINT": {
       "nombre": "Cinta Adhesiva  200 metros",
-      "stock_siigo": -232
+      "stock_siigo": -233
     },
     "HDVA": {
       "nombre": "Esencia Hidrosoluble Vainilla de 30 Ml Para Humidificador",
@@ -6696,7 +6724,7 @@
     },
     "ENVI": {
       "nombre": "Valor De Envio",
-      "stock_siigo": -781
+      "stock_siigo": -783
     },
     "TUSV": {
       "nombre": "Colorante Alimentos Tuska Verde Limón   25GR",
@@ -7012,7 +7040,7 @@
     },
     "GTRVDR50mL": {
       "nombre": "Envase De Vidrio Ambar 50 mL",
-      "stock_siigo": -1180
+      "stock_siigo": -1181
     },
     "GTRVDR30mL10UN": {
       "nombre": "Gotero Vidrio 30 mL Azul - Verde - Ambar X 10 Unidades",
@@ -7068,7 +7096,7 @@
     },
     "OLTK10Lt": {
       "nombre": "Base Oleato Potasio Garrafa 10Lt",
-      "stock_siigo": -27
+      "stock_siigo": -33
     },
     "LETC1": {
       "nombre": "Lecitina De Soya Usp Certificada LITRO",
@@ -7240,7 +7268,7 @@
     },
     "GRMDG": {
       "nombre": "Gramera Balanza Digital",
-      "stock_siigo": -1069
+      "stock_siigo": -1071
     },
     "MNTK125g": {
       "nombre": "Manteca De Karité Orgánica Amarilla 125gr",
@@ -7532,7 +7560,7 @@
     },
     "CRABJRF500g": {
       "nombre": "Cera De Abejas Amarilla Refinada 500g",
-      "stock_siigo": -517
+      "stock_siigo": -518
     },
     "CARK500g": {
       "nombre": "Carbonato De Potasio 500g",
@@ -7644,11 +7672,11 @@
     },
     "OILESNLMN5mL": {
       "nombre": "Aceite Esencial Limon 5 mL",
-      "stock_siigo": -882
+      "stock_siigo": -881
     },
     "OILESNLVD5mL": {
       "nombre": "Aceite Esencial Lavanda 5mL",
-      "stock_siigo": -1937
+      "stock_siigo": -1938
     },
     "OILESNJGB5mL": {
       "nombre": "Aceite Esencial Jengibre 5mL",
@@ -7748,7 +7776,7 @@
     },
     "OLTKLt": {
       "nombre": "Base Oleato Potasio Litro",
-      "stock_siigo": -885
+      "stock_siigo": -886
     },
     "OILESNEUC5mL": {
       "nombre": "Aceite Esencial Eucalipto 5 mL",
@@ -7792,7 +7820,7 @@
     },
     "OILESNAT30mL": {
       "nombre": "Aceite Esencial Árbol De Té 30 mL",
-      "stock_siigo": -798
+      "stock_siigo": -797
     },
     "KACR": {
       "nombre": "Kit Aceites Corporales  X 250 ml",
@@ -7840,7 +7868,7 @@
     },
     "ALGNA100g": {
       "nombre": "Alginato de Sodio x 100g",
-      "stock_siigo": 87
+      "stock_siigo": 86
     },
     "RegistroManual": {
       "nombre": "Registro manual",

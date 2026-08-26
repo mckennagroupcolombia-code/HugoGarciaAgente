@@ -101,6 +101,54 @@ function cop(n: number | null | undefined): string {
   }).format(n);
 }
 
+/** Mes vencido = último mes calendario cerrado (M-1).
+ *  Mes corrido = mes calendario en curso (M); cifras solo al cierre, no parciales. */
+function mesesResumenReferencia(ahora = new Date()): { corrido: string; vencido: string } {
+  const y = ahora.getFullYear();
+  const m = ahora.getMonth(); // 0-11
+  const toYm = (year: number, month0: number) =>
+    `${year}-${String(month0 + 1).padStart(2, "0")}`;
+  const vencidoDate = new Date(y, m - 1, 1);
+  const corridoDate = new Date(y, m, 1);
+  return {
+    vencido: toYm(vencidoDate.getFullYear(), vencidoDate.getMonth()),
+    corrido: toYm(corridoDate.getFullYear(), corridoDate.getMonth()),
+  };
+}
+
+function ymCalendario(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** True si el mes YYYY-MM ya terminó (cierre calendario). */
+function mesYaCerrado(ym: string, ahora = new Date()): boolean {
+  return ym < ymCalendario(ahora);
+}
+
+function etiquetaCierreMes(ym: string): string {
+  const [ys, ms] = ym.split("-");
+  const idx = Math.max(0, Math.min(11, (parseInt(ms || "1", 10) || 1) - 1));
+  const nombre = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][idx];
+  return `Cierre ${nombre} ${ys ?? ""}`;
+}
+
+function ultimoDiaMes(ym: string): string {
+  const [ys, ms] = ym.split("-");
+  const y = parseInt(ys || "2000", 10);
+  const m = parseInt(ms || "1", 10);
+  const last = new Date(y, m, 0).getDate();
+  const idx = Math.max(0, Math.min(11, m - 1));
+  const nombre = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][idx];
+  return `${last} ${nombre}`;
+}
+
+function actividadDeMes(
+  porMes: Record<string, ActividadMes>,
+  mes: string,
+): ActividadMes {
+  return porMes[mes] ?? { horas: 0, dias: 0, sesiones: 0 };
+}
+
 const SEVERIDAD_CHIP: Record<string, string> = {
   critica: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
   alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300",
@@ -135,8 +183,8 @@ const CATEGORIA_LABEL: Record<string, string> = {
 // ── Sub-vistas ─────────────────────────────────────────────────────────────────
 
 function TabResumen({ resumen }: { resumen: Resumen }) {
-  const meses = resumen.whatsapp.map((w) => w.mes);
-  const ultimosMeses = meses.slice(-3);
+  const { corrido, vencido } = useMemo(() => mesesResumenReferencia(), []);
+  const corridoCerrado = mesYaCerrado(corrido);
 
   return (
     <div className="space-y-6">
@@ -146,45 +194,53 @@ function TabResumen({ resumen }: { resumen: Resumen }) {
           Carga digital por persona (panel /app)
         </h3>
         <p className="mb-3 text-xs text-muted">
-          Horas de sesión activa y tickets. Ojo: mide trabajo digital — no captura bodega,
-          empaque ni atención telefónica.
+          Cifras al cierre de mes calendario (sin parciales). Mes vencido: {etiquetaCierreMes(vencido)}.
+          Mes corrido: {etiquetaCierreMes(corrido)}
+          {!corridoCerrado ? ` — disponible al cierre (${ultimoDiaMes(corrido)})` : ""}.
+          Mide trabajo digital — no captura bodega, empaque ni atención telefónica.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {resumen.actividad_equipo.map((u) => (
-            <div key={u.usuario_id} className="rounded-xl border border-border bg-surface-panel p-4">
-              <p className="mb-2 truncate text-sm font-extrabold text-ink">{u.nombre}</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-lg font-black text-accent">{u.horas_total}h</p>
-                  <p className="text-[10px] text-muted">horas panel</p>
-                </div>
-                <div>
-                  <p className="text-lg font-black text-ink">{u.dias_total}</p>
-                  <p className="text-[10px] text-muted">días activos</p>
-                </div>
-                <div>
-                  <p className="text-lg font-black text-ink">
+          {resumen.actividad_equipo.map((u) => {
+            const mesVencido = actividadDeMes(u.por_mes, vencido);
+            const mesCorrido = actividadDeMes(u.por_mes, corrido);
+            return (
+              <div key={u.usuario_id} className="rounded-xl border border-border bg-surface-panel p-4">
+                <div className="mb-2 flex items-baseline justify-between gap-2">
+                  <p className="truncate text-sm font-extrabold text-ink">{u.nombre}</p>
+                  <p className="shrink-0 text-[10px] text-muted">
                     {u.tickets_resueltos}
-                    <span className="text-xs font-semibold text-muted">/{u.tickets_asignados}</span>
+                    <span className="font-semibold">/{u.tickets_asignados}</span> tickets
                   </p>
-                  <p className="text-[10px] text-muted">tickets</p>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-surface px-2.5 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Mes vencido</p>
+                    <p className="text-[10px] text-muted">{etiquetaCierreMes(vencido)}</p>
+                    <p className="mt-1 text-lg font-black text-ink">{mesVencido.horas}h</p>
+                    <p className="text-[10px] text-muted">{mesVencido.dias} días activos</p>
+                  </div>
+                  <div className="rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Mes corrido</p>
+                    <p className="text-[10px] text-muted">{etiquetaCierreMes(corrido)}</p>
+                    {corridoCerrado ? (
+                      <>
+                        <p className="mt-1 text-lg font-black text-accent">{mesCorrido.horas}h</p>
+                        <p className="text-[10px] text-muted">{mesCorrido.dias} días activos</p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-xs font-semibold text-muted">
+                        Al cierre
+                        <span className="block text-[10px] font-normal">({ultimoDiaMes(corrido)})</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-muted">
+                  {u.solicitudes_resueltas} solicitudes resueltas · último uso: {u.ultimo_uso_panel ?? "—"}
+                </p>
               </div>
-              <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-muted">
-                {ultimosMeses.map((m) => {
-                  const d = u.por_mes[m];
-                  return (
-                    <span key={m} className="rounded bg-surface px-1.5 py-0.5">
-                      {m.slice(5)}: {d ? `${d.horas}h · ${d.dias}d` : "—"}
-                    </span>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-[10px] text-muted">
-                {u.solicitudes_resueltas} solicitudes resueltas · último uso: {u.ultimo_uso_panel ?? "—"}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

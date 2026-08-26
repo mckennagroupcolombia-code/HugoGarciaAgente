@@ -471,6 +471,7 @@ interface PromoItem {
   max_discounted_price?: number | null;
   suggested_discounted_price?: number | null;
   precio_sugerido?: number | null;
+  stock?: number | null;
   modo_optin?: "offer_id" | "deal_price" | string;
   start_date?: string | null;
   finish_date?: string | null;
@@ -767,6 +768,12 @@ function DialogPrecioVenta({
         promotion_id: p.id || "",
         promotion_type: p.type,
       };
+      if (p.ref_id) body.offer_id = p.ref_id;
+      if (p.stock != null && Number(p.stock) > 0) body.stock = Number(p.stock);
+      if (p.type === "SMART") {
+        if (p.start_date) body.start_date = p.start_date;
+        if (p.finish_date) body.finish_date = p.finish_date;
+      }
       if (p.modo_optin === "deal_price") {
         const raw =
           dealDraft[key] ??
@@ -794,8 +801,6 @@ function DialogPrecioVenta({
           body.start_date = `${fechas.start}T00:00:00`;
           body.finish_date = `${fechas.finish}T23:59:59`;
         }
-      } else if (p.ref_id) {
-        body.offer_id = p.ref_id;
       }
       await api.post("/api/stock/promociones/agregar", body, { timeoutMs: 60_000 });
       setPromoMsg({

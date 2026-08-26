@@ -3937,6 +3937,7 @@ def register_routes(app):
         top_deal_price = data.get("top_deal_price")
         start_date = (data.get("start_date") or "").strip() or None
         finish_date = (data.get("finish_date") or "").strip() or None
+        stock_raw = data.get("stock")
         try:
             from app.services.meli_promotions import agregar_item_a_promocion
 
@@ -3946,6 +3947,12 @@ def register_routes(app):
                 if top_deal_price is not None and top_deal_price != ""
                 else None
             )
+            st = None
+            if stock_raw is not None and stock_raw != "":
+                try:
+                    st = int(stock_raw)
+                except (TypeError, ValueError):
+                    st = None
             result = agregar_item_a_promocion(
                 meli_id,
                 promotion_id=promotion_id,
@@ -3955,6 +3962,7 @@ def register_routes(app):
                 top_deal_price=tdp,
                 start_date=start_date,
                 finish_date=finish_date,
+                stock=st,
             )
             try:
                 from app.panel_activity import log_line
@@ -16809,7 +16817,11 @@ def register_routes(app):
     @app.route("/app/api/meli/competencia-precios/reporte-captura", methods=["POST"])
     @app.route("/api/meli/competencia-precios/reporte-captura", methods=["POST"])
     def api_meli_competencia_precios_reporte_captura():
-        """Arma el reporte con un pantallazo del listado. El servidor no visita MeLi."""
+        """Encola el análisis del pantallazo (job async). El servidor no visita MeLi.
+
+        Por defecto responde 202 + job_id (evita 502/524 de Cloudflare ~100s).
+        Con ?sync=1 corre en el request (tests / debug local).
+        """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.tools.analisis_competencia_precios import (
@@ -16841,17 +16853,50 @@ def register_routes(app):
                 raw, mime = decodificar_imagen_b64(img)
         if len(raw) > 5_500_000:
             return jsonify({"ok": False, "error": "La imagen pesa demasiado (máx. 5 MB)."}), 400
-        try:
-            out = generar_reporte_competencia_captura(
-                item_id=item_id,
-                imagen=raw,
-                mime=mime,
-                titulo=titulo,
-                precio=precio,
-            )
-        except Exception as e:
-            return jsonify({"ok": False, "error": str(e)[:400]}), 500
-        return jsonify(out), (200 if out.get("ok") else 400)
+        sync = (request.args.get("sync") or "").strip().lower() in ("1", "true", "yes")
+        if sync:
+            try:
+                out = generar_reporte_competencia_captura(
+                    item_id=item_id,
+                    imagen=raw,
+                    mime=mime,
+                    titulo=titulo,
+                    precio=precio,
+                )
+            except Exception as e:
+                return jsonify({"ok": False, "error": str(e)[:400]}), 500
+            return jsonify(out), (200 if out.get("ok") else 400)
+        from app.services.competencia_captura_jobs import iniciar_competencia_captura_job
+
+        job_id = iniciar_competencia_captura_job(
+            item_id=item_id,
+            imagen=raw,
+            mime=mime,
+            titulo=titulo,
+            precio=precio,
+        )
+        return jsonify({
+            "ok": True,
+            "status": "processing",
+            "job_id": job_id,
+            "progreso": "En cola…",
+        }), 202
+
+    @app.route(
+        "/app/api/meli/competencia-precios/reporte-captura/<job_id>",
+        methods=["GET"],
+    )
+    @app.route("/api/meli/competencia-precios/reporte-captura/<job_id>", methods=["GET"])
+    def api_meli_competencia_precios_reporte_captura_estado(job_id: str):
+        """Estado / resultado del job de captura de competencia."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.competencia_captura_jobs import estado_competencia_captura_job
+
+        job = estado_competencia_captura_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Job no encontrado o expirado"}), 404
+        return jsonify(job)
 
     @app.route("/app/api/meli/competencia-precios/precio-base", methods=["POST"])
     @app.route("/api/meli/competencia-precios/precio-base", methods=["POST"])
@@ -16867,6 +16912,25 @@ def register_routes(app):
                 item_id=body.get("item_id") or "",
                 precio=body.get("precio"),
                 sku=body.get("sku") or "",
+            )
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:400]}), 500
+        return jsonify(out), (200 if out.get("ok") else 400)
+
+    @app.route("/app/api/meli/competencia-precios/presentacion", methods=["POST"])
+    @app.route("/api/meli/competencia-precios/presentacion", methods=["POST"])
+    def api_meli_competencia_precios_presentacion():
+        """Cantidad g/ml a mano cuando el título no trae empaque."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.analisis_competencia_precios import actualizar_presentacion_manual
+
+        body = request.get_json(silent=True) or {}
+        try:
+            out = actualizar_presentacion_manual(
+                item_id=body.get("item_id") or "",
+                cantidad=body.get("cantidad") if body.get("cantidad") is not None else body.get("presentacion"),
+                unidad=body.get("unidad") or "g",
             )
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:400]}), 500

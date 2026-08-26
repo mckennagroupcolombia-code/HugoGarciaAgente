@@ -1,27 +1,27 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-08-24T07:23:44"
+    "ultima_ejecucion": "2026-08-25T07:22:55"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-18T07:15:01"
+    "ultima_ejecucion": "2026-08-25T07:15:01"
   },
   "certificados_retencion": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-18T08:00:01"
+    "ultima_ejecucion": "2026-08-25T08:00:01"
   },
   "monitor_importaciones": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-18T08:15:01"
+    "ultima_ejecucion": "2026-08-25T08:15:01"
   },
   "compliance_meli": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-18T08:30:01"
+    "ultima_ejecucion": "2026-08-25T08:30:01"
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-08-24T18:00:01"
+    "ultima_ejecucion": "2026-08-25T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,7 +45,7 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-08-24T15:09:57"
+    "ultima_ejecucion": "2026-08-25T07:06:07"
   },
   "cobertura_meli": {
     "intervalo_horas": 168,

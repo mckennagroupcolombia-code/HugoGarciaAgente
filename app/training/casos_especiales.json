@@ -127,6 +127,20 @@
       ],
       "contexto": "Formato de respuesta de precios (estilo real del equipo)",
       "instruccion": "Responde precios en el formato compacto del equipo, una línea por presentación: \"Producto x presentación: precio\" (ej. \"Ácido ascórbico x 100 gr: 11.000\"). Sin párrafos largos ni opciones no pedidas. Usa solo precios que devuelva la herramienta de catálogo."
+    },
+    {
+      "id": "acido_hialuronico_peso_molecular",
+      "trigger": [
+        "hialuronico alto peso",
+        "hialuronico bajo peso",
+        "diferencia hialuronico",
+        "diferencia del acido hialuronico",
+        "peso molecular hialuronico",
+        "alto peso molecular",
+        "bajo peso molecular"
+      ],
+      "contexto": "Cliente pregunta la diferencia entre ácido hialurónico de alto y bajo peso molecular (McKenna maneja ambas presentaciones)",
+      "instruccion": "Explique con este contenido técnico exacto: el ácido hialurónico de ALTO peso molecular posee moléculas grandes que permanecen en la superficie cutánea, formando una película protectora que hidrata de forma inmediata la capa córnea. El de BAJO peso molecular cuenta con fragmentos lo suficientemente pequeños para penetrar a capas más profundas de la epidermis y la dermis, estimulando la síntesis endógena de colágeno, promoviendo la reparación tisular y rellenando arrugas desde el interior a largo plazo. Como McKenna Group vende AMBOS pesos moleculares, persuada al cliente hacia el uso combinado destacando el efecto sinérgico multicapa: mientras el peso alto retiene agua en la capa externa formando barrera protectora contra la pérdida transepidérmica de agua, el peso bajo penetra en epidermis y dermis superior para bioestimular los fibroblastos, promover la síntesis endógena de ácido hialurónico propio y rellenar desde las capas profundas. Ofrezca las dos referencias del catálogo cuando surja esta pregunta."
     }
   ]
 }

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useAnalizarCompetenciaPrecios,
   useActualizarPrecioBaseCompetencia,
-  useBorrarObservacionCompetencia,
-  useGuardarObservacionCompetencia,
+  useActualizarPresentacionCompetencia,
   useReporteCapturaCompetencia,
   useUltimoAnalisisCompetencia,
   type ListadoCaptura,
+  type PalabrasClaveMeli,
   type ProductoCompetencia,
   type ReporteCaptura,
   type VeredictoCompetencia,
@@ -76,7 +76,7 @@ function cop(n: number | null | undefined): string {
 /** Producto activo para Ctrl+V del pantallazo. */
 let filaCapturaActiva: string | null = null;
 
-type TabDetalle = "analisis" | "promos" | "anotar";
+type TabDetalle = "analisis" | "promos";
 
 const VEREDICTO: Record<
   VeredictoCompetencia,
@@ -122,11 +122,103 @@ function BadgeVeredicto({ v }: { v: VeredictoCompetencia }) {
 }
 
 function cantidadDeTitulo(titulo: string): string {
-  const m = (titulo || "").match(
+  const t = titulo || "";
+  const hasta = t.match(
+    /\bhasta\s+(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?)\b/i,
+  );
+  if (hasta) {
+    const n = Number(String(hasta[1]).replace(",", "."));
+    const u = hasta[2].toLowerCase();
+    let base =
+      u.startsWith("kg") || u.startsWith("kilo")
+        ? `${n} kg`
+        : `${Math.round(n)} g`;
+    const prec = t.match(/\b(0[.,]\d+)\s*(g|grs?|gramos?|mg)\b/i);
+    if (prec) {
+      const pu = prec[2].toLowerCase() === "mg" ? "mg" : "g";
+      base = `${base} · prec. ${String(prec[1]).replace(",", ".")} ${pu}`;
+    }
+    return base;
+  }
+  const nx = t.match(
+    /\b(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+  );
+  if (nx) {
+    const pack = Number(nx[1]);
+    const unit = Number(String(nx[2]).replace(",", "."));
+    const u = nx[3].toLowerCase();
+    if (pack >= 2 && pack <= 20 && unit > 0) {
+      const label = u.startsWith("kg") || u.startsWith("kilo")
+        ? "kg"
+        : u.startsWith("ml") || u === "cc"
+          ? "ml"
+          : u === "l" || u.startsWith("lt") || u.startsWith("litro")
+            ? "L"
+            : "g";
+      const nShow = label === "kg" || label === "L" ? unit : Math.round(unit);
+      return `${pack}×${nShow} ${label}`;
+    }
+  }
+  const suma = t.match(
+    /\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\s*[+]\s*(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+  );
+  if (suma) {
+    const a = parsePresentacion(`${suma[1]} ${suma[2]}`);
+    const b = parsePresentacion(`${suma[3]} ${suma[4]}`);
+    if (a && b && a.u === b.u) {
+      return a.u === "ml" ? `${Math.round(a.n + b.n)} ml` : `${Math.round(a.n + b.n)} g`;
+    }
+  }
+  const cu = t.match(
+    /\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\s*(?:c\s*\/\s*u\.?|c\/?u\.?|cada\s+un[oa])\b/i,
+  );
+  if (cu) {
+    const head = t.slice(0, cu.index ?? 0);
+    let mult = 1;
+    const und = head.match(
+      /\b(\d+)\s*(?:und|unidades?|pcs?|piezas?|frascos?|potes?|sobres?|botellas?)\b/i,
+    );
+    if (und) {
+      const n = Number(und[1]);
+      if (n >= 2 && n <= 20) mult = n;
+    } else if (/\b(?:duo|par|pareja|kit\s*(?:de\s*)?2|pack\s*(?:de\s*)?2)\b/i.test(head)) {
+      mult = 2;
+    } else {
+      const partes = head
+        .split(/\s*\+\s*/)
+        .map((p) => p.trim())
+        .filter((p) => p && !/^env[ií]o\b/i.test(p));
+      if (partes.length >= 2) mult = Math.min(partes.length, 6);
+    }
+    const unit = Number(String(cu[1]).replace(",", "."));
+    const u = cu[2].toLowerCase();
+    const label = u.startsWith("kg") || u.startsWith("kilo")
+      ? "kg"
+      : u.startsWith("ml") || u === "cc"
+        ? "ml"
+        : u === "l" || u.startsWith("lt") || u.startsWith("litro")
+          ? "L"
+          : "g";
+    const nShow = label === "kg" || label === "L" ? unit : Math.round(unit);
+    if (mult > 1) return `${mult}×${nShow} ${label}`;
+    return `${nShow} ${label}`;
+  }
+  const m = t.match(
     /\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
   );
   if (!m) return "—";
   const n = Number(m[1].replace(",", "."));
+  // 0.001 g = precisión de gramera, no cantidad
+  if (n > 0 && n < 1) {
+    const rest = t.slice((m.index ?? 0) + m[0].length);
+    const next = rest.match(
+      /\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+    );
+    if (next) {
+      return cantidadDeTitulo(`${next[1]} ${next[2]}`);
+    }
+    return "—";
+  }
   const u = m[2].toLowerCase();
   if (u.startsWith("kg") || u.startsWith("kilo")) return `${n} kg`;
   if (u.startsWith("ml") || u === "cc") return `${Math.round(n)} ml`;
@@ -134,14 +226,95 @@ function cantidadDeTitulo(titulo: string): string {
   return `${Math.round(n)} g`;
 }
 
+function parsePresentacion(txt: string): { n: number; u: "g" | "ml" } | null {
+  const t = txt || "";
+  const kit = t.match(
+    /\b(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+  );
+  if (kit) {
+    const pack = Number(kit[1]);
+    const unit = Number(String(kit[2]).replace(",", "."));
+    if (pack >= 1 && pack <= 20 && unit > 0) {
+      const one = parsePresentacion(`${unit} ${kit[3]}`);
+      if (one) return { n: one.n * pack, u: one.u };
+    }
+  }
+  const m = t.match(
+    /\b(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+  );
+  if (!m) return null;
+  const n = Number(String(m[1]).replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const u = m[2].toLowerCase();
+  if (u.startsWith("kg") || u.startsWith("kilo")) return { n: n * 1000, u: "g" };
+  if (u === "l" || u.startsWith("lt") || u.startsWith("litro")) return { n: n * 1000, u: "ml" };
+  if (u.startsWith("ml") || u === "cc") return { n, u: "ml" };
+  return { n, u: "g" };
+}
+
+function precioPorUnidad(
+  total: number | null | undefined,
+  cant: string,
+  c: ListadoCaptura,
+): number | null {
+  const p = parsePresentacion(cant);
+  if (p && total != null && Number(total) > 0) {
+    return Number(total) / p.n;
+  }
+  if (c.precio_por_unidad != null && Number(c.precio_por_unidad) > 0) {
+    return Number(c.precio_por_unidad);
+  }
+  if (c.precio_por_100 != null && Number(c.precio_por_100) > 0) {
+    return Number(c.precio_por_100) / 100;
+  }
+  return null;
+}
+
+function sufijoUnidad(cant: string, canonica?: string | null, backend?: string | null): string {
+  const raw = (backend || "").toLowerCase();
+  if (raw.includes("ml") || canonica === "ml" || /\bml\b|\bL\b|litro/i.test(cant)) {
+    return "/ ml";
+  }
+  return "/ g";
+}
+
+function esInstrumentoPesaje(titulo: string): boolean {
+  return /gramera|balanza|b[aá]scula|pesa digital|pesa gramera/i.test(titulo || "");
+}
+
+function splitCantidadEfectiva(txt: string | null | undefined): {
+  n: string;
+  u: "g" | "ml";
+} {
+  const m = (txt || "").match(
+    /(\d+(?:[.,]\d+)?)\s*(kg|kilos?|g|grs?|gramos?|ml|mls|cc|l|lts?|litros?)\b/i,
+  );
+  if (!m) return { n: "", u: "g" };
+  let n = Number(String(m[1]).replace(",", "."));
+  const u = m[2].toLowerCase();
+  if (u.startsWith("kg") || u.startsWith("kilo")) {
+    n = n * 1000;
+    return { n: String(Math.round(n)), u: "g" };
+  }
+  if (u === "l" || u.startsWith("lt") || u.startsWith("litro")) {
+    n = n * 1000;
+    return { n: String(Math.round(n)), u: "ml" };
+  }
+  if (u.startsWith("ml") || u === "cc") return { n: String(Math.round(n)), u: "ml" };
+  return { n: String(Math.round(n)), u: "g" };
+}
+
 function BloqueReporte({
   r,
   nuestroNombre,
   nuestroPrecio,
+  cantidadNuestra,
 }: {
   r: ReporteCaptura;
   nuestroNombre: string;
   nuestroPrecio: number;
+  /** Cantidad efectiva (manual o del título), p. ej. «100 g». */
+  cantidadNuestra?: string;
 }) {
   const token = useAuthStore((s) => s.token);
   const ticketsToken = useTicketsAuth((s) => s.token);
@@ -152,6 +325,8 @@ function BloqueReporte({
   );
   const hayAuth = Boolean(apiToken || ticketsToken || token);
   const listados = r.listados ?? [];
+  const instrumento =
+    Boolean(r.instrumento_pesaje) || esInstrumentoPesaje(nuestroNombre);
   const filas: ListadoCaptura[] =
     (r.tabla && r.tabla.length > 0
       ? r.tabla
@@ -160,7 +335,7 @@ function BloqueReporte({
             titulo: nuestroNombre,
             nombre: nuestroNombre,
             precio: nuestroPrecio,
-            cantidad: r.nuestra_cantidad || cantidadDeTitulo(nuestroNombre),
+            cantidad: cantidadDeTitulo(nuestroNombre),
             valor_total: nuestroPrecio,
             es_nuestra: true,
             vendedor: "Nosotros",
@@ -174,58 +349,124 @@ function BloqueReporte({
           })),
         ]) as ListadoCaptura[];
 
+  const chart = filas.map((c, i) => {
+    const nombre = c.nombre || c.titulo || "—";
+    const cant = c.es_nuestra
+      ? (cantidadNuestra && cantidadNuestra !== "—"
+          ? cantidadNuestra
+          : cantidadDeTitulo(nuestroNombre))
+      : c.cantidad || cantidadDeTitulo(nombre);
+    const total = c.valor_total ?? c.precio;
+    const pu = instrumento
+      ? null
+      : precioPorUnidad(total, cant, c.es_nuestra ? { ...c, precio_por_unidad: null } : c);
+    return { c, i, nombre, cant, total, pu };
+  });
+  const conUnidad = chart.filter((f) => f.pu != null && f.pu > 0);
+  const usanUnidad = !instrumento && conUnidad.length > 0;
+  const metricas = usanUnidad ? conUnidad.map((f) => f.pu as number) : chart.map((f) => Number(f.total) || 0);
+  const maxM = Math.max(0, ...metricas);
+  const minM = metricas.length ? Math.min(...metricas.filter((n) => n > 0)) : null;
+  const sufijo = sufijoUnidad(
+    chart.find((f) => f.c.es_nuestra)?.cant || r.nuestra_cantidad || "",
+    chart.find((f) => f.c.es_nuestra)?.c.unidad_canonica,
+    r.unidad_comparacion,
+  );
+  const ours = chart.find((f) => f.c.es_nuestra);
+  const oursM = usanUnidad ? ours?.pu : ours?.total;
+  const sorted = [...chart].sort((a, b) => {
+    const av = (usanUnidad ? a.pu : a.total) ?? 1e18;
+    const bv = (usanUnidad ? b.pu : b.total) ?? 1e18;
+    return av - bv;
+  });
+  let pctVsMin: number | null = null;
+  if (oursM != null && minM != null && oursM > 0) {
+    pctVsMin = ((oursM - minM) * 100) / oursM;
+  }
+
   return (
     <div className="space-y-1.5">
-      {r.resumen ? (
+      {oursM != null && minM != null ? (
+        <p className="text-[11px] font-semibold leading-snug text-ink">
+          {r.veredicto === "mas_caro"
+            ? `Estamos ${Math.abs(pctVsMin ?? 0).toFixed(0)}% más caros por unidad`
+            : r.veredicto === "mas_barato"
+              ? "Somos los más baratos por unidad"
+              : r.veredicto === "similar"
+                ? "Andamos parecidos por unidad"
+                : r.resumen || "Comparación por unidad"}
+          <span className="text-muted">
+            {" "}
+            · nosotros {cop(oursM)}
+            {usanUnidad ? ` ${sufijo}` : ""} · más barato {cop(minM)}
+            {usanUnidad ? ` ${sufijo}` : ""}
+          </span>
+        </p>
+      ) : r.resumen ? (
         <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-ink" title={r.resumen}>
           {r.resumen}
         </p>
       ) : null}
-      <div className="overflow-x-auto rounded border border-border bg-surface">
-        <table className="w-full min-w-[18rem] border-collapse text-left text-[11px]">
-          <thead>
-            <tr className="border-b border-border bg-surface-panel text-[9px] uppercase text-muted">
-              <th className="px-2 py-1 font-bold">Nombre</th>
-              <th className="px-1.5 py-1 font-bold">Cant.</th>
-              <th className="px-2 py-1 font-bold">Total</th>
-              <th className="px-1.5 py-1" />
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((c, i) => {
-              const nombre = c.nombre || c.titulo || "—";
-              const cant = c.cantidad || cantidadDeTitulo(nombre);
-              const total = c.valor_total ?? c.precio;
-              return (
-                <tr
-                  key={`${nombre}-${i}`}
-                  className={`border-b border-border/50 ${c.es_nuestra ? "bg-accent/10" : ""}`}
+      <div className="space-y-1 rounded border border-border bg-surface px-1.5 py-1.5">
+        <p className="text-[9px] font-bold uppercase tracking-wide text-muted">
+          {usanUnidad
+            ? `Precio ${sufijo.trim()} · barra más larga = más caro`
+            : "Precio total · barra más larga = más caro"}
+        </p>
+        {sorted.map((f) => {
+          const m = (usanUnidad ? f.pu : f.total) ?? 0;
+          const pct = maxM > 0 ? Math.max(6, (m / maxM) * 100) : 0;
+          const esMin = minM != null && m > 0 && Math.abs(m - minM) < 0.5;
+          const barCls = f.c.es_nuestra
+            ? "bg-accent"
+            : esMin
+              ? "bg-emerald-500"
+              : "bg-violet-300";
+          return (
+            <div key={`${f.nombre}-${f.i}`} className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`w-[7.2rem] shrink-0 truncate text-[10px] font-semibold ${
+                    f.c.es_nuestra ? "text-accent" : "text-ink"
+                  }`}
+                  title={f.nombre}
                 >
-                  <td className="max-w-[11rem] truncate px-2 py-1 font-semibold text-ink" title={nombre}>
-                    {c.es_nuestra ? "★ Nosotros" : nombre}
-                  </td>
-                  <td className="whitespace-nowrap px-1.5 py-1 tabular-nums text-ink">{cant}</td>
-                  <td className="whitespace-nowrap px-2 py-1 font-bold tabular-nums text-ink">
-                    {cop(total)}
-                  </td>
-                  <td className="px-1.5 py-1">
-                    {c.permalink ? (
-                      <a
-                        href={c.permalink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[10px] font-semibold text-accent hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Ver
-                      </a>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  {f.c.es_nuestra ? "★ Nosotros" : f.nombre}
+                </span>
+                <div className="h-4 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-panel">
+                  <div
+                    className={`h-full rounded-full ${barCls}`}
+                    style={{ width: `${pct}%` }}
+                    title={`${cop(m)}${usanUnidad ? ` ${sufijo}` : ""}`}
+                  />
+                </div>
+                <span className="w-[5.8rem] shrink-0 text-right text-[10px] font-black tabular-nums text-ink">
+                  {cop(m)}
+                  {usanUnidad ? (
+                    <span className="font-semibold text-muted">{sufijo.replace(" ", "")}</span>
+                  ) : null}
+                </span>
+                {f.c.permalink ? (
+                  <a
+                    href={f.c.permalink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 text-[10px] font-semibold text-accent hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Ver
+                  </a>
+                ) : (
+                  <span className="w-5 shrink-0" />
+                )}
+              </div>
+              <p className="pl-[7.2rem] text-[9px] leading-tight text-muted">
+                {f.cant}
+                {f.total != null ? ` · total ${cop(f.total)}` : ""}
+              </p>
+            </div>
+          );
+        })}
       </div>
       {tieneEvidencia && itemId && hayAuth ? (
         <div className="flex items-center justify-end gap-1">
@@ -266,23 +507,23 @@ function ItemLista({
       type="button"
       onClick={onSelect}
       title={p.titulo}
-      className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left transition-colors ${
+      className={`flex w-full items-center gap-1.5 px-1.5 py-1 text-left transition-colors ${
         selected
-          ? "bg-accent/10 ring-1 ring-accent/40"
+          ? "bg-accent/10 ring-1 ring-inset ring-accent/40"
           : "hover:bg-surface-panel"
       }`}
     >
       <span
-        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${VEREDICTO[p.veredicto]?.dot ?? "bg-gray-400"}`}
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${VEREDICTO[p.veredicto]?.dot ?? "bg-gray-400"}`}
         title={VEREDICTO[p.veredicto]?.label}
       />
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-ink">
+        <p className="truncate text-[11px] font-semibold leading-tight text-ink">
           {p.titulo}
         </p>
       </div>
-      <div className="shrink-0 pt-0.5 text-right">
-        <p className="text-[12px] font-bold tabular-nums text-ink">{cop(p.precio)}</p>
+      <div className="shrink-0 text-right">
+        <p className="text-[11px] font-bold leading-none tabular-nums text-ink">{cop(p.precio)}</p>
         {mostrarDelta ? (
           <p
             className={`text-[10px] font-semibold tabular-nums ${
@@ -298,32 +539,77 @@ function ItemLista({
   );
 }
 
+function ChipsPalabrasClaveMeli({ kw, query }: { kw?: PalabrasClaveMeli; query: string }) {
+  const nombre = kw?.nombre?.filter(Boolean) ?? [];
+  const cantidad = kw?.cantidad?.trim() || "";
+  const porcentajes = kw?.porcentajes?.filter(Boolean) ?? [];
+  const tiene = nombre.length > 0 || cantidad || porcentajes.length > 0;
+  if (!tiene && !query) return null;
+
+  return (
+    <div
+      className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5"
+      title={query ? `Búsqueda MeLi: ${query}` : undefined}
+    >
+      {nombre.map((w) => (
+        <span
+          key={`n-${w}`}
+          className="rounded border border-border bg-surface-panel px-1 py-px text-[9px] font-medium text-ink"
+        >
+          {w}
+        </span>
+      ))}
+      {cantidad ? (
+        <span className="rounded border border-accent/30 bg-accent/10 px-1 py-px text-[9px] font-semibold text-accent">
+          {cantidad}
+        </span>
+      ) : null}
+      {porcentajes.map((pct) => (
+        <span
+          key={`p-${pct}`}
+          className="rounded border border-amber-500/30 bg-amber-500/10 px-1 py-px text-[9px] font-semibold text-amber-800 dark:text-amber-200"
+        >
+          {pct}
+        </span>
+      ))}
+      {!tiene && query ? (
+        <span className="truncate text-[9px] text-muted">{query}</span>
+      ) : null}
+    </div>
+  );
+}
+
 function PanelDetalle({ p }: { p: ProductoCompetencia }) {
   const [tab, setTab] = useState<TabDetalle>("analisis");
-  const [precio, setPrecio] = useState("");
-  const [vendedor, setVendedor] = useState("");
-  const [permalink, setPermalink] = useState("");
   const [precioBase, setPrecioBase] = useState(String(Math.round(p.precio)));
   const [msgPrecio, setMsgPrecio] = useState<string | null>(null);
+  const [msgCant, setMsgCant] = useState<string | null>(null);
+  const initCant = splitCantidadEfectiva(
+    p.presentacion_manual || p.cantidad_efectiva || cantidadDeTitulo(p.titulo),
+  );
+  const [cantNum, setCantNum] = useState(initCant.n);
+  const [cantUnidad, setCantUnidad] = useState<"g" | "ml">(initCant.u);
   const [hint, setHint] = useState<string | null>(null);
   const [errorCaptura, setErrorCaptura] = useState<string | null>(null);
   const zonaRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const enviandoRef = useRef(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const guardar = useGuardarObservacionCompetencia();
-  const borrar = useBorrarObservacionCompetencia();
   const reporteMut = useReporteCapturaCompetencia();
   const precioMut = useActualizarPrecioBaseCompetencia();
-  const obs = p.observaciones_manual ?? [];
+  const cantMut = useActualizarPresentacionCompetencia();
   const busqueda = p.url_busqueda_meli;
+  const queryMeli = p.query?.trim() || "";
   const reporte = reporteMut.data?.reporte ?? p.reporte_captura;
-  const pres = cantidadDeTitulo(p.titulo);
+  const pres =
+    p.cantidad_efectiva ||
+    p.presentacion_manual ||
+    cantidadDeTitulo(p.titulo);
 
   async function enviarImagen(blob: Blob) {
     setErrorCaptura(null);
     reporteMut.reset();
-    setHint(null);
+    setHint("Subiendo captura…");
     setTab("analisis");
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -334,7 +620,9 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
       titulo: p.titulo,
       precio: Number(precioBase) || p.precio,
       imagen: blob,
+      onProgreso: (msg) => setHint(msg || "Analizando…"),
     });
+    setHint(null);
   }
 
   function tomarArchivo(file: File | Blob | null | undefined) {
@@ -411,11 +699,17 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
 
   useEffect(() => {
     setPrecioBase(String(Math.round(Number(p.precio) || 0)));
+    const c = splitCantidadEfectiva(
+      p.presentacion_manual || p.cantidad_efectiva || cantidadDeTitulo(p.titulo),
+    );
+    setCantNum(c.n);
+    setCantUnidad(c.u);
     setTab("analisis");
     setHint(null);
     setErrorCaptura(null);
     setMsgPrecio(null);
-  }, [p.item_id, p.precio]);
+    setMsgCant(null);
+  }, [p.item_id, p.precio, p.presentacion_manual, p.cantidad_efectiva, p.titulo]);
 
   useEffect(() => {
     return () => {
@@ -443,15 +737,50 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
     );
   }
 
-  const tabs: { id: TabDetalle; label: string; badge?: number }[] = [
+  function guardarCantidad() {
+    const raw = cantNum.trim();
+    if (!raw) {
+      setMsgCant(null);
+      cantMut.mutate(
+        { item_id: p.item_id, cantidad: "borrar", unidad: cantUnidad },
+        {
+          onSuccess: () => setMsgCant("Cantidad del título (sin override)"),
+          onError: (e) =>
+            setMsgCant(e instanceof Error ? e.message : "No se pudo limpiar"),
+        },
+      );
+      return;
+    }
+    if (!(Number(raw.replace(",", ".")) > 0)) {
+      setMsgCant("Ingresá un número > 0 (ej. 100)");
+      return;
+    }
+    setMsgCant(null);
+    cantMut.mutate(
+      { item_id: p.item_id, cantidad: raw, unidad: cantUnidad },
+      {
+        onSuccess: (data) => {
+          setMsgCant(
+            data.presentacion_manual
+              ? `Cantidad ${data.presentacion_manual} guardada`
+              : "Cantidad guardada",
+          );
+        },
+        onError: (e) => {
+          setMsgCant(e instanceof Error ? e.message : "No se pudo guardar la cantidad");
+        },
+      },
+    );
+  }
+
+  const tabs: { id: TabDetalle; label: string }[] = [
     { id: "analisis", label: "Comparación" },
     { id: "promos", label: "Promociones" },
-    { id: "anotar", label: "Anotar", badge: obs.length || undefined },
   ];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 space-y-1.5 border-b border-border px-2 py-1.5">
+      <header className="shrink-0 space-y-1 border-b border-border px-1.5 py-1">
         <div className="flex items-center gap-2">
           <h3 className="min-w-0 flex-1 truncate text-[12px] font-bold text-ink" title={p.titulo}>
             {p.titulo}
@@ -473,22 +802,61 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
             type="button"
             disabled={precioMut.isPending}
             onClick={guardarPrecioBase}
-            className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-60"
+            className="mck-chip-compact rounded bg-accent px-1.5 font-bold text-white disabled:opacity-60"
           >
             {precioMut.isPending ? "…" : "Publicar"}
+          </button>
+          <label
+            className="flex items-center gap-0.5 rounded border border-border bg-surface px-1.5 py-0.5"
+            title="Cantidad del empaque cuando el título no la trae (ej. 100 g)"
+          >
+            <span className="text-[9px] font-bold uppercase text-muted">Cant.</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              placeholder="100"
+              value={cantNum}
+              onChange={(e) => setCantNum(e.target.value)}
+              className="w-14 bg-transparent text-[11px] font-bold tabular-nums text-ink outline-none"
+            />
+            <select
+              value={cantUnidad}
+              onChange={(e) => setCantUnidad(e.target.value === "ml" ? "ml" : "g")}
+              className="bg-transparent text-[10px] font-bold text-ink outline-none"
+            >
+              <option value="g">g</option>
+              <option value="ml">ml</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={cantMut.isPending}
+            onClick={guardarCantidad}
+            className="mck-chip-compact rounded border border-border px-1.5 font-semibold text-ink disabled:opacity-60"
+          >
+            {cantMut.isPending ? "…" : "Guardar"}
           </button>
           {p.permalink ? (
             <a
               href={p.permalink}
               target="_blank"
               rel="noreferrer"
-              className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold text-ink"
+              className="mck-chip-compact inline-flex items-center rounded border border-border px-1.5 font-semibold text-ink"
             >
               MeLi ↗
             </a>
           ) : null}
         </div>
         {msgPrecio ? <p className="text-[10px] text-muted">{msgPrecio}</p> : null}
+        {msgCant ? <p className="text-[10px] text-muted">{msgCant}</p> : null}
+        {pres === "—" ? (
+          <p className="text-[10px] text-amber-700">
+            El título no trae gramos/ml — ingresá la cantidad y tocá «Guardar»
+          </p>
+        ) : p.presentacion_es_manual ? (
+          <p className="text-[10px] text-muted">Cantidad manual: {pres}</p>
+        ) : null}
         {precioMut.isError ? (
           <p className="text-[10px] text-danger">
             {precioMut.error instanceof Error
@@ -496,20 +864,33 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
               : "No se pudo guardar el precio"}
           </p>
         ) : null}
+        {cantMut.isError ? (
+          <p className="text-[10px] text-danger">
+            {cantMut.error instanceof Error
+              ? cantMut.error.message
+              : "No se pudo guardar la cantidad"}
+          </p>
+        ) : null}
       </header>
 
-      <div className="shrink-0 border-b border-border px-2 py-1.5">
+      <div className="shrink-0 border-b border-border px-1.5 py-1">
         <div className="flex flex-wrap items-center gap-1">
           {busqueda ? (
             <button
               type="button"
               onClick={abrirListadoMeli}
               disabled={reporteMut.isPending}
-              className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-60"
+              title={
+                queryMeli
+                  ? `Buscar en MeLi: ${queryMeli}`
+                  : "Abrir listado de MeLi con palabras clave del producto"
+              }
+              className="mck-chip-compact shrink-0 rounded bg-accent px-1.5 font-bold text-white disabled:opacity-60"
             >
               Buscar MeLi
             </button>
           ) : null}
+          <ChipsPalabrasClaveMeli kw={p.palabras_clave_meli} query={queryMeli} />
           <div
             ref={zonaRef}
             tabIndex={0}
@@ -560,7 +941,7 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
                 type="button"
                 onClick={() => void onCapturarPestana()}
                 disabled={reporteMut.isPending}
-                className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-60"
+                className="mck-chip-compact shrink-0 rounded bg-accent px-1.5 font-bold text-white disabled:opacity-60"
               >
                 Capturar
               </button>
@@ -569,7 +950,7 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={reporteMut.isPending}
-              className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-60"
+              className="mck-chip-compact shrink-0 rounded border border-border px-1.5 font-semibold disabled:opacity-60"
             >
               Subir
             </button>
@@ -604,9 +985,6 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
             }`}
           >
             {t.label}
-            {t.badge ? (
-              <span className="ml-0.5 text-accent">{t.badge}</span>
-            ) : null}
           </button>
         ))}
       </div>
@@ -618,6 +996,7 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
               r={reporte}
               nuestroNombre={p.titulo}
               nuestroPrecio={Number(precioBase) || p.precio}
+              cantidadNuestra={pres}
             />
           ) : (
             <p className="py-4 text-center text-[11px] text-muted">
@@ -629,100 +1008,6 @@ function PanelDetalle({ p }: { p: ProductoCompetencia }) {
 
         {tab === "promos" ? (
           <MeliPromocionesItem meliId={p.item_id} enabled={tab === "promos"} embedded />
-        ) : null}
-
-        {tab === "anotar" ? (
-          <div className="space-y-2">
-            <form
-              className="grid grid-cols-2 gap-1"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!precio.trim()) return;
-                guardar.mutate(
-                  {
-                    item_id: p.item_id,
-                    precio: precio.trim(),
-                    vendedor: vendedor.trim() || undefined,
-                    permalink: permalink.trim() || undefined,
-                    titulo:
-                      pres !== "—"
-                        ? `${p.titulo.split(" ").slice(0, 3).join(" ")} ${pres}`
-                        : p.titulo,
-                  },
-                  {
-                    onSuccess: () => {
-                      setPrecio("");
-                      setVendedor("");
-                      setPermalink("");
-                    },
-                  },
-                );
-              }}
-            >
-              <input
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
-                placeholder="Precio $"
-                className="rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink"
-                required
-              />
-              <input
-                value={vendedor}
-                onChange={(e) => setVendedor(e.target.value)}
-                placeholder="Vendedor"
-                className="rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink"
-              />
-              <input
-                value={permalink}
-                onChange={(e) => setPermalink(e.target.value)}
-                placeholder="Link"
-                className="col-span-2 rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink"
-              />
-              <button
-                type="submit"
-                disabled={guardar.isPending}
-                className="col-span-2 rounded bg-accent px-2 py-1 text-[10px] font-bold text-white disabled:opacity-60"
-              >
-                {guardar.isPending ? "…" : "Anotar"}
-              </button>
-            </form>
-            {guardar.isError ? (
-              <p className="text-[10px] text-danger">
-                {guardar.error instanceof Error ? guardar.error.message : "No se pudo guardar"}
-              </p>
-            ) : null}
-            {obs.length > 0 ? (
-              <ul className="divide-y divide-border rounded border border-border bg-surface">
-                {obs.map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-2 px-2 py-1">
-                    <span className="min-w-0 truncate text-[11px]">
-                      <span className="font-bold text-ink">{cop(o.precio)}</span>
-                      {o.vendedor ? <span className="text-muted"> · {o.vendedor}</span> : null}
-                    </span>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {o.permalink ? (
-                        <a
-                          href={o.permalink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[10px] font-semibold text-accent"
-                        >
-                          Ver
-                        </a>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => borrar.mutate(o.id)}
-                        className="text-[10px] text-muted hover:text-danger"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
         ) : null}
       </div>
     </div>
@@ -787,10 +1072,37 @@ export default function CompetenciaPreciosPanel() {
         : null;
 
   return (
-    <div className="flex h-full min-h-[24rem] flex-col gap-1.5 overflow-hidden rounded-xl border border-border bg-surface-panel p-1.5">
+    <div
+      className="flex h-full min-h-0 flex-col gap-1 overflow-hidden rounded-xl border border-border bg-surface-panel p-1"
+      style={{ ["--mck-field-h" as string]: "1.2rem", ["--mck-field-fs" as string]: "0.65rem" }}
+    >
       <div className="flex shrink-0 flex-wrap items-center gap-1">
-        <h2 className="text-xs font-black text-ink">Competencia</h2>
-        <div className="ml-auto flex flex-wrap items-center gap-1">
+        <h2 className="text-[11px] font-black leading-none text-ink">Competencia</h2>
+        {r ? (
+          <div className="flex flex-wrap items-center gap-0.5">
+            {(
+              [
+                ["todos", r.productos, "Todos", ""],
+                ["mas_caro", r.nosotros_mas_caros, "Revisar", "border-red-300 bg-red-50/80"],
+                ["mas_barato", r.nosotros_mas_baratos, "Baratos", "border-green-300 bg-green-50/80"],
+                ["sin_competencia", r.sin_match, "Sin dato", ""],
+              ] as const
+            ).map(([id, n, label, extra]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFiltro(id)}
+                className={`mck-chip-compact inline-flex items-center gap-1 rounded border px-1.5 ${
+                  filtro === id ? "border-accent bg-accent/10" : extra || "border-border bg-surface"
+                }`}
+              >
+                <span className="font-black tabular-nums text-ink">{n}</span>
+                <span className="text-muted">{label}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="ml-auto flex flex-wrap items-center gap-0.5">
           <input
             type="number"
             min={1}
@@ -798,7 +1110,7 @@ export default function CompetenciaPreciosPanel() {
             value={topN}
             title="Top"
             onChange={(e) => setTopN(Number(e.target.value) || 12)}
-            className="w-9 rounded border border-border bg-surface px-1 py-0.5 text-center text-[10px] text-ink"
+            className="w-8 rounded border border-border bg-surface px-0.5 text-center text-[10px] text-ink"
           />
           <input
             type="number"
@@ -807,14 +1119,14 @@ export default function CompetenciaPreciosPanel() {
             value={dias}
             title="Días"
             onChange={(e) => setDias(Number(e.target.value) || 30)}
-            className="w-9 rounded border border-border bg-surface px-1 py-0.5 text-center text-[10px] text-ink"
+            className="w-8 rounded border border-border bg-surface px-0.5 text-center text-[10px] text-ink"
           />
           <input
             type="search"
             value={consulta}
             onChange={(e) => setConsulta(e.target.value)}
             placeholder="Filtrar…"
-            className="w-24 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] text-ink"
+            className="w-20 rounded border border-border bg-surface px-1 text-[10px] text-ink"
           />
           <button
             type="button"
@@ -826,52 +1138,27 @@ export default function CompetenciaPreciosPanel() {
                 consulta: consulta.trim() || undefined,
               })
             }
-            className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-60"
+            className="mck-chip-compact rounded bg-accent px-1.5 font-bold text-white disabled:opacity-60"
           >
             {cargando ? "…" : "Actualizar"}
           </button>
         </div>
       </div>
 
-      {error ? <p className="shrink-0 text-[10px] text-danger">{error}</p> : null}
+      {error ? <p className="shrink-0 text-[10px] leading-none text-danger">{error}</p> : null}
 
-      {r ? (
-        <div className="grid shrink-0 grid-cols-4 gap-0.5">
-          {(
-            [
-              ["todos", r.productos, "Todos", ""],
-              ["mas_caro", r.nosotros_mas_caros, "Revisar", "border-red-300 bg-red-50/80"],
-              ["mas_barato", r.nosotros_mas_baratos, "Baratos", "border-green-300 bg-green-50/80"],
-              ["sin_competencia", r.sin_match, "Sin dato", ""],
-            ] as const
-          ).map(([id, n, label, extra]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFiltro(id)}
-              className={`rounded border px-1 py-1 text-center ${
-                filtro === id ? "border-accent" : extra || "border-border"
-              }`}
-            >
-              <p className="text-sm font-black leading-none text-ink">{n}</p>
-              <p className="mt-0.5 text-[9px] leading-none text-muted">{label}</p>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 lg:flex-row">
-        <aside className="flex w-full shrink-0 flex-col gap-2 lg:w-80 xl:w-96">
+      <div className="flex min-h-0 flex-1 flex-col gap-1 lg:flex-row">
+        <aside className="flex w-full shrink-0 flex-col gap-1 lg:w-72 xl:w-80">
           <input
             type="search"
             value={busquedaLista}
             onChange={(e) => setBusquedaLista(e.target.value)}
             placeholder="Buscar…"
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-ink"
+            className="w-full rounded border border-border bg-surface px-1.5 text-[10px] text-ink"
           />
           <div className="min-h-[8rem] flex-1 divide-y divide-border/70 overflow-y-auto rounded-lg border border-border bg-surface lg:min-h-0">
             {visiblesFiltrados.length === 0 ? (
-              <p className="px-3 py-6 text-center text-xs text-muted">Sin productos.</p>
+              <p className="px-2 py-2 text-center text-[10px] text-muted">Sin productos.</p>
             ) : (
               visiblesFiltrados.map((p) => (
                 <ItemLista

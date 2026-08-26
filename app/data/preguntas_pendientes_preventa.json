@@ -2196,6 +2196,20 @@
       "pregunta": "Hola como estas, el precio es con iva incluido? Das factura electronica? Gracias",
       "timestamp": "2026-08-24T15:28:39.889428",
       "respondida": true
+    },
+    {
+      "question_id": "13646977639",
+      "titulo_producto": "Ácido Kojico Dpalmitato 5% 30ml",
+      "pregunta": "Buen día, modo de aplicación de éste? Gracias",
+      "timestamp": "2026-08-25T12:10:19.386668",
+      "respondida": true
+    },
+    {
+      "question_id": "13647196233",
+      "titulo_producto": "Dipropilengicol Usp Dpg 500 Ml ",
+      "pregunta": "Buen día quisiera saber si es inoloro sirve para fijar fragancias ?",
+      "timestamp": "2026-08-25T17:48:20.940139",
+      "respondida": true
     }
   ]
 }

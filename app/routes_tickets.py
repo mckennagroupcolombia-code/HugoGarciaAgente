@@ -1053,6 +1053,8 @@ def register_tickets_routes(app):
         ok, err = cambiar_estado(
             ticket_id, nuevo_estado,
             request.tickets_usuario, data.get("motivo", ""),
+            resultado_cantidad=data.get("resultado_cantidad"),
+            resultado_unidad=data.get("resultado_unidad"),
         )
         if not ok:
             return jsonify({"error": err}), 400
@@ -2158,6 +2160,17 @@ def register_tickets_routes(app):
             return jsonify({"error": "Sin acceso"}), 403
         return jsonify(p), 200
 
+    @app.route("/api/tickets/acciones/frecuentes", methods=["GET"])
+    @_auth
+    def tickets_acciones_frecuentes():
+        from app.services.tickets_db import listar_acciones_frecuentes
+        try:
+            limite = max(1, min(20, int(request.args.get("limite", "8") or "8")))
+        except ValueError:
+            limite = 8
+        uid = request.tickets_usuario["id"]
+        return jsonify({"acciones": listar_acciones_frecuentes(uid, limite=limite)}), 200
+
     @app.route("/api/tickets/acciones/historial", methods=["GET"])
     @_auth
     def tickets_acciones_historial():
@@ -2268,6 +2281,8 @@ def register_tickets_routes(app):
             uid,
             reporte_texto=data.get("reporte", ""),
             marcar_solicitud_resuelta=bool(data.get("cerrar_solicitud", True)),
+            resultado_cantidad=data.get("resultado_cantidad"),
+            resultado_unidad=data.get("resultado_unidad"),
         )
         if err:
             return jsonify({"error": err}), 400

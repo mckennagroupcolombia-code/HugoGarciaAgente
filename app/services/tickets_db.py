@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import sqlite3
 import secrets
 from datetime import datetime, timedelta
@@ -1252,6 +1253,8 @@ def init_db():
         _add_col(db, "tickets", "ticket_padre_id", "INTEGER REFERENCES tickets(id)")
         _add_col(db, "tickets", "paso_origen_id",  "INTEGER REFERENCES ticket_pasos(id)")
         _add_col(db, "tickets", "notas_accion",    "TEXT")
+        _add_col(db, "tickets", "resultado_cantidad", "REAL")
+        _add_col(db, "tickets", "resultado_unidad", "TEXT DEFAULT 'und'")
         _add_col(db, "usuarios", "bolsillo_enc",   "TEXT")
 
         db.executescript("""
@@ -3810,7 +3813,15 @@ def _es_solicitud_etiqueta_ticket(t: dict) -> bool:
     return False
 
 
-def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str = "") -> tuple:
+def cambiar_estado(
+    ticket_id: int,
+    nuevo_estado: str,
+    usuario: dict,
+    motivo: str = "",
+    *,
+    resultado_cantidad: float | None = None,
+    resultado_unidad: str | None = None,
+) -> tuple:
     valid = {"pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado"}
     if nuevo_estado not in valid:
         return False, "Estado inválido"
@@ -3902,6 +3913,16 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         p   = [nuevo_estado]
         if nuevo_estado == "resuelto":
             sql += ", resuelto_en=datetime('now')"
+            if resultado_cantidad is not None:
+                try:
+                    cant = float(resultado_cantidad)
+                except (TypeError, ValueError):
+                    return False, "Cantidad inválida"
+                if cant < 0:
+                    return False, "La cantidad no puede ser negativa"
+                unidad = (resultado_unidad or "und").strip()[:16] or "und"
+                sql += ", resultado_cantidad=?, resultado_unidad=?"
+                p.extend([cant, unidad])
         elif t["estado"] == "resuelto" and nuevo_estado != "resuelto":
             # Reapertura (p. ej. seguimiento desde historial): quitar fecha de cierre
             sql += ", resuelto_en=NULL"
@@ -5798,6 +5819,52 @@ def crear_accion_desde_procedimiento(
     return crear_ticket(data, usuario_id)
 
 
+_EMPAQUE_CANTIDAD_RE = re.compile(
+    r"\b(empac|etiquet|embal|alist|despach|pastiller|goter|bols|vaso|inocul|marcar\s+bols)\w*",
+    re.IGNORECASE,
+)
+
+
+def accion_pide_cantidad(titulo: str) -> bool:
+    """True si el título sugiere trabajo físico contable (empaque, etiquetado, etc.)."""
+    return bool(_EMPAQUE_CANTIDAD_RE.search((titulo or "").strip()))
+
+
+def listar_acciones_frecuentes(usuario_id: int, limite: int = 8) -> list:
+    """Acciones resueltas más repetidas del usuario — sugerencias al iniciar una nueva."""
+    with _conn() as db:
+        rows = db.execute(
+            """
+            SELECT titulo,
+                   COUNT(*) AS veces,
+                   MAX(actualizado_en) AS ultima_vez,
+                   MAX(protocolo_id) AS protocolo_id
+            FROM tickets
+            WHERE tipo = 'accion'
+              AND estado IN ('resuelto', 'completado')
+              AND (creado_por = ? OR asignado_a = ?)
+              AND titulo IS NOT NULL AND TRIM(titulo) != ''
+            GROUP BY LOWER(TRIM(titulo))
+            ORDER BY veces DESC, ultima_vez DESC
+            LIMIT ?
+            """,
+            (usuario_id, usuario_id, max(1, min(limite, 20))),
+        ).fetchall()
+    out = []
+    for r in rows:
+        titulo = (r["titulo"] or "").strip()
+        if not titulo:
+            continue
+        out.append({
+            "titulo": titulo,
+            "veces": int(r["veces"] or 0),
+            "ultima_vez": r["ultima_vez"],
+            "protocolo_id": r["protocolo_id"],
+            "pide_cantidad": accion_pide_cantidad(titulo),
+        })
+    return out
+
+
 def listar_acciones_historial(usuario_id: int, limit: int = 80, todos: bool = False) -> list:
     """Acciones resueltas. Si todos=True devuelve las de todo el equipo (solo para admins)."""
     with _conn() as db:
@@ -5874,9 +5941,24 @@ def completar_accion_y_reportar_solicitud(
     usuario_id: int,
     reporte_texto: str = "",
     marcar_solicitud_resuelta: bool = True,
+    *,
+    resultado_cantidad: float | None = None,
+    resultado_unidad: str | None = None,
 ) -> tuple:
     """Cierra la acción y, si viene de una solicitud, publica reporte al solicitante."""
     reporte = (reporte_texto or "").strip()
+    cant_sql = ""
+    cant_params: list = []
+    if resultado_cantidad is not None:
+        try:
+            cant = float(resultado_cantidad)
+        except (TypeError, ValueError):
+            return None, "Cantidad inválida"
+        if cant < 0:
+            return None, "La cantidad no puede ser negativa"
+        unidad = (resultado_unidad or "und").strip()[:16] or "und"
+        cant_sql = ", resultado_cantidad=?, resultado_unidad=?"
+        cant_params = [cant, unidad]
     with _conn() as db:
         a = db.execute("SELECT * FROM tickets WHERE id=?", (accion_id,)).fetchone()
         if not a or a["tipo"] != "accion":
@@ -5911,8 +5993,8 @@ def completar_accion_y_reportar_solicitud(
                          val_ant="en_proceso", val_new="resuelto",
                          detalles="Solicitud cerrada al terminar la acción asociada")
         db.execute(
-            "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
-            (accion_id,),
+            f"UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now'){cant_sql} WHERE id=?",
+            (*cant_params, accion_id),
         )
         _log(db, accion_id, usuario_id, "estado_cambiado",
              val_ant=a["estado"], val_new="resuelto", detalles="Acción terminada")
