@@ -32,7 +32,11 @@ from app.services.meli import (
     consultar_item_meli_basico,
     consultar_orden_meli_completa,
 )
-from app.services.siigo import buscar_producto_siigo_por_sku, crear_factura_venta_siigo
+from app.services.siigo import (
+    buscar_producto_siigo_por_sku,
+    crear_factura_venta_siigo,
+    precio_base_con_impuesto as _precio_base_con_impuesto,
+)
 from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 
 ESTADO_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "meli_facturas_entrega.json")
@@ -144,18 +148,26 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
         if precio is None:
             missing.append(f"{sku}: sin precio unitario en la orden")
             continue
-        if not _buscar_producto_siigo_con_reintentos(sku):
+        siigo_prod = _buscar_producto_siigo_con_reintentos(sku)
+        if not siigo_prod:
             missing.append(f"{sku}: no existe en Siigo")
             continue
 
-        lines.append(
-            {
-                "codigo": sku,
-                "nombre": nombre,
-                "cantidad": float(qty),
-                "precio_unitario": float(precio),
-            }
-        )
+        # El precio de MeLi ya incluye IVA (lo que pagó el comprador) — igual
+        # que en pedidos web, hay que mandarle a Siigo el precio ANTES de
+        # impuestos junto con tax_ids, si no la FE sale sin IVA discriminado.
+        tax_ids = siigo_prod.get("tax_ids") or []
+        tax_rate = siigo_prod.get("tax_rate_total") or 0
+        precio_base = _precio_base_con_impuesto(float(precio), tax_rate) if tax_ids else float(precio)
+        line = {
+            "codigo": sku,
+            "nombre": nombre,
+            "cantidad": float(qty),
+            "precio_unitario": precio_base,
+        }
+        if tax_ids:
+            line["tax_ids"] = tax_ids
+        lines.append(line)
 
     if missing:
         return [], "No puedo emitir factura automática: " + "; ".join(missing)

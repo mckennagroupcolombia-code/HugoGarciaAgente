@@ -947,7 +947,7 @@ def _parse_order_items_json(order: dict) -> tuple[dict, str | None]:
 
 
 def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict], str | None]:
-    from app.services.siigo import buscar_producto_siigo_por_sku
+    from app.services.siigo import buscar_producto_siigo_por_sku, precio_base_con_impuesto as _precio_base_con_impuesto
 
     items = data.get("items") or []
     if not items:
@@ -966,26 +966,32 @@ def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict],
         if price < 0:
             missing.append(f"{code}: precio inválido")
             continue
-        if not buscar_producto_siigo_por_sku(code):
+        siigo_prod = buscar_producto_siigo_por_sku(code)
+        if not siigo_prod:
             missing.append(f"{code}: no existe en Siigo")
             continue
-        lines.append(
-            {
-                "codigo": code,
-                "nombre": name,
-                "cantidad": qty,
-                "precio_unitario": price,
-            }
-        )
+        tax_ids = siigo_prod.get("tax_ids") or []
+        tax_rate = siigo_prod.get("tax_rate_total") or 0
+        line = {
+            "codigo": code,
+            "nombre": name,
+            "cantidad": qty,
+            "precio_unitario": _precio_base_con_impuesto(price, tax_rate) if tax_ids else price,
+        }
+        if tax_ids:
+            line["tax_ids"] = tax_ids
+        lines.append(line)
 
     shipping = _money_float(data.get("shipping"), 0)
     if shipping > 0:
         shipping_code = _shipping_sku_for_amount(shipping)
-        if shipping_code and not buscar_producto_siigo_por_sku(shipping_code):
+        shipping_prod = buscar_producto_siigo_por_sku(shipping_code) if shipping_code else None
+        if shipping_code and not shipping_prod:
             # Montos nuevos (tarifas 2026 por peso) no tienen producto propio en Siigo:
             # cae al producto genérico de envío con precio variable por línea.
             generic = os.getenv("WEB_SIIGO_SHIPPING_CODE_GENERIC", "WEB-ENVIO-VAR").strip()
-            if generic and buscar_producto_siigo_por_sku(generic):
+            shipping_prod = buscar_producto_siigo_por_sku(generic) if generic else None
+            if generic and shipping_prod:
                 shipping_code = generic
             else:
                 missing.append(
@@ -996,15 +1002,18 @@ def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict],
             if not missing:
                 missing.append("envío: no se pudo resolver SKU de envío")
         else:
-            lines.append(
-                {
-                    "codigo": shipping_code,
-                    "nombre": os.getenv("WEB_SIIGO_SHIPPING_NAME", "Envío pedido web").strip()
-                    or "Envío pedido web",
-                    "cantidad": 1,
-                    "precio_unitario": shipping,
-                }
-            )
+            ship_tax_ids = (shipping_prod or {}).get("tax_ids") or []
+            ship_tax_rate = (shipping_prod or {}).get("tax_rate_total") or 0
+            ship_line = {
+                "codigo": shipping_code,
+                "nombre": os.getenv("WEB_SIIGO_SHIPPING_NAME", "Envío pedido web").strip()
+                or "Envío pedido web",
+                "cantidad": 1,
+                "precio_unitario": _precio_base_con_impuesto(shipping, ship_tax_rate) if ship_tax_ids else shipping,
+            }
+            if ship_tax_ids:
+                ship_line["tax_ids"] = ship_tax_ids
+            lines.append(ship_line)
 
     if missing:
         return [], "No puedo emitir factura automática: " + "; ".join(missing)

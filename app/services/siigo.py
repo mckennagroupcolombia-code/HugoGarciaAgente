@@ -1952,6 +1952,22 @@ def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direc
         return f"Error crítico: {str(e)}"
 
 
+def precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> float:
+    """El precio de venta (MeLi/checkout web) ya incluye IVA — Siigo necesita el
+    precio ANTES de impuestos en `price` cuando se manda `taxes` explícito, si
+    no la factura electrónica sale sin IVA discriminado (bug recurrente en
+    ventas MeLi vía astroselling y en pedidos web — ver
+    docs/agentic/learned_context.md). Decimal/ROUND_HALF_UP: con float, Siigo
+    rechaza por 1 centavo de diferencia entre lo declarado y lo que su motor
+    de impuestos recalcula."""
+    from decimal import ROUND_HALF_UP, Decimal
+
+    if not tax_rate_total:
+        return precio_final
+    base = Decimal(str(precio_final)) / (Decimal("1") + Decimal(str(tax_rate_total)) / Decimal("100"))
+    return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def buscar_producto_siigo_por_sku(sku: str):
     """
     Busca un producto en SIIGO por SKU y retorna nombre oficial,
@@ -1983,13 +1999,16 @@ def buscar_producto_siigo_por_sku(sku: str):
                 # unit es un objeto {"code": ..., "name": ...}
                 unidad_raw = p.get('unit', {})
                 unidad = unidad_raw.get('name', '') if isinstance(unidad_raw, dict) else str(unidad_raw)
+                impuestos = p.get('taxes') or []
                 return {
                     "sku": sku,
                     "nombre": p.get('name', ''),
                     "precio": precio,
                     "unidad": unidad,
                     "referencia": p.get('code', sku),
-                    "stock_siigo": p.get('available_quantity', None)
+                    "stock_siigo": p.get('available_quantity', None),
+                    "tax_ids": [t.get("id") for t in impuestos if t.get("id")],
+                    "tax_rate_total": sum(float(t.get("percentage") or 0) for t in impuestos),
                 }
         else:
             print(f"⚠️ SIIGO products API: {res.status_code} para SKU {sku}")
