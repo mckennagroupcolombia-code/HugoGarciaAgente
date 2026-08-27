@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO))
 ORDERS_DB = REPO / "PAGINA_WEB" / "site" / "data" / "orders.db"
 
 
-def corregir_ref(ref: str) -> dict:
+def corregir_ref(ref: str, *, force: bool = False) -> dict:
     import requests
     from app.services.siigo import (
         autenticar_siigo,
@@ -61,8 +61,17 @@ def corregir_ref(ref: str) -> dict:
     ya_existe = buscar_nota_credito_existente_siigo(factura_id)
     nc_ya_emitida = None
     if ya_existe:
-        if "IVA no discriminado" not in (ya_existe.get("observations") or ""):
-            return {"ok": False, "ref": ref, "error": f"Ya existe NC {ya_existe.get('name')} por otra causa — no se toca."}
+        es_de_esta_correccion = "IVA no discriminado" in (ya_existe.get("observations") or "")
+        if not es_de_esta_correccion and not force:
+            return {
+                "ok": False, "ref": ref,
+                "error": f"Ya existe NC {ya_existe.get('name')} por otra causa (obs: {ya_existe.get('observations') or 'vacía'!r}) — no se toca sin --force.",
+            }
+        if not es_de_esta_correccion and abs((ya_existe.get("total") or 0) - factura["total"]) > 1:
+            return {
+                "ok": False, "ref": ref,
+                "error": f"NC {ya_existe.get('name')} (total {ya_existe.get('total')}) no cubre el total completo de la factura ({factura['total']}) — revisar a mano, no se corrige a ciegas incluso con --force.",
+            }
         nc_ya_emitida = ya_existe
 
     total_original = factura["total"]
@@ -158,10 +167,14 @@ def corregir_ref(ref: str) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ref", action="append", default=[], required=True)
+    ap.add_argument(
+        "--force", action="store_true",
+        help="Reutiliza una NC previa por otra causa (ya confirmada por un humano) en vez de bloquear.",
+    )
     args = ap.parse_args()
     for ref in args.ref:
         import json
-        print(json.dumps(corregir_ref(ref), indent=2, ensure_ascii=False))
+        print(json.dumps(corregir_ref(ref, force=args.force), indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
