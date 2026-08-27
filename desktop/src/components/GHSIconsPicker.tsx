@@ -150,7 +150,7 @@ interface Props {
   /** Modo panel compacto flotante (no cubre el lienzo — permite arrastrar al canvas). */
   compact?: boolean;
   /** Callback para insertar icon en el lienzo directamente. */
-  onInsertar?: (svgDataUrl: string) => void;
+  onInsertar?: (svgDataUrl: string, codigo?: string) => void;
 }
 
 async function copiarSvgAlPortapapeles(svg: string): Promise<boolean> {
@@ -324,7 +324,7 @@ export function GHSIconsPicker({ onCerrar, compact = false, onInsertar }: Props)
 
   function handleInsertar() {
     if (!seleccionado || !onInsertar) return;
-    onInsertar(ghsSvgADataUrl(seleccionado.svg));
+    onInsertar(ghsSvgADataUrl(seleccionado.svg), seleccionado.codigo);
   }
 
   function onDragStartSvg(e: React.DragEvent, svg: string, label = "") {

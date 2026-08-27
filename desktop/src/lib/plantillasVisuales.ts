@@ -111,6 +111,8 @@ export interface PlantillaVisualDoc {
   formato: FormatoCanvas;
   fondo: string;
   elementos: ElementoVisual[];
+  /** Estado del formulario «Diligenciar etiqueta» (HTML SCI). */
+  ficha_mp?: Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
 }
@@ -264,6 +266,8 @@ export const CATEGORIAS_FORMATO_BASE: CategoriaFormato[] = [
     nombre: "Fichas técnicas",
     emoji: "📄",
     formatos: [
+      { id: "ficha-mp", nombre: "Ficha MP 90×140 mm", descripcion: "Etiqueta técnica dos columnas (SCI)", ancho_mm: 90, alto_mm: 140, dpi: 96 },
+      { id: "ficha-mp-meli", nombre: "Ficha MP MeLi 1080×1620", descripcion: "Foto vertical de producto (2:3)", ancho_px: 1080, alto_px: 1620 },
       { id: "a4", nombre: "A4 vertical", ancho_mm: 210, alto_mm: 297, dpi: 150 },
       { id: "a4h", nombre: "A4 horizontal", ancho_mm: 297, alto_mm: 210, dpi: 150 },
       { id: "carta", nombre: "Carta US", ancho_mm: 216, alto_mm: 279, dpi: 150 },
@@ -977,6 +981,56 @@ export function seleccionTieneGrupo(
   return ids.some((id) => elementos.find((e) => e.id === id)?.groupId);
 }
 
+/** Reescribe un hex dentro de un SVG embebido (iconos de plantilla). */
+export function reemplazarHexEnSvgDataUrl(src: string, desde: string, hacia: string): string {
+  if (!src.startsWith("data:image/svg+xml")) return src;
+  const from = desde.trim();
+  const to = hacia.trim();
+  if (!from || !to) return src;
+  try {
+    const comma = src.indexOf(",");
+    const meta = src.slice(0, comma);
+    const payload = src.slice(comma + 1);
+    let svg = meta.includes("base64")
+      ? decodeURIComponent(escape(atob(payload)))
+      : decodeURIComponent(payload);
+    const variants = [from, from.toLowerCase(), from.toUpperCase()];
+    let next = svg;
+    for (const v of variants) next = next.split(v).join(to);
+    if (next === svg) return src;
+    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(next)));
+  } catch {
+    return src;
+  }
+}
+
+/** Aplica un recambio de color a un elemento (texto, trazo, relleno e iconos SVG). */
+export function recolorearElemento(
+  el: ElementoVisual,
+  desde: string,
+  hacia: string,
+): ElementoVisual {
+  const d = desde.trim().toLowerCase();
+  const h = hacia.trim();
+  if (!d || !h || d === h.toLowerCase()) return el;
+  if (el.type === "text" && (el.color || "").trim().toLowerCase() === d) {
+    return { ...el, color: h };
+  }
+  if (el.type === "line" && (el.stroke || "").trim().toLowerCase() === d) {
+    return { ...el, stroke: h };
+  }
+  if (el.type === "rect") {
+    const f = (el.fill || "").trim().toLowerCase() === d;
+    const s = (el.stroke || "").trim().toLowerCase() === d;
+    if (f || s) return { ...el, ...(f ? { fill: h } : null), ...(s ? { stroke: h } : null) };
+  }
+  if (el.type === "image") {
+    const src = reemplazarHexEnSvgDataUrl(el.src || "", desde, hacia);
+    if (src !== el.src) return { ...el, src };
+  }
+  return el;
+}
+
 /** Tras guardar: solo metadatos del servidor; geometría y capas quedan como en el lienzo. */
 export function fusionarMetadatosPlantillaTrasGuardar(
   local: PlantillaVisualDoc,
@@ -986,6 +1040,7 @@ export function fusionarMetadatosPlantillaTrasGuardar(
     ...local,
     id: servidor.id || local.id,
     nombre: servidor.nombre ?? local.nombre,
+    ficha_mp: servidor.ficha_mp ?? local.ficha_mp,
     created_at: servidor.created_at ?? local.created_at,
     updated_at: servidor.updated_at ?? local.updated_at,
   };

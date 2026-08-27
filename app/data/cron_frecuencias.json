@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-08-25T07:22:55"
+    "ultima_ejecucion": "2026-08-26T07:22:25"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-08-25T18:00:01"
+    "ultima_ejecucion": "2026-08-26T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,7 +45,7 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-08-25T07:06:07"
+    "ultima_ejecucion": "2026-08-26T07:07:45"
   },
   "cobertura_meli": {
     "intervalo_horas": 168,

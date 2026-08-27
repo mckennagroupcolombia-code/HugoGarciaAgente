@@ -32,6 +32,7 @@ import {
   posicionNuevoElemento,
   presetExportImpresionDefault,
   pesoMontserratVariante,
+  recolorearElemento,
   resolverSeleccionAlClic,
   seleccionTieneGrupo,
   snapLinea90,
@@ -814,22 +815,7 @@ export default function VisualCanvasEditor({
       if (!d || !h || d === h.toLowerCase()) return;
       onChange({
         ...doc,
-        elementos: doc.elementos.map((el) => {
-          if (el.type === "text" && (el.color || "").trim().toLowerCase() === d) {
-            return { ...el, color: h };
-          }
-          if (el.type === "line" && (el.stroke || "").trim().toLowerCase() === d) {
-            return { ...el, stroke: h };
-          }
-          if (el.type === "rect") {
-            const f = (el.fill || "").trim().toLowerCase() === d;
-            const s = (el.stroke || "").trim().toLowerCase() === d;
-            if (f || s) {
-              return { ...el, ...(f ? { fill: h } : null), ...(s ? { stroke: h } : null) };
-            }
-          }
-          return el;
-        }),
+        elementos: doc.elementos.map((el) => recolorearElemento(el, desde, hacia)),
       });
       setColorDesde(null);
     },

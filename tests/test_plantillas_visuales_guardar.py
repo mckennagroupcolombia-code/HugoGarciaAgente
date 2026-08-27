@@ -76,3 +76,29 @@ def test_guardar_plantilla_preserva_posicion_y_tamano_elementos():
 
     raw = json.loads(pv._DATA_PATH.read_text(encoding="utf-8"))
     assert raw["plantillas"][0]["elementos"] == doc["elementos"]
+
+
+def test_guardar_plantilla_preserva_ficha_mp():
+    ficha = {
+        "color": "#3d246b",
+        "tipo_nombre": "Ficha MP",
+        "datos": {"abreviatura": "SCI", "nombre": "Cocoil"},
+        "estilo": {"tipoTitulo": 1.2, "tamIconos": 0.9},
+    }
+    doc = {
+        "id": "tpl-ficha",
+        "nombre": "SCI 250 g",
+        "categoria": "etiquetas",
+        "formato": {"id": "ficha-mp", "nombre": "Ficha MP", "ancho_px": 340, "alto_px": 529, "dpi": 96},
+        "fondo": "#ffffff",
+        "elementos": [],
+        "ficha_mp": ficha,
+    }
+    guardada = pv.guardar_plantilla(doc)
+    assert guardada["ficha_mp"] == ficha
+
+    sin_ficha = {**doc, "nombre": "SCI 250 g v2"}
+    sin_ficha.pop("ficha_mp")
+    otra = pv.guardar_plantilla(sin_ficha)
+    assert otra["ficha_mp"] == ficha
+    assert otra["nombre"] == "SCI 250 g v2"

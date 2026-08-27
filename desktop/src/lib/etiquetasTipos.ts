@@ -23,6 +23,7 @@ export const TIPOS_ETIQUETA_DEFAULT: TipoEtiqueta[] = [
   { nombre: "Circular 70", ancho_mm: 70, alto_mm: 70 },
   { nombre: "5 g", ancho_mm: 50, alto_mm: 42 },
   { nombre: "54mm", ancho_mm: 54, alto_mm: 58 },
+  { nombre: "Ficha MP", ancho_mm: 90, alto_mm: 140 },
 ];
 
 export function mergeTiposEtiqueta(apiTipos?: TipoEtiqueta[]): TipoEtiqueta[] {

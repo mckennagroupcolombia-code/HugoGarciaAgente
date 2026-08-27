@@ -284,6 +284,11 @@ def guardar_plantilla(body: dict) -> dict:
         origen_ai = (existente or {}).get("origen_ai")
     if origen_ai:
         entry["origen_ai"] = True
+    ficha_mp = body.get("ficha_mp")
+    if not isinstance(ficha_mp, dict):
+        ficha_mp = (existente or {}).get("ficha_mp")
+    if isinstance(ficha_mp, dict):
+        entry["ficha_mp"] = _copia_fiel_json(ficha_mp)
     items = [p for p in todas if p.get("id") != pid]
     items.insert(0, entry)
     _save_all(items)

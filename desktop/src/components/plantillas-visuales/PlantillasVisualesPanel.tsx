@@ -5,7 +5,6 @@ import {
   duplicarPlantillaVisual,
   fusionarMetadatosPlantillaTrasGuardar,
   labelFormato,
-  plantillaVacia,
   type FormatoCanvas,
   type PlantillaVisualDoc,
 } from "../../lib/plantillasVisuales";
@@ -19,10 +18,18 @@ import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoPng } from "../etiquetas/RecursoPngViewer";
-import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
+import { formatoMedidasEtiqueta, useTiposEtiqueta } from "../../lib/etiquetasTipos";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
+import SelectorDisenoPlantilla from "./SelectorDisenoPlantilla";
 import VisualCanvasEditor from "./VisualCanvasEditor";
+import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
+import {
+  CARPETA_FORMATOS_ETIQUETA,
+  esPlantillaFichaMp,
+  nombrePlantillaFormatoEtiqueta,
+  plantillaFormatoEtiqueta,
+} from "../../lib/plantillaFichaTecnicaMp";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -562,7 +569,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "editor";
+type Vista = "lista" | "formato" | "diseno" | "editor" | "diligenciar";
 
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
@@ -573,6 +580,10 @@ export default function PlantillasVisualesPanel({
   const qc = useQueryClient();
   const [vista, setVista] = useState<Vista>("lista");
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
+  const [pendienteNuevo, setPendienteNuevo] = useState<{
+    formato: FormatoCanvas;
+    categoriaId: string;
+  } | null>(null);
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -586,9 +597,12 @@ export default function PlantillasVisualesPanel({
   const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
   const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+  const [generandoFormatos, setGenerandoFormatos] = useState<string | null>(null);
+  const [fichaInicial, setFichaInicial] = useState<PlantillaVisualDoc | null>(null);
+  const { data: tiposData } = useTiposEtiqueta();
 
   useEffect(() => {
-    onInmersivoChange?.(vista === "editor");
+    onInmersivoChange?.(vista === "editor" || vista === "diligenciar");
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
@@ -830,15 +844,77 @@ export default function PlantillasVisualesPanel({
 
   const abrirNuevo = () => {
     setDoc(null);
+    setPendienteNuevo(null);
     setVista("formato");
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    const nuevo = plantillaVacia(formato, categoriaId, carpetaActual);
+    setPendienteNuevo({ formato, categoriaId });
+    setVista("diseno");
+  };
+
+  const crearDesdeDiseno = (nuevo: PlantillaVisualDoc) => {
     setDoc(nuevo);
     docGuardadoRef.current = nuevo;
+    setPendienteNuevo(null);
     setVista("editor");
   };
+
+  const generarFormatosEtiqueta = useCallback(async () => {
+    const tipos = tiposData?.tipos ?? [];
+    if (tipos.length === 0) {
+      setMsg("No hay formatos de impresión. Agrégalos en Etiquetas → Imprimir.");
+      return;
+    }
+    const ok = window.confirm(
+      `Se creará una ficha técnica (layout SCI) por cada formato de impresión (${tipos.length}) en la carpeta «${CARPETA_FORMATOS_ETIQUETA}». Las que ya existan no se tocan.`,
+    );
+    if (!ok) return;
+    setGenerandoFormatos("0/" + tipos.length);
+    setMsg(null);
+    try {
+      await api.post("/api/plantillas-visuales/carpetas", {
+        nombre: CARPETA_FORMATOS_ETIQUETA,
+        carpeta_padre: "",
+      });
+    } catch {
+      // Ya existía o el registro se crea al guardar la primera plantilla.
+    }
+    try {
+      const existentes = await api.get<{ plantillas: PlantillaVisualDoc[] }>(
+        `/api/plantillas-visuales?carpeta=${encodeURIComponent(CARPETA_FORMATOS_ETIQUETA)}`,
+      );
+      const ya = new Set((existentes.plantillas || []).map((p) => p.nombre));
+      let creadas = 0;
+      let omitidas = 0;
+      for (let i = 0; i < tipos.length; i++) {
+        const tipo = tipos[i];
+        setGenerandoFormatos(`${i + 1}/${tipos.length}`);
+        const nombre = nombrePlantillaFormatoEtiqueta(tipo);
+        if (ya.has(nombre)) {
+          omitidas += 1;
+          continue;
+        }
+        const docNuevo = plantillaFormatoEtiqueta(tipo);
+        await api.post("/api/plantillas-visuales", docNuevo);
+        ya.add(nombre);
+        creadas += 1;
+      }
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+      irACarpeta(CARPETA_FORMATOS_ETIQUETA);
+      setMsg(
+        creadas === 0
+          ? `Formatos al día (${omitidas} ya existían)`
+          : `Creadas ${creadas} plantilla(s)` + (omitidas ? ` · ${omitidas} ya existían` : ""),
+      );
+      setTimeout(() => setMsg(null), 4000);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "No se pudieron generar los formatos");
+    } finally {
+      setGenerandoFormatos(null);
+    }
+  }, [qc, tiposData?.tipos]);
 
   const abrirPlantilla = useCallback(async (id: string) => {
     try {
@@ -846,6 +922,12 @@ export default function PlantillasVisualesPanel({
         `/api/plantillas-visuales/${id}`,
       );
       const limpio = sanitizarAltosTextoPlantilla(res.plantilla);
+      if (esPlantillaFichaMp(limpio)) {
+        setFichaInicial(limpio);
+        setVista("diligenciar");
+        return;
+      }
+      setFichaInicial(null);
       setDoc(limpio);
       docGuardadoRef.current = limpio;
       setVista("editor");
@@ -923,12 +1005,48 @@ export default function PlantillasVisualesPanel({
     }
   };
 
+  if (vista === "diligenciar") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <FichaMpDiligenciarPanel
+          key={fichaInicial?.id ?? "nueva"}
+          inicial={fichaInicial}
+          onVolver={() => {
+            setFichaInicial(null);
+            setVista("lista");
+          }}
+          onGuardada={() => {
+            void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+            void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+          }}
+        />
+      </div>
+    );
+  }
+
   if (vista === "formato") {
     return (
       <div className="mx-auto max-w-4xl">
         <SelectorFormatoCanvas
           onElegir={elegirFormato}
-          onCancelar={() => setVista("lista")}
+          onCancelar={() => {
+            setPendienteNuevo(null);
+            setVista("lista");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "diseno" && pendienteNuevo) {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <SelectorDisenoPlantilla
+          formato={pendienteNuevo.formato}
+          categoriaId={pendienteNuevo.categoriaId}
+          carpeta={carpetaActual}
+          onCrear={crearDesdeDiseno}
+          onVolver={() => setVista("formato")}
         />
       </div>
     );
@@ -1105,10 +1223,29 @@ export default function PlantillasVisualesPanel({
         )}
         <button
           type="button"
-          onClick={abrirNuevo}
+          onClick={() => {
+            setFichaInicial(null);
+            setVista("diligenciar");
+          }}
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
+          Diligenciar etiqueta
+        </button>
+        <button
+          type="button"
+          onClick={abrirNuevo}
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover"
+        >
           Nueva plantilla
+        </button>
+        <button
+          type="button"
+          onClick={() => void generarFormatosEtiqueta()}
+          disabled={Boolean(generandoFormatos)}
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:opacity-50"
+          title="Crea una ficha técnica MP por cada formato de Etiquetas → Imprimir"
+        >
+          {generandoFormatos ? `Generando ${generandoFormatos}…` : "Generar formatos de etiqueta"}
         </button>
       </div>
 
@@ -1217,15 +1354,36 @@ export default function PlantillasVisualesPanel({
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-20 text-center">
             <p className="text-sm font-medium text-ink">Sin plantillas todavía</p>
             <p className="mt-1 max-w-sm text-sm text-muted">
-              Elige un formato de lienzo y diseña tu primera etiqueta o recurso visual.
+              Diligencia el formato (como en fichas técnicas) y genera la imagen,
+              o abre un lienzo en blanco.
             </p>
-            <button
-              type="button"
-              onClick={abrirNuevo}
-              className="mt-5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"
-            >
-              Crear plantilla
-            </button>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFichaInicial(null);
+                  setVista("diligenciar");
+                }}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"
+              >
+                Diligenciar etiqueta
+              </button>
+              <button
+                type="button"
+                onClick={abrirNuevo}
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover"
+              >
+                Lienzo vacío
+              </button>
+              <button
+                type="button"
+                onClick={() => void generarFormatosEtiqueta()}
+                disabled={Boolean(generandoFormatos)}
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:opacity-50"
+              >
+                {generandoFormatos ? `Generando ${generandoFormatos}…` : "Generar formatos de etiqueta"}
+              </button>
+            </div>
           </div>
         )
       ) : (
@@ -1320,7 +1478,10 @@ export default function PlantillasVisualesPanel({
                 </button>
                 <div className="px-3 py-2.5">
                   <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
-                  <p className="mt-0.5 text-[11px] text-muted">{labelFormato(p.formato)}</p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {labelFormato(p.formato)}
+                    {esPlantillaFichaMp(p) ? " · formulario" : ""}
+                  </p>
                   {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
                     <button
                       type="button"

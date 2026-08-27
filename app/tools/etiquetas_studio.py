@@ -281,6 +281,7 @@ _TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
     ("Circular 70", 70.0, 70.0),
     ("5 g", 50.0, 42.0),
     ("54mm", 54.0, 58.0),
+    ("Ficha MP", 90.0, 140.0),
 ]
 
 

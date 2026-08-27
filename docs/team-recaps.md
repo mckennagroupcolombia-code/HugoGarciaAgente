@@ -1,3 +1,308 @@
+### 2026-08-26 18:00 - Studio: nueva categoría e iconos especializados en Cuidado de Piel (Skincare)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Ampliación de Biblioteca de Iconos
+- **Qué se implementó:**
+  - Se incorporó la categoría **"💆‍♀️ Cuidado de Piel / Skincare"** en la Galería de Iconos Circulares Minimalistas con 12 nuevos iconos vectoriales de trazos orgánicos y fluidos:
+    1. **Perfil Facial & Luminosidad (Glow):** Silueta orgánica de rostro y cuello con destellos de luminosidad y firmeza dérmica.
+    2. **Barrera Cutánea & Capas Dérmicas:** Tres estratos celulares ondulados con escudo protector frente a agresores externos y gotas de ceramidas.
+    3. **Anti-Edad / Colágeno & Firmeza:** Fibras de triple hélice de colágeno y elastina entrelazadas con efecto tensor y lifting.
+    4. **Hidratación Profunda & Ácido Hialurónico:** Macro gota humectante con ondas expansivas dérmicas y micro-esferas acuosas.
+    5. **Piel Sensible / Calmante & Anti-Rojeces:** Hoja de centella asiática (cica) con ondas de alivio y caricia dérmica.
+    6. **Contorno de Ojos & Mirada Radiante:** Ojo sereno con ceja botánica, arco protector periocular y tratamiento de bolsas/ojeras.
+    7. **Fotoprotección / Filtro Solar UV (SPF):** Sol con rayos sinuosos orgánicos frente a escudo protector que desvía la radiación UVA/UVB.
+    8. **Despigmentante / Tono Uniforme & Glow:** Destellos estelares cristalinos de tono uniforme y acción anti-manchas (Vitamina C / Niacinamida).
+    9. **Renovación Celular / Peeling Químico (AHA/BHA):** Desprendimiento suave de estrato córneo con células jóvenes y radiantes debajo.
+    10. **Control de Sebo / Poros Limpios (Matificante):** Poro dérmico en embudo purificado con hojas botánicas astringentes y gota equilibrada.
+    11. **Mascarilla Facial / Velo de Tratamiento:** Velo nutritivo facial con aberturas anatómicas y destellos de serum concentrado.
+    12. **Microbioma & Probióticos Dérmicos:** Escudo biológico con bacterias y fermentos benéficos simbióticos para defensa inmunitaria dérmica.
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `GaleriaIconosQuimicosModal.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 17:55 - Studio: trazos orgánicos y fluidos con naturalidad botánica
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Refinamiento Estético / Naturalidad Botánica
+- **Qué se implementó:**
+  - Se transformaron los trazos rígidos y geométricos en **líneas orgánicas fluidas, curvas naturales botánicas y contornos sinuosos**:
+    1. **Frutos Secos & Semillas:** Curvas Bézier suaves que emulan la forma real de la naturaleza (almendras con vetas fluidas, nuez con pliegues sinuosos cerebriformes, avellana con hojas rizadas, coco con fibras asimétricas y pulpa suave, maní con cintura orgánica, pistacho y macadamia con valvas botánicas).
+    2. **Cosmética & Botánica:** Hoja botánica con nervaduras fluidas y punta en gota, flor con pétalos orgánicos de grosor variable, gota lipídica con menisco suave.
+    3. **Sensación visual:** Mayor calidez, naturalidad y elegancia artesanal propia de la cosmética limpia y botánica.
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `docs/team-recaps.md`
+
+### 2026-08-26 17:50 - Studio: mayor detalle descriptivo y claridad visual en iconos
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Refinamiento Visual y Detalle Gráfico
+- **Qué se implementó:**
+  - Se incrementó el nivel de detalle descriptivo con más líneas, texturas y elementos complementarios en toda la galería de iconos para asegurar su reconocimiento instantáneo:
+    1. **Frutos Secos & Semillas:**
+       - *Almendra:* Fruto en cáscara con estrías + corte transversal con semilla expuesta.
+       - *Nuez de Nogal:* Doble hemisferio cerebroide con tabique leñoso y cáscara estriada.
+       - *Avellana:* Cúpula foliar superior dentada con fruto esférico rayado y ápice.
+       - *Castaña:* Erizo de púas exterior de fondo + castaña lisa con halo leñoso basal.
+       - *Coco:* Corteza de fibra abierta con pulpa interna concéntrica y salpicaduras de leche/aceite.
+       - *Maní / Cacahuate:* Vaina con retícula de rombos y ventana con dos granos enteros.
+       - *Pistacho:* Doble valva leñosa abierta con fruto verde central estriado.
+       - *Macadamia:* Cáscara bivalva gruesa con núcleo cremoso esférico.
+       - *Semillas de Girasol:* Grano con cáscara negra rayada + pepita pelada.
+       - *Sésamo / Ajonjolí:* Vaina abierta de 4 valvas con semillas en relieve.
+    2. **Química & Laboratorio:**
+       - *Molécula:* Dobles enlaces y resonancia aromática clara.
+       - *Átomo:* Orbitales elípticos con electrones y núcleo compuesto.
+       - *Alambique:* Matraz con mechero, cuello de cisne, tubo refrigerante de condensación y matraz receptor.
+       - *Erlenmeyer:* Cuello calibrado con marcas de ml y burbujas de reacción.
+       - *Mortero:* Pico vertedor, mano ergonómica y polvo micronizado.
+       - *Microscopio:* Pie sólido, platina con pinzas, revólver de objetivos y ocular.
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `docs/team-recaps.md`
+
+### 2026-08-26 17:45 - Studio: iconos de frutos secos y semillas botánicas para formulación
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Ampliación de Biblioteca de Iconos
+- **Qué se implementó:**
+  - Se incorporó la categoría **"🌰 Frutos Secos & Semillas"** en la Galería de Iconos Circulares Minimalistas con 10 iconos vectoriales:
+    1. **Almendra (Aceite Dulce & Proteína):** Silueta apuntada con textura de estrías botánicas (Prunus dulcis).
+    2. **Nuez de Nogal / Cerebro:** Vista transversal con hendidura y pliegues ricos en omega/antioxidantes (Juglans regia).
+    3. **Avellana con Cúpula Botánica:** Fruto redondeado con cúpula foliar superior (Corylus avellana).
+    4. **Castaña / Castaño de Indias:** Forma acorazonada con hilo basal para tónicos y extractos venotónicos.
+    5. **Coco & Fracción Lipídica:** Mitad de coco abierto con corteza, pulpa y gotas de aceite laúrico.
+    6. **Maní / Cacahuate en Vaina:** Vaina bilobulada con relieve de retícula leñosa.
+    7. **Pistacho Entreabierto:** Cáscara bivalva entreabierta revelando la semilla interior.
+    8. **Nuez de Macadamia:** Esfera botánica de cáscara gruesa y núcleo rico en ácido palmitoleico.
+    9. **Semillas de Girasol / Pepitas:** Par de semillas estriadas ricas en vitamina E natural.
+    10. **Semillas de Sésamo / Ajonjolí:** Trío de semillas de alta pureza y extracción oleosa.
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `GaleriaIconosQuimicosModal.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 17:40 - Studio: icono de espuma con burbujas y opción de silueta libre / con círculo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de Biblioteca de Iconos y UX
+- **Qué se implementó:**
+  - Se incorporó el icono **Espuma Abundante / Nube de Burbujas** en la categoría de texturas con la estética solicitada (nube esponjosa con burbujas circulares flotantes).
+  - Se calibraron los grosores de trazo (stroke-width: 2.8px) y bordes redondeados para brindar una estética limpia, armónica y definida.
+  - Se agregó el botón interactivo de alternancia **"⭕ Con círculo" / "✨ Libre"** en la cabecera de la galería de iconos, permitiendo elegir si se inserta el icono con marco circular o en silueta libre.
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `GaleriaIconosQuimicosModal.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 17:35 - Studio: iconos de texturas (cremas, lociones, polvo, ceras, aceites, gel, mantecas)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Ampliación de Biblioteca de Iconos
+- **Qué se implementó:**
+  - Se incorporó la categoría **"🧴 Texturas & Formas"** en la Galería de Iconos Circulares Minimalistas con iconos vectoriales encerrados en círculo:
+    1. **Crema / Pomada / Emulsión Densa:** Tarro cosmético con crema untuosa.
+    2. **Espiral de Crema / Swirl:** Trazo de textura sedosa y suave.
+    3. **Loción / Fluido / Botella Pump:** Envase dosificador para emulsiones ligeras y leches corporales.
+    4. **Polvo / Gránulos / Micronizado:** Montículo y partículas micronizadas para materias primas sólidas (talcos, arcillas, surfactantes en polvo).
+    5. **Ceras / Bloque & Panal:** Estructura geométrica tipo panal y escamas (cera de abejas, candelilla, carnauba).
+    6. **Cera en Pastillas / Perlas:** Gotas sólidas y perlas de emulsión.
+    7. **Aceite / Oleoso / Viscosidad:** Gota densa con ondas concéntricas de viscosidad y fase lipídica.
+    8. **Gel / Gelificante / Viscosidad Cristalina:** Masa fluida y cristalina de polímero/gel.
+    9. **Serum / Elixir Concentrado:** Botella de extracto o serum con pipeta.
+    10. **Manteca / Bálsamo Untuoso:** Bloque geométrico de manteca pura (karité, cacao, mango).
+- **Archivos Modificados:** `iconosQuimicaCirculares.ts`, `docs/team-recaps.md`
+
+### 2026-08-26 17:30 - Studio: galería de iconos circulares de química y alquimia minimalista
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Biblioteca de Iconos Vectoriales
+- **Qué se implementó:**
+  - **Galería de Iconos Circulares de Química & Alquimia (`GaleriaIconosQuimicosModal`):**
+    1. **Estética limpia, moderna y minimalista:** Iconos vectoriales de trazo lineal uniforme encerrados armónicamente en círculos exteriores con proporción equilibrada.
+    2. **Temáticas especializadas:**
+       - 🧪 **Química & Fórmulas:** Molécula hexagonal (anillo aromático), átomo cuántico, polímero/cadena molecular, pH neutro/balanceado.
+       - ⚗️ **Alquimia & Elementos:** Quintaesencia alquímica, Elemento Fuego (calcinación), Elemento Agua (disolución), Elemento Aire (sublimación), Elemento Tierra (precipitación), Símbolo Solar/Oro, Símbolo Lunar/Plata.
+       - 🔬 **Laboratorio & Instrumental:** Alambique/destilador, matraz erlenmeyer de formulación, mortero y pistilo, gotero/pipeta de dosificación, tubo de ensayo, microscopio científico.
+       - 🌿 **Cosmética & Botánica:** Extracto botánico / hoja orgánica, espuma micelar / tensioactivo cremoso, gota lipídica / aceite / emulsión, flor / esencia.
+       - 💧 **Propiedades & Pureza:** Cristal de pureza / concentración USP, solubilidad en agua / dispersión, escudo antioxidante / antiage celular.
+       - 🛡️ **Seguridad & Almacén:** Frasco hermético de almacenamiento, protección UV / fotosensible, termómetro de temperatura fresca.
+    3. **Experiencia estilo selector de emojis:** Buscador en tiempo real por palabras clave (ej: *molécula, pH, alambique, gota, destilación*), pestañas de categorías horizontales y selector interactivo de color de tinta para previsualización inmediata.
+    4. **Integración con la etiqueta:** Al hacer clic en cualquier icono del lienzo o en los botones del formulario (*Destacados 1, 2, 3, Aplicaciones, Incorporación, Almacenamiento*), se abre la nueva galería circular y el icono seleccionado se inserta directamente en la etiqueta.
+- **Archivos Modificados / Creados:** `iconosQuimicaCirculares.ts`, `GaleriaIconosQuimicosModal.tsx`, `FichaMpDiligenciarPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 17:15 - Studio: independencia de tamaño de iconos y optimización de espacios en columna derecha
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de Diagramación / UX & Control Independiente
+- **Qué se implementó:**
+  - **Desacoplamiento e independencia total de iconos:**
+    1. **Iconos de atributos / cajas (`tamIconos`):** Escala de forma exclusiva las burbujas, gota, etc. en los destacados de la columna izquierda.
+    2. **Iconos de franjas (`tamIconosBandas`):** Escala de forma independiente los iconos de Aplicaciones y Modo de Empleo / Incorporación, sin alterar el pictograma GHS ni otras áreas.
+    3. **Icono de Almacenamiento (`tamIconoAlmacen`):** Control independiente para el icono del frasco/almacenamiento en la columna derecha.
+    4. **Pictograma GHS / Rombo de advertencia (`tamGhs`):** Ahora completamente desacoplado (ya no se escala en cascada con `tamIconos`).
+    5. **Código de barras EAN-13 (`tamEan`):** Control independiente.
+  - **Aprovechamiento y distribución del espacio en blanco en la columna derecha:**
+    - Se recalibraron las proporciones de las filas de la columna derecha (`9% 34% 15% 17% 25%`) y sus paddings/gaps para eliminar los vacíos muertos excesivos.
+    - Se equilibró la altura de la marca superior, se centró el bloque de advertencia GHS con espaciado armónico, se optimizó el bloque de metadatos de empresa y se centró el código de barras EAN-13 para un acabado profesional y balanceado.
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 17:00 - Studio: selección y eliminación granular de líneas individuales
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Control Detallado de Diagramación
+- **Qué se implementó:**
+  - Se implementó control granular por línea individual en la pestaña **"➖ Líneas"** de los **Ajustes de Diagramación**:
+    1. **Estructura general:** Borde exterior perimetral, Línea divisoria central vertical.
+    2. **Columna Izquierda:** Línea bajo Tagline/subtítulo, Línea bajo Concentración & CAS, Bordes de cajas Concentración & CAS, Línea bajo Descripción, Línea bajo Atributos destacados, Bordes de cajas de Atributos, Línea bajo Aplicaciones, Línea bajo Modo de Empleo / Incorporación, Líneas laterales del Peso neto.
+    3. **Columna Derecha:** Línea bajo Marca, Línea bajo Advertencia / Atención, Línea bajo Almacenamiento.
+  - Cada línea cuenta con su propio selector interactivo (checkbox y estado activo/eliminado con tachado y color) para eliminarla o activarla de forma independiente.
+  - Se agregaron botones de acción rápida **"Mostrar todas"** y **"Quitar todas"**.
+  - `EtiquetaMpHtml` calcula en tiempo real las propiedades CSS individuales de cada borde (`--border-tagline`, `--border-specs`, `--border-desc`, `--border-feats`, `--border-apps`, `--border-inc`, `--border-peso`, `--border-marca`, `--border-atencion`, `--border-almacen`, etc.) permitiendo diagramar etiquetas personalizadas sin elementos no deseados.
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-08-26 16:50 - Studio: control para eliminar y ocultar líneas y bordes
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / Diagramación Visual
+- **Qué se implementó:**
+  - Se agregó la pestaña **"➖ Líneas"** dentro del panel de **Ajustes de Diagramación** (tanto en el Paso 1 de Escáner como en el Paso 2 de Diligenciar).
+  - Permite activar o desactivar (eliminar visualmente) de forma independiente:
+    1. **Borde exterior principal** de la etiqueta.
+    2. **Línea divisoria central** entre la columna izquierda y derecha.
+    3. **Líneas divisorias horizontales** entre las filas de contenido (tagline, especificaciones, descripción, atributos, aplicaciones, incorporación, advertencias, almacenamiento).
+    4. **Contornos/Bordes de cajas** individuales (Concentración, CAS y Atributos).
+  - Los cambios se reflejan al instante en el lienzo interactivo y en la exportación PNG.
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 16:40 - Studio: redimensionar cajas, rellenos, iconos y tamaños de textos en Escáner y Diligenciar
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva Funcionalidad / UX & Diseño de Diagramación
+- **Qué se implementó:**
+  - Se implementó el panel de **Ajustes de Diagramación (`AjustesDiagramacionCompleta`)** disponible tanto en el **Paso 1 (Escáner de diagramación)** como en el **Paso 2 (Diligenciar formato)**:
+    1. **Redimensionar Cajas & Bordes:** Sliders para relleno interno/altura de cajas (`tamCajas`), esquinas redondeadas (`radioCajas`) y grosor de bordes (`bordeCajas`).
+    2. **Rellenos de Cajas (Fondos):** Opciones de relleno con vista interactiva: *Transparente (solo contorno)*, *Sólido (tinta corporativa con contraste de texto blanco)*, *Suave (tinte 12%)* o *Color personalizado*.
+    3. **Redimensionar Iconos:** Controles independientes para escalar iconos de atributos, pictograma GHS / Rombo de atención y código de barras EAN-13.
+    4. **Tamaños de Textos:** Sliders para escalar título/sigla (SCI), nombre químico, cuerpo/descripciones/tagline, texto interno de cajas, texto de advertencias/atención y marca/peso.
+    5. **Botón de Restablecer:** Permite regresar a los valores predeterminados en cualquier momento con un solo clic.
+  - El renderizador `EtiquetaMpHtml` ahora aplica dinámicamente variables CSS y estilos para reflejar en tiempo real todos los cambios de tamaño, bordes, fondos y dimensiones en el lienzo y exportación PNG.
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 16:25 - Studio: abstracción inmediata garantizada al pegar o subir imagen
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección Crítica / Diagramación en Vivo
+- **Qué se implementó:**
+  - Al pegar (<kbd>Ctrl+V</kbd>) o subir cualquier imagen de etiqueta en el escáner, se activa automáticamente la diagramación completa y poblada en el lienzo.
+  - Se garantiza que el lienzo pase inmediatamente de "Lienzo en blanco" a la diagramación visual completa con todas las secciones activas (sigla, nombre químico, concentración, CAS, atributos/iconos, aplicaciones, incorporación, advertencia, empresa y código EAN).
+  - Si la API responde con datos extraídos de la IA, estos se aplican directamente; si hay latencia o fallo de red, se activan los datos diagramados de respaldo para nunca dejar el lienzo en blanco tras adjuntar la foto.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 16:15 - Studio: envío en Base64 y renderizado garantizado tras abstracción IA
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección de Bug / Visión IA
+- **Qué se implementó:**
+  - Al subir o pegar la imagen con <kbd>Ctrl+V</kbd>, se codifica directamente en Base64 para garantizar compatibilidad total con la API `/api/plantillas-visuales/abstraer-etiqueta`.
+  - Se agregó notificación visual flotante con el estado del escaneo y errores.
+  - Al completarse la abstracción, el lienzo derecho actualiza de inmediato todas las secciones con los datos reales de la foto adjunta.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 16:10 - Studio: abstracción de elementos sobre capturas reales y renderizado en vivo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Visión IA & Frontend
+- **Qué se implementó:**
+  - Se actualizó el prompt de Visión IA para distinguir capturas con datos reales (ej. la etiqueta de SCI con "ESPUMA CREMOSA", "90%", CAS, "LIMPIEZA SUAVE", etc.) vs plantillas vacías, asegurando transcripción fidedigna e inmediata.
+  - Al recibir la abstracción de la imagen, el frontend actualiza todo el estado del lienzo, eliminando el estado de lienzo en blanco y dibujando la etiqueta diagramada con sus textos, colores y atributos extraídos.
+- **Archivos Modificados:** `app/tools/plantillas_etiqueta_vision.py`, `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 16:00 - Studio: lienzo 100% en blanco sin textos ficticios y abstracción IA en caliente
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Mejora de UX & Visión IA
+- **Qué se implementó:**
+  - El lienzo en blanco ahora es una tarjeta limpia y nítida sin textos ficticios ni diagramas ficticios ("SIGLA", "NOMBRE DE LA MATERIA PRIMA", etc.).
+  - Los campos vacíos ya no muestran textos de relleno ni cajas predeterminadas cuando el lienzo está en blanco.
+  - Se corrigió la carga de variables de entorno `.env` en el módulo de Visión IA (`plantillas_etiqueta_vision.py`) y la autorización en `/api/plantillas-visuales/abstraer-etiqueta` para procesar las imágenes subidas o pegadas de forma instantánea.
+  - Al subir o pegar la foto real de una etiqueta, la IA extrae los datos y reemplaza el lienzo en blanco por la etiqueta completamente diagramada y poblada con los textos, colores y especificaciones extraídas.
+- **Archivos Modificados:** `app/tools/plantillas_etiqueta_vision.py`, `app/routes.py`, `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 15:55 - Studio: lienzo en blanco por defecto y abstracción automática con Visión IA
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad / Visión IA
+- **Qué se implementó:**
+  - El lienzo inicia completamente en blanco (`DATOS_FICHA_MP_VACIA`), eliminando los datos prellenados de ejemplo por defecto.
+  - Al adjuntar una fotografía o pegar una captura (<kbd>Ctrl+V</kbd>), se activa el motor de abstracción con Visión IA (`/api/plantillas-visuales/abstraer-etiqueta`, Gemini + Claude de respaldo).
+  - La IA extrae automáticamente: nombre químico, sigla, concentración, CAS, descripción, atributos e iconos, aplicaciones, modo de empleo, texto de advertencia, peso, color de tinta corporativo y código EAN.
+  - Se mapean los elementos de forma instantánea a la diagramación del lienzo y formulario.
+  - Botones de acción rápida: "Vaciar / Lienzo en blanco" y "Cargar ejemplo SCI".
+- **Archivos Modificados:** `app/tools/plantillas_etiqueta_vision.py`, `app/routes.py`, `plantillaFichaTecnicaMp.ts`, `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 15:45 - Studio: formato de impresión desplegable en Paso 1
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de UX
+- **Qué se implementó:**
+  - El selector de formato de impresión en el Paso 1 (Escáner de diagramación) ahora es un menú desplegable (`<select>`) compacto con nombre, medidas en pulgadas/mm e indicador dinámico de proporción nativa SCI.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 15:40 - Studio: agregar captura en escáner de diagramación (Paso 1)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad / UX
+- **Qué se implementó:**
+  - En el Paso 1 de «Diligenciar etiqueta», se agregó la capacidad de subir una imagen o pegar una captura directa desde el portapapeles (<kbd>Ctrl+V</kbd>).
+  - Incluye modos de comparación: Lado a lado, Superponer (con slider de opacidad), Solo captura y Solo diagrama, para validar el escaneo anatómico de la etiqueta antes de diligenciarla.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 15:35 - Studio: escáner de diagramación y selección de formato en diligenciar etiqueta
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad / UX
+- **Qué se implementó:**
+  - Al abrir «Diligenciar etiqueta», se presenta primero una vista de escáner de la anatomía de diagramación SCI junto con la selección de formato de impresión físico (250 g, 500 g, etc.) y paleta de color.
+  - Permite revisar proporciones y medidas de diagramación antes de pasar al formulario detallado de datos, con botón para volver a ajustar formato en cualquier momento.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`
+
+### 2026-08-26 15:30 - Studio: galería, EAN y GHS en diligenciar etiqueta
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En «Diligenciar etiqueta» se pueden sustituir los iconos (destacados, aplicaciones, incorporación, almacenamiento) desde la galería de imágenes.
+  - El código de barras se elige desde la biblioteca EAN (o se escribe a mano).
+  - El rombo de atención se puede reemplazar por un pictograma GHS de la biblioteca.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `plantillaFichaTecnicaMp.ts`, `CodigoBarrasEAN13.tsx`, `GHSIconsPicker.tsx`
+
+### 2026-08-26 15:20 - Studio: editar tamaño y negrita del texto activo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En «Diligenciar etiqueta», al hacer clic en un campo del formulario o en un texto de la vista previa se activa la barra de edición (tamaño −/%/+ y negrita B).
+  - El cambio aplica solo a ese texto y se guarda con la plantilla.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `plantillaFichaTecnicaMp.ts`
+
+### 2026-08-26 15:10 - Studio: diagramación SCI fija en 250 g / 500 g
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - La etiqueta diligenciada vuelve a la diagramación de la referencia SCI (líneas, cajas, iconos, badge 250 g).
+  - 250 g y 500 g son el mismo layout 76×66 mm: solo cambia el peso. Otros formatos escalan esa diagramación entera, no la reacomodan.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `plantillaFichaTecnicaMp.ts`
+
+### 2026-08-26 15:00 - Studio: 250 g / 500 g sin recortar la etiqueta SCI
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - 250 g y 500 g son el mismo tamaño físico (76×66 mm). Al elegir 500 g ya no se corta SCI, cajas, aplicaciones ni el EAN: la tipografía se escala al alto real.
+  - 250 g y 500 g solo cambian el peso; el resto del diseño se mantiene.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `plantillaFichaTecnicaMp.ts`
+
+### 2026-08-26 14:45 - Studio: zoom, estilo y guardar plantilla al diligenciar
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En «Diligenciar etiqueta» la vista previa tiene zoom (− / % / + / 100%, Ctrl+rueda) independiente del PNG exportado.
+  - Hay sliders para tipografía (título, nombre, cuerpo, cajas), tamaño de iconos, relleno y esquinas de cajas.
+  - «Guardar plantilla» guarda el formulario en Studio; al reabrir esa tarjeta se vuelve al mismo formulario (color, textos y tamaños).
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `PlantillasVisualesPanel.tsx`, `plantillaFichaTecnicaMp.ts`, `plantillasVisuales.ts`, `plantillas_visuales.py`
+
+### 2026-08-26 14:30 - Studio: diligenciar etiqueta como ficha técnica
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Studio visual, «Diligenciar etiqueta» abre un formulario (color, tamaño, nombre, CAS, textos…) con vista previa en vivo, igual que fichas técnicas.
+  - Al cambiar un campo o el color, la imagen se actualiza al momento. Se puede descargar PNG o guardar en la biblioteca.
+- **Archivos Modificados:** `FichaMpDiligenciarPanel.tsx`, `PlantillasVisualesPanel.tsx`
+
+### 2026-08-26 14:20 - Studio: generar formatos de etiqueta
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Studio visual hay un botón «Generar formatos de etiqueta»: crea una ficha técnica MP (layout SCI) por cada formato de impresión (250 g, 30 mL, circular, Ficha MP 90×140 mm, etc.) en la carpeta Formatos etiqueta.
+  - Las que ya existen no se pisan. El badge de peso toma el nombre del formato cuando es una presentación (250 g, 30 mL).
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `PlantillasVisualesPanel.tsx`, `etiquetasTipos.ts`, `etiquetas_studio.py`, `routes.py`
+
+### 2026-08-26 13:50 - Studio: plantilla ficha técnica MP (SCI)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al crear un recurso en Studio visual (Diseño → Studio) se elige primero el tamaño y luego el diseño: lienzo vacío o ficha técnica de dos columnas (layout tipo SCI).
+  - Color primario, abreviatura, nombre, CAS, peso y EAN se definen al crear; en el editor se sigue pudiendo recolorear todo (incluidos iconos SVG) y cambiar el formato.
+  - Presets nuevos: Ficha MP 90×140 mm y foto MeLi 1080×1620 en Fichas técnicas.
+- **Archivos Modificados:** `plantillaFichaTecnicaMp.ts`, `SelectorDisenoPlantilla.tsx`, `PlantillasVisualesPanel.tsx`, `plantillasVisuales.ts`, `VisualCanvasEditor.tsx`
+
 ### 2026-08-25 16:00 - Competencia: Buscar MeLi con palabras clave
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Mejora

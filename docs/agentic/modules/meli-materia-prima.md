@@ -12,6 +12,7 @@ Contexto: McKenna **reempaca materias primas** (Res. 2674/2013 Art. 37 num. 3). 
 - `app/tools/etiquetas_ficha.py` — descripción alternativa desde ficha técnica (filtrada)
 - `app/tools/etiquetas_ai_engine.py` — render etiqueta alternativa vs original
 - `desktop/src/components/etiquetas/EtiquetasStudioPanel.tsx` — Studio UI
+- `desktop/src/lib/plantillaFichaTecnicaMp.ts` — plantilla paramétrica 2 columnas (tipo SCI): color + tamaño
 - `app/data/etiquetas_studio.json` — persistencia por SKU (original / alternativa)
 
 ## Hallazgos del análisis (caso citrato magnesio)

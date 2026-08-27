@@ -52,7 +52,29 @@
     "573006446679@c.us",
     "236373592264913@lid",
     "101021959356612@lid",
-    "573144908225@c.us"
+    "573144908225@c.us",
+    "4793602937030@lid",
+    "573112578733@c.us",
+    "228195974533246@lid",
+    "573225132317@c.us",
+    "157191625510933@lid",
+    "83322986336456@lid",
+    "573176492459@c.us",
+    "573113705372@c.us",
+    "260412507422768@lid",
+    "165055660323063@lid",
+    "573196529076@c.us",
+    "108207892635657@lid",
+    "1443176161472@lid",
+    "155362070130800@lid",
+    "107782405627971@lid",
+    "573232218498@c.us",
+    "573024580339@c.us",
+    "158042666598478@lid",
+    "573187350926@c.us",
+    "230051433951383@lid",
+    "573103725034@c.us",
+    "273069843157000@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -103,276 +125,408 @@
     "573116682251@c.us": 1787677747.519273,
     "134681651634301@lid": 1787684152.048423,
     "174212815843507@lid": 1787685814.0841334,
-    "573203495270@c.us": 1787698820.2509794,
-    "33535658307700@lid": 1787698820.2509794,
+    "573203495270@c.us": 1787774789.7792182,
+    "33535658307700@lid": 1787774789.7792182,
     "573006446679@c.us": 1787702579.8184037,
     "236373592264913@lid": 1787702579.8184037,
     "101021959356612@lid": 1787705539.9373665,
-    "573144908225@c.us": 1787705539.9373665
+    "573144908225@c.us": 1787705539.9373665,
+    "4793602937030@lid": 1787753705.3838892,
+    "573112578733@c.us": 1787753734.5066972,
+    "228195974533246@lid": 1787753734.5066972,
+    "573225132317@c.us": 1787753748.8218431,
+    "157191625510933@lid": 1787753748.8218431,
+    "83322986336456@lid": 1787753778.1361098,
+    "573176492459@c.us": 1787753778.1361098,
+    "573113705372@c.us": 1787769276.2297566,
+    "260412507422768@lid": 1787769276.2297566,
+    "165055660323063@lid": 1787770272.987717,
+    "573196529076@c.us": 1787770272.987717,
+    "108207892635657@lid": 1787770272.987717,
+    "1443176161472@lid": 1787770272.987717,
+    "155362070130800@lid": 1787770272.987717,
+    "107782405627971@lid": 1787770781.0788324,
+    "573232218498@c.us": 1787770781.0788324,
+    "573024580339@c.us": 1787772074.9035075,
+    "158042666598478@lid": 1787772074.9035075,
+    "573187350926@c.us": 1787775177.7074552,
+    "230051433951383@lid": 1787775177.7074552,
+    "573103725034@c.us": 1787788977.0788083,
+    "273069843157000@lid": 1787788977.0788083
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1787286826.2066438,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "178817356279987@lid": {
       "timestamp": 1787335500.9884021,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573113334194@c.us": {
       "timestamp": 1787335500.9884021,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "76111534919853@lid": {
       "timestamp": 1787341970.1468103,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "246158098219139@lid": {
       "timestamp": 1787343610.7642312,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573008910032@c.us": {
       "timestamp": 1787343610.7642312,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "211230820171855@lid": {
       "timestamp": 1787344823.055703,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573163397382@c.us": {
       "timestamp": 1787344823.055703,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "53330776715390@lid": {
       "timestamp": 1787346146.812328,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573004718700@c.us": {
       "timestamp": 1787346146.812328,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573118688120@c.us": {
       "timestamp": 1787407154.6943269,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "249030961586267@lid": {
       "timestamp": 1787407154.6943269,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "264965139202232@lid": {
       "timestamp": 1787407197.76297,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573506046641@c.us": {
       "timestamp": 1787407197.76297,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "96654078292060@lid": {
       "timestamp": 1787409528.4917848,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573142754107@c.us": {
       "timestamp": 1787409528.4917848,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "134488579391643@lid": {
       "timestamp": 1787412263.0248208,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573138559425@c.us": {
       "timestamp": 1787412263.0248208,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573195486090@c.us": {
       "timestamp": 1787579340.6682014,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "33616776187980@lid": {
       "timestamp": 1787579340.6682014,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573175764579@c.us": {
       "timestamp": 1787579394.5403416,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "233706501468198@lid": {
       "timestamp": 1787579394.5403416,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "210444857946255@lid": {
       "timestamp": 1787586371.1293223,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573132269371@c.us": {
       "timestamp": 1787586371.1293223,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573224649821@c.us": {
       "timestamp": 1787587191.6909115,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "199531799027775@lid": {
       "timestamp": 1787587191.6909115,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573202705050@c.us": {
       "timestamp": 1787593178.049353,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "135025232183389@lid": {
       "timestamp": 1787593178.049353,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573183792585@c.us": {
       "timestamp": 1787609462.2643323,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "30146425798727@lid": {
       "timestamp": 1787609462.2643323,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573053106833@c.us": {
       "timestamp": 1787611030.5374446,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "112000482979882@lid": {
       "timestamp": 1787611030.5374446,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573107386545@c.us": {
       "timestamp": 1787615202.5061274,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "93235233980530@lid": {
       "timestamp": 1787615202.5061274,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "91517247078647@lid": {
       "timestamp": 1787664484.2040312,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "18503188897953@lid": {
       "timestamp": 1787664601.7047613,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "54821012902003@lid": {
       "timestamp": 1787665226.2680004,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573115713149@c.us": {
       "timestamp": 1787665226.2680004,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573233954482@c.us": {
       "timestamp": 1787668588.0606976,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "268830744039563@lid": {
       "timestamp": 1787668588.0606976,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "104565290582077@lid": {
       "timestamp": 1787671945.538655,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "88116169842830@lid": {
       "timestamp": 1787676412.8377848,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573116684316@c.us": {
       "timestamp": 1787676412.8377848,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "159042806780005@lid": {
       "timestamp": 1787677747.519273,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573116682251@c.us": {
       "timestamp": 1787677747.519273,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "134681651634301@lid": {
       "timestamp": 1787684152.048423,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "174212815843507@lid": {
       "timestamp": 1787685814.0841334,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "573203495270@c.us": {
-      "timestamp": 1787698820.2509794,
-      "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "timestamp": 1787774789.7792182,
+      "razon": "r\u00e1faga de 8 mensajes en 120s",
+      "ultimo_mensaje": "si"
     },
     "33535658307700@lid": {
-      "timestamp": 1787698820.2509794,
-      "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "timestamp": 1787774789.7792182,
+      "razon": "r\u00e1faga de 8 mensajes en 120s",
+      "ultimo_mensaje": "si"
     },
     "573006446679@c.us": {
       "timestamp": 1787702579.8184037,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "236373592264913@lid": {
       "timestamp": 1787702579.8184037,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Podr\u00edas responder si es para consumo humano directo sin necesidad de procesar ?"
+      "ultimo_mensaje": "si"
     },
     "101021959356612@lid": {
       "timestamp": 1787705539.9373665,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "si"
     },
     "573144908225@c.us": {
       "timestamp": 1787705539.9373665,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "4793602937030@lid": {
+      "timestamp": 1787753705.3838892,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573112578733@c.us": {
+      "timestamp": 1787753734.5066972,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "228195974533246@lid": {
+      "timestamp": 1787753734.5066972,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573225132317@c.us": {
+      "timestamp": 1787753748.8218431,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "157191625510933@lid": {
+      "timestamp": 1787753748.8218431,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "83322986336456@lid": {
+      "timestamp": 1787753778.1361098,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573176492459@c.us": {
+      "timestamp": 1787753778.1361098,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573113705372@c.us": {
+      "timestamp": 1787769276.2297566,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "260412507422768@lid": {
+      "timestamp": 1787769276.2297566,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "165055660323063@lid": {
+      "timestamp": 1787770272.987717,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573196529076@c.us": {
+      "timestamp": 1787770272.987717,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "108207892635657@lid": {
+      "timestamp": 1787770272.987717,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "1443176161472@lid": {
+      "timestamp": 1787770272.987717,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "155362070130800@lid": {
+      "timestamp": 1787770272.987717,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "107782405627971@lid": {
+      "timestamp": 1787770781.0788324,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573232218498@c.us": {
+      "timestamp": 1787770781.0788324,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573024580339@c.us": {
+      "timestamp": 1787772074.9035075,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "158042666598478@lid": {
+      "timestamp": 1787772074.9035075,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "si"
+    },
+    "573187350926@c.us": {
+      "timestamp": 1787775177.7074552,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "si"
+    },
+    "230051433951383@lid": {
+      "timestamp": 1787775177.7074552,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "si"
+    },
+    "573103725034@c.us": {
+      "timestamp": 1787788977.0788083,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "273069843157000@lid": {
+      "timestamp": 1787788977.0788083,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }

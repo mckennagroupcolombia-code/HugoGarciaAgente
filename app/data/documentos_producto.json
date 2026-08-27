@@ -1262,7 +1262,7 @@
     },
     "C-CERABEREFBLAKG": {
       "ref": "C-CERABEREFBLAKG",
-      "nombre": "CERA ABEJAS REFINADA",
+      "nombre": "CERA DE ABEJAS BLANCA",
       "lotes": [
         {
           "lote_numero": "FBR959",
@@ -1275,11 +1275,25 @@
           "codigo_verificacion": "43Y39B",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "CP020-01-05-25-13225",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "2025-05-01",
+          "fecha_vencimiento": "2029-05-01",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "58VHVY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:39:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-08-26T22:39:56+00:00"
     },
     "C-CERCAR500G": {
       "ref": "C-CERCAR500G",
@@ -1346,7 +1360,7 @@
     },
     "C-CITCAL500G": {
       "ref": "C-CITCAL500G",
-      "nombre": "CITRATO DE CALCIO",
+      "nombre": "Citrato de Calcio",
       "lotes": [
         {
           "lote_numero": "MWW624",
@@ -1359,11 +1373,25 @@
           "codigo_verificacion": "KLZDRT",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "20260101",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "2026-01-18",
+          "fecha_vencimiento": "2028-01-17",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "4NHBHP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:19:32+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-08-26T22:19:32+00:00"
     },
     "C-CITMAG250G": {
       "ref": "C-CITMAG250G",
@@ -4129,6 +4157,90 @@
         }
       ],
       "updated_at": "2026-08-24T19:31:28+00:00"
+    },
+    "C-SORPOLKG": {
+      "ref": "C-SORPOLKG",
+      "nombre": "Sorbitol en polvo",
+      "lotes": [
+        {
+          "lote_numero": "2026030101",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-03-01",
+          "fecha_vencimiento": "2028-02-29",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "2DL4AA",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:28:41+00:00"
+        }
+      ],
+      "updated_at": "2026-08-26T22:28:41+00:00"
+    },
+    "C-CERABEREFBLA500G": {
+      "ref": "C-CERABEREFBLA500G",
+      "nombre": "CERA DE ABEJAS BLANCA",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-13225",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "2025-05-01",
+          "fecha_vencimiento": "2029-05-01",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "58VHVY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:39:56+00:00"
+        }
+      ],
+      "updated_at": "2026-08-26T22:39:56+00:00"
+    },
+    "C-CERABEREFBLA500": {
+      "ref": "C-CERABEREFBLA500",
+      "nombre": "CERA DE ABEJAS BLANCA",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-13225",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "2025-05-01",
+          "fecha_vencimiento": "2029-05-01",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "58VHVY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:39:56+00:00"
+        }
+      ],
+      "updated_at": "2026-08-26T22:39:56+00:00"
+    },
+    "C-CERABEREFBLA": {
+      "ref": "C-CERABEREFBLA",
+      "nombre": "CERA DE ABEJAS BLANCA",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-13225",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "2025-05-01",
+          "fecha_vencimiento": "2029-05-01",
+          "fecha_recepcion": "2026-08-26",
+          "codigo_verificacion": "58VHVY",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-08-26T22:39:56+00:00"
+        }
+      ],
+      "updated_at": "2026-08-26T22:39:56+00:00"
     }
   }
 }

@@ -5,7 +5,7 @@ import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 // ── Component ───────────────────────────────────────────────────────────────
 interface Props {
   onCerrar: () => void;
-  onInsertar?: (svgDataUrl: string) => void;
+  onInsertar?: (svgDataUrl: string, digits?: string) => void;
 }
 
 function coincide(c: CodigoEan, q: string): boolean {
@@ -223,7 +223,7 @@ export function CodigoBarrasEAN13({ onCerrar, onInsertar }: Props) {
               disabled={!esValido}
               onClick={() => {
                 if (!resultado) return;
-                onInsertar(svgToDataUrl(resultado.svg));
+                onInsertar(svgToDataUrl(resultado.svg), resultado.digits);
               }}
               className="flex-1 rounded-lg bg-accent py-1.5 text-xs font-bold text-white disabled:opacity-40 hover:opacity-90"
             >

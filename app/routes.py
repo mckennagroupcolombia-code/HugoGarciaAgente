@@ -11691,6 +11691,7 @@ def register_routes(app):
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
         "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
         "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
+        "Ficha MP": (90, 140),
     }
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}
@@ -17668,6 +17669,48 @@ def register_routes(app):
             return jsonify({"ok": True, "cas": cas})
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc), "cas": None}), 500
+
+    @app.route("/api/plantillas-visuales/abstraer-etiqueta", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/abstraer-etiqueta", methods=["POST"])
+    def api_plantillas_visuales_abstraer_etiqueta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_etiqueta_vision import abstraer_elementos_etiqueta
+        import base64
+
+        img_bytes = b""
+        mime = "image/jpeg"
+
+        if "imagen" in request.files:
+            f = request.files["imagen"]
+            img_bytes = f.read()
+            mime = f.mimetype or "image/jpeg"
+        else:
+            body = request.get_json(silent=True) or {}
+            b64_data = (body.get("imagen_b64") or "").strip()
+            if b64_data:
+                if "," in b64_data:
+                    header, b64_str = b64_data.split(",", 1)
+                    if "image/png" in header:
+                        mime = "image/png"
+                    elif "image/webp" in header:
+                        mime = "image/webp"
+                else:
+                    b64_str = b64_data
+                try:
+                    img_bytes = base64.b64decode(b64_str)
+                except Exception:
+                    return jsonify({"ok": False, "error": "Base64 inválido"}), 400
+
+        if not img_bytes:
+            return jsonify({"ok": False, "error": "No se recibió ninguna imagen"}), 400
+
+        try:
+            res = abstraer_elementos_etiqueta(img_bytes, mime)
+            return jsonify({"ok": True, "abstraccion": res})
+        except Exception as exc:
+            log.error("Error al abstraer etiqueta con visión: %s", exc)
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     # ── Plantillas: generación con IA ────────────────────────────────────────
 
