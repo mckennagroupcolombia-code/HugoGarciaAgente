@@ -1425,7 +1425,11 @@ def crear_factura_venta_siigo(
     tercero ya existe en Siigo (si no, la FE puede salir con dirección/correo viejos de la ficha).
 
     `productos` debe venir normalizado como:
-    [{"codigo": "SKU", "nombre": "Producto", "cantidad": 1, "precio_unitario": 1000}]
+    [{"codigo": "SKU", "nombre": "Producto", "cantidad": 1, "precio_unitario": 1000,
+      "tax_ids": [3118]}]
+    `tax_ids` es opcional (lista de ids de impuesto Siigo, ej. 3118 = IVA 19%) — sin él,
+    el ítem sale sin impuesto discriminado en la factura aunque el producto tenga IVA
+    configurado en su ficha (Siigo no lo aplica automático vía este endpoint).
     """
     token = autenticar_siigo()
     if not token:
@@ -1458,14 +1462,16 @@ def crear_factura_venta_siigo(
             return {"ok": False, "error": f"Cantidad/precio inválido para {nombre or codigo}."}
         if not codigo or not nombre or cantidad <= 0 or precio_unitario < 0:
             return {"ok": False, "error": f"Línea inválida para factura: {p!r}"}
-        items.append(
-            {
-                "code": codigo,
-                "description": nombre,
-                "quantity": cantidad,
-                "price": precio_unitario,
-            }
-        )
+        item = {
+            "code": codigo,
+            "description": nombre,
+            "quantity": cantidad,
+            "price": precio_unitario,
+        }
+        tax_ids = p.get("tax_ids")
+        if tax_ids:
+            item["taxes"] = [{"id": tid} for tid in tax_ids]
+        items.append(item)
 
     customer = _construir_customer_payload_factura_siigo(
         nombre_cliente=nombre_cliente,
