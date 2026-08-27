@@ -1,3 +1,30 @@
+### 2026-08-26 18:05 - Studio: galería responsive de características visuales de producto
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nuevo Componente UI / Frontend
+- **Qué se implementó:**
+  - Se creó el componente `GaleriaCaracteristicasProducto.tsx` (`desktop/src/components/GaleriaCaracteristicasProducto.tsx`) siguiendo estrictamente las especificaciones:
+    1. **Diseño Visual:**
+       - Cada característica en círculo perfecto (`aspect-square`, `rounded-full`) con borde `#351477` (2.5px) y fondo blanco puro `#FFFFFF`.
+       - Iconos vectoriales minimalistas de línea uniforme (`stroke-width: 2.8`, `stroke-linecap: round`), sin rellenos, sombras ni efectos 3D.
+       - Título exterior en MAYÚSCULAS, centrado, tipografía Montserrat / Sans-serif Bold, limitado a 2 líneas con alineación uniforme.
+    2. **Estructura Responsive:**
+       - Computadores (lg): 4 círculos por fila (`lg:grid-cols-4`).
+       - Tabletas (sm/md): 2 círculos por fila (`sm:grid-cols-2`).
+       - Móviles: 2 o 1 círculos por fila con espaciado amplio y uniforme.
+    3. **8 Características Iniciales Vectorizadas:**
+       - *Espuma cremosa:* Nube de espuma con microburbujas esféricas.
+       - *Limpieza suave:* Gota de agua con hoja botánica interna.
+       - *Fácil dispersión:* Vaso/matraz con partículas dispersándose en solución líquida.
+       - *Suavidad:* Pluma estilizada con curvas sutiles.
+       - *Alta pureza:* Matraz con graduación analítica y destello estelar de pureza.
+       - *Uso cosmético:* Tarro cosmético con crema densa formulada.
+       - *Fórmulas sólidas:* Barra cosmética sólida con micro-burbuja.
+       - *Materia prima:* Red molecular química hexagonal con enlaces atómicos.
+    4. **Accesibilidad & Extensibilidad:**
+       - Basado en arreglo de datos `{ id, titulo, descripcionAccesible, icono }`.
+       - Atributos semánticos `role="figure"`, `role="img"`, `aria-label` y `aria-hidden`.
+- **Archivos Modificados:** `GaleriaCaracteristicasProducto.tsx`, `docs/team-recaps.md`
+
 ### 2026-08-26 18:00 - Studio: nueva categoría e iconos especializados en Cuidado de Piel (Skincare)
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva Funcionalidad / Ampliación de Biblioteca de Iconos

@@ -2352,3 +2352,17 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-26) no es el último día del mes.
+[cursor/wa-metricas-panel fda5eb7] Auto-commit: actualizacion diaria 2026-08-26 23:00
+ 46 files changed, 8903 insertions(+), 1389 deletions(-)
+ create mode 100644 app/tools/plantillas_etiqueta_vision.py
+ create mode 100644 desktop/src/components/GaleriaCaracteristicasProducto.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/FichaMpDiligenciarPanel.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/GaleriaIconosQuimicosModal.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/SelectorDisenoPlantilla.tsx
+ create mode 100644 desktop/src/lib/iconosQuimicaCirculares.ts
+ create mode 100644 desktop/src/lib/plantillaFichaTecnicaMp.ts
+ create mode 100644 uploads/tickets/0beb2c08b76942e7a1fcad665df6e523.png
+ create mode 100644 uploads/tickets/302e202ebd054afe9e14c9e0cf75c808.jpg
+ create mode 100644 uploads/tickets/91ad42c3297b4a8b82fdccb900958ec5.jpg
+ create mode 100644 uploads/tickets/b4879bd5c1cb48e786c2a7f52da1d18d.jpg
+[2026-08-26 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-26 23:00'
