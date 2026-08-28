@@ -201,7 +201,7 @@ def corregir_pack(pack_id: str, *, dry_run: bool = False) -> dict:
             }],
             payments=[{"id": pago_orig.get("id"), "value": total_original}],
             reason=2,
-            observaciones=f"Anulación por IVA duplicado (astroselling) — reemplaza {entry.get('factura_numero')}. Pack MeLi #{pack_id}.",
+            observaciones=f"Anulación por IVA duplicado (astroselling) — reemplaza {entry.get('factura_numero')}. Venta Mercado Libre #{pack_id}.",
         )
         if not nc.get("ok"):
             return {"ok": False, "pack_id": pack_id, "error": f"Nota crédito falló: {nc.get('error')}"}
@@ -230,7 +230,7 @@ def corregir_pack(pack_id: str, *, dry_run: bool = False) -> dict:
         total=total_pago_nuevo,
         email=email,
         telefono=telefono,
-        observaciones=f"Reemplaza {entry.get('factura_numero')} — corrección IVA duplicado (astroselling). Pack MeLi #{pack_id}.",
+        observaciones=f"Reemplaza {entry.get('factura_numero')} — corrección IVA duplicado (astroselling). Venta Mercado Libre #{pack_id}.",
         purchase_order=(factura.get("purchase_order") or f"Mercado Libre #{pack_id}"),
         payment_id=pago_orig.get("id"),
     )

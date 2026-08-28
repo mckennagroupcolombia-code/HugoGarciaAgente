@@ -24,7 +24,12 @@ NC_ESTADO_PATH = REPO / "app" / "data" / "notas_credito_auto_log.json"
 
 # Formatos vistos en observations de Siigo:
 #   "Venta Mercado Libre #2000014481818717 - Facturado desde astroselling.com"
-_RE_PACK = re.compile(r"Mercado ?Libre[^\d]{0,10}#?\s*(\d{9,17})", re.I)
+#   "Reemplaza FV-2-70815 — corrección IVA duplicado (astroselling). Pack MeLi #2000017888184224."
+# (el segundo formato viene de scripts/corregir_iva_duplicado_meli*.py — 27/28-ago-2026: facturas
+# de reemplazo con esa observación no matcheaban este regex, así que el índice seguía apuntando a
+# la factura anulada. No se puede editar `observations` en una factura ya timbrada por la DIAN, así
+# que se amplía el patrón en vez de corregir el histórico.)
+_RE_PACK = re.compile(r"(?:Mercado ?Libre|MeLi)[^\d]{0,10}#?\s*(\d{9,17})", re.I)
 
 
 def _texto_factura(f: dict) -> str:
