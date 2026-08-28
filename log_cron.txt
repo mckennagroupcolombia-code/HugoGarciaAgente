@@ -2479,3 +2479,31 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-27) no es el último día del mes.
+[cursor/wa-metricas-panel 264a057] Auto-commit: actualizacion diaria 2026-08-27 23:00
+ 62 files changed, 3487 insertions(+), 1772 deletions(-)
+ create mode 100644 _qa_etiquetas_tmp.js
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260827T054941.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260827T071000.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260827T071400.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260827T071915.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260827T072313.png
+ create mode 100644 nueva-etiqueta/CREATINA PROPUESTA.png
+ create mode 100644 nueva-etiqueta/Imagen pegada.png
+ create mode 100644 nueva-etiqueta/Imagen soltada.png
+ create mode 100644 nueva-etiqueta/etiqueta_creatina_svg_iconos_fieles.svg
+ create mode 100644 nueva-etiqueta/imageuno.png
+ create mode 100644 nueva-etiqueta/interfaz-1.png
+ create mode 100644 nueva-etiqueta/logo_mckenna_navy.png
+ create mode 100644 nueva-etiqueta/propuesta_etiqueta_creatina_v4_simplificada.svg
+ create mode 100644 nueva-etiqueta/propuesta_etiqueta_creatina_v6_fiel_foto.svg
+ create mode 100644 scripts/migrar_etiqueta_nueva_a_plantilla_visual.py
+ create mode 100644 tests/test_preventa_faq_ficha_coa.py
+ create mode 100644 tests/test_whatsapp_documentos.py
+ create mode 100644 uploads/tickets/34e5e9074dc244278f9712eac260dc35.jpg
+ create mode 100644 uploads/tickets/66661a23225e4efa8b6dcbff80b1ec28.docx
+ create mode 100644 uploads/tickets/aba29620e96b494291a323f49cf20dc9.jpg
+ create mode 100644 uploads/tickets/c6a15f6bf01047b98a36c4487c5e1dd1.jpg
+ create mode 100644 uploads/tickets/d138e7dd2f254e78a9ba17701370d40d.jpg
+ create mode 100644 uploads/tickets/d5e40597b49848fab8fa49edd0ece7df.jpg
+ create mode 100644 uploads/tickets/df44be5270d94ffa9af3525c32bd224a.jpg
+[2026-08-27 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-27 23:00'
