@@ -9,6 +9,8 @@ interface VentaConciliacion {
   fecha: string | null;
   total: number | null;
   factura_numero: string | null;
+  factura_total: number | null;
+  iva_discrepancia: boolean;
   integracion: "astroselling" | "mckenna" | "otro" | null;
   nota_credito: string | null;
   nc_subida_meli: boolean | null;
@@ -37,6 +39,7 @@ const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
   sin_factura: { label: "➖ Sin factura", cls: "bg-surface text-muted" },
   facturada: { label: "✅ Facturada", cls: "bg-emerald-500/15 text-emerald-500" },
   sin_facturar: { label: "⚠️ Sin facturar", cls: "bg-amber-500/15 text-amber-500" },
+  iva_incorrecto: { label: "🔴 Monto no coincide", cls: "bg-danger/15 text-danger" },
 };
 
 const INTEGRACION_LABEL: Record<string, string> = {
@@ -126,7 +129,8 @@ export default function VentasFacturacionPanel() {
           <p className="mt-1 text-xs text-muted">
             Conciliación ventas MeLi ↔ factura Siigo ↔ nota crédito. Útil para verificar que toda
             cancelación con factura ya emitida haya terminado con nota crédito confiable, subida a
-            MeLi.
+            MeLi. "Total factura" se resalta en rojo cuando no coincide con lo que pagó el
+            cliente (posible IVA mal facturado).
           </p>
         </div>
         <div className="text-right text-[10px] text-muted">
@@ -183,8 +187,9 @@ export default function VentasFacturacionPanel() {
             <tr>
               <th className="px-3 py-2 font-bold">Fecha</th>
               <th className="px-3 py-2 font-bold">Pack / Orden</th>
-              <th className="px-3 py-2 font-bold">Total</th>
+              <th className="px-3 py-2 font-bold">Total venta</th>
               <th className="px-3 py-2 font-bold">Factura</th>
+              <th className="px-3 py-2 font-bold">Total factura</th>
               <th className="px-3 py-2 font-bold">Integración</th>
               {segmento === "canceladas" && <th className="px-3 py-2 font-bold">Nota crédito</th>}
               <th className="px-3 py-2 font-bold">Estado</th>
@@ -194,14 +199,14 @@ export default function VentasFacturacionPanel() {
           <tbody>
             {q.isLoading && (
               <tr>
-                <td colSpan={8} className="px-3 py-4 text-muted">
+                <td colSpan={9} className="px-3 py-4 text-muted">
                   Cargando…
                 </td>
               </tr>
             )}
             {!q.isLoading && ventas.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-4 text-muted">
+                <td colSpan={9} className="px-3 py-4 text-muted">
                   Sin ventas {segmento} en el período.
                 </td>
               </tr>
@@ -221,6 +226,19 @@ export default function VentasFacturacionPanel() {
                     {formatCop(v.total)}
                   </td>
                   <td className="px-3 py-2 text-muted">{v.factura_numero || "—"}</td>
+                  <td
+                    className={`px-3 py-2 font-bold tabular-nums ${
+                      v.iva_discrepancia ? "text-danger" : "text-ink"
+                    }`}
+                    title={
+                      v.iva_discrepancia
+                        ? "El total de la factura no coincide con lo que pagó el cliente en MeLi — revisar IVA."
+                        : undefined
+                    }
+                  >
+                    {formatCop(v.factura_total)}
+                    {v.iva_discrepancia ? " ⚠️" : ""}
+                  </td>
                   <td className="px-3 py-2 text-muted">
                     {v.integracion ? INTEGRACION_LABEL[v.integracion] ?? v.integracion : "—"}
                   </td>
