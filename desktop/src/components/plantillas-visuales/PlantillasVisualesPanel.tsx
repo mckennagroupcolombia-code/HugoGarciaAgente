@@ -1184,6 +1184,19 @@ export default function PlantillasVisualesPanel({
             className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
           />
         </div>
+        {plantillas.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              setSeleccionadas((prev) =>
+                prev.size === plantillas.length ? new Set() : new Set(plantillas.map((p) => p.id)),
+              )
+            }
+            className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover"
+          >
+            {seleccionadas.size === plantillas.length ? "Deseleccionar todo" : `Seleccionar todo (${plantillas.length})`}
+          </button>
+        )}
         {seleccionadas.size > 0 && (
           <div className="relative shrink-0">
             <button
@@ -1455,7 +1468,7 @@ export default function PlantillasVisualesPanel({
                   seleccionada ? "border-accent ring-2 ring-accent/40" : "border-border"
                 }`}
               >
-                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-zinc-900/95" style={seleccionada ? { opacity: 1 } : undefined}>
+                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95">
                   <input
                     type="checkbox"
                     checked={seleccionada}

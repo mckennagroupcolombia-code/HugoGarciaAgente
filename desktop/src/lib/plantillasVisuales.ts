@@ -1004,6 +1004,23 @@ export function reemplazarHexEnSvgDataUrl(src: string, desde: string, hacia: str
   }
 }
 
+/** Colores hex usados dentro de un ícono SVG embebido — para que aparezcan
+ *  en la paleta de "Colores" aunque no se usen en ningún texto/línea/rect. */
+export function extraerHexesDeSvgDataUrl(src: string): string[] {
+  if (!src.startsWith("data:image/svg+xml")) return [];
+  try {
+    const comma = src.indexOf(",");
+    const meta = src.slice(0, comma);
+    const payload = src.slice(comma + 1);
+    const svg = meta.includes("base64")
+      ? decodeURIComponent(escape(atob(payload)))
+      : decodeURIComponent(payload);
+    return [...svg.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
+  } catch {
+    return [];
+  }
+}
+
 /** Aplica un recambio de color a un elemento (texto, trazo, relleno e iconos SVG). */
 export function recolorearElemento(
   el: ElementoVisual,

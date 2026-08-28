@@ -385,18 +385,36 @@ def _hex_color(color: str, default: str = "#000000"):
     c = (color or "").strip()
     if not c or c.lower() in ("transparent", "none"):
         return None
+    # reportlab.HexColor no soporta el atajo CSS de 3 dígitos (#fff): no
+    # falla, pero lo interpreta como el entero 0xfff (azul), no como blanco.
+    if len(c) == 4 and c[0] == "#" and all(ch in "0123456789abcdefABCDEF" for ch in c[1:]):
+        c = "#" + "".join(ch * 2 for ch in c[1:])
     try:
         return HexColor(c)
     except Exception:
         return HexColor(default) if default else black
 
 
-def _cargar_imagen_rl(src: str):
+def _cargar_imagen_rl(src: str, ancho_pt: float | None = None, alto_pt: float | None = None):
     from reportlab.lib.utils import ImageReader
 
     src = (src or "").strip()
     if not src:
         return None
+    if src.startswith("data:image/svg+xml"):
+        # ReportLab no decodifica SVG — se rasteriza aquí (a 4× el tamaño de
+        # impresión) igual que ya hace exportar_raster() para PNG/JPEG.
+        try:
+            import cairosvg
+
+            raw = src.split(",", 1)[1] if "," in src else ""
+            svg_bytes = base64.b64decode(raw)
+            bw = max(1, round((ancho_pt or 40) * 4))
+            bh = max(1, round((alto_pt or 40) * 4))
+            png = cairosvg.svg2png(bytestring=svg_bytes, output_width=bw, output_height=bh)
+            return ImageReader(io.BytesIO(png))
+        except Exception:
+            return None
     if src.startswith("data:"):
         raw = src.split(",", 1)[1] if "," in src else ""
         try:
@@ -493,7 +511,7 @@ def exportar_pdf(plantilla: dict) -> bytes:
                     c.drawString(x, ly, linea)
 
         elif tipo == "image":
-            img = _cargar_imagen_rl(el.get("src") or "")
+            img = _cargar_imagen_rl(el.get("src") or "", ancho_pt=w, alto_pt=h)
             if img:
                 c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, mask="auto")
 

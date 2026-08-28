@@ -111,6 +111,9 @@ comprobantes/
 
 # Facturas descargadas (PDFs/XMLs/ZIPs de SIIGO/MeLi — runtime)
 facturas_descargadas/
+
+# Renders de etiquetas guardados desde Studio (para Blender/redes — runtime)
+renders_etiquetas/
 .env.save
 
 # Datos runtime que cambian a diario (los respalda el tar nocturno de

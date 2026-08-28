@@ -1,17 +1,20 @@
 """
-Chat web (burbuja): COA, ficha técnica y ficha de seguridad desde Drive o correo.
+COA, ficha técnica y ficha de seguridad — chat web (burbuja) y WhatsApp
+directo (canal="whatsapp"). Los PDFs viven en la propia página web (ver
+app.services.documentos_web, mismo índice que sirve /producto/<slug> y
+/documentos-tecnicos/<pdf>), no en Drive. En ambos canales se puede
+compartir el enlace directo; para MeLi (preventa/postventa) ver
+app/postventa_documentos.py en su lugar, que responde con el texto fijo de
+política (sin enlaces).
 """
 
 from __future__ import annotations
 
 import re
+from urllib.parse import quote
 
 from app.postventa_documentos import mensaje_solicita_documentos
-from app.services.drive_documentos import (
-    buscar_coa_pdf,
-    buscar_ficha_tecnica_pdf,
-    buscar_sds_pdf,
-)
+from app.services.documentos_web import buscar_documento_completo_web
 from app.web_chat_mensajes import (
     nota_asesor_whatsapp_chat_web,
     nota_regulatoria_invima_explicacion,
@@ -21,8 +24,14 @@ from app.web_chat_mensajes import (
     nota_seguimiento_pedido_whatsapp,
 )
 
-_SITE_GUIAS = "https://mckennagroup.co/guias"
-_SITE_TIENDA = "https://mckennagroup.co/tienda"
+_SITE_BASE = "https://mckennagroup.co"
+_SITE_GUIAS = f"{_SITE_BASE}/guias"
+_SITE_TIENDA = f"{_SITE_BASE}/tienda"
+
+
+def _url_documento_tecnico(doc: dict, seccion: str) -> str:
+    pdf = quote(doc.get("pdf_nombre") or "")
+    return f"{_SITE_BASE}/documentos-tecnicos/{pdf}?seccion={seccion}"
 
 _USUARIO_PREFIX_RE = re.compile(r"^Usuario_[^:]+:\s*", re.IGNORECASE)
 
@@ -261,20 +270,25 @@ def _nota_whatsapp_opcional() -> str:
     return nota_seguimiento_pedido_whatsapp()
 
 
-def _mensaje_sin_pdf(nombres: str, *, pide_invima: bool = False) -> str:
+def _cierre_asesor(canal: str, *, motivo: str) -> str:
+    """Chat web: invita a escribir por WhatsApp para lo que este canal no resuelve.
+    WhatsApp directo: el cliente ya está en ese canal, no tiene sentido redirigirlo."""
+    if canal == "whatsapp":
+        return "\n\nCualquier otra duda con gusto le colaboro."
+    return nota_asesor_whatsapp_chat_web(motivo=motivo)
+
+
+def _mensaje_sin_pdf(nombres: str, *, nota_invima: str = "", canal: str = "web_chat") -> str:
     cuerpo = (
         f"Veci, revisé nuestro archivo para {nombres} y no localicé el PDF en este momento. "
         f"Puede revisar guías en {_SITE_GUIAS} o la ficha del producto en {_SITE_TIENDA}. "
         "Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía "
         "ficha técnica, COA y ficha de seguridad cuando aplique."
     )
-    if pide_invima:
-        cuerpo = (
-            nota_regulatoria_materias_primas_invima()
-            + f"\n\n{cuerpo}"
-        )
-    return cuerpo + nota_asesor_whatsapp_chat_web(
-        motivo="COA, ficha técnica o el dato de lote específico"
+    if nota_invima:
+        cuerpo = nota_invima + f"\n\n{cuerpo}"
+    return cuerpo + _cierre_asesor(
+        canal, motivo="COA, ficha técnica o el dato de lote específico"
     )
 
 
@@ -283,9 +297,13 @@ def manejar_documentos_web(
     user_message: str,
     historial_texto: str = "",
     historial_usuario: str = "",
+    canal: str = "web_chat",
 ) -> str | None:
     """
-    Si piden COA/FT/MSDS/INVIMA, intenta enlaces Drive; si no hay PDF, pide correo y guías web.
+    Si piden COA/FT/MSDS/INVIMA, intenta enlaces al PDF publicado en la web; si no hay, pide correo y guías web.
+    canal="whatsapp": mismo mecanismo determinista (no depende del LLM) para el
+    chat directo por WhatsApp — a diferencia de MeLi, aquí sí se puede compartir
+    el enlace porque no hay intermediación de la plataforma.
     """
     hist_user = _historial_solo_usuario(historial_usuario or historial_texto)
 
@@ -311,18 +329,18 @@ def manejar_documentos_web(
         if pide_invima_ahora or pide_invima_antes:
             nota = _nota_invima_segun_contexto(user_message, hist_user)
             intro = nota + "\n\n" + intro
-        return intro + nota_asesor_whatsapp_chat_web(
-            motivo="documentación o datos de lote puntuales"
+        return intro + _cierre_asesor(
+            canal, motivo="documentación o datos de lote puntuales"
         )
 
     pide_invima_ahora = mensaje_pide_registro_invima(user_message)
     pide_invima_antes = mensaje_pide_registro_invima(hist_user)
     pide_invima = pide_invima_ahora or pide_invima_antes
+    nota_invima = _nota_invima_segun_contexto(user_message, hist_user) if pide_invima else ""
 
     lineas: list[str] = []
     if pide_invima:
-        nota = _nota_invima_segun_contexto(user_message, hist_user)
-        lineas.append(nota)
+        lineas.append(nota_invima)
         lineas.append(
             "\nCompartimos la documentación de materia prima que tenemos disponible "
             "(ficha técnica / COA):\n"
@@ -336,28 +354,25 @@ def manejar_documentos_web(
     low_ctx = f"{user_message} {hist_user}".lower()
 
     for nombre in productos:
-        ft = buscar_ficha_tecnica_pdf(nombre)
-        coa = buscar_coa_pdf(nombre)
-        sds = buscar_sds_pdf(nombre)
-        if not ft and not coa and not sds:
+        doc = buscar_documento_completo_web(nombre)
+        if not doc:
             sin_pdf.append(nombre)
             continue
         con_alguno.append(nombre)
-        lineas.append(f"\n*{nombre}*")
-        if ft:
-            lineas.append(f"📄 Ficha técnica: {ft}")
-        if coa:
-            lineas.append(f"📋 COA / certificado de análisis: {coa}")
-        if sds:
-            lineas.append(f"🛡️ Hoja de seguridad (SDS): {sds}")
-        if re.search(r"\b(seguridad|msds|hoja\s+de\s+seguridad)\b", low_ctx) and not sds:
+        lineas.append(f"\n*{doc.get('titulo') or nombre}*")
+        lineas.append(f"📄 Ficha técnica: {_url_documento_tecnico(doc, 'ft')}")
+        if doc.get("coa"):
+            lineas.append(f"📋 COA / certificado de análisis: {_url_documento_tecnico(doc, 'coa')}")
+        if doc.get("sds"):
+            lineas.append(f"🛡️ Hoja de seguridad (SDS): {_url_documento_tecnico(doc, 'sds')}")
+        if re.search(r"\b(seguridad|msds|hoja\s+de\s+seguridad)\b", low_ctx) and not doc.get("sds"):
             lineas.append(
                 "ℹ️ Ficha de seguridad (MSDS): si no aparece arriba, la enviamos por correo "
                 "al confirmar referencia y lote."
             )
 
     if not con_alguno:
-        return _mensaje_sin_pdf(", ".join(sin_pdf[:6]), pide_invima=pide_invima)
+        return _mensaje_sin_pdf(", ".join(sin_pdf[:6]), nota_invima=nota_invima, canal=canal)
 
     if sin_pdf:
         lineas.append(
@@ -365,8 +380,9 @@ def manejar_documentos_web(
             "y la referencia y le enviamos ficha técnica / COA."
         )
     lineas.append(f"\nTambién puede consultar guías en {_SITE_GUIAS}.")
-    return "\n".join(lineas) + nota_asesor_whatsapp_chat_web(
+    return "\n".join(lineas) + _cierre_asesor(
+        canal,
         motivo="registro sanitario de producto terminado u otro documento especial"
         if pide_invima
-        else "documentación adicional o datos de lote"
+        else "documentación adicional o datos de lote",
     )

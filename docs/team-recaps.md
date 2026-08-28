@@ -1,3 +1,17 @@
+### 2026-08-27 09:35 - Studio: corrección de abstracción IA de diagramación y eliminación de plantilla fija
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección de Bug / Abstracción Visión IA
+- **Qué se implementó:**
+  - Se corrigió un error de indentación en `plantillas_etiqueta_vision.py` que causaba que el endpoint `/api/plantillas-visuales/abstraer-etiqueta` fallara internamente y devolviera un error 500.
+  - Se eliminó el comportamiento en `FichaMpDiligenciarPanel.tsx` que sobreescribía los campos vacíos o fallidos con la plantilla por defecto de SCI ("COCOIL ISETIONATO DE SODIO", "90%", "61789-32-0", etc.).
+  - Ahora, al capturar o pegar una etiqueta (como "CREATINA MONOHIDRATO 1000g"), el sistema mapea con fidelidad:
+    1. El nombre real del producto ("CREATINA MONOHIDRATO") y categoría ("INSUMO ALIMENTARIO").
+    2. El color predominante detectado (ej. azul corporativo `#0b4199`).
+    3. El formato de peso detectado ("1000 g" / "1 kg", incorporados a `TIPOS_ETIQUETA_DEFAULT`).
+    4. El número CAS ("6020-87-7"), concentración ("≥ 99,0%") e información técnica.
+    5. Código EAN-13, precauciones y especificaciones reales sin revertir a datos ficticios.
+- **Archivos Modificados:** `plantillas_etiqueta_vision.py`, `FichaMpDiligenciarPanel.tsx`, `etiquetasTipos.ts`, `docs/team-recaps.md`
+
 ### 2026-08-26 18:05 - Studio: galería responsive de características visuales de producto
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nuevo Componente UI / Frontend

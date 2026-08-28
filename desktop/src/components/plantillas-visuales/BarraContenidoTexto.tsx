@@ -67,7 +67,7 @@ export default function BarraContenidoTexto({
   return (
     <div className="shrink-0 border-t border-neutral-300 bg-[#f4f4f2] px-3 py-2.5 text-neutral-900 shadow-[0_-4px_16px_rgba(0,0,0,0.18)]">
       <div className="mb-2 flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1">
+        <div className="max-h-24 min-w-0 flex-1 overflow-y-auto pr-1">
           <TextosRapidos
             elementos={elementos}
             seleccionId={seleccionId}

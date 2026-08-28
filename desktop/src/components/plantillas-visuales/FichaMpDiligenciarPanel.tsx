@@ -1495,77 +1495,77 @@ export default function FichaMpDiligenciarPanel({
             { timeoutMs: 45000 },
           );
         } catch (apiErr) {
-          console.warn("API de visión falló o timeout, aplicando extracción de respaldo:", apiErr);
+          console.warn("API de visión falló o timeout:", apiErr);
         }
 
-        const abs = res?.ok && res.abstraccion ? res.abstraccion : {};
+        if (!res?.ok || !res.abstraccion) {
+          setMsg(
+            "No se pudo extraer la información con Visión IA (" +
+              (res?.error || "Error de conexión") +
+              "). Puedes diligenciar los datos directamente en el editor.",
+          );
+          return;
+        }
+
+        const abs = res.abstraccion;
+        const nombreExt = abs.nombre || abs.abreviatura || "";
+        const abbrevExt = abs.abreviatura && abs.abreviatura !== abs.nombre ? abs.abreviatura : "";
         const nuevosDatos: DatosFichaTecnicaMp = {
-          abreviatura: abs.abreviatura || "SCI",
-          nombre: abs.nombre || "COCOIL ISETIONATO DE SODIO",
-          tagline: abs.tagline || "Tensioactivo suave • Materia prima cosmética",
+          abreviatura: abbrevExt,
+          nombre: nombreExt,
+          tagline: abs.tagline || "",
           concentracionLabel: abs.concentracionLabel || "CONCENTRACIÓN",
-          concentracionValor: abs.concentracionValor || "90%",
+          concentracionValor: abs.concentracionValor || "",
           casLabel: abs.casLabel || "CAS",
-          cas: abs.cas || "61789-32-0",
-          descripcion:
-            abs.descripcion ||
-            "Derivado de ácidos grasos del coco. Se presenta en polvo o gránulos de color blanco a crema.",
+          cas: abs.cas || "",
+          descripcion: abs.descripcion || "",
           features:
             Array.isArray(abs.features) && abs.features.length > 0
-              ? abs.features.map((f: any, idx: number) => ({
-                  titulo: f.titulo || (idx === 0 ? "ESPUMA CREMOSA" : idx === 1 ? "LIMPIEZA SUAVE" : "pH RECOMENDADO 5–7"),
-                  icono: f.icono || (idx === 0 ? "burbujas" : idx === 1 ? "gota" : "ph"),
-                  subtitulo: f.subtitulo || (idx === 2 ? "pH" : undefined),
+              ? abs.features.map((f: any) => ({
+                  titulo: String(f.titulo || ""),
+                  icono: f.icono || "matraz",
+                  subtitulo: f.subtitulo || undefined,
                 }))
-              : [
-                  { titulo: "ESPUMA CREMOSA", icono: "burbujas" },
-                  { titulo: "LIMPIEZA SUAVE", icono: "gota" },
-                  { titulo: "pH RECOMENDADO 5–7", icono: "ph", subtitulo: "pH" },
-                ],
+              : [],
           aplicacionesTitulo: abs.aplicacionesTitulo || "APLICACIONES",
-          aplicaciones: abs.aplicaciones || "Champú sólido • Barras syndet • Limpiadores faciales",
+          aplicaciones: abs.aplicaciones || "",
           incorporacionTitulo: abs.incorporacionTitulo || "INCORPORACIÓN",
-          incorporacion:
-            abs.incorporacion ||
-            "Dispersar con agitación moderada. Para formulación; no aplicar directamente.",
-          peso: abs.peso || tipo.nombre || "250 g",
+          incorporacion: abs.incorporacion || "",
+          peso: abs.peso || tipo.nombre || "",
           marca: abs.marca || "MCKENNA GROUP®",
-          atencionTitulo: abs.atencionTitulo || "ATENCIÓN",
-          atencionTexto:
-            abs.atencionTexto ||
-            "Puede causar irritación ocular y respiratoria por exposición al polvo. Evite inhalar y use protección adecuada.",
-          almacenamiento:
-            abs.almacenamiento || "Conservar bien cerrado, en lugar fresco, seco y protegido de la luz.",
+          atencionTitulo: abs.atencionTitulo || "INFORMACIÓN DE SEGURIDAD",
+          atencionTexto: abs.atencionTexto || "",
+          almacenamiento: abs.almacenamiento || "",
           desarrolladoPor: abs.desarrolladoPor || "Desarrollado por:",
           empresa: abs.empresa || "MCKENNA GROUP S.A.S.",
           nit: abs.nit || "NIT. 901316016-3",
           ciudad: abs.ciudad || "BOGOTÁ — COLOMBIA",
           web: abs.web || "mckennagroup.co",
-          ean13: abs.ean13 || "7701602502633",
+          ean13: abs.ean13 || "",
         };
 
         setDatos(nuevosDatos);
 
         if (abs.color_primario && /^#[0-9a-fA-F]{3,8}$/.test(abs.color_primario)) {
           setColor(abs.color_primario);
-        } else {
-          setColor(COLOR_FICHA_MP_DEFAULT);
         }
 
-        if (abs.peso) {
-          const pLower = String(abs.peso).trim().toLowerCase();
-          const match = tipos.find(
-            (t) => t.nombre.toLowerCase() === pLower || pLower.includes(t.nombre.toLowerCase()),
-          );
+        if (abs.peso || abs.formato_sugerido) {
+          const rawPeso = String(abs.peso || abs.formato_sugerido).trim().toLowerCase();
+          const cleanPeso = rawPeso.replace(/\s+/g, "");
+          const match = tipos.find((t) => {
+            const tClean = t.nombre.toLowerCase().replace(/\s+/g, "");
+            return tClean === cleanPeso || cleanPeso.includes(tClean) || tClean.includes(cleanPeso);
+          });
           if (match) {
             setTipoNombre(match.nombre);
           }
         }
 
         setNombrePlantilla(
-          nuevosDatos.abreviatura
-            ? `Etiqueta · ${nuevosDatos.abreviatura} (${nuevosDatos.peso || tipo.nombre})`
-            : nuevosDatos.nombre || "Etiqueta MP",
+          nuevosDatos.nombre || nuevosDatos.abreviatura
+            ? `Etiqueta · ${nuevosDatos.nombre || nuevosDatos.abreviatura} (${nuevosDatos.peso || tipo.nombre})`
+            : "Etiqueta MP",
         );
 
         setMsg("¡Abstracción completada! Elementos detectados y diagramados en el lienzo ✓");

@@ -62,7 +62,7 @@ export function alternateMutatingApiUrl(
 }
 
 /** Bearer para /api/* del panel: JWT en rutas tickets; CHAT_API_TOKEN en el resto (admins). */
-function panelBearerToken(path: string): string | null {
+export function panelBearerToken(path: string): string | null {
   const tickets = useTicketsAuth.getState();
   if (path.startsWith("/api/tickets/")) {
     return tickets.token || null;

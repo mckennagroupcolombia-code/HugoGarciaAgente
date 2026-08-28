@@ -33,6 +33,7 @@ import {
   presetExportImpresionDefault,
   pesoMontserratVariante,
   recolorearElemento,
+  extraerHexesDeSvgDataUrl,
   resolverSeleccionAlClic,
   seleccionTieneGrupo,
   snapLinea90,
@@ -63,6 +64,7 @@ import {
 import { GHSIconsPicker } from "../GHSIconsPicker";
 import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
+import GaleriaIconosQuimicosModal from "./GaleriaIconosQuimicosModal";
 import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import BarraContenidoTexto from "./BarraContenidoTexto";
@@ -560,6 +562,7 @@ export default function VisualCanvasEditor({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
+  const [galeriaIconosAbierta, setGaleriaIconosAbierta] = useState(false);
   const [cambiarFormatoAbierto, setCambiarFormatoAbierto] = useState(false);
   const [coloresAbierto, setColoresAbierto] = useState(false);
   const [colorDesde, setColorDesde] = useState<string | null>(null);
@@ -627,6 +630,12 @@ export default function VisualCanvasEditor({
   }, [doc.elementos, seleccionIds]);
 
   const seleccionPrincipalId = seleccionIds[seleccionIds.length - 1] ?? null;
+  // Si está activo, alinear con 2+ elementos seleccionados usa como referencia
+  // fija el último que se agregó a la selección (con Shift+clic) en vez del
+  // contorno del grupo completo — para alinear varios elementos respecto a
+  // uno tercero sin moverlo a él.
+  const [alinearRespectoAncla, setAlinearRespectoAncla] = useState(false);
+  const elementoAncla = doc.elementos.find((e) => e.id === seleccionPrincipalId) ?? null;
 
   // Cuando la selección es exactamente un grupo (2+ elementos con el mismo
   // groupId), se dibuja una caja sobre toda su área para poder arrastrar el
@@ -801,6 +810,8 @@ export default function VisualCanvasEditor({
       else if (el.type === "rect") {
         sumar(el.fill);
         sumar(el.stroke);
+      } else if (el.type === "image") {
+        for (const hex of extraerHexesDeSvgDataUrl(el.src || "")) sumar(hex);
       }
     }
     return [...conteo.entries()].sort((a, b) => b[1] - a[1]);
@@ -1084,6 +1095,9 @@ export default function VisualCanvasEditor({
   const agregarRect = () => {
     const { x, y } = posicionNuevoElemento(doc.elementos.length, 56, 96);
     const el = elementoRectDefecto(x, y);
+    const pos = centrarCajaEnArtboard(x, y, el.width, el.height, doc.formato.ancho_px, doc.formato.alto_px);
+    el.x = pos.x;
+    el.y = pos.y;
     el.zIndex = maxZ + 1;
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
@@ -1097,6 +1111,9 @@ export default function VisualCanvasEditor({
     el.width = 90;
     el.height = 90;
     el.borderRadius = 9999;
+    const pos = centrarCajaEnArtboard(x, y, el.width, el.height, doc.formato.ancho_px, doc.formato.alto_px);
+    el.x = pos.x;
+    el.y = pos.y;
     el.zIndex = maxZ + 1;
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
@@ -1105,6 +1122,13 @@ export default function VisualCanvasEditor({
   const agregarLinea = () => {
     const { x, y } = posicionNuevoElemento(doc.elementos.length, 40, 176);
     const el = elementoLineaDefecto(x, y);
+    const pos = centrarCajaEnArtboard(x, y, el.width, el.height, doc.formato.ancho_px, doc.formato.alto_px);
+    const dx = pos.x - el.x;
+    const dy = pos.y - el.y;
+    el.x = pos.x;
+    el.y = pos.y;
+    el.x2 += dx;
+    el.y2 += dy;
     el.zIndex = maxZ + 1;
     patchElementos((els) => [...els, el]);
     setSeleccionIds([el.id]);
@@ -1122,12 +1146,27 @@ export default function VisualCanvasEditor({
         } catch {
           /* mantiene tamaño por defecto */
         }
+        // `posicionNuevoElemento` va en cascada por índice sin conocer el
+        // tamaño del lienzo: en plantillas con muchos elementos podía caer
+        // muy fuera del artboard, disparando el margen de pasteboard (hasta
+        // 2400px) y dejando la etiqueta fuera de la vista inicial. Se
+        // reubica dentro del artboard igual que el resto de inserciones.
+        const pos = centrarCajaEnArtboard(
+          x,
+          y,
+          el.width,
+          el.height,
+          doc.formato.ancho_px,
+          doc.formato.alto_px,
+        );
+        el.x = pos.x;
+        el.y = pos.y;
         el.zIndex = maxZ + 1;
         patchElementos((els) => [...els, el]);
         setSeleccionIds([el.id]);
       })();
     },
-    [maxZ, patchElementos, doc.elementos.length],
+    [maxZ, patchElementos, doc.elementos.length, doc.formato.ancho_px, doc.formato.alto_px],
   );
 
   const eliminarSeleccion = () => {
@@ -1192,8 +1231,11 @@ export default function VisualCanvasEditor({
       const ids = seleccionIds.filter((id) => doc.elementos.some((e) => e.id === id));
       if (!ids.length) return;
       const seleccionados = doc.elementos.filter((e) => ids.includes(e.id));
+      const anclaEl = alinearRespectoAncla && seleccionados.length > 1 ? elementoAncla : null;
       const ref =
-        seleccionados.length === 1
+        anclaEl
+          ? boundsElemento(anclaEl)
+          : seleccionados.length === 1
           ? {
               left: 0,
               top: 0,
@@ -1203,7 +1245,15 @@ export default function VisualCanvasEditor({
           : unionBounds(seleccionados.map(boundsElemento));
       patchElementos((els) => alinearElementos(els, ids, tipo, ref));
     },
-    [doc.elementos, doc.formato.ancho_px, doc.formato.alto_px, patchElementos, seleccionIds],
+    [
+      doc.elementos,
+      doc.formato.ancho_px,
+      doc.formato.alto_px,
+      patchElementos,
+      seleccionIds,
+      alinearRespectoAncla,
+      elementoAncla,
+    ],
   );
 
   const pasteboardRef = useRef(120);
@@ -1750,6 +1800,27 @@ export default function VisualCanvasEditor({
       rect.height - RESERVA_SCROLL_PX,
     );
     setZoom((prev) => (Math.abs(prev - next) < 0.005 ? prev : next));
+    // El zoom se calcula para que el ARTBOARD (canvasW x canvasH) llene el
+    // viewport, pero el "stage" real incluye además el margen de pasteboard
+    // (mínimo 120px, hasta 2400px si hay elementos fuera del lienzo) a los
+    // 4 lados. Con scroll en (0,0) por defecto eso dejaba el borde inferior
+    // (o derecho) de la etiqueta recortado detrás de la barra de texto sin
+    // que el usuario supiera que debía hacer scroll para verlo. Se centra
+    // el scroll en el artboard una vez el DOM refleja el nuevo zoom.
+    requestAnimationFrame(() => {
+      const vp2 = viewportRef.current;
+      if (!vp2) return;
+      const pb = pasteboardRef.current;
+      const stageWpx = (canvasW + pb * 2) * next + reglaPx;
+      const stageHpx = (canvasH + pb * 2) * next + reglaPx;
+      const artLeft = reglaPx + pb * next;
+      const artTop = reglaPx + pb * next;
+      const rect2 = vp2.getBoundingClientRect();
+      const wantLeft = artLeft + (canvasW * next) / 2 - rect2.width / 2;
+      const wantTop = artTop + (canvasH * next) / 2 - rect2.height / 2;
+      vp2.scrollLeft = Math.max(0, Math.min(wantLeft, Math.max(0, stageWpx - rect2.width)));
+      vp2.scrollTop = Math.max(0, Math.min(wantTop, Math.max(0, stageHpx - rect2.height)));
+    });
   }, [canvasW, canvasH]);
 
   useEffect(() => {
@@ -2117,6 +2188,19 @@ export default function VisualCanvasEditor({
             onCerrar={() => setGaleriaAbierta(false)}
             onElegir={insertarImagen}
           />
+          <ToolBtn
+            title="Iconos circulares (química, cosmética…)"
+            onClick={() => setGaleriaIconosAbierta(true)}
+            active={galeriaIconosAbierta}
+          >
+            <span className="text-lg leading-none">⚗️</span>
+          </ToolBtn>
+          <GaleriaIconosQuimicosModal
+            abierta={galeriaIconosAbierta}
+            colorTinta="#003C8F"
+            onCerrar={() => setGaleriaIconosAbierta(false)}
+            onElegir={(svgDataUrl) => insertarImagen(svgDataUrl)}
+          />
           <ToolSep />
           <ToolBtn
             title="Pictogramas GHS"
@@ -2144,7 +2228,7 @@ export default function VisualCanvasEditor({
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <div
             ref={viewportRef}
-            className={`flex min-h-0 flex-1 items-center justify-center overflow-auto p-6 ${studio.canvasBg}`}
+            className={`grid min-h-0 flex-1 place-items-center overflow-auto p-6 ${studio.canvasBg}`}
             onClick={deseleccionarViewport}
           >
           <div
@@ -2153,7 +2237,16 @@ export default function VisualCanvasEditor({
               width: stageW * zoom + reglaPx,
               height: stageH * zoom + reglaPx,
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              // El margen gris (pasteboard) alrededor de la etiqueta es parte
+              // de este contenedor, no del viewport exterior — sin este
+              // caso, clic ahí no deseleccionaba nada (solo Esc funcionaba).
+              if (e.target === e.currentTarget) {
+                deseleccionarViewport(e);
+                return;
+              }
+              e.stopPropagation();
+            }}
           >
             {/* Regla horizontal — alineada al artboard */}
             <div
@@ -2311,7 +2404,7 @@ export default function VisualCanvasEditor({
                     const mostrarManijas =
                       !el.locked &&
                       !editandoEste &&
-                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
+                      (mostrandoCaja || (sel && esPrincipal));
                     const hitH = Math.max(el.height, tamanoHitTexto(el).h);
                     return (
                       <TextoCapaLienzo
@@ -2321,7 +2414,7 @@ export default function VisualCanvasEditor({
                         top={el.y + pasteboard}
                         seleccionado={sel}
                         esPrincipal={esPrincipal}
-                        mostrandoCaja={mostrandoCaja || esHover}
+                        mostrandoCaja={mostrandoCaja}
                         locked={!!el.locked}
                         editando={editandoEste}
                         textoEdicion={editandoInlineTexto}
@@ -2343,7 +2436,7 @@ export default function VisualCanvasEditor({
                           <SeleccionChrome
                             width={el.width}
                             height={hitH}
-                            showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                            showFrame={mostrandoCaja || (sel && esPrincipal)}
                             showHandles={mostrarManijas}
                             hover={esHover}
                             onRotate={(e) => onPointerDownEl(e, el, "rotate")}
@@ -2360,7 +2453,7 @@ export default function VisualCanvasEditor({
                     const esHover = hoveredId === el.id && !sel && !drag;
                     const mostrarManijas =
                       !el.locked &&
-                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
+                      (mostrandoCaja || (sel && esPrincipal));
                     return (
                       <div
                         key={el.id}
@@ -2379,16 +2472,10 @@ export default function VisualCanvasEditor({
                         onPointerLeave={() => setHoveredId(null)}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
-                        {esHover && (
-                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
-                            ▢ · {labelCapa(el)}
-                          </div>
-                        )}
                         <SeleccionChrome
                           width={el.width}
                           height={el.height}
-                          showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                          showFrame={mostrandoCaja || (sel && esPrincipal)}
                           showHandles={mostrarManijas}
                           hover={esHover}
                           onRotate={(e) => onPointerDownEl(e, el, "rotate")}
@@ -2415,8 +2502,7 @@ export default function VisualCanvasEditor({
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
                     const mostrarManijas =
                       !el.locked &&
-                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
-                    const esHoverLinea = hoveredId === el.id && !sel && !drag;
+                      (mostrandoCaja || (sel && esPrincipal));
                     return (
                       <div
                         key={el.id}
@@ -2428,20 +2514,25 @@ export default function VisualCanvasEditor({
                           width: svgW,
                           height: svgH,
                           zIndex: el.zIndex,
+                          // Igual que el svg de abajo: el div de posicionamiento
+                          // (con el padding del hit-target) tampoco debe capturar
+                          // clics fuera del trazo real. Los botones de manija se
+                          // reactivan explícitamente con pointerEvents:"auto".
+                          pointerEvents: "none",
                         }}
                       >
-                        {esHoverLinea && (
-                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
-                            ─ · {labelCapa(el)}
-                          </div>
-                        )}
                         <svg
                           style={{
                             position: "absolute",
                             inset: 0,
                             overflow: "visible",
-                            pointerEvents: el.locked ? "none" : "auto",
+                            // El root del svg NUNCA debe capturar clics: si queda en
+                            // "auto", todo su bbox rectangular (incluida el área
+                            // transparente fuera del trazo) se vuelve un hit-target
+                            // que tapaba textos vecinos con zIndex menor. Solo la
+                            // línea gruesa invisible de abajo (pointerEvents="stroke")
+                            // debe responder, limitada al corredor real del trazo.
+                            pointerEvents: "none",
                           }}
                           aria-hidden
                         >
@@ -2454,6 +2545,7 @@ export default function VisualCanvasEditor({
                             strokeWidth={hitStroke}
                             strokeLinecap="round"
                             style={{ cursor: el.locked ? "default" : "move" }}
+                            pointerEvents={el.locked ? "none" : "stroke"}
                             onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                             onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
                             onPointerLeave={() => setHoveredId(null)}
@@ -2481,6 +2573,7 @@ export default function VisualCanvasEditor({
                                 width: NODO_HIT_PX,
                                 height: NODO_HIT_PX,
                                 cursor: "move",
+                                pointerEvents: "auto",
                               }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                             >
@@ -2499,6 +2592,7 @@ export default function VisualCanvasEditor({
                                 width: NODO_HIT_PX,
                                 height: NODO_HIT_PX,
                                 cursor: "crosshair",
+                                pointerEvents: "auto",
                               }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "resize-line-end")}
                             >
@@ -2517,7 +2611,7 @@ export default function VisualCanvasEditor({
                     const esHover = hoveredId === el.id && !sel && !drag;
                     const mostrarManijas =
                       !el.locked &&
-                      (mostrandoCaja || (sel && esPrincipal) || hoveredId === el.id);
+                      (mostrandoCaja || (sel && esPrincipal));
                     return (
                       <div
                         key={el.id}
@@ -2530,19 +2624,13 @@ export default function VisualCanvasEditor({
                         onPointerLeave={() => setHoveredId(null)}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
-                        {esHover && (
-                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
-                            className="rounded bg-[#016d82]/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
-                            🖼 · {labelCapa(el)}
-                          </div>
-                        )}
                         <div className="h-full w-full overflow-hidden">
                           <ImagenCanvasElement src={el.src} objectFit={el.objectFit} />
                         </div>
                         <SeleccionChrome
                           width={el.width}
                           height={el.height}
-                          showFrame={mostrandoCaja || (sel && esPrincipal) || esHover}
+                          showFrame={mostrandoCaja || (sel && esPrincipal)}
                           showHandles={mostrarManijas}
                           hover={esHover}
                           onRotate={(e) => onPointerDownEl(e, el, "rotate")}
@@ -2743,6 +2831,20 @@ export default function VisualCanvasEditor({
                       {seleccionIds.length} elementos · Shift+clic para ampliar selección
                     </p>
                     <div className="flex flex-wrap gap-0.5">{alineacionBtns}</div>
+                    <label className="flex cursor-pointer items-start gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 text-[10px] text-muted">
+                      <input
+                        type="checkbox"
+                        checked={alinearRespectoAncla}
+                        onChange={(e) => setAlinearRespectoAncla(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        Alinear respecto al último seleccionado
+                        {alinearRespectoAncla && elementoAncla && (
+                          <> ({labelCapa(elementoAncla)} no se mueve)</>
+                        )}
+                      </span>
+                    </label>
                     <div className="flex flex-wrap gap-1">
                       <button type="button" onClick={duplicarSeleccion} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover">Duplicar</button>
                       <button type="button" onClick={agruparSeleccion} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover">Agrupar</button>

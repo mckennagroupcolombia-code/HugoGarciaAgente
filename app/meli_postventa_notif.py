@@ -537,32 +537,20 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 except Exception as e_rec:
                     print(f"⚠️ [POSVENTA] No pude reconciliar hilo {pack_id}: {e_rec}")
 
-                # Respuesta automática (o borrador con aprobación) FT/COA (Drive)
-                # antes de molestar al grupo con la cola manual.
+                # Respuesta automática de política FT/COA (sin enlaces, MeLi
+                # prohíbe compartirlos) antes de molestar al grupo con la cola manual.
                 try:
                     from app.postventa_documentos import (
                         intentar_respuesta_automatica_documentos,
                     )
 
-                    # Contexto: mensajes recientes del mismo comprador en el hilo,
-                    # por si el producto se mencionó antes del mensaje actual
-                    # (p. ej. "¿tienen carbonato de magnesio?" ... "me pasa la ficha técnica").
-                    texto_hilo_previo = " ".join(
-                        meli_postventa_texto_para_notif(m)
-                        for m in mensajes
-                        if isinstance(m, dict)
-                        and meli_postventa_remitente_user_id(m) == from_id
-                        and meli_postventa_id_mensaje(m) != msg_id
-                    )[-1500:]
-
                     resultado_docs = intentar_respuesta_automatica_documentos(
                         pack_id,
                         texto,
                         comprador_id=from_id,
-                        texto_contexto_hilo=texto_hilo_previo,
                     )
 
-                    if resultado_docs in ("auto_enviado", "borrador_pendiente"):
+                    if resultado_docs == "auto_enviado":
                         procesados.add(msg_id)
                         # Mantener el pack direccionable: si se saca de la cola,
                         # el código corto deja de resolver (el fallback por
@@ -583,21 +571,18 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                         if sufijo and sufijo != str(pack_id):
                             state["pendientes"][sufijo] = entrada_auto
                         _stats_mensaje_recibido(entrada_auto)
-                        if resultado_docs == "auto_enviado":
-                            _stats_mensaje_cerrado(entrada_auto, "auto")
-                            notif_auto = (
-                                f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
-                                f"🔢 Código: *{sufijo}*\n"
-                                f"👤 {nombre_comprador}\n"
-                                f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
-                                f"_Enlaces enviados al comprador en MeLi._\n\n"
-                                f"✍️ Para complementar o corregir la respuesta:\n"
-                                f"*posventa {sufijo}: tu mensaje*  (o *resp {sufijo}: ...*)"
-                            )
-                            enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
-                        # Si es "borrador_pendiente", la notificación de aprobación
-                        # ("hugo dale ok <código>") ya se envió al grupo dentro de
-                        # intentar_respuesta_automatica_documentos().
+                        _stats_mensaje_cerrado(entrada_auto, "auto")
+                        notif_auto = (
+                            f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
+                            f"🔢 Código: *{sufijo}*\n"
+                            f"👤 {nombre_comprador}\n"
+                            f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
+                            f"_Se le indicó revisar la etiqueta del producto "
+                            f"(política MeLi: sin enlaces externos ni datos de contacto)._\n\n"
+                            f"✍️ Para complementar o corregir la respuesta:\n"
+                            f"*posventa {sufijo}: tu mensaje*  (o *resp {sufijo}: ...*)"
+                        )
+                        enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
                         try:
                             incrementar_metrica("mensajes_posventa")
                         except Exception:

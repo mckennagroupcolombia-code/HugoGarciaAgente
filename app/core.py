@@ -2664,6 +2664,29 @@ def obtener_respuesta_ia(
             except Exception:
                 ficha_esc = None
 
+    # ── Documentos (ficha técnica / COA) por WhatsApp directo ────────────────
+    # A diferencia de MeLi (preventa/postventa, ver app/postventa_documentos.py),
+    # este canal SÍ puede compartir el enlace de Drive: no hay una plataforma
+    # intermediando la relación comercial que lo prohíba. Interceptor
+    # determinista (no depende de que el LLM respete la regla del prompt).
+    if not es_web and pregunta_visible and not adjuntos:
+        from app.web_chat_documentos import manejar_documentos_web
+
+        docs_wa = manejar_documentos_web(
+            user_message=pregunta_visible,
+            historial_usuario=_contexto_historial_usuario_web(messages),
+            canal="whatsapp",
+        )
+        if docs_wa:
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": docs_wa}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return docs_wa, final_messages
+
     # ── Handoff humano (solo WhatsApp; web usa web_chat_intents arriba) ─────
     low0 = re.sub(r"\s+", " ", (pregunta_visible or "").strip().lower())
     if not es_web and any(

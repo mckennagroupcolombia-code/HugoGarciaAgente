@@ -24,53 +24,53 @@ from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_a
 
 log = logging.getLogger(__name__)
 
-  _PROMPT_ABSTRACCION_ETIQUETA = """Eres un sistema experto en visión artificial y diseño de empaques para etiquetas de materias primas químicas, farmacéuticas y cosméticas (diseño corporativo McKenna Group).
+_PROMPT_ABSTRACCION_ETIQUETA = """Eres un sistema experto en visión artificial y diseño de empaques para etiquetas de materias primas químicas, farmacéuticas, alimentarias y cosméticas (diseño corporativo McKenna Group).
 
 Analiza esta imagen / captura de una etiqueta o empaque y extrae con MÁXIMA FIDELIDAD Y PRECISIÓN todos sus elementos estructurados y textuales para mapearlos al formato de la ficha de etiquetado.
 
 IMPORTANTE:
-- Si la imagen contiene textos reales (ej. "SCI", "COCOIL ISETIONATO DE SODIO", "ESPUMA CREMOSA", etc.), transcríbelos exactamente con sus valores reales.
-- Si la imagen es una plantilla genérica o muestra textos placeholder como "SIGLA", "NOMBRE DE LA MATERIA PRIMA", etc., debes abstraer los campos vacíos ("") para permitir diligenciar desde cero.
-- Identifica con precisión el color dominante (#hex) de los bordes o títulos.
+- Transcribe con exactitud todos los textos, nombres, títulos, valores, especificaciones, números CAS, concentraciones, pesos y códigos EAN visibles en la imagen.
+- NO uses valores por defecto ni placeholders si la imagen contiene textos reales. Extrae exactamente lo que dice la imagen.
+- Identifica con precisión el color dominante (#hex) de los bordes, títulos y fondos (ej. azul #0b4199, violeta #3d246b, verde, etc.).
+- Si hay especificaciones o propiedades (ej. ORIGEN, APARIENCIA, OLOR, FÓRMULA QUÍMICA, GRADO, CONSERVACIÓN, o atributos como ESPUMA CREMOSA, etc.), mapealas fielmente en `features` y en los campos respectivos.
 
 Genera ÚNICAMENTE un JSON con el siguiente esquema exacto (sin markdown, sin explicaciones):
 {
-  "abreviatura": "Sigla o abreviatura destacada (ej. SCI, PVP, EDTA, BHT). Si es placeholder genérico pon vacío",
-  "nombre": "Nombre químico / comercial completo en mayúsculas (ej. COCOIL ISETIONATO DE SODIO)",
-  "tagline": "Subtítulo o categoría bajo el nombre (ej. Tensioactivo suave • Materia prima cosmética)",
-  "concentracionLabel": "CONCENTRACIÓN",
-  "concentracionValor": "Valor de concentración o pureza (ej. 90%, 99%) o vacío",
+  "abreviatura": "Sigla o título corto si existe (ej. CREATINA, SCI, PVP). Si no hay sigla separada, pon el nombre principal corto",
+  "nombre": "Nombre químico / comercial completo en mayúsculas (ej. CREATINA MONOHIDRATO, COCOIL ISETIONATO DE SODIO)",
+  "tagline": "Subtítulo, clasificación o categoría bajo el nombre (ej. INSUMO ALIMENTARIO, Tensioactivo suave • Materia prima cosmética)",
+  "concentracionLabel": "Etiqueta de concentración (ej. Concentración (Base Seca), CONCENTRACIÓN, etc.)",
+  "concentracionValor": "Valor exacto de concentración o pureza (ej. ≥ 99,0%, 90%, 99%) o vacío",
   "casLabel": "CAS",
-  "cas": "Número CAS del compuesto si es visible o determinable (ej. 61789-32-0)",
-  "descripcion": "Descripción textual de las características físicas, origen o función",
+  "cas": "Número CAS del compuesto si es visible (ej. 6020-87-7, 61789-32-0)",
+  "descripcion": "Descripción textual de características físicas, origen o notas generales",
   "features": [
-    {"titulo": "Texto del atributo 1 (ej. ESPUMA CREMOSA)", "icono": "burbujas"},
-    {"titulo": "Texto del atributo 2 (ej. LIMPIEZA SUAVE)", "icono": "gota"},
-    {"titulo": "Texto del atributo 3 (ej. pH RECOMENDADO 5-7)", "icono": "ph", "subtitulo": "pH"}
+    {"titulo": "Texto atributo 1 (ej. ORIGEN: China / ESPUMA CREMOSA)", "icono": "burbujas"},
+    {"titulo": "Texto atributo 2 (ej. APARIENCIA: Polvo cristalino / LIMPIEZA SUAVE)", "icono": "gota"},
+    {"titulo": "Texto atributo 3 (ej. FÓRMULA: C4H9N3O2 / pH 5-7)", "icono": "matraz", "subtitulo": ""}
   ],
-  "aplicacionesTitulo": "APLICACIONES",
-  "aplicaciones": "Lista o texto de usos y aplicaciones",
-  "incorporacionTitulo": "INCORPORACIÓN",
-  "incorporacion": "Instrucciones de disolución, temperatura, modo de preparación",
-  "peso": "Contenido neto con unidad (ej. 250 g, 500 g, 1 kg)",
-  "marca": "Marca (por defecto MCKENNA GROUP® o la que figure)",
-  "atencionTitulo": "ATENCIÓN",
-  "atencionTexto": "Texto de advertencias, precauciones o seguridad",
-  "almacenamiento": "Instrucciones de almacenamiento / conservación",
+  "aplicacionesTitulo": "APLICACIONES / INFORMACIÓN DE USO",
+  "aplicaciones": "Lista o texto de usos, aplicaciones o manipulación",
+  "incorporacionTitulo": "INCORPORACIÓN / DOCUMENTACIÓN",
+  "incorporacion": "Instrucciones de preparación, ficha técnica o documentación",
+  "peso": "Contenido neto con unidad visible en la etiqueta (ej. 1000 g, 1000g, 250 g, 500 g, 1 kg)",
+  "marca": "Marca (ej. MCKENNA GROUP®)",
+  "atencionTitulo": "INFORMACIÓN DE SEGURIDAD / ATENCIÓN",
+  "atencionTexto": "Texto de seguridad, manipulación, advertencias o clasificación GHS",
+  "almacenamiento": "Instrucciones de conservación / almacenamiento visibles",
   "desarrolladoPor": "Desarrollado por:",
   "empresa": "MCKENNA GROUP S.A.S.",
   "nit": "NIT. 901316016-3",
-  "ciudad": "BOGOTÁ — COLOMBIA",
-  "web": "mckennagroup.co",
-  "ean13": "Código EAN-13 numérico (13 dígitos) si es visible, o vacío",
-  "color_primario": "Color hexadecimal (#hex) predominante en los títulos, bordes o identidad de la etiqueta",
-  "formato_sugerido": "Nombre del formato sugerido (ej. 250 g, 500 g, 1000 g o Ficha MP)"
+  "ciudad": "Bogotá, Colombia",
+  "web": "www.mckennagroup.co",
+  "ean13": "Código EAN-13 numérico (13 dígitos) visible en el código de barras (ej. 7701405002639)",
+  "color_primario": "Color hexadecimal (#hex) predominante en los títulos, bordes o identidad de la etiqueta (ej. #0b4199)",
+  "formato_sugerido": "Nombre del formato sugerido (ej. 1000 g, 250 g, 500 g)"
 }
 
 REGLAS DE ABSTRACCIÓN:
 - Transcribe fielmente los textos reales visibles en la etiqueta.
 - Detecta el color dominante de la tinta (#hex) con precisión.
-- En `features`, asigna el icono más representativo de los 3 soportados: "burbujas", "gota", "ph", "matraz", "mortero", "frasco" o "alerta".
 - Devuelve SOLO el objeto JSON sin texto antes ni después.
 """
 

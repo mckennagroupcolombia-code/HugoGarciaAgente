@@ -286,6 +286,57 @@ def _ejemplos_fewshot(titulo_producto: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# FAQ: "¿me envías la ficha técnica y COA?" — respuesta fija de política MeLi
+# (sin enlaces ni datos de contacto), auto-enviada sin pasar por aprobación
+# humana porque el texto no depende del producto ni de la ficha técnica real.
+# ---------------------------------------------------------------------------
+
+def _responder_faq_ficha_coa_preventa(question_id: str, titulo_producto: str, pregunta_cliente: str):
+    from app.postventa_documentos import respuesta_ficha_coa_meli
+    from preventa_meli import enviar_respuesta_meli, obtener_token_meli
+
+    texto = respuesta_ficha_coa_meli()
+    token = obtener_token_meli()
+    enviado = bool(token) and enviar_respuesta_meli(question_id, texto, token)
+
+    try:
+        from app.observability import log_json
+
+        log_json(
+            "preventa_faq_ficha_coa",
+            question_id=str(question_id),
+            producto=titulo_producto,
+            enviado=enviado,
+        )
+    except Exception:
+        pass
+
+    if enviado:
+        print(f"✅ Preventa: FAQ ficha técnica/COA auto-respondida para '{titulo_producto}'")
+        return texto, True
+
+    print(f"⚠️ Preventa: no se pudo auto-responder FAQ ficha/COA de '{titulo_producto}' — delegando al grupo")
+    creada = guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente, borrador_ia=texto)
+    if not creada:
+        return None, False
+    try:
+        from app.utils import enviar_whatsapp_reporte
+
+        sufijo = str(question_id)[-3:]
+        enviar_whatsapp_reporte(
+            f"❓ CONSULTA PREVENTA PENDIENTE (FT/COA)\n"
+            f"📦 Producto: {titulo_producto}\n"
+            f"🗣 Cliente preguntó: {pregunta_cliente}\n\n"
+            f"✅ Enviar como está: ok {sufijo}\n"
+            f"✍️ Mejorar respuesta: resp {sufijo}: tu versión",
+            numero_destino=jid_grupo_preventa_wa(),
+        )
+    except Exception as e:
+        print(f"❌ Preventa: error alertando FAQ ficha/COA pendiente: {e}")
+    return None, False
+
+
+# ---------------------------------------------------------------------------
 # Función principal
 # ---------------------------------------------------------------------------
 
@@ -368,6 +419,16 @@ def manejar_pregunta_preventa(
             f"(eliminada={eliminada}, comprador={comprador_id}, bloqueado={bloqueado})"
         )
         return None, True
+
+    from app.postventa_documentos import (
+        mensaje_solicita_documentos,
+        respuesta_ficha_coa_meli,
+    )
+
+    if mensaje_solicita_documentos(pregunta_cliente):
+        return _responder_faq_ficha_coa_preventa(
+            question_id, titulo_producto, pregunta_cliente
+        )
 
     from app.services.google_services import buscar_ficha_tecnica_producto
 

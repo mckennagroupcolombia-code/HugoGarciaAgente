@@ -9119,8 +9119,8 @@
     },
     "2000018109327320": {
       "shipping_id": "47851689485",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-08-26T20:12:03",
+      "estado": "omitida",
+      "actualizado_en": "2026-08-27T10:36:13",
       "preview": {
         "lineas": [
           {
@@ -9136,7 +9136,8 @@
         "direccion_envio": "Carrera 14 #SN-SN, Girardota, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "error": "Orden en estado 'cancelled', no pagada."
     },
     "2000018111782226": {
       "shipping_id": "47853148992",
@@ -9158,6 +9159,456 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018101841372": {
+      "shipping_id": "47848156209",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T10:38:16",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LTEA100g",
+            "nombre": "L Teanina 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 39000.0
+          }
+        ],
+        "total": 39000.0,
+        "nombre_cliente": "Gerardo Delgado",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 22 #78A-12, Barrancabermeja, Santander",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018121794856": {
+      "shipping_id": "47857655827",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T11:10:23",
+      "error": "No puedo emitir factura automática: Lanolina Pura  Anti Grietas 40 Gramos (MCO600431364): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018114210208": {
+      "shipping_id": "47854344706",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T11:25:04",
+      "error": "No puedo emitir factura automática: Glicerina Vegetal Usp 250 Ml (MCO1636912880): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018032912890": {
+      "shipping_id": "47815903361",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T11:33:42",
+      "error": "No puedo emitir factura automática: Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml (MCO577035616): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018119391172": {
+      "shipping_id": "47856848908",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T12:05:52",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor (MCO4074246724): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018106021490": {
+      "shipping_id": "47850273176",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T12:10:26",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 16707.0
+          }
+        ],
+        "total": 16707.0,
+        "nombre_cliente": "Karen Silva",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera Cra 9A #16A-50, Fundación, Magdalena",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018115443678": {
+      "shipping_id": "47854968158",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T12:10:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BTMS50125g",
+            "nombre": "Btms 50 Emulsionante 125 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 21165.0
+          }
+        ],
+        "total": 21165.0,
+        "nombre_cliente": "Marcela Sánchez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 80 78g85 sur, Bosa, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018104299736": {
+      "shipping_id": "47849268069",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T12:54:30",
+      "error": "No puedo emitir factura automática: Dipropilengicol Usp Dpg 500 Ml (MCO581504092): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018105554474": {
+      "shipping_id": "47849798017",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T12:58:19",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor (MCO4083547534): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018059573404": {
+      "shipping_id": "47828691981",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T13:34:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "OILESNRMR5mL",
+            "nombre": "Aceite Esencial Romero Mckenna Group 5ml Aromaterapia Estimulante",
+            "cantidad": 1.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 20900.0,
+        "nombre_cliente": "Natalia Andrea Montoya Toro",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 52 #49-34, Currulao, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000017829471926": {
+      "shipping_id": "47720144888",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T14:03:20",
+      "error": "No puedo emitir factura automática: Sci Tensoactivo 1kg (MCO866417408): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018104858660": {
+      "shipping_id": "47849504393",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T14:24:03",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITCAL500g",
+            "nombre": "Citrato De Potasio 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24225.0
+          }
+        ],
+        "total": 24225.0,
+        "nombre_cliente": "José agresott",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 27  26H-183 SN, Lorica, Córdoba",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018112964776": {
+      "shipping_id": "47853727656",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T14:57:05",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ESPCCRCRV22CM",
+            "nombre": "Espátula Laboratorio Acero Inóxidable",
+            "cantidad": 1.0,
+            "precio_unitario": 10880.0
+          }
+        ],
+        "total": 10880.0,
+        "nombre_cliente": "Carolina Gallego Ramirez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 49 #50-22, Rionegro, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018134893848": {
+      "shipping_id": "47864077447",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T14:53:41",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 99750.0
+          }
+        ],
+        "total": 99750.0,
+        "nombre_cliente": "Laura Marcela Tamayo Ortiz",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 39E # 48c sur-36, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018115063390": {
+      "shipping_id": "47854779230",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T15:00:53",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor (MCO4074246724): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018147267612": {
+      "shipping_id": "47869948823",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T15:57:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDLAC85P30mL",
+            "nombre": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 17425.0
+          }
+        ],
+        "total": 17425.0,
+        "nombre_cliente": "Jhon Edison londoño",
+        "identificacion": "222222222222",
+        "direccion_envio": "calle 64a 52 53 SN, Barrios Unidos, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018119939398": {
+      "shipping_id": "47856818033",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T16:00:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-FRU500g",
+            "nombre": "Fructosa  Pura 500gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Fabio Guzmán",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 12 #2N-59, Armenia, Quindio",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018147359666": {
+      "shipping_id": "47870274032",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T16:41:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 2.0,
+            "precio_unitario": 17765.0
+          }
+        ],
+        "total": 35530.0,
+        "nombre_cliente": "Natalia Linero",
+        "identificacion": "222222222222",
+        "direccion_envio": "Transversal 2a 67-50, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018125130112": {
+      "shipping_id": "47859523718",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T16:55:45",
+      "error": "No puedo emitir factura automática: Creatina Monohidrato 1000g N/a (MCO2130155125): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018137060002": {
+      "shipping_id": "47865072239",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T17:00:12",
+      "error": "No puedo emitir factura automática: Cera De Abejas  Blanca 500gr (MCO1912833896): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018120725298": {
+      "shipping_id": "47857454450",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T17:05:54",
+      "error": "No puedo emitir factura automática: Creatina Monohidrato 1000g N/a (MCO2130155125): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018145551858": {
+      "shipping_id": "47869132833",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T17:21:28",
+      "error": "No puedo emitir factura automática: Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel (MCO615593853): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018146533148": {
+      "shipping_id": "47869594639",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T17:25:16",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MENCRI100g",
+            "nombre": "Mentol Cristal  100gr",
+            "cantidad": 1.0,
+            "precio_unitario": 25075.0
+          }
+        ],
+        "total": 25075.0,
+        "nombre_cliente": "Paola Lasso",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 46 #3-35, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018129820598": {
+      "shipping_id": "47861846674",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T17:27:54",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TAU250g",
+            "nombre": "Taurina Polvo Pura 250gr",
+            "cantidad": 1.0,
+            "precio_unitario": 35105.0
+          }
+        ],
+        "total": 35105.0,
+        "nombre_cliente": "Paula Andrea Castillo Grajales",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 8 Oeste 14-56, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018134191924": {
+      "shipping_id": "47863731355",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T17:37:49",
+      "error": "No puedo emitir factura automática: Aceite Esencial Mckenna Group Árbol De Té Herbal 5ml (MCO3141419058): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018125346030": {
+      "shipping_id": "47859352957",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T17:44:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TAU250g",
+            "nombre": "Taurina Polvo Pura 250gr",
+            "cantidad": 1.0,
+            "precio_unitario": 35105.0
+          }
+        ],
+        "total": 35105.0,
+        "nombre_cliente": "Emilia Blanco",
+        "identificacion": "222222222222",
+        "direccion_envio": "Cl. 55 80-54, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018126971600": {
+      "shipping_id": "47860469702",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T18:00:13",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDKOJDPAL30mL",
+            "nombre": "Ácido Kojico Dpalmitato 5% 30ml",
+            "cantidad": 2.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 41800.0,
+        "nombre_cliente": "Yenny Patricia Andrades Casas",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 77 #60-45, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018143662924": {
+      "shipping_id": "47868201499",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T18:06:01",
+      "error": "No puedo emitir factura automática: Cloruro De Magnesio  Alta Pureza 1 Kg Sal (MCO581493122): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018120646106": {
+      "shipping_id": "47857135539",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T18:08:10",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON250g",
+            "nombre": "Creatina Monohidrato 250gr N/a",
+            "cantidad": 2.0,
+            "precio_unitario": 22574.0
+          }
+        ],
+        "total": 45148.0,
+        "nombre_cliente": "Andrés Muñoz",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 26B #54-25, Rionegro, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018144445856": {
+      "shipping_id": "47868592539",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-27T18:51:28",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 99750.0
+          }
+        ],
+        "total": 99750.0,
+        "nombre_cliente": "Crhistian Camilo Ordoñez Portilla",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 4 Sur 48-110, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018103154588": {
+      "shipping_id": "47848741733",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T18:58:45",
+      "error": "No puedo emitir factura automática: Aceite Ricino Castor Puro 250ml (MCO1636834856): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018146937030": {
+      "shipping_id": "47869790049",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T19:12:04",
+      "error": "No puedo emitir factura automática: Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml (MCO577035616): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018133537832": {
+      "shipping_id": "47863422353",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T19:17:17",
+      "error": "No puedo emitir factura automática: Agua Destilada  250 Ml (MCO2924070024): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018145986522": {
+      "shipping_id": "47869335763",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T19:24:03",
+      "error": "No puedo emitir factura automática: Ácido Salicílico 20% 30 Ml Todo Tipo De Piel (MCO1262287931): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018138879420": {
+      "shipping_id": "47866168788",
+      "estado": "error",
+      "actualizado_en": "2026-08-27T20:09:27",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor (MCO4074246724): sin SKU (seller_custom_field) en MeLi"
     }
   }
 }

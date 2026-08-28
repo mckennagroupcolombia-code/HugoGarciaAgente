@@ -77,7 +77,7 @@ export default function Layout({
 
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
-      {sidebarOpen && (
+      {sidebarOpen && !studioEtiquetasFill && (
         <div
           className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm transition-opacity duration-200 lg:hidden"
           onClick={toggle}
@@ -85,11 +85,16 @@ export default function Layout({
         />
       )}
 
-      <Sidebar />
+      {!studioEtiquetasFill && <Sidebar />}
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
-        <SystemAlertsBanner />
-        <TeamActivityBanner />
+        {!studioEtiquetasFill && (
+          <>
+            <SystemAlertsBanner />
+            <TeamActivityBanner />
+          </>
+        )}
+        {!studioEtiquetasFill && (
         <header
           className="mck-header-glass z-30 flex shrink-0 flex-col gap-2 border-b border-border/80 px-3 py-2 shadow-paper-sm sm:gap-2.5 sm:px-4 sm:py-2.5"
           style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
@@ -189,6 +194,7 @@ export default function Layout({
             </div>
           )}
         </header>
+        )}
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className={`mck-panel-scroll min-h-0 min-w-0 flex-1 ${contentScrollClass}`}>
