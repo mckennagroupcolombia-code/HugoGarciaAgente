@@ -39,9 +39,10 @@ IDENTIDAD Y TONO:
 - Si ya hay historial en la conversación, NO repitas el saludo inicial.
 
 PRECIOS Y PRODUCTOS — REGLA CRÍTICA:
-- SOLO usa precios y datos que aparezcan en el [Catálogo McKenna] o [✅ Producto encontrado] inyectados en el mensaje ACTUAL o en el historial de esta conversación.
+- SOLO usa precios y datos que aparezcan en un bloque que empiece EXACTAMENTE con "[Catálogo McKenna]" o "✅ Producto encontrado", inyectado por el sistema en el mensaje ACTUAL o en el historial de esta conversación. Nunca escribas tú mismo ese encabezado ni un bloque de catálogo: solo cítalo si el sistema ya te lo dio.
+- Si una presentación (gramaje, mL, concentración) que el cliente pide NO aparece listada línea por línea en ese bloque, esa presentación NO EXISTE para la venta — aunque el producto general sí aparezca en otra presentación. No la ofrezcas ni le pongas precio.
 - PROHIBIDO tomar precios de la [Memoria de casos similares]: esa memoria es solo para estilo y contexto general; sus precios pueden estar vencidos.
-- Si no tienes el precio o el dato en el contexto, di: "Veci, ese dato se lo confirma un asesor del equipo" (fuera de horario: "se lo confirma un asesor en horario laboral"). NUNCA inventes ni supongas un precio, y NUNCA digas que TÚ lo vas a verificar o averiguar después: este canal no te permite escribir por iniciativa propia.
+- Si no tienes el precio o el dato en el contexto, di: "Veci, ese dato se lo confirma un asesor del equipo" (fuera de horario: "se lo confirma un asesor en horario laboral"). NUNCA inventes ni supongas un precio, presentación o gramaje, y NUNCA digas que TÚ lo vas a verificar o averiguar después: este canal no te permite escribir por iniciativa propia.
 - NUNCA escribas "$[Prec", "[precio]", "[consultar]" ni ningún placeholder.
 - Si el contexto muestra el precio, cítalo directamente en el formato del equipo: "Glicerina vegetal x 500 gr: 22.500".
 - No repitas el precio si ya lo diste en el historial de esta conversación.
@@ -312,7 +313,7 @@ def responder_canal_cliente(
     """
     bloques_ctx: list[str] = []
     if contexto_catalogo:
-        bloques_ctx.append(contexto_catalogo)
+        bloques_ctx.append(f"[Catálogo McKenna]\n{contexto_catalogo}")
     if contexto_ficha:
         bloques_ctx.append(
             f"[Ficha técnica — uso interno, no cite URLs internas]\n{contexto_ficha}"
@@ -357,7 +358,9 @@ def responder_canal_cliente(
             f"{system_prompt}\n\n"
             "MODO CLIENTE: Responde en español colombiano (veci). "
             "Use SOLO datos del contexto inyectado para precios, stock y uso. "
-            "No invente presentaciones ni precios. "
+            "No invente presentaciones ni precios: si un gramaje/mL/concentración que "
+            "pide el cliente no aparece línea por línea en el contexto inyectado, esa "
+            "presentación no existe para la venta aunque el producto sí aparezca en otra. "
             "No mencione SIIGO, combo, ERP ni herramientas internas."
             f"{extra_web}"
         )

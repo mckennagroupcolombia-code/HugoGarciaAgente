@@ -2288,7 +2288,7 @@ def _candidatos_busqueda_whatsapp(termino: str) -> list[str]:
 
 
 def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) -> str | None:
-    """Catálogo Sheets + ficha en columna I (sin tool-use API)."""
+    """Catálogo combos SIIGO (presentaciones reales, igual que web) + fallback Sheets/ficha."""
     if _es_reconocimiento_corto_web(pregunta):
         return None
     if not _mensaje_parece_consulta_catalogo_web(pregunta):
@@ -2296,6 +2296,31 @@ def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) ->
     termino = _termino_busqueda_producto_web(pregunta, messages or [])
     if len((termino or "").strip()) < 3:
         return None
+
+    # Preferir combos SIIGO: son las presentaciones reales que se venden (igual
+    # que en el catálogo web) y devuelven TODAS las presentaciones que matchean
+    # (ej. Citrato de Potasio 250g y 500g por separado), en vez del primer
+    # match de fila en Sheets — que citaba el precio de una presentación al
+    # azar y podía "encontrar" un producto para un gramaje que no existe
+    # (ej. "cloruro de magnesio libra" matcheaba por substring aunque solo
+    # se vende en kilo).
+    try:
+        datos_combo = _buscar_productos_combo_siigo(termino)
+    except Exception as e:
+        _log_error("preflight_catalogo_whatsapp_combo", e)
+        datos_combo = None
+    sin_combo = not datos_combo or any(
+        marca in datos_combo
+        for marca in (
+            "No encontré combo",
+            "No pude interpretar",
+            "Consulta vacía",
+            "No hay combos SIIGO",
+        )
+    )
+    if not sin_combo:
+        return datos_combo
+
     resultados: list[str] = []
     for cand in _candidatos_busqueda_whatsapp(termino):
         try:
