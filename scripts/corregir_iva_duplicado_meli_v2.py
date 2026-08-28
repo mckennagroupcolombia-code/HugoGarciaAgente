@@ -173,7 +173,14 @@ def analizar_pack(pack_id: str, factura: dict, headers_meli: dict) -> dict:
     }
 
 
-def corregir_pack(pack_id: str, factura: dict, headers_meli: dict, *, dry_run: bool = False) -> dict:
+def corregir_pack(pack_id: str, factura: dict, headers_meli: dict, *, dry_run: bool = False, mapa_codigos: dict[str, str] | None = None) -> dict:
+    """`mapa_codigos`: {codigo_inactivo: codigo_activo_equivalente} — Siigo
+    rechaza crear notas crédito/facturas referenciando un producto inactivo
+    (`parameter_inactive`); para códigos viejos (ej. prefijo "D-" reemplazado
+    por "C-" del mismo producto) se sustituye por su equivalente activo en
+    vez de reactivar el maestro de productos (evita tocar combos con
+    componentes internos en producción)."""
+    mapa_codigos = mapa_codigos or {}
     from app.services.siigo import (
         autenticar_siigo, PARTNER_ID, buscar_nota_credito_existente_siigo,
         crear_nota_credito_siigo, crear_factura_venta_siigo,
@@ -212,7 +219,7 @@ def corregir_pack(pack_id: str, factura: dict, headers_meli: dict, *, dry_run: b
 
     nc_items = [
         {
-            "code": it["code"], "description": it["description"], "quantity": it.get("quantity", 1),
+            "code": mapa_codigos.get(it["code"], it["code"]), "description": it["description"], "quantity": it.get("quantity", 1),
             "price": it["price"], "tax_ids": [t["id"] for t in (it.get("taxes") or [])],
         }
         for it in factura["items"]
@@ -234,15 +241,16 @@ def corregir_pack(pack_id: str, factura: dict, headers_meli: dict, *, dry_run: b
     for l in analisis["lineas"]:
         it = l["item"]
         tax_ids_orig = [t["id"] for t in (it.get("taxes") or [])]
+        codigo = mapa_codigos.get(it["code"], it["code"])
         if l["estado"] == "duplicado":
             cantidad = it.get("quantity", 1)
             base = _redondear(Decimal(str(l["esperado"])) / TASA_IVA / Decimal(str(cantidad)))
-            linea = {"codigo": it["code"], "nombre": it["description"], "cantidad": cantidad, "precio_unitario": base}
+            linea = {"codigo": codigo, "nombre": it["description"], "cantidad": cantidad, "precio_unitario": base}
             if tax_ids_orig:
                 linea["tax_ids"] = tax_ids_orig
             lineas_nuevas.append((linea, TASA_IVA - 1 if tax_ids_orig else Decimal("0")))
         else:
-            linea = {"codigo": it["code"], "nombre": it["description"], "cantidad": it.get("quantity", 1), "precio_unitario": it["price"]}
+            linea = {"codigo": codigo, "nombre": it["description"], "cantidad": it.get("quantity", 1), "precio_unitario": it["price"]}
             if tax_ids_orig:
                 linea["tax_ids"] = tax_ids_orig
             rate = sum(Decimal(str(t.get("percentage") or 0)) for t in (it.get("taxes") or [])) / Decimal("100")
