@@ -2697,3 +2697,21 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-28) no es el último día del mes.
+[cursor/wa-metricas-panel 3f83e74] Auto-commit: actualizacion diaria 2026-08-28 23:00
+ 45 files changed, 3950 insertions(+), 1519 deletions(-)
+ create mode 100644 app/data/sync_facturas_faltantes_seguimiento.json
+ create mode 100644 desktop/src/components/tickets/HiloConversacion.tsx
+ create mode 100644 desktop/src/components/tickets/InboxConversaciones.tsx
+ create mode 100644 desktop/src/components/tickets/ticketsFormat.ts
+ create mode 100644 desktop/src/hooks/useConversaciones.ts
+ create mode 100644 error.png
+ create mode 100644 uploads/tickets/08d71aab7f0847cebdd70b21def647e1.jpg
+ create mode 100644 uploads/tickets/8043cf86f93d4ceda16da0670608c4a2.png
+ create mode 100644 uploads/tickets/8b93882d63e849059c28eda08a5b4dac.png
+ create mode 100644 uploads/tickets/98a3c0f5968049ffb9b709ced56fc584.jpeg
+ create mode 100644 uploads/tickets/9e3e8d31144e4d7b967d319873d4dfeb.jpeg
+ create mode 100644 uploads/tickets/b8f92dbe9b1540548b349bb3c3e8d0b1.png
+ create mode 100644 uploads/tickets/d414b87659bc434db1dfd0ccab4beb65.png
+ create mode 100644 uploads/tickets/d7968d63b9a2455a9b2e7cc5c400c25b.png
+ create mode 100644 uploads/tickets/f3a149330a97440ea2c3d705791d7fa1.jpeg
+[2026-08-28 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-28 23:00'
