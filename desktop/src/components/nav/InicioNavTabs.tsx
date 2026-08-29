@@ -35,6 +35,7 @@ export default function InicioNavTabs() {
 
   const showAcciones = puedeVerTabInicio(permisos, nivel, "acciones");
   const showSolicitudes = puedeVerTabInicio(permisos, nivel, "solicitudes");
+  const showMensajes = showAcciones || showSolicitudes;
 
   useEffect(() => {
     if (panel === "dashboard") guardarUltimoPanelHub("inicio", "dashboard");
@@ -48,17 +49,11 @@ export default function InicioNavTabs() {
     setPanel("hugo");
   }
 
-  function irAcciones() {
-    setAccionesBootTab("activas");
-    setTicketsBootView("acciones");
-    setCentroMandoView("acciones");
-    setPanel("hugo");
-  }
-
-  function irSolicitudes() {
+  /** Inbox unificado de Solicitudes + Acciones (chat estilo WhatsApp Web). */
+  function irMensajes() {
     setAccionesBootTab(null);
-    setTicketsBootView("solicitudes");
-    setCentroMandoView("solicitudes");
+    setTicketsBootView("mensajes");
+    setCentroMandoView("mensajes");
     setPanel("hugo");
   }
 
@@ -69,8 +64,9 @@ export default function InicioNavTabs() {
   }
 
   const agendaActiva = enAgenda && (centroMandoView === "home" || centroMandoView === "agente");
-  const accionesActiva = enAgenda && centroMandoView === "acciones";
-  const solicitudesActiva = enAgenda && centroMandoView === "solicitudes";
+  const mensajesActiva = enAgenda && (
+    centroMandoView === "mensajes" || centroMandoView === "acciones" || centroMandoView === "solicitudes"
+  );
   const metricasActiva = panel === "dashboard";
 
   return (
@@ -87,32 +83,18 @@ export default function InicioNavTabs() {
         <Icon name="target" size={22} weight="bold" />
         <span className={HUB_TAB_LABEL}>Agenda</span>
       </button>
-      {showAcciones && (
+      {showMensajes && (
         <button
           type="button"
           role="tab"
-          aria-selected={accionesActiva}
-          aria-label="Acciones"
-          title="Acciones"
-          onClick={irAcciones}
-          className={hubTabClass(accionesActiva)}
+          aria-selected={mensajesActiva}
+          aria-label="Mensajes"
+          title="Mensajes (Solicitudes y Acciones)"
+          onClick={irMensajes}
+          className={hubTabClass(mensajesActiva)}
         >
-          <Icon name="lightning" size={22} weight="bold" />
-          <span className={HUB_TAB_LABEL}>Acciones</span>
-        </button>
-      )}
-      {showSolicitudes && (
-        <button
-          type="button"
-          role="tab"
-          aria-selected={solicitudesActiva}
-          aria-label="Solicitudes"
-          title="Solicitudes"
-          onClick={irSolicitudes}
-          className={hubTabClass(solicitudesActiva)}
-        >
-          <Icon name="listChecks" size={22} weight="bold" />
-          <span className={HUB_TAB_LABEL}>Solicitudes</span>
+          <Icon name="chat" size={22} weight="bold" />
+          <span className={HUB_TAB_LABEL}>Mensajes</span>
         </button>
       )}
       <button

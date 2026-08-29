@@ -140,6 +140,11 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
 
         detalle = consultar_item_meli_basico(item_id) if item_id else None
         sku = (detalle or {}).get("seller_custom_field") or ""
+        if not sku:
+            for attr in (detalle or {}).get("attributes") or []:
+                if attr.get("id") == "SELLER_SKU":
+                    sku = (attr.get("value_name") or "").strip()
+                    break
         nombre = item_info.get("title") or (detalle or {}).get("title") or "Producto"
 
         if not sku:

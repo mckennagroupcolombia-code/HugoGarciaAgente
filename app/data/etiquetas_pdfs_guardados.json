@@ -1,6 +1,146 @@
 {
   "archivos": [
     {
+      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
+      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
+      "subido_at": "2026-08-28T11:26:05",
+      "bytes": 304782
+    },
+    {
+      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
+      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112545.pdf",
+      "subido_at": "2026-08-28T11:25:45",
+      "bytes": 304782
+    },
+    {
+      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
+      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4.pdf",
+      "subido_at": "2026-08-28T11:23:56",
+      "bytes": 304782
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111604.pdf",
+      "subido_at": "2026-08-28T11:16:04",
+      "bytes": 114163
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x_20260828_111551.pdf",
+      "subido_at": "2026-08-28T11:15:51",
+      "bytes": 114163
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_0_6.25x.pdf",
+      "subido_at": "2026-08-28T11:15:39",
+      "bytes": 114163
+    },
+    {
+      "nombre": "CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x_20260828_111406.pdf",
+      "subido_at": "2026-08-28T11:14:06",
+      "bytes": 115138
+    },
+    {
+      "nombre": "CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_VERDE_BLANCO_0_6.25x.pdf",
+      "subido_at": "2026-08-28T11:13:53",
+      "bytes": 115138
+    },
+    {
+      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111253.pdf",
+      "subido_at": "2026-08-28T11:12:53",
+      "bytes": 114802
+    },
+    {
+      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111229.pdf",
+      "subido_at": "2026-08-28T11:12:29",
+      "bytes": 114802
+    },
+    {
+      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111216.pdf",
+      "subido_at": "2026-08-28T11:12:16",
+      "bytes": 114802
+    },
+    {
+      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x_20260828_111202.pdf",
+      "subido_at": "2026-08-28T11:12:02",
+      "bytes": 114802
+    },
+    {
+      "nombre": "CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_AZUL_BLANCO_0_6.25x.pdf",
+      "subido_at": "2026-08-28T11:11:43",
+      "bytes": 114802
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110957.pdf",
+      "subido_at": "2026-08-28T11:09:57",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110650.pdf",
+      "subido_at": "2026-08-28T11:06:50",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_110632.pdf",
+      "subido_at": "2026-08-28T11:06:32",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105703.pdf",
+      "subido_at": "2026-08-28T10:57:03",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105459.pdf",
+      "subido_at": "2026-08-28T10:54:59",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260828_105420.pdf",
+      "subido_at": "2026-08-28T10:54:20",
+      "bytes": 121548
+    },
+    {
+      "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x.pdf",
+      "subido_at": "2026-08-28T10:54:00",
+      "bytes": 121548
+    },
+    {
       "nombre": "PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
       "ruta": "Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PROTEINA_DE_SUERO_DE_LECHE_Kg_6.25x_20260825_115942.pdf",
@@ -1259,146 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
       "subido_at": "2026-07-24T11:43:01",
       "bytes": 292008
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114231.pdf",
-      "subido_at": "2026-07-24T11:42:31",
-      "bytes": 292008
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x.pdf",
-      "subido_at": "2026-07-24T11:42:04",
-      "bytes": 292008
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114116.pdf",
-      "subido_at": "2026-07-24T11:41:16",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260724_114050.pdf",
-      "subido_at": "2026-07-24T11:40:50",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x.pdf",
-      "subido_at": "2026-07-24T11:40:14",
-      "bytes": 281604
-    },
-    {
-      "nombre": "BTMS_125g_6.25x_20260723_114206.pdf",
-      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114206.pdf",
-      "subido_at": "2026-07-23T11:42:06",
-      "bytes": 395244
-    },
-    {
-      "nombre": "BTMS_125g_6.25x_20260723_114137.pdf",
-      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114137.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114137.pdf",
-      "subido_at": "2026-07-23T11:41:37",
-      "bytes": 395244
-    },
-    {
-      "nombre": "BTMS_125g_6.25x_20260723_114122.pdf",
-      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x_20260723_114122.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x_20260723_114122.pdf",
-      "subido_at": "2026-07-23T11:41:22",
-      "bytes": 395244
-    },
-    {
-      "nombre": "BTMS_125g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/BTMS_125g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/BTMS_125g_6.25x.pdf",
-      "subido_at": "2026-07-23T11:40:53",
-      "bytes": 395244
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113748.pdf",
-      "subido_at": "2026-07-23T11:37:49",
-      "bytes": 257697
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113705.pdf",
-      "subido_at": "2026-07-23T11:37:05",
-      "bytes": 257697
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113640.pdf",
-      "subido_at": "2026-07-23T11:36:40",
-      "bytes": 257697
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260723_113608.pdf",
-      "subido_at": "2026-07-23T11:36:08",
-      "bytes": 257697
-    },
-    {
-      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
-      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113511.pdf",
-      "subido_at": "2026-07-23T11:35:11",
-      "bytes": 253349
-    },
-    {
-      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
-      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113442.pdf",
-      "subido_at": "2026-07-23T11:34:42",
-      "bytes": 253349
-    },
-    {
-      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
-      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113416.pdf",
-      "subido_at": "2026-07-23T11:34:16",
-      "bytes": 253349
-    },
-    {
-      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
-      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260723_113346.pdf",
-      "subido_at": "2026-07-23T11:33:46",
-      "bytes": 253349
-    },
-    {
-      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x.pdf",
-      "subido_at": "2026-07-23T11:32:40",
-      "bytes": 253349
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121710.pdf",
-      "subido_at": "2026-07-21T12:17:10",
-      "bytes": 263860
-    },
-    {
-      "nombre": "NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
-      "ruta": "Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/NUEZ_DEL_BRASIL_500g_6.25x_20260721_121655.pdf",
-      "subido_at": "2026-07-21T12:16:55",
-      "bytes": 263860
     }
   ]
 }

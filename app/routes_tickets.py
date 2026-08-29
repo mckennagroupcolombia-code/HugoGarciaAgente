@@ -45,6 +45,7 @@ from app.services.tickets_db import (
     listar_compras_ticket, agregar_compra_ticket, actualizar_compra_ticket, eliminar_compra_ticket,
     buscar_productos_para_compra,
     listar_notas, crear_nota, actualizar_nota, eliminar_nota,
+    listar_conversaciones, marcar_ticket_visto, timeline_ticket,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "txt"}
@@ -1103,6 +1104,24 @@ def register_tickets_routes(app):
             texto, bool(data.get("es_interno", False)),
         )
         return jsonify({"id": new_id, "ticket_id": ticket_id}), 201
+
+    @app.route("/api/tickets/conversaciones", methods=["GET"])
+    @_auth
+    def tickets_conversaciones():
+        tipo = (request.args.get("tipo") or "todas").strip().lower()
+        scope = (request.args.get("scope") or "mias").strip().lower()
+        return jsonify(listar_conversaciones(request.tickets_usuario, tipo=tipo, scope=scope)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/timeline", methods=["GET"])
+    @_auth
+    def tickets_timeline(ticket_id):
+        return jsonify(timeline_ticket(ticket_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/visto", methods=["POST"])
+    @_auth
+    def tickets_marcar_visto(ticket_id):
+        marcar_ticket_visto(ticket_id, request.tickets_usuario["id"])
+        return jsonify({"ok": True}), 200
 
     @app.route("/api/tickets/comentarios/<int:comentario_id>", methods=["DELETE"])
     @_auth

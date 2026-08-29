@@ -74,6 +74,7 @@ import {
 } from "../lib/contratoPrestacionServicios";
 import { api } from "../api/client";
 import { esAdminVistaEquipo } from "../lib/adminAccess";
+import InboxConversaciones from "./tickets/InboxConversaciones";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -1221,6 +1222,7 @@ type View =
   | "list"
   | "acciones"
   | "solicitudes"
+  | "mensajes"
   | "contratos"
   | "create"
   | "detail"
@@ -29610,6 +29612,7 @@ export default function TicketsPanel() {
   const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
   const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo">("activas");
+  const [mensajesBootTipo, setMensajesBootTipo] = useState<"accion" | "solicitud" | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedId);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedMisionId);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -29741,7 +29744,7 @@ export default function TicketsPanel() {
 
   useEffect(() => {
     if (!solicitudBoot?.abrirTicketId) return;
-    setView("solicitudes");
+    setView("mensajes");
   }, [solicitudBoot]);
 
   useEffect(() => {
@@ -29812,10 +29815,13 @@ export default function TicketsPanel() {
     setAccionesKey((k) => k + 1);
     setView("acciones");
   }
-  function goSolicitudes() { irATickets("solicitudes"); }
+  function goSolicitudes(tipoInicial?: "accion" | "solicitud") {
+    if (tipoInicial) setMensajesBootTipo(tipoInicial);
+    irATickets("mensajes");
+  }
   function goVerSolicitud(id: number) {
     setSolicitudBoot({ abrirTicketId: id });
-    irATickets("solicitudes");
+    irATickets("mensajes");
   }
   function goContratos() {
     if (nivel < 3) return;
@@ -29883,11 +29889,11 @@ export default function TicketsPanel() {
               user={user}
               nivel={nivel}
               permisos={permisos}
-              onAcciones={() => goAcciones("activas")}
-              onSolicitudes={goSolicitudes}
+              onAcciones={() => goSolicitudes("accion")}
+              onSolicitudes={() => goSolicitudes("solicitud")}
               onVerSolicitud={goVerSolicitud}
               onContratos={goContratos}
-              onTablero={() => goAcciones("activas")}
+              onTablero={() => goSolicitudes("accion")}
               onAccionesFuturas={() => goAcciones("agenda")}
               onRecordatorios={() => goAcciones("agenda")}
               onProcedimientos={() => goAcciones("procedimientos")}
@@ -29928,6 +29934,17 @@ export default function TicketsPanel() {
             onInicio={goInicio}
             boot={solicitudBoot}
             onBootConsumed={() => setSolicitudBoot(null)}
+          />
+        )}
+        {view === "mensajes" && (
+          <InboxConversaciones
+            token={token}
+            user={user}
+            onAbrirDetalleCompleto={goDetail}
+            bootTicketId={solicitudBoot?.abrirTicketId ?? null}
+            onBootConsumed={() => setSolicitudBoot(null)}
+            bootTipo={mensajesBootTipo}
+            onBootTipoConsumed={() => setMensajesBootTipo(null)}
           />
         )}
         {view === "contratos" && nivel >= 3 && (

@@ -3,6 +3,8 @@ import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { puedeVerSeccionPanel } from "./Sidebar";
 import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
+import { useConversaciones } from "../hooks/useConversaciones";
+import InboxConversaciones from "./tickets/InboxConversaciones";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
@@ -252,13 +254,14 @@ interface ActionResult {
 // ── HomeTab ────────────────────────────────────────────────────────────────────
 
 function HomeTab({
-  token, userName, onNewSolicitud, onSolicitudCreated, onNavigateTo,
+  token, userName, onNewSolicitud, onSolicitudCreated, onNavigateTo, onVerMensajes,
 }: {
   token: string;
   userName: string;
   onNewSolicitud: (cat?: string) => void;
   onSolicitudCreated: number;
   onNavigateTo: (p: Panel) => void;
+  onVerMensajes: (ticketId?: number) => void;
 }) {
   const user = useTicketsAuth((s) => s.user);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -324,7 +327,7 @@ function HomeTab({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Mis solicitudes</p>
           <button
             type="button"
-            onClick={() => onNavigateTo("hugo")}
+            onClick={() => onVerMensajes()}
             className="text-xs font-semibold text-accent"
           >
             Ver todas →
@@ -348,7 +351,7 @@ function HomeTab({
               <button
                 key={t.id}
                 type="button"
-                onClick={() => onNavigateTo("hugo")}
+                onClick={() => onVerMensajes(t.id)}
                 className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-3 text-left shadow-paper-sm transition-all active:scale-[0.98]"
               >
                 <div className="flex-1 min-w-0">
@@ -740,26 +743,33 @@ function PerfilTab({
 const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
   { id: "home", label: "Inicio", icon: "home" },
   { id: "chat", label: "Hugo", icon: "chat" },
-  { id: "acciones", label: "Acciones", icon: "lightning" },
+  { id: "mensajes", label: "Mensajes", icon: "inbox" },
+  { id: "acciones", label: "Rápido", icon: "lightning" },
   { id: "yo", label: "Yo", icon: "user" },
 ];
 
-function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+function BottomNav({ active, onChange, badges }: { active: Tab; onChange: (t: Tab) => void; badges?: Partial<Record<Tab, number>> }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-surface-panel/95 backdrop-blur-sm" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {NAV_ITEMS.map((item) => {
         const isActive = active === item.id;
+        const badge = badges?.[item.id] ?? 0;
         return (
           <button
             key={item.id}
             type="button"
             onClick={() => onChange(item.id)}
-            className={`mck-press flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
+            className={`mck-press relative flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
               isActive ? "text-accent" : "text-muted"
             }`}
           >
-            <span className={`transition-transform ${isActive ? "scale-110" : ""}`}>
+            <span className={`relative transition-transform ${isActive ? "scale-110" : ""}`}>
               <Icon name={item.icon} size={22} weight={isActive ? "bold" : "duotone"} />
+              {badge > 0 && (
+                <span className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </span>
             <span className={`text-[10px] font-bold ${isActive ? "text-accent" : "text-muted"}`}>{item.label}</span>
           </button>
@@ -799,6 +809,7 @@ export default function MobileHub({
   const setPanel = useAppStore((s) => s.setPanel);
   const tab = useAppStore((s) => s.mobileTab);
   const setTab = useAppStore((s) => s.setMobileTab);
+  const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetCat, setSheetCat] = useState("");
   const [solicitudCreated, setSolicitudCreated] = useState(0);
@@ -811,6 +822,15 @@ export default function MobileHub({
       onOpenPanel?.();
     }
   }, [setPanel, onOpenPanel, setTab]);
+
+  const verMensajes = useCallback((ticketId?: number) => {
+    if (ticketId != null) setSolicitudBoot({ abrirTicketId: ticketId });
+    setTab("mensajes");
+  }, [setSolicitudBoot, setTab]);
+
+  // Total de no-leídos (mías, todas las conversaciones) para el badge del tab.
+  const { data: conversacionesBadge = [] } = useConversaciones("todas", "mias");
+  const noLeidosTotal = conversacionesBadge.reduce((acc, c) => acc + c.no_leidos, 0);
 
   function openSheet(cat = "") {
     setSheetCat(cat);
@@ -850,9 +870,25 @@ export default function MobileHub({
             onNewSolicitud={openSheet}
             onSolicitudCreated={solicitudCreated}
             onNavigateTo={navigateTo}
+            onVerMensajes={verMensajes}
           />
         )}
         {tab === "chat" && <ChatTab />}
+        {tab === "mensajes" && user && (
+          // pb-20 reserva el espacio del BottomNav fijo (~64px + safe-area), que si no
+          // queda tapando el composer del hilo — mismo problema que ChatTab resuelve con
+          // su calc(100dvh - 128px).
+          <div className="flex h-full overflow-hidden pb-20">
+            <InboxConversaciones
+              token={token}
+              user={user}
+              onAbrirDetalleCompleto={(ticketId) => {
+                setSolicitudBoot({ abrirTicketId: ticketId });
+                onOpenPanel?.();
+              }}
+            />
+          </div>
+        )}
         {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} user={user} onNavigateTo={navigateTo} />}
         {tab === "yo" && (
           <PerfilTab
@@ -862,13 +898,14 @@ export default function MobileHub({
         )}
       </div>
 
-      {/* FAB — only on home & acciones */}
+      {/* FAB — only on home & acciones. No en "mensajes": el composer del hilo abierto
+          queda en la misma esquina inferior derecha y se solaparía con el botón Enviar. */}
       {(tab === "home" || tab === "acciones") && (
         <FAB onClick={() => openSheet()} />
       )}
 
       {/* Bottom nav */}
-      <BottomNav active={tab} onChange={setTab} />
+      <BottomNav active={tab} onChange={setTab} badges={{ mensajes: noLeidosTotal }} />
 
       {/* Nueva Solicitud sheet */}
       <NuevaSolicitudSheet

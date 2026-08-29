@@ -59,7 +59,7 @@ export type Panel =
 /** Pestaña activa dentro de Impresora · Etiquetas. */
 export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
 
-export type MobileHubTab = "home" | "chat" | "acciones" | "yo";
+export type MobileHubTab = "home" | "chat" | "mensajes" | "acciones" | "yo";
 
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {
@@ -99,6 +99,7 @@ export type TicketsBootView =
   | "list"
   | "acciones"
   | "solicitudes"
+  | "mensajes"
   | "contratos"
   | null;
 

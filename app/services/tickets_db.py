@@ -1295,6 +1295,14 @@ def init_db():
                 creado_en       TEXT DEFAULT (datetime('now')),
                 activo          INTEGER DEFAULT 1
             );
+            -- Última vez que cada usuario abrió el hilo de un ticket (solicitud/acción).
+            -- Base para el contador de no-leídos del inbox unificado tipo chat.
+            CREATE TABLE IF NOT EXISTS ticket_lecturas (
+                ticket_id       INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                usuario_id      INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                ultima_vista_en TEXT NOT NULL,
+                PRIMARY KEY (ticket_id, usuario_id)
+            );
         """)
         db.executescript("""
             CREATE TABLE IF NOT EXISTS notas_personales (
@@ -4179,6 +4187,195 @@ def eliminar_comentario(comentario_id: int, usuario_id: int) -> tuple[bool, str 
         db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (row["ticket_id"],))
         db.commit()
         return True, None
+
+
+def marcar_ticket_visto(ticket_id: int, usuario_id: int) -> None:
+    """Upsert de `ultima_vista_en` (hora del propio SQLite, mismo formato que `creado_en`
+    de comentarios_tickets) — base del contador de no-leídos del inbox unificado."""
+    with _conn() as db:
+        db.execute(
+            """INSERT INTO ticket_lecturas (ticket_id, usuario_id, ultima_vista_en)
+               VALUES (?, ?, datetime('now'))
+               ON CONFLICT(ticket_id, usuario_id)
+               DO UPDATE SET ultima_vista_en = datetime('now')""",
+            (ticket_id, usuario_id),
+        )
+        db.commit()
+
+
+_TIMELINE_SISTEMA_ACCIONES = (
+    "ticket_creado", "estado_cambiado", "asignado", "adjunto_agregado",
+    "ticket_renovado", "intervencion_resuelta", "compras_delegadas",
+)
+
+_TIMELINE_SISTEMA_VERBOS = {
+    ("estado_cambiado", "en_proceso"): "inició",
+    ("estado_cambiado", "esperando_aprobacion"): "envió a aprobación",
+    ("estado_cambiado", "resuelto"): "marcó como resuelto",
+    ("estado_cambiado", "pendiente"): "reabrió",
+    ("estado_cambiado", "rechazado"): "rechazó",
+}
+
+
+def timeline_ticket(ticket_id: int) -> list:
+    """Comentarios + eventos de sistema (logs_auditoria) de un ticket, fusionados y
+    ordenados cronológicamente para el hilo tipo chat del inbox unificado.
+
+    Reutiliza `logs_auditoria` (ya se llena en cada cambio, ver `_log`) — no requiere
+    una tabla nueva. Cada evento de sistema se resuelve a un texto legible con
+    `_TIMELINE_SISTEMA_VERBOS`, igual que ya hace `actividad_equipo_hoy` para el banner
+    de actividad del equipo.
+    """
+    with _conn() as db:
+        comentarios = db.execute("""
+            SELECT c.id, c.texto, c.es_interno, c.creado_en, c.usuario_id,
+                   u.nombre AS autor_nombre
+            FROM comentarios_tickets c
+            LEFT JOIN usuarios u ON u.id = c.usuario_id
+            WHERE c.ticket_id = ?
+            ORDER BY c.creado_en ASC
+        """, (ticket_id,)).fetchall()
+        placeholders = ",".join("?" * len(_TIMELINE_SISTEMA_ACCIONES))
+        eventos = db.execute(f"""
+            SELECT l.id, l.creado_en, l.accion, l.valor_anterior, l.valor_nuevo, l.detalles,
+                   l.usuario_id, u.nombre AS autor_nombre
+            FROM logs_auditoria l
+            LEFT JOIN usuarios u ON u.id = l.usuario_id
+            WHERE l.ticket_id = ? AND l.accion IN ({placeholders})
+            ORDER BY l.creado_en ASC
+        """, (ticket_id, *_TIMELINE_SISTEMA_ACCIONES)).fetchall()
+
+    timeline = []
+    for c in comentarios:
+        timeline.append({
+            "tipo": "mensaje",
+            "id": c["id"],
+            "creado_en": c["creado_en"],
+            "usuario_id": c["usuario_id"],
+            "autor_nombre": c["autor_nombre"],
+            "texto": c["texto"],
+            "es_interno": bool(c["es_interno"]),
+        })
+    nombres_por_id = {}
+    if any(e["accion"] == "asignado" for e in eventos):
+        with _conn() as db:
+            nombres_por_id = {
+                r["id"]: r["nombre"] for r in db.execute("SELECT id, nombre FROM usuarios").fetchall()
+            }
+    for e in eventos:
+        autor = e["autor_nombre"] or "Alguien"
+        accion = e["accion"]
+        if accion == "ticket_creado":
+            texto = f"{autor} creó esta solicitud/acción"
+        elif accion == "asignado":
+            try:
+                nombre_asignado = nombres_por_id.get(int(e["valor_nuevo"]))
+            except (TypeError, ValueError):
+                nombre_asignado = None
+            texto = f"{autor} la asignó a {nombre_asignado or '—'}"
+        elif accion == "adjunto_agregado":
+            texto = f"{autor} adjuntó {e['detalles'] or 'un archivo'}"
+        elif accion == "ticket_renovado":
+            texto = f"{autor} la renovó"
+        elif accion == "intervencion_resuelta":
+            texto = f"{autor} resolvió una intervención"
+        elif accion == "compras_delegadas":
+            texto = f"{autor} delegó las compras"
+        else:
+            verbo = _TIMELINE_SISTEMA_VERBOS.get((accion, e["valor_nuevo"]), "actualizó el estado")
+            texto = f"{autor} {verbo}"
+        timeline.append({
+            "tipo": "sistema",
+            "id": f"log-{e['id']}",
+            "creado_en": e["creado_en"],
+            "usuario_id": e["usuario_id"],
+            "autor_nombre": autor,
+            "texto": texto,
+            "accion": accion,
+        })
+    timeline.sort(key=lambda x: (x["creado_en"] or "", x["tipo"] == "sistema"))
+    return timeline
+
+
+def listar_conversaciones(usuario: dict, tipo: str = "todas", scope: str = "mias") -> list:
+    """Inbox unificado tipo chat: una fila por ticket (solicitud o acción), con la
+    contraparte, el último mensaje y el conteo de no-leídos del usuario que consulta.
+
+    Las resueltas/rechazadas NUNCA se excluyen aquí — el frontend decide si las oculta
+    con un filtro, pero el historial de esa conversación (comentarios/adjuntos) sigue
+    siendo accesible igual que una activa.
+
+    A diferencia de `listar_tickets`, aquí "mias" siempre significa mías de verdad —
+    incluso para un admin (`es_admin_vista_equipo`). El inbox es la bandeja personal
+    de cada quien por defecto; solo con scope="equipo" explícito un admin ve todo el
+    equipo (un no-admin pidiendo "equipo" sigue viendo solo lo suyo).
+    """
+    uid = usuario["id"]
+    tipo = tipo if tipo in ("solicitud", "accion") else None
+    if es_cynthia_etiquetas(usuario):
+        scope = "mias"
+    ver_todo_equipo = es_admin_vista_equipo(usuario)
+
+    with _conn() as db:
+        conds = ["t.tipo IN ('solicitud','accion')"]
+        params: list = []
+        if tipo:
+            conds.append("t.tipo=?")
+            params.append(tipo)
+        if not (scope == "equipo" and ver_todo_equipo):
+            conds.append("(t.creado_por=? OR t.asignado_a=? OR EXISTS("
+                         "SELECT 1 FROM ticket_participantes tp "
+                         "WHERE tp.ticket_id=t.id AND tp.usuario_id=?))")
+            params += [uid, uid, uid]
+        where = "WHERE " + " AND ".join(conds)
+        sql = f"""
+            SELECT t.id, t.numero, t.titulo, t.tipo, t.subtipo, t.estado, t.prioridad,
+                   t.creado_por, t.asignado_a, t.creado_en, t.actualizado_en,
+                   uc.nombre AS creado_por_nombre, ua.nombre AS asignado_a_nombre,
+                   (SELECT COUNT(*) FROM ticket_adjuntos ta WHERE ta.ticket_id=t.id)
+                       AS adjuntos_total,
+                   (SELECT c.texto FROM comentarios_tickets c
+                    WHERE c.ticket_id=t.id ORDER BY c.creado_en DESC LIMIT 1) AS ultimo_texto,
+                   (SELECT c.creado_en FROM comentarios_tickets c
+                    WHERE c.ticket_id=t.id ORDER BY c.creado_en DESC LIMIT 1) AS ultimo_en,
+                   (SELECT c.usuario_id FROM comentarios_tickets c
+                    WHERE c.ticket_id=t.id ORDER BY c.creado_en DESC LIMIT 1) AS ultimo_usuario_id,
+                   (SELECT u2.nombre FROM comentarios_tickets c
+                    LEFT JOIN usuarios u2 ON u2.id=c.usuario_id
+                    WHERE c.ticket_id=t.id ORDER BY c.creado_en DESC LIMIT 1) AS ultimo_autor,
+                   (SELECT COUNT(*) FROM comentarios_tickets c
+                    WHERE c.ticket_id=t.id AND c.usuario_id != ?
+                      AND c.creado_en > COALESCE(
+                          (SELECT ultima_vista_en FROM ticket_lecturas tl
+                           WHERE tl.ticket_id=t.id AND tl.usuario_id=?),
+                          t.creado_en)
+                   ) AS no_leidos
+            FROM tickets t
+            LEFT JOIN usuarios uc ON uc.id=t.creado_por
+            LEFT JOIN usuarios ua ON ua.id=t.asignado_a
+            {where}
+        """
+        full_params = [uid, uid, *params]
+        rows = db.execute(sql, full_params).fetchall()
+
+    result = []
+    for r in rows:
+        d = dict(r)
+        if d["creado_por"] == uid:
+            d["contraparte_id"] = d["asignado_a"]
+            d["contraparte_nombre"] = d["asignado_a_nombre"] or "Sin asignar"
+        elif d["asignado_a"] == uid:
+            d["contraparte_id"] = d["creado_por"]
+            d["contraparte_nombre"] = d["creado_por_nombre"]
+        else:
+            d["contraparte_id"] = d["asignado_a"] or d["creado_por"]
+            d["contraparte_nombre"] = d["asignado_a_nombre"] or d["creado_por_nombre"]
+        d["ultima_actividad"] = max(
+            v for v in (d["ultimo_en"], d["actualizado_en"], d["creado_en"]) if v
+        )
+        result.append(d)
+    result.sort(key=lambda x: x["ultima_actividad"] or "", reverse=True)
+    return result
 
 
 def registrar_tiempo(ticket_id: int, usuario_id: int,

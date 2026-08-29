@@ -18,7 +18,20 @@
     "573057064679@c.us",
     "573118688120@c.us",
     "249030961586267@lid",
-    "195923791614098@lid"
+    "195923791614098@lid",
+    "241978507796706@lid",
+    "573177545249@c.us",
+    "573176225844@c.us",
+    "87510411653222@lid",
+    "573212200895@c.us",
+    "161903154327660@lid",
+    "573103285746@c.us",
+    "40450052374626@lid",
+    "573112917710@c.us",
+    "183893487530214@lid",
+    "573207209541@c.us",
+    "129274891751568@lid",
+    "254313754558682@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -40,101 +53,179 @@
     "573057064679@c.us": 1787865896.5822573,
     "573118688120@c.us": 1787865525.7392912,
     "249030961586267@lid": 1787865525.7392912,
-    "195923791614098@lid": 1787872319.1735048
+    "195923791614098@lid": 1787872319.1735048,
+    "241978507796706@lid": 1787925631.7776127,
+    "573177545249@c.us": 1787925631.7776127,
+    "573176225844@c.us": 1787934489.7280135,
+    "87510411653222@lid": 1787934489.7280135,
+    "573212200895@c.us": 1787938312.8185203,
+    "161903154327660@lid": 1787938312.8185203,
+    "573103285746@c.us": 1787939079.5518124,
+    "40450052374626@lid": 1787939079.5518124,
+    "573112917710@c.us": 1787948092.946849,
+    "183893487530214@lid": 1787948092.946849,
+    "573207209541@c.us": 1787952118.7669282,
+    "129274891751568@lid": 1787952118.7669282,
+    "254313754558682@lid": 1787952697.1778805
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1787833486.0623453,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573203495270@c.us": {
       "timestamp": 1787845836.7653782,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "33535658307700@lid": {
       "timestamp": 1787845836.7653782,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573143343325@c.us": {
       "timestamp": 1787837579.394773,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "183562741534973@lid": {
       "timestamp": 1787837579.394773,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "20216780181601@lid": {
       "timestamp": 1787837950.9799583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573138897814@c.us": {
       "timestamp": 1787837950.9799583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "174212815843507@lid": {
       "timestamp": 1787840356.2298183,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "134234974998642@lid": {
       "timestamp": 1787844343.7362359,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573016336105@c.us": {
       "timestamp": 1787844343.7362359,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573115713149@c.us": {
       "timestamp": 1787844347.5649872,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "54821012902003@lid": {
       "timestamp": 1787844347.5649872,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573244318295@c.us": {
       "timestamp": 1787850144.8383002,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "176755201577127@lid": {
       "timestamp": 1787850144.8383002,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "171588406259840@lid": {
       "timestamp": 1787865896.5822573,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573057064679@c.us": {
       "timestamp": 1787865896.5822573,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "573118688120@c.us": {
       "timestamp": 1787865525.7392912,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "249030961586267@lid": {
       "timestamp": 1787865525.7392912,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
     },
     "195923791614098@lid": {
       "timestamp": 1787872319.1735048,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "241978507796706@lid": {
+      "timestamp": 1787925631.7776127,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "573177545249@c.us": {
+      "timestamp": 1787925631.7776127,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "573176225844@c.us": {
+      "timestamp": 1787934489.7280135,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "87510411653222@lid": {
+      "timestamp": 1787934489.7280135,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "573212200895@c.us": {
+      "timestamp": 1787938312.8185203,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "161903154327660@lid": {
+      "timestamp": 1787938312.8185203,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "573103285746@c.us": {
+      "timestamp": 1787939079.5518124,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "40450052374626@lid": {
+      "timestamp": 1787939079.5518124,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Y cuando la env\u00edan?"
+    },
+    "573112917710@c.us": {
+      "timestamp": 1787948092.946849,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "183893487530214@lid": {
+      "timestamp": 1787948092.946849,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573207209541@c.us": {
+      "timestamp": 1787952118.7669282,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "129274891751568@lid": {
+      "timestamp": 1787952118.7669282,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "254313754558682@lid": {
+      "timestamp": 1787952697.1778805,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }

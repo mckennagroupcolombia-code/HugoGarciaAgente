@@ -2,6 +2,7 @@ import re
 import os
 import json
 import sqlite3
+import threading
 from typing import Any
 import gspread
 import requests
@@ -44,6 +45,106 @@ SYNC_FACTURA_CATEGORIAS_ORDEN = (
 
 def _categorias_sync_facturas_vacias() -> dict[str, list[str]]:
     return {k: [] for k in SYNC_FACTURA_CATEGORIAS_ORDEN}
+
+
+# --- Seguimiento persistente de packs sin factura ------------------------
+# sincronizar_inteligente() solo mira los últimos 15 días de órdenes MeLi;
+# sin esto, un pack genuinamente sin facturar dejaba de aparecer en el
+# cruce (y en el ticket diario) al salir de esa ventana, sin haberse
+# resuelto nunca — se perdía en silencio. Ver caso real 2000014497692789
+# (28-ago-2026, $161.520, 16 días sin facturar, ya no aparecía en ningún
+# ticket). Este store mantiene cada pack pendiente rastreado día a día
+# hasta que se le sube factura a MeLi o se confirma que ya no aplica
+# (orden cancelada/no pagada).
+SYNC_FACTURAS_SEGUIMIENTO_PATH = os.path.join(
+    os.path.dirname(__file__), "data", "sync_facturas_faltantes_seguimiento.json"
+)
+SYNC_FACTURAS_SEGUIMIENTO_MAX_DIAS = 90  # tope de antigüedad para no rastrear para siempre
+_SYNC_FACTURAS_SEGUIMIENTO_LOCK = threading.Lock()
+
+
+def _leer_seguimiento_sync_facturas() -> dict[str, dict]:
+    try:
+        with open(SYNC_FACTURAS_SEGUIMIENTO_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict) and isinstance(data.get("pendientes"), dict):
+                return data
+    except Exception:
+        pass
+    return {"pendientes": {}}
+
+
+def _guardar_seguimiento_sync_facturas(data: dict) -> None:
+    try:
+        with open(SYNC_FACTURAS_SEGUIMIENTO_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ [SYNC-SEGUIMIENTO] No se pudo guardar: {e}")
+
+
+def _packs_seguimiento_vigentes() -> dict[str, dict]:
+    """Packs rastreados que aún no superan el tope de antigüedad."""
+    limite = datetime.now() - timedelta(days=SYNC_FACTURAS_SEGUIMIENTO_MAX_DIAS)
+    with _SYNC_FACTURAS_SEGUIMIENTO_LOCK:
+        data = _leer_seguimiento_sync_facturas()
+    vigentes = {}
+    for p_id, meta in data.get("pendientes", {}).items():
+        try:
+            primera = datetime.fromisoformat(meta.get("primera_vez", ""))
+        except ValueError:
+            primera = datetime.now()
+        if primera >= limite:
+            vigentes[p_id] = meta
+    return vigentes
+
+
+def _pack_meli_sigue_vigente(pack_id: str, token: str) -> bool:
+    """
+    True si el pack/orden todavía representa una venta que debería facturarse
+    (no cancelada / no pagada). En caso de error de red o respuesta inesperada
+    se asume vigente (mejor seguir rastreando de más que perder un caso real).
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        r = requests.get(f"https://api.mercadolibre.com/packs/{pack_id}", headers=headers, timeout=15)
+        if r.status_code == 200:
+            estado = (r.json() or {}).get("status")
+            return estado != "cancelled"
+        r = requests.get(f"https://api.mercadolibre.com/orders/{pack_id}", headers=headers, timeout=15)
+        if r.status_code == 200:
+            estado = (r.json() or {}).get("status")
+            return estado not in ("cancelled", "invalid")
+    except requests.RequestException:
+        pass
+    return True
+
+
+def _actualizar_seguimiento_sync_facturas(
+    categorias: dict[str, list[str]],
+    *,
+    resueltos: list[str],
+    descartados: list[str],
+) -> None:
+    """
+    Persiste el estado de seguimiento tras una corrida de sincronizar_inteligente():
+    - agrega/actualiza los packs aún pendientes (preserva `primera_vez`).
+    - quita los que ya se subieron a MeLi (`resueltos`) o dejaron de aplicar
+      (`descartados`: cancelados/no pagados detectados al re-chequear packs
+      viejos que ya habían salido de la ventana de 15 días).
+    """
+    ahora = datetime.now().isoformat(timespec="seconds")
+    pendientes_actuales = _packs_accionables_sync(categorias)
+    with _SYNC_FACTURAS_SEGUIMIENTO_LOCK:
+        data = _leer_seguimiento_sync_facturas()
+        store = data["pendientes"]
+        for cat in SYNC_FACTURA_CATEGORIAS_ORDEN:
+            for p_id in categorias.get(cat, []) or []:
+                entrada = store.setdefault(p_id, {"primera_vez": ahora})
+                entrada["ultima_vez"] = ahora
+                entrada["categoria"] = cat
+        for p_id in resueltos + descartados:
+            store.pop(p_id, None)
+        _guardar_seguimiento_sync_facturas(data)
 
 
 def _indexar_facturas_siigo_por_packs(
@@ -800,7 +901,8 @@ def sincronizar_inteligente():
         while True:
             url_meli = (
                 f"https://api.mercadolibre.com/orders/search?seller={seller_id}"
-                f"&order.date_created.from={fecha_hace_15}&limit={limit}&offset={offset}"
+                f"&order.date_created.from={fecha_hace_15}&order.status=paid"
+                f"&limit={limit}&offset={offset}"
             )
             data = requests.get(url_meli, headers=headers_meli, timeout=30).json()
             results = data.get("results", []) or []
@@ -816,24 +918,73 @@ def sincronizar_inteligente():
             offset += limit
             if offset >= total or not results:
                 break
+        print(f"⏳ Encontradas {len(pendientes)} órdenes en MeLi (últimos 15 días) sin factura fiscal.")
+
+        # Re-chequea packs de corridas anteriores que ya salieron de la ventana
+        # de 15 días — si no, un pack genuinamente sin facturar dejaría de
+        # aparecer aquí para siempre sin haberse resuelto (ver comentario en
+        # SYNC_FACTURAS_SEGUIMIENTO_PATH).
+        seguimiento_previo = _packs_seguimiento_vigentes()
+        antiguos = [p for p in seguimiento_previo if p not in packs_revisados]
+        resueltos_seguimiento: list[str] = []
+        descartados_seguimiento: list[str] = []
+        fecha_mas_antigua = datetime.now()
+        for p_id in antiguos:
+            if meli_pack_tiene_documento_fiscal(p_id, token=token_meli):
+                resueltos_seguimiento.append(p_id)
+                print(f"   └──> ✅ Pack {p_id} (rastreado, fuera de la ventana): ya tiene factura en MeLi.")
+                continue
+            if not _pack_meli_sigue_vigente(p_id, token_meli):
+                descartados_seguimiento.append(p_id)
+                print(f"   └──> ⏭️ Pack {p_id} (rastreado): cancelado/no pagado, se deja de rastrear.")
+                continue
+            pendientes.append(p_id)
+            try:
+                primera = datetime.fromisoformat(seguimiento_previo[p_id].get("primera_vez", ""))
+                fecha_mas_antigua = min(fecha_mas_antigua, primera)
+            except ValueError:
+                pass
+        if antiguos:
+            print(
+                f"🗂️ Seguimiento persistente: {len(antiguos)} pack(s) fuera de la ventana de 15 días "
+                f"— {len(resueltos_seguimiento)} ya facturados, {len(descartados_seguimiento)} descartados, "
+                f"{len(antiguos) - len(resueltos_seguimiento) - len(descartados_seguimiento)} siguen pendientes."
+            )
+
         if not pendientes:
+            _actualizar_seguimiento_sync_facturas(
+                _categorias_sync_facturas_vacias(),
+                resueltos=resueltos_seguimiento,
+                descartados=descartados_seguimiento,
+            )
             return (
                 "✅ ¡Excelente! Mercado Libre está al día. No hay facturas pendientes."
             )
-        print(f"⏳ Encontradas {len(pendientes)} órdenes en MeLi sin factura fiscal.")
 
+        dias_siigo = 15
+        if fecha_mas_antigua < datetime.now() - timedelta(days=15):
+            dias_siigo = min(
+                SYNC_FACTURAS_SEGUIMIENTO_MAX_DIAS,
+                (datetime.now() - fecha_mas_antigua).days + 1,
+            )
         facturas_siigo = obtener_facturas_siigo_paginadas(
-            (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d")
+            (datetime.now() - timedelta(days=dias_siigo)).strftime("%Y-%m-%d")
         )
         if not facturas_siigo:
             return f"⚠️ Alerta: MeLi tiene {len(pendientes)} pendientes pero no hay facturas en Siigo para cruzar."
-        print(f"🔍 Obtenidas {len(facturas_siigo)} facturas de Siigo para comparar.")
+        print(f"🔍 Obtenidas {len(facturas_siigo)} facturas de Siigo para comparar ({dias_siigo}d).")
 
         resultado = _procesar_packs_sync_siigo(pendientes, facturas_siigo)
         exitosas = resultado["exitosas"]
         categorias = resultado["categorias"]
         fallo_detalle = resultado.get("fallo_detalle") or {}
         pendientes_accion = _packs_accionables_sync(categorias)
+
+        _actualizar_seguimiento_sync_facturas(
+            categorias,
+            resueltos=exitosas + resueltos_seguimiento,
+            descartados=descartados_seguimiento,
+        )
 
         if pendientes_accion:
             reporte = _formatear_reporte_sync_facturas(

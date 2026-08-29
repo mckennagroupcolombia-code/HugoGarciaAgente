@@ -2507,3 +2507,193 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 uploads/tickets/d5e40597b49848fab8fa49edd0ece7df.jpg
  create mode 100644 uploads/tickets/df44be5270d94ffa9af3525c32bd224a.jpg
 [2026-08-27 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-27 23:00'
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ [MELI] Error listando órdenes 'paid' (offset 400): 429 {"status":429,"message":"local_rate_limited"}
+
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 400 | Envíos nuevos consultados: 60 | Resueltos: 60 | Sin resolver: 0 | Aún no despachados: 0
+   Total municipios acumulados: 61
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-CERABREFKg CERA ABEJAS REFINADA AMARILLA Kg
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA Kg
+INFO: Combo SIIGO omitido sin precio público: C-ALFARB10g ALFA ARBUTINA 10g
+INFO: Combo SIIGO omitido sin precio público: C-LPRO100g L PROLINA 100g
+INFO: Combo SIIGO omitido sin precio público: C-VAS900g VASELINA 900g
+INFO: Combo SIIGO omitido sin precio público: C-GELSILCRI250g GEL SILICA 250g
+INFO: Combo SIIGO omitido sin precio público: C-GOTPLA3mL10Un GOTERO PLASTICO 3mL 10 Un
+INFO: Combo SIIGO omitido sin precio público: GOTVID10mLX12Un GOTERO VIDRIO 10 mL x 12 Un
+INFO: Combo SIIGO omitido sin precio público: FOR-ACISALmL FORMULA ACIDO SALICILICO 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-VITC20PmL FORMULA VITAMINA C 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-AZUMETmL AZUL METILENO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-GLUTAR2PmL GLUTARALDEHIDO 2% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIABAJPESmL ACIDO HIALURINICO BAJO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIAALTPESmL ACIDO HIALURONICO ALTO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIKOJmL ACIDO KOJICO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACILAC85PmL ACIDO LACTICO 85% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIGLI50PmL ACIDO GLICOLICO 50% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-RET5PmL RETINOL 5% mL
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: Fotos/precios MeLi por SKU: 199 exactos, 37 alias, 70 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 239/306 combos SIIGO tienen publicación (se ocultan 67)
+INFO: Catálogo listo: 21 categorías, 179 fichas (33 con varias presentaciones), 239 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 2/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+⚠️ SIIGO products API: 429 para SKU C-GOMGUA500g
+⚠️ SIIGO products API: 429 para SKU C-BICSOD500g
+⚠️ SIIGO products API: 429 para SKU C-ALGSODLACCAL50g
+⚠️ SIIGO products API: 429 para SKU C-AZUMMET30mL
+⚠️ SIIGO products API: 429 para SKU C-CERABREFKg
+⚠️ SIIGO products API: 429 para SKU C-ACENEE500mL
+⚠️ SIIGO products API: 429 para SKU C-ACIKOJ5P30mL
+⚠️ SIIGO products API: 429 para SKU C-ACERIC10mL
+⚠️ SIIGO products API: 429 para SKU C-PARKg
+⚠️ SIIGO products API: 429 para SKU C-EXTALOVER30mL
+⚠️ SIIGO products API: 429 para SKU C-ACENEE500mL
+⚠️ SIIGO products API: 429 para SKU C-GOMGUA500g
+⚠️ SIIGO products API: 429 para SKU C-GLICVEG500mL
+   20 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 4 | Sospechosos (>2×): 13
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   133 órdenes canceladas en la ventana.
+   4309 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3484 packs con factura).
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Sin novedades que reportar (nada emitido, nada roto).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-28T18:00:01] resumen_actividad_sede_sur: 86 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 23 nuevas · 22 completadas · 25 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 13 nuevas, 13 completadas
+• Victor Garcia: 4 nuevas, 4 completadas
+• Armando Garcia: 3 nuevas, 2 completadas
+• Gloria Stella: 2 nuevas, 2 completadas
+• Cynthia Ruiz: 0 nuevas, 1 completada
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-08-28) no es el último día del mes.

@@ -46,7 +46,10 @@ export default function Layout({
   const { advanced: advancedToggle } = useUiMode();
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
-  const hubIntegrado = isCentroMando && centroMandoView === "home";
+  // El inbox de "Mensajes" es un chat de dos paneles (como Home) que necesita
+  // altura acotada con scroll interno, no scroll de página — si no, se ve
+  // recortado porque su `flex-1 min-h-0` no tiene contra qué medirse.
+  const hubIntegrado = isCentroMando && (centroMandoView === "home" || centroMandoView === "mensajes");
 
   const sectionId = navSectionForPanel(panel);
   const isHub = esSeccionHub(sectionId);

@@ -13,6 +13,7 @@ import {
   alinearElementos,
   agruparElementosPorIds,
   boundsElemento,
+  CANVAS_DPI,
   clonarElementoIndependiente,
   desagruparElementosPorIds,
   esFuenteMontserrat,
@@ -1778,9 +1779,13 @@ export default function VisualCanvasEditor({
   const stageW = canvasW + pasteboard * 2;
   const stageH = canvasH + pasteboard * 2;
   const reglaPx = 18;
-  const gridStepPx = 20;
-  const rulerMinor = Math.max(6, Math.round(10 * zoom));
-  const rulerMajor = Math.max(30, Math.round(50 * zoom));
+  // La cuadrícula representa medidas físicas: 5 mm por división.
+  // El lienzo usa px a su DPI de diseño (96 si el formato no lo especifica).
+  const pxPorMm = (doc.formato.dpi || CANVAS_DPI) / 25.4;
+  const gridStepPx = 5 * pxPorMm;
+  const gridMajorStepPx = gridStepPx * 5;
+  const rulerMinor = Math.max(6, Math.round(gridStepPx * zoom));
+  const rulerMajor = Math.max(30, Math.round(gridMajorStepPx * zoom));
   const formatoKey = `${doc.formato.id}-${canvasW}x${canvasH}`;
   const artboardLeft = reglaPx + pasteboard * zoom;
   const artboardTop = reglaPx + pasteboard * zoom;
@@ -1916,6 +1921,30 @@ export default function VisualCanvasEditor({
 
   const fondoTransparente =
     !doc.fondo || doc.fondo === "transparent" || doc.fondo === "none";
+  const esRectFondoBlanco = useCallback(
+    (el: ElementoVisual) => {
+      if (el.type !== "rect") return false;
+      const relleno = (el.fill || "").trim().toLowerCase();
+      const blanco =
+        relleno === "#fff" ||
+        relleno === "#ffffff" ||
+        relleno === "white" ||
+        relleno === "rgb(255,255,255)" ||
+        relleno === "rgb(255, 255, 255)";
+      if (!blanco) return false;
+      // Algunas plantillas tienen una o dos capas blancas que cubren casi
+      // todo el artboard. En el editor se vuelven transparentes para que la
+      // cuadrícula quede visible; la exportación conserva el relleno real.
+      const margen = Math.max(2, Math.min(canvasW, canvasH) * 0.04);
+      return (
+        el.x <= margen &&
+        el.y <= margen &&
+        el.width >= canvasW - margen * 2 &&
+        el.height >= canvasH - margen * 2
+      );
+    },
+    [canvasW, canvasH],
+  );
 
   function deseleccionarViewport(e: ReactMouseEvent) {
     if (suppressDeselectRef.current) {
@@ -2375,7 +2404,7 @@ export default function VisualCanvasEditor({
                   />
                 </svg>
               )}
-              {/* Cuadrícula solo sobre el artboard */}
+              {/* Cuadrícula física de 5 mm solo sobre el artboard */}
               <div
                 className="pointer-events-none absolute"
                 style={{
@@ -2384,10 +2413,17 @@ export default function VisualCanvasEditor({
                   width: canvasW,
                   height: canvasH,
                   backgroundImage: [
-                    "linear-gradient(to right, rgba(15,23,42,0.05) 1px, transparent 1px)",
-                    "linear-gradient(to bottom, rgba(15,23,42,0.05) 1px, transparent 1px)",
+                    "linear-gradient(to right, rgba(15,23,42,0.18) 1px, transparent 1px)",
+                    "linear-gradient(to bottom, rgba(15,23,42,0.18) 1px, transparent 1px)",
+                    "linear-gradient(to right, rgba(15,23,42,0.28) 1px, transparent 1px)",
+                    "linear-gradient(to bottom, rgba(15,23,42,0.28) 1px, transparent 1px)",
                   ].join(", "),
-                  backgroundSize: `${gridStepPx}px ${gridStepPx}px`,
+                  backgroundSize: [
+                    `${gridStepPx}px ${gridStepPx}px`,
+                    `${gridStepPx}px ${gridStepPx}px`,
+                    `${gridMajorStepPx}px ${gridMajorStepPx}px`,
+                    `${gridMajorStepPx}px ${gridMajorStepPx}px`,
+                  ].join(", "),
                 }}
               />
               {doc.elementos
@@ -2460,10 +2496,12 @@ export default function VisualCanvasEditor({
                         className="group/elem"
                         style={{
                           ...estiloElementoEnStage(el, pasteboard),
-                          background: el.fill,
+                          background: esRectFondoBlanco(el) ? "transparent" : el.fill,
                           border:
                             el.strokeWidth > 0
-                              ? `${el.strokeWidth}px solid ${el.stroke}`
+                              ? `${el.strokeWidth}px solid ${
+                                  esRectFondoBlanco(el) ? "transparent" : el.stroke
+                                }`
                               : undefined,
                           borderRadius: el.borderRadius,
                           overflow: "visible",
