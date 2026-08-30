@@ -55,6 +55,10 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "0 9 * * 1 cd ${REPO} && AGENTE_COMPETENCIA_PRECIOS_QUIET=1 ${PYTHON} ${REPO}/scripts/analisis_competencia_precios_cron.py >>${LOG} 2>&1"
   echo "# Cobertura geográfica MeLi: acumula departamento/municipio de envíos ya despachados para el mapa del inicio (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "50 6 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/actualizar_cobertura_meli_cron.py >>${LOG} 2>&1"
+  echo "# Pago mensual contador (William Novoa): cuenta de cobro llegada → ticket de aprobación; si no llega, aviso (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "0 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_contador_cron.py >>${LOG} 2>&1"
+  echo "# Pago de nómina (quincenal, día 15 y fin de mes): ticket de aprobación asignado a Jenniffer (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "5 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_nomina_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 
