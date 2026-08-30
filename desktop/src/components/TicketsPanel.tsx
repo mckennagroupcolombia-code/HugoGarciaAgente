@@ -20773,12 +20773,15 @@ const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
 ];
 
 function SolicitudesView({
-  token, user, onInicio, boot, onBootConsumed,
+  token, user, onInicio, boot, onBootConsumed, autoAbrirWizard, onWizardAbierto,
 }: {
   token: string; user: TicketsUser;
   onInicio?: () => void;
   boot?: SolicitudBoot | null;
   onBootConsumed?: () => void;
+  /** Abre el wizard de "Nueva solicitud" apenas se monta (ej. botón "+" del inbox). */
+  autoAbrirWizard?: boolean;
+  onWizardAbierto?: () => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const { apiToken: chatApiToken } = useTicketsAuth();
@@ -20787,6 +20790,13 @@ function SolicitudesView({
   const [showRepetirEjecWizard, setShowRepetirEjecWizard] = useState(false);
   const [plantillaRepetirEjec, setPlantillaRepetirEjec] = useState<PlantillaAccion | undefined>();
   const [showWizard, setShowWizard] = useState(false);
+  useEffect(() => {
+    if (autoAbrirWizard) {
+      setShowWizard(true);
+      onWizardAbierto?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAbrirWizard]);
   const [wizardPrefill, setWizardPrefill] = useState({ titulo: "", descripcion: "" });
   const [plantillaEjec, setPlantillaEjec] = useState<PlantillaAccion | undefined>();
   const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
@@ -24806,6 +24816,8 @@ function AccionesView({
   token, user, onSelect, onIrCompras, initialTab, onInicio,
   abrirFormPendientes = false,
   abrirFormProcedimiento = false,
+  autoAbrirWizard = false,
+  onWizardAbierto,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
@@ -24814,6 +24826,9 @@ function AccionesView({
   onInicio?: () => void;
   abrirFormPendientes?: boolean;
   abrirFormProcedimiento?: boolean;
+  /** Abre el wizard de "Nueva acción" apenas se monta (ej. botón "+" del inbox). */
+  autoAbrirWizard?: boolean;
+  onWizardAbierto?: () => void;
 }) {
   const isAdmin = esAdminVistaEquipo(user);
   // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
@@ -24824,6 +24839,13 @@ function AccionesView({
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto" | "rechazado">(""); // "" = activas
   const [showWizard, setShowWizard] = useState(false);
+  useEffect(() => {
+    if (autoAbrirWizard) {
+      abrirWizard();
+      onWizardAbierto?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAbrirWizard]);
   const [showAccionSimple, setShowAccionSimple] = useState(false);
   const [accionSimpleEmpaque, setAccionSimpleEmpaque] = useState(false);
   const [showIniciarMenu, setShowIniciarMenu] = useState(false);
@@ -29613,6 +29635,8 @@ export default function TicketsPanel() {
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
   const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo">("activas");
   const [mensajesBootTipo, setMensajesBootTipo] = useState<"accion" | "solicitud" | null>(null);
+  const [autoAbrirWizardSolicitud, setAutoAbrirWizardSolicitud] = useState(false);
+  const [autoAbrirWizardAccion, setAutoAbrirWizardAccion] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedId);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(() => useAppStore.getState().ticketsSelectedMisionId);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -29823,6 +29847,16 @@ export default function TicketsPanel() {
     setSolicitudBoot({ abrirTicketId: id });
     irATickets("mensajes");
   }
+  /** Botón "+" del inbox de Mensajes: reutiliza el wizard ya existente de cada vista. */
+  function goCrearSolicitud() {
+    setAutoAbrirWizardSolicitud(true);
+    setView("solicitudes");
+  }
+  function goCrearAccion() {
+    setAutoAbrirWizardAccion(true);
+    setAccionesKey((k) => k + 1);
+    setView("acciones");
+  }
   function goContratos() {
     if (nivel < 3) return;
     setPanel("hugo");
@@ -29925,6 +29959,8 @@ export default function TicketsPanel() {
             abrirFormPendientes={abrirFormPendientes}
             abrirFormProcedimiento={abrirFormProcedimiento}
             onInicio={goInicio}
+            autoAbrirWizard={autoAbrirWizardAccion}
+            onWizardAbierto={() => setAutoAbrirWizardAccion(false)}
           />
         )}
         {view === "solicitudes" && (
@@ -29934,12 +29970,16 @@ export default function TicketsPanel() {
             onInicio={goInicio}
             boot={solicitudBoot}
             onBootConsumed={() => setSolicitudBoot(null)}
+            autoAbrirWizard={autoAbrirWizardSolicitud}
+            onWizardAbierto={() => setAutoAbrirWizardSolicitud(false)}
           />
         )}
         {view === "mensajes" && (
           <InboxConversaciones
             token={token}
             user={user}
+            onCrearSolicitud={goCrearSolicitud}
+            onCrearAccion={goCrearAccion}
             onAbrirDetalleCompleto={goDetail}
             bootTicketId={solicitudBoot?.abrirTicketId ?? null}
             onBootConsumed={() => setSolicitudBoot(null)}

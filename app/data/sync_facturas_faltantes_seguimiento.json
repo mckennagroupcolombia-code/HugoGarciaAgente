@@ -2,22 +2,22 @@
   "pendientes": {
     "2000014743744253": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-28T20:51:08",
+      "ultima_vez": "2026-08-29T05:07:09",
       "categoria": "sin_cruce_siigo"
     },
     "2000018160402184": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-28T20:51:08",
+      "ultima_vez": "2026-08-29T05:07:09",
       "categoria": "sin_cruce_siigo"
     },
     "2000014752042225": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-28T20:51:08",
+      "ultima_vez": "2026-08-29T05:07:09",
       "categoria": "sin_cruce_siigo"
     },
     "2000014754753249": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-28T20:51:08",
+      "ultima_vez": "2026-08-29T05:07:09",
       "categoria": "sin_cruce_siigo"
     },
     "2000014546056015": {
@@ -29,6 +29,11 @@
       "primera_vez": "2026-08-28T20:51:08",
       "ultima_vez": "2026-08-28T20:51:08",
       "categoria": "fallo_subida_meli"
+    },
+    "2000014759715043": {
+      "primera_vez": "2026-08-29T05:07:09",
+      "ultima_vez": "2026-08-29T05:07:09",
+      "categoria": "sin_cruce_siigo"
     }
   }
 }

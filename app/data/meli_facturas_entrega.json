@@ -9966,6 +9966,168 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018134136828": {
+      "shipping_id": "47863707433",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T09:28:58",
+      "error": "No puedo emitir factura automática: Ácido Salicílico 20% 30 Ml Todo Tipo De Piel (MCO1262287931): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018144068232": {
+      "shipping_id": "47868397813",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T09:34:29",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor (MCO4074246724): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018147794686": {
+      "shipping_id": "47870479546",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-29T12:02:31",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GRADIG",
+            "nombre": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+            "cantidad": 1.0,
+            "precio_unitario": 99750.0
+          }
+        ],
+        "total": 99750.0,
+        "nombre_cliente": "Cristian Alejandro Caicedo",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 60bn #16-60, Popayán, Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018148257662": {
+      "shipping_id": "47870708378",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T12:09:17",
+      "error": "No puedo emitir factura automática: Aceite Ricino Castor Puro 250ml (MCO1636834856): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018153603312": {
+      "shipping_id": "47873298174",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T12:45:45",
+      "error": "No puedo emitir factura automática: Dipropilengicol Usp Dpg 500 Ml (MCO581504092): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018134251466": {
+      "shipping_id": "47863760335",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-29T13:04:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GELSINSAB500g",
+            "nombre": "Gelatina Sin Sabor 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24565.0
+          }
+        ],
+        "total": 24565.0,
+        "nombre_cliente": "Mauricio Castellanos",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera Cra 24B N 76 - 03, Barranquilla, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018133108906": {
+      "shipping_id": "47863477552",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T13:34:02",
+      "error": "No puedo emitir factura automática: Aceite Ricino Castor Puro 250ml (MCO1636834856): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018154101446": {
+      "shipping_id": "47873526800",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T14:25:58",
+      "error": "No puedo emitir factura automática: Ácido Azelaico Polvo 10 G Todo Tipo De Piel (MCO1609304141): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018153980648": {
+      "shipping_id": "47873473646",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T14:40:32",
+      "error": "No puedo emitir factura automática: C-KITACIHIA30mL: no existe en Siigo"
+    },
+    "2000018152089916": {
+      "shipping_id": "47872606846",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T16:43:47",
+      "error": "No puedo emitir factura automática: Aceite De Neem 60 Ml (MCO1335735933): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018148141794": {
+      "shipping_id": "47870653434",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T17:21:36",
+      "error": "No puedo emitir factura automática: Glicerina Natural Vegetal Usp 500 Ml (MCO595161900): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018155766040": {
+      "shipping_id": "47874272604",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-29T17:48:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LECSOY500g",
+            "nombre": "Lecitina De Soya Polvo 500gr Lecitina",
+            "cantidad": 1.0,
+            "precio_unitario": 19800.0
+          }
+        ],
+        "total": 19800.0,
+        "nombre_cliente": "Johnny Rendon",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera Cra 82 bis #49-45, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018151454674": {
+      "shipping_id": "47872297110",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T18:33:14",
+      "error": "No puedo emitir factura automática: Inulina Prebiótico 500 Gr (MCO991717213): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018154398822": {
+      "shipping_id": "47873375551",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T18:35:42",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor (MCO4074246724): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018152488764": {
+      "shipping_id": "47872500575",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T19:50:55",
+      "error": "No puedo emitir factura automática: Citrato De Calcio 500gr Ningún (MCO901663592): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018162538026": {
+      "shipping_id": "47877514310",
+      "estado": "error",
+      "actualizado_en": "2026-08-29T20:32:46",
+      "error": "No puedo emitir factura automática: Lanolina Pura  Anti Grietas 40 Gramos (MCO600431364): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018160260968": {
+      "shipping_id": "47876136213",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-08-29T20:50:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "AS-19",
+            "nombre": "Envase De Vidrio Con Gotero 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 3800.0
+          }
+        ],
+        "total": 3800.0,
+        "nombre_cliente": "Valeria hoyos",
+        "identificacion": "222222222222",
+        "direccion_envio": "Diagonal 67 31-150, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   }
 }

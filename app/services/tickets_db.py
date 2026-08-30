@@ -4171,6 +4171,13 @@ def agregar_comentario(ticket_id: int, usuario_id: int,
         _log(db, ticket_id, usuario_id, "comentario_agregado", detalles=texto[:100])
         db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (ticket_id,))
         db.commit()
+        if not es_interno:
+            try:
+                from app.services.tickets_notificaciones import notificar_comentario_agregado
+                from app.observability import spawn_thread
+                spawn_thread(notificar_comentario_agregado, (ticket_id, usuario_id), daemon=True)
+            except Exception:
+                pass
         return new_id
 
 

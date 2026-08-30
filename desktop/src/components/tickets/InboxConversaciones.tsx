@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TicketsUser } from "../../stores/ticketsAuth";
 import {
-  useConversaciones, usePresenciaEnLinea, useUsuariosEquipo,
+  useConversaciones, usePresenciaEnLinea,
   type Conversacion,
 } from "../../hooks/useConversaciones";
 import HiloConversacion, { Avatar } from "./HiloConversacion";
@@ -70,6 +70,7 @@ function ConversacionRow({
 
 export default function InboxConversaciones({
   token, user, onAbrirDetalleCompleto, bootTicketId, onBootConsumed, bootTipo, onBootTipoConsumed,
+  onCrearSolicitud, onCrearAccion,
 }: {
   token: string;
   user: TicketsUser;
@@ -79,6 +80,8 @@ export default function InboxConversaciones({
   /** Filtro de tipo a aplicar una vez al entrar (ej. desde una tarjeta del dashboard que distingue Acciones/Solicitudes). */
   bootTipo?: TipoTab | null;
   onBootTipoConsumed?: () => void;
+  onCrearSolicitud?: () => void;
+  onCrearAccion?: () => void;
 }) {
   const nivel = user.rol?.nivel ?? 1;
   const permisos = user.permisos_secciones;
@@ -115,8 +118,8 @@ export default function InboxConversaciones({
   // activas e histórico juntos — nada se oculta ni desaparece, solo baja en la lista.
   const { data: conversaciones = [], isLoading, isError, error, refetch } = useConversaciones(tipo, "mias");
   const { data: presencia } = usePresenciaEnLinea();
-  const { data: usuariosEquipo = [] } = useUsuariosEquipo();
   const enLineaIds = useMemo(() => new Set(presencia?.usuario_ids ?? []), [presencia]);
+  const onCrear = tipo === "accion" ? onCrearAccion : onCrearSolicitud;
 
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -129,23 +132,22 @@ export default function InboxConversaciones({
 
   const totalNoLeidos = conversaciones.reduce((acc, c) => acc + c.no_leidos, 0);
 
+  // Agrupadas por estado para priorizar visualmente lo que necesita acción
+  // (pendientes/en proceso) sobre lo ya cerrado, sin dejar de mostrar nada.
+  const grupos = useMemo(() => {
+    const pendientes = filtradas.filter((c) => c.estado === "pendiente");
+    const enProceso = filtradas.filter((c) => c.estado === "en_proceso" || c.estado === "esperando_aprobacion");
+    const resueltas = filtradas.filter((c) => c.estado === "resuelto" || c.estado === "rechazado");
+    return [
+      { label: "Pendientes", items: pendientes },
+      { label: "En proceso", items: enProceso },
+      { label: "Resueltas", items: resueltas },
+    ];
+  }, [filtradas]);
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className={`flex w-full flex-col border-r border-border lg:w-[360px] lg:shrink-0 ${selectedId != null ? "hidden lg:flex" : "flex"}`}>
-        <div className="border-b border-border px-3 py-2.5">
-          <p className="mb-2 px-0.5 text-[11px] font-bold uppercase tracking-wide text-muted">
-            Equipo conectado
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {usuariosEquipo.map((u) => (
-              <div key={u.id} className="flex shrink-0 flex-col items-center gap-1" title={u.nombre}>
-                <Avatar nombre={u.nombre} enLinea={enLineaIds.has(u.id)} size={8} />
-              </div>
-            ))}
-            {usuariosEquipo.length === 0 && <p className="text-[11px] text-muted italic py-1">Sin datos de equipo</p>}
-          </div>
-        </div>
-
         <div className="border-b border-border p-2.5 space-y-2">
           <input
             value={busqueda}
@@ -153,12 +155,22 @@ export default function InboxConversaciones({
             placeholder="Buscar conversación…"
             className="w-full rounded-xl border border-border bg-surface-panel px-3 py-2 text-[13px] text-ink outline-none focus:border-accent/50"
           />
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {verSolicitudes && (
               <button type="button" className={chipCls(tipo === "solicitud")} onClick={() => setTipo("solicitud")}>Solicitudes</button>
             )}
             {verAcciones && (
               <button type="button" className={chipCls(tipo === "accion")} onClick={() => setTipo("accion")}>Acciones</button>
+            )}
+            {onCrear && (
+              <button
+                type="button"
+                onClick={onCrear}
+                title={tipo === "accion" ? "Nueva acción" : "Nueva solicitud"}
+                className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-base font-bold text-white hover:bg-accent/90"
+              >
+                +
+              </button>
             )}
           </div>
         </div>
@@ -185,15 +197,22 @@ export default function InboxConversaciones({
               {busqueda ? "Sin resultados para tu búsqueda." : `No tienes ${tipo === "accion" ? "acciones" : "solicitudes"} todavía.`}
             </p>
           )}
-          {filtradas.map((c) => (
-            <ConversacionRow
-              key={c.id}
-              c={c}
-              activa={c.id === selectedId}
-              propio={uidEq(c.ultimo_usuario_id, user.id)}
-              enLinea={c.contraparte_id != null && enLineaIds.has(c.contraparte_id)}
-              onClick={() => setSelectedId(c.id)}
-            />
+          {grupos.map((g) => g.items.length > 0 && (
+            <div key={g.label}>
+              <p className="sticky top-0 z-10 border-b border-border/40 bg-surface-panel/95 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-muted backdrop-blur">
+                {g.label} · {g.items.length}
+              </p>
+              {g.items.map((c) => (
+                <ConversacionRow
+                  key={c.id}
+                  c={c}
+                  activa={c.id === selectedId}
+                  propio={uidEq(c.ultimo_usuario_id, user.id)}
+                  enLinea={c.contraparte_id != null && enLineaIds.has(c.contraparte_id)}
+                  onClick={() => setSelectedId(c.id)}
+                />
+              ))}
+            </div>
           ))}
         </div>
         {totalNoLeidos > 0 && (

@@ -295,6 +295,30 @@ def notificar_ticket_reabierto(ticket_id: int, reabrio_uid: int) -> None:
         _programar(asig, texto)
 
 
+def notificar_comentario_agregado(ticket_id: int, autor_uid: int) -> None:
+    """Aviso liviano a la contraparte de una solicitud cuando le escriben un mensaje
+    nuevo en el chat — no se dispara para notas internas (es_interno) ni para el
+    propio autor del mensaje."""
+    with _conn_ctx() as db:
+        t = _ticket_row(db, ticket_id)
+        if not t or t["tipo"] != "solicitud":
+            return
+        creador = t.get("creado_por")
+        asignado = t.get("asignado_a")
+        if autor_uid == creador:
+            contraparte = asignado
+        elif autor_uid == asignado:
+            contraparte = creador
+        else:
+            contraparte = None
+        if not contraparte or contraparte == autor_uid:
+            return
+        autor = _primer_nombre(_nombre_usuario(db, autor_uid))
+        titulo = _titulo_corto(t.get("titulo") or "una solicitud", 60)
+        texto = f"{autor} escribió en la solicitud: {titulo}"
+        _programar(contraparte, texto)
+
+
 def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> None:
     if not nuevo_asignado:
         return
