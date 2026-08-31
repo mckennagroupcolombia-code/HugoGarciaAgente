@@ -7,12 +7,12 @@
     },
     "2000018160402184": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-29T05:07:09",
+      "ultima_vez": "2026-08-30T05:06:05",
       "categoria": "sin_cruce_siigo"
     },
     "2000014752042225": {
       "primera_vez": "2026-08-28T20:51:08",
-      "ultima_vez": "2026-08-29T05:07:09",
+      "ultima_vez": "2026-08-30T05:06:05",
       "categoria": "sin_cruce_siigo"
     },
     "2000014754753249": {
@@ -33,6 +33,26 @@
     "2000014759715043": {
       "primera_vez": "2026-08-29T05:07:09",
       "ultima_vez": "2026-08-29T05:07:09",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014772411967": {
+      "primera_vez": "2026-08-30T05:06:05",
+      "ultima_vez": "2026-08-30T05:06:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014773235473": {
+      "primera_vez": "2026-08-30T05:06:05",
+      "ultima_vez": "2026-08-30T05:06:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014773644581": {
+      "primera_vez": "2026-08-30T05:06:05",
+      "ultima_vez": "2026-08-30T05:06:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000018186074384": {
+      "primera_vez": "2026-08-30T05:06:05",
+      "ultima_vez": "2026-08-30T05:06:05",
       "categoria": "sin_cruce_siigo"
     }
   }

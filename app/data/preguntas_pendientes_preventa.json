@@ -2314,6 +2314,30 @@
       "pregunta": "Listo, ya los empecé a seguir. Pero no sabes más o menos para cuando? A ver si espero o la pido internacional",
       "timestamp": "2026-08-29T15:36:58.259402",
       "respondida": true
+    },
+    {
+      "question_id": "13650394484",
+      "titulo_producto": "Carbonato De Magnesio Alimentario 500 Gr/envío Gratis",
+      "pregunta": "Buenos dias. El envio se debe pagar el comprador",
+      "timestamp": "2026-08-30T10:53:33.005928",
+      "respondida": true,
+      "nota": "Respondida manualmente 2026-08-30 - item estaba paused/out_of_stock (bloqueaba POST /answers con not_active_item); se reactivó brevemente (stock=1) para poder responder y se repausó a 0 de inmediato"
+    },
+    {
+      "question_id": "13650432326",
+      "titulo_producto": "Empaque Plástico Airpack Darnel 1/4 Libra X 50 Und",
+      "pregunta": "Porque el producto que muestran es de 1/4 y con tabla plegable, y el que envían es 1/2 y tapa independientemente?",
+      "timestamp": "2026-08-30T11:05:13.445632",
+      "respondida": true
+    },
+    {
+      "question_id": "13649786855",
+      "titulo_producto": "Mentol Cristal  100gr",
+      "pregunta": "Can NBC yfx NBC chi b cut si ni cg by r de i g excuse y my",
+      "timestamp": "2026-08-30T19:24:44.995801",
+      "respondida": true,
+      "borrador_ia": "¡Hola veci! Con gusto le colaboro. 😊\n\nParece que su mensaje no llegó del todo claro, ¿podría repetirlo? Con gusto le resuelvo cualquier duda sobre nuestro Mentol Cristal. 🌿",
+      "nota": "Auto-marcada respondida por supervisor 2026-08-30"
     }
   ]
 }

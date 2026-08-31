@@ -16722,6 +16722,49 @@ type ResumeAccionState = {
   ticket: Ticket;
 };
 
+/** Borrador local del wizard de acción — protege contra pérdida de trabajo si el
+ *  usuario cierra la app/pestaña antes de terminar (ver NuevaAccionWizard). Solo
+ *  cubre lo que el servidor todavía no tiene: para lo ya persistido (pasos,
+ *  cronómetro) la fuente de verdad sigue siendo `cargarEstadoReanudacion`. */
+type AccionWizardDraftV1 = {
+  v: 1;
+  ticketId: number | null;
+  titulo: string;
+  detalle: string;
+  conCompras: boolean;
+  listaCompras: ItemCompraAccion[];
+  pasosGuardados: { nombre: string; desc: string; adjuntos_ref?: PasoAccionDraft["adjuntos_ref"] }[];
+  pasoNombre: string;
+  pasoDesc: string;
+  reporteSolicitud: string;
+  cantidadCierre: string;
+  unidadCierre: string;
+  guardarComoProcedimiento: boolean;
+  alcanceProcedimiento: "personal" | "global";
+  fase: FaseAccionWizard;
+  guardadoEn: number;
+};
+
+function accionDraftKey(userId: number): string {
+  return `mck_accion_draft_${userId}`;
+}
+
+function leerAccionDraft(userId: number): AccionWizardDraftV1 | null {
+  try {
+    const raw = localStorage.getItem(accionDraftKey(userId));
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || d.v !== 1) return null;
+    return d as AccionWizardDraftV1;
+  } catch {
+    return null;
+  }
+}
+
+function borrarAccionDraft(userId: number): void {
+  try { localStorage.removeItem(accionDraftKey(userId)); } catch { /* localStorage bloqueado */ }
+}
+
 async function cargarEstadoReanudacion(ticketId: number, token: string): Promise<ResumeAccionState> {
   const [det, pasosRaw, bloqueoResp] = await Promise.all([
     tapi(`/${ticketId}`, token) as Promise<Ticket>,
@@ -16870,6 +16913,8 @@ function NuevaAccionWizard({
   const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
   const [creandoInter, setCreandoInter] = useState(false);
   const pasosWizardRef = useRef<HTMLDivElement>(null);
+  const draftHidratadoRef = useRef(false);
+  const [avisoDraftRestaurado, setAvisoDraftRestaurado] = useState(false);
 
   usePegarCapturaEnZona(fase === "pasos", pasosWizardRef, setPasoFoto);
 
@@ -16956,6 +17001,122 @@ function NuevaAccionWizard({
     if (reanudar.bloqueoCompras) setConCompras(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Aplica el estado del cronómetro/corrida de un ResumeAccionState — misma lógica
+   *  que el useEffect de `reanudar` de arriba, reutilizada al restaurar un borrador
+   *  local que ya tenía ticketId (ver useEffect de hidratación de borrador). */
+  function aplicarCorridaDeResume(resume: ResumeAccionState) {
+    const t = resume.ticket;
+    if (t.corrida) {
+      corridaIdRef.current = t.corrida.id ?? null;
+      setSegBase(t.corrida.segundos_acumulados ?? t.segundos_trabajo ?? 0);
+      if (t.corrida.estado === "activa" && (t.corrida.reanudada_en || t.corrida.iniciada_en)) {
+        const srvTs = parseUtcTs(t.corrida.reanudada_en || t.corrida.iniciada_en!);
+        inicioRef.current = srvTs;
+        _timerStore.set(resume.ticketId, srvTs);
+        setCronometroActivo(true);
+        setSegLive(Math.max(0, Math.floor((Date.now() - srvTs) / 1000)));
+      } else {
+        inicioRef.current = null;
+        _timerStore.delete(resume.ticketId);
+        setCronometroActivo(false);
+        setCorridaPausada(t.corrida.estado === "pausada");
+        setSegLive(0);
+      }
+    } else if ((t.segundos_trabajo ?? 0) > 0) {
+      setSegBase(t.segundos_trabajo ?? 0);
+    }
+  }
+
+  // Red de seguridad: si el usuario cerró la app a mitad de una acción (sin pasar
+  // por "Continuar donde quedé"), recupera lo que alcanzó a escribir. Fuente de
+  // verdad para lo ya persistido (pasos, cronómetro) sigue siendo el servidor vía
+  // cargarEstadoReanudacion; el borrador local solo cubre lo que el servidor todavía
+  // no tiene (reporte de cierre, paso a medio escribir, etc.).
+  useEffect(() => {
+    if (reanudar || plantillaEff || draftHidratadoRef.current) return;
+    draftHidratadoRef.current = true;
+    const draft = leerAccionDraft(user.id);
+    if (!draft) return;
+
+    // Campos que nunca llegan al servidor hasta el final — se restauran siempre.
+    if (draft.reporteSolicitud) setReporteSolicitud(draft.reporteSolicitud);
+    if (draft.cantidadCierre) setCantidadCierre(draft.cantidadCierre);
+    if (draft.unidadCierre) setUnidadCierre(draft.unidadCierre);
+    if (draft.pasoNombre) setPasoNombre(draft.pasoNombre);
+    if (draft.pasoDesc) setPasoDesc(draft.pasoDesc);
+    if (draft.guardarComoProcedimiento) setGuardarComoProcedimiento(true);
+    if (draft.alcanceProcedimiento) setAlcanceProcedimiento(draft.alcanceProcedimiento);
+
+    if (draft.ticketId) {
+      // Ya existía un ticket en el servidor — esa es la fuente de verdad para
+      // pasos/compras/cronómetro, igual que "Continuar donde quedé".
+      cargarEstadoReanudacion(draft.ticketId, token).then((resume) => {
+        setTicketId(resume.ticketId);
+        setTitulo(resume.plantilla.titulo || draft.titulo);
+        setConCompras(resume.plantilla.listaCompras.length > 0 || draft.conCompras);
+        setListaCompras(resume.plantilla.listaCompras.length > 0 ? resume.plantilla.listaCompras : draft.listaCompras);
+        setPasosGuardados(resume.plantilla.pasos.length > 0 ? resume.plantilla.pasos : draft.pasosGuardados);
+        setSubCompras(resume.subCompras);
+        setPasoComprasId(resume.pasoComprasId);
+        setBloqueoCompras(resume.bloqueoCompras);
+        setBloqueadoIntervencion(resume.bloqueadoIntervencion ?? null);
+        // El borrador local sabe exactamente en qué fase iba el usuario; la fase que
+        // infiere el servidor es solo un fallback razonable cuando no hay borrador
+        // (ej. "Continuar donde quedé" desde la lista). Excepción: si el servidor
+        // detecta un bloqueo (compras/intervención), ese manda — no se puede seguir
+        // más allá aunque el borrador diga otra cosa.
+        setFase((resume.bloqueoCompras || resume.bloqueadoIntervencion) ? resume.faseInicial : draft.fase);
+        aplicarCorridaDeResume(resume);
+        setAvisoDraftRestaurado(true);
+      }).catch(() => {
+        // El ticket ya no existe o no se pudo cargar (ej. lo resolvió otra persona
+        // mientras tanto) — descarta el borrador remoto, no queda nada que recuperar.
+        borrarAccionDraft(user.id);
+      });
+    } else {
+      setTitulo(draft.titulo);
+      setDetalle(draft.detalle);
+      setConCompras(draft.conCompras);
+      setListaCompras(draft.listaCompras);
+      setPasosGuardados(draft.pasosGuardados);
+      setFase(draft.fase);
+      setAvisoDraftRestaurado(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autoguardado del borrador (debounced) — nunca bloquea la UI ni pega al servidor.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const vacio = !titulo.trim() && !detalle.trim() && pasosGuardados.length === 0
+        && !reporteSolicitud.trim() && !pasoNombre.trim() && !pasoDesc.trim() && !ticketId;
+      if (vacio) { borrarAccionDraft(user.id); return; }
+      const draft: AccionWizardDraftV1 = {
+        v: 1,
+        ticketId,
+        titulo,
+        detalle,
+        conCompras,
+        listaCompras,
+        pasosGuardados: pasosGuardados.map((p) => ({ nombre: p.nombre, desc: p.desc, adjuntos_ref: p.adjuntos_ref })),
+        pasoNombre,
+        pasoDesc,
+        reporteSolicitud,
+        cantidadCierre,
+        unidadCierre,
+        guardarComoProcedimiento,
+        alcanceProcedimiento,
+        fase,
+        guardadoEn: Date.now(),
+      };
+      try { localStorage.setItem(accionDraftKey(user.id), JSON.stringify(draft)); } catch { /* localStorage lleno o bloqueado */ }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [
+    ticketId, titulo, detalle, conCompras, listaCompras, pasosGuardados, pasoNombre, pasoDesc,
+    reporteSolicitud, cantidadCierre, unidadCierre, guardarComoProcedimiento, alcanceProcedimiento, fase, user.id,
+  ]);
 
   function irFase(next: FaseAccionWizard) {
     const orden: FaseAccionWizard[] = ["titulo", "compras_lista", "compras_tienda", "pasos", "cierre"];
@@ -17452,6 +17613,7 @@ function NuevaAccionWizard({
       }
       const itemsLista = listaCompras.filter((m) => m.n.trim());
       await completarAccionEnServidor(tid, itemsLista);
+      borrarAccionDraft(user.id);
       onCreated(tid);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al terminar la acción");
@@ -17480,6 +17642,7 @@ function NuevaAccionWizard({
         await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" });
       } catch { /* ignore */ }
     }
+    borrarAccionDraft(user.id);
     onCancel();
   }
 
@@ -17520,6 +17683,20 @@ function NuevaAccionWizard({
           {reanudar ? "Continuar acción" : "Nueva acción"}
         </span>
       </div>
+
+      {avisoDraftRestaurado && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-ink">
+          <span>↺ Recuperamos tu progreso anterior de esta acción.</span>
+          <button
+            type="button"
+            onClick={() => void cancelarWizard()}
+            className="shrink-0 rounded-lg border border-border px-2 py-1 font-bold text-muted transition hover:border-danger hover:text-danger"
+            title="Descarta lo recuperado y sale del asistente"
+          >
+            Descartar y salir
+          </button>
+        </div>
+      )}
 
       {bloqueadoIntervencion && !bloqueoCompras && (
         <div className="mb-4 rounded-xl border border-accent/50 bg-accent/60  px-4 py-3 text-sm text-accent">

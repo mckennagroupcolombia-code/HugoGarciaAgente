@@ -3502,7 +3502,6 @@ def _calcular_actividad() -> dict:
     hace_7 = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
 
     pedidos_web_hoy = 0
-    despachos_web_semana = 0
     ciudades_semana: set[str] = set()
     try:
         con = sqlite3.connect(DB_PATH)
@@ -3511,11 +3510,6 @@ def _calcular_actividad() -> dict:
             "SELECT COUNT(*) FROM orders WHERE status='approved' AND date(created_at)=date('now')"
         )
         pedidos_web_hoy = cur.fetchone()[0]
-        cur.execute(
-            "SELECT COUNT(*) FROM orders WHERE shipping_status IN ('shipped','delivered') "
-            "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days')"
-        )
-        despachos_web_semana = cur.fetchone()[0]
         cur.execute(
             "SELECT DISTINCT buyer_city FROM orders WHERE shipping_status IN ('shipped','delivered') "
             "AND date(COALESCE(shipped_email_sent_at, delivered_at)) >= date('now', '-6 days') "
@@ -3526,17 +3520,10 @@ def _calcular_actividad() -> dict:
     except Exception:
         log.warning("actividad: no se pudo consultar orders.db", exc_info=True)
 
-    # Despachos + ciudades de MeLi esta semana (real, acumulado por
-    # app/tools/cobertura_meli.py::actualizar_cobertura_meli, `envios_por_fecha`
-    # usa la fecha REAL de despacho, no el día en que el cron lo notó). Sin
-    # esto, "despachos esta semana" solo veía el canal web (casi vacío) junto
-    # a "pedidos hoy" ya combinado — de ahí el 363 vs 3 que no cuadraba.
-    despachos_meli_semana = 0
+    # Ciudades de MeLi esta semana (real, acumulado por
+    # app/tools/cobertura_meli.py::actualizar_cobertura_meli).
     try:
         raw = json.loads(_COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
-        for fecha, n in (raw.get("envios_por_fecha") or {}).items():
-            if fecha >= hace_7:
-                despachos_meli_semana += int(n or 0)
         for entry in (raw.get("municipios") or {}).values():
             if (entry.get("ultima_vez") or "") >= hace_7 and entry.get("municipio"):
                 ciudades_semana.add(entry["municipio"])
@@ -3560,7 +3547,6 @@ def _calcular_actividad() -> dict:
 
     return {
         "pedidos_hoy": pedidos_web_hoy + ordenes_meli_hoy,
-        "despachos_semana": despachos_web_semana + despachos_meli_semana,
         "ciudades_semana": ciudades_semana_lista[:12],
         "n_ciudades_semana": len(ciudades_semana_lista),
         # WhatsApp + MeLi: antes solo se contaban las preguntas de MeLi aunque

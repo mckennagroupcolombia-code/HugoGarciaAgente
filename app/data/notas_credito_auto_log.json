@@ -1,5 +1,21 @@
 {
   "procesadas": {
+    "2000017942783276": {
+      "estado": "emitida",
+      "factura": "FV-2-69897",
+      "nc": "NC-2-825",
+      "actualizado_en": "2026-08-30T10:44:44",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-30T10:46:00"
+    },
+    "2000014739567631": {
+      "estado": "emitida",
+      "factura": "FV-2-71083",
+      "nc": "NC-2-826",
+      "actualizado_en": "2026-08-30T10:47:00",
+      "subida_meli": true,
+      "subida_meli_en": "2026-08-30T10:47:30"
+    },
     "2000014414796875": {
       "estado": "ya_tenia_nc",
       "factura": "FV-2-69661",
@@ -737,6 +753,20 @@
       "nc": "NC-2-822",
       "subida_meli": true,
       "actualizado_en": "2026-08-29T07:23:05"
+    },
+    "2000014699732465": {
+      "estado": "emitida",
+      "factura": "FV-2-70962",
+      "nc": "NC-2-823",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-30T07:23:10"
+    },
+    "2000014492006959": {
+      "estado": "emitida",
+      "factura": "FV-2-69800",
+      "nc": "NC-2-824",
+      "subida_meli": true,
+      "actualizado_en": "2026-08-30T07:23:48"
     }
   }
 }
