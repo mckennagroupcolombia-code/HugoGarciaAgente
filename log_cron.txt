@@ -3106,3 +3106,8 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-08-30) no es el último día del mes.
+[cursor/wa-metricas-panel beaa91f] Auto-commit: actualizacion diaria 2026-08-30 23:00
+ 18 files changed, 1636 insertions(+), 1243 deletions(-)
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+[2026-08-30 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-30 23:00'
