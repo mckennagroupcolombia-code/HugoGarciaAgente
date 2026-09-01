@@ -3111,3 +3111,265 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 app/data/wa_chats.db-shm
  create mode 100644 app/data/wa_chats.db-wal
 [2026-08-30 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-30 23:00'
+⏭  Cobertura MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-CERABREFKg CERA ABEJAS REFINADA AMARILLA Kg
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA Kg
+INFO: Combo SIIGO omitido sin precio público: C-ALFARB10g ALFA ARBUTINA 10g
+INFO: Combo SIIGO omitido sin precio público: C-LPRO100g L PROLINA 100g
+INFO: Combo SIIGO omitido sin precio público: C-VAS900g VASELINA 900g
+INFO: Combo SIIGO omitido sin precio público: C-GELSILCRI250g GEL SILICA 250g
+INFO: Combo SIIGO omitido sin precio público: C-GOTPLA3mL10Un GOTERO PLASTICO 3mL 10 Un
+INFO: Combo SIIGO omitido sin precio público: GOTVID10mLX12Un GOTERO VIDRIO 10 mL x 12 Un
+INFO: Combo SIIGO omitido sin precio público: FOR-ACISALmL FORMULA ACIDO SALICILICO 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-VITC20PmL FORMULA VITAMINA C 20% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-AZUMETmL AZUL METILENO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-GLUTAR2PmL GLUTARALDEHIDO 2% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIABAJPESmL ACIDO HIALURINICO BAJO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIHIAALTPESmL ACIDO HIALURONICO ALTO PESO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIKOJmL ACIDO KOJICO mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACILAC85PmL ACIDO LACTICO 85% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-ACIGLI50PmL ACIDO GLICOLICO 50% mL
+INFO: Combo SIIGO omitido sin precio público: FOR-RET5PmL RETINOL 5% mL
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: Fotos/precios MeLi por SKU: 199 exactos, 37 alias, 70 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 239/306 combos SIIGO tienen publicación (se ocultan 67)
+INFO: Catálogo listo: 21 categorías, 179 fichas (33 con varias presentaciones), 239 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ SIIGO products API: 500 para SKU C-MANCACREFKg
+⚠️ SIIGO products API: 429 para SKU C-ACICIT250g
+⚠️ SIIGO products API: 429 para SKU C-BTMS250g
+⚠️ SIIGO products API: 429 para SKU C-FRU500g
+⚠️ SIIGO products API: 429 para SKU C-ELAHID30mL
+⚠️ SIIGO products API: 429 para SKU C-ACISAL50g
+⚠️ SIIGO products API: 429 para SKU C-TAU250g
+⚠️ SIIGO products API: 429 para SKU C-LTRI100g
+⚠️ SIIGO products API: 429 para SKU C-COLHID30mL
+⚠️ SIIGO products API: 429 para SKU FOR-GLUTAR2PmL
+⚠️ SIIGO products API: 429 para SKU C-TENSCI100g
+⚠️ SIIGO products API: 429 para SKU C-AMILARG100g
+⚠️ SIIGO products API: 429 para SKU C-LTEA100g
+⚠️ SIIGO products API: 429 para SKU C-ALA250g
+⚠️ SIIGO products API: 429 para SKU C-ERI500g
+⚠️ SIIGO products API: 429 para SKU OILBMBVC
+⚠️ SIIGO products API: 429 para SKU LHST100G
+⚠️ SIIGO products API: 429 para SKU C-ACDSAL20P30m
+⚠️ SIIGO products API: 429 para SKU KTLJMTT51PZS
+⚠️ SIIGO products API: 429 para SKU C-EXTMAL500g
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Max retries exceeded with url: /v1/products?code=SoMoNiSeMa1.6 (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.siigo.com', port=443) at 0x7e10a9d59e80>, 'Connection to api.siigo.com timed out. (connect timeout=10)'))
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+   31 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 6 | Sospechosos (>2×): 20
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   138 órdenes canceladas en la ventana.
+   4316 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3431 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-71018 -> NC-2-827 (Accepted) — MeLi: ✅
+Resumen: 1 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-08-31T07:45:01] resumen_costos_llm:
+💸 *Costos IA vía API — resumen semanal*
+Semana 2026-08-25 → 2026-08-31
+Total: *US$3.97* en 359 llamadas (promedio US$0.57/día)
+Día más alto: 2026-08-25 con US$1.33
+*Por canal:*
+  • WhatsApp/Web clientes: US$3.14
+  • competencia_captura: US$0.43
+  • Preventa MeLi: US$0.25
+  • coa_scan_estructurar: US$0.07
+  • coa_scan_tablas: US$0.04
+  • ft_scan_tablas: US$0.02
+  • plantilla_etiqueta_vision: US$0.01
+  • ft_scan_un_paso: US$0.01
+  • ft_scan_estructurar: US$0.01
+*Por modelo:*
+  • claude-sonnet-4-6: US$3.39
+  • gemini-2.5-flash: US$0.58
+
+Límites: alerta US$1.00/día, bloqueo US$3.00/día. Detalle diario en el monitor: http://localhost:3000/monitor
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo de sistemas
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[2026-08-31T08:17:56] publicidad_recomendaciones: pausar=33 revisar=58 ok=62 alertas_campanas=116
+✅ Centro de Mando (tickets DB) inicializado
+📢 *Publicidad MeLi — revisión de ACOS*
+Período: últimos 30 días
+🔴 Pausar: *33* productos ($3,258,770 COP)
+🟠 Revisar: *58* productos ($1,238,204 COP)
+🟢 OK: 62 dentro de objetivo para su rotación
+ℹ️ 20 sin dato de rotación (evaluados conservador)
+
+Top candidatos a pausar:
+• Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro — $1,131,263 COP, ACOS 54.3%
+• Aceite De Jojoba — $76,785 COP, ACOS 307.1%
+• Gotero Vidrio 10 Ml  Azul - Verde - Ambar  X 12 Unidades — $54,005 COP, ACOS 91.5%
+• Sharomix 705 Conservante Natural Cosmético 50 Ml — $40,555 COP, ACOS 109.6%
+• Kit Hidratante Ácido Hialurónico — $33,583 COP, ACOS 0.0%
+
+📥 *41* con venta real, falta migrar a una campaña:
+• Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura → Media rotación
+• Manteca De Cacao 100% Orgánica Prensada En Frío 500 Gr  → Media rotación
+• Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado → Alta rotación
+• Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr → Media rotación
+• L Teanina 100gr N/a → Baja rotación
+
+⏸ *17* ya migrados sin ninguna venta — pausar, no reasignar:
+• Cera Carnauba   500gr (Baja rotación)
+• Sulfato De Hierro Heptahidratado /sulfato Ferroso 500 Gr Ferroso (Media rotación)
+• Autobronceador Polvo Dha 10g (Baja rotación)
+• Cera Carnauba   250 Gr (Baja rotación)
+• Coco Deshidratado Hilos Puro 500g (Baja rotación)
+
+🔀 *58* cambiaron de rotación, mover de campaña:
+• Creatina Monohidrato 500g N/a — Baja rotación → Alta rotación
+• D-pantenol Vitamina B5 75% — Media rotación → Alta rotación
+• Aceite Esencial Árbol De Té 30ml — Media rotación → Alta rotación
+• Carbón Activado Pellets Filtro Olores 800g — Baja rotación → Media rotación
+• Alginato De Sodio + Lactato De Calcio 50g C/u — Baja rotación → Alta rotación
+
+🏢 Centro de Mando: ticket #TKT-2026-1065
+Detalle completo: /app → Contabilidad → Publicidad
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado por WhatsApp
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[2026-08-31T08:23:58] archivar_gasto_ads: 12 semanas revisadas, 2 archivadas en esta corrida, 0 sin dato y por vencerse.
+✅ Todas las semanas dentro de la ventana de 90 días están archivadas.
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+ℹ️ [STOCK] Omitidas 45 publicaciones closed/inactive (ya no operables en MeLi).
+ℹ️ [STOCK] +167 publicaciones pausadas MeLi no listadas en Sheets añadidas al resumen.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+Resumen: agotados=143 criticos=31 bajos=60 divergentes=0
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Recordatorio pago contador: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 63, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 40, in main
+    analisis = ejecutar_analisis_competencia(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 1415, in ejecutar_analisis_competencia
+    base = nuestros_mas_vendidos(dias=dias, top_n=top_n, consulta=consulta)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 1136, in nuestros_mas_vendidos
+    ventas = obtener_ventas_meli_por_item(dias=dias, refresh=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/sync.py", line 1089, in obtener_ventas_meli_por_item
+    raise RuntimeError(
+RuntimeError: MeLi orders/search HTTP 429: {"status":429,"message":"local_rate_limited"}
+
+⏭  Recordatorio pago nómina: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-08-31T18:00:01] resumen_actividad_sede_sur: 45 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 16 nuevas · 18 completadas · 10 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 8 nuevas, 11 completadas
+• Victor Garcia: 3 nuevas, 4 completadas
+• Gloria Stella: 3 nuevas, 2 completadas
+• Administrador: 2 nuevas, 0 completadas
+• Cynthia Ruiz: 0 nuevas, 1 completada
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+[2026-08-31T20:00:01] informe_reposicion_mensual:
+📦 *REPOSICIÓN DE ALTA ROTACIÓN — cierre de mes*
+Periodo: 2026-08-01 → 2026-08-31
+─────────────────────────
+
+*16* reposiciones completadas este mes (solo alta rotación).
+Promedio: *3.1 días* · Mediana: 2.0 días
+Más rápida: Kit Reparador #3 Cosmético  Todo Tipo De Piel (1.0 días)
+Más lenta: Arcilla Blanca Usp Certificada Caolin Coloidal  1 Kg (11.0 días)
+
+*Calificación del mes: 🟡 B — Bueno*
+
+⏳ *3 productos de alta rotación siguen agotados ahora mismo:*
+  • Gotero Plastico 3ml - Pipeta Pasteur 10 Unidades — 12.6 días sin reponer
+  • Beaker De Vidrio 50 Ml Laboratorio Vaso De Precipitado — 5.6 días sin reponer
+  • Cloruro De Magnesio  Alta Pureza 1 Kg Sal — 1.6 días sin reponer
+
+_Calificación: 🟢 A ≤3 días · 🟡 B 4-7 · 🟠 C 8-14 · 🔴 D 15+ (promedio de reposiciones cerradas este mes, solo alta rotación)._
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Informe de reposición enviado al grupo Sede Sur

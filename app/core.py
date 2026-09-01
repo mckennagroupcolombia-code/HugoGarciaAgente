@@ -1747,7 +1747,7 @@ def _es_seleccion_presentacion_web(texto: str) -> bool:
         return False
     if re.search(r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b", low):
         return True
-    if re.search(r"\b(grande|mediana|peque(n|ñ)a|kilo|kg|litro)\b", low):
+    if re.search(r"\b(grande|mediana|peque(n|ñ)a|kilo|kg|litro|libras?|lbs?)\b", low):
         return True
     tokens = [t for t in re.findall(r"[a-záéíóúüñ0-9\-]+", low) if len(t) >= 2]
     if 1 <= len(tokens) <= 2 and len(low) <= 28:
@@ -1796,6 +1796,11 @@ def _termino_busqueda_producto_web(pregunta: str, messages: list) -> str:
             pregunta = f"{pregunta} 500g"
         elif re.search(r"\bpeque(n|ñ)a\b", low) and not re.search(r"\b250\s*g\b|\b250g\b", low):
             pregunta = f"{pregunta} 250g"
+        elif re.search(r"\blibras?\b|\blbs?\b", low) and not re.search(r"\b500\s*g\b|\b500g\b", low):
+            # No vendemos por libra: 1 libra ≈ 453.6 g, la presentación real más
+            # cercana es 500g (misma convención que app/services/tarifas_envio.py
+            # usa para el peso de envío: libra ≈ 0.5 kg).
+            pregunta = f"{pregunta} 500g"
         if prod:
             return f"{prod} {pregunta}".strip()
         return pregunta
@@ -1850,6 +1855,10 @@ def _filtrar_items_por_seleccion_cliente(
         palabras.extend(["250g"])
     if re.search(r"\b1\s*(kilo|kg)\b", low):
         palabras.extend(["kg"])
+    if re.search(r"\blibras?\b|\blbs?\b", low):
+        # 1 libra ≈ 453.6 g: no vendemos esa presentación, la más cercana
+        # es 500g (misma convención de app/services/tarifas_envio.py).
+        palabras.extend(["500g"])
     filtrados: list[tuple[int, dict]] = []
     for it in items:
         blob = _normalizar_busqueda_combo_web(f"{it.get('name', '')} {it.get('ref', '')}")
@@ -1868,6 +1877,8 @@ def _filtrar_items_por_seleccion_cliente(
         if "mediana" in low and ("500g" in blob or " 500 g" in blob):
             score += 8
         if ("pequena" in low or "pequeña" in low) and ("250g" in blob or " 250 g" in blob):
+            score += 8
+        if re.search(r"\blibras?\b|\blbs?\b", low) and ("500g" in blob or " 500 g" in blob):
             score += 8
         if low in blob or all(w in blob for w in palabras[:3] if len(palabras) >= 2):
             score += 8

@@ -2338,6 +2338,55 @@
       "respondida": true,
       "borrador_ia": "¡Hola veci! Con gusto le colaboro. 😊\n\nParece que su mensaje no llegó del todo claro, ¿podría repetirlo? Con gusto le resuelvo cualquier duda sobre nuestro Mentol Cristal. 🌿",
       "nota": "Auto-marcada respondida por supervisor 2026-08-30"
+    },
+    {
+      "question_id": "13650879568",
+      "titulo_producto": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+      "pregunta": "con que se podria diluir?",
+      "timestamp": "2026-08-31T10:24:42.425119",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su duda.\n\nNo recomendamos diluir nuestro Ácido Salicílico al 20%. Al ser un producto de alta concentración, está formulado para un uso específico y localizado directamente sobre verrugas, sin necesidad de mezclas o diluciones.\n\nPara el cuidado general de la piel o tratamiento de acné, las concentraciones recomendadas suelen ser mucho más bajas (entre 0.5% y 2%), por lo que este producto no estaría indicado para ese tipo de uso aunque se diluyera. Le recomendamos usarlo tal como viene, aplicando una pequeña cantidad directamente sobre la verruga y evitando el contacto con la piel sana de alrededor. ¡Quedamos atentos si tiene alguna otra pregunta! 😊",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-31"
+    },
+    {
+      "question_id": "13650059527",
+      "titulo_producto": "Manteca De Cacao 1 Kg ",
+      "pregunta": "No tiene parafina? Es pura?",
+      "timestamp": "2026-08-31T12:55:10.323872",
+      "respondida": true
+    },
+    {
+      "question_id": "13651065932",
+      "titulo_producto": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+      "pregunta": "En qué ciudad estás, me sale más costoso el envío que el producto",
+      "timestamp": "2026-08-31T14:25:16.288563",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡qué gusto saludarle! Con gusto le colaboro.\n\nEstamos ubicados en Bogotá. El costo del envío lo calcula automáticamente Mercado Libre según su ciudad de destino, y entendemos que a veces puede sentirse elevado frente al valor del producto, especialmente en presentaciones pequeñas.\n\nSi gusta, puede revisar si hay otros vendedores del mismo producto más cerca de su ciudad, o si tiene una dirección en Bogotá donde pueda recibir el pedido, eso podría reducir el costo del flete. ¡Quedo pendiente si tiene más preguntas! 😊",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-31"
+    },
+    {
+      "question_id": "13650218299",
+      "titulo_producto": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+      "pregunta": "Tienes tienda en Barrancabermeja para recoger el producto ?",
+      "timestamp": "2026-08-31T13:44:32.064456",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡qué gusto saludarle! Con mucho gusto le colaboro.\n\nPor el momento no contamos con tienda física ni punto de recogida en Barrancabermeja. Estamos ubicados en Bogotá y despachamos exclusivamente a través de Mercado Libre, por lo que el envío llegaría directamente hasta su puerta.\n\nSi el costo del envío le parece elevado, le recomendamos revisar si hay vendedores del mismo producto más cercanos a su ciudad dentro de la plataforma. ¡Quedamos atentos a cualquier otra consulta! 😊"
+    },
+    {
+      "question_id": "13650241633",
+      "titulo_producto": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+      "pregunta": "Ya hice la compara, gracias. Quiero saber si tienes goma xantana de grado cosmético ?",
+      "timestamp": "2026-08-31T14:55:27.219305",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡qué gusto saludarle! Me alegra mucho que su compra haya quedado lista. 😊\n\nCon respecto a la goma xantana de grado cosmético, lamentablemente no es un producto que manejemos en nuestro catálogo. Le invitamos a revisar nuestras demás publicaciones en Mercado Libre, donde podrá encontrar otros insumos para formulación cosmética que quizás le sean de utilidad.\n\n¡Quedamos atentos a cualquier otra consulta sobre su pedido! 😊",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-08-31"
+    },
+    {
+      "question_id": "13651135542",
+      "titulo_producto": "Ácido Láctico + Glicólico 30 Ml Todo Tipo De Piel",
+      "pregunta": "Con qué lo puedo diluir?",
+      "timestamp": "2026-08-31T16:25:39.410813",
+      "respondida": true
     }
   ]
 }

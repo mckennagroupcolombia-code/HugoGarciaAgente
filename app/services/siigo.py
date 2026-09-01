@@ -3634,7 +3634,13 @@ def buscar_productos_combo_siigo(consulta: str) -> str:
 
     lines.append(
         "IMPORTANTE: cite solo estas líneas al cliente. "
-        "No ofrezca presentaciones del catálogo histórico Sheets."
+        "No ofrezca presentaciones del catálogo histórico Sheets. "
+        "NO calcule ni derive un precio por libra, onza u otra unidad que no "
+        "aparezca en esta lista (ej. dividir/multiplicar el precio del kilo o "
+        "de un gramaje) — esos cálculos han dado precios incorrectos al "
+        "cliente. Si pregunta por libra, informe que se vende por 100g/250g/"
+        "500g/kg y ofrezca el precio real de la presentación de 500g (la más "
+        "cercana a una libra) tal como aparece arriba."
     )
     if hubo_agotado:
         lines.append(
