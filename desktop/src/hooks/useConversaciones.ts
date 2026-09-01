@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import type { Ticket } from "../components/TicketsPanel";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ export function useCambiarEstadoConversacion() {
     onSuccess: (_data, { ticketId }) => {
       qc.invalidateQueries({ queryKey: ["tickets-conversaciones"] });
       qc.invalidateQueries({ queryKey: ["tickets-timeline", ticketId] });
+      qc.invalidateQueries({ queryKey: ["tickets-resumen", ticketId] });
     },
   });
 }
@@ -159,29 +161,18 @@ export function useAsignarConversacion() {
     onSuccess: (_data, { ticketId }) => {
       qc.invalidateQueries({ queryKey: ["tickets-conversaciones"] });
       qc.invalidateQueries({ queryKey: ["tickets-timeline", ticketId] });
+      qc.invalidateQueries({ queryKey: ["tickets-resumen", ticketId] });
     },
   });
 }
 
-// ── Detalle liviano de un ticket (header del hilo, independiente del filtro activo) ──
-
-export interface TicketResumen {
-  id: number;
-  numero: string;
-  titulo: string;
-  tipo: "ticket" | "accion" | "solicitud";
-  subtipo: string | null;
-  estado: ConversacionEstado;
-  prioridad: string;
-  creado_por: number;
-  creado_por_nombre?: string | null;
-  asignado_a: number | null;
-  asignado_a_nombre?: string | null;
-  bloqueado_por?: number | null;
-}
+// ── Detalle de un ticket (header + cuerpo del hilo, independiente del filtro activo) ──
+// El endpoint ya devuelve el ticket completo (mismo que usa TicketDetailView vía tapi),
+// así que se tipa como `Ticket` completo — el hilo puede leer descripción, pasos, etc.
+// sin una segunda petición.
 
 export function useTicketResumen(ticketId: number | null) {
-  return useQuery<TicketResumen>({
+  return useQuery<Ticket>({
     queryKey: ["tickets-resumen", ticketId],
     queryFn: () => api.get(`/api/tickets/${ticketId}`),
     enabled: ticketId != null,
@@ -204,6 +195,16 @@ export function useUsuariosEquipo() {
   return useQuery<EquipoUsuario[]>({
     queryKey: ["tickets-usuarios"],
     queryFn: () => api.get("/api/tickets/usuarios"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Solo quienes de verdad abren el panel (por último login real), no el roster
+ * completo — evita mezclar cuentas de prueba/automatización con el equipo real. */
+export function useUsuariosActivos(limite = 4) {
+  return useQuery<EquipoUsuario[]>({
+    queryKey: ["tickets-usuarios-activos", limite],
+    queryFn: () => api.get(`/api/tickets/usuarios/activos?limite=${limite}`),
     staleTime: 5 * 60 * 1000,
   });
 }

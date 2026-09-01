@@ -824,6 +824,16 @@ def register_tickets_routes(app):
     def tickets_get_usuarios():
         return jsonify(listar_usuarios()), 200
 
+    @app.route("/api/tickets/usuarios/activos", methods=["GET"])
+    @_auth
+    def tickets_get_usuarios_activos():
+        from app.services.tickets_db import usuarios_activos_recientes
+        try:
+            limite = int(request.args.get("limite", 4))
+        except (TypeError, ValueError):
+            limite = 4
+        return jsonify(usuarios_activos_recientes(max(1, min(limite, 20)))), 200
+
     @app.route("/api/tickets/usuarios", methods=["POST"])
     @_auth
     @_nivel_min(2)

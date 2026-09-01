@@ -68,6 +68,9 @@ export default function InicioNavTabs() {
     centroMandoView === "mensajes" || centroMandoView === "acciones" || centroMandoView === "solicitudes"
   );
   const metricasActiva = panel === "dashboard";
+  // Métricas del equipo: solo tiene sentido para quien administra la operación.
+  const showMetricas = nivel >= 3;
+  const tabClass = (selected: boolean) => hubTabClass(selected, "mck-hub-tab-etiquetado flex-col");
 
   return (
     <ScrollableTabList aria-label="Secciones de Inicio" justify="start">
@@ -78,7 +81,7 @@ export default function InicioNavTabs() {
         aria-label="Agenda"
         title="Agenda"
         onClick={irAgenda}
-        className={hubTabClass(agendaActiva)}
+        className={tabClass(agendaActiva)}
       >
         <Icon name="target" size={22} weight="bold" />
         <span className={HUB_TAB_LABEL}>Agenda</span>
@@ -91,24 +94,26 @@ export default function InicioNavTabs() {
           aria-label="Mensajes"
           title="Mensajes (Solicitudes y Acciones)"
           onClick={irMensajes}
-          className={hubTabClass(mensajesActiva)}
+          className={tabClass(mensajesActiva)}
         >
           <Icon name="chat" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Mensajes</span>
         </button>
       )}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={metricasActiva}
-        aria-label="Métricas"
-        title="Métricas"
-        onClick={irMetricas}
-        className={hubTabClass(metricasActiva)}
-      >
-        <PanelIcon panel="dashboard" size={22} active={metricasActiva} bubble={false} />
-        <span className={HUB_TAB_LABEL}>Métricas</span>
-      </button>
+      {showMetricas && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={metricasActiva}
+          aria-label="Métricas"
+          title="Métricas"
+          onClick={irMetricas}
+          className={tabClass(metricasActiva)}
+        >
+          <PanelIcon panel="dashboard" size={22} active={metricasActiva} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Métricas</span>
+        </button>
+      )}
     </ScrollableTabList>
   );
 }

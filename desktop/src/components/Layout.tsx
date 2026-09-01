@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Sidebar from "./Sidebar";
 import SystemAlertsBanner from "./SystemAlertsBanner";
 import TeamActivityBanner from "./TeamActivityBanner";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
@@ -7,11 +6,14 @@ import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 import DisenoNavTabs from "./nav/DisenoNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
+import EquipoConectadoBar from "./nav/EquipoConectadoBar";
+import UserMenuButton from "./nav/UserMenuButton";
 import ThemeModeToggle from "./ThemeModeToggle";
 import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
+import { useNavegarPanel } from "../hooks/useNavegarPanel";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { modoAvanzadoEfectivo } from "../lib/adminAccess";
@@ -37,10 +39,9 @@ export default function Layout({
   onExitForceDesktop?: () => void;
 }) {
   usePanelSession();
+  const navegarPanel = useNavegarPanel();
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
-  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const toggle = useAppStore((s) => s.toggleSidebar);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   const user = useTicketsAuth((s) => s.user);
   const { advanced: advancedToggle } = useUiMode();
@@ -80,16 +81,6 @@ export default function Layout({
 
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
-      {sidebarOpen && !studioEtiquetasFill && (
-        <div
-          className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm transition-opacity duration-200 lg:hidden"
-          onClick={toggle}
-          role="presentation"
-        />
-      )}
-
-      {!studioEtiquetasFill && <Sidebar />}
-
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
         {!studioEtiquetasFill && (
           <>
@@ -114,16 +105,18 @@ export default function Layout({
                 <Icon name="caretDown" size={22} weight="bold" className="rotate-90" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={toggle}
-              className="mck-press shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
-              aria-label="Abrir menú"
-            >
-              <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
-            </button>
-
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+              {sectionId !== "inicio" && !studioEtiquetasFill && (
+                <button
+                  type="button"
+                  onClick={() => navegarPanel("hugo")}
+                  className="mck-press flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1.5 text-[12px] font-bold text-muted transition hover:border-accent/40 hover:text-ink"
+                  title="Volver a Inicio"
+                >
+                  <Icon name="caretDown" size={14} weight="bold" className="rotate-90" />
+                  Inicio
+                </button>
+              )}
               {isHub && sectionId ? (
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                   <Icon name={HUB_SECTION_ICON[sectionId]} size={22} weight="duotone" />
@@ -133,11 +126,17 @@ export default function Layout({
                   <Icon name={panel === "perfil" ? "user" : "wrench"} size={22} weight="duotone" />
                 </span>
               ) : null}
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <h1 className="mck-title truncate text-[26px] font-bold leading-tight tracking-tight">
                   {headerTitle}
                 </h1>
               </div>
+              {sectionId === "inicio" && (
+                <div className="hidden shrink-0 border-l border-border/60 pl-2 sm:flex">
+                  <EquipoConectadoBar />
+                </div>
+              )}
+              <div className="min-w-0 flex-1" />
             </div>
 
             {!isHub && advanced && (
@@ -176,6 +175,7 @@ export default function Layout({
               )}
               <TemasHeaderButton />
               <ThemeModeToggle />
+              <UserMenuButton />
             </div>
           </div>
 

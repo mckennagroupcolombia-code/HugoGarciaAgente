@@ -20,11 +20,15 @@ const RADIUS_PX: Record<PanelThemeConfig["radius"], string> = {
   lg: "22px",
 };
 
+// Base subida un peldaño (antes 13/14/15/17) — el equipo pidió una interfaz más
+// grande por defecto en pantallas de escritorio. Sube el tamaño de raíz para
+// todos independientemente de qué opción tengan guardada (sm/md/lg/xl siguen
+// existiendo como escalones relativos entre sí).
 const FONT_SCALE_PX: Record<FontScale, string> = {
-  sm: "13px",
-  md: "14px",
-  lg: "15px",
-  xl: "17px",
+  sm: "14px",
+  md: "16px",
+  lg: "17px",
+  xl: "19px",
 };
 
 function resolveDark(mode: ThemeMode): boolean {
@@ -49,7 +53,9 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
     config.skin === "atelier" ||
     config.skin === "matrix" ||
     config.skin === "sakura" ||
-    config.skin === "barbie"
+    config.skin === "barbie" ||
+    config.skin === "bodega" ||
+    config.skin === "botica"
       ? config.skin
       : "clasica";
 
@@ -68,7 +74,11 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
         ? "255 126 182"
         : skin === "matrix" && config.accentRgb === "12 96 105"
           ? "0 255 65"
-          : config.accentRgb;
+          : skin === "bodega" && config.accentRgb === "12 96 105"
+            ? "181 80 42"
+            : skin === "botica" && config.accentRgb === "12 96 105"
+              ? "61 90 68"
+              : config.accentRgb;
   const accent = dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
   root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
@@ -98,9 +108,13 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
           ? "#e85c80"
           : skin === "barbie"
             ? "#ff7eb6"
-            : dark
-              ? "#2B454F"
-              : rgbToHex(config.accentRgb);
+            : skin === "bodega"
+              ? "#b5502a"
+              : skin === "botica"
+                ? "#3d5a44"
+                : dark
+                  ? "#2B454F"
+                  : rgbToHex(config.accentRgb);
     themeMeta.setAttribute("content", hex);
   }
 }

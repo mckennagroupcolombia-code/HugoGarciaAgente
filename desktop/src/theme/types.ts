@@ -17,9 +17,9 @@ export type FontScale = "sm" | "md" | "lg" | "xl";
 
 export type MenuScale = "sm" | "md" | "lg";
 
-export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie";
+export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie" | "bodega" | "botica";
 
-export type ThemePackId = "matrix" | "sakura" | "barbie";
+export type ThemePackId = "matrix" | "sakura" | "barbie" | "bodega" | "botica";
 
 export type ThemeColorKey =
   | "surface"

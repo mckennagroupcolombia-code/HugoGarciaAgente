@@ -180,6 +180,30 @@ export const THEME_PACKS: ThemePack[] = [
     accentRgb: "255 126 182",
     mode: "light",
   },
+  {
+    id: "bodega",
+    label: "Bodega",
+    tagline: "Terracota y arena, como las etiquetas kraft de materia prima.",
+    skin: "bodega",
+    fontSans: "Montserrat",
+    radius: "md",
+    fontScale: "md",
+    menuScale: "md",
+    accentRgb: "181 80 42",
+    mode: "light",
+  },
+  {
+    id: "botica",
+    label: "Botica",
+    tagline: "Verde botella y mostaza, frascos de activos naturales.",
+    skin: "botica",
+    fontSans: "Montserrat",
+    radius: "md",
+    fontScale: "md",
+    menuScale: "md",
+    accentRgb: "61 90 68",
+    mode: "light",
+  },
 ];
 
 export const MAX_CUSTOM_THEMES = 12;
@@ -208,12 +232,14 @@ export function sanitizeColors(raw: unknown): ThemeColorMap {
 }
 
 const FONTS = new Set<FontChoice>(FONT_CHOICES.map((f) => f.id));
-const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie"]);
+const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica"]);
 
-/** Variantes visibles: Matrix, Sakura y Barbie Agenda. McKenna/Atelier pasan a Sakura. */
+/** Variantes visibles: Matrix, Sakura, Barbie Agenda, Bodega y Botica. McKenna/Atelier pasan a Sakura. */
 function featuredSkin(raw: unknown): UiSkin {
   if (raw === "matrix") return "matrix";
   if (raw === "barbie" || raw === "cherry") return "barbie";
+  if (raw === "bodega") return "bodega";
+  if (raw === "botica") return "botica";
   if (raw === "sakura" || raw === "clasica" || raw === "atelier") return "sakura";
   return "sakura";
 }

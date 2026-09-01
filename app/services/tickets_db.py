@@ -1644,6 +1644,24 @@ def listar_usuarios(incluir_bots: bool = False) -> list:
         return [_usuario_full(db, r["id"]) for r in rows]
 
 
+def usuarios_activos_recientes(limite: int = 4) -> list:
+    """Los N usuarios que de verdad abren el panel, por fecha de último login real
+    (tabla `sesiones`, se crea solo vía /api/tickets/auth/login) — no por actividad
+    en tickets, que puede venir de crons/automatizaciones (ej. "Administrador" crea
+    tickets de sync de facturas a diario sin haber iniciado sesión en semanas)."""
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT u.id, u.nombre, u.username, u.foto, MAX(s.creado_en) AS ultimo_login
+            FROM usuarios u
+            JOIN sesiones s ON s.usuario_id = u.id
+            WHERE u.activo = 1 AND u.username != ?
+            GROUP BY u.id
+            ORDER BY ultimo_login DESC
+            LIMIT ?
+        """, (_USERNAME_BOT_SEDE_SUR, limite)).fetchall()
+        return [dict(r) for r in rows]
+
+
 def crear_usuario(
     nombre: str,
     username: str,
@@ -1797,7 +1815,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         mode = item.get("mode") if item.get("mode") in ("light", "dark", "system") else "light"
         font = item.get("fontSans") if item.get("fontSans") in fonts else "Montserrat"
         radius = item.get("radius") if item.get("radius") in ("sm", "md", "lg") else "md"
-        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura", "barbie") else "clasica"
+        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica") else "clasica"
         font_scale = item.get("fontScale") if item.get("fontScale") in ("sm", "md", "lg", "xl") else "md"
         menu_scale = item.get("menuScale") if item.get("menuScale") in ("sm", "md", "lg") else "md"
         colors = _limpiar_colores_tema(item.get("colors")) or {}
@@ -1864,7 +1882,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["radius"] = radius
         skin = panel_in.get("skin")
         if skin is not None:
-            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie"):
+            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica"):
                 return False, "skin inválido", None
             panel["skin"] = skin
         font_scale = panel_in.get("fontScale")
@@ -6913,11 +6931,17 @@ def actualizar_recordatorio(rec_id: int, usuario_id: int,
 
 
 def marcar_visto_recordatorio(rec_id: int, usuario_id: int) -> tuple:
-    """Marca como visto y avanza a la próxima ocurrencia (o desactiva si es una_vez)."""
+    """Marca como visto y avanza a la próxima ocurrencia (o desactiva si es una_vez).
+
+    Debe aceptar tanto al creador (`usuario_id`) como al asignado (`asignado_a`) —
+    igual que `listar_recordatorios`/`actualizar_recordatorio` — si no, un
+    recordatorio delegado a otra persona nunca se puede marcar visto desde la
+    cuenta de esa persona (queda "atascado" mostrándose para siempre).
+    """
     with _conn() as db:
         row = db.execute(
-            "SELECT * FROM recordatorios WHERE id=? AND usuario_id=? AND activo=1",
-            (rec_id, usuario_id),
+            "SELECT * FROM recordatorios WHERE id=? AND (usuario_id=? OR asignado_a=?) AND activo=1",
+            (rec_id, usuario_id, usuario_id),
         ).fetchone()
         if not row:
             return None, "Recordatorio no encontrado"
@@ -6938,8 +6962,8 @@ def marcar_visto_recordatorio(rec_id: int, usuario_id: int) -> tuple:
 def eliminar_recordatorio(rec_id: int, usuario_id: int) -> tuple:
     with _conn() as db:
         row = db.execute(
-            "SELECT id FROM recordatorios WHERE id=? AND usuario_id=?",
-            (rec_id, usuario_id),
+            "SELECT id FROM recordatorios WHERE id=? AND (usuario_id=? OR asignado_a=?)",
+            (rec_id, usuario_id, usuario_id),
         ).fetchone()
         if not row:
             return False, "Recordatorio no encontrado"

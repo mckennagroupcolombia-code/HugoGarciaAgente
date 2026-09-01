@@ -26,6 +26,7 @@ import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLay
 import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import { AddIconButton } from "./AddIconButton";
 import DolarHoraGadget from "./DolarHoraGadget";
+import InicioLauncher from "./InicioLauncher";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
@@ -41,7 +42,7 @@ import {
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
 import PlacasConcretoModal from "./PlacasConcretoModal";
-import { puedeVerSeccionPanel } from "./Sidebar";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import {
   esSolicitudEtiqueta,
   irAImprimirDesdeSolicitud,
@@ -174,7 +175,7 @@ function InfoTooltip({ text, className = "" }: { text: string; className?: strin
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Ticket {
+export interface Ticket {
   id: number;
   numero: string;
   titulo: string;
@@ -1117,7 +1118,7 @@ function EstadoBadge({ estado }: { estado: string }) {
   );
 }
 
-function CategoriaBadge({ cat }: { cat: string }) {
+export function CategoriaBadge({ cat }: { cat: string }) {
   const { cats } = useContext(CategoriasCtx);
   const info = cats.find((c) => c.slug === cat);
   if (info) {
@@ -1138,7 +1139,7 @@ function CategoriaBadge({ cat }: { cat: string }) {
   );
 }
 
-function PrioridadBadge({ p }: { p: string }) {
+export function PrioridadBadge({ p }: { p: string }) {
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${PRIORIDAD_STYLES[p] || "bg-gray-100 text-gray-600 dark:bg-ink/30 dark:text-muted"}`}>
       {p}
@@ -1175,7 +1176,7 @@ function fmtHoras(h: number): string {
   return `${ss}s`;
 }
 
-function fmtDate(s: string) {
+export function fmtDate(s: string) {
   if (!s) return "—";
   try {
     return new Date(s + (s.includes("T") ? "Z" : "")).toLocaleString("es-CO", {
@@ -4296,6 +4297,8 @@ function CentroMandoHome({
         </h2>
       </div>
 
+      <InicioLauncher />
+
       <DolarHoraGadget />
 
       {/* ── Acciones / Solicitudes — justo debajo de la TRM ── */}
@@ -4312,7 +4315,12 @@ function CentroMandoHome({
                     <button key={a.id} type="button" onClick={onAcciones}
                       className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
                       <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
-                      <span className="text-[13px] font-semibold text-ink truncate flex-1">{a.titulo}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold text-ink truncate">{a.titulo}</span>
+                        {a.creado_por_nombre && a.creado_por !== user.id && (
+                          <span className="block text-[10px] text-muted truncate">Pidió: {a.creado_por_nombre}</span>
+                        )}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -4330,7 +4338,12 @@ function CentroMandoHome({
                   {solicitudes.slice(0, 3).map((s: any) => (
                     <button key={s.id} type="button" onClick={() => onVerSolicitud(s.id)}
                       className="mck-press flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
-                      <span className="text-[13px] font-semibold text-ink truncate flex-1">{s.titulo}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold text-ink truncate">{s.titulo}</span>
+                        {s.creado_por_nombre && s.creado_por !== user.id && (
+                          <span className="block text-[10px] text-muted truncate">Pidió: {s.creado_por_nombre}</span>
+                        )}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -5588,7 +5601,7 @@ function NotaAccionInline({
 }
 
 // Ticket detail — ejecución: cronómetro del ticket + checklist de pasos
-function TicketDetailView({
+export function TicketDetailView({
   token, user, ticketId, onBack,
 }: {
   token: string; user: TicketsUser; ticketId: number; onBack: () => void;
@@ -7178,12 +7191,12 @@ function pasoEstaCompletado(p: Paso): boolean {
 }
 
 /** El checklist de pasos se puede marcar salvo tickets cerrados. */
-function ticketPermiteMarcarPasos(ticket: Ticket): boolean {
+export function ticketPermiteMarcarPasos(ticket: Ticket): boolean {
   const e = String(ticket.estado || "").trim().toLowerCase();
   return e !== "resuelto" && e !== "rechazado";
 }
 
-function PasosSection({
+export function PasosSection({
   ticketId,
   token,
   editMode = true,
@@ -7929,8 +7942,8 @@ interface TicketMaterial {
   zonas?: ZonaTrabajo[];
 }
 
-function MaterialesSection({
-  ticketId, token, user, readonly = false, zonaSugerida = null,
+export function MaterialesSection({
+  ticketId, token, user, readonly = false, zonaSugerida = null, hideIfEmpty = false,
 }: {
   ticketId: number;
   token: string;
@@ -7938,8 +7951,12 @@ function MaterialesSection({
   readonly?: boolean;
   /** Reino o nombre de zona de la misión — filtra sugerencias del catálogo */
   zonaSugerida?: string | null;
+  /** No renderizar nada si (en modo solo lectura) no hay materiales cargados aún — para incrustar
+   *  la sección en línea sin mostrar un bloque vacío cuando el ticket no tiene materiales. */
+  hideIfEmpty?: boolean;
 }) {
   const [items, setItems] = useState<TicketMaterial[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [catalogo, setCatalogo] = useState<Material[]>([]);
   const [selMat, setSelMat] = useState("");
   const [cantidad, setCantidad] = useState("");
@@ -7962,7 +7979,9 @@ function MaterialesSection({
   }, [token]);
 
   useEffect(() => {
-    tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
+    tapi(`/${ticketId}/materiales`, token)
+      .then((d) => { setItems(d); setCargado(true); })
+      .catch(() => setCargado(true));
     reloadCatalogo();
     tapi("/zonas-trabajo", token).then(setZonasCatalogo).catch(() => {});
   }, [ticketId, token, reloadCatalogo]);
@@ -8066,6 +8085,8 @@ function MaterialesSection({
   const disponibles = soloZonaMision && zonaSugerida?.trim()
     ? disponiblesBase.filter((m) => materialEnZona(m, zonaSugerida))
     : disponiblesBase;
+
+  if (hideIfEmpty && readonly && cargado && items.length === 0) return null;
 
   return (
     <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
@@ -16863,20 +16884,62 @@ function NuevaAccionWizard({
 }) {
   const stt = useStt(token, chatApiToken);
   const plantillaEff = reanudar?.plantilla ?? plantilla;
-  const [fase, setFase] = useState<FaseAccionWizard>(
-    reanudar?.faseInicial ?? (plantillaEff ? "compras_lista" : "titulo"),
-  );
+  // "Continuar donde quedé" (reanudar) trae lo que el SERVIDOR ya persistió — pero la
+  // lista de compras solo se persiste como paso "Ir de compras" cuando el usuario
+  // avanza más allá de la pantalla de edición; si cerró la app mientras aún estaba
+  // agregando items ahí, el servidor no tiene nada. El borrador local (autoguardado
+  // con debounce, ver AccionWizardDraftV1) sí los tiene — se usa como respaldo solo
+  // cuando coincide con el mismo ticket que se está reanudando, para no mezclar
+  // borradores de una acción distinta.
+  const draftParaEsteTicket = reanudar?.ticketId
+    ? (() => {
+        const d = leerAccionDraft(user.id);
+        return d && d.ticketId === reanudar.ticketId ? d : null;
+      })()
+    : null;
+  const listaComprasInicial = plantillaEff?.listaCompras?.length
+    ? plantillaEff.listaCompras
+    : draftParaEsteTicket?.listaCompras?.length
+      ? draftParaEsteTicket.listaCompras
+      : [];
+  const pasosGuardadosInicial = plantillaEff?.pasos?.length
+    ? plantillaEff.pasos
+    : draftParaEsteTicket?.pasosGuardados?.length
+      ? draftParaEsteTicket.pasosGuardados
+      : [];
+  const [fase, setFase] = useState<FaseAccionWizard>(() => {
+    if (reanudar) {
+      // Un bloqueo real (compras/intervención) manda siempre. Si no hay bloqueo y
+      // había un borrador local de este mismo ticket, confía en la fase exacta en
+      // que iba el usuario (más precisa que la que infiere el servidor a partir de
+      // lo poco que alcanzó a sincronizar).
+      if (reanudar.bloqueoCompras || reanudar.bloqueadoIntervencion) return reanudar.faseInicial;
+      return draftParaEsteTicket?.fase ?? reanudar.faseInicial;
+    }
+    if (!plantillaEff) return "titulo";
+    // Procedimiento (plantilla reutilizable): si ya trae pasos definidos y no tiene
+    // lista de compras, no tiene sentido preguntar "¿necesitas conseguir materiales
+    // antes?" — nunca la tuvo. Saltar directo a "pasos", ya con lo guardado
+    // precargado (ver pasosGuardadosInicial), para que el usuario solo confirme/
+    // inicie en vez de volver a describir la acción desde cero.
+    if ((plantillaEff.pasos?.length ?? 0) > 0 && (plantillaEff.listaCompras?.length ?? 0) === 0) {
+      return "pasos";
+    }
+    return "compras_lista";
+  });
   const [wizardDir, setWizardDir] = useState<"right" | "left">("right");
   const [titulo, setTitulo] = useState(plantillaEff?.titulo ?? tituloInicial);
   const [detalle, setDetalle] = useState("");
-  const [conCompras, setConCompras] = useState((plantillaEff?.listaCompras?.length ?? 0) > 0);
+  const [conCompras, setConCompras] = useState(listaComprasInicial.length > 0);
   const [subCompras, setSubCompras] = useState<"idle" | "editando">(
-    reanudar?.subCompras ?? ((plantillaEff?.listaCompras?.length ?? 0) > 0 ? "editando" : "idle"),
+    // Si ya hay items (del servidor o del borrador local fusionados en
+    // listaComprasInicial), siempre "editando" — nunca volver a preguntar
+    // "¿necesitas comprar?" cuando la respuesta ya se conoce. `reanudar.subCompras`
+    // solo manda cuando no hay ningún item que mostrar.
+    listaComprasInicial.length > 0 ? "editando" : (reanudar?.subCompras ?? "idle"),
   );
-  const [listaCompras, setListaCompras] = useState<ItemCompraAccion[]>(
-    plantillaEff?.listaCompras?.length ? plantillaEff.listaCompras : [],
-  );
-  const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(plantillaEff?.pasos ?? []);
+  const [listaCompras, setListaCompras] = useState<ItemCompraAccion[]>(listaComprasInicial);
+  const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(pasosGuardadosInicial);
   const [reporteSolicitud, setReporteSolicitud] = useState("");
   const [cantidadCierre, setCantidadCierre] = useState("");
   const [unidadCierre, setUnidadCierre] = useState("und");
@@ -17052,12 +17115,18 @@ function NuevaAccionWizard({
       // Ya existía un ticket en el servidor — esa es la fuente de verdad para
       // pasos/compras/cronómetro, igual que "Continuar donde quedé".
       cargarEstadoReanudacion(draft.ticketId, token).then((resume) => {
+        const listaComprasFusionada = resume.plantilla.listaCompras.length > 0
+          ? resume.plantilla.listaCompras
+          : draft.listaCompras;
         setTicketId(resume.ticketId);
         setTitulo(resume.plantilla.titulo || draft.titulo);
-        setConCompras(resume.plantilla.listaCompras.length > 0 || draft.conCompras);
-        setListaCompras(resume.plantilla.listaCompras.length > 0 ? resume.plantilla.listaCompras : draft.listaCompras);
+        setConCompras(listaComprasFusionada.length > 0 || draft.conCompras);
+        setListaCompras(listaComprasFusionada);
         setPasosGuardados(resume.plantilla.pasos.length > 0 ? resume.plantilla.pasos : draft.pasosGuardados);
-        setSubCompras(resume.subCompras);
+        // Igual que conCompras: si hay items (del servidor o del borrador), nunca
+        // "idle" — si no, el servidor manda (ej. bloqueado esperando que alguien
+        // más compre).
+        setSubCompras(listaComprasFusionada.length > 0 ? "editando" : resume.subCompras);
         setPasoComprasId(resume.pasoComprasId);
         setBloqueoCompras(resume.bloqueoCompras);
         setBloqueadoIntervencion(resume.bloqueadoIntervencion ?? null);
@@ -17091,7 +17160,16 @@ function NuevaAccionWizard({
     const timer = setTimeout(() => {
       const vacio = !titulo.trim() && !detalle.trim() && pasosGuardados.length === 0
         && !reporteSolicitud.trim() && !pasoNombre.trim() && !pasoDesc.trim() && !ticketId;
-      if (vacio) { borrarAccionDraft(user.id); return; }
+      if (vacio) {
+        // Solo hay UN espacio de borrador por usuario — no borrar a ciegas: si el
+        // borrador guardado es de OTRA acción ya iniciada (tiene su propio ticketId),
+        // que este wizard nuevo esté vacío no significa que haya que perderlo.
+        const existente = leerAccionDraft(user.id);
+        if (!existente || existente.ticketId === ticketId) {
+          borrarAccionDraft(user.id);
+        }
+        return;
+      }
       const draft: AccionWizardDraftV1 = {
         v: 1,
         ticketId,
@@ -17211,13 +17289,32 @@ function NuevaAccionWizard({
     setLoading(true);
     setError("");
     try {
-      await asegurarTicketIniciado();
-      irFase("compras_lista");
+      const tid = await asegurarTicketIniciado();
+      // El cronómetro arranca aquí, al empezar la creación (clic en "Siguiente"),
+      // no más adelante — antes se quedaba detenido hasta llegar a compras/pasos.
+      await iniciarCorridaSiNecesario(tid);
+      // Si al elegir una "acción frecuente" ya se precargaron pasos de un
+      // procedimiento conocido (y no hay compras pendientes), no tiene sentido
+      // preguntar "¿necesitas conseguir materiales?" — saltar directo a pasos.
+      if (pasosGuardados.length > 0 && listaCompras.length === 0) {
+        irFase("pasos");
+      } else {
+        irFase("compras_lista");
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "No se pudo iniciar la acción");
     } finally {
       setLoading(false);
     }
+  }
+
+  /** Atajo para acciones de un solo paso: evita las pantallas de "¿vas de
+   *  compras?" y "describe los pasos" cuando el título ya lo dice todo — usa
+   *  el mismo título como único paso y salta directo a cierre. */
+  async function avanzarComoAccionRapida() {
+    if (!titulo.trim()) return;
+    setError("");
+    await finalizarConPasos([{ nombre: titulo.trim(), desc: detalle.trim() }]);
   }
 
   async function delegarListaCompras() {
@@ -17613,7 +17710,10 @@ function NuevaAccionWizard({
       }
       const itemsLista = listaCompras.filter((m) => m.n.trim());
       await completarAccionEnServidor(tid, itemsLista);
-      borrarAccionDraft(user.id);
+      const existente = leerAccionDraft(user.id);
+      if (!existente || existente.ticketId === tid) {
+        borrarAccionDraft(user.id);
+      }
       onCreated(tid);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al terminar la acción");
@@ -17642,7 +17742,14 @@ function NuevaAccionWizard({
         await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" });
       } catch { /* ignore */ }
     }
-    borrarAccionDraft(user.id);
+    // Un solo espacio de borrador por usuario: si lo que hay guardado es de OTRA
+    // acción (distinto ticketId, ej. se abrió "Nueva acción" y se canceló mientras
+    // había otra acción en curso con su propio borrador), no lo pises al salir de
+    // ESTE wizard.
+    const existente = leerAccionDraft(user.id);
+    if (!existente || existente.ticketId === ticketId) {
+      borrarAccionDraft(user.id);
+    }
     onCancel();
   }
 
@@ -17845,6 +17952,7 @@ function NuevaAccionWizard({
                     if (pl.listaCompras.length > 0) {
                       setListaCompras(pl.listaCompras);
                       setConCompras(true);
+                      setSubCompras("editando");
                     }
                   })
                   .catch(() => {});
@@ -17859,6 +17967,16 @@ function NuevaAccionWizard({
           >
             {loading ? "Iniciando…" : "Siguiente →"}
           </button>
+          {!plantillaEff && pasosGuardados.length === 0 && (
+            <button
+              type="button"
+              disabled={!titulo.trim() || loading}
+              onClick={() => void avanzarComoAccionRapida()}
+              className="w-full rounded-xl py-2 text-center text-xs font-bold text-muted underline decoration-dotted transition hover:text-accent disabled:opacity-40"
+            >
+              Fue rápido y ya terminé, sin compras ni más pasos →
+            </button>
+          )}
         </div>
       )}
 
@@ -30157,7 +30275,6 @@ export default function TicketsPanel() {
             user={user}
             onCrearSolicitud={goCrearSolicitud}
             onCrearAccion={goCrearAccion}
-            onAbrirDetalleCompleto={goDetail}
             bootTicketId={solicitudBoot?.abrirTicketId ?? null}
             onBootConsumed={() => setSolicitudBoot(null)}
             bootTipo={mensajesBootTipo}

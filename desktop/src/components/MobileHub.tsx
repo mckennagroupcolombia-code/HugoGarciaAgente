@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
-import { puedeVerSeccionPanel } from "./Sidebar";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { useConversaciones } from "../hooks/useConversaciones";
@@ -882,10 +882,6 @@ export default function MobileHub({
             <InboxConversaciones
               token={token}
               user={user}
-              onAbrirDetalleCompleto={(ticketId) => {
-                setSolicitudBoot({ abrirTicketId: ticketId });
-                onOpenPanel?.();
-              }}
             />
           </div>
         )}

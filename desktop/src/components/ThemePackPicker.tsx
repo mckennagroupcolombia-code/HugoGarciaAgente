@@ -14,7 +14,7 @@ export default function ThemePackPicker() {
   return (
     <div>
       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Variantes</p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {THEME_PACKS.map((pack) => {
           const selected = active === pack.id;
           return (
@@ -61,6 +61,24 @@ function PackPreview({ id }: { id: ThemePackId }) {
         <span className="h-7 flex-1 rounded-lg bg-white/90 shadow-[2px_2px_0_#e85c80]" />
         <span className="h-11 w-6 rounded-lg bg-[#e85c80] shadow-[2px_2px_0_#c84068]" />
         <span className="h-6 flex-1 rounded-lg bg-[#ffc9a8]" />
+      </div>
+    );
+  }
+  if (id === "bodega") {
+    return (
+      <div className="flex h-14 items-end gap-1.5 rounded-xl bg-gradient-to-br from-[#f2ebdd] via-[#fbf7ee] to-[#e1d4b7] px-2.5 py-2 shadow-[0_4px_0_rgba(46,35,24,0.12)] ring-2 ring-[#e1d4b7]">
+        <span className="h-7 flex-1 rounded-lg bg-white/80 shadow-[0_2px_0_#e1d4b7]" />
+        <span className="h-11 w-6 rounded-lg bg-[#b5502a] shadow-[0_2px_0_#953f1f]" />
+        <span className="h-6 flex-1 rounded-lg bg-[#2f6e68]" />
+      </div>
+    );
+  }
+  if (id === "botica") {
+    return (
+      <div className="flex h-14 items-end gap-1.5 rounded-xl bg-gradient-to-br from-[#f3eee1] via-[#faf6ea] to-[#dad2b9] px-2.5 py-2 shadow-[0_4px_0_rgba(35,41,31,0.12)] ring-2 ring-[#dad2b9]">
+        <span className="h-7 flex-1 rounded-lg bg-white/80 shadow-[0_2px_0_#dad2b9]" />
+        <span className="h-11 w-6 rounded-lg bg-[#3d5a44] shadow-[0_2px_0_#2e4635]" />
+        <span className="h-6 flex-1 rounded-lg bg-[#c08a2e]" />
       </div>
     );
   }
