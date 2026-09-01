@@ -896,6 +896,7 @@ def sincronizar_inteligente():
         )
         headers_meli = {"Authorization": f"Bearer {token_meli}", "x-version": "2"}
         pendientes = []
+        resueltos_fresco: list[str] = []
         packs_revisados: set[str] = set()
         offset, limit = 0, 50
         while True:
@@ -911,7 +912,13 @@ def sincronizar_inteligente():
                 if not p_id or p_id in packs_revisados:
                     continue
                 packs_revisados.add(p_id)
-                if not meli_pack_tiene_documento_fiscal(p_id, token=token_meli):
+                if meli_pack_tiene_documento_fiscal(p_id, token=token_meli):
+                    # Ya facturado — si venía de una corrida anterior en el
+                    # store de seguimiento, hay que sacarlo de ahí también,
+                    # o quedaría como pendiente "fantasma" hasta que saliera
+                    # de la ventana de 15 días (bug detectado 01-sep-2026).
+                    resueltos_fresco.append(p_id)
+                else:
                     pendientes.append(p_id)
             paging = data.get("paging") or {}
             total = int(paging.get("total") or 0)
@@ -954,7 +961,7 @@ def sincronizar_inteligente():
         if not pendientes:
             _actualizar_seguimiento_sync_facturas(
                 _categorias_sync_facturas_vacias(),
-                resueltos=resueltos_seguimiento,
+                resueltos=resueltos_fresco + resueltos_seguimiento,
                 descartados=descartados_seguimiento,
             )
             return (
@@ -982,7 +989,7 @@ def sincronizar_inteligente():
 
         _actualizar_seguimiento_sync_facturas(
             categorias,
-            resueltos=exitosas + resueltos_seguimiento,
+            resueltos=exitosas + resueltos_fresco + resueltos_seguimiento,
             descartados=descartados_seguimiento,
         )
 
