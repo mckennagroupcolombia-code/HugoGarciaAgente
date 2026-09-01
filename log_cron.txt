@@ -3373,3 +3373,10 @@ Más lenta: Arcilla Blanca Usp Certificada Caolin Coloidal  1 Kg (11.0 días)
 _Calificación: 🟢 A ≤3 días · 🟡 B 4-7 · 🟠 C 8-14 · 🔴 D 15+ (promedio de reposiciones cerradas este mes, solo alta rotación)._
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Informe de reposición enviado al grupo Sede Sur
+[cursor/wa-metricas-panel 9f29c2c] Auto-commit: actualizacion diaria 2026-08-31 23:00
+ 28 files changed, 1733 insertions(+), 887 deletions(-)
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 uploads/tickets/86923e3163c7400a9271f43b3bb5c9f0.jpg
+ create mode 100644 uploads/tickets/f030637f62ac4ad19947067203e4a5e5.jpg
+[2026-08-31 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-31 23:00'
