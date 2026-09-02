@@ -48,7 +48,20 @@
     "573505239915@c.us",
     "247214660145401@lid",
     "573196659367@c.us",
-    "61753106894895@lid"
+    "61753106894895@lid",
+    "131116828741730@lid",
+    "573174793187@c.us",
+    "573212645032@c.us",
+    "170617626185915@lid",
+    "573507357709@c.us",
+    "163174548517049@lid",
+    "573235441556@c.us",
+    "28557388546176@lid",
+    "573207380011@c.us",
+    "164557527978114@lid",
+    "272103945293831@lid",
+    "573334315268@c.us",
+    "216892291702980@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -100,253 +113,331 @@
     "573505239915@c.us": 1788214869.509099,
     "247214660145401@lid": 1788214869.509099,
     "573196659367@c.us": 1788217920.1661623,
-    "61753106894895@lid": 1788217920.1661623
+    "61753106894895@lid": 1788217920.1661623,
+    "131116828741730@lid": 1788267768.5941832,
+    "573174793187@c.us": 1788267768.5941832,
+    "573212645032@c.us": 1788275026.0005639,
+    "170617626185915@lid": 1788275026.0005639,
+    "573507357709@c.us": 1788279744.9131055,
+    "163174548517049@lid": 1788279744.9131055,
+    "573235441556@c.us": 1788284661.5267045,
+    "28557388546176@lid": 1788284661.5267045,
+    "573207380011@c.us": 1788293939.9833128,
+    "164557527978114@lid": 1788293939.9833128,
+    "272103945293831@lid": 1788296483.218641,
+    "573334315268@c.us": 1788305146.0631483,
+    "216892291702980@lid": 1788305146.0631483
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1787833486.0623453,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573203495270@c.us": {
       "timestamp": 1787845836.7653782,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "33535658307700@lid": {
       "timestamp": 1787845836.7653782,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573143343325@c.us": {
       "timestamp": 1787837579.394773,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "183562741534973@lid": {
       "timestamp": 1787837579.394773,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "20216780181601@lid": {
       "timestamp": 1787837950.9799583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573138897814@c.us": {
       "timestamp": 1787837950.9799583,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "174212815843507@lid": {
       "timestamp": 1787840356.2298183,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "134234974998642@lid": {
       "timestamp": 1787844343.7362359,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573016336105@c.us": {
       "timestamp": 1787844343.7362359,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573115713149@c.us": {
       "timestamp": 1787844347.5649872,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "54821012902003@lid": {
       "timestamp": 1787844347.5649872,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573244318295@c.us": {
       "timestamp": 1787850144.8383002,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "176755201577127@lid": {
       "timestamp": 1787850144.8383002,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "171588406259840@lid": {
       "timestamp": 1787865896.5822573,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573057064679@c.us": {
       "timestamp": 1787865896.5822573,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573118688120@c.us": {
       "timestamp": 1787865525.7392912,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "249030961586267@lid": {
       "timestamp": 1787865525.7392912,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "195923791614098@lid": {
       "timestamp": 1787872319.1735048,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "241978507796706@lid": {
       "timestamp": 1787925631.7776127,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573177545249@c.us": {
       "timestamp": 1787925631.7776127,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573176225844@c.us": {
       "timestamp": 1787934489.7280135,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "87510411653222@lid": {
       "timestamp": 1787934489.7280135,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573212200895@c.us": {
       "timestamp": 1787938312.8185203,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "161903154327660@lid": {
       "timestamp": 1787938312.8185203,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573103285746@c.us": {
       "timestamp": 1787939079.5518124,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "40450052374626@lid": {
       "timestamp": 1787939079.5518124,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573112917710@c.us": {
       "timestamp": 1787948092.946849,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "183893487530214@lid": {
       "timestamp": 1787948092.946849,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573207209541@c.us": {
       "timestamp": 1787952118.7669282,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "129274891751568@lid": {
       "timestamp": 1787952118.7669282,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "254313754558682@lid": {
       "timestamp": 1787952697.1778805,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "272472809189471@lid": {
       "timestamp": 1788215410.9221797,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573215643310@c.us": {
       "timestamp": 1788184279.9245741,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "246488240279763@lid": {
       "timestamp": 1788184279.9245741,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "253257343566053@lid": {
       "timestamp": 1788193343.5100417,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573015333056@c.us": {
       "timestamp": 1788193343.5100417,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573146057489@c.us": {
       "timestamp": 1788194256.9361656,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "190700960350392@lid": {
       "timestamp": 1788194256.9361656,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573197109970@c.us": {
       "timestamp": 1788196110.4942107,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "38916765806687@lid": {
       "timestamp": 1788196110.4942107,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "180496738828390@lid": {
       "timestamp": 1788205045.3661122,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573187462545@c.us": {
       "timestamp": 1788205045.3661122,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "196696768258213@lid": {
       "timestamp": 1788213823.448879,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573102222454@c.us": {
       "timestamp": 1788213823.448879,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573505239915@c.us": {
       "timestamp": 1788214869.509099,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "247214660145401@lid": {
       "timestamp": 1788214869.509099,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "573196659367@c.us": {
       "timestamp": 1788217920.1661623,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     },
     "61753106894895@lid": {
       "timestamp": 1788217920.1661623,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias Hugo \ud83d\ude4f"
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "131116828741730@lid": {
+      "timestamp": 1788267768.5941832,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573174793187@c.us": {
+      "timestamp": 1788267768.5941832,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573212645032@c.us": {
+      "timestamp": 1788275026.0005639,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "170617626185915@lid": {
+      "timestamp": 1788275026.0005639,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573507357709@c.us": {
+      "timestamp": 1788279744.9131055,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "163174548517049@lid": {
+      "timestamp": 1788279744.9131055,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573235441556@c.us": {
+      "timestamp": 1788284661.5267045,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "28557388546176@lid": {
+      "timestamp": 1788284661.5267045,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573207380011@c.us": {
+      "timestamp": 1788293939.9833128,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "164557527978114@lid": {
+      "timestamp": 1788293939.9833128,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "272103945293831@lid": {
+      "timestamp": 1788296483.218641,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "573334315268@c.us": {
+      "timestamp": 1788305146.0631483,
+      "razon": "r\u00e1faga de 8 mensajes en 120s",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "216892291702980@lid": {
+      "timestamp": 1788305146.0631483,
+      "razon": "r\u00e1faga de 8 mensajes en 120s",
+      "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
     }
   },
   "bot_global_activo": true,

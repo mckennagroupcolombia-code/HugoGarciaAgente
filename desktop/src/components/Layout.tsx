@@ -26,6 +26,7 @@ import {
 import { HUB_SECTION_ICON } from "../lib/hubNav";
 import { useUiMode } from "../stores/uiMode";
 import { PanelTransition } from "./ui/PanelTransition";
+import SolicitudesEnProcesoFab from "./nav/SolicitudesEnProcesoFab";
 
 export default function Layout({
   children,
@@ -81,6 +82,7 @@ export default function Layout({
 
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
+      <SolicitudesEnProcesoFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
         {!studioEtiquetasFill && (
           <>

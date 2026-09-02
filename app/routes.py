@@ -8744,6 +8744,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/facturas/<sufijo>/detalle", methods=["GET"])
+    @app.route("/app/api/facturas/<sufijo>/detalle", methods=["GET"])
     def api_factura_detalle(sufijo):
         """Retorna la factura con todos los ítems computados (código McKenna, unidades, precios)."""
         if not _api_token_valido():

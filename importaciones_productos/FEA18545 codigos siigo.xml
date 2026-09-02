@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-09-01">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FEA18545</NumeroFacturaProveedor>
+    <FechaFactura>2026-08-25</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>900132921</NIT>
+      <Nombre>GLOBAL TRADING DE COLOMBIA S.A.S</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="9">
+    <Item numero="1">
+      <CodigoSiigo>ACECOCmL</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACEITE DE COCO CAJA X 16 LITROS (4 X 4LT C/U)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="MLT" simbolo="mL">16000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 mL | 1.0 × 1 = 16000.0 mL</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>496000.00</Subtotal>
+        <IVA>94240.00</IVA>
+        <Total>590240.00</Total>
+        <PrecioUnitarioMin>36.8900</PrecioUnitarioMin>
+        <PrecioNetoMin>31.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 mL (total 590240.00 COP / 16000.0 mL)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>AJONEGSACg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AJONJOLI NEGRO SACO X 25KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="SA">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">50000.0</CantidadConvertida>
+        <ReglaConversion>1 SA = 1 g | 2.0 × 1 = 50000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1225000.00</Subtotal>
+        <IVA>232750.00</IVA>
+        <Total>1457750.00</Total>
+        <PrecioUnitarioMin>29.1600</PrecioUnitarioMin>
+        <PrecioNetoMin>24.500000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1457750.00 COP / 50000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>ARADESg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ARANDANO AMERICANO CAJA X 11.34 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">22680.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 2.0 × 1 = 22680.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>453600.00</Subtotal>
+        <IVA>86184.00</IVA>
+        <Total>539784.00</Total>
+        <PrecioUnitarioMin>23.8000</PrecioUnitarioMin>
+        <PrecioNetoMin>20.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 539784.00 COP / 22680.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>ALMNATg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ALMENDRA NPX 30/32 EXTRA CAJA X 22.68KG AMERICANA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="CA">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">45360.0</CantidadConvertida>
+        <ReglaConversion>1 CA = 1 g | 2.0 × 1 = 45360.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1496880.00</Subtotal>
+        <IVA>284407.20</IVA>
+        <Total>1781287.20</Total>
+        <PrecioUnitarioMin>39.2700</PrecioUnitarioMin>
+        <PrecioNetoMin>33.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1781287.20 COP / 45360.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>BAYGOJBERg</CodigoSiigo>
+      <DescripcionOriginalProveedor>BAYAS DE GOJI BERRY CAJA X 20KG (4X5KG)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="CA">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 CA = 1 g | 1.0 × 1 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>760000.00</Subtotal>
+        <IVA>144400.00</IVA>
+        <Total>904400.00</Total>
+        <PrecioUnitarioMin>45.2200</PrecioUnitarioMin>
+        <PrecioNetoMin>38.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 904400.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>DATSAYg</CodigoSiigo>
+      <DescripcionOriginalProveedor>DATILES SAYED X 10KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">30000.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 g | 3.0 × 1 = 30000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>600000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>600000.00</Total>
+        <PrecioUnitarioMin>20.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>20.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 600000.00 COP / 30000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>SALROSHIMFINg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SAL ROSADA DEL HIMALAYA SACO 25KG GRANO FINO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="SA">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">75000.0</CantidadConvertida>
+        <ReglaConversion>1 SA = 1 g | 3.0 × 1 = 75000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>675000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>675000.00</Total>
+        <PrecioUnitarioMin>9.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>9.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 675000.00 COP / 75000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>SALROSHIMGRUg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SAL ROSADA DEL HIMALAYA SACO 25KG GRANO GRUESO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="SA">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">75000.0</CantidadConvertida>
+        <ReglaConversion>1 SA = 1 g | 3.0 × 1 = 75000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>675000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>675000.00</Total>
+        <PrecioUnitarioMin>9.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>9.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 675000.00 COP / 75000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>SEMCHIg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SEMILLA DE CHIA BOLIVIANA SACO X 25KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="SA">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">50000.0</CantidadConvertida>
+        <ReglaConversion>1 SA = 1 g | 2.0 × 1 = 50000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>900000.00</Subtotal>
+        <IVA>171000.00</IVA>
+        <Total>1071000.00</Total>
+        <PrecioUnitarioMin>21.4200</PrecioUnitarioMin>
+        <PrecioNetoMin>18.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1071000.00 COP / 50000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>7281480.00</Subtotal>
+    <TotalIVA>1012981.20</TotalIVA>
+    <TotalGeneral>8294461.20</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FEA18545 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

@@ -1,6 +1,6 @@
 import { ensurePanelFont } from "./fontLoader";
 import { COLOR_CSS_VARS, THEME_COLOR_KEYS } from "./presets";
-import type { FontScale, PanelThemeConfig, ThemeMode } from "./types";
+import type { FontScale, PanelThemeConfig, ThemeMode, UiZoom } from "./types";
 
 const FONT_STACKS: Record<PanelThemeConfig["fontSans"], string> = {
   Montserrat: '"Montserrat", system-ui, sans-serif',
@@ -29,6 +29,17 @@ const FONT_SCALE_PX: Record<FontScale, string> = {
   md: "16px",
   lg: "17px",
   xl: "19px",
+};
+
+/** Zoom CSS real (como Ctrl/Cmd + del navegador): a diferencia de FONT_SCALE_PX
+ * (que solo mueve el font-size raíz y por lo tanto solo afecta texto en rem),
+ * `zoom` escala layout completo — también los tamaños fijos en px que abundan
+ * en el panel (badges, iconos, paddings) — sin romper `position: fixed`. */
+const ZOOM_PCT: Record<UiZoom, string> = {
+  "100": "100%",
+  "115": "115%",
+  "130": "130%",
+  "150": "150%",
 };
 
 function resolveDark(mode: ThemeMode): boolean {
@@ -88,6 +99,7 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
   root.style.setProperty("--mck-font-sans", FONT_STACKS[config.fontSans]);
   root.style.setProperty("--mck-radius-paper", RADIUS_PX[config.radius]);
   root.style.fontSize = FONT_SCALE_PX[config.fontScale] ?? FONT_SCALE_PX.md;
+  root.style.setProperty("zoom", ZOOM_PCT[config.uiZoom] ?? ZOOM_PCT["100"]);
   root.dataset.mckSkin = skin;
   root.dataset.mckMenu = config.menuScale === "sm" || config.menuScale === "lg" ? config.menuScale : "md";
 

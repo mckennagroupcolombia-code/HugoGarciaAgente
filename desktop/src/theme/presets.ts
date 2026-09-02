@@ -9,6 +9,7 @@ import type {
   ThemeMode,
   RadiusScale,
   UiSkin,
+  UiZoom,
   UserThemePreset,
 } from "./types";
 
@@ -103,6 +104,14 @@ export const MENU_SCALES: { id: MenuScale; label: string }[] = [
   { id: "lg", label: "Amplio" },
 ];
 
+/** Zoom real de toda la app (como el zoom del navegador) — ver `UiZoom` en theme/types.ts. */
+export const UI_ZOOMS: { id: UiZoom; label: string }[] = [
+  { id: "100", label: "Normal" },
+  { id: "115", label: "Grande" },
+  { id: "130", label: "Muy grande" },
+  { id: "150", label: "Máximo" },
+];
+
 export const MCKENNA_THEME_DEFAULT: PanelThemeConfig = {
   mode: "light",
   fontSans: "Nunito",
@@ -111,6 +120,7 @@ export const MCKENNA_THEME_DEFAULT: PanelThemeConfig = {
   skin: "sakura",
   fontScale: "md",
   menuScale: "md",
+  uiZoom: "100",
   colors: {},
   customThemes: [],
   activeCustomId: null,
@@ -247,6 +257,7 @@ const MODES = new Set<ThemeMode>(["light", "dark", "system"]);
 const RADII = new Set<RadiusScale>(["sm", "md", "lg"]);
 const FONT_SCALES_SET = new Set<FontScale>(["sm", "md", "lg", "xl"]);
 const MENU_SCALES_SET = new Set<MenuScale>(["sm", "md", "lg"]);
+const UI_ZOOMS_SET = new Set<UiZoom>(["100", "115", "130", "150"]);
 
 export function sanitizeCustomTheme(raw: unknown): UserThemePreset | null {
   if (!raw || typeof raw !== "object") return null;
@@ -328,6 +339,7 @@ export function sanitizePanelTheme(raw: Partial<PanelThemeConfig> | null | undef
       : r.skin === "atelier"
         ? "lg"
         : "md",
+    uiZoom: UI_ZOOMS_SET.has(r.uiZoom as UiZoom) ? (r.uiZoom as UiZoom) : MCKENNA_THEME_DEFAULT.uiZoom,
     colors: sanitizeColors(r.colors),
     customThemes,
     activeCustomId,

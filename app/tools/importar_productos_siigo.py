@@ -38,6 +38,7 @@ Pipeline de este módulo (solo proveedores especiales):
 import os
 import re
 import json
+import time
 import threading
 import unicodedata
 import requests
@@ -56,7 +57,13 @@ from app.tools.sincronizar_facturas_de_compra_siigo import (
     extraer_datos_xml_dian,
     CARPETA_FACTURAS_LOCAL,
 )
-from app.services.siigo import autenticar_siigo, PARTNER_ID
+from app.services.siigo import (
+    autenticar_siigo,
+    PARTNER_ID,
+    _siigo_retry_after_seconds,
+    normalizar_pulgadas_en_nombre,
+    sanitizar_nombre_siigo,
+)
 from app.utils import enviar_whatsapp_reporte, enviar_whatsapp_archivo
 
 GRUPO_COMPRAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
@@ -238,6 +245,11 @@ def _fragmento_palabra_codigo(palabra: str) -> str:
 def _sanitizar_codigo_siigo(codigo: str) -> str:
     """Normaliza un código para la API SIIGO (sin %, espacios ni símbolos raros)."""
     return re.sub(r'[^A-Za-z0-9._-]', '', (codigo or '').strip())
+
+
+def _nombre_item_factura(description: str) -> str:
+    """Nombre legible del ítem: normaliza pulgadas del XML (1″ → 1P)."""
+    return normalizar_pulgadas_en_nombre(str(description or '').strip())
 
 
 def generar_codigo_producto(nombre: str, unidad_minima: str,
@@ -588,22 +600,64 @@ def calcular_precio_unitario_min(subtotal_linea: float, iva_linea: float, cantid
 #  Verificación de duplicados en SIIGO
 # ─────────────────────────────────────────────
 
+_SIIGO_CREAR_PRODUCTO_PAUSA_SEG = float(os.getenv("SIIGO_CREAR_PRODUCTO_PAUSA_SEG", "1.5"))
+_CACHE_PRODUCTO_SIIGO: dict[str, tuple[float, dict | None]] = {}
+_CACHE_PRODUCTO_SIIGO_TTL_SEG = 600.0
+_CACHE_COMPRAS_SIIGO: dict[str, object] = {"ts": 0.0, "data": []}
+_CACHE_COMPRAS_SIIGO_TTL_SEG = 300.0
+_SENTINEL_NO_CACHE = object()
+
+
+def _cache_get_producto_siigo(codigo: str) -> dict | None | object:
+    key = (codigo or "").strip().upper()
+    if not key:
+        return None
+    row = _CACHE_PRODUCTO_SIIGO.get(key)
+    if row and (time.time() - row[0]) < _CACHE_PRODUCTO_SIIGO_TTL_SEG:
+        return row[1]
+    return _SENTINEL_NO_CACHE
+
+
+def _siigo_request_con_reintentos(method: str, url: str, *, headers: dict, max_429: int = 4, **kwargs):
+    """requests con backoff ante HTTP 429 (rate limit Siigo)."""
+    reintentos_429 = 0
+    while True:
+        res = requests.request(method, url, headers=headers, **kwargs)
+        if res.status_code == 429 and reintentos_429 < max_429:
+            reintentos_429 += 1
+            espera = _siigo_retry_after_seconds(res)
+            print(
+                f"  ⏳ [SIIGO] rate limit {method} {url}; "
+                f"reintento {reintentos_429}/{max_429} en {espera}s."
+            )
+            time.sleep(espera)
+            continue
+        return res
+
+
 def buscar_producto_en_siigo_por_codigo(codigo: str) -> dict | None:
     """
     Consulta SIIGO API para saber si ya existe un producto con ese código.
     Retorna el producto SIIGO cuando hay coincidencia exacta de código.
     Intenta hasta 2 veces con timeout de 15 s antes de rendirse.
     """
+    key = (codigo or "").strip().upper()
+    cached = _cache_get_producto_siigo(key)
+    if cached is not _SENTINEL_NO_CACHE:
+        return cached
+
     token = autenticar_siigo()
     if not token:
         print(f"  ⚠️ [SIIGO] Sin token — {codigo} se tratará como producto nuevo")
+        _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
         return None
 
     headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
 
     for intento in range(1, 3):
         try:
-            res = requests.get(
+            res = _siigo_request_con_reintentos(
+                "GET",
                 f"https://api.siigo.com/v1/products?code={codigo}&page_size=1",
                 headers=headers,
                 timeout=15,
@@ -612,9 +666,12 @@ def buscar_producto_en_siigo_por_codigo(codigo: str) -> dict | None:
                 results = res.json().get('results', [])
                 for p in results:
                     if p.get('code', '').upper() == codigo.upper():
+                        _CACHE_PRODUCTO_SIIGO[key] = (time.time(), p)
                         return p
+                _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
                 return None
             # Cualquier otro status HTTP: no es duplicado
+            _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
             return None
         except requests.exceptions.Timeout:
             if intento < 2:
@@ -1983,7 +2040,8 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
     codigos_en_factura = set()   # evita colisiones dentro de la misma factura
 
     for item in datos.get('items', []):
-        nombre = item.get('description', '').strip()
+        descripcion_raw = item.get('description', '').strip()
+        nombre = _nombre_item_factura(descripcion_raw)
         subtotal = item.get('subtotal', 0)
         cantidad_original = item.get('quantity', 1)
 
@@ -1991,7 +2049,7 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             imp['valor'] for imp in item.get('impuestos', [])
             if imp.get('id_dian') == '01'
         )
-        unit_code = _extraer_unit_code_de_xml(xml_content, nombre)
+        unit_code = _extraer_unit_code_de_xml(xml_content, descripcion_raw)
         cantidad_min, unidad_min, codigo_dian_min = convertir_a_unidad_minima(
             cantidad_original, unit_code
         )
@@ -2030,7 +2088,7 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
         precio_neto = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
 
         # Genera código único dentro de esta factura (evita GOTPIP77MUn × 2 en misma factura)
-        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, nombre)
+        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, descripcion_raw)
         codigo_ref = _codigo_siigo_desde_referencia(referencia_proveedor)
         if codigo_ref:
             codigo = codigo_ref
@@ -2169,14 +2227,15 @@ def _computar_items_factura(datos: dict, xml_content: str, codigos_manual: dict 
     codigos_en_factura = set()
     codigos_manual = codigos_manual or {}
     for idx, item in enumerate(datos.get('items', [])):
-        nombre = item.get('description', '').strip()
+        descripcion_raw = item.get('description', '').strip()
+        nombre = _nombre_item_factura(descripcion_raw)
         subtotal = item.get('subtotal', 0)
         cantidad_original = item.get('quantity', 1)
         iva_linea = sum(
             imp['valor'] for imp in item.get('impuestos', [])
             if imp.get('id_dian') == '01'
         )
-        unit_code = _extraer_unit_code_de_xml(xml_content, nombre)
+        unit_code = _extraer_unit_code_de_xml(xml_content, descripcion_raw)
         cantidad_min, unidad_min, codigo_dian_min = convertir_a_unidad_minima(
             cantidad_original, unit_code
         )
@@ -2201,7 +2260,7 @@ def _computar_items_factura(datos: dict, xml_content: str, codigos_manual: dict 
                     codigo_dian_min = 'GRM'
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         precio_neto     = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
-        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, nombre)
+        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, descripcion_raw)
         codigo_manual = _codigo_manual_valido(
             str(codigos_manual.get(str(idx)) or codigos_manual.get(idx) or '')
         )
@@ -2347,7 +2406,7 @@ def crear_producto_en_siigo(producto: dict) -> dict:
 
     payload = {
         'code': codigo,
-        'name': str(producto.get('nombre', ''))[:120],
+        'name': sanitizar_nombre_siigo(producto.get('nombre', '')),
         'account_group': 297,
         'type': 'Product',
         'stock_control': True,
@@ -2366,10 +2425,11 @@ def crear_producto_en_siigo(producto: dict) -> dict:
         'Content-Type': 'application/json',
     }
     try:
-        r = requests.post(
+        r = _siigo_request_con_reintentos(
+            'POST',
             'https://api.siigo.com/v1/products',
-            json=payload,
             headers=headers,
+            json=payload,
             timeout=20,
         )
         if r.status_code in (200, 201):
@@ -2421,7 +2481,9 @@ def crear_productos_factura_en_siigo(
     creados = []
     omitidos = []
     errores = []
-    for indice in indices_norm:
+    for n, indice in enumerate(indices_norm):
+        if n > 0 and _SIIGO_CREAR_PRODUCTO_PAUSA_SEG > 0:
+            time.sleep(_SIIGO_CREAR_PRODUCTO_PAUSA_SEG)
         item = next((p for p in items if p.get('indice') == indice), None)
         if not item:
             errores.append({'indice': indice, 'error': 'Ítem no encontrado'})
@@ -2435,6 +2497,17 @@ def crear_productos_factura_en_siigo(
             })
             continue
         resultado = crear_producto_en_siigo(item)
+        if (
+            not resultado.get('ok')
+            and 'HTTP 429' in str(resultado.get('error', ''))
+        ):
+            # Tras reintentos automáticos, no seguir golpeando la API en el mismo lote.
+            errores.append({
+                'indice': indice,
+                'codigo': item.get('codigo'),
+                'error': resultado.get('error', 'Rate limit SIIGO'),
+            })
+            break
         if resultado.get('ok'):
             creados.append({
                 'indice': indice,
@@ -2637,6 +2710,11 @@ def _valor_factura_datos(datos: dict) -> float:
 
 def obtener_compras_siigo_para_dedupe(fecha_inicio: str = FECHA_INICIO_COMPRAS_SIIGO) -> list[dict]:
     """Carga compras SIIGO para evitar re-encolar facturas ya registradas."""
+    ahora = time.time()
+    cache = _CACHE_COMPRAS_SIIGO
+    if cache.get("data") and (ahora - float(cache.get("ts") or 0)) < _CACHE_COMPRAS_SIIGO_TTL_SEG:
+        return list(cache["data"])  # type: ignore[arg-type]
+
     token = autenticar_siigo()
     if not token:
         print("  ⚠️ [SIIGO] Sin token — no se podrán detectar compras ya registradas")
@@ -2668,6 +2746,8 @@ def obtener_compras_siigo_para_dedupe(fecha_inicio: str = FECHA_INICIO_COMPRAS_S
             print(f"  ⚠️ [SIIGO] Error consultando compras registradas: {e}")
             break
     print(f"  🗂️  {len(compras)} compra(s) SIIGO cargadas para detectar duplicados")
+    _CACHE_COMPRAS_SIIGO["ts"] = time.time()
+    _CACHE_COMPRAS_SIIGO["data"] = compras
     return compras
 
 

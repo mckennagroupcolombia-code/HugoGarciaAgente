@@ -9,8 +9,9 @@ import {
   MAX_CUSTOM_THEMES,
   MENU_SCALES,
   THEME_COLOR_KEYS,
+  UI_ZOOMS,
 } from "../theme/presets";
-import type { FontChoice, FontScale, MenuScale, ThemeColorKey, ThemeMode } from "../theme/types";
+import type { FontChoice, FontScale, MenuScale, ThemeColorKey, ThemeMode, UiZoom } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import ThemePackPicker from "./ThemePackPicker";
 
@@ -67,6 +68,7 @@ export default function ThemeStudio() {
   const fontSans = usePanelTheme((s) => s.fontSans);
   const fontScale = usePanelTheme((s) => s.fontScale);
   const menuScale = usePanelTheme((s) => s.menuScale);
+  const uiZoom = usePanelTheme((s) => s.uiZoom);
   const accentRgb = usePanelTheme((s) => s.accentRgb);
   const customThemes = usePanelTheme((s) => s.customThemes);
   const activeCustomId = usePanelTheme((s) => s.activeCustomId);
@@ -74,6 +76,7 @@ export default function ThemeStudio() {
   const setFontSans = usePanelTheme((s) => s.setFontSans);
   const setFontScale = usePanelTheme((s) => s.setFontScale);
   const setMenuScale = usePanelTheme((s) => s.setMenuScale);
+  const setUiZoom = usePanelTheme((s) => s.setUiZoom);
   const setAccentRgb = usePanelTheme((s) => s.setAccentRgb);
   const saveCustomTheme = usePanelTheme((s) => s.saveCustomTheme);
   const applyCustomTheme = usePanelTheme((s) => s.applyCustomTheme);
@@ -202,6 +205,20 @@ export default function ThemeStudio() {
           >
             {MENU_SCALES.map((f) => (
               <option key={f.id} value={f.id}>{f.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">
+            Zoom de la app <span className="normal-case font-normal text-muted/80">— agranda todo (como el zoom del navegador)</span>
+          </span>
+          <select
+            value={uiZoom}
+            onChange={(e) => setUiZoom(e.target.value as UiZoom)}
+            className="w-full rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-ink"
+          >
+            {UI_ZOOMS.map((f) => (
+              <option key={f.id} value={f.id}>{f.label} ({f.id}%)</option>
             ))}
           </select>
         </label>

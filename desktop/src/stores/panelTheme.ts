@@ -17,6 +17,7 @@ import type {
   ThemeMode,
   ThemePackId,
   UiSkin,
+  UiZoom,
 } from "../theme/types";
 import { useQuestTheme } from "./questTheme";
 
@@ -47,6 +48,7 @@ interface PanelThemeState extends PanelThemeConfig {
   setSkin: (skin: UiSkin) => void;
   setFontScale: (fontScale: FontScale) => void;
   setMenuScale: (menuScale: MenuScale) => void;
+  setUiZoom: (uiZoom: UiZoom) => void;
   setColor: (key: ThemeColorKey, rgb: string) => void;
   clearColor: (key: ThemeColorKey) => void;
   clearColors: () => void;
@@ -72,6 +74,10 @@ export const usePanelTheme = create<PanelThemeState>()((set, get) => ({
   setSkin: (skin) => commit({ skin, activeCustomId: null }, set, get),
   setFontScale: (fontScale) => commit({ fontScale, activeCustomId: null }, set, get),
   setMenuScale: (menuScale) => commit({ menuScale, activeCustomId: null }, set, get),
+  // Zoom es una preferencia de accesibilidad independiente de la decoración del tema:
+  // a diferencia de los demás setters, no limpia `activeCustomId` (no "desactiva" el
+  // tema guardado del usuario solo por cambiar cuánto zoom quiere).
+  setUiZoom: (uiZoom) => commit({ uiZoom }, set, get),
   setColor: (key, rgb) => {
     const colors = { ...get().colors, [key]: rgb };
     commit({ colors, activeCustomId: null }, set, get);

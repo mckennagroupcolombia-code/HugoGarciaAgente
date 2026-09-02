@@ -1,6 +1,272 @@
 {
   "archivos": [
     {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
+      "subido_at": "2026-09-01T12:13:47",
+      "bytes": 516999
+    },
+    {
+      "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260901_121332.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121332.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121332.pdf",
+      "subido_at": "2026-09-01T12:13:32",
+      "bytes": 516999
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121156.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121156.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121156.pdf",
+      "subido_at": "2026-09-01T12:11:56",
+      "bytes": 485550
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121126.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121126.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121126.pdf",
+      "subido_at": "2026-09-01T12:11:27",
+      "bytes": 485550
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121105.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121105.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121105.pdf",
+      "subido_at": "2026-09-01T12:11:05",
+      "bytes": 485550
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121036.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121036.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_121036.pdf",
+      "subido_at": "2026-09-01T12:10:36",
+      "bytes": 485550
+    },
+    {
+      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_120953.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_120953.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260901_120953.pdf",
+      "subido_at": "2026-09-01T12:09:53",
+      "bytes": 485550
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120729.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120729.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120729.pdf",
+      "subido_at": "2026-09-01T12:07:29",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120701.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120701.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120701.pdf",
+      "subido_at": "2026-09-01T12:07:01",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120631.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120631.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120631.pdf",
+      "subido_at": "2026-09-01T12:06:31",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120612.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120612.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120612.pdf",
+      "subido_at": "2026-09-01T12:06:13",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120540.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120540.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120540.pdf",
+      "subido_at": "2026-09-01T12:05:40",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120437.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120437.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120437.pdf",
+      "subido_at": "2026-09-01T12:04:37",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120337.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120337.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_120337.pdf",
+      "subido_at": "2026-09-01T12:03:37",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115902.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115902.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115902.pdf",
+      "subido_at": "2026-09-01T11:59:02",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115847.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115847.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115847.pdf",
+      "subido_at": "2026-09-01T11:58:47",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115828.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115828.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115828.pdf",
+      "subido_at": "2026-09-01T11:58:28",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115812.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115812.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115812.pdf",
+      "subido_at": "2026-09-01T11:58:12",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115749.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115749.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115749.pdf",
+      "subido_at": "2026-09-01T11:57:49",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115648.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115648.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_20260901_115648.pdf",
+      "subido_at": "2026-09-01T11:56:48",
+      "bytes": 612569
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115407.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115407.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115407.pdf",
+      "subido_at": "2026-09-01T11:54:07",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115339.pdf",
+      "subido_at": "2026-09-01T11:53:39",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115308.pdf",
+      "subido_at": "2026-09-01T11:53:08",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x_20260901_115252.pdf",
+      "subido_at": "2026-09-01T11:52:52",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJO_PESO_MOLECULAR_30mL_6.25x.pdf",
+      "subido_at": "2026-09-01T11:52:24",
+      "bytes": 372853
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_115039.pdf",
+      "subido_at": "2026-09-01T11:50:39",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114949.pdf",
+      "subido_at": "2026-09-01T11:49:49",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114913.pdf",
+      "subido_at": "2026-09-01T11:49:13",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114844.pdf",
+      "subido_at": "2026-09-01T11:48:45",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114815.pdf",
+      "subido_at": "2026-09-01T11:48:15",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114720.pdf",
+      "subido_at": "2026-09-01T11:47:20",
+      "bytes": 392878
+    },
+    {
+      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
+      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260901_114701.pdf",
+      "subido_at": "2026-09-01T11:47:01",
+      "bytes": 392878
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114508.pdf",
+      "subido_at": "2026-09-01T11:45:08",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114410.pdf",
+      "subido_at": "2026-09-01T11:44:10",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x_20260901_114345.pdf",
+      "subido_at": "2026-09-01T11:43:45",
+      "bytes": 372853
+    },
+    {
+      "nombre": "ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_HIALURONICO_BAJOECULAR_30mL_6.25x.pdf",
+      "subido_at": "2026-09-01T11:43:12",
+      "bytes": 372853
+    },
+    {
+      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
+      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_20260901_111829.pdf",
+      "subido_at": "2026-09-01T11:18:29",
+      "bytes": 534101
+    },
+    {
+      "nombre": "CREATINA_MONOHIDRATO_500g_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x.pdf",
+      "subido_at": "2026-09-01T11:17:56",
+      "bytes": 534101
+    },
+    {
       "nombre": "CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
       "ruta": "Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CREATINA_MONOHIDRATO_500g_6.25x_4_20260828_112605.pdf",
@@ -1133,272 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120104.pdf",
       "subido_at": "2026-07-30T12:01:04",
       "bytes": 491029
-    },
-    {
-      "nombre": "SHAROMIX_705_50mL_6.25x_20260730_120033.pdf",
-      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120033.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120033.pdf",
-      "subido_at": "2026-07-30T12:00:33",
-      "bytes": 491029
-    },
-    {
-      "nombre": "SHAROMIX_705_50mL_6.25x_20260730_120006.pdf",
-      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120006.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120006.pdf",
-      "subido_at": "2026-07-30T12:00:06",
-      "bytes": 491029
-    },
-    {
-      "nombre": "SHAROMIX_705_50mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_6.25x.pdf",
-      "subido_at": "2026-07-30T11:59:50",
-      "bytes": 491029
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115805.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115805.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115805.pdf",
-      "subido_at": "2026-07-30T11:58:05",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115737.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115737.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115737.pdf",
-      "subido_at": "2026-07-30T11:57:37",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115712.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115712.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115712.pdf",
-      "subido_at": "2026-07-30T11:57:12",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115644.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115644.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115644.pdf",
-      "subido_at": "2026-07-30T11:56:45",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115619.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115619.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_115619.pdf",
-      "subido_at": "2026-07-30T11:56:20",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094756.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094756.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094756.pdf",
-      "subido_at": "2026-07-30T09:47:56",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094726.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094726.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094726.pdf",
-      "subido_at": "2026-07-30T09:47:26",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094651.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094651.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x_20260730_094651.pdf",
-      "subido_at": "2026-07-30T09:46:51",
-      "bytes": 565666
-    },
-    {
-      "nombre": "HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/HIALURONICO_ALTO_PESO_MOLECULAR_30mL_6.25x.pdf",
-      "subido_at": "2026-07-30T09:46:30",
-      "bytes": 565666
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094540.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094540.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094540.pdf",
-      "subido_at": "2026-07-30T09:45:40",
-      "bytes": 464624
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094507.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094507.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094507.pdf",
-      "subido_at": "2026-07-30T09:45:07",
-      "bytes": 464624
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094435.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094435.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x_20260730_094435.pdf",
-      "subido_at": "2026-07-30T09:44:36",
-      "bytes": 464624
-    },
-    {
-      "nombre": "EXTRACTO_DE_ALOE_VERA_30mL_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/EXTRACTO_DE_ALOE_VERA_30mL_6.25x.pdf",
-      "subido_at": "2026-07-30T09:44:10",
-      "bytes": 464624
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094314.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094314.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094314.pdf",
-      "subido_at": "2026-07-30T09:43:14",
-      "bytes": 492323
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094242.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094242.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094242.pdf",
-      "subido_at": "2026-07-30T09:42:42",
-      "bytes": 492323
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094158.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094158.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2_20260730_094158.pdf",
-      "subido_at": "2026-07-30T09:41:59",
-      "bytes": 492323
-    },
-    {
-      "nombre": "ACIDO_SALICILICO_20P_30mL_6.25x_2.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_SALICILICO_20P_30mL_6.25x_2.pdf",
-      "subido_at": "2026-07-30T09:41:37",
-      "bytes": 492323
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_094023.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_094023.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_094023.pdf",
-      "subido_at": "2026-07-30T09:40:24",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093943.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093943.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093943.pdf",
-      "subido_at": "2026-07-30T09:39:43",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093901.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093901.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093901.pdf",
-      "subido_at": "2026-07-30T09:39:02",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093758.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093758.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093758.pdf",
-      "subido_at": "2026-07-30T09:37:58",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093726.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093726.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093726.pdf",
-      "subido_at": "2026-07-30T09:37:26",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093703.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093703.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093703.pdf",
-      "subido_at": "2026-07-30T09:37:03",
-      "bytes": 485542
-    },
-    {
-      "nombre": "ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093057.pdf",
-      "ruta": "Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093057.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO_GLICOLICO_50P_30mL_6.25x_20260730_093057.pdf",
-      "subido_at": "2026-07-30T09:30:57",
-      "bytes": 485542
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111430.pdf",
-      "subido_at": "2026-07-29T11:14:30",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111358.pdf",
-      "subido_at": "2026-07-29T11:13:58",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260729_111337.pdf",
-      "subido_at": "2026-07-29T11:13:37",
-      "bytes": 281604
-    },
-    {
-      "nombre": "COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
-      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x_20260729_111227.pdf",
-      "subido_at": "2026-07-29T11:12:27",
-      "bytes": 279895
-    },
-    {
-      "nombre": "COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/COCO_DESHIDRATADO_HILO_500g_6.25x.pdf",
-      "subido_at": "2026-07-29T11:11:56",
-      "bytes": 279895
-    },
-    {
-      "nombre": "PISTACHOS_250g_6.25x_20260729_111047.pdf",
-      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111047.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111047.pdf",
-      "subido_at": "2026-07-29T11:10:48",
-      "bytes": 333771
-    },
-    {
-      "nombre": "PISTACHOS_250g_6.25x_20260729_111019.pdf",
-      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111019.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x_20260729_111019.pdf",
-      "subido_at": "2026-07-29T11:10:19",
-      "bytes": 333771
-    },
-    {
-      "nombre": "PISTACHOS_250g_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/PISTACHOS_250g_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PISTACHOS_250g_6.25x.pdf",
-      "subido_at": "2026-07-29T11:09:54",
-      "bytes": 333771
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114414.pdf",
-      "subido_at": "2026-07-24T11:44:15",
-      "bytes": 257697
-    },
-    {
-      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
-      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260724_114357.pdf",
-      "subido_at": "2026-07-24T11:43:57",
-      "bytes": 257697
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_250g_6.25x_20260724_114301.pdf",
-      "subido_at": "2026-07-24T11:43:01",
-      "bytes": 292008
     }
   ]
 }

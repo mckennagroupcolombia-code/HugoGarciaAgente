@@ -3380,3 +3380,95 @@ _Calificación: 🟢 A ≤3 días · 🟡 B 4-7 · 🟠 C 8-14 · 🔴 D 15+ (pr
  create mode 100644 uploads/tickets/86923e3163c7400a9271f43b3bb5c9f0.jpg
  create mode 100644 uploads/tickets/f030637f62ac4ad19947067203e4a5e5.jpg
 [2026-08-31 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-08-31 23:00'
+⏭  Cobertura MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+❌ Error consultando SIIGO por SKU: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=10)
+⚠️ SIIGO products API: 429 para SKU C-COCDESHIL250G
+⚠️ SIIGO products API: 429 para SKU C-CAPVACGEL00TRA1000Un
+⚠️ SIIGO products API: 429 para SKU C-CREMON1000g
+⚠️ SIIGO products API: 429 para SKU C-COCDESHIL500G
+⚠️ SIIGO products API: 429 para SKU C-CAPVACGEL0AZUBLA1000UN
+⚠️ SIIGO products API: 429 para SKU C-AGUDESSOBRpH
+⚠️ SIIGO products API: 429 para SKU C-CAPGELVAC0VERBLA1000UN
+⚠️ SIIGO products API: 429 para SKU C-CAPGELVAC0TRA1000UN
+   24 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 0 | Sospechosos (>2×): 15
+✅ Reporte enviado a WhatsApp con éxito.
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ [MELI] Error listando órdenes 'cancelled' (offset 0): 429 {"status":429,"message":"local_rate_limited"}
+
+   0 órdenes canceladas en la ventana.
+   4316 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3433 packs con factura).
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Sin novedades que reportar (nada emitido, nada roto).
+🔎 Monitor comunicaciones importaciones — ejecución real
+Tickets activos de importaciones: 0
+✅ Total hallazgos nuevos: 0
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ OAuth MeLi error de red (intento 1/3): HTTPSConnectionPool(host='api.mercadolibre.com', port=443): Read timed out. (read timeout=10)
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[meli_compliance_monitor] revisadas=18 activas=11 problemas=7 alertas_wa=0
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 1) no es día de pago de nómina (15 o fin de mes).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-01T18:00:01] resumen_actividad_sede_sur: 80 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 23 nuevas · 26 completadas · 23 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 12 nuevas, 8 completadas
+• Gloria Stella: 5 nuevas, 8 completadas
+• Armando Garcia: 0 nuevas, 6 completadas
+• Victor Garcia: 3 nuevas, 2 completadas
+• Cynthia Ruiz: 2 nuevas, 2 completadas
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-09-01) no es el último día del mes.

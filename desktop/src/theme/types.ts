@@ -17,6 +17,11 @@ export type FontScale = "sm" | "md" | "lg" | "xl";
 
 export type MenuScale = "sm" | "md" | "lg";
 
+/** Zoom visual de toda la app (equivalente al zoom del navegador): a diferencia de
+ * `fontScale`, que solo escala texto en unidades rem, este alcanza también los
+ * tamaños fijos en px (badges, iconos, paddings) que abundan en el panel. */
+export type UiZoom = "100" | "115" | "130" | "150";
+
 export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie" | "bodega" | "botica";
 
 export type ThemePackId = "matrix" | "sakura" | "barbie" | "bodega" | "botica";
@@ -65,6 +70,8 @@ export interface PanelThemeConfig {
   skin: UiSkin;
   fontScale: FontScale;
   menuScale: MenuScale;
+  /** Independiente de los temas guardados/packs: no se resetea al cambiar de skin. */
+  uiZoom: UiZoom;
   colors: ThemeColorMap;
   customThemes: UserThemePreset[];
   activeCustomId: string | null;

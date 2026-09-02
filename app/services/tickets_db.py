@@ -1895,6 +1895,11 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             if menu_scale not in ("sm", "md", "lg"):
                 return False, "menuScale inválido", None
             panel["menuScale"] = menu_scale
+        ui_zoom = panel_in.get("uiZoom")
+        if ui_zoom is not None:
+            if ui_zoom not in ("100", "115", "130", "150"):
+                return False, "uiZoom inválido", None
+            panel["uiZoom"] = ui_zoom
         colors = _limpiar_colores_tema(panel_in.get("colors"))
         if colors is not None:
             panel["colors"] = colors

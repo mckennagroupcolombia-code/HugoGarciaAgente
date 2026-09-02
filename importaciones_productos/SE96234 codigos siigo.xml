@@ -1,0 +1,353 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-09-01">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>SE96234</NumeroFacturaProveedor>
+    <FechaFactura>2026-08-31</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>900327185</NIT>
+      <Nombre>SU FERRETERIA LA SABANA SAS</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="18">
+    <Item numero="1">
+      <CodigoSiigo>FLAPVC1PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FLANCHE PVC 1P (REF PVC 289)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">12.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">12.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 12.0 × 1 = 12.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>40332.00</Subtotal>
+        <IVA>7663.08</IVA>
+        <Total>47995.08</Total>
+        <PrecioUnitarioMin>3999.5900</PrecioUnitarioMin>
+        <PrecioNetoMin>3361.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 47995.08 COP / 12.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>CODPOL1PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>CODO POLIETILENO 1P (REF PLTLN 52)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>24000.00</Subtotal>
+        <IVA>4560.00</IVA>
+        <Total>28560.00</Total>
+        <PrecioUnitarioMin>1190.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>1000.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 28560.00 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>TEEPOL1PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TEE POLIETILENO 1P (REF PLTLN 86)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>24000.00</Subtotal>
+        <IVA>4560.00</IVA>
+        <Total>28560.00</Total>
+        <PrecioUnitarioMin>1190.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>1000.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 28560.00 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>FLAPVC1PREFUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FLANCHE PVC 1P (REF PVC 289)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">12.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">12.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 12.0 × 1 = 12.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>40332.00</Subtotal>
+        <IVA>7663.08</IVA>
+        <Total>47995.08</Total>
+        <PrecioUnitarioMin>3999.5900</PrecioUnitarioMin>
+        <PrecioNetoMin>3361.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 47995.08 COP / 12.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>ACOPOL1PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACOPLE POLIETILENO 1P (REF PLTLN 94)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>14112.00</Subtotal>
+        <IVA>2681.28</IVA>
+        <Total>16793.28</Total>
+        <PrecioUnitarioMin>699.7200</PrecioUnitarioMin>
+        <PrecioNetoMin>588.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 16793.28 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>FLAPVC05PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FLANCHE PVC 05P (REF PVC 267)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>76632.00</Subtotal>
+        <IVA>14560.08</IVA>
+        <Total>91192.08</Total>
+        <PrecioUnitarioMin>3799.6700</PrecioUnitarioMin>
+        <PrecioNetoMin>3193.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 91192.08 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>ACOPOL05PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACOPLE POLIETILENO 05P (REF PLTLN 92)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>8064.00</Subtotal>
+        <IVA>1532.16</IVA>
+        <Total>9596.16</Total>
+        <PrecioUnitarioMin>399.8400</PrecioUnitarioMin>
+        <PrecioNetoMin>336.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 9596.16 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>TEEPOL05PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TEE POLIETILENO 05P (REF PLTLN 84)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>10080.00</Subtotal>
+        <IVA>1915.20</IVA>
+        <Total>11995.20</Total>
+        <PrecioUnitarioMin>499.8000</PrecioUnitarioMin>
+        <PrecioNetoMin>420.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 11995.20 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>CODPOL05PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>CODO POLIETILENO 05P (REF PLTLN 50)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>12096.00</Subtotal>
+        <IVA>2298.24</IVA>
+        <Total>14394.24</Total>
+        <PrecioUnitarioMin>599.7600</PrecioUnitarioMin>
+        <PrecioNetoMin>504.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 14394.24 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="10">
+      <CodigoSiigo>CODPOLMMUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>CODO POLIETILENO 16 MM (REF PLTLN 49)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>6048.00</Subtotal>
+        <IVA>1149.12</IVA>
+        <Total>7197.12</Total>
+        <PrecioUnitarioMin>299.8800</PrecioUnitarioMin>
+        <PrecioNetoMin>252.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 7197.12 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="11">
+      <CodigoSiigo>TEEPOL16MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TEE POLIETILENO 16MM (REF PLTLN 34)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>6720.00</Subtotal>
+        <IVA>1276.80</IVA>
+        <Total>7996.80</Total>
+        <PrecioUnitarioMin>333.2000</PrecioUnitarioMin>
+        <PrecioNetoMin>280.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 7996.80 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="12">
+      <CodigoSiigo>ACOPOLMMUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACOPLE POLIETILENO 1/2 X 16 MM (REF ASPR 66)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>6960.00</Subtotal>
+        <IVA>1322.40</IVA>
+        <Total>8282.40</Total>
+        <PrecioUnitarioMin>345.1000</PrecioUnitarioMin>
+        <PrecioNetoMin>290.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 8282.40 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="13">
+      <CodigoSiigo>REGMANMANUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>REGISTRO MANGUERA-MANGUERA 16 MM (REF ASPR 93)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">24.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">24.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 24.0 × 1 = 24.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>31296.00</Subtotal>
+        <IVA>5946.24</IVA>
+        <Total>37242.24</Total>
+        <PrecioUnitarioMin>1551.7600</PrecioUnitarioMin>
+        <PrecioNetoMin>1304.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 37242.24 COP / 24.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO - Registrar primero en Excel de productos</EstadoSiigo>
+    </Item>
+    <Item numero="14">
+      <CodigoSiigo>TAPMACPVCUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON MACHO PVC 05P INGEP (REF PVC 471)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">6.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">6.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 6.0 × 1 = 6.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>2520.00</Subtotal>
+        <IVA>478.80</IVA>
+        <Total>2998.80</Total>
+        <PrecioUnitarioMin>499.8000</PrecioUnitarioMin>
+        <PrecioNetoMin>420.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 2998.80 COP / 6.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="15">
+      <CodigoSiigo>TAPMACPVC1PUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON MACHO PVC 1P INGEP (REF PVC 470)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">6.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">6.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 6.0 × 1 = 6.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>4032.00</Subtotal>
+        <IVA>766.08</IVA>
+        <Total>4798.08</Total>
+        <PrecioUnitarioMin>799.6800</PrecioUnitarioMin>
+        <PrecioNetoMin>672.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 4798.08 COP / 6.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="16">
+      <CodigoSiigo>REGPVCSOLUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>REGISTRO PVC SOLDADO 05P (REF PVC 164)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">6.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">6.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 6.0 × 1 = 6.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>12600.00</Subtotal>
+        <IVA>2394.00</IVA>
+        <Total>14994.00</Total>
+        <PrecioUnitarioMin>2499.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>2100.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 14994.00 COP / 6.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="17">
+      <CodigoSiigo>REGPVCROSUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>REGISTRO PVC ROSCADO 05P (REF PVC 156)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">6.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">6.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 6.0 × 1 = 6.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>12600.00</Subtotal>
+        <IVA>2394.00</IVA>
+        <Total>14994.00</Total>
+        <PrecioUnitarioMin>2499.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>2100.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 14994.00 COP / 6.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+    <Item numero="18">
+      <CodigoSiigo>UNIPVCPREUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>UNIVERSAL PVC PRESION  05P SABANA (REF PVC 521)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">12.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">12.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 12.0 × 1 = 12.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>25200.00</Subtotal>
+        <IVA>4788.00</IVA>
+        <Total>29988.00</Total>
+        <PrecioUnitarioMin>2499.0000</PrecioUnitarioMin>
+        <PrecioNetoMin>2100.000000</PrecioNetoMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 29988.00 COP / 12.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>EXISTENTE - Compra suma inventario del producto en SIIGO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>357624.00</Subtotal>
+    <TotalIVA>67948.56</TotalIVA>
+    <TotalGeneral>425572.56</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: SE96234 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

@@ -316,7 +316,7 @@ function DetalleFactura({
 
   const { data: detalle, isLoading, error } = useQuery<FacturaDetalle>({
     queryKey: ["factura-detalle", sufijo],
-    queryFn: () => api.get(`/api/facturas/${sufijo}/detalle`),
+    queryFn: () => api.get(`/api/facturas/${sufijo}/detalle`, { timeoutMs: 120_000 }),
     staleTime: 30_000,
   });
 
@@ -414,9 +414,11 @@ function DetalleFactura({
   }
 
   if (error || !detalle) {
+    const errMsg = error instanceof Error ? error.message : "";
     return (
       <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center">
         <p className="text-sm text-red-300">No se pudo cargar el detalle de la factura.</p>
+        {errMsg ? <p className="mt-2 text-xs text-red-400/90">{errMsg}</p> : null}
         <button type="button" onClick={onBack} className="mt-3 text-sm text-accent hover:underline">
           ← Volver al listado
         </button>

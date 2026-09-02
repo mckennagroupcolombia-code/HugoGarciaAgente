@@ -12,6 +12,92 @@ from datetime import datetime, timedelta
 # Variable de configuración para la API de Siigo
 PARTNER_ID = "SiigoAPI"
 
+_SIIGO_NOMBRE_MAX = 100
+# Comillas/primas Unicode (p. ej. pulgadas en facturas DIAN) → ASCII permitido por Siigo.
+_SIIGO_NOMBRE_QUOTE_MAP = str.maketrans({
+    "\u201c": '"',  # "
+    "\u201d": '"',  # "
+    "\u201e": '"',  # „
+    "\u201f": '"',  # ‟
+    "\u2033": '"',  # ″
+    "\u2032": "'",  # ′
+    "\u00b4": "'",  # ´
+    "\u2018": "'",  # '
+    "\u2019": "'",  # '
+    "\u00ab": '"',  # «
+    "\u00bb": '"',  # »
+})
+_SIIGO_NOMBRE_FORBIDDEN = re.compile(
+    r'[^\w\.@\-\\%_;()\]#?¡\[/:{ } *+,$"\sñáéíóúÁÉÍÓÚüÜ\-"]',
+    re.UNICODE,
+)
+_SIIGO_MARCA_PULGADA = r'["\u201c\u201d\u2033\u2032\']'
+
+
+def _fmt_pulgada_p(valor: float) -> str:
+    """Convención McKenna: 1″ → 1P, 1/2″ (media) → 05P, 1 1/2″ → 15P."""
+    if valor <= 0:
+        return ""
+    entero = int(valor)
+    frac = round(valor - entero, 4)
+    if frac < 1e-9:
+        return f"{entero}P"
+    # Fracciones típicas en PVC/envases (sin punto: no rompe generar_codigo).
+    frac_map = {0.25: "25", 0.5: "5", 0.75: "75"}
+    frac_r = round(frac, 2)
+    if frac_r in frac_map:
+        return f"{entero}{frac_map[frac_r]}P"
+    texto = f"{valor:.3f}".rstrip("0").rstrip(".")
+    return f"{texto}P"
+
+
+def normalizar_pulgadas_en_nombre(nombre: str) -> str:
+    """
+    Convierte pulgadas del XML proveedor a convención McKenna.
+    Enteras: 1" / 1″ → 1P · Fracciones: 1/2" / 1/2P (media) → 05P · Mixtas: 1 1/2" → 15P.
+    """
+    texto = str(nombre or "").strip().translate(_SIIGO_NOMBRE_QUOTE_MAP)
+    inch = _SIIGO_MARCA_PULGADA
+
+    def _mixed(m):
+        entero = int(m.group(1))
+        num, den = int(m.group(2)), int(m.group(3))
+        if den <= 0:
+            return m.group(0)
+        return _fmt_pulgada_p(entero + num / den)
+
+    def _frac(m):
+        num, den = int(m.group(1)), int(m.group(2))
+        if den <= 0:
+            return m.group(0)
+        return _fmt_pulgada_p(num / den)
+
+    def _entera(m):
+        return _fmt_pulgada_p(float(m.group(1).replace(",", ".")))
+
+    # Orden importa: fracciones antes que el dígito suelto antes de " (evita 1/2" → 2P).
+    texto = re.sub(rf"(\d+)\s+(\d+)/(\d+)\s*{inch}", _mixed, texto, flags=re.IGNORECASE)
+    texto = re.sub(rf"(\d+)/(\d+)\s*{inch}", _frac, texto, flags=re.IGNORECASE)
+    # Proveedor escribe 1/2P sin comilla, o 1/2 (REF …) antes de la referencia.
+    texto = re.sub(r"(\d+)/(\d+)P\b", _frac, texto, flags=re.IGNORECASE)
+    texto = re.sub(r"(\d+)/(\d+)(?=\s*\(REF\b)", _frac, texto, flags=re.IGNORECASE)
+    texto = re.sub(rf"(\d+(?:[.,]\d+)?)\s*{inch}", _entera, texto, flags=re.IGNORECASE)
+    return texto
+
+
+def sanitizar_nombre_siigo(nombre: str) -> str:
+    """
+    Normaliza el nombre para POST/PUT /v1/products.
+    Siigo devuelve invalid_name con comillas (incluso ASCII ") y a veces paréntesis
+    en descripciones de proveedor; el límite es 100 caracteres.
+    """
+    texto = normalizar_pulgadas_en_nombre(nombre)
+    texto = texto.replace('"', "").replace("'", "")
+    texto = re.sub(r"[()]", " ", texto)
+    texto = re.sub(r"\s+", " ", texto).strip()
+    texto = _SIIGO_NOMBRE_FORBIDDEN.sub("", texto)
+    return texto[:_SIIGO_NOMBRE_MAX].strip()
+
 
 def _ruta_credenciales_siigo():
     return os.path.expanduser("~/mi-agente/credenciales_SIIGO.json")
@@ -2568,7 +2654,7 @@ def crear_combo_en_siigo(
     codigo_limpio = re.sub(r"[^A-Za-z0-9._-]", "", (codigo or "").strip())
     if not codigo_limpio or not re.match(r"^[A-Za-z0-9._-]{2,40}$", codigo_limpio):
         return {"ok": False, "error": f"Código SIIGO inválido: {codigo}"}
-    nombre_limpio = (nombre or "").strip()[:100]
+    nombre_limpio = sanitizar_nombre_siigo(nombre)
     if not nombre_limpio:
         return {"ok": False, "error": "El nombre del combo es obligatorio"}
 

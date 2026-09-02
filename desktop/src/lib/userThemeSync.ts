@@ -22,6 +22,7 @@ export function panelThemeSnapshot(panel: PanelThemeConfig) {
     skin: panel.skin,
     fontScale: panel.fontScale,
     menuScale: panel.menuScale,
+    uiZoom: panel.uiZoom,
     colors: panel.colors,
     customThemes: panel.customThemes,
     activeCustomId: panel.activeCustomId,
