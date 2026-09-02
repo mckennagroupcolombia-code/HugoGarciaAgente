@@ -1,58 +1,53 @@
 {
   "pendientes": {
-    "2000018189562980": {
-      "primera_vez": "2026-08-31T05:05:57",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000018191641132": {
-      "primera_vez": "2026-08-31T05:05:57",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
     "2000014787263683": {
       "primera_vez": "2026-08-31T05:05:57",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000018204498730": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014794455867": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014795717699": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014798462377": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014798968823": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014799348935": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
+      "ultima_vez": "2026-09-02T05:09:05",
       "categoria": "sin_cruce_siigo"
     },
     "2000014803882255": {
       "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
+      "ultima_vez": "2026-09-02T05:09:05",
       "categoria": "sin_cruce_siigo"
     },
-    "2000018219327868": {
-      "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-01T05:07:31",
+    "2000014814963577": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000018230210348": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014816067223": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014817768345": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014823563983": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014823879235": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014824820907": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014825014213": {
+      "primera_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-02T05:09:05",
       "categoria": "sin_cruce_siigo"
     }
   }

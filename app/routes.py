@@ -2104,8 +2104,17 @@ def register_routes(app):
                 )
                 return jsonify({"status": "ok", "respuesta": None})
 
-        def _manejar_hugo_dale_ok(texto: str) -> dict:
-            """Aprueba y envía el borrador IA de posventa: 'hugo dale ok <código>'."""
+        def _manejar_hugo_dale_ok(texto: str) -> None:
+            """Aprueba y envía el borrador IA de posventa: 'hugo dale ok <código>'
+            (o el atajo 'listo <código>' dentro del grupo postventa).
+
+            Corre en spawn_thread y notifica el resultado con
+            enviar_whatsapp_reporte: el bridge bot-mckenna descarta el campo
+            "respuesta" del JSON de retorno para mensajes de grupo
+            (procesarComandoGrupo hace un POST fire-and-forget sin leer la
+            respuesta), así que depender de ese campo deja al operador sin
+            confirmación aunque el envío a MeLi sí haya funcionado.
+            """
             from app.meli_postventa_notif import sufijo_pack_postventa
 
             token_ok = texto.split()[-1].strip()
@@ -2151,7 +2160,6 @@ def register_routes(app):
                 resultado_envio = responder_mensaje_posventa(
                     target_order_id, message_to_send, comprador_id_sug
                 )
-                print(f"Resultado del envío a posventa: {resultado_envio}")
                 sufijo = sufijo_pack_postventa(target_order_id)
                 if resultado_envio:
                     _stats_cerrar_postventa(
@@ -2161,32 +2169,45 @@ def register_routes(app):
                     _quitar_pendiente_postventa(
                         str(target_order_id), clave_pendiente_sug
                     )
-                return {
-                    "status": "sent",
-                    "respuesta": f"¡Listo! Mensaje enviado (código {sufijo}).",
-                }
+                    enviar_whatsapp_reporte(
+                        f"✅ ¡Listo! Mensaje enviado a MeLi (código {sufijo}).",
+                        numero_destino=jid_grupo_postventa_wa(),
+                    )
+                else:
+                    enviar_whatsapp_reporte(
+                        f"⚠️ No pude enviar el mensaje a MeLi para el código {sufijo}. "
+                        f"Intenta de nuevo o usa *posventa {sufijo}: tu respuesta*.",
+                        numero_destino=jid_grupo_postventa_wa(),
+                    )
+                return
 
-            return {
-                "status": "error",
-                "respuesta": (
-                    f"No encontré borrador pendiente para el código '{token_ok}'. "
-                    "Usa los 3 últimos dígitos del pack."
-                ),
-            }
+            enviar_whatsapp_reporte(
+                f"No encontré borrador pendiente para el código '{token_ok}'. "
+                "Usa los 3 últimos dígitos del pack.",
+                numero_destino=jid_grupo_postventa_wa(),
+            )
 
         # --- COMANDOS DE GRUPOS ADMIN ---
         if es_any_grupo_admin:
             modos = cargar_modos_atencion()
             msg_lower = message_text.lower()
 
-            # "hugo dale ok <código>" / typo "hugo sale ok <código>" — aprueba y
-            # envía el borrador IA de posventa. Debe resolverse ANTES del resto
-            # de comandos de grupos admin: de lo contrario el catch-all de este
-            # bloque (más abajo) responde "ok" y descarta el comando sin que
-            # llegue nunca al manejador original (bug: no disparaba desde el
-            # propio grupo POSTVENTA, que es un grupo admin).
-            if re.match(r"^hugo\s+(dale|sale)\s+ok\b", message_text.strip(), re.IGNORECASE):
-                return jsonify(_manejar_hugo_dale_ok(message_text))
+            # "hugo dale ok <código>" / typo "hugo sale ok <código>", o el atajo
+            # "listo <código>" — aprueba y envía el borrador IA de posventa.
+            # Debe resolverse ANTES del resto de comandos de grupos admin: de lo
+            # contrario el catch-all de este bloque (más abajo) responde "ok" y
+            # descarta el comando sin que llegue nunca al manejador original
+            # (bug: no disparaba desde el propio grupo POSTVENTA, que es un
+            # grupo admin). No se usa "ok <3díg>" para este atajo porque esa
+            # sintaxis ya significa "confirmar pago" en todo grupo admin
+            # (línea ~2224 más abajo).
+            if re.match(
+                r"^(?:hugo\s+(?:dale|sale)\s+ok\b|listo\s+\S+)",
+                message_text.strip(),
+                re.IGNORECASE,
+            ):
+                spawn_thread(_manejar_hugo_dale_ok, args=(message_text,))
+                return jsonify({"status": "ok", "respuesta": None})
 
             # Rechazo corto: "no 463"
             if re.match(r"^no\s+\d{3}$", msg_lower):
@@ -2784,9 +2805,13 @@ def register_routes(app):
         # Acepta también el typo frecuente "hugo sale ok <código>".
         # (Fallback para chats fuera de los grupos admin, p.ej. DM directo al
         # número del negocio; el caso normal — grupo POSTVENTA — se resuelve
-        # arriba, dentro del bloque `es_any_grupo_admin`.)
+        # arriba, dentro del bloque `es_any_grupo_admin`. Aquí NO se acepta el
+        # atajo corto "listo <código>": es una palabra demasiado genérica para
+        # habilitarla fuera de los grupos admin, donde podría dispararse por
+        # accidente en una conversación normal con un cliente.)
         if re.match(r"^hugo\s+(dale|sale)\s+ok\b", message_text.strip(), re.IGNORECASE):
-            return jsonify(_manejar_hugo_dale_ok(message_text))
+            spawn_thread(_manejar_hugo_dale_ok, args=(message_text,))
+            return jsonify({"status": "ok", "respuesta": None})
 
         # --- Control para Evitar Duplicados ---
         if is_after_sale and order_id in borradores_aprobacion:
@@ -17558,6 +17583,46 @@ def register_routes(app):
             return jsonify({"ok": True, "formato": "png", "nombre": f"{safe}{suf}.png", "base64": b64})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/plantillas-visuales/desenfoque", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/desenfoque", methods=["POST"])
+    def api_plantillas_visuales_desenfoque():
+        """Desenfoca zonas (rects fracción 0-1) de un PNG/JPG ya exportado del Studio
+        Visual — para poder ocultar teléfono/web/datos de empresa antes de subir la
+        etiqueta a MercadoLibre. No requiere MeLi: reutiliza el mismo motor de blur
+        de app/services/imagen_desenfoque.py (aplicar_desenfoque)."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.services.imagen_desenfoque import aplicar_desenfoque, preview_base64
+
+        f = request.files.get("file") or (request.files.getlist("file") or [None])[0]
+        if not f or not f.filename:
+            return jsonify({"ok": False, "error": "Falta el archivo de imagen"}), 400
+        file_bytes = f.read()
+
+        import json as _json
+
+        try:
+            regiones = _json.loads(request.form.get("regiones") or "[]")
+        except Exception:
+            regiones = []
+        if not isinstance(regiones, list):
+            regiones = []
+        try:
+            radio = int(request.form.get("radio") or 28)
+        except (TypeError, ValueError):
+            radio = 28
+        formato = (request.form.get("formato") or "png").strip().lower()
+        out_format = "JPEG" if formato in ("jpg", "jpeg") else "PNG"
+
+        try:
+            out_bytes, meta = aplicar_desenfoque(file_bytes, regiones, radio=radio, out_format=out_format)
+            return jsonify(preview_base64(out_bytes, meta))
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.route("/api/plantillas-visuales/assets", methods=["GET", "POST"])
     @app.route("/app/api/plantillas-visuales/assets", methods=["GET", "POST"])

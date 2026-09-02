@@ -1,0 +1,448 @@
+{
+  "name": "Ilustración científica — Rig Articulado Profesional",
+  "viewBox": [
+    0,
+    0,
+    312,
+    494
+  ],
+  "bind_pose": "identity",
+  "coordinate_system": "SVG user space; +x right, +y down",
+  "controllers": {
+    "CTRL_root": {
+      "parent": null,
+      "pivot": [
+        184,
+        430
+      ],
+      "type": "root",
+      "limits": {
+        "rotation": [
+          -15,
+          15
+        ],
+        "x": [
+          -40,
+          40
+        ],
+        "y": [
+          -40,
+          40
+        ]
+      }
+    },
+    "CTRL_torso": {
+      "parent": "CTRL_root",
+      "pivot": [
+        184,
+        360
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -8,
+          8
+        ]
+      }
+    },
+    "CTRL_neck": {
+      "parent": "CTRL_torso",
+      "pivot": [
+        188,
+        228
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -10,
+          10
+        ]
+      }
+    },
+    "CTRL_head": {
+      "parent": "CTRL_neck",
+      "pivot": [
+        188,
+        166
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          18
+        ]
+      }
+    },
+    "CTRL_shoulder_L": {
+      "parent": "CTRL_torso",
+      "pivot": [
+        116,
+        345
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -28,
+          32
+        ]
+      }
+    },
+    "CTRL_elbow_L": {
+      "parent": "CTRL_shoulder_L",
+      "pivot": [
+        72,
+        424
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -35,
+          45
+        ]
+      }
+    },
+    "CTRL_wrist_L": {
+      "parent": "CTRL_elbow_L",
+      "pivot": [
+        67,
+        321
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -25,
+          25
+        ]
+      }
+    },
+    "CTRL_shoulder_R": {
+      "parent": "CTRL_torso",
+      "pivot": [
+        239,
+        289
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -12,
+          12
+        ]
+      }
+    },
+    "CTRL_tube": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        71,
+        252
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -10,
+          10
+        ]
+      }
+    },
+    "CTRL_eye_L_gaze": {
+      "parent": "CTRL_head",
+      "pivot": [
+        149,
+        134
+      ],
+      "type": "translate",
+      "limits": {
+        "x": [
+          -3,
+          3
+        ],
+        "y": [
+          -2,
+          2
+        ]
+      }
+    },
+    "CTRL_eye_R_gaze": {
+      "parent": "CTRL_head",
+      "pivot": [
+        193,
+        131
+      ],
+      "type": "translate",
+      "limits": {
+        "x": [
+          -3,
+          3
+        ],
+        "y": [
+          -2,
+          2
+        ]
+      }
+    },
+    "CTRL_thumb_proximal": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        47,
+        265
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -22,
+          28
+        ]
+      }
+    },
+    "CTRL_thumb_distal": {
+      "parent": "CTRL_thumb_proximal",
+      "pivot": [
+        56,
+        249
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_index_proximal": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        67,
+        256
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -22,
+          28
+        ]
+      }
+    },
+    "CTRL_index_media": {
+      "parent": "CTRL_index_proximal",
+      "pivot": [
+        69,
+        246
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_index_distal": {
+      "parent": "CTRL_index_media",
+      "pivot": [
+        72,
+        236
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_middle_proximal": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        65,
+        270
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -22,
+          28
+        ]
+      }
+    },
+    "CTRL_middle_media": {
+      "parent": "CTRL_middle_proximal",
+      "pivot": [
+        68,
+        261
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_middle_distal": {
+      "parent": "CTRL_middle_media",
+      "pivot": [
+        70,
+        251
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_ring_proximal": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        62,
+        284
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -22,
+          28
+        ]
+      }
+    },
+    "CTRL_ring_media": {
+      "parent": "CTRL_ring_proximal",
+      "pivot": [
+        66,
+        276
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_ring_distal": {
+      "parent": "CTRL_ring_media",
+      "pivot": [
+        69,
+        266
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_pinky_proximal": {
+      "parent": "CTRL_wrist_L",
+      "pivot": [
+        57,
+        297
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -22,
+          28
+        ]
+      }
+    },
+    "CTRL_pinky_media": {
+      "parent": "CTRL_pinky_proximal",
+      "pivot": [
+        61,
+        289
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "CTRL_pinky_distal": {
+      "parent": "CTRL_pinky_media",
+      "pivot": [
+        64,
+        280
+      ],
+      "type": "rotation",
+      "limits": {
+        "rotation": [
+          -18,
+          32
+        ]
+      }
+    },
+    "eye_left_upper_lid": {
+      "parent": "CTRL_head",
+      "pivot": [
+        149,
+        134
+      ],
+      "type": "lid",
+      "limits": {
+        "blink": [
+          0,
+          1
+        ]
+      }
+    },
+    "eye_right_upper_lid": {
+      "parent": "CTRL_head",
+      "pivot": [
+        193,
+        131
+      ],
+      "type": "lid",
+      "limits": {
+        "blink": [
+          0,
+          1
+        ]
+      }
+    }
+  },
+  "hair_pivots": {
+    "hair_01_bun_top": [
+      222,
+      49
+    ],
+    "hair_02_upper_left": [
+      151,
+      82
+    ],
+    "hair_03_upper_center": [
+      184,
+      83
+    ],
+    "hair_04_upper_right": [
+      228,
+      88
+    ],
+    "hair_05_lower_left": [
+      150,
+      129
+    ],
+    "hair_06_lower_center": [
+      190,
+      129
+    ],
+    "hair_07_lower_right": [
+      235,
+      130
+    ],
+    "hair_08_nape": [
+      232,
+      177
+    ]
+  },
+  "notes": [
+    "Apply transforms to CTRL_* groups, not directly to master paths.",
+    "Rotations use SVG syntax rotate(angle pivotX pivotY).",
+    "Finger hierarchy is proximal -> media -> distal (thumb: proximal -> distal).",
+    "Pupils/irises are grouped under gaze controllers. Eyelids are split into upper/lower line art.",
+    "RIG_GUIDES is hidden by default and can be toggled in Inkscape."
+  ]
+}

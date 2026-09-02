@@ -61,7 +61,14 @@
     "164557527978114@lid",
     "272103945293831@lid",
     "573334315268@c.us",
-    "216892291702980@lid"
+    "216892291702980@lid",
+    "13559245365471@lid",
+    "573167162727@c.us",
+    "196022391283853@lid",
+    "573134604659@c.us",
+    "9345865625609@lid",
+    "573168346116@c.us",
+    "136103419977898@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
@@ -126,7 +133,14 @@
     "164557527978114@lid": 1788293939.9833128,
     "272103945293831@lid": 1788296483.218641,
     "573334315268@c.us": 1788305146.0631483,
-    "216892291702980@lid": 1788305146.0631483
+    "216892291702980@lid": 1788305146.0631483,
+    "13559245365471@lid": 1788377200.6855206,
+    "573167162727@c.us": 1788377200.6855206,
+    "196022391283853@lid": 1788377206.815452,
+    "573134604659@c.us": 1788377206.815452,
+    "9345865625609@lid": 1788377210.390029,
+    "573168346116@c.us": 1788377210.390029,
+    "136103419977898@lid": 1788377217.3637514
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
@@ -438,6 +452,41 @@
       "timestamp": 1788305146.0631483,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
       "ultimo_mensaje": "Y no s\u00e9 si tienes agar agar"
+    },
+    "13559245365471@lid": {
+      "timestamp": 1788377200.6855206,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573167162727@c.us": {
+      "timestamp": 1788377200.6855206,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "196022391283853@lid": {
+      "timestamp": 1788377206.815452,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573134604659@c.us": {
+      "timestamp": 1788377206.815452,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "9345865625609@lid": {
+      "timestamp": 1788377210.390029,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573168346116@c.us": {
+      "timestamp": 1788377210.390029,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "136103419977898@lid": {
+      "timestamp": 1788377217.3637514,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
     }
   },
   "bot_global_activo": true,

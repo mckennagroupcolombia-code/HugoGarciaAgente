@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-01T07:22:53"
+    "ultima_ejecucion": "2026-09-02T07:25:07"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -45,7 +45,7 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-01T07:05:28"
+    "ultima_ejecucion": "2026-09-02T07:02:44"
   },
   "cobertura_meli": {
     "intervalo_horas": 168,
@@ -57,10 +57,10 @@
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-01T09:01:56"
+    "ultima_ejecucion": "2026-09-02T09:01:56"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-01T09:05:01"
+    "ultima_ejecucion": "2026-09-02T09:05:01"
   }
 }

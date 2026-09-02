@@ -1,6 +1,27 @@
 {
   "archivos": [
     {
+      "nombre": "DPANTENOL_30mL_6.25x_20260902_130033.pdf",
+      "ruta": "Etiquetas McKenna/DPANTENOL_30mL_6.25x_20260902_130033.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DPANTENOL_30mL_6.25x_20260902_130033.pdf",
+      "subido_at": "2026-09-02T13:00:34",
+      "bytes": 362110
+    },
+    {
+      "nombre": "DPANTENOL_30mL_6.25x_20260902_130001.pdf",
+      "ruta": "Etiquetas McKenna/DPANTENOL_30mL_6.25x_20260902_130001.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DPANTENOL_30mL_6.25x_20260902_130001.pdf",
+      "subido_at": "2026-09-02T13:00:01",
+      "bytes": 362110
+    },
+    {
+      "nombre": "DPANTENOL_30mL_6.25x.pdf",
+      "ruta": "Etiquetas McKenna/DPANTENOL_30mL_6.25x.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/DPANTENOL_30mL_6.25x.pdf",
+      "subido_at": "2026-09-02T12:59:22",
+      "bytes": 362110
+    },
+    {
       "nombre": "ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
       "ruta": "Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_JOJOBA_30mL_6.25x_20260901_121347.pdf",
@@ -1378,27 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_ARGAN_50mL_6.25x_2_20260730_120258.pdf",
       "subido_at": "2026-07-30T12:02:58",
       "bytes": 416419
-    },
-    {
-      "nombre": "ACEITE_ARGAN_50mL_6.25x_2_20260730_120226.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_ARGAN_50mL_6.25x_2_20260730_120226.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_ARGAN_50mL_6.25x_2_20260730_120226.pdf",
-      "subido_at": "2026-07-30T12:02:27",
-      "bytes": 416419
-    },
-    {
-      "nombre": "ACEITE_ARGAN_50mL_6.25x_2.pdf",
-      "ruta": "Etiquetas McKenna/ACEITE_ARGAN_50mL_6.25x_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE_ARGAN_50mL_6.25x_2.pdf",
-      "subido_at": "2026-07-30T12:02:07",
-      "bytes": 416419
-    },
-    {
-      "nombre": "SHAROMIX_705_50mL_6.25x_20260730_120104.pdf",
-      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120104.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_6.25x_20260730_120104.pdf",
-      "subido_at": "2026-07-30T12:01:04",
-      "bytes": 491029
     }
   ]
 }

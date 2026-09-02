@@ -24,6 +24,7 @@ import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import SelectorDisenoPlantilla from "./SelectorDisenoPlantilla";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
+import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
 import {
   CARPETA_FORMATOS_ETIQUETA,
   esPlantillaFichaMp,
@@ -937,13 +938,19 @@ export default function PlantillasVisualesPanel({
   }, []);
 
   /** PNG generado pendiente de confirmación: se muestra en vista previa antes
-   *  de descargarlo y guardarlo en la biblioteca. */
+   *  de descargarlo y guardarlo en la biblioteca. `blobOriginal`/`urlOriginal`
+   *  quedan fijos (para poder marcar zonas siempre sobre la versión sin
+   *  desenfocar); `blob`/`url` son la versión final a descargar. */
   const [previewExport, setPreviewExport] = useState<{
+    blobOriginal: Blob;
+    urlOriginal: string;
     blob: Blob;
     url: string;
     escala: number;
     nombreArchivo: string;
+    desenfocado: boolean;
   } | null>(null);
+  const [desenfoqueAbierto, setDesenfoqueAbierto] = useState(false);
 
   const exportar = async (escala = 1) => {
     if (!doc) return;
@@ -953,11 +960,15 @@ export default function PlantillasVisualesPanel({
       const blob = await exportarPlantillaBlob(doc, "png", { escala });
       const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
       const suf = escala !== 1 ? `@${escala}x` : "";
+      const url = URL.createObjectURL(blob);
       setPreviewExport({
+        blobOriginal: blob,
+        urlOriginal: url,
         blob,
-        url: URL.createObjectURL(blob),
+        url,
         escala,
         nombreArchivo: `${safe}${suf}.png`,
+        desenfocado: false,
       });
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al exportar");
@@ -967,8 +978,28 @@ export default function PlantillasVisualesPanel({
   };
 
   const cancelarExport = () => {
-    if (previewExport) URL.revokeObjectURL(previewExport.url);
+    if (previewExport) {
+      URL.revokeObjectURL(previewExport.urlOriginal);
+      if (previewExport.url !== previewExport.urlOriginal) URL.revokeObjectURL(previewExport.url);
+    }
+    setDesenfoqueAbierto(false);
     setPreviewExport(null);
+  };
+
+  const aplicarDesenfoquePreview = (blobDesenfocado: Blob) => {
+    setPreviewExport((prev) => {
+      if (!prev) return prev;
+      if (prev.url !== prev.urlOriginal) URL.revokeObjectURL(prev.url);
+      return { ...prev, blob: blobDesenfocado, url: URL.createObjectURL(blobDesenfocado), desenfocado: true };
+    });
+  };
+
+  const quitarDesenfoquePreview = () => {
+    setPreviewExport((prev) => {
+      if (!prev) return prev;
+      if (prev.url !== prev.urlOriginal) URL.revokeObjectURL(prev.url);
+      return { ...prev, blob: prev.blobOriginal, url: prev.urlOriginal, desenfocado: false };
+    });
   };
 
   const confirmarExport = async () => {
@@ -995,7 +1026,8 @@ export default function PlantillasVisualesPanel({
           ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
           : "";
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
-      setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓`);
+      const notaDesenfoque = previewExport.desenfocado ? " · zonas desenfocadas" : "";
+      setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓${notaDesenfoque}`);
       setTimeout(() => setMsg(null), 2500);
       cancelarExport();
     } catch (e) {
@@ -1103,6 +1135,11 @@ export default function PlantillasVisualesPanel({
                       : ""}
                     {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
                   </p>
+                  {previewExport.desenfocado && (
+                    <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                      🔒 Zonas desenfocadas
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -1144,9 +1181,28 @@ export default function PlantillasVisualesPanel({
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                 <p className="text-[11px] text-muted">
-                  Al confirmar se descarga y se guarda en la biblioteca de imágenes.
+                  MeLi no permite fotos con teléfono, web o datos de empresa: usa{" "}
+                  <button
+                    type="button"
+                    onClick={() => setDesenfoqueAbierto(true)}
+                    disabled={exportando}
+                    className="font-bold text-accent underline decoration-dotted underline-offset-2 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Desenfocar zonas
+                  </button>{" "}
+                  antes de descargar.
                 </p>
                 <div className="flex gap-2">
+                  {previewExport.desenfocado && (
+                    <button
+                      type="button"
+                      onClick={quitarDesenfoquePreview}
+                      disabled={exportando}
+                      className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                    >
+                      Quitar desenfoque
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={cancelarExport}
@@ -1167,6 +1223,17 @@ export default function PlantillasVisualesPanel({
               </div>
             </div>
           </div>
+        )}
+
+        {previewExport && (
+          <DesenfoquePlantillaModal
+            open={desenfoqueAbierto}
+            onClose={() => setDesenfoqueAbierto(false)}
+            blobOriginal={previewExport.blobOriginal}
+            imageUrl={previewExport.urlOriginal}
+            formato="png"
+            onAplicado={aplicarDesenfoquePreview}
+          />
         )}
       </div>
     );

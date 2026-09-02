@@ -3493,3 +3493,265 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 uploads/tickets/71ecffd4562040bfb2dfa18ed2c485e8.pdf
  create mode 100644 uploads/tickets/f823bfad86e24c9cbff1cb82da841810.jpg
 [2026-09-01 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-01 23:00'
+⏭  Cobertura MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ SIIGO products API: 401 para SKU C-CAF100g
+⚠️ SIIGO products API: 401 para SKU C-MANTKARAMA125g
+⚠️ SIIGO products API: 401 para SKU KTBKRLAB
+⚠️ SIIGO products API: 401 para SKU C-ARCAMA250g
+⚠️ SIIGO products API: 401 para SKU BRCESC3PZS
+⚠️ SIIGO products API: 401 para SKU C-INU250g
+⚠️ SIIGO products API: 401 para SKU C-CAF500g
+⚠️ SIIGO products API: 401 para SKU EMBPT30ML
+⚠️ SIIGO products API: 401 para SKU C-ACISAL100g
+⚠️ SIIGO products API: 401 para SKU C-SOR500mL
+⚠️ SIIGO products API: 401 para SKU C-INU500g
+⚠️ SIIGO products API: 401 para SKU TSSCC500mL
+⚠️ SIIGO products API: 401 para SKU C-INUKg
+⚠️ SIIGO products API: 401 para SKU C-GUSSED30mL
+⚠️ SIIGO products API: 401 para SKU C-TENSCI500g
+⚠️ SIIGO products API: 401 para SKU C-VASPRE100mL
+⚠️ SIIGO products API: 401 para SKU C-PROCONSUE80PKg
+⚠️ SIIGO products API: 401 para SKU C-CITPOT250g
+⚠️ SIIGO products API: 401 para SKU C-BTMS500g
+⚠️ SIIGO products API: 401 para SKU C-CITCAL500g
+⚠️ SIIGO products API: 401 para SKU RVVD15CM
+⚠️ SIIGO products API: 401 para SKU C-LECSOY500g
+⚠️ SIIGO products API: 401 para SKU C-GLIVEGLt
+⚠️ SIIGO products API: 401 para SKU C-AMILCAR100g
+⚠️ SIIGO products API: 401 para SKU C-RET5P30mL
+⚠️ SIIGO products API: 401 para SKU C-ELAHID30mL
+⚠️ SIIGO products API: 401 para SKU C-LTRI100g
+⚠️ SIIGO products API: 401 para SKU C-COLHID30mL
+⚠️ SIIGO products API: 401 para SKU C-FLOSECLAV100g
+⚠️ SIIGO products API: 401 para SKU C-GLU100g
+⚠️ SIIGO products API: 401 para SKU C-ACEARGAN50mL
+⚠️ SIIGO products API: 401 para SKU C-GLU2P500mL
+⚠️ SIIGO products API: 401 para SKU C-LACCAL250g
+⚠️ SIIGO products API: 401 para SKU C-TENSCI100g
+⚠️ SIIGO products API: 401 para SKU C-SORPOT100g
+⚠️ SIIGO products API: 401 para SKU C-ACISAL50g
+⚠️ SIIGO products API: 401 para SKU C-FRU500g
+⚠️ SIIGO products API: 401 para SKU C-ACICIT250g
+⚠️ SIIGO products API: 401 para SKU C-BENSOD500g
+⚠️ SIIGO products API: 401 para SKU C-ACCDSRBKG
+⚠️ SIIGO products API: 401 para SKU C-MENCRI100g
+⚠️ SIIGO products API: 401 para SKU C-ACIGLI50P30mL
+⚠️ SIIGO products API: 401 para SKU C-LPRO100g
+⚠️ SIIGO products API: 429 para SKU C-VASPRE10mL
+⚠️ SIIGO products API: 429 para SKU C-ALA250g
+⚠️ SIIGO products API: 429 para SKU C-ERI500g
+⚠️ SIIGO products API: 429 para SKU C-SUC100g
+⚠️ SIIGO products API: 429 para SKU C-BTMS250g
+⚠️ SIIGO products API: 401 para SKU C-EXTTEMATVER100g
+⚠️ SIIGO products API: 429 para SKU C-PROAISSOY500g
+⚠️ SIIGO products API: 401 para SKU C-PAP100g
+⚠️ SIIGO products API: 401 para SKU LHST100G
+⚠️ SIIGO products API: 401 para SKU C-GOMXANKg
+⚠️ SIIGO products API: 429 para SKU C-LTEA100g
+⚠️ SIIGO products API: 401 para SKU PERR
+⚠️ SIIGO products API: 401 para SKU C-BCAA500g
+⚠️ SIIGO products API: 429 para SKU C-SABCARAHU100g
+⚠️ SIIGO products API: 401 para SKU C-ACDSAL20P30mL
+⚠️ SIIGO products API: 401 para SKU C-LACCAL100g
+⚠️ SIIGO products API: 401 para SKU C-TAU250g
+⚠️ SIIGO products API: 429 para SKU C-VITCACIASC500g
+⚠️ SIIGO products API: 401 para SKU CCHMZCPLS30UN
+⚠️ SIIGO products API: 429 para SKU OILBMBVC
+⚠️ SIIGO products API: 401 para SKU C-ACEITEATRE5mL
+⚠️ SIIGO products API: 429 para SKU OILESNCLV5mL
+⚠️ SIIGO products API: 401 para SKU C-AMILARG100g
+⚠️ SIIGO products API: 401 para SKU C-ACEESEMAN5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEROM5mL
+⚠️ SIIGO products API: 401 para SKU OILESNTML5mL
+⚠️ SIIGO products API: 401 para SKU OILESNCNL5mL
+⚠️ SIIGO products API: 429 para SKU OILESNPN5mL
+⚠️ SIIGO products API: 401 para SKU KTLJMTT51PZS
+⚠️ SIIGO products API: 401 para SKU C-ACEESEYLA5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESECORCED5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEJAZ5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESELIM5mL
+⚠️ SIIGO products API: 401 para SKU C-ACIMAL100g
+⚠️ SIIGO products API: 429 para SKU C-ACEESENLIM5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESENMAN5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEMEN5mL
+⚠️ SIIGO products API: 429 para SKU C-ACEESEBER5mLL
+⚠️ SIIGO products API: 401 para SKU OILESNHB5mL
+⚠️ SIIGO products API: 401 para SKU C-GELSINSAB500g
+⚠️ SIIGO products API: 401 para SKU DSCVDR
+⚠️ SIIGO products API: 401 para SKU C-EXTMAL500g
+⚠️ SIIGO products API: 401 para SKU C-ACISAL50g
+⚠️ SIIGO products API: 401 para SKU C-ALA100g
+⚠️ SIIGO products API: 401 para SKU C-GLUMONKg
+⚠️ SIIGO products API: 401 para SKU C-DEXKg
+⚠️ SIIGO products API: 429 para SKU C-CERCARKg
+⚠️ SIIGO products API: 401 para SKU C-VITCACIASC100g
+⚠️ SIIGO products API: 401 para SKU C-AMIBCA250g
+⚠️ SIIGO products API: 401 para SKU C-CITZIN500g
+⚠️ SIIGO products API: 401 para SKU C-CERABEREFBLA500g
+⚠️ SIIGO products API: 429 para SKU OILESNALB5ML
+⚠️ SIIGO products API: 401 para SKU C-ACEESENAR5mL
+⚠️ SIIGO products API: 401 para SKU C-BTMS50125g
+⚠️ SIIGO products API: 401 para SKU C-POLTWE20P500mL
+⚠️ SIIGO products API: 401 para SKU C-GLIVEG250mL
+⚠️ SIIGO products API: 429 para SKU C-CERCAR500g
+⚠️ SIIGO products API: 401 para SKU C-ACIHIAALTPES85P30mL
+⚠️ SIIGO products API: 401 para SKU C-POLTWE20P500mL
+⚠️ SIIGO products API: 401 para SKU C-LISO100g
+⚠️ SIIGO products API: 429 para SKU C-ALU250g
+⚠️ SIIGO products API: 401 para SKU C-ACICITR500g
+⚠️ SIIGO products API: 429 para SKU C-FLOSECLAV100g
+⚠️ SIIGO products API: 429 para SKU AS-81
+⚠️ SIIGO products API: 401 para SKU C-COL50g
+⚠️ SIIGO products API: 429 para SKU C-ALA250g
+⚠️ SIIGO products API: 401 para SKU ACLCTGLC30mL
+⚠️ SIIGO products API: 401 para SKU C-SORPOT500g
+⚠️ SIIGO products API: 429 para SKU C-ACEESEEUC5mL
+⚠️ SIIGO products API: 401 para SKU ADAOBDII
+⚠️ SIIGO products API: 401 para SKU C-CERLAN500g
+⚠️ SIIGO products API: 401 para SKU C-CIA100g
+⚠️ SIIGO products API: 429 para SKU C-BTMS500g
+⚠️ SIIGO products API: 401 para SKU GTRVDR100ML
+⚠️ SIIGO products API: 401 para SKU FLNPVC1P
+⚠️ SIIGO products API: 429 para SKU C-SORPOT250g
+⚠️ SIIGO products API: 401 para SKU C-POLTWE80P500mL
+⚠️ SIIGO products API: 401 para SKU AS-19
+⚠️ SIIGO products API: 401 para SKU C-CREMON500g
+⚠️ SIIGO products API: 401 para SKU C-ACENEE60mL
+⚠️ SIIGO products API: 401 para SKU EXTELC5MTS
+⚠️ SIIGO products API: 429 para SKU AS-86
+⚠️ SIIGO products API: 401 para SKU AS-44
+⚠️ SIIGO products API: 401 para SKU AS-84
+⚠️ SIIGO products API: 401 para SKU C-ALUKg
+⚠️ SIIGO products API: 401 para SKU COLPERSIL
+⚠️ SIIGO products API: 401 para SKU ALMLIJMKT123MM
+⚠️ SIIGO products API: 401 para SKU SoMoNiSeMa1.6
+⚠️ SIIGO products API: 401 para SKU C-VAS900g
+⚠️ SIIGO products API: 401 para SKU ERLMYR250ML
+⚠️ SIIGO products API: 401 para SKU TDS/EH/PH/TEMP
+⚠️ SIIGO products API: 401 para SKU C-MANNATTOS500g
+⚠️ SIIGO products API: 429 para SKU FRSCRBTNGX10UN
+⚠️ SIIGO products API: 401 para SKU C-ALU500g
+⚠️ SIIGO products API: 401 para SKU C-ACIDIH10g
+⚠️ SIIGO products API: 401 para SKU C-MANKARBLA125g
+⚠️ SIIGO products API: 401 para SKU KTEXTART18PZS
+⚠️ SIIGO products API: 401 para SKU OwofanBlack
+⚠️ SIIGO products API: 401 para SKU C-VERMAL30mL
+⚠️ SIIGO products API: 401 para SKU C-VITC30P30mL
+⚠️ SIIGO products API: 401 para SKU ALPL12X8X1/4
+⚠️ SIIGO products API: 401 para SKU C-CITPOT500g
+⚠️ SIIGO products API: 401 para SKU C-AGUDES250mL
+⚠️ SIIGO products API: 401 para SKU C-TEGBET500mL
+⚠️ SIIGO products API: 401 para SKU AS-107
+⚠️ SIIGO products API: 401 para SKU C-ACIAZE10g
+⚠️ SIIGO products API: 401 para SKU C-SHA705250mL
+⚠️ SIIGO products API: 401 para SKU C-CITPOT250g
+⚠️ SIIGO products API: 401 para SKU C-ACETEATRE30mL
+⚠️ SIIGO products API: 429 para SKU C-ACDKOJDPAL30mL
+⚠️ SIIGO products API: 401 para SKU C-CARACTPEL800g
+⚠️ SIIGO products API: 401 para SKU C-ACIMAN5g
+⚠️ SIIGO products API: 401 para SKU CPLPRF100UN
+⚠️ SIIGO products API: 401 para SKU KITFRSCPDX4
+⚠️ SIIGO products API: 401 para SKU C-MAL500g
+⚠️ SIIGO products API: 429 para SKU C-KITACIHIA30mL
+⚠️ SIIGO products API: 401 para SKU C-ACDHIABAJPES85P30mL
+⚠️ SIIGO products API: 401 para SKU C-DHA10g
+⚠️ SIIGO products API: 401 para SKU C-INL500g
+⚠️ SIIGO products API: 401 para SKU C-FRACOS250mL
+⚠️ SIIGO products API: 401 para SKU OILESNRMR5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEMAN5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEEUC5mL
+⚠️ SIIGO products API: 401 para SKU OILESNALB5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEYLAYLA5mL
+⚠️ SIIGO products API: 401 para SKU OILESNCNL5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESECORCED5mLOILESNCC5mL
+⚠️ SIIGO products API: 401 para SKU C-ALU500g
+⚠️ SIIGO products API: 429 para SKU C-ACEESEBER5mL
+⚠️ SIIGO products API: 429 para SKU C-ACEESEMEN5mL
+⚠️ SIIGO products API: 429 para SKU C-ACEESENJEN5mL
+⚠️ SIIGO products API: 429 para SKU C-ALBHV500g
+⚠️ SIIGO products API: 401 para SKU C-ACEESENHIEBUE5mL
+⚠️ SIIGO products API: 429 para SKU OILESNTML5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESEJAZ5mL
+⚠️ SIIGO products API: 401 para SKU A
+⚠️ SIIGO products API: 401 para SKU C-ACEESEMEN5mL
+⚠️ SIIGO products API: 429 para SKU C-FRBSGL120mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESENMAN5mL
+⚠️ SIIGO products API: 401 para SKU C-ACEESENAR5mL
+⚠️ SIIGO products API: 401 para SKU C-PISTOS500g
+⚠️ SIIGO products API: 401 para SKU OILESNPN5mL
+⚠️ SIIGO products API: 429 para SKU C-ALMNAT250g
+⚠️ SIIGO products API: 401 para SKU C-SEMCAL500g
+⚠️ SIIGO products API: 401 para SKU C-CITMAGKg
+⚠️ SIIGO products API: 429 para SKU C-CITMAG500g
+⚠️ SIIGO products API: 401 para SKU C-COLHID500g
+⚠️ SIIGO products API: 429 para SKU OLTKLt
+⚠️ SIIGO products API: 401 para SKU C-ALMNAT500g
+⚠️ SIIGO products API: 429 para SKU OILESNCLV5mL
+⚠️ SIIGO products API: 401 para SKU C-ALFARB10g
+⚠️ SIIGO products API: 401 para SKU C-GELSILCRI250g
+⚠️ SIIGO products API: 401 para SKU KITPULMOT50UN
+⚠️ SIIGO products API: 401 para SKU C-NUEBRA250g
+⚠️ SIIGO products API: 401 para SKU C-CITMAG250g
+⚠️ SIIGO products API: 401 para SKU C-SEMCAL250g
+⚠️ SIIGO products API: 401 para SKU C-ARADES250g
+⚠️ SIIGO products API: 401 para SKU C-NUEBRA500g
+⚠️ SIIGO products API: 401 para SKU C-ACERIC500mL
+⚠️ SIIGO products API: 401 para SKU C-ACENEE500mL
+⚠️ SIIGO products API: 401 para SKU C-ACEJOJ30mL
+⚠️ SIIGO products API: 401 para SKU C-ACIKOJ5P30mL
+⚠️ SIIGO products API: 429 para SKU C-MANTKARAMA125g
+⚠️ SIIGO products API: 401 para SKU C-ACERIC10mL
+⚠️ SIIGO products API: 401 para SKU C-GOMGUA500g
+⚠️ SIIGO products API: 401 para SKU C-GLICVEG500mL
+⚠️ SIIGO products API: 401 para SKU C-ACENEE500mL
+⚠️ SIIGO products API: 429 para SKU C-GRADIG
+⚠️ SIIGO products API: 401 para SKU C-ALGSODLACCAL50g
+⚠️ SIIGO products API: 401 para SKU C-CERABREFKg
+⚠️ SIIGO products API: 401 para SKU C-PISTOS250g
+⚠️ SIIGO products API: 401 para SKU C-PARKg
+⚠️ SIIGO products API: 401 para SKU C-GOMGUA500g
+⚠️ SIIGO products API: 401 para SKU C-VAS400g
+⚠️ SIIGO products API: 401 para SKU C-EXTALOVER30mL
+⚠️ SIIGO products API: 401 para SKU C-BICSOD500g
+⚠️ SIIGO products API: 429 para SKU C-ACERIC250mL
+⚠️ SIIGO products API: 429 para SKU PLVSLCpH
+⚠️ SIIGO products API: 401 para SKU C-COCDESHIL250G
+⚠️ SIIGO products API: 401 para SKU C-CAPGELVAC0TRA1000UN
+⚠️ SIIGO products API: 429 para SKU C-VITE30mL
+⚠️ SIIGO products API: 401 para SKU C-CAPGELVAC0VERBLA1000UN
+⚠️ SIIGO products API: 401 para SKU C-COCDESHIL500G
+⚠️ SIIGO products API: 401 para SKU C-CAPVACGEL00TRA1000Un
+⚠️ SIIGO products API: 401 para SKU C-AGUDESSOBRpH
+⚠️ SIIGO products API: 401 para SKU C-CREMON1000g
+⚠️ SIIGO products API: 429 para SKU C-AZUMMET30mL
+⚠️ SIIGO products API: 429 para SKU C-CAPVACGEL0AZUBLA1000UN
+⚠️ SIIGO products API: 401 para SKU C-LAN40g
+   7 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 0 | Sospechosos (>2×): 4
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   144 órdenes canceladas en la ventana.
+⏳ Error de red listando facturas Siigo (página 93); reintento 1/3 en 3s: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=20)
+⏳ Error de red listando facturas Siigo (página 93); reintento 2/3 en 6s: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=20)
+⏳ Error de red listando facturas Siigo (página 170); reintento 1/3 en 3s: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=20)
+   4344 facturas Siigo en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3456 packs con factura).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-71202 -> NC-2-836 (Accepted) — MeLi: ✅
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   ✅ FV-2-71102 -> NC-2-837 (Accepted) — MeLi: ✅
+Resumen: 2 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 2) no es día de pago de nómina (15 o fin de mes).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

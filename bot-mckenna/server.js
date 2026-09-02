@@ -368,6 +368,8 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
         texto.includes('activar') ||
         texto.startsWith('resp ') ||
         texto.includes('hugo dale ok') ||
+        texto.includes('hugo sale ok') ||
+        texto.startsWith('listo ') ||
         texto.startsWith('inv ') ||
         texto.startsWith('posventa ') ||
         texto.startsWith('facturar') ||

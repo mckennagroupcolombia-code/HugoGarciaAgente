@@ -1052,3 +1052,45 @@ export function descargarBase64(b64: string, nombre: string, mime: string): void
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   descargarBlob(new Blob([bytes], { type: mime }), nombre);
 }
+
+/** Convierte un `data:` URI (ej. el que devuelve el endpoint de desenfoque) a Blob. */
+export function dataUrlABlob(dataUrl: string): Blob {
+  const [meta, b64] = dataUrl.split(",");
+  const mimeMatch = /data:(.*?);base64/.exec(meta || "");
+  const mime = mimeMatch ? mimeMatch[1] : "image/png";
+  const bin = atob(b64 || "");
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+/** Región de desenfoque en fracción 0–1 del ancho/alto de la imagen. */
+export type RegionDesenfoque = { x: number; y: number; w: number; h: number };
+
+export interface ResultadoDesenfoquePlantilla {
+  ok: boolean;
+  preview_base64?: string;
+  meta?: { width?: number; height?: number; radio?: number; format?: string; size_bytes?: number };
+  error?: string;
+}
+
+/**
+ * Desenfoca zonas (teléfono, web, datos de empresa…) de un PNG/JPG ya
+ * exportado del Studio Visual, para poder subir la etiqueta a MeLi (que no
+ * permite ese tipo de datos impresos en la imagen). No modifica la biblioteca
+ * ni MercadoLibre — devuelve el PNG/JPG resultante como data-URL.
+ */
+export async function desenfocarBlobPlantilla(
+  blob: Blob,
+  regiones: RegionDesenfoque[],
+  opts?: { radio?: number; formato?: "png" | "jpeg" },
+): Promise<ResultadoDesenfoquePlantilla> {
+  const { api } = await import("../api/client");
+  const formato = opts?.formato ?? "png";
+  const fd = new FormData();
+  fd.append("file", new File([blob], `plantilla.${formato}`, { type: blob.type || `image/${formato}` }));
+  fd.append("regiones", JSON.stringify(regiones));
+  fd.append("radio", String(opts?.radio ?? 28));
+  fd.append("formato", formato);
+  return api.upload<ResultadoDesenfoquePlantilla>("/api/plantillas-visuales/desenfoque", fd);
+}
