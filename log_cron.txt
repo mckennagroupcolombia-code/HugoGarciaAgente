@@ -3472,3 +3472,24 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-09-01) no es el último día del mes.
+[cursor/wa-metricas-panel 7e03b1a] Auto-commit: actualizacion diaria 2026-09-01 23:00
+ 61 files changed, 4458 insertions(+), 1263 deletions(-)
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 desktop/src/components/nav/SolicitudesEnProcesoFab.tsx
+ create mode 100644 importaciones_productos/FA272306 codigos siigo.xml
+ create mode 100644 importaciones_productos/FEA18545 codigos siigo.xml
+ create mode 100644 importaciones_productos/FEV79003 codigos siigo.xml
+ create mode 100644 importaciones_productos/ING1141217 codigos siigo.xml
+ create mode 100644 importaciones_productos/SE96234 codigos siigo.xml
+ create mode 100644 importaciones_productos/SE96234 registro productos.xlsx
+ create mode 100644 tests/test_siigo_nombre.py
+ create mode 100644 uploads/tickets/1e694698f869407fb60d1927491147d3.png
+ create mode 100644 uploads/tickets/26e4325291114377953884e2088afe5a.png
+ create mode 100644 uploads/tickets/308ed8b4949c4f81866ed0423685561b.png
+ create mode 100644 uploads/tickets/40ad2772c23146a1ae7809895ea643fb.png
+ create mode 100644 uploads/tickets/51e8551ecd0a414a8a0e8d515d8121bf.png
+ create mode 100644 uploads/tickets/6dafdc8b9df94ecab07f492abe665425.jpg
+ create mode 100644 uploads/tickets/71ecffd4562040bfb2dfa18ed2c485e8.pdf
+ create mode 100644 uploads/tickets/f823bfad86e24c9cbff1cb82da841810.jpg
+[2026-09-01 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-01 23:00'
