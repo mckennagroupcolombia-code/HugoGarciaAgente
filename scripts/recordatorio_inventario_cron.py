@@ -53,7 +53,7 @@ def main() -> int:
     from app.services.inventario_control import resumen_control_inventario
     from app.utils import enviar_whatsapp_reporte, jid_grupo_inventario_wa
 
-    resumen = resumen_control_inventario()
+    resumen = resumen_control_inventario(refresh=True)
     items = resumen.get("items", [])
     agotados = sum(1 for i in items if i["estado"] == "agotado")
     criticos = sum(1 for i in items if i["estado"] == "critico")

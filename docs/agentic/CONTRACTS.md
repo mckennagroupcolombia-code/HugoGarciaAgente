@@ -171,6 +171,12 @@ Endpoints usados por React:
 | `/api/sync/gmail` | POST | opcional `nit` | `status: iniciado` |
 | `/api/consultar/producto?nombre=` | GET | query `nombre` | `status`, `resultado` |
 | `/api/stock/resumen` | GET | - | `items`, `total` (stock MeLi en vivo; omite closed/inactive) |
+| `/api/inventario-control/resumen` | GET | `refresh=1` opcional | Snapshot SWR: `items`, `total`, `cargando`, `stale`, `desde_cache`, `error?`. Sin `refresh` no espera el barrido vivo de MeLi. Prefijo `/app/api/...` también. |
+| `/api/inventario-control/revisar` | POST | `meli_id` | Marca revisión manual |
+| `/api/inventario-control/proveedor` | POST | `sku`, `proveedor?`, `notas?` | Anota proveedor por SKU |
+| `/api/inventario-control/config` | GET/POST | `umbral_bajo_stock`, `umbral_divergencia_siigo` | POST exige admin si hay sesión de tickets |
+| `/api/inventario-control/solicitar-compra` | POST | `sku` o `meli_id` | Ticket de compra (no muta MeLi/Siigo) |
+| `/api/inventario-control/flag-eliminar` | POST | `sku` o `meli_id` | Ticket de baja de publicación |
 | `/api/stock/ventas-30d` | GET | `dias?` (default 30), `refresh?` | `por_item[meli_id]{unidades,ordenes,monto,ritmo_diario,nivel}`, `ordenes`, caché ~30 min |
 | `/api/stock/relacion-codigos` | GET | `buscar`, `filtro` (`todos`\|`vinculados`\|`sin_siigo`\|`divergentes`\|`sin_codigo`\|`sin_c`), `refresh` | `items` (meli_id, sku_meli, codigo_siigo, estado), `totales` (incluye `sin_c`: sin prefijo combo `C-`) |
 | `/api/stock/relacion-codigos/vincular` | POST | `codigo_siigo`, `meli_id` | override Siigo→MeLi (`ok`, `en_siigo`) |
@@ -262,21 +268,27 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 | `/api/rentabilidad/trm` | GET | query `fecha=YYYY-MM-DD` | TRM BanRep (datos.gov.co) USD→COP para esa fecha |
 | `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas consolidadas + landed; USD sin TRM → BanRep |
 | `/api/tickets/extraer-lista-compras` | POST | multipart `imagen` o `archivo`, `modo=compra|etiqueta` (auth tickets) | OCR → `{items:[{nombre,cantidad,unidad}]}`; etiquetas: presentación en nombre + `unidad=u` |
-| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?` | Upsert costos + historial; genera PDF cuenta de cobro 5% cuota manejo; con `compra_id` actualiza pedido ya registrado; con `borrador_id` usa/elimina borrador |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?`, `emisor_usuario_id?` | Upsert costos + historial; deja cuenta de cobro pendiente; `emisor_usuario_id` asigna a nombre de quién se emitirá el PDF |
 | `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` (incluye `cuota_manejo_cop`, `cuenta_cobro_url`) |
 | `/api/rentabilidad/compras-exterior/<id>` | GET/DELETE | - | Detalle o eliminar compra (+ soportes + PDF cobro) |
 | `/api/rentabilidad/compras-exterior/<id>/soporte` | GET | - | Imagen/PDF del pantallazo |
-| `/api/rentabilidad/compras-exterior/<id>/cuenta-cobro` | GET/POST | POST body `{ accent_rgb }` | GET: PDF aprobado; POST: aprueba y genera PDF con acento del tema del usuario |
+| `/api/rentabilidad/compras-exterior/<id>/cuenta-cobro` | GET/POST | POST body `{ accent_rgb, tipo?, cuota_pct?, emisor_usuario_id? }` | GET: PDF aprobado; POST: aprueba y genera PDF. `emisor_usuario_id` elige a nombre de quién sale (usuario del panel: Cynthia, Armando, etc.); si no llega, usa el usuario de la sesión |
+| `/api/rentabilidad/compras-exterior/emisores` | GET | - | Lista usuarios activos `{emisores:[{id,nombre,documento_identidad,email}]}` para el selector de emisor |
+| `/api/rentabilidad/compras-exterior/envios` | GET/POST | POST: `{compra_ids, fecha_envio, flete, moneda_flete?, emisor_usuario_id?, trm?}` | Agrupa compras en un paquete. El flete se liquida con TRM BanRep de `fecha_envio` y se reparte por **% de paquetes** (`cantidad`). GET lista envíos del historial |
+| `/api/rentabilidad/compras-exterior/envios/<id>` | GET/PATCH/DELETE | PATCH: `fecha_envio`, `flete`, `moneda_flete`, `compra_ids?` | Detalle / actualizar liquidación / desenlazar paquete |
+| `/api/rentabilidad/compras-exterior/envios/<id>/recalcular-costos` | POST | - | Reparte el flete por % de paquetes y actualiza costos unitarios (historial + componentes + Siigo). No borra PDF de flete ya aprobado |
 | `/api/rentabilidad/compras-exterior/borradores` | GET | `limit?` | Lista borradores `{borradores[]}` |
 | `/api/rentabilidad/compras-exterior/borrador` | POST | multipart/JSON: `estado`, `moneda`, `trm`, `imagenes?`, `borrador_id?` | Crear/actualizar borrador para retomar |
 | `/api/rentabilidad/compras-exterior/borrador/<id>` | GET/DELETE | - | Detalle o eliminar borrador |
 | `/api/rentabilidad/compras-exterior/borrador/<id>/soporte` | GET | `i?` | Soporte del borrador |
 
 Landed cost: `costo_unitario_cop = (subtotal_neto_cop + flete_asignado) / (packs × contenido)`.
-El flete total se reparte por **unidades compradas** (packs × ml/g/un), no por valor $.
+El flete total de una compra suelta se reparte por **unidades compradas** (packs × ml/g/un), no por valor $.
+Si varias compras viajan en un solo paquete (`compras_exterior_envios`), el flete se liquida con la TRM BanRep de `fecha_envio` y se reparte por **porcentaje de paquetes** (`cantidad` de cada referencia / total de packs del envío); cada costo unitario sube con su parte del flete. La mercancía de cada factura sigue con la TRM de su `fecha_compra`. Una sola cuenta de cobro de flete por envío.
 Unidad base obligatoria por línea: `ml` | `g` | `un` (detectada del texto: 500ml→ml, 1kg→g/1000, 100pcs→un).
 El costo guardado es por esa unidad mínima (COP/ml, COP/g o COP/un).
 USD→COP: TRM = tasa representativa BanRep vigente en `fecha_compra` (fuente `banrep`); override manual opcional.
+En extracción OCR, la `fecha_compra` del documento **tiene prioridad** sobre la del formulario (que suele ser “hoy”); el form solo aplica si el OCR no encuentra fecha.
 La **cuenta de cobro** siempre se genera en pesos (COP) con esa TRM del día de la compra. Si el OCR/formulario etiqueta como COP un total típico de factura en dólares (p. ej. $532), se reinterpreta como USD y se aplica la TRM BanRep.
 Descuentos: `descuento_detectado` / `descuento_pct` (pedido) y `descuento` / `descuento_pct` por línea; el costo usa el neto tras descuentos.
 

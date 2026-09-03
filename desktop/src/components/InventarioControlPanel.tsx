@@ -5,6 +5,7 @@ import {
   useGuardarProveedorInventario,
   useInventarioControlResumen,
   useMarcarRevisadoInventario,
+  useRefrescarInventarioControl,
   useSolicitarCompraInventario,
   type EstadoInventario,
   type ItemInventarioControl,
@@ -386,7 +387,9 @@ export default function InventarioControlPanel() {
   const [buscar, setBuscar] = useState("");
   const [buscarAbierto, setBuscarAbierto] = useState(false);
   const buscarInputRef = useRef<HTMLInputElement>(null);
-  const { data, isLoading, isFetching, error, refetch } = useInventarioControlResumen();
+  const { data, isLoading, isFetching, error } = useInventarioControlResumen();
+  const refrescar = useRefrescarInventarioControl();
+  const actualizando = isFetching || refrescar.isPending || Boolean(data?.cargando);
 
   const items = data?.items ?? [];
   const q = buscar.trim().toLowerCase();
@@ -460,12 +463,13 @@ export default function InventarioControlPanel() {
         </div>
         <button
           type="button"
-          onClick={() => refetch()}
-          title={isFetching ? "Actualizando…" : "Actualizar"}
-          aria-label={isFetching ? "Actualizando…" : "Actualizar"}
+          onClick={() => refrescar.mutate()}
+          disabled={refrescar.isPending}
+          title={actualizando ? "Actualizando…" : "Actualizar"}
+          aria-label={actualizando ? "Actualizando…" : "Actualizar"}
           className="inline-flex h-7 w-7 items-center justify-center rounded-paper border border-accent bg-accent text-white"
         >
-          <Icon name="refresh" size={14} weight="bold" className={isFetching ? "animate-spin" : undefined} />
+          <Icon name="refresh" size={14} weight="bold" className={actualizando ? "animate-spin" : undefined} />
         </button>
       </header>
 
@@ -486,7 +490,9 @@ export default function InventarioControlPanel() {
         ))}
       </div>
 
-      {isLoading && <p className="py-4 text-center text-xs text-muted">Cargando inventario…</p>}
+      {(isLoading || data?.cargando) && (
+        <p className="py-4 text-center text-xs text-muted">Cargando inventario…</p>
+      )}
       {error && (
         <p className="rounded-paper border border-danger/40 bg-danger/10 p-2 text-xs font-semibold text-danger">
           {error instanceof Error ? error.message : "No se pudo cargar el inventario."}
@@ -498,7 +504,7 @@ export default function InventarioControlPanel() {
         </p>
       )}
 
-      {!isLoading && filtrados.length === 0 && (
+      {!isLoading && !data?.cargando && filtrados.length === 0 && (
         <p className="flex items-center justify-center gap-1 py-4 text-center text-xs text-muted">
           {q ? (
             <>

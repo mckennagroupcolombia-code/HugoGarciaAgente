@@ -1,7 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { api } from "../api/client";
+import { useEmisoresCuentaCobro } from "../hooks/useEmisoresCuentaCobro";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import CuentaCobroAccentPicker, {
+  leerAccentCuentaCobro,
+} from "./CuentaCobroAccentPicker";
 import { datos_emisor_documento, datos_emisor_label } from "./cuentaCobroLabels";
 
 export type CuentaCobroTipo = "mercancia" | "flete";
@@ -38,6 +42,9 @@ export type CuentaCobroDatos = {
   cuenta_flete_estado?: string;
   tiene_cuenta_flete?: boolean;
   cuenta_flete_pendiente?: boolean;
+  emisor_usuario_id?: number | null;
+  emisor_nombre?: string;
+  emisor_documento?: string;
 };
 
 function fmtCop(v: number | null | undefined): string {
@@ -96,18 +103,71 @@ export default function CuentaCobroAprobacion({
   onDescargar,
   compact,
 }: Props) {
-  const accentRgb = usePanelTheme((s) => s.accentRgb);
+  const themeAccentRgb = usePanelTheme((s) => s.accentRgb);
   const emisorUser = useTicketsAuth((s) => s.user);
+  const { data: emisoresData } = useEmisoresCuentaCobro();
+  const emisores = emisoresData?.emisores || [];
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [pdfAccentRgb, setPdfAccentRgb] = useState(() =>
+    leerAccentCuentaCobro(themeAccentRgb),
+  );
   const [pctEdit, setPctEdit] = useState(() =>
     String(compra.cuota_pct != null && compra.cuota_pct > 0 ? compra.cuota_pct : 5),
   );
+  const [emisorId, setEmisorId] = useState<number | "">(() => {
+    if (compra.emisor_usuario_id) return compra.emisor_usuario_id;
+    return emisorUser?.id ?? "";
+  });
+
+  useEffect(() => {
+    if (compra.emisor_usuario_id) {
+      setEmisorId(compra.emisor_usuario_id);
+      return;
+    }
+    if (emisorId === "" && emisorUser?.id) setEmisorId(emisorUser.id);
+  }, [compra.emisor_usuario_id, emisorUser?.id]);
 
   const esFlete = tipo === "flete";
-  const emisorNombre = (emisorUser?.nombre || "").trim() || datos_emisor_label();
+  const emisorSeleccionado = useMemo(
+    () => emisores.find((e) => e.id === emisorId) || null,
+    [emisores, emisorId],
+  );
+
+  /** Acento del tema del emisor (Armando → su color); si no tiene, tema actual / último guardado. */
+  const accentDelEmisor = useMemo(() => {
+    const deEmisor = (emisorSeleccionado?.accent_rgb || "").trim();
+    if (deEmisor) return deEmisor;
+    if (emisorId && emisorId === emisorUser?.id) {
+      const propio = (emisorUser?.preferencias_ui?.panel?.accentRgb || "").trim();
+      if (propio) return propio;
+      return themeAccentRgb;
+    }
+    return leerAccentCuentaCobro(themeAccentRgb);
+  }, [
+    emisorSeleccionado?.accent_rgb,
+    emisorId,
+    emisorUser?.id,
+    emisorUser?.preferencias_ui?.panel?.accentRgb,
+    themeAccentRgb,
+  ]);
+
+  useEffect(() => {
+    setPdfAccentRgb(accentDelEmisor);
+  }, [accentDelEmisor]);
+  const emisorNombre =
+    (emisorSeleccionado?.nombre || "").trim() ||
+    (compra.emisor_nombre || "").trim() ||
+    (emisorUser?.nombre || "").trim() ||
+    datos_emisor_label();
   const emisorDoc =
-    (emisorUser?.documento_identidad || "").trim() || datos_emisor_documento();
+    (emisorSeleccionado?.documento_identidad || "").trim() ||
+    (emisorId && emisorId === compra.emisor_usuario_id
+      ? (compra.emisor_documento || "").trim()
+      : "") ||
+    (emisorId === emisorUser?.id
+      ? (emisorUser?.documento_identidad || "").trim() || datos_emisor_documento()
+      : "");
   const pctNum = useMemo(() => {
     const v = Number(String(pctEdit).replace(",", "."));
     if (!Number.isFinite(v) || v <= 0) return compra.cuota_pct ?? 5;
@@ -145,18 +205,22 @@ export default function CuentaCobroAprobacion({
 
   const aprobar = async () => {
     if (!emisorDoc) {
-      setErr("Completa tu documento de identidad en Mi perfil antes de aprobar.");
+      setErr(
+        emisorNombre
+          ? `${emisorNombre} no tiene documento de identidad en su perfil.`
+          : "Elige a nombre de quién va la cuenta de cobro y asegúrate de que tenga documento en su perfil.",
+      );
       return;
     }
     setBusy(true);
     setErr(null);
     try {
       const body: Record<string, string | number> = {
-        accent_rgb: accentRgb,
+        accent_rgb: pdfAccentRgb,
         tipo,
       };
       if (!esFlete) body.cuota_pct = pctNum;
-      if (emisorUser?.id) body.emisor_usuario_id = emisorUser.id;
+      if (emisorId) body.emisor_usuario_id = emisorId;
       const res = await api.post<{ ok: boolean; historial: CuentaCobroDatos }>(
         `/api/rentabilidad/compras-exterior/${compra.id}/cuenta-cobro`,
         body,
@@ -169,11 +233,24 @@ export default function CuentaCobroAprobacion({
     }
   };
 
+  const accentHover = useMemo(() => {
+    const parts = pdfAccentRgb.trim().split(/\s+/).map(Number);
+    if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return pdfAccentRgb;
+    const [r, g, b] = parts;
+    return `${Math.max(0, r - 8)} ${Math.max(0, g - 15)} ${Math.max(0, b - 16)}`;
+  }, [pdfAccentRgb]);
+
   return (
     <article
       className={`overflow-hidden rounded-paper border border-border bg-surface-panel shadow-paper-sm ${
         compact ? "" : "max-w-xl"
       }`}
+      style={
+        {
+          ["--mck-accent" as string]: pdfAccentRgb,
+          ["--mck-accent-hover" as string]: accentHover,
+        } as CSSProperties
+      }
     >
       <header className="border-b-2 border-accent px-4 py-3 text-center">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
@@ -184,6 +261,7 @@ export default function CuentaCobroAprobacion({
         </h3>
         <p className="mt-0.5 font-mono text-[11px] text-ink-secondary">
           <span className="text-accent font-semibold">{numero}</span>
+          {` · Pedido Nº ${compra.id}`}
           {compra.fecha_compra ? ` · ${compra.fecha_compra}` : ""}
         </p>
       </header>
@@ -191,8 +269,33 @@ export default function CuentaCobroAprobacion({
       <div className="space-y-3 px-4 py-3 text-sm text-ink">
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-border px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Emisor</p>
-            <p className="font-semibold">{emisorNombre}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-accent">
+              A nombre de
+            </p>
+            {emisores.length > 0 ? (
+              <select
+                value={emisorId === "" ? "" : String(emisorId)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setEmisorId(v ? Number(v) : "");
+                  setErr(null);
+                }}
+                disabled={busy}
+                className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1 text-sm font-semibold"
+                title="Usuario del panel a cuyo nombre se emite la cuenta de cobro"
+              >
+                <option value="">Elegir usuario…</option>
+                {emisores.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nombre}
+                    {e.documento_identidad ? "" : " (sin documento)"}
+                    {e.accent_rgb ? "" : " · sin color de tema"}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="font-semibold">{emisorNombre}</p>
+            )}
             <p className="text-[11px] text-muted font-mono">
               {emisorDoc ? `CC/NIT ${emisorDoc}` : "Sin documento en perfil"}
             </p>
@@ -204,11 +307,23 @@ export default function CuentaCobroAprobacion({
           </div>
         </div>
 
+        <CuentaCobroAccentPicker
+          value={pdfAccentRgb}
+          onChange={setPdfAccentRgb}
+          disabled={busy}
+          label="Color del PDF"
+          hint={
+            emisorNombre
+              ? `Acento del tema de ${emisorNombre} (el PDF usa su color guardado en el panel).`
+              : "Elige el emisor para cargar su color de tema."
+          }
+        />
+
         {esFlete ? (
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Concepto</p>
             <p className="text-[12px] leading-relaxed text-ink-secondary">
-              Reembolso de flete / envío de la compra exterior
+              Reembolso de flete / envío del pedido Nº {compra.id}
               {compra.proveedor ? ` · ${compra.proveedor}` : ""}.
             </p>
           </div>
@@ -225,6 +340,7 @@ export default function CuentaCobroAprobacion({
                   . Incluye cuota de manejo del{" "}
                   <span className="font-semibold text-accent">{pctNum}%</span> sobre el valor de los
                   productos
+                  {` · Pedido Nº ${compra.id}`}
                   {compra.proveedor ? ` · ${compra.proveedor}` : ""}
                   . Valores en pesos (COP)
                   {compra.moneda && compra.moneda.toUpperCase() !== "COP" && compra.trm
@@ -324,7 +440,9 @@ export default function CuentaCobroAprobacion({
         {err && <p className="text-[11px] text-danger">{err}</p>}
         {pendiente && !emisorDoc && (
           <p className="text-[11px] text-amber-700 dark:text-amber-300">
-            Ve a Mi perfil y guarda tu documento de identidad para poder generar la cuenta de cobro.
+            {emisorNombre
+              ? `${emisorNombre} no tiene documento de identidad en su perfil. Guárdalo en Mi perfil (o pide que lo complete) para generar la cuenta.`
+              : "Elige a nombre de quién va la cuenta de cobro."}
           </p>
         )}
 
@@ -358,7 +476,7 @@ export default function CuentaCobroAprobacion({
                 disabled={busy || !emisorDoc}
                 onClick={() => void aprobar()}
                 className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-muted hover:text-ink"
-                title="Vuelve a generar el PDF con el % y el acento actuales"
+                title="Vuelve a generar el PDF con el %, el color de acento y el emisor actuales"
               >
                 {busy ? "…" : "Regenerar PDF"}
               </button>

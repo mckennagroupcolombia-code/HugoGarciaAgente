@@ -99,6 +99,19 @@ Otras reglas:
 - Sin markdown. Solo JSON.
 """
 
+def fecha_efectiva_extraccion(
+    fecha_ocr: str | None,
+    fecha_formulario: str | None,
+) -> str | None:
+    """Fecha para TRM/cuenta: OCR del documento gana; formulario solo si no hay OCR.
+
+    El panel suele enviar la fecha de hoy por defecto; no debe pisar el invoice.
+    """
+    from app.services.trm import normalizar_fecha
+
+    return normalizar_fecha(fecha_ocr) or normalizar_fecha(fecha_formulario)
+
+
 # Volumen → ml
 _RE_ML = re.compile(
     r"(\d+(?:[.,]\d+)?)\s*(?:m\.?\s*l\.?|mililitros?)\b",
@@ -412,12 +425,14 @@ def calcular_landed(
     descuento: float = 0.0,
     descuento_pct: float | None = None,
     moneda_descuento: str | None = None,
+    prorrateo_flete: str = "unidades",
 ) -> list[dict[str, Any]]:
     """
     Costo unitario COP sobre el neto tras descuentos:
 
     subtotal_neto = subtotal − descuento_línea − descuento_pedido_prorrateado
-    flete se reparte por unidades compradas (packs × contenido), no por valor.
+    flete: por defecto por unidades (packs × contenido); con prorrateo_flete="paquetes"
+    se reparte por cantidad de packs (útil en envíos consolidados).
     costo = (precio_neto_pack_cop + flete_por_pack) / contenido
           = (subtotal_neto_cop + flete_línea) / unidades_totales
     """
@@ -427,6 +442,11 @@ def calcular_landed(
     rate = 1.0 if mon == "COP" else max(float(trm or 0), 0.0)
     if mon != "COP" and rate <= 0:
         rate = 0.0
+    por_paquetes = (prorrateo_flete or "unidades").strip().lower() in (
+        "paquetes",
+        "packs",
+        "cantidad",
+    )
 
     flete_val = max(float(flete or 0), 0.0)
     if flete_val > 0:
@@ -439,10 +459,11 @@ def calcular_landed(
     else:
         flete_cop = 0.0
 
-    # Brutos, descuentos de línea y unidades compradas (para prorratear flete)
+    # Brutos, descuentos de línea y pesos de flete
     brutos: list[float] = []
     desc_lineas: list[float] = []
     unidades_lineas: list[float] = []
+    paquetes_lineas: list[float] = []
     for l in lineas:
         cantidad = max(_num(l.get("cantidad")), 0.0) or 1.0
         upp = max(_num(l.get("unidades_por_pack"), 1.0), 0.0) or 1.0
@@ -457,9 +478,12 @@ def calcular_landed(
         d_lin = min(d_lin, subtotal) if subtotal > 0 else 0.0
         brutos.append(subtotal)
         desc_lineas.append(d_lin)
+        paquetes_lineas.append(max(cantidad, 0.0))
         unidades_lineas.append(max(cantidad * upp, 0.0))
 
     suma_bruta = sum(brutos)
+    pesos_flete = paquetes_lineas if por_paquetes else unidades_lineas
+    suma_pesos_flete = sum(pesos_flete)
     suma_unidades = sum(unidades_lineas)
     # Descuento de pedido (absoluto o % sobre suma bruta)
     desc_pedido = max(float(descuento or 0), 0.0)
@@ -496,9 +520,9 @@ def calcular_landed(
         subtotal_cop = _monto_a_cop(subtotal, mon, rate)
         subtotal_neto_cop = _monto_a_cop(subtotal_neto, mon, rate)
         precio_pack_cop = _monto_a_cop(precio_neto_pack, mon, rate)
-        # Flete por unidades compradas (ml/g/un totales de la línea)
-        uds = unidades_lineas[i]
-        peso_flete = (uds / suma_unidades) if suma_unidades > 0 else (1.0 / n_lineas)
+        # Flete: por packs (envío consolidado) o por unidades (compra suelta)
+        peso_base = pesos_flete[i]
+        peso_flete = (peso_base / suma_pesos_flete) if suma_pesos_flete > 0 else (1.0 / n_lineas)
         flete_asig = flete_cop * peso_flete if flete_cop > 0 else 0.0
         flete_por_pack = flete_asig / cantidad if cantidad > 0 else 0.0
         costo = round((precio_pack_cop + flete_por_pack) / upp, 4) if upp > 0 else 0.0
@@ -792,7 +816,8 @@ def extraer_compra_desde_imagenes(
     """Llama Gemini Vision con una o varias imágenes del mismo pedido.
 
     Si la moneda es USD y no se pasa TRM manual, consulta la TRM BanRep de la
-    fecha de compra (OCR o parámetro).
+    fecha de compra. Prioridad: fecha leída por OCR del documento; si no hay,
+    el parámetro `fecha_compra` del formulario (fallback).
     """
     api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     if not api_key:
@@ -856,8 +881,11 @@ def extraer_compra_desde_imagenes(
     )
     from app.services.trm import normalizar_fecha, obtener_trm
 
+    # Preferir fecha del documento (OCR). El formulario suele mandar "hoy" por
+    # defecto y no debe pisar la fecha real del invoice/pedido.
     fecha_ocr = normalizar_fecha(parsed.get("fecha_compra"))
-    fecha_eff = normalizar_fecha(fecha_compra) or fecha_ocr
+    fecha_form = normalizar_fecha(fecha_compra)
+    fecha_eff = fecha_efectiva_extraccion(fecha_ocr, fecha_form)
 
     trm_meta: dict[str, Any] | None = None
     trm_fuente = None
@@ -938,6 +966,7 @@ def extraer_compra_desde_imagenes(
     out: dict[str, Any] = {
         "moneda": moneda,
         "fecha_compra": fecha_eff,
+        "fecha_detectada_ocr": fecha_ocr,
         "proveedor": str(parsed.get("proveedor") or "").strip(),
         "referencia": str(parsed.get("referencia") or "").strip(),
         "flete_detectado": flete_det_n,

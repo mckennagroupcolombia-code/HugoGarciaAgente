@@ -7,6 +7,7 @@ Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo 
 ## Archivos Ancla
 
 - `app/sync.py`
+- `app/services/inventario_control.py` (panel Control de Inventario: SWR, MeLi = stock vendible)
 - `app/services/meli.py`
 - `app/services/siigo.py`
 - `app/tools/sincronizar_productos_pagina_web.py`
@@ -20,6 +21,7 @@ Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo 
 - Siigo solo factura; no gobierna stock.
 - Precio web = precio publicado en MeLi × 0.90 (10% de descuento comercial). Siigo replica el precio MeLi.
 - Sincronizaciones largas deben correr en hilo o proceso controlado.
+- `GET /api/inventario-control/resumen` sirve el último snapshot (TTL ~90s, stale hasta 6h) y refresca MeLi en segundo plano. El barrido vivo de MeLi no puede bloquear el GET del panel.
 
 ## Riesgos
 

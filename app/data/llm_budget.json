@@ -1,13 +1,13 @@
 {
  "fecha": "2026-09-02",
- "gasto_usd": 0.481668,
- "llamadas": 38,
+ "gasto_usd": 0.656058,
+ "llamadas": 56,
  "por_modelo": {
-  "claude-sonnet-4-6": 0.481668
+  "claude-sonnet-4-6": 0.656058
  },
  "por_contexto": {
-  "cliente_chat": 0.44001,
-  "meli_preventa": 0.041658
+  "cliente_chat": 0.58608,
+  "meli_preventa": 0.069978
  },
  "alerta_enviada": false,
  "historial": [

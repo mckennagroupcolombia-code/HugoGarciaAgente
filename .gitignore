@@ -51,6 +51,8 @@ memoria_vectorial/
 app/data/relacion_codigos_cache.json
 app/data/meli_cobros_cache.json
 app/data/preventa_metricas_cache.json
+app/data/inventario_control_resumen_cache.json
+app/data/siigo_stock_cache.json
 app/data/analisis_competencia_precios.json
 app/data/competencia_observaciones_manual.json
 app/data/competencia_reportes_captura.json

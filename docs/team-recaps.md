@@ -1,4 +1,73 @@
-### 2026-08-27 09:35 - Studio: corrección de abstracción IA de diagramación y eliminación de plantilla fija
+### 2026-09-02 20:45 - Extracción IA: fecha de compra del invoice
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección de Bug
+- **Qué se implementó:**
+  - Al escanear un pantallazo, el formulario enviaba siempre la fecha de hoy y **pisaba** la fecha que leía la IA del invoice.
+  - Ahora la fecha del documento (OCR) tiene prioridad; la del formulario solo se usa si el OCR no encuentra fecha. También se aceptan formatos US (`08/20/2026`, `Aug 20, 2026`).
+- **Archivos Modificados:** `compra_exterior_ocr.py`, `trm.py`, `test_compra_exterior_ocr.py`, `test_trm.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-02 22:20 - Cuenta de cobro: número de pedido visible
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - El PDF y la vista previa de cuenta de cobro (mercancía y flete) muestran **Pedido Nº {id}** en el encabezado y en el concepto.
+- **Archivos Modificados:** `cuenta_cobro_cuota_manejo.py`, `CuentaCobroAprobacion.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `docs/team-recaps.md`
+
+### 2026-09-02 21:35 - Verificación de extracción en emergente
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Al pegar/adjuntar y extraer una compra, la revisión (fecha, TRM, flete, líneas y confirmar) abre en un **modal centrado**, sin tener que bajar por el historial.
+- **Archivos Modificados:** `ComprasExteriorPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-02 21:25 - Botón actualizar costos unitarios del envío
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - En cada envío consolidado hay un botón **Actualizar costos unitarios** que reparte el flete por % de paquetes y refresca el costo de cada referencia (historial + componentes).
+- **Archivos Modificados:** `contabilidad_db.py`, `routes.py`, `ComprasExteriorPanel.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-02 21:20 - Envío consolidado: flete por % de paquetes
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Mejora
+- **Qué se implementó:**
+  - Al enlazar varias compras en un envío, el flete se reparte por **porcentaje de paquetes** (`cantidad` de cada referencia ÷ total de packs), no por ml/g. Cada costo unitario sube con su parte del flete.
+- **Archivos Modificados:** `compra_exterior_ocr.py`, `contabilidad_db.py`, `ComprasExteriorPanel.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-02 20:15 - Compras exterior: un paquete, flete con fecha de envío
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Varias compras de fechas distintas se pueden **enlazar en un envío**. El flete se liquida con la TRM BanRep del **día del envío** y se reparte por unidades; cada factura sigue con su TRM de compra para la mercancía.
+  - En el historial: marcar compras → **Enlazar en un envío** (fecha + flete). El paquete muestra una sola cuenta de cobro de flete.
+- **Archivos Modificados:** `contabilidad_db.py`, `cuenta_cobro_cuota_manejo.py`, `routes.py`, `ComprasExteriorPanel.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-02 19:45 - Control de Inventario deja de colgarse al cargar
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El panel Control de Inventario se quedaba en “Cargando inventario…” porque `/api/inventario-control/resumen` barría MeLi en vivo (sin timeout en cada lote) y Mercado Libre cortaba la conexión (~31 s, `Connection reset`).
+  - El GET ahora entrega de inmediato el último snapshot (caché ~90 s, usable hasta 6 h) y actualiza MeLi en segundo plano. El botón de refrescar fuerza un recálculo; si MeLi falla, se muestra el snapshot con aviso.
+  - Cada lote a MeLi tiene timeout; un lote caído no tumba el resumen completo. El cron semanal de recordatorio pide recálculo en vivo (`refresh=True`).
+- **Archivos Modificados:** `app/services/inventario_control.py`, `app/sync.py`, `app/routes.py`, `desktop/src/hooks/useInventarioControl.ts`, `InventarioControlPanel.tsx`, `tests/test_inventario_control.py`, `docs/agentic/CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-02 20:05 - Compras exterior: vista previa de cuenta de cobro en modal
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - Al pulsar **Aprobar cobro** (o al confirmar costos), la vista previa ya no aparece al final de la página: emerge en un modal centrado, con fondo oscuro, se cierra con ✕, Escape o clic fuera.
+- **Archivos Modificados:** `ComprasExteriorPanel.tsx`, `docs/team-recaps.md`
+
+
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - En Compras en el exterior se puede elegir a **nombre de quién** sale la cuenta de cobro (Cynthia, Armando u otro usuario del panel), en lugar de usar siempre a quien está logueado.
+  - El PDF y el historial guardan ese emisor (`emisor_usuario_id` + nombre). Al aprobar o regenerar se usa el perfil elegido (nombre y documento).
+  - El usuario elegido debe tener documento de identidad en Mi perfil.
+- **Archivos Modificados:** `cuenta_cobro_cuota_manejo.py`, `contabilidad_db.py`, `routes.py`, `ComprasExteriorPanel.tsx`, `CuentaCobroAprobacion.tsx`, `useEmisoresCuentaCobro.ts`, `test_cuenta_cobro_cuota_manejo.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Corrección de Bug / Abstracción Visión IA
 - **Qué se implementó:**

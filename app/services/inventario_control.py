@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import threading
 import time
 from datetime import datetime
 from typing import Any
@@ -35,6 +36,14 @@ _PROVEEDORES_PATH = os.path.join(_DATA_DIR, "inventario_proveedores.json")
 _SIIGO_STOCK_CACHE_PATH = os.path.join(_DATA_DIR, "siigo_stock_cache.json")
 
 _SIIGO_STOCK_CACHE_TTL_S = 30 * 60
+_RESUMEN_CACHE_PATH = os.path.join(_DATA_DIR, "inventario_control_resumen_cache.json")
+_RESUMEN_CACHE_TTL_S = 90
+_RESUMEN_CACHE_STALE_S = 6 * 60 * 60
+_MELI_MAX_SECONDS = 22.0
+_CACHE_LOCK = threading.Lock()
+_MEM_CACHE: tuple[float, dict] | None = None
+_REFRESHING = False
+_LAST_FAIL: tuple[float, str] | None = None
 
 DEFAULT_UMBRAL_BAJO_STOCK = 5
 DEFAULT_UMBRAL_DIVERGENCIA_SIIGO = 3
@@ -136,6 +145,85 @@ def listar_stock_siigo_bulk(refresh: bool = False) -> dict[str, dict]:
     return por_codigo
 
 
+def _parchear_cache_item(
+    *,
+    meli_id: str = "",
+    sku: str = "",
+    stock_meli: int | None = None,
+    revisado_en: str | None = None,
+    revisado_por: str | None = None,
+    proveedor: str | None = None,
+    notas_proveedor: str | None = None,
+) -> None:
+    """Actualiza una fila del snapshot para que el panel no espere el refresh de MeLi."""
+    cached = _cache_get()
+    if not cached:
+        return
+    ts, payload = cached
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return
+    mid = (meli_id or "").strip().upper()
+    sku_n = (sku or "").strip()
+    umbral_bajo = int(payload.get("umbral_bajo_stock") or DEFAULT_UMBRAL_BAJO_STOCK)
+    changed = False
+    nuevos = []
+    for it in items:
+        if not isinstance(it, dict):
+            nuevos.append(it)
+            continue
+        match = (mid and str(it.get("meli_id") or "").upper() == mid) or (
+            sku_n and str(it.get("sku") or "") == sku_n
+        )
+        if not match:
+            nuevos.append(it)
+            continue
+        fila = dict(it)
+        if stock_meli is not None:
+            stock = int(stock_meli)
+            fila["stock_meli"] = stock
+            if stock == 0:
+                fila["estado"] = "agotado"
+            elif stock == 1:
+                fila["estado"] = "critico"
+            elif stock < umbral_bajo:
+                fila["estado"] = "bajo"
+            else:
+                fila["estado"] = "ok"
+        if revisado_en is not None:
+            fila["revisado_en"] = revisado_en
+            fila["dias_sin_revisar"] = _dias_desde(revisado_en)
+        if revisado_por is not None:
+            fila["revisado_por"] = revisado_por
+        if proveedor is not None:
+            fila["proveedor"] = proveedor
+        if notas_proveedor is not None:
+            fila["notas_proveedor"] = notas_proveedor
+        nuevos.append(fila)
+        changed = True
+    if not changed:
+        return
+    nuevo = dict(payload)
+    nuevos.sort(
+        key=lambda x: (
+            {"agotado": 0, "critico": 1, "bajo": 2, "ok": 3}.get(x.get("estado"), 4)
+            if isinstance(x, dict)
+            else 9,
+            {"alta": 0, "media": 1, "baja": 2, "sin_ventas": 3}.get(
+                x.get("rotacion") if isinstance(x, dict) else "", 4
+            ),
+            str(x.get("nombre") or "").lower() if isinstance(x, dict) else "",
+        )
+    )
+    nuevo["items"] = nuevos
+    global _MEM_CACHE
+    _MEM_CACHE = (ts, nuevo)
+    try:
+        _escribir_json(_RESUMEN_CACHE_PATH, {"ts": ts, "data": nuevo})
+    except Exception:
+        pass
+
+
 def marcar_revisado(meli_id: str, usuario_nombre: str = "") -> dict:
     meli_id = (meli_id or "").strip().upper()
     if not meli_id:
@@ -147,6 +235,11 @@ def marcar_revisado(meli_id: str, usuario_nombre: str = "") -> dict:
     }
     data[meli_id] = entrada
     _escribir_json(_REVISIONES_PATH, data)
+    _parchear_cache_item(
+        meli_id=meli_id,
+        revisado_en=entrada["revisado_en"],
+        revisado_por=entrada["revisado_por"],
+    )
     return entrada
 
 
@@ -163,6 +256,11 @@ def guardar_proveedor(sku: str, proveedor: str = "", notas: str = "", usuario_no
     }
     data[sku] = entrada
     _escribir_json(_PROVEEDORES_PATH, data)
+    _parchear_cache_item(
+        sku=sku,
+        proveedor=entrada["proveedor"],
+        notas_proveedor=entrada["notas"],
+    )
     return entrada
 
 
@@ -176,14 +274,61 @@ def _dias_desde(iso: str | None) -> int | None:
     return max(0, (datetime.now() - dt).days)
 
 
-def resumen_control_inventario(refresh: bool = False) -> dict:
-    """Agregador central de Control de Inventario — una fila por publicación MeLi.
+def _cache_get() -> tuple[float, dict] | None:
+    global _MEM_CACHE
+    if _MEM_CACHE:
+        return _MEM_CACHE
+    disco = _leer_json(_RESUMEN_CACHE_PATH, {})
+    ts = float(disco.get("ts") or 0)
+    payload = disco.get("data")
+    if isinstance(payload, dict) and ts:
+        _MEM_CACHE = (ts, payload)
+        return ts, payload
+    return None
 
-    No es una tabla nueva de verdad: recombina obtener_estado_stock_meli()
-    (MeLi = fuente de verdad de stock), la relación de códigos MeLi↔Siigo ya
-    existente, y el stock de referencia de Siigo, más las anotaciones locales
-    (revisión manual, proveedor) y los umbrales configurables.
-    """
+
+def _cache_put(data: dict) -> None:
+    global _MEM_CACHE
+    ts = time.time()
+    limpio = {k: v for k, v in data.items() if k not in ("cargando",)}
+    limpio["desde_cache"] = False
+    limpio["stale"] = False
+    limpio.pop("error", None)
+    _MEM_CACHE = (ts, limpio)
+    _escribir_json(_RESUMEN_CACHE_PATH, {"ts": ts, "data": limpio})
+
+
+def _payload_cache(payload: dict, *, stale: bool, error: str | None = None) -> dict:
+    data = dict(payload)
+    data["desde_cache"] = True
+    data["stale"] = stale
+    data["cargando"] = False
+    if error:
+        data["error"] = error
+    else:
+        data.pop("error", None)
+    return data
+
+
+def _vacio(*, cargando: bool = False, error: str | None = None) -> dict:
+    config = obtener_config_inventario()
+    out = {
+        "items": [],
+        "total": 0,
+        "actualizado_en": None,
+        "umbral_bajo_stock": config["umbral_bajo_stock"],
+        "umbral_divergencia_siigo": config["umbral_divergencia_siigo"],
+        "cargando": cargando,
+        "desde_cache": False,
+        "stale": False,
+    }
+    if error:
+        out["error"] = error
+    return out
+
+
+def _resumen_vivo(refresh: bool = False) -> dict:
+    """Agregador sincrónico (MeLi + Siigo de referencia + anotaciones locales)."""
     from app.sync import (
         obtener_estado_stock_meli,
         obtener_ventas_meli_ytd_por_item,
@@ -195,7 +340,7 @@ def resumen_control_inventario(refresh: bool = False) -> dict:
     umbral_bajo = config["umbral_bajo_stock"]
     umbral_divergencia = config["umbral_divergencia_siigo"]
 
-    items_meli = obtener_estado_stock_meli()
+    items_meli = obtener_estado_stock_meli(max_seconds=_MELI_MAX_SECONDS)
 
     try:
         ventas_ytd = obtener_ventas_meli_ytd_por_item()
@@ -285,4 +430,84 @@ def resumen_control_inventario(refresh: bool = False) -> dict:
         "actualizado_en": datetime.now().isoformat(timespec="seconds"),
         "umbral_bajo_stock": umbral_bajo,
         "umbral_divergencia_siigo": umbral_divergencia,
+        "cargando": False,
+        "desde_cache": False,
+        "stale": False,
     }
+
+
+def _refrescar_en_fondo(refresh: bool = False) -> None:
+    global _REFRESHING, _LAST_FAIL
+    if _REFRESHING:
+        return
+    _REFRESHING = True
+
+    def _run() -> None:
+        global _REFRESHING, _LAST_FAIL
+        try:
+            vivo = _resumen_vivo(refresh=refresh)
+            with _CACHE_LOCK:
+                _cache_put(vivo)
+                _LAST_FAIL = None
+        except Exception as e:
+            _LAST_FAIL = (time.time(), str(e)[:300])
+            print(f"⚠️ [inventario-control] refresh fondo: {e}")
+        finally:
+            _REFRESHING = False
+
+    try:
+        from app.observability import spawn_thread
+
+        spawn_thread(_run, daemon=True)
+    except Exception:
+        threading.Thread(target=_run, daemon=True).start()
+
+
+def resumen_control_inventario(refresh: bool = False) -> dict:
+    """Agregador central de Control de Inventario — una fila por publicación MeLi.
+
+    No es una tabla nueva de verdad: recombina obtener_estado_stock_meli()
+    (MeLi = fuente de verdad de stock), la relación de códigos MeLi↔Siigo ya
+    existente, y el stock de referencia de Siigo, más las anotaciones locales
+    (revisión manual, proveedor) y los umbrales configurables.
+
+    El GET del panel no espera el barrido vivo de MeLi: sirve el último
+    snapshot (stale-while-revalidate) y refresca en segundo plano. `refresh=1`
+    fuerza un recálculo; si MeLi falla, devuelve el snapshot con `error`.
+    """
+    global _LAST_FAIL
+    now = time.time()
+    cached = _cache_get()
+
+    if not refresh and cached:
+        ts, payload = cached
+        age = now - ts
+        if age < _RESUMEN_CACHE_TTL_S:
+            return _payload_cache(payload, stale=False)
+        if age < _RESUMEN_CACHE_STALE_S:
+            _refrescar_en_fondo(False)
+            return _payload_cache(payload, stale=True)
+
+    if refresh:
+        try:
+            vivo = _resumen_vivo(refresh=True)
+            with _CACHE_LOCK:
+                _cache_put(vivo)
+                _LAST_FAIL = None
+            return vivo
+        except Exception as e:
+            msg = str(e)[:300]
+            _LAST_FAIL = (now, msg)
+            if cached:
+                return _payload_cache(cached[1], stale=True, error=f"No se pudo actualizar: {msg}")
+            return _vacio(error=msg)
+
+    if cached:
+        _refrescar_en_fondo(False)
+        return _payload_cache(cached[1], stale=True)
+
+    if _LAST_FAIL and (now - _LAST_FAIL[0]) < 20:
+        return _vacio(error=_LAST_FAIL[1])
+
+    _refrescar_en_fondo(False)
+    return _vacio(cargando=True)

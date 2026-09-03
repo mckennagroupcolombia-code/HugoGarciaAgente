@@ -2,7 +2,8 @@
 Cuenta de cobro por compras en el exterior.
 
 Liquidación: valor de la mercancía (COP) + cuota de manejo (5 %).
-El PDF solo se genera al aprobar en el panel, con el color de acento del tema del usuario.
+El PDF solo se genera al aprobar en el panel. El color de acento es el del tema
+guardado del emisor (preferencias_ui); si no tiene, el accent_rgb del request.
 """
 from __future__ import annotations
 
@@ -84,10 +85,119 @@ def _env(key: str, default: str = "") -> str:
     return (os.getenv(key) or default).strip()
 
 
+def parse_emisor_usuario_id(raw) -> int | None:
+    """Id de usuario del panel para emitir la cuenta de cobro, o None."""
+    if raw in (None, "", 0, "0"):
+        return None
+    try:
+        uid = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return uid if uid > 0 else None
+
+
+def perfil_emisor_por_id(usuario_id: int | None) -> dict | None:
+    """Perfil del panel (nombre, documento, email, tel) para emitir el PDF."""
+    uid = parse_emisor_usuario_id(usuario_id)
+    if not uid:
+        return None
+    try:
+        from app.services.tickets_db import get_usuario_by_id
+
+        return get_usuario_by_id(uid)
+    except Exception:
+        return None
+
+
+def accent_rgb_de_perfil(perfil: dict | None) -> str:
+    """Acento RGB del tema guardado del usuario (preferencias_ui.panel.accentRgb)."""
+    if not perfil or not isinstance(perfil, dict):
+        return ""
+    prefs = perfil.get("preferencias_ui")
+    if isinstance(prefs, str) and prefs.strip():
+        try:
+            import json as _json
+
+            prefs = _json.loads(prefs)
+        except Exception:
+            prefs = None
+    if not isinstance(prefs, dict):
+        return ""
+    panel = prefs.get("panel")
+    if not isinstance(panel, dict):
+        return ""
+    raw = str(panel.get("accentRgb") or panel.get("accent_rgb") or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("#") and len(raw) >= 7:
+        h = raw.lstrip("#")[:6]
+        try:
+            r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+            return f"{r} {g} {b}"
+        except ValueError:
+            return ""
+    parts = raw.replace(",", " ").split()
+    if len(parts) != 3:
+        return ""
+    try:
+        r, g, b = (max(0, min(255, int(float(x)))) for x in parts)
+        return f"{r} {g} {b}"
+    except ValueError:
+        return ""
+
+
+def resolver_accent_cuenta_cobro(
+    accent_rgb: str | None = None,
+    *,
+    emisor_perfil: dict | None = None,
+) -> str:
+    """
+    Color del PDF. Preferencia:
+    1) acento del tema del emisor (preferencias_ui) — p. ej. Armando → su color
+    2) accent_rgb del request (fallback / override si el emisor no tiene tema)
+    3) McKenna teal
+    """
+    de_emisor = accent_rgb_de_perfil(emisor_perfil)
+    if de_emisor:
+        return de_emisor
+    enviado = (accent_rgb or "").strip()
+    if enviado:
+        return enviado
+    return "12 96 105"
+
+
+def listar_emisores_cuenta_cobro() -> list[dict]:
+    """Usuarios activos del panel que pueden figurar como emisor de la cuenta."""
+    try:
+        from app.services.tickets_db import listar_usuarios
+    except Exception:
+        return []
+    out: list[dict] = []
+    try:
+        usuarios = listar_usuarios() or []
+    except Exception:
+        return []
+    for u in usuarios:
+        if not u or not u.get("activo", True):
+            continue
+        out.append(
+            {
+                "id": u["id"],
+                "nombre": str(u.get("nombre") or u.get("username") or "").strip(),
+                "username": str(u.get("username") or "").strip(),
+                "documento_identidad": str(u.get("documento_identidad") or "").strip(),
+                "email": str(u.get("email") or "").strip(),
+                "accent_rgb": accent_rgb_de_perfil(u),
+            }
+        )
+    out.sort(key=lambda x: (x["nombre"] or "").lower())
+    return out
+
+
 def datos_emisor(perfil: dict | None = None) -> dict[str, str]:
     """
     Datos del emisor en la cuenta de cobro.
-    Si se pasa ``perfil`` (usuario del panel), nombre/documento/email/tel
+    Si se pasa ``perfil`` (usuario del panel asignado), nombre/documento/email/tel
     del perfil tienen prioridad sobre las variables de entorno.
     """
     out = {
@@ -618,7 +728,9 @@ def generar_pdf_cuenta_cobro(
     story.append(HRFlowable(width="100%", thickness=1.2, color=accent, spaceAfter=8))
     story.append(
         Paragraph(
-            f"<font color='{accent_hex}'><b>Nº {num}</b></font> &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
+            f"<font color='{accent_hex}'><b>Nº {num}</b></font>"
+            f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedido Nº {int(compra_id)}</b>"
+            f" &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
             st["num"],
         )
     )
@@ -660,7 +772,7 @@ def generar_pdf_cuenta_cobro(
         concepto = (
             f"Adquisición de: {nombres}. "
             f"Incluye cuota de manejo del {calc['pct']:.0f}% sobre el valor de los productos. "
-            f"Compra Nº {compra_id} ({prov}"
+            f"Pedido Nº {int(compra_id)} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
             + f"){trm_txt}."
         )
@@ -672,7 +784,7 @@ def generar_pdf_cuenta_cobro(
         )
         concepto = (
             f"Adquisición de productos en el exterior y cuota de manejo "
-            f"del {calc['pct']:.0f}% sobre su valor. Compra Nº {compra_id} ({prov}"
+            f"del {calc['pct']:.0f}% sobre su valor. Pedido Nº {int(compra_id)} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
             + f"){trm_txt}."
         )
@@ -793,6 +905,9 @@ def generar_pdf_cuenta_flete(
     numero: str | None = None,
     accent_rgb: str | None = None,
     emisor_perfil: dict | None = None,
+    filename: str | None = None,
+    etiqueta_fecha: str = "compra",
+    compras_ids: list[int] | None = None,
 ) -> dict[str, Any]:
     """PDF cuenta de cobro aparte solo por el flete/envío."""
     resolved = resolver_tasa_cuenta_cobro(
@@ -828,7 +943,7 @@ def generar_pdf_cuenta_flete(
 
     _asegurar_carpeta_pdfs()
     num = numero or numero_cuenta_cobro(int(compra_id), flete=True)
-    filename = nombre_archivo_cuenta_cobro(int(compra_id), flete=True)
+    filename = (filename or "").strip() or nombre_archivo_cuenta_cobro(int(compra_id), flete=True)
     full = os.path.join(_CARPETA, filename)
 
     emisor = datos_emisor(emisor_perfil)
@@ -884,7 +999,13 @@ def generar_pdf_cuenta_flete(
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width="100%", thickness=1.2, color=accent, spaceAfter=8))
     story.append(Paragraph(
-        f"<font color='{accent_hex}'><b>Nº {num}</b></font> &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
+        f"<font color='{accent_hex}'><b>Nº {num}</b></font>"
+        + (
+            f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedidos {', '.join(f'Nº {int(i)}' for i in compras_ids)}</b>"
+            if compras_ids
+            else f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedido Nº {int(compra_id)}</b>"
+        )
+        + f" &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
         st["n"],
     ))
     story.append(Spacer(1, 6))
@@ -905,13 +1026,19 @@ def generar_pdf_cuenta_flete(
     ))
 
     prov = (proveedor or "").strip() or "proveedor exterior"
+    if compras_ids:
+        pedidos_txt = ", ".join(f"Nº {int(i)}" for i in compras_ids)
+        ids_txt = f" (pedidos {pedidos_txt})"
+    else:
+        ids_txt = ""
+    etiqueta = (etiqueta_fecha or "compra").strip() or "compra"
     story.append(Paragraph("CONCEPTO", st["h"]))
     story.append(Paragraph(
-        f"Reembolso del flete / envío de la compra en el exterior Nº {compra_id} ({prov}"
+        f"Reembolso del flete / envío del pedido en el exterior Nº {int(compra_id)}{ids_txt} ({prov}"
         + (f", {fecha_compra}" if fecha_compra else "")
         + f"). Flete original: {flete:g} {mf}"
         + (
-            f", TRM BanRep {trm:g} del día de la compra. Valor en pesos (COP)"
+            f", TRM BanRep {trm:g} del día del {etiqueta}. Valor en pesos (COP)"
             if mf != "COP" and mon_u != "COP" and trm
             else ". Valor en pesos (COP)"
         )

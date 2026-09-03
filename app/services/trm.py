@@ -41,8 +41,28 @@ def _hoy_bogota() -> date:
     return datetime.now(_TZ_BOGOTA).date()
 
 
+_MESES_EN = {
+    "jan": 1, "january": 1, "ene": 1, "enero": 1,
+    "feb": 2, "february": 2, "febrero": 2,
+    "mar": 3, "march": 3, "marzo": 3,
+    "apr": 4, "april": 4, "abr": 4, "abril": 4,
+    "may": 5, "mayo": 5,
+    "jun": 6, "june": 6, "junio": 6,
+    "jul": 7, "july": 7, "julio": 7,
+    "aug": 8, "august": 8, "ago": 8, "agosto": 8,
+    "sep": 9, "sept": 9, "september": 9, "septiembre": 9,
+    "oct": 10, "october": 10, "octubre": 10,
+    "nov": 11, "november": 11, "noviembre": 11,
+    "dec": 12, "december": 12, "dic": 12, "diciembre": 12,
+}
+
+
 def normalizar_fecha(fecha: str | date | datetime | None) -> str | None:
-    """Devuelve YYYY-MM-DD o None."""
+    """Devuelve YYYY-MM-DD o None.
+
+    Acepta ISO, DD-MM-YYYY, MM-DD-YYYY (si el día > 12 o DMY sería inválido)
+    y textos tipo «Aug 20, 2026» / «20 agosto 2026».
+    """
     if fecha is None or fecha == "":
         return None
     if isinstance(fecha, datetime):
@@ -53,15 +73,53 @@ def normalizar_fecha(fecha: str | date | datetime | None) -> str | None:
     # ISO con hora
     if "T" in s:
         s = s.split("T", 1)[0]
-    s = s.replace("/", "-")
-    # DD-MM-YYYY → YYYY-MM-DD
-    m_dmy = re.match(r"^(\d{1,2})-(\d{1,2})-(\d{4})$", s)
-    if m_dmy:
-        d, mo, y = int(m_dmy.group(1)), int(m_dmy.group(2)), int(m_dmy.group(3))
+    s = s.replace("/", "-").replace(".", "-")
+    s = re.sub(r"\s+", " ", s).strip()
+
+    # «Aug 20, 2026» / «20 Aug 2026» / «20 de agosto de 2026»
+    m_txt = re.match(
+        r"^(?:(\d{1,2})\s*(?:de\s+)?([A-Za-zÁÉÍÓÚáéíóú]+)\s*(?:de\s+)?(\d{4})"
+        r"|([A-Za-zÁÉÍÓÚáéíóú]+)\s+(\d{1,2}),?\s+(\d{4}))$",
+        s,
+        re.I,
+    )
+    if m_txt:
+        if m_txt.group(1):
+            d, mon_s, y = int(m_txt.group(1)), m_txt.group(2), int(m_txt.group(3))
+        else:
+            mon_s, d, y = m_txt.group(4), int(m_txt.group(5)), int(m_txt.group(6))
+        mo = _MESES_EN.get(mon_s.lower().rstrip("."))
+        if mo:
+            try:
+                return date(y, mo, d).isoformat()
+            except ValueError:
+                return None
+
+    # Números a-b-YYYY
+    m_num = re.match(r"^(\d{1,2})-(\d{1,2})-(\d{4})$", s)
+    if m_num:
+        a, b, y = int(m_num.group(1)), int(m_num.group(2)), int(m_num.group(3))
+        # Si el segundo > 12 → MM-DD-YYYY (p. ej. 08-20-2026)
+        if b > 12 and 1 <= a <= 12:
+            try:
+                return date(y, a, b).isoformat()
+            except ValueError:
+                return None
+        # Si el primero > 12 → DD-MM-YYYY
+        if a > 12 and 1 <= b <= 12:
+            try:
+                return date(y, b, a).isoformat()
+            except ValueError:
+                return None
+        # Ambiguo: preferir DD-MM (CO); si falla, MM-DD (facturas US)
         try:
-            return date(y, mo, d).isoformat()
+            return date(y, b, a).isoformat()
         except ValueError:
-            return None
+            try:
+                return date(y, a, b).isoformat()
+            except ValueError:
+                return None
+
     m = _RE_FECHA.match(s)
     if not m:
         return None

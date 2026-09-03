@@ -4166,6 +4166,14 @@ def register_routes(app):
             resultado = _ajustar_stock_multicanal(sku, meli_id, int(delta))
             ok_meli = resultado.get("meli", {}).get("ok")
             ok_web = resultado.get("web", {}).get("ok")
+            try:
+                from app.services.inventario_control import _parchear_cache_item
+
+                objetivo = resultado.get("stock_objetivo")
+                if objetivo is not None:
+                    _parchear_cache_item(meli_id=meli_id, sku=sku, stock_meli=int(objetivo))
+            except Exception:
+                pass
             log_line(
                 f"✔ ajuste stock SKU {sku} {'+' if delta >= 0 else ''}{delta} "
                 f"({resultado.get('stock_anterior')}→{resultado.get('stock_objetivo')}) "
@@ -6952,6 +6960,8 @@ def register_routes(app):
         soportes_multi = None
         borrador_id_raw = ""
         compra_id_raw = ""
+        emisor_usuario_id_raw = ""
+        cuota_pct = None
         if request.content_type and "multipart/form-data" in request.content_type:
             raw_items = request.form.get("items") or request.form.get("lineas") or "[]"
             try:
@@ -6967,6 +6977,7 @@ def register_routes(app):
             trm_fuente = (request.form.get("trm_fuente") or "").strip()
             borrador_id_raw = (request.form.get("borrador_id") or "").strip()
             compra_id_raw = (request.form.get("compra_id") or "").strip()
+            emisor_usuario_id_raw = (request.form.get("emisor_usuario_id") or "").strip()
             try:
                 trm = float(request.form.get("trm") or 0)
                 flete = float(request.form.get("flete") or 0)
@@ -7054,6 +7065,7 @@ def register_routes(app):
             trm_fuente = (data.get("trm_fuente") or "").strip()
             borrador_id_raw = str(data.get("borrador_id") or "").strip()
             compra_id_raw = str(data.get("compra_id") or "").strip()
+            emisor_usuario_id_raw = str(data.get("emisor_usuario_id") or "").strip()
             try:
                 trm = float(data.get("trm") or 0)
                 flete = float(data.get("flete") or 0)
@@ -7237,6 +7249,14 @@ def register_routes(app):
         except (TypeError, ValueError):
             return jsonify({"error": "compra_id inválido"}), 400
 
+        from app.services.cuenta_cobro_cuota_manejo import parse_emisor_usuario_id
+
+        emisor_usuario_id = parse_emisor_usuario_id(emisor_usuario_id_raw)
+        if emisor_usuario_id is None:
+            sesion = _panel_tickets_usuario()
+            if sesion and sesion.get("id"):
+                emisor_usuario_id = parse_emisor_usuario_id(sesion.get("id"))
+
         try:
             if compra_id_edit:
                 replace = bool(soportes_multi)
@@ -7256,6 +7276,7 @@ def register_routes(app):
                     replace_soportes=replace,
                     append_soportes=False,
                     cuota_pct=cuota_pct,
+                    emisor_usuario_id=emisor_usuario_id,
                 )
                 if not historial:
                     return jsonify({"error": f"Compra #{compra_id_edit} no encontrada"}), 404
@@ -7276,6 +7297,7 @@ def register_routes(app):
                     fecha_compra=fecha_compra,
                     trm_fuente=trm_fuente,
                     cuota_pct=cuota_pct,
+                    emisor_usuario_id=emisor_usuario_id,
                 )
             # Al confirmar, eliminar borrador asociado (archivos ya copiados a historial)
             if borrador_id_raw:
@@ -7313,6 +7335,202 @@ def register_routes(app):
         except (TypeError, ValueError):
             limit = 50
         return jsonify({"compras": listar_compras_exterior(limit=limit)})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/emisores", methods=["GET"])
+    @app.route("/api/rentabilidad/compras-exterior/emisores", methods=["GET"])
+    def api_compras_exterior_emisores():
+        """Usuarios del panel a cuyo nombre se puede emitir la cuenta de cobro."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.cuenta_cobro_cuota_manejo import listar_emisores_cuenta_cobro
+
+        return jsonify({"emisores": listar_emisores_cuenta_cobro()})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/envios", methods=["GET", "POST"])
+    @app.route("/api/rentabilidad/compras-exterior/envios", methods=["GET", "POST"])
+    def api_compras_exterior_envios():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import crear_envio_compras, listar_compras_exterior
+
+        if request.method == "GET":
+            compras = listar_compras_exterior(limit=200)
+            vistos = {}
+            for c in compras:
+                env = c.get("envio")
+                if env and env.get("id") not in vistos:
+                    vistos[env["id"]] = env
+            return jsonify({"envios": list(vistos.values())})
+
+        body = request.get_json(silent=True) or {}
+        ids = body.get("compra_ids") or body.get("ids") or []
+        try:
+            flete = float(body.get("flete") or 0)
+        except (TypeError, ValueError):
+            return jsonify({"error": "flete inválido"}), 400
+        trm = 0.0
+        if body.get("trm") not in (None, ""):
+            try:
+                trm = float(body.get("trm"))
+            except (TypeError, ValueError):
+                return jsonify({"error": "trm inválida"}), 400
+        emisor_uid = None
+        if body.get("emisor_usuario_id") not in (None, "", 0, "0"):
+            try:
+                emisor_uid = int(body.get("emisor_usuario_id"))
+            except (TypeError, ValueError):
+                emisor_uid = None
+        env, err = crear_envio_compras(
+            ids,
+            fecha_envio=str(body.get("fecha_envio") or ""),
+            flete=flete,
+            moneda_flete=str(body.get("moneda_flete") or "USD"),
+            notas=str(body.get("notas") or ""),
+            emisor_usuario_id=emisor_uid,
+            trm=trm,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True, "envio": env})
+
+    @app.route("/app/api/rentabilidad/compras-exterior/envios/<int:envio_id>", methods=["GET", "PATCH", "DELETE"])
+    @app.route("/api/rentabilidad/compras-exterior/envios/<int:envio_id>", methods=["GET", "PATCH", "DELETE"])
+    def api_compras_exterior_envio_detalle(envio_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import (
+            actualizar_envio_compras,
+            eliminar_envio_compras,
+            obtener_envio_compras,
+        )
+
+        if request.method == "GET":
+            env = obtener_envio_compras(envio_id)
+            if not env:
+                return jsonify({"error": "Envío no encontrado"}), 404
+            return jsonify(env)
+
+        if request.method == "DELETE":
+            ok = eliminar_envio_compras(envio_id)
+            if not ok:
+                return jsonify({"error": "Envío no encontrado"}), 404
+            return jsonify({"ok": True})
+
+        body = request.get_json(silent=True) or {}
+        kwargs = {}
+        if "fecha_envio" in body:
+            kwargs["fecha_envio"] = body.get("fecha_envio")
+        if "flete" in body:
+            kwargs["flete"] = body.get("flete")
+        if "moneda_flete" in body:
+            kwargs["moneda_flete"] = body.get("moneda_flete")
+        if "notas" in body:
+            kwargs["notas"] = body.get("notas")
+        if "compra_ids" in body or "ids" in body:
+            kwargs["compra_ids"] = body.get("compra_ids") or body.get("ids")
+        if "emisor_usuario_id" in body:
+            kwargs["emisor_usuario_id"] = body.get("emisor_usuario_id")
+        if "trm" in body:
+            kwargs["trm"] = body.get("trm")
+        env, err = actualizar_envio_compras(envio_id, **kwargs)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True, "envio": env})
+
+    @app.route(
+        "/app/api/rentabilidad/compras-exterior/envios/<int:envio_id>/recalcular-costos",
+        methods=["POST"],
+    )
+    @app.route(
+        "/api/rentabilidad/compras-exterior/envios/<int:envio_id>/recalcular-costos",
+        methods=["POST"],
+    )
+    def api_compras_exterior_envio_recalcular_costos(envio_id: int):
+        """Reparte el flete del envío y actualiza costos unitarios (componentes + Siigo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import recalcular_costos_unitarios_envio
+
+        env, compras, err = recalcular_costos_unitarios_envio(envio_id)
+        if err:
+            code = 404 if "no encontrado" in err.lower() else 400
+            return jsonify({"error": err}), code
+        return jsonify({
+            "ok": True,
+            "envio": env,
+            "compras": compras,
+            "mensaje": (
+                f"Costos unitarios actualizados con el flete del envío "
+                f"(repartido por % de paquetes)."
+            ),
+        })
+
+    @app.route(
+        "/app/api/rentabilidad/compras-exterior/envios/<int:envio_id>/cuenta-cobro",
+        methods=["GET", "POST"],
+    )
+    @app.route("/api/rentabilidad/compras-exterior/envios/<int:envio_id>/cuenta-cobro", methods=["GET", "POST"])
+    def api_compras_exterior_envio_cuenta_cobro(envio_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import (
+            aprobar_cuenta_flete_envio,
+            obtener_envio_compras,
+            ruta_cuenta_flete_envio,
+        )
+        from flask import send_file
+
+        if request.method == "POST":
+            body = request.get_json(silent=True) or {}
+            accent = str(body.get("accent_rgb") or body.get("accent") or "").strip()
+            emisor_perfil = None
+            uid_raw = body.get("emisor_usuario_id") or body.get("usuario_id")
+            if uid_raw not in (None, "", 0, "0"):
+                try:
+                    from app.services.cuenta_cobro_cuota_manejo import perfil_emisor_por_id
+
+                    emisor_perfil = perfil_emisor_por_id(int(uid_raw))
+                except (TypeError, ValueError):
+                    emisor_perfil = None
+            if emisor_perfil is None:
+                emisor_perfil = _panel_tickets_usuario()
+            if emisor_perfil is not None:
+                doc = (emisor_perfil.get("documento_identidad") or "").strip()
+                if not doc:
+                    quien = (emisor_perfil.get("nombre") or "ese usuario").strip()
+                    return jsonify({
+                        "error": (
+                            f"{quien} no tiene documento de identidad en su perfil. "
+                            "Guárdalo en Mi perfil antes de generar la cuenta de cobro"
+                        ),
+                    }), 400
+            env, err = aprobar_cuenta_flete_envio(
+                envio_id, accent_rgb=accent, emisor_perfil=emisor_perfil
+            )
+            if not env:
+                return jsonify({"error": err or "Envío no encontrado"}), 404
+            if err and not env.get("tiene_cuenta_flete"):
+                return jsonify({"error": err, "envio": env}), 400
+            return jsonify({"ok": True, "envio": env})
+
+        path_info = ruta_cuenta_flete_envio(envio_id)
+        if not path_info:
+            env = obtener_envio_compras(envio_id)
+            if not env:
+                return jsonify({"error": "Envío no encontrado"}), 404
+            if env.get("cuenta_flete_pendiente"):
+                return jsonify({
+                    "error": "Cuenta de flete pendiente de aprobación",
+                    "cuenta_cobro_estado": "pendiente",
+                }), 409
+            return jsonify({"error": "Sin PDF de cuenta de flete"}), 404
+        path, nombre = path_info
+        return send_file(
+            path,
+            mimetype="application/pdf",
+            download_name=nombre or f"cuenta-flete-envio-{envio_id}.pdf",
+            as_attachment=True,
+        )
 
     @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>", methods=["GET"])
     @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>", methods=["GET"])
@@ -7359,7 +7577,9 @@ def register_routes(app):
         GET: descarga PDF aprobado.
         POST: aprobar y generar PDF con accent_rgb del tema del usuario
               body JSON: { accent_rgb?: "12 96 105", tipo?: "mercancia"|"flete",
-                           cuota_pct?: number } o { regenerar: true }.
+                           cuota_pct?: number, emisor_usuario_id?: number }
+              o { regenerar: true }.
+              emisor_usuario_id elige a nombre de quién sale el PDF (Cynthia, Armando, etc.).
         DELETE: limpia cuenta(s) de cobro de esta compra (PDF + estados).
         """
         if not _api_token_valido():
@@ -7389,23 +7609,25 @@ def register_routes(app):
                         return jsonify({"error": "cuota_pct debe estar entre 0 y 100"}), 400
                 except (TypeError, ValueError):
                     return jsonify({"error": "cuota_pct inválido"}), 400
-            emisor_perfil = _panel_tickets_usuario()
-            if emisor_perfil is None:
-                # Admins suelen enviar CHAT_API_TOKEN; el cliente manda emisor_usuario_id.
-                uid_raw = body.get("emisor_usuario_id") or body.get("usuario_id")
-                if uid_raw not in (None, "", 0, "0"):
-                    try:
-                        from app.services.tickets_db import get_usuario_by_id
+            emisor_perfil = None
+            uid_raw = body.get("emisor_usuario_id") or body.get("usuario_id")
+            if uid_raw not in (None, "", 0, "0"):
+                try:
+                    from app.services.cuenta_cobro_cuota_manejo import perfil_emisor_por_id
 
-                        emisor_perfil = get_usuario_by_id(int(uid_raw))
-                    except (TypeError, ValueError):
-                        emisor_perfil = None
+                    emisor_perfil = perfil_emisor_por_id(int(uid_raw))
+                except (TypeError, ValueError):
+                    emisor_perfil = None
+            if emisor_perfil is None:
+                emisor_perfil = _panel_tickets_usuario()
             if emisor_perfil is not None:
                 doc = (emisor_perfil.get("documento_identidad") or "").strip()
                 if not doc:
+                    quien = (emisor_perfil.get("nombre") or "ese usuario").strip()
                     return jsonify({
                         "error": (
-                            "Completa tu documento de identidad en Mi perfil "
+                            f"{quien} no tiene documento de identidad en su perfil. "
+                            "Guárdalo en Mi perfil (o pide que lo complete) "
                             "antes de generar la cuenta de cobro"
                         ),
                     }), 400

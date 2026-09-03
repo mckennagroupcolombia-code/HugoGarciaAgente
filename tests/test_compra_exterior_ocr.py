@@ -339,3 +339,15 @@ def test_normalizar_items_lista_etiquetas():
     assert len(items) == 2
     assert items[0] == {"nombre": "Elastina 30 ml", "cantidad": 50.0, "unidad": "u"}
     assert items[1] == {"nombre": "Urea 125 g", "cantidad": 1.0, "unidad": "u"}
+
+
+def test_fecha_ocr_prioriza_sobre_formulario_hoy():
+    """El form manda 'hoy' por defecto; no debe pisar la fecha del invoice."""
+    from app.services.compra_exterior_ocr import fecha_efectiva_extraccion
+
+    assert (
+        fecha_efectiva_extraccion("2026-07-15", "2026-09-02") == "2026-07-15"
+    )
+    assert fecha_efectiva_extraccion(None, "2026-09-02") == "2026-09-02"
+    assert fecha_efectiva_extraccion("Aug 20, 2026", "2026-09-02") == "2026-08-20"
+    assert fecha_efectiva_extraccion(None, None) is None

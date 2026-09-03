@@ -3,6 +3,7 @@ import os
 import json
 import sqlite3
 import threading
+import time
 from typing import Any
 import gspread
 import requests
@@ -1185,7 +1186,11 @@ def obtener_ventas_meli_por_item(dias: int = 30, refresh: bool = False) -> dict:
     }
 
 
-def obtener_estado_stock_meli() -> list[dict]:
+def obtener_estado_stock_meli(
+    *,
+    timeout_lote: float = 20.0,
+    max_seconds: float | None = None,
+) -> list[dict]:
     """
     Lee Google Sheets (col A=meli_id, B=sku, D=nombre) y consulta el stock EN VIVO
     en Mercado Libre para cada producto. Solo lectura — no escribe en Sheets ni notifica.
@@ -1194,6 +1199,10 @@ def obtener_estado_stock_meli() -> list[dict]:
 
     Omite publicaciones ``closed`` / ``inactive`` (ya no operables en MeLi).
     Conserva ``paused`` / ``under_review`` (pueden reactivarse).
+
+    `timeout_lote` evita que un GET a MeLi cuelgue el hilo de Flask. `max_seconds`
+    recorta el barrido (p. ej. el panel de Control de Inventario) y devuelve lo
+    reunido hasta ese tope en vez de fallar entero.
     """
     token = refrescar_token_meli()
     if not token:
@@ -1226,12 +1235,28 @@ def obtener_estado_stock_meli() -> list[dict]:
     headers = {"Authorization": f"Bearer {token}"}
     items = []
     omitidas_cerradas = 0
+    t0 = time.time()
     for i in range(0, len(ml_ids), 20):
+        if max_seconds is not None and (time.time() - t0) >= max_seconds:
+            print(
+                f"⚠️ [STOCK] corte por tiempo ({max_seconds:.0f}s) "
+                f"tras {len(items)} ítems; el resto se omite."
+            )
+            break
         lote = ml_ids[i : i + 20]
-        res = requests.get(
-            f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
-            headers=headers,
-        ).json()
+        try:
+            resp = requests.get(
+                f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+                headers=headers,
+                timeout=timeout_lote,
+            )
+            resp.raise_for_status()
+            res = resp.json()
+        except Exception as e:
+            print(f"⚠️ [STOCK] lote MeLi {lote[0]}… falló: {e}")
+            continue
+        if not isinstance(res, list):
+            continue
         for r in res:
             if r.get("code") != 200:
                 continue
@@ -1288,6 +1313,8 @@ def obtener_estado_stock_meli() -> list[dict]:
 
     # Incluir pausadas de MeLi que no están en Sheets — p.ej. mismo SKU C-CITCAL500g
     # en una publicación pausada distinta a la fila del Sheet.
+    if max_seconds is not None and (time.time() - t0) >= max_seconds:
+        return items
     try:
         me = requests.get(
             "https://api.mercadolibre.com/users/me", headers=headers, timeout=15
@@ -1317,12 +1344,22 @@ def obtener_estado_stock_meli() -> list[dict]:
                     break
 
         for i in range(0, len(ids_extra), 20):
+            if max_seconds is not None and (time.time() - t0) >= max_seconds:
+                break
             lote = ids_extra[i : i + 20]
-            res = requests.get(
-                f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
-                headers=headers,
-                timeout=40,
-            ).json()
+            try:
+                resp = requests.get(
+                    f"https://api.mercadolibre.com/items?ids={','.join(lote)}",
+                    headers=headers,
+                    timeout=min(timeout_lote, 40.0),
+                )
+                resp.raise_for_status()
+                res = resp.json()
+            except Exception as e:
+                print(f"⚠️ [STOCK] lote pausadas {lote[0]}… falló: {e}")
+                continue
+            if not isinstance(res, list):
+                continue
             for r in res:
                 if r.get("code") != 200:
                     continue

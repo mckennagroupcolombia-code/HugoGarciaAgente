@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent } from "react";
 import { api, resolvePanelApiUrl } from "../api/client";
+import { useEmisoresCuentaCobro } from "../hooks/useEmisoresCuentaCobro";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
+import { usePanelTheme } from "../stores/panelTheme";
+import CuentaCobroAccentPicker, {
+  leerAccentCuentaCobro,
+} from "./CuentaCobroAccentPicker";
 import CuentaCobroAprobacion from "./CuentaCobroAprobacion";
+import { Modal } from "./etiquetas/ui/Modal";
 
 type LineaEditable = {
   id: string;
@@ -39,6 +45,7 @@ type LineaApi = {
 type ExtractResp = {
   moneda: string;
   fecha_compra?: string | null;
+  fecha_detectada_ocr?: string | null;
   proveedor?: string;
   referencia?: string;
   flete_detectado?: number | null;
@@ -292,6 +299,24 @@ function fmtCop(v: number | null): string {
 
 type CatalogoItem = { codigo: string; nombre: string };
 
+type EnvioExterior = {
+  id: number;
+  fecha_envio?: string;
+  flete: number;
+  moneda_flete: string;
+  trm?: number;
+  trm_fuente?: string;
+  notas?: string;
+  compra_ids?: number[];
+  emisor_usuario_id?: number | null;
+  emisor_nombre?: string;
+  flete_cobro_cop?: number;
+  cuenta_flete_estado?: string;
+  tiene_cuenta_flete?: boolean;
+  cuenta_flete_pendiente?: boolean;
+  cuenta_flete_url?: string | null;
+};
+
 type CompraHistorial = {
   id: number;
   created_at: string;
@@ -336,6 +361,11 @@ type CompraHistorial = {
   tiene_cuenta_flete?: boolean;
   cuenta_flete_pendiente?: boolean;
   cuenta_flete_url?: string | null;
+  emisor_usuario_id?: number | null;
+  emisor_nombre?: string;
+  emisor_documento?: string;
+  envio_id?: number | null;
+  envio?: EnvioExterior | null;
 };
 
 type BorradorCompra = {
@@ -384,6 +414,32 @@ async function fetchSoporteBlobUrl(compraId: number): Promise<string | null> {
   return fetchAuthBlobUrl(`/api/rentabilidad/compras-exterior/${compraId}/soporte`);
 }
 
+function agruparHistorial(
+  items: CompraHistorial[],
+): Array<
+  | { kind: "envio"; envio: EnvioExterior; compras: CompraHistorial[] }
+  | { kind: "compra"; compra: CompraHistorial }
+> {
+  const used = new Set<number>();
+  const out: Array<
+    | { kind: "envio"; envio: EnvioExterior; compras: CompraHistorial[] }
+    | { kind: "compra"; compra: CompraHistorial }
+  > = [];
+  for (const c of items) {
+    if (used.has(c.id)) continue;
+    const env = c.envio;
+    if (env?.id) {
+      const mates = items.filter((x) => x.envio?.id === env.id);
+      mates.forEach((m) => used.add(m.id));
+      out.push({ kind: "envio", envio: { ...env, compra_ids: mates.map((m) => m.id) }, compras: mates });
+    } else {
+      used.add(c.id);
+      out.push({ kind: "compra", compra: c });
+    }
+  }
+  return out;
+}
+
 const CUOTA_MANEJO_PCT_DEFAULT = 5;
 
 /** Valor mercancía neta en COP (sin flete) — base de la cuota de manejo. */
@@ -420,6 +476,20 @@ async function descargarCuentaCobro(
     tipo === "flete"
       ? `Cuenta de cobro numero ${String(compraId).padStart(5, "0")} flete compra en el exterior.pdf`
       : `Cuenta de cobro numero ${String(compraId).padStart(5, "0")} compra en el exterior.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
+}
+
+async function descargarCuentaFleteEnvio(envioId: number): Promise<void> {
+  const blobUrl = await fetchAuthBlobUrl(
+    `/api/rentabilidad/compras-exterior/envios/${envioId}/cuenta-cobro`,
+  );
+  if (!blobUrl) throw new Error("No se pudo descargar la cuenta de flete del paquete");
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `Cuenta de cobro numero ENV-${String(envioId).padStart(5, "0")} flete paquete compra en el exterior.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -732,6 +802,24 @@ export default function ComprasExteriorPanel() {
   const [detalleId, setDetalleId] = useState<number | null>(null);
   const [soporteThumbs, setSoporteThumbs] = useState<Record<number, string>>({});
   const [cuentaCobroId, setCuentaCobroId] = useState<number | null>(null);
+  const [modalVerificar, setModalVerificar] = useState(false);
+  const [seleccionIds, setSeleccionIds] = useState<number[]>([]);
+  const [envioModal, setEnvioModal] = useState<"crear" | EnvioExterior | null>(null);
+  const [fechaEnvio, setFechaEnvio] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fleteEnvio, setFleteEnvio] = useState("");
+  const [monedaFleteEnvio, setMonedaFleteEnvio] = useState("USD");
+  const [trmEnvio, setTrmEnvio] = useState("");
+  const [envioBusy, setEnvioBusy] = useState(false);
+  const themeAccentRgb = usePanelTheme((s) => s.accentRgb);
+  const [pdfAccentRgb, setPdfAccentRgb] = useState(() =>
+    leerAccentCuentaCobro(themeAccentRgb),
+  );
+  const emisorSesion = useTicketsAuth((s) => s.user);
+  const { data: emisoresData } = useEmisoresCuentaCobro();
+  const emisores = emisoresData?.emisores || [];
+  const [emisorUsuarioId, setEmisorUsuarioId] = useState<number | "">(
+    () => emisorSesion?.id ?? "",
+  );
   const fileRef = useRef<HTMLInputElement>(null);
   const zonaRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -742,7 +830,7 @@ export default function ComprasExteriorPanel() {
     setHistorialLoading(true);
     try {
       const [res, bor] = await Promise.all([
-        api.get<{ compras: CompraHistorial[] }>("/api/rentabilidad/compras-exterior?limit=30"),
+        api.get<{ compras: CompraHistorial[] }>("/api/rentabilidad/compras-exterior?limit=80"),
         api.get<{ borradores: BorradorCompra[] }>(
           "/api/rentabilidad/compras-exterior/borradores?limit=30",
         ).catch(() => ({ borradores: [] as BorradorCompra[] })),
@@ -759,6 +847,174 @@ export default function ComprasExteriorPanel() {
   useEffect(() => {
     void cargarHistorial();
   }, [cargarHistorial]);
+
+  useEffect(() => {
+    if (emisorUsuarioId === "" && emisorSesion?.id) setEmisorUsuarioId(emisorSesion.id);
+  }, [emisorSesion?.id]);
+
+  useEffect(() => {
+    const em = emisores.find((e) => e.id === emisorUsuarioId);
+    const deEmisor = (em?.accent_rgb || "").trim();
+    if (deEmisor) {
+      setPdfAccentRgb(deEmisor);
+      return;
+    }
+    if (emisorUsuarioId && emisorUsuarioId === emisorSesion?.id) {
+      setPdfAccentRgb(themeAccentRgb);
+      return;
+    }
+    setPdfAccentRgb(leerAccentCuentaCobro(themeAccentRgb));
+  }, [emisorUsuarioId, emisores, emisorSesion?.id, themeAccentRgb]);
+
+  useEffect(() => {
+    if (cuentaCobroId == null && !modalVerificar) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [cuentaCobroId, modalVerificar]);
+
+  const gruposHistorial = useMemo(() => agruparHistorial(historial), [historial]);
+
+  const toggleSeleccion = (id: number) => {
+    setSeleccionIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const abrirCrearEnvio = () => {
+    if (seleccionIds.length < 1) return;
+    const sel = historial.filter((c) => seleccionIds.includes(c.id));
+    const suma = sel.reduce((a, c) => a + (Number(c.flete) || 0), 0);
+    setFleteEnvio(suma > 0 ? String(suma) : "");
+    setMonedaFleteEnvio((sel[0]?.moneda_flete || sel[0]?.moneda || "USD").toUpperCase());
+    setFechaEnvio(new Date().toISOString().slice(0, 10));
+    setTrmEnvio("");
+    setEnvioModal("crear");
+  };
+
+  const abrirEditarEnvio = (env: EnvioExterior) => {
+    setFechaEnvio(env.fecha_envio || new Date().toISOString().slice(0, 10));
+    setFleteEnvio(env.flete ? String(env.flete) : "");
+    setMonedaFleteEnvio((env.moneda_flete || "USD").toUpperCase());
+    setTrmEnvio(env.trm ? String(env.trm) : "");
+    setEnvioModal(env);
+  };
+
+  useEffect(() => {
+    if (!envioModal) return;
+    if (!fechaEnvio || !/^\d{4}-\d{2}-\d{2}$/.test(fechaEnvio)) return;
+    if ((monedaFleteEnvio || "USD").toUpperCase() === "COP") return;
+    let cancel = false;
+    void (async () => {
+      try {
+        const data = await api.get<TrmResp>(
+          `/api/rentabilidad/trm?fecha=${encodeURIComponent(fechaEnvio)}`,
+        );
+        if (cancel || data.error) return;
+        setTrmEnvio(String(data.valor));
+      } catch {
+        /* BanRep opcional */
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [envioModal, fechaEnvio, monedaFleteEnvio]);
+
+  const guardarEnvio = async () => {
+    const ids =
+      envioModal === "crear"
+        ? seleccionIds
+        : envioModal && typeof envioModal === "object"
+          ? envioModal.compra_ids || []
+          : [];
+    if (ids.length < 1) {
+      setError("Selecciona al menos una compra.");
+      return;
+    }
+    setEnvioBusy(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = {
+        compra_ids: ids,
+        fecha_envio: fechaEnvio,
+        flete: n(fleteEnvio),
+        moneda_flete: monedaFleteEnvio || "USD",
+        emisor_usuario_id: emisorUsuarioId || undefined,
+      };
+      if (n(trmEnvio) > 0) body.trm = n(trmEnvio);
+      if (envioModal === "crear") {
+        await api.post("/api/rentabilidad/compras-exterior/envios", body);
+        setOkMsg(
+          `Envío creado: ${ids.length} compra(s) · flete con TRM del ${fechaEnvio}. Usa «Actualizar costos unitarios» si quieres volver a aplicar el flete a cada referencia.`,
+        );
+      } else if (envioModal && typeof envioModal === "object") {
+        await api.patch(`/api/rentabilidad/compras-exterior/envios/${envioModal.id}`, body);
+        setOkMsg(`Envío #${envioModal.id} actualizado.`);
+      }
+      setEnvioModal(null);
+      setSeleccionIds([]);
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnvioBusy(false);
+    }
+  };
+
+  const desenlazarEnvio = async (envioId: number) => {
+    if (!confirm("¿Desenlazar este paquete? El flete volverá a cada compra por separado (en 0).")) {
+      return;
+    }
+    try {
+      await api.delete(`/api/rentabilidad/compras-exterior/envios/${envioId}`);
+      setOkMsg(`Envío #${envioId} desenlazado.`);
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const aprobarFleteEnvio = async (env: EnvioExterior) => {
+    setEnvioBusy(true);
+    setError(null);
+    try {
+      const body: Record<string, string | number> = { accent_rgb: pdfAccentRgb };
+      if (emisorUsuarioId) body.emisor_usuario_id = emisorUsuarioId;
+      await api.post(`/api/rentabilidad/compras-exterior/envios/${env.id}/cuenta-cobro`, body);
+      setOkMsg(`Cuenta de flete del envío #${env.id} generada.`);
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnvioBusy(false);
+    }
+  };
+
+  const actualizarCostosEnvio = async (env: EnvioExterior) => {
+    setEnvioBusy(true);
+    setError(null);
+    try {
+      const res = await api.post<{
+        ok?: boolean;
+        mensaje?: string;
+        compras?: CompraHistorial[];
+      }>(`/api/rentabilidad/compras-exterior/envios/${env.id}/recalcular-costos`, {});
+      const nRefs = (res.compras || []).reduce(
+        (acc, c) => acc + (c.lineas?.length || 0),
+        0,
+      );
+      setOkMsg(
+        res.mensaje ||
+          `Costos unitarios actualizados (${nRefs || "todas las"} referencias) con el flete del envío #${env.id}.`,
+      );
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnvioBusy(false);
+    }
+  };
 
   const cargarTrmBanrep = useCallback(
     async (fecha: string, { forzar = false }: { forzar?: boolean } = {}) => {
@@ -961,8 +1217,8 @@ export default function ComprasExteriorPanel() {
     setMoneda(mon);
     setMonedaFlete((json.moneda_flete_detectada || mon).toUpperCase());
     setProveedor(json.proveedor || "");
-    if (json.fecha_compra) {
-      setFechaCompra(json.fecha_compra);
+    if (json.fecha_detectada_ocr || json.fecha_compra) {
+      setFechaCompra(json.fecha_detectada_ocr || json.fecha_compra || "");
       trmManualRef.current = false;
     }
     if (json.trm_usada != null && json.trm_usada > 0) {
@@ -1058,6 +1314,9 @@ export default function ComprasExteriorPanel() {
         setOkMsg(
           `Extraídas ${json.lineas?.length ?? 0} líneas desde ${nImg} imagen(es).${trmMsg} Revisa y confirma.`,
         );
+        if ((json.lineas?.length ?? 0) > 0 || (json.lineas_landed?.length ?? 0) > 0) {
+          setModalVerificar(true);
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -1173,6 +1432,8 @@ export default function ComprasExteriorPanel() {
     setDescuentoPct("");
     setBorradorId(null);
     setCompraIdEditando(null);
+    setEmisorUsuarioId(emisorSesion?.id ?? "");
+    setModalVerificar(false);
   };
 
   const guardarBorrador = async () => {
@@ -1309,6 +1570,7 @@ export default function ComprasExteriorPanel() {
       setOkMsg(
         `Borrador #${b.id} retomado (${rawLineas.length} líneas). Arrastra las fotos para reordenar o quítalas con ✕.`,
       );
+      setModalVerificar(true);
       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -1371,6 +1633,7 @@ export default function ComprasExteriorPanel() {
           ? String(c.cuota_pct)
           : String(CUOTA_MANEJO_PCT_DEFAULT),
       );
+      setEmisorUsuarioId(c.emisor_usuario_id || emisorSesion?.id || "");
       setDescuentoPedido("");
       setDescuentoPct("");
       setLineas(
@@ -1409,6 +1672,7 @@ export default function ComprasExteriorPanel() {
       setOkMsg(
         `Editando compra #${c.id}. Cambia líneas, fotos o TRM y pulsa «Actualizar costos».`,
       );
+      setModalVerificar(true);
       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -1492,6 +1756,7 @@ export default function ComprasExteriorPanel() {
       fd.append("descuento_pct", String(descuentoPctNum || 0));
       fd.append("cuota_pct", String(cuotaManejoPctNum));
       fd.append("proveedor", proveedor);
+      if (emisorUsuarioId) fd.append("emisor_usuario_id", String(emisorUsuarioId));
       if (borradorId) fd.append("borrador_id", String(borradorId));
       if (compraIdEditando) fd.append("compra_id", String(compraIdEditando));
 
@@ -1548,6 +1813,7 @@ export default function ComprasExteriorPanel() {
           return [];
         });
         setLineas([]);
+        setModalVerificar(false);
       }
       await cargarHistorial();
       if (res.historial?.id) {
@@ -1723,7 +1989,491 @@ export default function ComprasExteriorPanel() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      {(lineas.length > 0 || scanning) && (
+        <button
+          type="button"
+          onClick={() => setModalVerificar(true)}
+          className="w-full rounded-xl border border-accent/50 bg-accent/10 px-3 py-2.5 text-left hover:bg-accent/15"
+        >
+          <p className="text-xs font-semibold text-accent">
+            {scanning ? "Analizando imagen…" : "Verificar extracción"}
+          </p>
+          <p className="text-[10px] text-muted">
+            {scanning
+              ? "La IA está leyendo el pantallazo"
+              : `${lineas.length} línea(s) · fecha ${fechaCompra || "—"} · ${moneda}${trmNum ? ` · TRM ${trmNum}` : ""}`}
+          </p>
+        </button>
+      )}
+
+      {error && (
+        <div className="rounded-lg border border-danger/40 bg-danger/5 px-2 py-1.5 text-[10px] text-danger">
+          {error}
+        </div>
+      )}
+      {okMsg && (
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-2 py-1.5 text-[10px] text-emerald-700 dark:text-emerald-400">
+          {okMsg}
+        </div>
+      )}
+        </aside>
+
+        {/* Listado amplio */}
+        <div className="min-w-0 flex-1 space-y-3">
+      {borradores.length > 0 && (
+        <section className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Borradores pendientes</h3>
+              <p className="text-[11px] text-muted">
+                Compras a medias: retoma, edita y confirma cuando esté listo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void cargarHistorial()}
+              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+            >
+              Actualizar
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {borradores.map((b) => {
+              const fecha = b.updated_at
+                ? new Date(b.updated_at).toLocaleString("es-CO")
+                : "";
+              const activo = borradorId === b.id;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-2 ${
+                    activo ? "border-accent bg-accent/10" : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-ink">
+                      #{b.id} · {b.titulo || b.proveedor || "Sin título"}
+                      {activo ? " · en edición" : ""}
+                    </p>
+                    <p className="text-[10px] text-muted">
+                      {fecha}
+                      {b.moneda ? ` · ${b.moneda}` : ""}
+                      {b.lineas_count != null ? ` · ${b.lineas_count} líneas` : ""}
+                      {b.soportes_count ? ` · ${b.soportes_count} foto(s)` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void retomarBorrador(b.id)}
+                    className="rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Retomar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void eliminarBorrador(b.id)}
+                    className="rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
+            <p className="text-[11px] text-muted">
+              Marca varias compras del mismo paquete para enlazarlas: el flete se liquida
+              con la TRM BanRep de la <strong>fecha de envío</strong> y se reparte por{" "}
+              <strong>% de paquetes</strong> (sube el costo de cada referencia). La mercancía
+              sigue con la TRM de cada compra. Hay <strong>cuenta de mercancía</strong> por
+              compra y <strong>una de flete</strong> por paquete.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void cargarHistorial()}
+            className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+          >
+            {historialLoading ? "Cargando…" : "Actualizar"}
+          </button>
+        </div>
+
+        {seleccionIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2">
+            <span className="text-[11px] text-ink">
+              {seleccionIds.length} compra(s) seleccionada(s)
+            </span>
+            <button
+              type="button"
+              onClick={abrirCrearEnvio}
+              className="rounded bg-accent px-3 py-1 text-[11px] font-semibold text-white"
+            >
+              Enlazar en un envío
+            </button>
+            <button
+              type="button"
+              onClick={() => setSeleccionIds([])}
+              className="rounded border border-border px-2 py-1 text-[11px] text-muted"
+            >
+              Quitar selección
+            </button>
+          </div>
+        )}
+
+        {historial.length === 0 && !historialLoading && (
+          <p className="text-xs text-muted py-4 text-center">
+            Aún no hay compras confirmadas. Usa «Guardar para después» si quieres retomar más tarde.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {gruposHistorial.map((g) => {
+            const compras = g.kind === "envio" ? g.compras : [g.compra];
+            const envio = g.kind === "envio" ? g.envio : null;
+            const filas = compras.map((c) => {
+            const abierto = detalleId === c.id;
+            const thumb = soporteThumbs[c.id];
+            const fecha = c.created_at ? new Date(c.created_at).toLocaleString("es-CO") : "";
+            const editando = compraIdEditando === c.id;
+            return (
+              <div
+                key={c.id}
+                className={`overflow-hidden ${
+                  envio
+                    ? "border-t border-border/70 first:border-t-0"
+                    : `rounded-lg border bg-surface ${
+                        editando ? "border-accent ring-1 ring-accent/30" : "border-border"
+                      }`
+                }`}
+              >
+                <div className="flex items-start gap-2 p-2">
+                  <label className="mt-1 shrink-0" title="Seleccionar para enlazar en un envío">
+                    <input
+                      type="checkbox"
+                      checked={seleccionIds.includes(c.id)}
+                      onChange={() => toggleSeleccion(c.id)}
+                      className="accent-accent"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
+                    onClick={() => setDetalleId(abierto ? null : c.id)}
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
+                      {thumb ? (
+                        <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[9px] text-muted">
+                          {c.tiene_soporte ? "…" : "sin foto"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-ink">
+                        #{c.id} · {fecha}
+                        {c.proveedor ? ` · ${c.proveedor}` : ""}
+                        {editando ? " · en edición" : ""}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        {c.moneda}
+                        {c.fecha_compra ? ` · compra ${c.fecha_compra}` : ""}
+                        {c.trm
+                          ? ` · TRM ${c.trm}${c.trm_fuente === "banrep" ? " BanRep" : ""}`
+                          : ""}
+                        {c.flete && !c.envio ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
+                        {" · "}
+                        {c.total_guardados} costo(s)
+                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
+                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
+                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
+                          : ""}
+                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0 && !c.envio
+                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
+                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
+                          : ""}
+                        {c.emisor_nombre ? ` · a nombre de ${c.emisor_nombre}` : ""}
+                      </p>
+                      <p className="truncate text-[10px] text-muted">
+                        {(c.lineas || [])
+                          .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
+                          .join(" · ") || "Sin líneas"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void editarCompra(c.id)}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCuentaCobroId(c.id);
+                      setDetalleId(c.id);
+                    }}
+                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
+                    title="Ver / aprobar cuenta de cobro"
+                  >
+                    {c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada"
+                      ? "Ver cobro"
+                      : "Aprobar cobro"}
+                  </button>
+                  {(c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF merc.
+                    </button>
+                  )}
+                  {(c.tiene_cuenta_flete || c.cuenta_flete_estado === "aprobada") && !c.envio && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : String(e)),
+                        );
+                      }}
+                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    >
+                      PDF flete
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void eliminarCompra(c.id)}
+                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+                {abierto && (
+                  <div className="border-t border-border bg-surface-input/40 p-2 space-y-2">
+                    {thumb && (
+                      <a href={thumb} target="_blank" rel="noreferrer" className="block">
+                        <img
+                          src={thumb}
+                          alt="Soporte de compra"
+                          className="max-h-56 w-full rounded border border-border object-contain bg-surface"
+                        />
+                      </a>
+                    )}
+                    <table className="min-w-full text-left text-[10px]">
+                      <thead className="text-muted uppercase">
+                        <tr>
+                          <th className="px-1 py-1">SKU</th>
+                          <th className="px-1 py-1">Producto</th>
+                          <th className="px-1 py-1">Total</th>
+                          <th className="px-1 py-1">Costo/ud</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(c.lineas || []).map((l, i) => {
+                          const ud = etiquetaUnidad(l.unidad || "un").toLowerCase();
+                          return (
+                          <tr key={i} className="border-t border-border/60">
+                            <td className="px-1 py-1 font-mono text-accent">{l.codigo || "—"}</td>
+                            <td className="px-1 py-1">{l.nombre}</td>
+                            <td className="px-1 py-1 font-mono">
+                              {l.unidades_totales ?? l.cantidad ?? "—"} {ud}
+                            </td>
+                            <td className="px-1 py-1 font-mono">
+                              {l.costo_unitario != null
+                                ? `${fmtCop(Number(l.costo_unitario))}/${ud}`
+                                : "—"}
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+            });
+            if (envio) {
+              return (
+                <li
+                  key={`e-${envio.id}`}
+                  className="rounded-lg border border-accent/50 bg-surface overflow-hidden"
+                >
+                  <div className="flex flex-wrap items-center gap-2 border-b border-accent/20 bg-accent/5 px-3 py-2">
+                    <span className="text-xs font-semibold text-ink">
+                      Envío #{envio.id}
+                      {envio.fecha_envio ? ` · ${envio.fecha_envio}` : ""}
+                    </span>
+                    <span className="text-[10px] text-muted">
+                      flete {envio.flete} {envio.moneda_flete}
+                      {envio.trm
+                        ? ` · TRM ${envio.trm}${envio.trm_fuente === "banrep" ? " BanRep" : ""}`
+                        : ""}
+                      {envio.flete_cobro_cop
+                        ? envio.tiene_cuenta_flete
+                          ? ` · flete OK ${fmtCop(envio.flete_cobro_cop)}`
+                          : ` · flete pend. ${fmtCop(envio.flete_cobro_cop)}`
+                        : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => abrirEditarEnvio(envio)}
+                      className="rounded border border-accent/40 px-2 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10"
+                    >
+                      Editar envío
+                    </button>
+                    <button
+                      type="button"
+                      disabled={envioBusy || !(envio.flete > 0)}
+                      onClick={() => void actualizarCostosEnvio(envio)}
+                      className="rounded border border-emerald-600/50 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-300"
+                      title="Reparte el flete por % de paquetes y actualiza el costo unitario de cada referencia"
+                    >
+                      {envioBusy ? "Actualizando…" : "Actualizar costos unitarios"}
+                    </button>
+                    {envio.tiene_cuenta_flete ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CuentaCobroAccentPicker
+                          value={pdfAccentRgb}
+                          onChange={setPdfAccentRgb}
+                          disabled={envioBusy}
+                          compact
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void descargarCuentaFleteEnvio(envio.id).catch((e: unknown) =>
+                              setError(e instanceof Error ? e.message : String(e)),
+                            );
+                          }}
+                          className="rounded border border-emerald-600/40 px-2 py-0.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                        >
+                          PDF flete paquete
+                        </button>
+                        <button
+                          type="button"
+                          disabled={envioBusy}
+                          onClick={() => void aprobarFleteEnvio(envio)}
+                          className="rounded border border-border px-2 py-0.5 text-[11px] font-medium text-muted hover:text-ink disabled:opacity-50"
+                          title="Regenera el PDF con el color de acento elegido"
+                        >
+                          Regenerar PDF
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CuentaCobroAccentPicker
+                          value={pdfAccentRgb}
+                          onChange={setPdfAccentRgb}
+                          disabled={envioBusy}
+                          compact
+                        />
+                        <button
+                          type="button"
+                          disabled={envioBusy || !(envio.flete > 0)}
+                          onClick={() => void aprobarFleteEnvio(envio)}
+                          className="rounded border border-accent/40 px-2 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 disabled:opacity-50"
+                        >
+                          Aprobar flete paquete
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void desenlazarEnvio(envio.id)}
+                      className="rounded border border-border px-2 py-0.5 text-[11px] text-muted hover:text-danger hover:border-danger"
+                    >
+                      Desenlazar
+                    </button>
+                  </div>
+                  {filas}
+                </li>
+              );
+            }
+            return (
+              <li key={compras[0].id} className="list-none">
+                {filas}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+        </div>
+      </div>
+
+      {modalVerificar && (
+        <Modal
+          onClose={() => setModalVerificar(false)}
+          title={compraIdEditando
+            ? `Verificar compra #${compraIdEditando}`
+            : borradorId
+              ? `Verificar borrador #${borradorId}`
+              : "Verificar extracción de compra"}
+          maxWidthClassName="max-w-6xl"
+          fixedHeight
+          footer={(
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] text-muted max-w-md">
+                Costo / ud = (P. pack neto × TRM + flete) ÷ Contenido. La cuenta de cobro se abre al confirmar.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalVerificar(false)}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted"
+                >
+                  Seguir después
+                </button>
+                {!compraIdEditando && (
+                  <button
+                    type="button"
+                    disabled={guardandoBorrador || (!lineas.length && !galeria.length)}
+                    onClick={() => void guardarBorrador()}
+                    className="rounded-lg border-2 border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:border-accent disabled:opacity-40"
+                  >
+                    {guardandoBorrador
+                      ? "Guardando…"
+                      : borradorId
+                        ? `Actualizar borrador #${borradorId}`
+                        : "Guardar para después"}
+                  </button>
+                )}
+                {lineas.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={!puedenGuardar || guardando}
+                    onClick={() => void guardar()}
+                    className="rounded-lg border-2 border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent-hover"
+                  >
+                    {guardando
+                      ? "Guardando…"
+                      : compraIdEditando
+                        ? `Actualizar costos (#${compraIdEditando})`
+                        : `Confirmar costos (${seleccionadas.length})`}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        >
+          <div className="space-y-3 p-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
         <label className="block text-[10px]">
           <span className="font-bold text-muted">Fecha compra</span>
           <input
@@ -1835,6 +2585,30 @@ export default function ComprasExteriorPanel() {
             className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
+        <label className="col-span-2 block text-[10px]">
+          <span className="font-bold text-muted">Cuenta de cobro a nombre de</span>
+          <div className="mt-0.5 flex items-center gap-2">
+            <select
+              value={emisorUsuarioId === "" ? "" : String(emisorUsuarioId)}
+              onChange={(e) => setEmisorUsuarioId(e.target.value ? Number(e.target.value) : "")}
+              className="w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs"
+              title="Usuario del panel que figura como emisor en el PDF (también define el color de acento)"
+            >
+              <option value="">Elegir usuario…</option>
+              {emisores.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nombre}
+                  {e.documento_identidad ? "" : " — falta documento"}
+                </option>
+              ))}
+            </select>
+            <span
+              className="h-6 w-6 shrink-0 rounded-full border border-border"
+              style={{ backgroundColor: `rgb(${pdfAccentRgb.replace(/\s+/g, ",")})` }}
+              title={`Acento del PDF: ${pdfAccentRgb}`}
+            />
+          </div>
+        </label>
         <label className="block text-[10px]">
           <span className="font-bold text-muted">Desc. $ pedido</span>
           <input
@@ -1929,273 +2703,6 @@ export default function ComprasExteriorPanel() {
           Proveedor: <span className="font-semibold text-ink">{proveedor}</span>
         </p>
       )}
-
-      {error && (
-        <div className="rounded-lg border border-danger/40 bg-danger/5 px-2 py-1.5 text-[10px] text-danger">
-          {error}
-        </div>
-      )}
-      {okMsg && (
-        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-2 py-1.5 text-[10px] text-emerald-700 dark:text-emerald-400">
-          {okMsg}
-        </div>
-      )}
-        </aside>
-
-        {/* Listado amplio */}
-        <div className="min-w-0 flex-1 space-y-3">
-      {borradores.length > 0 && (
-        <section className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">Borradores pendientes</h3>
-              <p className="text-[11px] text-muted">
-                Compras a medias: retoma, edita y confirma cuando esté listo.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void cargarHistorial()}
-              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
-            >
-              Actualizar
-            </button>
-          </div>
-          <ul className="space-y-1.5">
-            {borradores.map((b) => {
-              const fecha = b.updated_at
-                ? new Date(b.updated_at).toLocaleString("es-CO")
-                : "";
-              const activo = borradorId === b.id;
-              return (
-                <li
-                  key={b.id}
-                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-2 ${
-                    activo ? "border-accent bg-accent/10" : "border-border bg-surface"
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-ink">
-                      #{b.id} · {b.titulo || b.proveedor || "Sin título"}
-                      {activo ? " · en edición" : ""}
-                    </p>
-                    <p className="text-[10px] text-muted">
-                      {fecha}
-                      {b.moneda ? ` · ${b.moneda}` : ""}
-                      {b.lineas_count != null ? ` · ${b.lineas_count} líneas` : ""}
-                      {b.soportes_count ? ` · ${b.soportes_count} foto(s)` : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void retomarBorrador(b.id)}
-                    className="rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                  >
-                    Retomar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void eliminarBorrador(b.id)}
-                    className="rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
-                  >
-                    Eliminar
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-semibold text-ink">Historial de compras exterior</h3>
-            <p className="text-[11px] text-muted">
-              Cada confirmación conserva el pantallazo. Hay{" "}
-              <strong>dos cuentas</strong> si hay flete: mercancía + 5%, y flete aparte.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void cargarHistorial()}
-            className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
-          >
-            {historialLoading ? "Cargando…" : "Actualizar"}
-          </button>
-        </div>
-
-        {historial.length === 0 && !historialLoading && (
-          <p className="text-xs text-muted py-4 text-center">
-            Aún no hay compras confirmadas. Usa «Guardar para después» si quieres retomar más tarde.
-          </p>
-        )}
-
-        <ul className="space-y-2">
-          {historial.map((c) => {
-            const abierto = detalleId === c.id;
-            const thumb = soporteThumbs[c.id];
-            const fecha = c.created_at ? new Date(c.created_at).toLocaleString("es-CO") : "";
-            const editando = compraIdEditando === c.id;
-            return (
-              <li
-                key={c.id}
-                className={`rounded-lg border bg-surface overflow-hidden ${
-                  editando ? "border-accent ring-1 ring-accent/30" : "border-border"
-                }`}
-              >
-                <div className="flex items-start gap-2 p-2">
-                  <button
-                    type="button"
-                    className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
-                    onClick={() => setDetalleId(abierto ? null : c.id)}
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
-                      {thumb ? (
-                        <img src={thumb} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-[9px] text-muted">
-                          {c.tiene_soporte ? "…" : "sin foto"}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-ink">
-                        #{c.id} · {fecha}
-                        {c.proveedor ? ` · ${c.proveedor}` : ""}
-                        {editando ? " · en edición" : ""}
-                      </p>
-                      <p className="text-[10px] text-muted">
-                        {c.moneda}
-                        {c.fecha_compra ? ` · compra ${c.fecha_compra}` : ""}
-                        {c.trm
-                          ? ` · TRM ${c.trm}${c.trm_fuente === "banrep" ? " BanRep" : ""}`
-                          : ""}
-                        {c.flete ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
-                        {" · "}
-                        {c.total_guardados} costo(s)
-                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
-                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
-                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
-                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
-                          : ""}
-                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0
-                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
-                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
-                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
-                          : ""}
-                      </p>
-                      <p className="truncate text-[10px] text-muted">
-                        {(c.lineas || [])
-                          .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
-                          .join(" · ") || "Sin líneas"}
-                      </p>
-                    </div>
-                    <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void editarCompra(c.id)}
-                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCuentaCobroId(c.id);
-                      setDetalleId(c.id);
-                    }}
-                    className="shrink-0 rounded border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10"
-                    title="Ver / aprobar cuenta de cobro"
-                  >
-                    {c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada"
-                      ? "Ver cobro"
-                      : "Aprobar cobro"}
-                  </button>
-                  {(c.tiene_cuenta_cobro || c.cuenta_cobro_estado === "aprobada") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
-                          setError(e instanceof Error ? e.message : String(e)),
-                        );
-                      }}
-                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    >
-                      PDF merc.
-                    </button>
-                  )}
-                  {(c.tiene_cuenta_flete || c.cuenta_flete_estado === "aprobada") && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
-                          setError(e instanceof Error ? e.message : String(e)),
-                        );
-                      }}
-                      className="shrink-0 rounded border border-emerald-600/40 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    >
-                      PDF flete
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void eliminarCompra(c.id)}
-                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-danger hover:border-danger"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-                {abierto && (
-                  <div className="border-t border-border bg-surface-input/40 p-2 space-y-2">
-                    {thumb && (
-                      <a href={thumb} target="_blank" rel="noreferrer" className="block">
-                        <img
-                          src={thumb}
-                          alt="Soporte de compra"
-                          className="max-h-56 w-full rounded border border-border object-contain bg-surface"
-                        />
-                      </a>
-                    )}
-                    <table className="min-w-full text-left text-[10px]">
-                      <thead className="text-muted uppercase">
-                        <tr>
-                          <th className="px-1 py-1">SKU</th>
-                          <th className="px-1 py-1">Producto</th>
-                          <th className="px-1 py-1">Total</th>
-                          <th className="px-1 py-1">Costo/ud</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(c.lineas || []).map((l, i) => {
-                          const ud = etiquetaUnidad(l.unidad || "un").toLowerCase();
-                          return (
-                          <tr key={i} className="border-t border-border/60">
-                            <td className="px-1 py-1 font-mono text-accent">{l.codigo || "—"}</td>
-                            <td className="px-1 py-1">{l.nombre}</td>
-                            <td className="px-1 py-1 font-mono">
-                              {l.unidades_totales ?? l.cantidad ?? "—"} {ud}
-                            </td>
-                            <td className="px-1 py-1 font-mono">
-                              {l.costo_unitario != null
-                                ? `${fmtCop(Number(l.costo_unitario))}/${ud}`
-                                : "—"}
-                            </td>
-                          </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-        </div>
-      </div>
 
       {lineas.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border">
@@ -2398,86 +2905,29 @@ export default function ComprasExteriorPanel() {
         </div>
       )}
 
-      {(lineas.length > 0 || galeria.length > 0 || borradorId || compraIdEditando) && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="space-y-1">
-            <p className="text-[11px] text-muted">
-              Costo / ud = (P. pack neto × TRM + flete repartido por unidades) ÷ Contenido.
-              El flete se reparte según packs × contenido de cada línea. Puedes{" "}
-              <strong>guardar borrador</strong> y retomar después; al confirmar costos se archiva.
-              {compraIdEditando ? " Estás editando una compra ya registrada." : ""}
-            </p>
-            {cuotaManejoPreview.total > 0 && (
-              <p className="text-[11px] text-ink rounded-lg border border-accent/30 bg-accent/5 px-2 py-1.5">
-                Al confirmar se abre formato de <strong>cuenta de cobro</strong> para aprobar:
-                mercancía <strong className="font-mono">{fmtCop(cuotaManejoPreview.valor)}</strong>
-                {" + "}
-                <strong className="font-mono">{cuotaManejoPreview.pct}%</strong> cuota{" "}
-                <strong className="font-mono">{fmtCop(cuotaManejoPreview.cuota)}</strong>
-                {" = "}
-                <strong className="font-mono text-accent">{fmtCop(cuotaManejoPreview.total)}</strong>
-                . Ajusta el % arriba antes de confirmar; el PDF se genera al aprobar.
-                La cuenta se liquida en <strong>pesos (COP)</strong> con la TRM BanRep del día de la compra.
-              </p>
-            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {!compraIdEditando && (
-              <button
-                type="button"
-                disabled={guardandoBorrador || (!lineas.length && !galeria.length)}
-                onClick={() => void guardarBorrador()}
-                className="rounded-lg border-2 border-border bg-surface px-4 py-2 text-xs font-bold text-ink hover:border-accent disabled:opacity-40"
-              >
-                {guardandoBorrador
-                  ? "Guardando borrador…"
-                  : borradorId
-                    ? `Actualizar borrador #${borradorId}`
-                    : "Guardar para después"}
-              </button>
-            )}
-            {lineas.length > 0 && (
-              <button
-                type="button"
-                disabled={!puedenGuardar || guardando}
-                onClick={() => void guardar()}
-                className="rounded-lg border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent-hover"
-              >
-                {guardando
-                  ? "Guardando…"
-                  : compraIdEditando
-                    ? `Actualizar costos (#${compraIdEditando})`
-                    : `Confirmar costos (${seleccionadas.length})`}
-              </button>
-            )}
-          </div>
-        </div>
+        </Modal>
       )}
 
       {cuentaCobroId != null && (() => {
         const c = historial.find((h) => h.id === cuentaCobroId);
         if (!c || !(c.total_cobro_cop && c.total_cobro_cop > 0)) return null;
         return (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-ink">Cuentas de cobro · compra #{c.id}</h3>
-              <button
-                type="button"
-                onClick={() => setCuentaCobroId(null)}
-                className="text-[11px] text-muted hover:text-ink"
-              >
-                Cerrar
-              </button>
-            </div>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <Modal
+            onClose={() => setCuentaCobroId(null)}
+            title={`Cuenta de cobro · compra #${c.id}`}
+            maxWidthClassName="max-w-4xl"
+          >
+            <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-start">
             <CuentaCobroAprobacion
               compra={c}
               tipo="mercancia"
+              compact
               onAprobada={(h) => {
                 setHistorial((prev) =>
                   prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
                 );
-                setOkMsg(`Cuenta mercancía #${h.id} aprobada. PDF con tu acento de tema.`);
+                setOkMsg(`Cuenta mercancía #${h.id} aprobada. PDF generado.`);
               }}
               onDescargar={() => {
                 void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
@@ -2485,15 +2935,16 @@ export default function ComprasExteriorPanel() {
                 );
               }}
             />
-            {(c.flete_cobro_cop ?? 0) > 0 && (
+            {(c.flete_cobro_cop ?? 0) > 0 && !c.envio && (
               <CuentaCobroAprobacion
                 compra={c}
                 tipo="flete"
+                compact
                 onAprobada={(h) => {
                   setHistorial((prev) =>
                     prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
                   );
-                  setOkMsg(`Cuenta flete #${h.id} aprobada. PDF con tu acento de tema.`);
+                  setOkMsg(`Cuenta flete #${h.id} aprobada. PDF generado.`);
                 }}
                 onDescargar={() => {
                   void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
@@ -2502,10 +2953,102 @@ export default function ComprasExteriorPanel() {
                 }}
               />
             )}
+            {c.envio && (
+              <p className="text-[11px] text-muted lg:max-w-xs">
+                El flete de esta compra va en el paquete envío #{c.envio.id}
+                {c.envio.fecha_envio ? ` (${c.envio.fecha_envio})` : ""}.
+                Apruébalo desde la cabecera del envío en el historial.
+              </p>
+            )}
             </div>
-          </section>
+          </Modal>
         );
       })()}
+
+      {envioModal && (
+        <Modal
+          onClose={() => !envioBusy && setEnvioModal(null)}
+          title={envioModal === "crear" ? "Enlazar compras en un envío" : `Editar envío #${envioModal.id}`}
+          maxWidthClassName="max-w-lg"
+        >
+          <div className="space-y-3 p-4">
+            <p className="text-[11px] text-muted">
+              Varias facturas, un solo paquete. La mercancía conserva la TRM de cada fecha de
+              compra. El flete se convierte a COP con la TRM BanRep del día del envío y se
+              reparte por porcentaje de paquetes entre las referencias (cantidad de cada
+              ítem ÷ total de packs del envío). Así sube el costo unitario de cada referencia.
+            </p>
+            <label className="block text-[11px] font-semibold text-muted">
+              Fecha del envío
+              <input
+                type="date"
+                value={fechaEnvio}
+                onChange={(e) => setFechaEnvio(e.target.value)}
+                className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-sm text-ink"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-[11px] font-semibold text-muted">
+                Flete
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={fleteEnvio}
+                  onChange={(e) => setFleteEnvio(e.target.value)}
+                  className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 font-mono text-sm text-ink"
+                />
+              </label>
+              <label className="block text-[11px] font-semibold text-muted">
+                Moneda flete
+                <select
+                  value={monedaFleteEnvio}
+                  onChange={(e) => setMonedaFleteEnvio(e.target.value)}
+                  className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-sm text-ink"
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="COP">COP</option>
+                </select>
+              </label>
+            </div>
+            {trmEnvio && monedaFleteEnvio !== "COP" && (
+              <p className="text-[11px] text-muted">
+                TRM BanRep {fechaEnvio}: {trmEnvio}
+                {n(fleteEnvio) > 0
+                  ? ` → flete ${fmtCop(n(fleteEnvio) * n(trmEnvio))}`
+                  : ""}
+              </p>
+            )}
+            <p className="text-[11px] text-ink">
+              Compras:{" "}
+              {(envioModal === "crear"
+                ? seleccionIds
+                : envioModal.compra_ids || []
+              )
+                .map((id) => `#${id}`)
+                .join(", ")}
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={envioBusy}
+                onClick={() => setEnvioModal(null)}
+                className="rounded border border-border px-3 py-1.5 text-[11px] text-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={envioBusy || !fechaEnvio}
+                onClick={() => void guardarEnvio()}
+                className="rounded bg-accent px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+              >
+                {envioBusy ? "Guardando…" : envioModal === "crear" ? "Enlazar envío" : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
 
     </div>

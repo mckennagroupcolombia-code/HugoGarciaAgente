@@ -11289,6 +11289,252 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018239401208": {
+      "shipping_id": "47912542051",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T16:33:57",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CERLAN500g",
+            "nombre": "Cera Lanette 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 24000.0
+          }
+        ],
+        "total": 24000.0,
+        "nombre_cliente": "Julian Melo",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 68 70c-83, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018246815502": {
+      "shipping_id": "47916411926",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T16:42:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESEMEN5mL",
+            "nombre": "Aceite Esencial De Menta 5ml Mckenna Group Puro Apto Difusor Y Masajes",
+            "cantidad": 2.0,
+            "precio_unitario": 24900.0
+          }
+        ],
+        "total": 49800.0,
+        "nombre_cliente": "Claudia soto",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 27 #46-40, Teusaquillo, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239639740": {
+      "shipping_id": "47912924042",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T16:46:28",
+      "error": "No puedo emitir factura automática: Cera De Abejas  Blanca 500gr (MCO1912833896): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018229107324": {
+      "shipping_id": "47908068294",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T16:49:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-PISTOS500g",
+            "nombre": "Pistachos Tostados 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 49900.0
+          }
+        ],
+        "total": 49900.0,
+        "nombre_cliente": "Juan Carlos García",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera carrera 96 F #22k-40, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018178242602": {
+      "shipping_id": "47884821422",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T16:52:42",
+      "error": "No puedo emitir factura automática: Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente (MCO2153719165): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018151408926": {
+      "shipping_id": "47872277542",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T17:08:46",
+      "error": "No puedo emitir factura automática: L Glutamina 100 Gr N/a (MCO876339306): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018213938192": {
+      "shipping_id": "47900943552",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T17:22:38",
+      "error": "No puedo emitir factura automática: Goma Guar 500 Gr Goma Guar (MCO616763099): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018245378310": {
+      "shipping_id": "47915447865",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T17:26:21",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "OLTKLt",
+            "nombre": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+            "cantidad": 1.0,
+            "precio_unitario": 25000.0
+          }
+        ],
+        "total": 25000.0,
+        "nombre_cliente": "Mercedes Ramirez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 125  66B-05 SN, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018244920956": {
+      "shipping_id": "47915518760",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T17:34:56",
+      "error": "No puedo emitir factura automática: Aceite Esencial Jazmín Puro 5ml Mckenna Group Aromaterapia Masajes (MCO1672206565): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018169765512": {
+      "shipping_id": "47880960498",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T17:42:38",
+      "error": "No puedo emitir factura automática: Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor (MCO4083547534): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018229387468": {
+      "shipping_id": "47907909315",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T18:02:04",
+      "error": "No puedo emitir factura automática: Proteína 80% Suero De Leche (MCO1179039063): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018217773952": {
+      "shipping_id": "47902696032",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T18:18:10",
+      "error": "No puedo emitir factura automática: Glicerina Vegetal Usp 250 Ml (MCO1636912880): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018216914330": {
+      "shipping_id": "47902023539",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T18:22:55",
+      "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018181274202": {
+      "shipping_id": "47886194120",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T18:32:38",
+      "error": "No puedo emitir factura automática: Cafeina Anhidra 100gr Cafeína (MCO862291253): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018232236714": {
+      "shipping_id": "47909307239",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T18:54:01",
+      "error": "No puedo emitir factura automática: Ácido Salicílico 20% 30 Ml Todo Tipo De Piel (MCO1262287931): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018226619784": {
+      "shipping_id": "47906877340",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T19:04:07",
+      "error": "No puedo emitir factura automática: Manteca De Karité Orgánica Amarilla Sin - G A $191 (MCO890848439): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018235364864": {
+      "shipping_id": "47910750727",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T19:06:26",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-FLOSECLAV100g",
+            "nombre": "Flores Secas Lavanda 100 G",
+            "cantidad": 5.0,
+            "precio_unitario": 58565.0
+          }
+        ],
+        "total": 292825.0,
+        "nombre_cliente": "daniela herrera",
+        "identificacion": "222222222222",
+        "direccion_envio": "carrera 57a #4D-53, Puente Aranda, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018218823412": {
+      "shipping_id": "47902878573",
+      "estado": "error",
+      "actualizado_en": "2026-09-02T19:50:12",
+      "error": "No puedo emitir factura automática: Dipropilengicol Usp Dpg 500 Ml (MCO581504092): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018230473008": {
+      "shipping_id": "47908729102",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T20:14:17",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACETEATRE30mL",
+            "nombre": "Aceite Esencial Árbol De Té 30ml",
+            "cantidad": 1.0,
+            "precio_unitario": 31280.0
+          }
+        ],
+        "total": 31280.0,
+        "nombre_cliente": "Luz Stella Parra B",
+        "identificacion": "222222222222",
+        "direccion_envio": "Avenida Carrera 83 #65-31 sur, Bosa, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018204629532": {
+      "shipping_id": "47896197765",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T20:22:55",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDKOJDPAL30mL",
+            "nombre": "Ácido Kojico Dpalmitato 5% 30ml",
+            "cantidad": 1.0,
+            "precio_unitario": 20900.0
+          }
+        ],
+        "total": 20900.0,
+        "nombre_cliente": "Juan Diego Rueda Rodriguez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Diagonal 5 #18-31, Pacho, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018225414470": {
+      "shipping_id": "47906300960",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-02T21:30:08",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "OLTKLt",
+            "nombre": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+            "cantidad": 1.0,
+            "precio_unitario": 25000.0
+          }
+        ],
+        "total": 25000.0,
+        "nombre_cliente": "Juan Bravo",
+        "identificacion": "222222222222",
+        "direccion_envio": "Via San Antonio La Ceja km 4 SN, Rionegro, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   }
 }

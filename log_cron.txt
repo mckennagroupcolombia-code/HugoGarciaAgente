@@ -3755,3 +3755,19 @@ Resumen: 2 emitidas, 0 ya tenían NC (sin acción), 0 errores.
 ⏭  Sin novedades para 2026-09.
 ⏭  Hoy (día 2) no es día de pago de nómina (15 o fin de mes).
 ⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-02T18:00:01] resumen_actividad_sede_sur: 50 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 16 nuevas · 18 completadas · 16 iniciadas
+
+*Por persona:*
+• Gloria Stella: 6 nuevas, 7 completadas
+• Jenniffer Garcia: 5 nuevas, 5 completadas
+• Victor Garcia: 2 nuevas, 3 completadas
+• Cynthia Ruiz: 2 nuevas, 1 completada
+• Armando Garcia: 0 nuevas, 2 completadas
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-09-02) no es el último día del mes.

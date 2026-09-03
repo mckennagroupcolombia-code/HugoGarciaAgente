@@ -17,6 +17,9 @@ def test_normalizar_fecha_iso():
     assert normalizar_fecha("2026-08-01") == "2026-08-01"
     assert normalizar_fecha("2026-08-01T15:30:00") == "2026-08-01"
     assert normalizar_fecha("01-08-2026") == "2026-08-01"
+    assert normalizar_fecha("08/20/2026") == "2026-08-20"  # MM-DD (día > 12)
+    assert normalizar_fecha("Aug 20, 2026") == "2026-08-20"
+    assert normalizar_fecha("20 agosto 2026") == "2026-08-20"
     assert normalizar_fecha("") is None
     assert normalizar_fecha("no-fecha") is None
 

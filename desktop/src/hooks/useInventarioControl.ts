@@ -23,24 +23,41 @@ export interface ItemInventarioControl {
 export interface ResumenInventarioControl {
   items: ItemInventarioControl[];
   total: number;
-  actualizado_en: string;
+  actualizado_en: string | null;
   umbral_bajo_stock: number;
   umbral_divergencia_siigo: number;
   error?: string;
+  cargando?: boolean;
+  stale?: boolean;
+  desde_cache?: boolean;
 }
 
-export function useInventarioControlResumen(refresh = false) {
+export function useInventarioControlResumen() {
   return useQuery<ResumenInventarioControl>({
     queryKey: ["inventario-control", "resumen"],
-    queryFn: () =>
-      api.get(`/api/inventario-control/resumen${refresh ? "?refresh=1" : ""}`),
-    refetchInterval: 60_000,
+    queryFn: () => api.get("/api/inventario-control/resumen", { timeoutMs: 45_000 }),
+    refetchInterval: (q) => (q.state.data?.cargando ? 3_000 : 60_000),
+    retry: 0,
+    staleTime: 15_000,
   });
 }
 
 function useInvalidarResumen() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: ["inventario-control", "resumen"] });
+}
+
+export function useRefrescarInventarioControl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.get<ResumenInventarioControl>("/api/inventario-control/resumen?refresh=1", {
+        timeoutMs: 60_000,
+      }),
+    onSuccess: (data) => {
+      qc.setQueryData(["inventario-control", "resumen"], data);
+    },
+  });
 }
 
 export function useAjustarStockInventario() {
