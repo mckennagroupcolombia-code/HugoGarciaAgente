@@ -114,6 +114,12 @@ comprobantes/
 # Facturas descargadas (PDFs/XMLs/ZIPs de SIIGO/MeLi — runtime)
 facturas_descargadas/
 
+# Binarios pesados generados en runtime — se quedan en disco pero no se versionan
+# (inflaban el repo; ver auditoría de organización de archivos, sep-2026)
+uploads/
+Etiquetas Modelo SVG/
+IMAGENES_PRODUCTOS_CATALOGO/
+
 # Renders de etiquetas guardados desde Studio (para Blender/redes — runtime)
 renders_etiquetas/
 .env.save
