@@ -6974,6 +6974,11 @@ def register_routes(app):
             proveedor = (request.form.get("proveedor") or "").strip()
             notas = (request.form.get("notas") or "").strip()
             fecha_compra = (request.form.get("fecha_compra") or "").strip()
+            numero_pedido = (
+                request.form.get("numero_pedido")
+                or request.form.get("referencia")
+                or ""
+            ).strip()
             trm_fuente = (request.form.get("trm_fuente") or "").strip()
             borrador_id_raw = (request.form.get("borrador_id") or "").strip()
             compra_id_raw = (request.form.get("compra_id") or "").strip()
@@ -7062,6 +7067,9 @@ def register_routes(app):
             proveedor = (data.get("proveedor") or "").strip()
             notas = (data.get("notas") or "").strip()
             fecha_compra = (data.get("fecha_compra") or "").strip()
+            numero_pedido = str(
+                data.get("numero_pedido") or data.get("referencia") or ""
+            ).strip()
             trm_fuente = (data.get("trm_fuente") or "").strip()
             borrador_id_raw = str(data.get("borrador_id") or "").strip()
             compra_id_raw = str(data.get("compra_id") or "").strip()
@@ -7277,6 +7285,7 @@ def register_routes(app):
                     append_soportes=False,
                     cuota_pct=cuota_pct,
                     emisor_usuario_id=emisor_usuario_id,
+                    numero_pedido=numero_pedido,
                 )
                 if not historial:
                     return jsonify({"error": f"Compra #{compra_id_edit} no encontrada"}), 404
@@ -7298,6 +7307,7 @@ def register_routes(app):
                     trm_fuente=trm_fuente,
                     cuota_pct=cuota_pct,
                     emisor_usuario_id=emisor_usuario_id,
+                    numero_pedido=numero_pedido,
                 )
             # Al confirmar, eliminar borrador asociado (archivos ya copiados a historial)
             if borrador_id_raw:
@@ -7574,7 +7584,9 @@ def register_routes(app):
     @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro", methods=["GET", "POST", "DELETE"])
     def api_compras_exterior_cuenta_cobro(compra_id: int):
         """
-        GET: descarga PDF aprobado.
+        GET: descarga PDF aprobado, o vista previa borrador con ?preview=1
+             (no cambia estado de aprobación).
+             Query: tipo=mercancia|flete, preview=1, accent_rgb?, cuota_pct?, emisor_usuario_id?
         POST: aprobar y generar PDF con accent_rgb del tema del usuario
               body JSON: { accent_rgb?: "12 96 105", tipo?: "mercancia"|"flete",
                            cuota_pct?: number, emisor_usuario_id?: number }
@@ -7587,6 +7599,7 @@ def register_routes(app):
         from app.services.contabilidad_db import (
             aprobar_cuenta_cobro_compra,
             obtener_compra_exterior,
+            previsualizar_cuenta_cobro_compra,
             resetear_cuentas_cobro_compras_exterior,
             ruta_cuenta_cobro_compra,
         )
@@ -7653,6 +7666,44 @@ def register_routes(app):
             return jsonify({"ok": True, "historial": row, "tipo": tipo})
 
         tipo = str(request.args.get("tipo") or "mercancia").strip().lower()
+        preview = str(request.args.get("preview") or "").strip().lower() in (
+            "1", "true", "yes", "si", "sí",
+        )
+        if preview:
+            accent = str(request.args.get("accent_rgb") or request.args.get("accent") or "").strip()
+            cuota_pct = None
+            if request.args.get("cuota_pct") not in (None, ""):
+                try:
+                    cuota_pct = float(str(request.args.get("cuota_pct")).replace(",", "."))
+                except (TypeError, ValueError):
+                    cuota_pct = None
+            emisor_perfil = None
+            uid_raw = request.args.get("emisor_usuario_id") or request.args.get("usuario_id")
+            if uid_raw not in (None, "", 0, "0"):
+                try:
+                    from app.services.cuenta_cobro_cuota_manejo import perfil_emisor_por_id
+
+                    emisor_perfil = perfil_emisor_por_id(int(uid_raw))
+                except (TypeError, ValueError):
+                    emisor_perfil = None
+            if emisor_perfil is None:
+                emisor_perfil = _panel_tickets_usuario()
+            path_prev, err_prev = previsualizar_cuenta_cobro_compra(
+                compra_id,
+                tipo=tipo,
+                accent_rgb=accent,
+                cuota_pct=cuota_pct,
+                emisor_perfil=emisor_perfil,
+            )
+            if not path_prev:
+                return jsonify({"error": err_prev or "No se pudo generar la vista previa"}), 400
+            return send_file(
+                path_prev,
+                mimetype="application/pdf",
+                download_name=os.path.basename(path_prev),
+                as_attachment=False,
+            )
+
         path_info = ruta_cuenta_cobro_compra(compra_id, tipo=tipo)
         if not path_info:
             row = obtener_compra_exterior(compra_id)
@@ -7687,7 +7738,10 @@ def register_routes(app):
     @app.route("/app/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     @app.route("/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     def api_compras_exterior_cuentas_cobro_reset():
-        """Borra todas (o ids) las cuentas de cobro de compras exterior."""
+        """Borra todas (o ids) las cuentas de cobro de compras exterior (PDF + estado).
+        También limpia flete de paquetes/envíos y re-prepara pendientes para reaprobar.
+        Body opcional: { compra_ids?: number[] }
+        """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.contabilidad_db import resetear_cuentas_cobro_compras_exterior

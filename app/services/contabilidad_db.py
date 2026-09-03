@@ -120,6 +120,7 @@ def init_db() -> None:
         "ALTER TABLE compras_exterior ADD COLUMN emisor_usuario_id INTEGER DEFAULT NULL",
         "ALTER TABLE compras_exterior ADD COLUMN emisor_nombre TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE compras_exterior ADD COLUMN envio_id INTEGER DEFAULT NULL",
+        "ALTER TABLE compras_exterior ADD COLUMN numero_pedido TEXT NOT NULL DEFAULT ''",
         """CREATE TABLE IF NOT EXISTS compras_exterior_envios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -613,6 +614,7 @@ def guardar_compra_exterior(
     trm_fuente: str = "",
     cuota_pct: float | None = None,
     emisor_usuario_id: int | None = None,
+    numero_pedido: str = "",
 ) -> dict:
     """Persiste historial de compra exterior y opcionalmente pantallazo(s) de soporte."""
     import json
@@ -666,14 +668,15 @@ def guardar_compra_exterior(
         mime = "application/json"
 
     emisor_uid, emisor_nom = _resolver_emisor_compra(emisor_usuario_id)
+    pedido = (numero_pedido or "").strip()[:120]
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO compras_exterior
                  (created_at, moneda, trm, flete, moneda_flete, proveedor,
                   soporte_path, soporte_nombre, soporte_mime, lineas_json,
                   total_guardados, notas, fecha_compra, trm_fuente,
-                  emisor_usuario_id, emisor_nombre)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  emisor_usuario_id, emisor_nombre, numero_pedido)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 now,
                 (moneda or "USD").strip().upper(),
@@ -691,6 +694,7 @@ def guardar_compra_exterior(
                 (trm_fuente or "").strip()[:40],
                 emisor_uid,
                 emisor_nom,
+                pedido,
             ),
         )
         row = con.execute(
@@ -986,6 +990,7 @@ def actualizar_compra_exterior(
     append_soportes: bool = False,
     cuota_pct: float | None = None,
     emisor_usuario_id: int | None = None,
+    numero_pedido: str | None = None,
 ) -> dict | None:
     """Actualiza una compra exterior ya registrada (metadatos, líneas y soportes)."""
     import json
@@ -1045,12 +1050,19 @@ def actualizar_compra_exterior(
         except (TypeError, ValueError, KeyError):
             envio_id_prev = None
         flete_guardar = 0.0 if envio_id_prev else float(flete or 0)
+        if numero_pedido is None:
+            try:
+                pedido = str(row_prev["numero_pedido"] or "").strip()
+            except (KeyError, IndexError, TypeError):
+                pedido = ""
+        else:
+            pedido = str(numero_pedido or "").strip()[:120]
         con.execute(
             """UPDATE compras_exterior SET
                  moneda=?, trm=?, flete=?, moneda_flete=?, proveedor=?,
                  soporte_path=?, soporte_nombre=?, soporte_mime=?,
                  lineas_json=?, total_guardados=?, notas=?, fecha_compra=?, trm_fuente=?,
-                 emisor_usuario_id=?, emisor_nombre=?
+                 emisor_usuario_id=?, emisor_nombre=?, numero_pedido=?
                WHERE id=?""",
             (
                 (moneda or "USD").strip().upper(),
@@ -1068,6 +1080,7 @@ def actualizar_compra_exterior(
                 (trm_fuente or "").strip()[:40],
                 emisor_uid,
                 emisor_nom,
+                pedido,
                 int(compra_id),
             ),
         )
@@ -1083,10 +1096,15 @@ def actualizar_compra_exterior(
 def resetear_cuentas_cobro_compras_exterior(
     *,
     compra_ids: list[int] | None = None,
+    incluir_envios: bool = True,
+    repreparar_pendientes: bool = True,
 ) -> dict:
     """
     Borra PDFs y limpia campos de cuenta de cobro (mercancía + flete) en compras exterior.
     Si compra_ids es None, limpia todas las que tengan cobro generado/pendiente.
+    También limpia cuentas de flete de paquetes (envíos) salvo que incluir_envios=False.
+    Con repreparar_pendientes=True vuelve a dejar montos en estado pendiente (sin PDF)
+    para reaprobar tras corregir fletes/descuentos.
     """
     from app.services.cuenta_cobro_cuota_manejo import carpeta_pdfs
 
@@ -1142,11 +1160,111 @@ def resetear_cuentas_cobro_compras_exterior(
                 ids,
             )
 
+    envios_limpiados: list[int] = []
+    if incluir_envios:
+        with _conn() as con:
+            if compra_ids:
+                # Solo envíos que toquen esas compras
+                placeholders = ",".join("?" * len(compra_ids))
+                env_rows = con.execute(
+                    f"""SELECT DISTINCT e.id, e.cuenta_flete_path
+                        FROM compras_exterior_envios e
+                        JOIN compras_exterior c ON c.envio_id = e.id
+                        WHERE c.id IN ({placeholders})
+                          AND (
+                            TRIM(COALESCE(e.cuenta_flete_path,''))!=''
+                            OR TRIM(COALESCE(e.cuenta_flete_estado,''))!=''
+                            OR COALESCE(e.flete_cobro_cop,0)>0
+                          )""",
+                    [int(x) for x in compra_ids],
+                ).fetchall()
+            else:
+                env_rows = con.execute(
+                    """SELECT id, cuenta_flete_path FROM compras_exterior_envios
+                       WHERE TRIM(COALESCE(cuenta_flete_path,''))!=''
+                          OR TRIM(COALESCE(cuenta_flete_estado,''))!=''
+                          OR COALESCE(flete_cobro_cop,0)>0"""
+                ).fetchall()
+        for row in env_rows:
+            d = dict(row)
+            eid = int(d["id"])
+            envios_limpiados.append(eid)
+            prev = (d.get("cuenta_flete_path") or "").strip()
+            if prev:
+                full = prev if os.path.isabs(prev) else os.path.join(base, prev)
+                try:
+                    if os.path.isfile(full):
+                        os.remove(full)
+                        borrados_pdf += 1
+                except OSError:
+                    pass
+        if envios_limpiados:
+            with _conn() as con:
+                placeholders = ",".join("?" * len(envios_limpiados))
+                con.execute(
+                    f"""UPDATE compras_exterior_envios SET
+                           cuenta_flete_path='', cuenta_flete_estado='',
+                           flete_cobro_cop=0
+                         WHERE id IN ({placeholders})""",
+                    envios_limpiados,
+                )
+
+    repreparadas = 0
+    if repreparar_pendientes and ids:
+        for cid in ids:
+            try:
+                if _preparar_cuenta_cobro_pendiente(int(cid)):
+                    repreparadas += 1
+            except Exception:
+                pass
+    if repreparar_pendientes and envios_limpiados:
+        for eid in envios_limpiados:
+            try:
+                _recalcular_envio(int(eid))
+            except Exception:
+                pass
+
+    # PDFs huérfanos en la carpeta (nombre cuenta de cobro… sin fila DB)
+    huerfanos = 0
+    if compra_ids is None and os.path.isdir(base):
+        with _conn() as con:
+            refs = set()
+            for r in con.execute(
+                "SELECT cuenta_cobro_path, cuenta_flete_path FROM compras_exterior"
+            ).fetchall():
+                for k in ("cuenta_cobro_path", "cuenta_flete_path"):
+                    v = (r[k] or "").strip()
+                    if v:
+                        refs.add(os.path.basename(v))
+            for r in con.execute(
+                "SELECT cuenta_flete_path FROM compras_exterior_envios"
+            ).fetchall():
+                v = (r["cuenta_flete_path"] or "").strip()
+                if v:
+                    refs.add(os.path.basename(v))
+        for name in os.listdir(base):
+            if not name.lower().endswith(".pdf"):
+                continue
+            if not name.lower().startswith("cuenta de cobro"):
+                continue
+            if name in refs:
+                continue
+            try:
+                os.remove(os.path.join(base, name))
+                huerfanos += 1
+                borrados_pdf += 1
+            except OSError:
+                pass
+
     return {
         "ok": True,
         "compras_limpiadas": len(ids),
         "ids": ids,
+        "envios_limpiados": len(envios_limpiados),
+        "envio_ids": envios_limpiados,
         "pdfs_eliminados": borrados_pdf,
+        "pdfs_huerfanos": huerfanos,
+        "repreparadas": repreparadas,
     }
 
 
@@ -1365,6 +1483,7 @@ def aprobar_cuenta_cobro_compra(
             fecha_compra=fecha_compra,
             accent_rgb=accent_rgb,
             emisor_perfil=emisor_perfil,
+            numero_pedido=str(d.get("numero_pedido") or ""),
         )
         if gen.get("error") or not gen.get("filename"):
             return obtener_compra_exterior(compra_id)
@@ -1403,6 +1522,7 @@ def aprobar_cuenta_cobro_compra(
         pct=pct_eff,
         accent_rgb=accent_rgb,
         emisor_perfil=emisor_perfil,
+        numero_pedido=str(d.get("numero_pedido") or ""),
     )
     if gen.get("error") or not gen.get("filename"):
         return obtener_compra_exterior(compra_id)
@@ -1489,6 +1609,135 @@ def ruta_cuenta_cobro_compra(
     return full, os.path.basename(fname)
 
 
+def previsualizar_cuenta_cobro_compra(
+    compra_id: int,
+    *,
+    tipo: str = "mercancia",
+    accent_rgb: str = "",
+    cuota_pct: float | None = None,
+    emisor_perfil: dict | None = None,
+) -> tuple[str | None, str]:
+    """
+    Genera un PDF de borrador (no aprueba ni cambia estado) para vista previa en el panel.
+    Retorna (ruta_absoluta, error).
+    """
+    import json
+
+    tipo_n = (tipo or "mercancia").strip().lower()
+    if tipo_n in ("envio", "shipping", "freight"):
+        tipo_n = "flete"
+    if tipo_n not in ("mercancia", "flete"):
+        tipo_n = "mercancia"
+
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM compras_exterior WHERE id = ?",
+            (int(compra_id),),
+        ).fetchone()
+        if not row:
+            return None, "Compra no encontrada"
+        d = dict(row)
+        try:
+            lineas = json.loads(d.get("lineas_json") or "[]")
+        except Exception:
+            lineas = []
+
+    if tipo_n == "flete" and d.get("envio_id"):
+        return None, "El flete de esta compra va en el paquete de envío"
+
+    if emisor_perfil is None:
+        from app.services.cuenta_cobro_cuota_manejo import perfil_emisor_por_id
+
+        emisor_perfil = perfil_emisor_por_id(d.get("emisor_usuario_id"))
+
+    from app.services.cuenta_cobro_cuota_manejo import (
+        generar_pdf_cuenta_cobro,
+        generar_pdf_cuenta_flete,
+        nombre_archivo_cuenta_cobro,
+        resolver_accent_cuenta_cobro,
+        resolver_tasa_cuenta_cobro,
+    )
+
+    accent_rgb = resolver_accent_cuenta_cobro(accent_rgb, emisor_perfil=emisor_perfil)
+    moneda = str(d.get("moneda") or "USD")
+    trm = float(d.get("trm") or 0)
+    moneda_flete = str(d.get("moneda_flete") or "")
+    fecha_compra = str(d.get("fecha_compra") or "")
+    resolved = resolver_tasa_cuenta_cobro(
+        moneda=moneda,
+        trm=trm,
+        fecha_compra=fecha_compra,
+        lineas=lineas,
+    )
+    if not resolved.get("error") and float(resolved.get("trm") or 0) > 0:
+        moneda = str(resolved["moneda"])
+        trm = float(resolved["trm"])
+        if resolved.get("fecha_trm") and not fecha_compra:
+            fecha_compra = str(resolved["fecha_trm"])[:10]
+        if (
+            resolved.get("corregido")
+            and (moneda_flete or "").strip().upper() in ("", "COP")
+            and float(d.get("flete") or 0) > 0
+        ):
+            moneda_flete = moneda
+
+    pct_eff = cuota_pct
+    if pct_eff is None:
+        try:
+            stored = float(d.get("cuota_pct") or 0)
+            pct_eff = stored if stored > 0 else None
+        except (TypeError, ValueError):
+            pct_eff = None
+
+    preview_name = "preview_" + nombre_archivo_cuenta_cobro(
+        int(compra_id), flete=(tipo_n == "flete")
+    )
+
+    if tipo_n == "flete":
+        if float(d.get("flete") or 0) <= 0 and float(d.get("flete_cobro_cop") or 0) <= 0:
+            return None, "Sin flete para previsualizar"
+        gen = generar_pdf_cuenta_flete(
+            compra_id=int(compra_id),
+            moneda=moneda,
+            trm=trm,
+            flete=float(d.get("flete") or 0),
+            moneda_flete=moneda_flete,
+            proveedor=str(d.get("proveedor") or ""),
+            fecha_compra=fecha_compra,
+            accent_rgb=accent_rgb,
+            emisor_perfil=emisor_perfil,
+            filename=preview_name,
+            numero_pedido=str(d.get("numero_pedido") or ""),
+        )
+    else:
+        if float(d.get("total_cobro_cop") or 0) <= 0 and float(d.get("valor_compra_cop") or 0) <= 0:
+            # Intentar calcular aunque aún no esté preparado
+            pass
+        gen = generar_pdf_cuenta_cobro(
+            compra_id=int(compra_id),
+            moneda=moneda,
+            trm=trm,
+            proveedor=str(d.get("proveedor") or ""),
+            fecha_compra=fecha_compra,
+            lineas=lineas,
+            pct=pct_eff,
+            flete=0.0,
+            moneda_flete=moneda_flete,
+            accent_rgb=accent_rgb,
+            emisor_perfil=emisor_perfil,
+            numero_pedido=str(d.get("numero_pedido") or ""),
+            output_filename=preview_name,
+        )
+
+    if gen.get("error") or not gen.get("path"):
+        return None, str(gen.get("error") or "No se pudo generar la vista previa")
+    path = str(gen["path"])
+    if not os.path.isfile(path):
+        return None, "PDF de vista previa no encontrado"
+    return path, ""
+
+
 def _parse_soporte_paths(raw: str | None) -> list[str]:
     import json
 
@@ -1566,6 +1815,7 @@ def _compra_exterior_row(d: dict) -> dict:
         "trm": d.get("trm"),
         "trm_fuente": d.get("trm_fuente") or "",
         "fecha_compra": d.get("fecha_compra") or "",
+        "numero_pedido": (d.get("numero_pedido") or "").strip(),
         "flete": d.get("flete"),
         "moneda_flete": d.get("moneda_flete"),
         "proveedor": d.get("proveedor"),

@@ -25,6 +25,7 @@ export type CuentaCobroDatos = {
   id: number;
   proveedor?: string;
   fecha_compra?: string;
+  numero_pedido?: string;
   moneda?: string;
   moneda_flete?: string;
   trm?: number;
@@ -54,6 +55,12 @@ function fmtCop(v: number | null | undefined): string {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(v);
+}
+
+function etiquetaPedido(compra: CuentaCobroDatos): string {
+  const n = (compra.numero_pedido || "").trim();
+  if (n) return `Pedido ${n}`;
+  return `Pedido Nº ${compra.id}`;
 }
 
 function productosConValorCop(
@@ -261,7 +268,7 @@ export default function CuentaCobroAprobacion({
         </h3>
         <p className="mt-0.5 font-mono text-[11px] text-ink-secondary">
           <span className="text-accent font-semibold">{numero}</span>
-          {` · Pedido Nº ${compra.id}`}
+          {` · ${etiquetaPedido(compra)}`}
           {compra.fecha_compra ? ` · ${compra.fecha_compra}` : ""}
         </p>
       </header>
@@ -323,7 +330,7 @@ export default function CuentaCobroAprobacion({
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Concepto</p>
             <p className="text-[12px] leading-relaxed text-ink-secondary">
-              Reembolso de flete / envío del pedido Nº {compra.id}
+              Reembolso de flete / envío del {etiquetaPedido(compra).toLowerCase()}
               {compra.proveedor ? ` · ${compra.proveedor}` : ""}.
             </p>
           </div>
@@ -340,7 +347,7 @@ export default function CuentaCobroAprobacion({
                   . Incluye cuota de manejo del{" "}
                   <span className="font-semibold text-accent">{pctNum}%</span> sobre el valor de los
                   productos
-                  {` · Pedido Nº ${compra.id}`}
+                  {` · ${etiquetaPedido(compra)}`}
                   {compra.proveedor ? ` · ${compra.proveedor}` : ""}
                   . Valores en pesos (COP)
                   {compra.moneda && compra.moneda.toUpperCase() !== "COP" && compra.trm

@@ -351,3 +351,46 @@ def test_fecha_ocr_prioriza_sobre_formulario_hoy():
     assert fecha_efectiva_extraccion(None, "2026-09-02") == "2026-09-02"
     assert fecha_efectiva_extraccion("Aug 20, 2026", "2026-09-02") == "2026-08-20"
     assert fecha_efectiva_extraccion(None, None) is None
+
+
+def test_netear_flete_descuento_explicito():
+    from app.services.compra_exterior_ocr import netear_flete_con_descuento
+
+    out = netear_flete_con_descuento(6.99, descuento_flete=6.99, descuento_pedido=5)
+    assert out["flete_neto"] == 0.0
+    assert out["descuento_pedido_neto"] == 5.0
+    assert out["descuento_flete_aplicado"] == 6.99
+    assert out["neteado"] is True
+
+    parcial = netear_flete_con_descuento(10, descuento_flete=3, descuento_pedido=0)
+    assert parcial["flete_neto"] == 7.0
+    assert parcial["descuento_flete_aplicado"] == 3.0
+
+
+def test_netear_flete_cuando_descuento_pedido_iguala_envio():
+    """Recibo: Shipping $8 + Discount −$8 (free shipping mal etiquetado)."""
+    from app.services.compra_exterior_ocr import netear_flete_con_descuento, calcular_landed
+
+    out = netear_flete_con_descuento(8, descuento_pedido=8)
+    assert out["flete_neto"] == 0.0
+    assert out["descuento_pedido_neto"] == 0.0
+    assert out["neteado"] is True
+
+    lineas = normalizar_lineas(
+        [{"nombre": "Glycerin 500ml", "cantidad": 2, "precio_unit": 10, "unidad": "ml",
+          "unidades_por_pack": 500}]
+    )
+    landed = calcular_landed(
+        lineas, trm=4000, flete=float(out["flete_neto"]), moneda="USD", descuento=0
+    )
+    # Sin flete neto: costo = 10*4000/500 = 80 COP/ml
+    assert landed[0]["costo_unitario_cop"] == 80.0
+
+    # Bug típico: OCR deja el flete y no aplica el shipping discount → costo inflado
+    sin_neteo = calcular_landed(lineas, trm=4000, flete=8, moneda="USD", descuento=0)
+    assert sin_neteo[0]["costo_unitario_cop"] > landed[0]["costo_unitario_cop"]
+
+    # Shipping discount explícito + cupón mercancía aparte
+    mix = netear_flete_con_descuento(6.99, descuento_flete=6.99, descuento_pedido=5)
+    assert mix["flete_neto"] == 0.0
+    assert mix["descuento_pedido_neto"] == 5.0

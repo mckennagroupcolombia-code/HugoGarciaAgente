@@ -568,6 +568,21 @@ def nombre_archivo_cuenta_cobro(compra_id: int, *, flete: bool = False) -> str:
     return safe or f"cuenta-cobro-{n}.pdf"
 
 
+def _etiqueta_pedido_cuenta(
+    compra_id: int,
+    numero_pedido: str = "",
+    *,
+    compras_ids: list[int] | None = None,
+) -> str:
+    """Texto visible: número de compra del documento, o id interno como respaldo."""
+    pedido = (numero_pedido or "").strip()
+    if pedido:
+        return f"Pedido {pedido}"
+    if compras_ids:
+        return "Pedidos " + ", ".join(f"Nº {int(i)}" for i in compras_ids)
+    return f"Pedido Nº {int(compra_id)}"
+
+
 def generar_pdf_cuenta_cobro(
     *,
     compra_id: int,
@@ -582,10 +597,13 @@ def generar_pdf_cuenta_cobro(
     numero: str | None = None,
     accent_rgb: str | None = None,
     emisor_perfil: dict | None = None,
+    numero_pedido: str = "",
+    output_filename: str | None = None,
 ) -> dict[str, Any]:
     """
-    Genera PDF (solo tras aprobación). Colores del encabezado = acento del tema.
+    Genera PDF. Colores del encabezado = acento del tema.
     Siempre liquida en COP; si la factura es USD, aplica TRM del día de compra.
+    ``output_filename`` permite escribir un borrador de vista previa sin pisar el PDF aprobado.
     """
     resolved = resolver_tasa_cuenta_cobro(
         moneda=moneda,
@@ -633,7 +651,9 @@ def generar_pdf_cuenta_cobro(
 
     _asegurar_carpeta_pdfs()
     num = numero or numero_cuenta_cobro(int(compra_id), flete=False)
-    filename = nombre_archivo_cuenta_cobro(int(compra_id), flete=False)
+    filename = (output_filename or "").strip() or nombre_archivo_cuenta_cobro(
+        int(compra_id), flete=False
+    )
     full = os.path.join(_CARPETA, filename)
 
     emisor = datos_emisor(emisor_perfil)
@@ -726,10 +746,11 @@ def generar_pdf_cuenta_cobro(
     story.append(Paragraph("<b>CUENTA DE COBRO · MERCANCÍA</b>", st["titulo"]))
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width="100%", thickness=1.2, color=accent, spaceAfter=8))
+    pedido_lbl = _etiqueta_pedido_cuenta(int(compra_id), numero_pedido)
     story.append(
         Paragraph(
             f"<font color='{accent_hex}'><b>Nº {num}</b></font>"
-            f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedido Nº {int(compra_id)}</b>"
+            f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>{pedido_lbl}</b>"
             f" &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
             st["num"],
         )
@@ -772,7 +793,7 @@ def generar_pdf_cuenta_cobro(
         concepto = (
             f"Adquisición de: {nombres}. "
             f"Incluye cuota de manejo del {calc['pct']:.0f}% sobre el valor de los productos. "
-            f"Pedido Nº {int(compra_id)} ({prov}"
+            f"{pedido_lbl} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
             + f"){trm_txt}."
         )
@@ -784,7 +805,7 @@ def generar_pdf_cuenta_cobro(
         )
         concepto = (
             f"Adquisición de productos en el exterior y cuota de manejo "
-            f"del {calc['pct']:.0f}% sobre su valor. Pedido Nº {int(compra_id)} ({prov}"
+            f"del {calc['pct']:.0f}% sobre su valor. {pedido_lbl} ({prov}"
             + (f", {fecha_compra}" if fecha_compra else "")
             + f"){trm_txt}."
         )
@@ -908,6 +929,7 @@ def generar_pdf_cuenta_flete(
     filename: str | None = None,
     etiqueta_fecha: str = "compra",
     compras_ids: list[int] | None = None,
+    numero_pedido: str = "",
 ) -> dict[str, Any]:
     """PDF cuenta de cobro aparte solo por el flete/envío."""
     resolved = resolver_tasa_cuenta_cobro(
@@ -998,14 +1020,13 @@ def generar_pdf_cuenta_flete(
     story.append(Paragraph("<b>CUENTA DE COBRO · FLETE</b>", st["titulo"]))
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width="100%", thickness=1.2, color=accent, spaceAfter=8))
+    pedido_lbl = _etiqueta_pedido_cuenta(
+        int(compra_id), numero_pedido, compras_ids=compras_ids
+    )
     story.append(Paragraph(
         f"<font color='{accent_hex}'><b>Nº {num}</b></font>"
-        + (
-            f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedidos {', '.join(f'Nº {int(i)}' for i in compras_ids)}</b>"
-            if compras_ids
-            else f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>Pedido Nº {int(compra_id)}</b>"
-        )
-        + f" &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
+        f" &nbsp;&nbsp;|&nbsp;&nbsp; <b>{pedido_lbl}</b>"
+        f" &nbsp;&nbsp;|&nbsp;&nbsp; Fecha: {fecha_doc}",
         st["n"],
     ))
     story.append(Spacer(1, 6))
@@ -1026,15 +1047,10 @@ def generar_pdf_cuenta_flete(
     ))
 
     prov = (proveedor or "").strip() or "proveedor exterior"
-    if compras_ids:
-        pedidos_txt = ", ".join(f"Nº {int(i)}" for i in compras_ids)
-        ids_txt = f" (pedidos {pedidos_txt})"
-    else:
-        ids_txt = ""
     etiqueta = (etiqueta_fecha or "compra").strip() or "compra"
     story.append(Paragraph("CONCEPTO", st["h"]))
     story.append(Paragraph(
-        f"Reembolso del flete / envío del pedido en el exterior Nº {int(compra_id)}{ids_txt} ({prov}"
+        f"Reembolso del flete / envío de {pedido_lbl} ({prov}"
         + (f", {fecha_compra}" if fecha_compra else "")
         + f"). Flete original: {flete:g} {mf}"
         + (

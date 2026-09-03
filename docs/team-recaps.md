@@ -1,3 +1,11 @@
+### 2026-09-02 23:30 - Cuenta de cobro: número de pedido del documento
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Mejora
+- **Qué se implementó:**
+  - El OCR de compras exterior extrae el **Order ID / Invoice No / Pedido** del pantallazo (`numero_pedido` / `referencia`), no el id interno de la BD.
+  - Se persiste en la compra; el modal de verificación permite editarlo; historial y cuenta de cobro (PDF + vista previa) muestran ese número (si falta, caen al `#id` interno).
+- **Archivos Modificados:** `compra_exterior_ocr.py`, `contabilidad_db.py`, `cuenta_cobro_cuota_manejo.py`, `routes.py`, `ComprasExteriorPanel.tsx`, `CuentaCobroAprobacion.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `CONTRACTS.md`, `docs/team-recaps.md`
+
 ### 2026-09-02 20:45 - Extracción IA: fecha de compra del invoice
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Corrección de Bug
@@ -10,7 +18,7 @@
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Mejora
 - **Qué se implementó:**
-  - El PDF y la vista previa de cuenta de cobro (mercancía y flete) muestran **Pedido Nº {id}** en el encabezado y en el concepto.
+  - El PDF y la vista previa de cuenta de cobro (mercancía y flete) muestran el pedido del documento si existe; si no, **Pedido Nº {id}** interno.
 - **Archivos Modificados:** `cuenta_cobro_cuota_manejo.py`, `CuentaCobroAprobacion.tsx`, `test_cuenta_cobro_cuota_manejo.py`, `docs/team-recaps.md`
 
 ### 2026-09-02 21:35 - Verificación de extracción en emergente

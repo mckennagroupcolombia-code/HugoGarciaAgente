@@ -34,8 +34,10 @@ Extrae las líneas de producto y responde SOLO JSON válido con este esquema:
   "fecha_compra": "2026-08-01",
   "proveedor": "",
   "referencia": "",
+  "numero_pedido": "",
   "flete_detectado": null,
   "moneda_flete": null,
+  "descuento_flete_detectado": null,
   "descuento_detectado": null,
   "descuento_pct": null,
   "lineas": [
@@ -55,6 +57,14 @@ Extrae las líneas de producto y responde SOLO JSON válido con este esquema:
 Reglas de FECHA:
 - fecha_compra: fecha del invoice/pedido en formato YYYY-MM-DD (Order date, Invoice date,
   Date, Fecha). Si solo ves día/mes, usa el año más probable del documento. Si no aparece, null.
+
+Reglas de NÚMERO DE COMPRA / PEDIDO (obligatorio si aparece en el documento):
+- numero_pedido Y referencia: el mismo valor — Order ID, Order No, Order number, Pedido,
+  Nº pedido, PO#, Purchase order, Invoice No, Invoice #, Transaction ID, etc.
+- Copia el código tal cual se ve (letras, números, guiones). Ej: "112-8492013-2211456",
+  "PO-88421", "INV-2026-0912".
+- Si hay Order ID e Invoice No distintos, prioriza Order ID / Order number / Pedido.
+- Si no aparece ningún número de pedido/orden/factura, deja ambos en "".
 
 Reglas CRÍTICAS de UNIDAD (solo una de: ml, g, un):
 - unidad = "ml" si el producto es líquido con volumen (500ml, 1L, 30 mL, litros…).
@@ -77,13 +87,28 @@ Reglas CRÍTICAS de UNIDAD (solo una de: ml, g, un):
   y reporta ambos.
 
 Reglas de DESCUENTO DEL PEDIDO (obligatorio si aparece):
-- descuento_detectado: monto ABSOLUTO del descuento global (Coupon, Promo, Discount,
-  Store coupon, Seller discount, Save $X, -$X). Número positivo (10.5 = $10.50 off).
+- descuento_detectado: monto ABSOLUTO del descuento global sobre MERCANCÍA (Coupon, Promo,
+  Discount, Store coupon, Seller discount, Save $X, -$X). Número positivo (10.5 = $10.50 off).
 - descuento_pct: si el descuento global es porcentaje (10% off) y no hay monto, pon 10.
-- NO omitas descuentos: deben aplicarse al costo real.
+- NO omitas descuentos de mercancía: deben aplicarse al costo real.
 - NO trates el descuento como línea de producto.
 
-Ejemplos:
+Reglas de FLETE / ENVÍO (crítico — muchos recibos cobran envío y luego lo descuentan):
+- flete_detectado: monto de Shipping / Freight / Delivery / Handling / Envío COBRADO
+  (número positivo). Si no hay línea de envío, null.
+- descuento_flete_detectado: monto del descuento SOLO de envío (Shipping discount,
+  Free shipping, Shipping promo, Delivery discount, "You saved $X on shipping").
+  Número positivo. Si el envío queda gratis, este valor suele igualar flete_detectado.
+- NUNCA metas el descuento de envío en descuento_detectado (eso es solo mercancía).
+- Ejemplo Amazon/AliExpress:
+  · Shipping $6.99 + Shipping discount −$6.99 → flete_detectado=6.99,
+    descuento_flete_detectado=6.99, descuento_detectado=null (salvo otro cupón).
+  · Shipping $12 + cupón productos −$5 → flete_detectado=12, descuento_flete=null,
+    descuento_detectado=5.
+  · Shipping $8 + Free shipping −$8 + Coupon −$3 → flete=8, descuento_flete=8,
+    descuento_detectado=3.
+
+Ejemplos mercancía:
   · "Glycerin 500ml" × 10 a $5, cupón −$8 → cantidad=10, precio_unit=5, subtotal=50,
     descuento_detectado=8. Costo sobre (50−8).
   · Línea con 20% off: precio_unit=10, cantidad=2, subtotal=20, descuento_pct=20
@@ -94,7 +119,6 @@ Otras reglas:
   COP SOLO si ves formato colombiano con punto de miles y coma decimal ($166.623,00)
   o las palabras COP/pesos. Un total como $532.00 o $177.17 es USD, NUNCA COP.
 - Números: usa punto decimal y SIN separador de miles (166623.00 o 166.62, no 166.623,00).
-- flete_detectado: número si ves shipping/freight/flete; si no, null.
 - Omite impuestos y totales globales (salvo para inferir descuento = merchandise − goods paid).
 - Sin markdown. Solo JSON.
 """
@@ -413,6 +437,62 @@ def _monto_a_cop(monto: float, moneda: str, rate: float) -> float:
     if mon == "COP":
         return float(monto)
     return float(monto) * max(rate, 0.0)
+
+
+def netear_flete_con_descuento(
+    flete: float,
+    *,
+    descuento_flete: float = 0.0,
+    descuento_pedido: float = 0.0,
+    tolerancia: float = 0.02,
+) -> dict[str, float | bool]:
+    """
+    Recibos que cobran envío y luego lo descuentan (Free shipping / Shipping discount).
+
+    - Si hay descuento_flete explícito → flete_neto = max(0, flete − desc_flete).
+    - Si el descuento de pedido ≈ flete (mismo monto) → se interpreta como promo de
+      envío gratis: flete_neto=0 y ese monto sale del descuento de mercancía.
+    - Si descuento_pedido > flete y la parte exacta del flete está “embebida”, no
+      adivinamos el split; solo el match exacto (±tolerancia).
+
+    Retorna flete_neto, descuento_pedido_neto, descuento_flete_aplicado, neteado.
+    """
+    f = max(float(flete or 0), 0.0)
+    d_f = max(float(descuento_flete or 0), 0.0)
+    d_p = max(float(descuento_pedido or 0), 0.0)
+
+    if f <= 0:
+        return {
+            "flete_neto": 0.0,
+            "descuento_pedido_neto": d_p,
+            "descuento_flete_aplicado": 0.0,
+            "neteado": False,
+        }
+
+    if d_f > 0:
+        aplicado = min(d_f, f)
+        return {
+            "flete_neto": round(max(f - aplicado, 0.0), 6),
+            "descuento_pedido_neto": d_p,
+            "descuento_flete_aplicado": round(aplicado, 6),
+            "neteado": aplicado > 0,
+        }
+
+    # Heurística: cupón/descuento del pedido = monto del shipping → envío gratis
+    if d_p > 0 and abs(d_p - f) <= tolerancia:
+        return {
+            "flete_neto": 0.0,
+            "descuento_pedido_neto": 0.0,
+            "descuento_flete_aplicado": round(f, 6),
+            "neteado": True,
+        }
+
+    return {
+        "flete_neto": f,
+        "descuento_pedido_neto": d_p,
+        "descuento_flete_aplicado": 0.0,
+        "neteado": False,
+    }
 
 
 def calcular_landed(
@@ -918,7 +998,7 @@ def extraer_compra_desde_imagenes(
     elif trm_eff > 0:
         trm_fuente = "manual"
 
-    flete_eff = float(flete) if flete is not None else (flete_det_n or 0.0)
+    flete_bruto = float(flete) if flete is not None else (flete_det_n or 0.0)
     mon_flete_eff = (moneda_flete or mon_flete_det_s or moneda).strip().upper()
     if (
         resolved
@@ -939,6 +1019,26 @@ def extraer_compra_desde_imagenes(
     if desc_pct_n is not None and desc_pct_n <= 0:
         desc_pct_n = None
 
+    desc_flete_raw = parsed.get("descuento_flete_detectado")
+    if desc_flete_raw is None:
+        desc_flete_raw = parsed.get("shipping_discount") or parsed.get("descuento_envio")
+    desc_flete_n = (
+        abs(_num(desc_flete_raw))
+        if desc_flete_raw is not None and str(desc_flete_raw).strip() != ""
+        else 0.0
+    )
+
+    neto = netear_flete_con_descuento(
+        flete_bruto,
+        descuento_flete=desc_flete_n,
+        descuento_pedido=desc_det_n,
+    )
+    flete_eff = float(neto["flete_neto"])
+    desc_pedido_eff = float(neto["descuento_pedido_neto"])
+    desc_flete_aplicado = float(neto["descuento_flete_aplicado"])
+    # Absolute merchandise discount wins over % (igual que calcular_landed)
+    desc_pct_eff = desc_pct_n if desc_pedido_eff <= 0 else None
+
     lineas_landed = (
         calcular_landed(
             lineas,
@@ -946,8 +1046,8 @@ def extraer_compra_desde_imagenes(
             flete=flete_eff,
             moneda=moneda,
             moneda_flete=mon_flete_eff,
-            descuento=desc_det_n,
-            descuento_pct=desc_pct_n,
+            descuento=desc_pedido_eff,
+            descuento_pct=desc_pct_eff,
         )
         if lineas and (moneda == "COP" or trm_eff > 0)
         else [
@@ -968,18 +1068,39 @@ def extraer_compra_desde_imagenes(
         "fecha_compra": fecha_eff,
         "fecha_detectada_ocr": fecha_ocr,
         "proveedor": str(parsed.get("proveedor") or "").strip(),
-        "referencia": str(parsed.get("referencia") or "").strip(),
+        "referencia": str(
+            parsed.get("numero_pedido")
+            or parsed.get("referencia")
+            or parsed.get("order_id")
+            or parsed.get("order_number")
+            or ""
+        ).strip(),
+        "numero_pedido": str(
+            parsed.get("numero_pedido")
+            or parsed.get("referencia")
+            or parsed.get("order_id")
+            or parsed.get("order_number")
+            or ""
+        ).strip(),
         "flete_detectado": flete_det_n,
+        "flete_bruto": round(flete_bruto, 6) if flete_bruto > 0 else None,
+        "descuento_flete_detectado": desc_flete_n if desc_flete_n > 0 else None,
+        "descuento_flete_aplicado": desc_flete_aplicado if desc_flete_aplicado > 0 else None,
+        "flete_neto": round(flete_eff, 6),
+        "flete_neteado": bool(neto["neteado"]),
         "moneda_flete_detectada": mon_flete_det_s,
-        "descuento_detectado": desc_det_n if desc_det_n > 0 else None,
-        "descuento_pct": desc_pct_n,
+        "descuento_detectado": desc_pedido_eff if desc_pedido_eff > 0 else None,
+        "descuento_detectado_bruto": desc_det_n if desc_det_n > 0 else None,
+        "descuento_pct": desc_pct_eff,
         "lineas": lineas,
         "lineas_landed": lineas_landed,
         "trm_usada": trm_eff if trm_eff > 0 else None,
         "trm_fuente": trm_fuente,
         "flete_usado": flete_eff,
-        "descuento_usado": desc_det_n if desc_det_n > 0 else (
-            None if desc_pct_n is None else "pct"
+        "descuento_usado": (
+            desc_pedido_eff
+            if desc_pedido_eff > 0
+            else (None if desc_pct_eff is None else "pct")
         ),
         "moneda_flete_usada": mon_flete_eff,
         "imagenes_procesadas": len(blobs),

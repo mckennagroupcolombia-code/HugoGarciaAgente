@@ -2,8 +2,9 @@
 Autofactura MeLi al entregarse el pedido.
 
 Disparado desde el tópico webhook 'shipments' (ver app/meli_webhook_topics.py):
-cuando un envío queda en estado 'delivered', crea la factura de venta en Siigo
-para esa orden, igual que ya hace app/tools/web_pedidos.py para pedidos web.
+cuando un envío queda en estado 'delivered', crea la factura de venta en Alegra
+(migrado desde Siigo el 2026-09-03 — ver app/services/alegra.py) para esa
+orden, igual que ya hace app/tools/web_pedidos.py para pedidos web.
 
 Diferencia clave con web: MeLi no expone la cédula/NIT real del comprador (ni
 en `orders/{id}.buyer` ni en `shipments/{id}.receiver_address`), así que estas
@@ -13,9 +14,9 @@ del negocio, no un dato que falte por descuido.
 
 Gateado por MELI_AUTOFACTURA_ENTREGA_ACTIVO=1 (default 0 = modo sombra): hasta
 que se confirme con tráfico real que el tópico 'shipments' efectivamente llega
-al webhook, no se debe tocar Siigo/DIAN en automático. En modo sombra se
+al webhook, no se debe tocar Alegra/DIAN en automático. En modo sombra se
 calcula todo (líneas, comprador, total) y se registra en el store local y en
-el log de incidentes, sin llamar a crear_factura_venta_siigo.
+el log de incidentes, sin llamar a crear_factura_venta_alegra.
 """
 
 from __future__ import annotations
@@ -32,10 +33,9 @@ from app.services.meli import (
     consultar_item_meli_basico,
     consultar_orden_meli_completa,
 )
-from app.services.siigo import (
-    buscar_producto_siigo_por_sku,
-    crear_factura_venta_siigo,
-    precio_base_con_impuesto as _precio_base_con_impuesto,
+from app.services.alegra import (
+    buscar_producto_alegra_por_referencia,
+    crear_factura_venta_alegra,
 )
 from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 
@@ -106,16 +106,16 @@ def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
     }
 
 
-def _buscar_producto_siigo_con_reintentos(sku: str, intentos: int = 3) -> dict | None:
+def _buscar_producto_alegra_con_reintentos(sku: str, intentos: int = 3) -> dict | None:
     """
-    buscar_producto_siigo_por_sku() devuelve None tanto si el SKU no existe en
-    Siigo como si la consulta falló transitoriamente (timeout, 5xx) — no
+    buscar_producto_alegra_por_referencia() devuelve None tanto si el SKU no existe en
+    Alegra como si la consulta falló transitoriamente (timeout, 5xx) — no
     distingue los dos casos. Reintentar aquí evita marcar como "no existe en
-    Siigo" (y disparar ticket de creación de producto) algo que en realidad
+    Alegra" (y disparar ticket de creación de producto) algo que en realidad
     fue un hipo momentáneo de la API.
     """
     for intento in range(intentos):
-        producto = buscar_producto_siigo_por_sku(sku)
+        producto = buscar_producto_alegra_por_referencia(sku)
         if producto:
             return producto
         if intento < intentos - 1:
@@ -153,25 +153,22 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
         if precio is None:
             missing.append(f"{sku}: sin precio unitario en la orden")
             continue
-        siigo_prod = _buscar_producto_siigo_con_reintentos(sku)
-        if not siigo_prod:
-            missing.append(f"{sku}: no existe en Siigo")
+        alegra_prod = _buscar_producto_alegra_con_reintentos(sku)
+        if not alegra_prod:
+            missing.append(f"{sku}: no existe en Alegra")
             continue
 
-        # El precio de MeLi ya incluye IVA (lo que pagó el comprador) — igual
-        # que en pedidos web, hay que mandarle a Siigo el precio ANTES de
-        # impuestos junto con tax_ids, si no la FE sale sin IVA discriminado.
-        tax_ids = siigo_prod.get("tax_ids") or []
-        tax_rate = siigo_prod.get("tax_rate_total") or 0
-        precio_base = _precio_base_con_impuesto(float(precio), tax_rate) if tax_ids else float(precio)
+        # OJO: el precio que va aquí es el FINAL (lo que pagó el comprador en MeLi,
+        # con IVA incluido) tal cual — crear_factura_venta_alegra() ya descuenta el
+        # IVA internamente usando el impuesto real configurado en la ficha del
+        # producto en Alegra. NO restar el IVA en este punto (bug confirmado en vivo
+        # el 2026-09-02: hacerlo dos veces, aquí y adentro, sub-factura la venta).
         line = {
             "codigo": sku,
             "nombre": nombre,
             "cantidad": float(qty),
-            "precio_unitario": precio_base,
+            "precio_unitario": float(precio),
         }
-        if tax_ids:
-            line["tax_ids"] = tax_ids
         lines.append(line)
 
     if missing:
@@ -260,7 +257,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             )
             print(
                 "🧪 [MELI-AUTOFACTURA] MODO SOMBRA (MELI_AUTOFACTURA_ENTREGA_ACTIVO=0): "
-                f"orden {order_id} SE HABRÍA facturado por ${total:,.0f} — no se llamó a Siigo."
+                f"orden {order_id} SE HABRÍA facturado por ${total:,.0f} — no se llamó a Alegra."
             )
             registrar_meli_webhook_incidente(
                 "autofactura_entrega_modo_sombra",
@@ -271,7 +268,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             )
             return
 
-        result = crear_factura_venta_siigo(
+        result = crear_factura_venta_alegra(
             nombre_cliente=datos_comprador["nombre_cliente"],
             identificacion=datos_comprador["identificacion"],
             direccion_envio=datos_comprador["direccion_envio"],
@@ -290,6 +287,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             _registrar_estado_orden(
                 order_id,
                 estado="facturada",
+                proveedor="alegra",
                 siigo_invoice_id=result.get("invoice_id"),
                 siigo_invoice_number=result.get("number"),
                 siigo_invoice_status=result.get("status"),
@@ -297,7 +295,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             )
             numero = result.get("number") or result.get("invoice_id")
             enviar_whatsapp_reporte(
-                f"✅ *Autofactura MeLi*: orden {order_id} (envío {shipping_id}) entregada y facturada en Siigo.\n"
+                f"✅ *Autofactura MeLi*: orden {order_id} (envío {shipping_id}) entregada y facturada en Alegra.\n"
                 f"Factura: {numero}\n"
                 f"{result.get('url') or ''}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
@@ -306,7 +304,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             _registrar_estado_orden(order_id, estado="error", error=result.get("error"))
             enviar_whatsapp_reporte(
                 f"❌ *Autofactura MeLi*: orden {order_id} (envío {shipping_id}) entregada "
-                f"pero falló la factura en Siigo:\n{result.get('error')}",
+                f"pero falló la factura en Alegra:\n{result.get('error')}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
     except Exception as e:

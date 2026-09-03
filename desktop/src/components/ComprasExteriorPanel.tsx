@@ -7,7 +7,7 @@ import { usePanelTheme } from "../stores/panelTheme";
 import CuentaCobroAccentPicker, {
   leerAccentCuentaCobro,
 } from "./CuentaCobroAccentPicker";
-import CuentaCobroAprobacion from "./CuentaCobroAprobacion";
+import CompraExteriorRevisionModal from "./CompraExteriorRevisionModal";
 import { Modal } from "./etiquetas/ui/Modal";
 
 type LineaEditable = {
@@ -48,9 +48,17 @@ type ExtractResp = {
   fecha_detectada_ocr?: string | null;
   proveedor?: string;
   referencia?: string;
+  numero_pedido?: string;
   flete_detectado?: number | null;
+  flete_bruto?: number | null;
+  flete_neto?: number | null;
+  flete_usado?: number | null;
+  flete_neteado?: boolean;
+  descuento_flete_detectado?: number | null;
+  descuento_flete_aplicado?: number | null;
   moneda_flete_detectada?: string | null;
   descuento_detectado?: number | null;
+  descuento_detectado_bruto?: number | null;
   descuento_pct?: number | null;
   lineas: LineaApi[];
   lineas_landed?: LineaApi[];
@@ -324,6 +332,7 @@ type CompraHistorial = {
   trm: number;
   trm_fuente?: string;
   fecha_compra?: string;
+  numero_pedido?: string;
   flete: number;
   moneda_flete: string;
   proveedor: string;
@@ -387,7 +396,7 @@ type BorradorCompra = {
   tiene_soporte: boolean;
   soportes_count?: number;
   soporte_urls?: string[];
-  estado?: { lineas?: LineaEditable[] };
+  estado?: { lineas?: LineaEditable[]; numero_pedido?: string };
 };
 
 function bearerPanel(): string {
@@ -791,6 +800,7 @@ export default function ComprasExteriorPanel() {
   const [cuotaManejoPct, setCuotaManejoPct] = useState(String(CUOTA_MANEJO_PCT_DEFAULT));
   const [monedaFlete, setMonedaFlete] = useState("USD");
   const [proveedor, setProveedor] = useState("");
+  const [numeroPedido, setNumeroPedido] = useState("");
   const [lineas, setLineas] = useState<LineaEditable[]>([]);
   const [zonaActiva, setZonaActiva] = useState(true);
   const [historial, setHistorial] = useState<CompraHistorial[]>([]);
@@ -810,6 +820,7 @@ export default function ComprasExteriorPanel() {
   const [monedaFleteEnvio, setMonedaFleteEnvio] = useState("USD");
   const [trmEnvio, setTrmEnvio] = useState("");
   const [envioBusy, setEnvioBusy] = useState(false);
+  const [resetCobroBusy, setResetCobroBusy] = useState(false);
   const themeAccentRgb = usePanelTheme((s) => s.accentRgb);
   const [pdfAccentRgb, setPdfAccentRgb] = useState(() =>
     leerAccentCuentaCobro(themeAccentRgb),
@@ -972,6 +983,36 @@ export default function ComprasExteriorPanel() {
       await cargarHistorial();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const resetearCuentasCobro = async () => {
+    if (
+      !confirm(
+        "¿Borrar todos los PDF de cuentas de cobro (mercancía + flete + paquetes) y dejarlas pendientes para reaprobar?\n\nÚtil tras corregir envíos con descuento de flete.",
+      )
+    ) {
+      return;
+    }
+    setResetCobroBusy(true);
+    setError(null);
+    try {
+      const res = await api.post<{
+        ok?: boolean;
+        compras_limpiadas?: number;
+        envios_limpiados?: number;
+        pdfs_eliminados?: number;
+        repreparadas?: number;
+      }>("/api/rentabilidad/compras-exterior/cuentas-cobro/reset", {});
+      setOkMsg(
+        `Cuentas limpiadas: ${res.compras_limpiadas ?? 0} compras, ${res.envios_limpiados ?? 0} envíos, ${res.pdfs_eliminados ?? 0} PDF. Pendientes listas para revisar.`,
+      );
+      setCuentaCobroId(null);
+      await cargarHistorial();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setResetCobroBusy(false);
     }
   };
 
@@ -1217,6 +1258,9 @@ export default function ComprasExteriorPanel() {
     setMoneda(mon);
     setMonedaFlete((json.moneda_flete_detectada || mon).toUpperCase());
     setProveedor(json.proveedor || "");
+    setNumeroPedido(
+      (json.numero_pedido || json.referencia || "").trim(),
+    );
     if (json.fecha_detectada_ocr || json.fecha_compra) {
       setFechaCompra(json.fecha_detectada_ocr || json.fecha_compra || "");
       trmManualRef.current = false;
@@ -1242,14 +1286,33 @@ export default function ComprasExteriorPanel() {
     } else if (json.trm_error) {
       setTrmDetalle(json.trm_error);
     }
-    if (json.flete_detectado != null && json.flete_detectado > 0) {
+    if (json.flete_usado != null && Number(json.flete_usado) >= 0 && json.flete_neteado) {
+      setFlete(String(json.flete_usado));
+    } else if (json.flete_neto != null && Number(json.flete_neto) >= 0 && json.flete_neteado) {
+      setFlete(String(json.flete_neto));
+    } else if (json.flete_detectado != null && json.flete_detectado > 0) {
       setFlete(String(json.flete_detectado));
     }
     if (json.descuento_detectado != null && json.descuento_detectado > 0) {
       setDescuentoPedido(String(json.descuento_detectado));
       setDescuentoPct("");
+    } else if (json.flete_neteado && (json.descuento_detectado_bruto ?? 0) > 0) {
+      // El descuento era de envío (o match flete≈descuento): no cargar como desc. mercancía
+      setDescuentoPedido("");
+      if (json.descuento_pct != null && json.descuento_pct > 0) {
+        setDescuentoPct(String(json.descuento_pct));
+      } else {
+        setDescuentoPct("");
+      }
     } else if (json.descuento_pct != null && json.descuento_pct > 0) {
       setDescuentoPct(String(json.descuento_pct));
+    }
+    if (json.flete_neteado) {
+      const bruto = json.flete_bruto ?? json.flete_detectado;
+      const descF = json.descuento_flete_aplicado ?? json.descuento_flete_detectado;
+      setOkMsg(
+        `Flete neteado: cobrado ${bruto ?? "?"} − desc. envío ${descF ?? "?"} = ${json.flete_usado ?? json.flete_neto ?? 0} (no suma al costo).`,
+      );
     }
     const src = json.lineas_landed?.length ? json.lineas_landed : json.lineas;
     setLineas(
@@ -1428,6 +1491,7 @@ export default function ComprasExteriorPanel() {
     setOkMsg(null);
     setError(null);
     setProveedor("");
+    setNumeroPedido("");
     setDescuentoPedido("");
     setDescuentoPct("");
     setBorradorId(null);
@@ -1446,6 +1510,7 @@ export default function ComprasExteriorPanel() {
     setOkMsg(null);
     try {
       const estado = {
+        numero_pedido: numeroPedido.trim(),
         lineas: lineas.map((l, i) => ({
           id: l.id,
           seleccionada: l.seleccionada,
@@ -1471,6 +1536,7 @@ export default function ComprasExteriorPanel() {
       fd.append("trm", String(trmNum || 0));
       fd.append("trm_fuente", trmFuente || "");
       fd.append("fecha_compra", fechaCompra || "");
+      fd.append("numero_pedido", numeroPedido.trim());
       fd.append("flete", String(fleteNum || 0));
       fd.append("moneda_flete", monedaFlete || moneda);
       fd.append("descuento_pedido", String(descuentoPedidoNum || 0));
@@ -1541,6 +1607,7 @@ export default function ComprasExteriorPanel() {
       setDescuentoPedido(b.descuento_pedido ? String(b.descuento_pedido) : "");
       setDescuentoPct(b.descuento_pct ? String(b.descuento_pct) : "");
       setProveedor(b.proveedor || "");
+      setNumeroPedido(String(b.estado?.numero_pedido || "").trim());
       setLineas(
         rawLineas.map((l, i) => ({
           id: l.id || `L${i + 1}`,
@@ -1628,6 +1695,7 @@ export default function ComprasExteriorPanel() {
       setFlete(c.flete != null && Number(c.flete) !== 0 ? String(c.flete) : c.flete === 0 ? "0" : "");
       setMonedaFlete((c.moneda_flete || c.moneda || "USD").toUpperCase());
       setProveedor(c.proveedor || "");
+      setNumeroPedido((c.numero_pedido || "").trim());
       setCuotaManejoPct(
         c.cuota_pct != null && Number(c.cuota_pct) > 0
           ? String(c.cuota_pct)
@@ -1750,6 +1818,7 @@ export default function ComprasExteriorPanel() {
       fd.append("trm", String(necesitaTrm ? trmNum : 1));
       fd.append("trm_fuente", trmFuente || (moneda.toUpperCase() === "USD" ? "banrep" : ""));
       fd.append("fecha_compra", fechaCompra || "");
+      fd.append("numero_pedido", numeroPedido.trim());
       fd.append("flete", String(fleteNum || 0));
       fd.append("moneda_flete", monedaFlete || moneda);
       fd.append("descuento_pedido", String(descuentoPedidoNum || 0));
@@ -2095,13 +2164,24 @@ export default function ComprasExteriorPanel() {
               compra y <strong>una de flete</strong> por paquete.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void cargarHistorial()}
-            className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
-          >
-            {historialLoading ? "Cargando…" : "Actualizar"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={resetCobroBusy}
+              onClick={() => void resetearCuentasCobro()}
+              className="rounded border border-amber-600/50 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-500/20 disabled:opacity-50 dark:text-amber-300"
+              title="Borra PDF generados y deja cuentas pendientes para reaprobar (p. ej. tras fletes con descuento)"
+            >
+              {resetCobroBusy ? "Limpiando…" : "Limpiar PDF cuentas"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void cargarHistorial()}
+              className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+            >
+              {historialLoading ? "Cargando…" : "Actualizar"}
+            </button>
+          </div>
         </div>
 
         {seleccionIds.length > 0 && (
@@ -2164,7 +2244,11 @@ export default function ComprasExteriorPanel() {
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-90"
-                    onClick={() => setDetalleId(abierto ? null : c.id)}
+                    onClick={() => {
+                      setCuentaCobroId(c.id);
+                      setDetalleId(c.id);
+                    }}
+                    title="Revisar adjunto, datos y PDF"
                   >
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded border border-border bg-surface-input">
                       {thumb ? (
@@ -2179,6 +2263,7 @@ export default function ComprasExteriorPanel() {
                       <p className="text-xs font-semibold text-ink">
                         #{c.id} · {fecha}
                         {c.proveedor ? ` · ${c.proveedor}` : ""}
+                        {c.numero_pedido ? ` · ped. ${c.numero_pedido}` : ""}
                         {editando ? " · en edición" : ""}
                       </p>
                       <p className="text-[10px] text-muted">
@@ -2486,6 +2571,15 @@ export default function ComprasExteriorPanel() {
             className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
           />
         </label>
+        <label className="block text-[10px] md:col-span-2">
+          <span className="font-bold text-muted">Nº pedido / factura</span>
+          <input
+            value={numeroPedido}
+            onChange={(e) => setNumeroPedido(e.target.value)}
+            placeholder="Order ID / Invoice No del documento"
+            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
+          />
+        </label>
         <label className="block text-[10px]">
           <span className="font-bold text-muted">Moneda factura</span>
           <input
@@ -2685,6 +2779,12 @@ export default function ComprasExteriorPanel() {
           )}
         </div>
       )}
+      {fleteNum === 0 && flete.trim() === "0" && lineas.length > 0 && (
+        <div className="rounded-lg border border-emerald-600/40 bg-emerald-500/5 px-2 py-1.5 text-[10px] text-ink">
+          Flete neto <strong className="font-mono">0</strong> — envío cobrado y descontado en el
+          recibo (no entra al costo unitario).
+        </div>
+      )}
 
       {(descuentoPedidoNum > 0 || descuentoPctNum > 0 || lineas.some((l) => l.descuento > 0)) && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[10px] text-ink">
@@ -2698,9 +2798,19 @@ export default function ComprasExteriorPanel() {
         </div>
       )}
 
-      {proveedor && (
+      {(proveedor || numeroPedido) && (
         <p className="text-[10px] text-muted">
-          Proveedor: <span className="font-semibold text-ink">{proveedor}</span>
+          {proveedor ? (
+            <>
+              Proveedor: <span className="font-semibold text-ink">{proveedor}</span>
+            </>
+          ) : null}
+          {proveedor && numeroPedido ? " · " : null}
+          {numeroPedido ? (
+            <>
+              Pedido: <span className="font-semibold text-ink font-mono">{numeroPedido}</span>
+            </>
+          ) : null}
         </p>
       )}
 
@@ -2911,57 +3021,27 @@ export default function ComprasExteriorPanel() {
 
       {cuentaCobroId != null && (() => {
         const c = historial.find((h) => h.id === cuentaCobroId);
-        if (!c || !(c.total_cobro_cop && c.total_cobro_cop > 0)) return null;
+        if (!c) return null;
         return (
-          <Modal
+          <CompraExteriorRevisionModal
+            compra={c}
             onClose={() => setCuentaCobroId(null)}
-            title={`Cuenta de cobro · compra #${c.id}`}
-            maxWidthClassName="max-w-4xl"
-          >
-            <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-start">
-            <CuentaCobroAprobacion
-              compra={c}
-              tipo="mercancia"
-              compact
-              onAprobada={(h) => {
-                setHistorial((prev) =>
-                  prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
-                );
-                setOkMsg(`Cuenta mercancía #${h.id} aprobada. PDF generado.`);
-              }}
-              onDescargar={() => {
-                void descargarCuentaCobro(c.id, "mercancia").catch((e: unknown) =>
-                  setError(e instanceof Error ? e.message : String(e)),
-                );
-              }}
-            />
-            {(c.flete_cobro_cop ?? 0) > 0 && !c.envio && (
-              <CuentaCobroAprobacion
-                compra={c}
-                tipo="flete"
-                compact
-                onAprobada={(h) => {
-                  setHistorial((prev) =>
-                    prev.map((x) => (x.id === h.id ? { ...x, ...h } : x)),
-                  );
-                  setOkMsg(`Cuenta flete #${h.id} aprobada. PDF generado.`);
-                }}
-                onDescargar={() => {
-                  void descargarCuentaCobro(c.id, "flete").catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : String(e)),
-                  );
-                }}
-              />
-            )}
-            {c.envio && (
-              <p className="text-[11px] text-muted lg:max-w-xs">
-                El flete de esta compra va en el paquete envío #{c.envio.id}
-                {c.envio.fecha_envio ? ` (${c.envio.fecha_envio})` : ""}.
-                Apruébalo desde la cabecera del envío en el historial.
-              </p>
-            )}
-            </div>
-          </Modal>
+            onEditar={() => {
+              setCuentaCobroId(null);
+              void editarCompra(c.id);
+            }}
+            onAprobada={(h) => {
+              setHistorial((prev) =>
+                prev.map((x) => (x.id === h.id ? { ...x, ...h, envio: x.envio } : x)),
+              );
+              setOkMsg(`Cuenta #${h.id} actualizada.`);
+            }}
+            onDescargar={(tipo) => {
+              void descargarCuentaCobro(c.id, tipo).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : String(e)),
+              );
+            }}
+          />
         );
       })()}
 

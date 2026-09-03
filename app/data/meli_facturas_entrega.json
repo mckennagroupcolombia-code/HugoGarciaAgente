@@ -8225,8 +8225,8 @@
     },
     "2000018109125990": {
       "shipping_id": "47851877778",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-08-25T15:44:53",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-02T23:42:44",
       "preview": {
         "lineas": [
           {
@@ -8242,7 +8242,11 @@
         "direccion_envio": "Calle 78 #11-69 casa 9, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "factura_id": "1",
+      "factura_numero": "FE1",
+      "cufe": "41fbb6d5e1dc8c4738eac7a51421b6f07d94404568d14379f61db858e9de894c88d1a46de4421a73e8acb4a572557099"
     },
     "2000018055412884": {
       "shipping_id": "47827067244",

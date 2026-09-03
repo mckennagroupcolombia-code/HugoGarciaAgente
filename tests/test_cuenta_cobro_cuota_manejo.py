@@ -282,6 +282,69 @@ def test_datos_emisor_usa_perfil_asignado():
     assert out["email"] == "armando@example.com"
 
 
+def test_pdf_cuenta_cobro_muestra_numero_pedido_documento(tmp_path, monkeypatch):
+    from app.services import cuenta_cobro_cuota_manejo as mod
+    from PyPDF2 import PdfReader
+
+    monkeypatch.setattr(mod, "_CARPETA", str(tmp_path))
+    gen = mod.generar_pdf_cuenta_cobro(
+        compra_id=42,
+        moneda="USD",
+        trm=4000,
+        proveedor="MakingCosmetics",
+        fecha_compra="2026-08-20",
+        numero_pedido="SO-118877",
+        lineas=[{"nombre": "Urea", "cantidad": 1, "unidad": "kg", "subtotal": 25, "descuento": 0}],
+        accent_rgb="12 96 105",
+    )
+    assert gen["error"] is None
+    text = "\n".join((p.extract_text() or "") for p in PdfReader(gen["path"]).pages)
+    assert "Pedido SO-118877" in text
+    assert "Pedido Nº 42" not in text
+
+
+def test_etiqueta_pedido_prioriza_numero_documento():
+    from app.services.cuenta_cobro_cuota_manejo import _etiqueta_pedido_cuenta
+
+    assert _etiqueta_pedido_cuenta(7, "INV-9090") == "Pedido INV-9090"
+    assert _etiqueta_pedido_cuenta(7, "") == "Pedido Nº 7"
+    assert _etiqueta_pedido_cuenta(7, "", compras_ids=[3, 5]) == "Pedidos Nº 3, Nº 5"
+
+
+def test_guardar_compra_persiste_numero_pedido(tmp_path, monkeypatch):
+    import app.services.contabilidad_db as db
+
+    monkeypatch.setattr(db, "_DB_PATH", str(tmp_path / "pedido.db"))
+    db._initialized = False
+    row = db.guardar_compra_exterior(
+        moneda="USD",
+        trm=4000,
+        flete=0,
+        moneda_flete="USD",
+        proveedor="MakingCosmetics",
+        numero_pedido="SO-118877",
+        lineas=[
+            {
+                "nombre": "Urea",
+                "codigo": "UREA250",
+                "cantidad": 1,
+                "unidad": "kg",
+                "precio_unit": 25,
+                "subtotal": 25,
+                "descuento": 0,
+                "ok": True,
+            }
+        ],
+        total_guardados=1,
+        fecha_compra="2026-08-20",
+        trm_fuente="banrep",
+    )
+    assert row["numero_pedido"] == "SO-118877"
+    got = db.obtener_compra_exterior(int(row["id"]))
+    assert got is not None
+    assert got["numero_pedido"] == "SO-118877"
+
+
 def test_pdf_cuenta_cobro_usa_nombre_del_emisor_asignado(tmp_path, monkeypatch):
     from app.services import cuenta_cobro_cuota_manejo as mod
     from PyPDF2 import PdfReader

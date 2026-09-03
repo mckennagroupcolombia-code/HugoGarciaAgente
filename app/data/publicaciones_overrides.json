@@ -435,7 +435,7 @@
   },
   "C-ACEESEBER5mL": {
     "meli_item_id": "MCO1278663695",
-    "updated_at": "2026-08-14T12:12:41.684495"
+    "updated_at": "2026-09-03T00:17:08.629832"
   },
   "C-ALA100g": {
     "meli_item_id": "MCO1377417818",
@@ -624,5 +624,49 @@
       "ACEITE DE NEEM 60mL.png"
     ],
     "updated_at": "2026-08-25T19:39:07.426509"
+  },
+  "ACEESETOM5mL": {
+    "meli_item_id": "MCO1278702873",
+    "updated_at": "2026-09-03T00:17:59.393413"
+  },
+  "C-CACEESETOM5mL": {
+    "meli_item_id": "MCO1278702873",
+    "updated_at": "2026-09-03T00:18:52.162379"
+  },
+  "C-ACEESTOM5mL": {
+    "meli_item_id": "MCO1278641307",
+    "updated_at": "2026-09-03T00:20:40.758595"
+  },
+  "C-ACEESALB5mL": {
+    "meli_item_id": "MCO1278678259",
+    "updated_at": "2026-09-03T00:21:03.107418"
+  },
+  "ACEESEPIN5mL": {
+    "meli_item_id": "MCO3152026634",
+    "updated_at": "2026-09-03T00:21:35.428061"
+  },
+  "C-ACEESEPIN5mL": {
+    "meli_item_id": "MCO3152026634",
+    "updated_at": "2026-09-03T00:22:08.855182"
+  },
+  "C-ACEESECAN5mL": {
+    "meli_item_id": "MCO1672155703",
+    "updated_at": "2026-09-03T00:24:45.094487"
+  },
+  "C-ACEESECLA5mL": {
+    "meli_item_id": "MCO1732025061",
+    "updated_at": "2026-09-03T00:24:21.474873"
+  },
+  "C-LHIS100g": {
+    "meli_item_id": "MCO1050313694",
+    "updated_at": "2026-09-03T00:23:42.120268"
+  },
+  "GOTVID50mL": {
+    "meli_item_id": "MCO1938766622",
+    "updated_at": "2026-09-03T00:25:21.965852"
+  },
+  "DISLIJ2000": {
+    "meli_item_id": "MCO1563435549",
+    "updated_at": "2026-09-03T00:27:38.531454"
   }
 }

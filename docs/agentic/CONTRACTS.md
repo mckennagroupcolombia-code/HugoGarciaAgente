@@ -266,13 +266,13 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 | `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Siigo |
 | `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre), `limit?` | Busca en vivo Siigo + caché; hasta 80 `{codigo,nombre}` |
 | `/api/rentabilidad/trm` | GET | query `fecha=YYYY-MM-DD` | TRM BanRep (datos.gov.co) USD→COP para esa fecha |
-| `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas consolidadas + landed; USD sin TRM → BanRep |
+| `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas + landed + `numero_pedido`/`referencia` (Order ID / Invoice No del documento); USD sin TRM → BanRep |
 | `/api/tickets/extraer-lista-compras` | POST | multipart `imagen` o `archivo`, `modo=compra|etiqueta` (auth tickets) | OCR → `{items:[{nombre,cantidad,unidad}]}`; etiquetas: presentación en nombre + `unidad=u` |
-| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?`, `emisor_usuario_id?` | Upsert costos + historial; deja cuenta de cobro pendiente; `emisor_usuario_id` asigna a nombre de quién se emitirá el PDF |
-| `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` (incluye `cuota_manejo_cop`, `cuenta_cobro_url`) |
+| `/api/rentabilidad/confirmar-compra-exterior` | POST | multipart: `items`, `moneda`, `fecha_compra`, `numero_pedido?`, `trm`, `imagenes` (N), `borrador_id?`, `compra_id?`, `soportes_indices?`, `emisor_usuario_id?` | Upsert costos + historial (persiste Order ID del documento); deja cuenta de cobro pendiente; `emisor_usuario_id` asigna a nombre de quién se emitirá el PDF |
+| `/api/rentabilidad/compras-exterior` | GET | `limit?` | Historial `{compras[]}` (incluye `numero_pedido` del invoice, `cuota_manejo_cop`, `cuenta_cobro_url`) |
 | `/api/rentabilidad/compras-exterior/<id>` | GET/DELETE | - | Detalle o eliminar compra (+ soportes + PDF cobro) |
 | `/api/rentabilidad/compras-exterior/<id>/soporte` | GET | - | Imagen/PDF del pantallazo |
-| `/api/rentabilidad/compras-exterior/<id>/cuenta-cobro` | GET/POST | POST body `{ accent_rgb, tipo?, cuota_pct?, emisor_usuario_id? }` | GET: PDF aprobado; POST: aprueba y genera PDF. `emisor_usuario_id` elige a nombre de quién sale (usuario del panel: Cynthia, Armando, etc.); si no llega, usa el usuario de la sesión |
+| `/api/rentabilidad/compras-exterior/<id>/cuenta-cobro` | GET/POST | POST body `{ accent_rgb, tipo?, cuota_pct?, emisor_usuario_id? }` | GET: PDF aprobado; POST: aprueba y genera PDF. Encabezado/concepto usan `numero_pedido` del documento (Order ID / Invoice No); si falta, caen al id interno. `emisor_usuario_id` elige a nombre de quién sale |
 | `/api/rentabilidad/compras-exterior/emisores` | GET | - | Lista usuarios activos `{emisores:[{id,nombre,documento_identidad,email}]}` para el selector de emisor |
 | `/api/rentabilidad/compras-exterior/envios` | GET/POST | POST: `{compra_ids, fecha_envio, flete, moneda_flete?, emisor_usuario_id?, trm?}` | Agrupa compras en un paquete. El flete se liquida con TRM BanRep de `fecha_envio` y se reparte por **% de paquetes** (`cantidad`). GET lista envíos del historial |
 | `/api/rentabilidad/compras-exterior/envios/<id>` | GET/PATCH/DELETE | PATCH: `fecha_envio`, `flete`, `moneda_flete`, `compra_ids?` | Detalle / actualizar liquidación / desenlazar paquete |
@@ -290,7 +290,11 @@ El costo guardado es por esa unidad mínima (COP/ml, COP/g o COP/un).
 USD→COP: TRM = tasa representativa BanRep vigente en `fecha_compra` (fuente `banrep`); override manual opcional.
 En extracción OCR, la `fecha_compra` del documento **tiene prioridad** sobre la del formulario (que suele ser “hoy”); el form solo aplica si el OCR no encuentra fecha.
 La **cuenta de cobro** siempre se genera en pesos (COP) con esa TRM del día de la compra. Si el OCR/formulario etiqueta como COP un total típico de factura en dólares (p. ej. $532), se reinterpreta como USD y se aplica la TRM BanRep.
-Descuentos: `descuento_detectado` / `descuento_pct` (pedido) y `descuento` / `descuento_pct` por línea; el costo usa el neto tras descuentos.
+Descuentos: `descuento_detectado` / `descuento_pct` (pedido sobre mercancía) y `descuento` /
+`descuento_pct` por línea; el costo usa el neto tras descuentos.
+Flete: si el recibo cobra envío y lo descuenta (`descuento_flete_detectado` o el descuento
+de pedido ≈ monto del shipping), se **netea** → `flete_usado` puede quedar en 0 y ese
+descuento no se resta de la mercancía.
 
 ## Contabilidad — Ingresos/Egresos + extracto bancario
 

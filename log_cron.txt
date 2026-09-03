@@ -3771,3 +3771,32 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-09-02) no es el último día del mes.
+[cursor/wa-metricas-panel d4cf48e] Auto-commit: actualizacion diaria 2026-09-02 23:00
+ 66 files changed, 4991 insertions(+), 512 deletions(-)
+ delete mode 100644 app/data/compras_exterior_soportes/20260816_001017_47c10e64_imagen.png.png
+ delete mode 100644 app/data/compras_exterior_soportes/20260821_152523_1be3968b_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_210448_27d94980_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_211345_581ea193_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_212335_421cb55c_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_213025_8d8a51ea_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_213700_f50da70b_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_213938_117159e8_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_214816_749598bd_imagen.png.png
+ create mode 100644 app/data/compras_exterior_soportes/20260902_214954_db9b6924_imagen.png.png
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00020 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00021 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00022 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00023 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00024 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00025 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00026 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00027 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00027 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00028 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00028 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero ENV-00001 flete paquete compra en el exterior.pdf
+ create mode 100644 app/services/alegra.py
+ create mode 100644 desktop/src/components/CuentaCobroAccentPicker.tsx
+ create mode 100644 desktop/src/hooks/useEmisoresCuentaCobro.ts
+ create mode 100644 tests/test_inventario_control.py
+[2026-09-02 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-02 23:00'

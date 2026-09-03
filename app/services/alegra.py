@@ -91,9 +91,29 @@ def buscar_producto_alegra_por_referencia(sku: str):
     precios = item.get("price") or []
     if precios and isinstance(precios, list):
         precio = float(precios[0].get("price") or 0)
-    out = {"id": item.get("id"), "name": item.get("name"), "price": precio}
+    impuestos = item.get("tax") or []
+    tax_ids = [t.get("id") for t in impuestos if t.get("id")]
+    tax_rate_total = sum(float(t.get("percentage") or 0) for t in impuestos)
+    out = {
+        "id": item.get("id"), "name": item.get("name"), "price": precio,
+        "tax_ids": tax_ids, "tax_rate_total": tax_rate_total,
+    }
     _producto_cache[sku] = out
     return out
+
+
+def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> float:
+    """El precio de venta (MeLi/checkout web) ya incluye IVA — Alegra necesita el
+    precio ANTES de impuestos en `price` cuando se manda `tax` explícito, si no
+    la factura sale sumando el IVA por encima del precio que pagó el cliente
+    (bug confirmado en vivo el 2026-09-02: FE1 salió en $4.522 en vez de $3.800).
+    Misma fórmula que `precio_base_con_impuesto` en app/services/siigo.py."""
+    from decimal import ROUND_HALF_UP, Decimal
+
+    if not tax_rate_total:
+        return precio_final
+    base = Decimal(str(precio_final)) / (Decimal("1") + Decimal(str(tax_rate_total)) / Decimal("100"))
+    return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def _resolver_o_crear_contacto_alegra(
@@ -208,13 +228,28 @@ def crear_factura_venta_alegra(
                 "ok": False,
                 "error": f"No puedo emitir factura automática: {nombre} ({codigo}): no existe en Alegra.",
             }
+
+        # El precio que llega (MeLi/checkout web) ya incluye IVA — hay que sacarlo antes
+        # de mandarlo, si no Alegra lo suma OTRA VEZ encima (bug confirmado en vivo:
+        # FE1 salió en $4.522 en vez de $3.800 por no hacer esta conversión).
+        producto_tax_ids = producto_alegra.get("tax_ids") or ([tax_id] if tax_id else [])
+        producto_tax_rate = producto_alegra.get("tax_rate_total") or 0
+        precio_base = (
+            _precio_base_con_impuesto(precio_unitario, producto_tax_rate)
+            if producto_tax_ids else precio_unitario
+        )
+
         item = {
             "id": producto_alegra["id"],
-            "price": precio_unitario,
+            "price": precio_base,
             "quantity": cantidad,
         }
-        if tax_id:
-            item["tax"] = [{"id": tax_id}]
+        # OJO: la unidad de medida NO se resuelve por un campo en la línea de factura —
+        # confirmado en vivo (2026-09-02) que Alegra la lee de la ficha del producto
+        # (`inventory.unit`). Si el producto no la tiene, el timbrado falla con
+        # "El campo items.0.unit es requerido" aunque la línea traiga cualquier valor.
+        if producto_tax_ids:
+            item["tax"] = [{"id": tid} for tid in producto_tax_ids]
         items.append(item)
 
     hoy = datetime.now().strftime("%Y-%m-%d")
@@ -226,7 +261,9 @@ def crear_factura_venta_alegra(
         "client": {"id": contacto_id},
         "items": items,
         "paymentForm": os.getenv("ALEGRA_PAYMENT_FORM", "CASH"),
-        "paymentMethod": os.getenv("ALEGRA_PAYMENT_METHOD", "cash"),
+        # Confirmado en vivo (2026-09-02): debe ir en mayúsculas, "cash" minúscula da
+        # 400 "El método de pago no es válido".
+        "paymentMethod": os.getenv("ALEGRA_PAYMENT_METHOD", "CASH"),
         "stamp": {"generateStamp": bool(enviar_dian)},
     }
     template_id = _env_int("ALEGRA_NUMBER_TEMPLATE_ID")  # TODO: confirmar talonario real
