@@ -742,6 +742,38 @@ El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 | Facturas/PDFs | Archivos locales | `facturas_descargadas/` |
 | Comprobantes | Archivos locales | `comprobantes/` |
 
+### Convención — dónde debe vivir un archivo nuevo
+
+Tres ubicaciones posibles, en este orden de preferencia. **Antes de crear una carpeta nueva
+para archivos generados, ubicarla aquí** (evita el desorden identificado en la auditoría de
+sep-2026, ver `docs/agentic/learned_context.md` si existe una entrada relacionada):
+
+1. **`app/data/*.json` — trackeado en git.** Solo config/estado pequeño (KB, no MB). Si un
+   archivo va a pesar más que unos pocos KB o va a cambiar todos los días (cache, logs,
+   colas), no va aquí sin evaluar antes si necesita estar en git.
+2. **Dentro del repo, pero en `.gitignore`** (patrón correcto para binarios runtime que el
+   propio código regenera o que no aportan valor en el historial de git): `comprobantes/`,
+   `contenido_video/`, `renders_etiquetas/`, `fichas_word/`, `backups_drive/`,
+   `memoria_vectorial/`, `facturas_descargadas/`, `uploads/`, `Etiquetas Modelo SVG/`
+   (495 masters .ai/.svg de etiquetas — leídos por `app/tools/etiquetas_ai_engine.py` /
+   `etiquetas_svg_engine.py`), `IMAGENES_PRODUCTOS_CATALOGO/`. **Regla:** cualquier carpeta
+   nueva en la raíz del repo que vaya a acumular binarios (imágenes, PDFs, .ai, video) debe
+   agregarse a `.gitignore` en el mismo cambio que la crea — no después.
+3. **Fuera del repo, en `~/Documentos/`** — solo para lo que un humano gestiona manualmente
+   desde el explorador de archivos y que el código consume vía `Path.home()`. Hoy solo un
+   caso: `~/Documentos/Etiquetas McKenna/Recursos PNG/ETIQUETAS STUDIO/` (biblioteca de PNG
+   listos para imprimir del panel Diseño → Imprimir, ver
+   `app/tools/etiquetas_studio.py::_carpeta_recursos_png()`). **Riesgo conocido:** el
+   backend recrea esa carpeta vacía con `mkdir(exist_ok=True)` si no la encuentra, sin dar
+   error — un borrado accidental desde el explorador de archivos (pasó el 2026-09-02) se ve
+   igual que "no hay nada que mostrar", no como un fallo. Al añadir una carpeta nueva en
+   este nivel, considerar que el código avise si aparece vacía inesperadamente en vez de
+   fallar en silencio.
+
+No mezclar los niveles 2 y 3 para el mismo tipo de dato: los masters de etiquetas (.ai/.svg)
+viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fuera (nivel 3)
+— es una inconsistencia heredada, no un patrón a repetir para datos nuevos.
+
 ---
 
 ## Archivos que NO deben estar en git
@@ -758,6 +790,10 @@ venv/
 memoria_vectorial/    # puede ser grande
 backups_drive/        # .tar.gz del backup nocturno (local)
 *.log
+uploads/
+Etiquetas Modelo SVG/ # 495 masters .ai/.svg — pesado, cambia seguido
+IMAGENES_PRODUCTOS_CATALOGO/
+facturas_descargadas/
 ```
 
 ---
