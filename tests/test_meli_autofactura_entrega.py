@@ -21,7 +21,7 @@ def test_extraer_datos_comprador_desde_envio_completo():
     assert datos["nombre_cliente"] == "Juan Pérez"
     assert datos["telefono"] == "3001234567"
     assert datos["direccion_envio"] == "Calle 1 # 2-3, Bogotá, Bogotá D.C."
-    # MeLi nunca expone cédula/NIT real: siempre consumidor final genérico.
+    # Esto es solo el fallback (sin billing_info): consumidor final genérico.
     assert datos["identificacion"] == m.NIT_CONSUMIDOR_FINAL_MELI
     assert datos["email"] == ""
 
@@ -34,6 +34,100 @@ def test_extraer_datos_comprador_desde_envio_sin_receiver():
     assert datos["nombre_cliente"] == m.NOMBRE_CONSUMIDOR_FINAL_MELI
     assert datos["identificacion"] == m.NIT_CONSUMIDOR_FINAL_MELI
     assert datos["direccion_envio"] == ""
+
+
+def test_parsear_billing_info_persona_natural():
+    from app.tools import meli_autofactura_entrega as m
+
+    billing_info = {
+        "doc_number": "1006508537",
+        "doc_type": "CC",
+        "additional_info": [
+            {"type": "FIRST_NAME", "value": "Yenfer Arledy"},
+            {"type": "LAST_NAME", "value": "Ramirez Grisales"},
+            {"type": "STREET_NAME", "value": "Calle 4"},
+            {"type": "STREET_NUMBER", "value": "#9-55"},
+            {"type": "NEIGHBORHOOD", "value": "La Esperanza"},
+            {"type": "CITY_NAME", "value": "Neiva"},
+            {"type": "STATE_NAME", "value": "Huila"},
+        ],
+    }
+
+    datos = m._parsear_billing_info(billing_info)
+
+    assert datos["nombre_cliente"] == "Yenfer Arledy Ramirez Grisales"
+    assert datos["identificacion"] == "1006508537"
+    assert datos["direccion_envio"] == "Calle 4 #9-55, La Esperanza, Neiva, Huila"
+
+
+def test_parsear_billing_info_empresa():
+    from app.tools import meli_autofactura_entrega as m
+
+    billing_info = {
+        "doc_number": "9014241759",
+        "doc_type": "NIT",
+        "additional_info": [{"type": "BUSINESS_NAME", "value": "IMPORDISCOL SAS"}],
+    }
+
+    datos = m._parsear_billing_info(billing_info)
+
+    assert datos["nombre_cliente"] == "IMPORDISCOL SAS"
+    assert datos["identificacion"] == "9014241759"
+
+
+def test_parsear_billing_info_sin_doc_number():
+    from app.tools import meli_autofactura_entrega as m
+
+    assert m._parsear_billing_info({}) is None
+    assert m._parsear_billing_info({"doc_number": "", "additional_info": []}) is None
+
+
+def test_parsear_billing_info_sin_nombre():
+    from app.tools import meli_autofactura_entrega as m
+
+    # doc_number sin nombre asociado: no es suficiente para facturar a nombre real.
+    assert m._parsear_billing_info({"doc_number": "12345", "additional_info": []}) is None
+
+
+def test_extraer_datos_comprador_usa_billing_info_si_hay(monkeypatch):
+    from app.tools import meli_autofactura_entrega as m
+
+    monkeypatch.setattr(
+        m,
+        "consultar_billing_info_meli",
+        lambda order_id: {
+            "doc_number": "1006508537",
+            "additional_info": [
+                {"type": "FIRST_NAME", "value": "Yenfer"},
+                {"type": "LAST_NAME", "value": "Ramirez"},
+            ],
+        },
+    )
+    shipment = {
+        "receiver_address": {
+            "receiver_phone": "3001234567",
+            "address_line": "Calle 1",
+            "city": {"name": "Bogotá"},
+        }
+    }
+
+    datos = m._extraer_datos_comprador("2000017797611848", shipment)
+
+    assert datos["nombre_cliente"] == "Yenfer Ramirez"
+    assert datos["identificacion"] == "1006508537"
+    assert datos["telefono"] == "3001234567"  # billing_info no trae teléfono
+
+
+def test_extraer_datos_comprador_cae_a_consumidor_final_sin_billing_info(monkeypatch):
+    from app.tools import meli_autofactura_entrega as m
+
+    monkeypatch.setattr(m, "consultar_billing_info_meli", lambda order_id: None)
+    shipment = {"receiver_address": {"receiver_name": "Juan Pérez", "receiver_phone": "3001234567"}}
+
+    datos = m._extraer_datos_comprador("2000000000000000", shipment)
+
+    assert datos["nombre_cliente"] == "Juan Pérez"
+    assert datos["identificacion"] == m.NIT_CONSUMIDOR_FINAL_MELI
 
 
 def test_construir_lineas_factura_ok(monkeypatch):

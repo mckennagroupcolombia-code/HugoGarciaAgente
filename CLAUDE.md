@@ -394,10 +394,14 @@ MeLi → POST /notifications (puerto 8080)
   └─ hilo: procesar_entrega_meli_para_factura(shipping_id)   # app/tools/meli_autofactura_entrega.py
        ├─ GET /shipments/{id} → si status != "delivered", ignora
        ├─ order_id desde el shipment; dedup por order_id en app/data/meli_facturas_entrega.json
-       ├─ GET /orders/{order_id} → arma líneas (SKU vía seller_custom_field + buscar_producto_siigo_por_sku)
-       ├─ Comprador: SIEMPRE "Consumidor Final" con NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL,
-       │    default 222222222222) — MeLi no expone cédula/NIT real ni en orders ni en shipments
-       └─ crear_factura_venta_siigo(...) → reporta éxito/error a GRUPO_FACTURACION_VENTAS_WA
+       ├─ GET /orders/{order_id} → arma líneas (SKU vía seller_custom_field + buscar_producto_alegra_por_referencia)
+       ├─ Comprador: GET /orders/{order_id}/billing_info (consultar_billing_info_meli) → nombre/razón
+       │    social, doc_type/doc_number REALES si el comprador los cargó en MeLi (confirmado en vivo
+       │    2026-09-04 contra MCO — `orders/{id}.buyer` y `shipments/{id}.receiver_address` NO los
+       │    traen, pero este endpoint sí; es lo que resolvía Astroselling). Solo cae a "Consumidor
+       │    Final" con NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222) si
+       │    billing_info da 404/403 o viene sin doc_number/nombre usable.
+       └─ crear_factura_venta_alegra(...) → reporta éxito/error a GRUPO_FACTURACION_VENTAS_WA
 ```
 
 **Gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO`** (default `0` = modo sombra): mientras esté en 0,

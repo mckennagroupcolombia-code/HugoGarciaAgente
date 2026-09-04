@@ -206,6 +206,34 @@ def consultar_orden_meli_completa(order_id: str, *, token: str | None = None) ->
         return None
 
 
+def consultar_billing_info_meli(order_id: str, *, token: str | None = None) -> dict | None:
+    """GET /orders/{id}/billing_info — datos fiscales REALES del comprador (nombre,
+    doc_type/doc_number, dirección) que el comprador cargó en MeLi para facturación.
+
+    Confirmado en vivo el 2026-09-04 contra MCO: a diferencia de `orders/{id}.buyer`
+    y `shipments/{id}.receiver_address` (que NO traen cédula/NIT), este endpoint sí
+    lo expone — es lo que usaba Astroselling antes de la integración propia. 404 si
+    la orden no tiene billing_info cargado; 403 si la orden no es de este vendedor.
+    Devuelve el dict `billing_info` crudo (con `additional_info`) o None si falla."""
+    token = token or refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        res = requests.get(
+            f"https://api.mercadolibre.com/orders/{order_id}/billing_info",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+    except requests.RequestException:
+        return None
+    if res.status_code != 200:
+        return None
+    try:
+        return res.json().get("billing_info")
+    except ValueError:
+        return None
+
+
 def consultar_item_meli_basico(item_id: str, *, token: str | None = None) -> dict | None:
     """GET /items/{id} crudo (seller_custom_field, title, etc.). `token`: ver
     `consultar_orden_meli_completa` — reusar en llamadas en lote."""

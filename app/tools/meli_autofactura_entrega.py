@@ -6,11 +6,14 @@ cuando un envío queda en estado 'delivered', crea la factura de venta en Alegra
 (migrado desde Siigo el 2026-09-03 — ver app/services/alegra.py) para esa
 orden, igual que ya hace app/tools/web_pedidos.py para pedidos web.
 
-Diferencia clave con web: MeLi no expone la cédula/NIT real del comprador (ni
-en `orders/{id}.buyer` ni en `shipments/{id}.receiver_address`), así que estas
-facturas siempre usan "consumidor final" con identificación genérica
-(SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222) — decisión explícita
-del negocio, no un dato que falte por descuido.
+`orders/{id}.buyer` y `shipments/{id}.receiver_address` NO traen cédula/NIT del
+comprador, pero `GET /orders/{id}/billing_info` sí (confirmado en vivo el
+2026-09-04 contra MCO: nombre/razón social, doc_type, doc_number, dirección) —
+es el dato que antes resolvía Astroselling. `_extraer_datos_comprador()` lo
+consulta primero; solo cae a "consumidor final" con identificación genérica
+(SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222) si el comprador nunca
+cargó datos de facturación en MeLi (404/403) o si billing_info no trae
+doc_number utilizable.
 
 Gateado por MELI_AUTOFACTURA_ENTREGA_ACTIVO=1 (default 0 = modo sombra): hasta
 que se confirme con tráfico real que el tópico 'shipments' efectivamente llega
@@ -29,6 +32,7 @@ from datetime import datetime
 
 from app.meli_webhook_incidents import registrar_meli_webhook_incidente
 from app.services.meli import (
+    consultar_billing_info_meli,
     consultar_envio_meli,
     consultar_item_meli_basico,
     consultar_orden_meli_completa,
@@ -89,8 +93,8 @@ def _registrar_estado_orden(order_id: str, **campos) -> None:
 
 def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
     """
-    MeLi no expone cédula/NIT del comprador en shipments/orders: se factura
-    siempre a consumidor final (decisión de negocio, ver docstring del módulo).
+    Fallback cuando billing_info no está disponible (comprador nunca cargó datos
+    de facturación en MeLi, o la consulta falló): factura a consumidor final.
     """
     receiver = (shipment or {}).get("receiver_address") or {}
     nombre = (receiver.get("receiver_name") or "").strip()
@@ -105,6 +109,62 @@ def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
         "direccion_envio": direccion,
         "telefono": telefono,
         "email": "",
+    }
+
+
+def _parsear_billing_info(billing_info: dict) -> dict | None:
+    """
+    Extrae nombre/identificación/dirección del `billing_info` crudo de MeLi.
+    Devuelve None si no trae doc_number utilizable (comprador con billing_info
+    vacío o incompleto) — el llamador debe caer al fallback consumidor final.
+
+    Campos vienen tanto en el nivel superior (doc_number/doc_type) como
+    repetidos en `additional_info` (lista de {type, value}); el nombre y la
+    dirección solo están en additional_info.
+    """
+    billing_info = billing_info or {}
+    doc_number = "".join(ch for ch in str(billing_info.get("doc_number") or "") if ch.isdigit())
+    if not doc_number:
+        return None
+
+    extra = {item.get("type"): (item.get("value") or "").strip() for item in billing_info.get("additional_info") or []}
+
+    nombre = extra.get("BUSINESS_NAME") or " ".join(
+        x for x in (extra.get("FIRST_NAME"), extra.get("LAST_NAME")) if x
+    )
+    if not nombre:
+        return None
+
+    calle = " ".join(x for x in (extra.get("STREET_NAME"), extra.get("STREET_NUMBER")) if x)
+    direccion = ", ".join(x for x in (calle, extra.get("NEIGHBORHOOD"), extra.get("CITY_NAME"), extra.get("STATE_NAME")) if x)
+
+    return {
+        "nombre_cliente": nombre,
+        "identificacion": doc_number,
+        "direccion_envio": direccion,
+    }
+
+
+def _extraer_datos_comprador(order_id: str, shipment: dict) -> dict:
+    """
+    Datos del comprador para la factura: primero intenta el billing_info REAL
+    de MeLi (ver `consultar_billing_info_meli`); si el comprador nunca lo
+    cargó (404/403) o vino sin doc_number/nombre usable, cae a consumidor
+    final con los datos de envío del shipment (comportamiento previo).
+    Teléfono/email siempre salen del shipment — billing_info no los trae.
+    """
+    datos_envio = _extraer_datos_comprador_desde_envio(shipment)
+
+    billing_info = consultar_billing_info_meli(order_id)
+    datos_billing = _parsear_billing_info(billing_info) if billing_info else None
+    if not datos_billing:
+        return datos_envio
+
+    return {
+        **datos_billing,
+        "direccion_envio": datos_billing["direccion_envio"] or datos_envio["direccion_envio"],
+        "telefono": datos_envio["telefono"],
+        "email": datos_envio["email"],
     }
 
 
@@ -293,7 +353,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
                 )
             return
 
-        datos_comprador = _extraer_datos_comprador_desde_envio(shipment)
+        datos_comprador = _extraer_datos_comprador(order_id, shipment)
         total = sum(l["cantidad"] * l["precio_unitario"] for l in lines)
 
         if not _autofactura_activa():
