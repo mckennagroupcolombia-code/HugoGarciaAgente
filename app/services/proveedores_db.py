@@ -1252,6 +1252,298 @@ def extraer_productos_desde_url(url: str, max_lineas: int = 500) -> dict:
     return {"ok": True, "url": url, "lineas": unicos[:max_lineas], "truncado": len(unicos) > max_lineas}
 
 
+# ─────────────────────────── subcategorías (segundo nivel para la web) ───────────────────────────
+# (linea, id, etiqueta, icono phosphor, palabras clave en el nombre normalizado). Se evalúan en
+# orden dentro de la línea del producto; la primera que coincide gana. Sin coincidencia → "otros".
+SUBCATEGORIAS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
+    # ── Alimentario ──
+    ("alimentario", "frutos-secos", "Frutos secos y semillas", "acorn",
+     ("almendra", "nuez", "nueces", "maranon", "marañon", "pistacho", "avellana", "macadamia", "mani", "cacahuate", "pecan",
+      "ajonjoli", "sesamo", "chia", "linaza", "lino", "girasol", "calabaza", "amaranto", "quinua", "quinoa", "semilla",
+      "castaña", "pepa", "pipa", "mix", "mezcla de frutos", "anacardo")),
+    ("alimentario", "frutas-deshidratadas", "Frutas deshidratadas y conservas", "orange-slice",
+     ("arandano", "cranberry", "datil", "albaricoque", "ciruela", "pasas", "uva", "higo", "mango", "papaya", "piña", "pina",
+      "cereza", "durazno", "melocoton", "coco", "aceituna", "alcaparra", "conserva", "deshidratad", "banano", "fresa", "kiwi",
+      "goji", "mora", "maracuya", "fruta", "fruto", "jengibre confitado", "pulpa", "enlatado", "mermelada")),
+    ("alimentario", "cereales-harinas", "Cereales, harinas y granos", "grains",
+     ("avena", "arroz", "harina", "cereal", "grano", "trigo", "centeno", "cebada", "mijo", "sorgo", "granola", "lenteja",
+      "garbanzo", "arveja", "guisante", "fecula", "almidon", "maiz", "soya", "soja", "salvado", "germen", "hojuela")),
+    ("alimentario", "especias", "Especias, sales y condimentos", "pepper",
+     ("anis", "canela", "cardamomo", "curcuma", "jengibre", "pimienta", "comino", "laurel", "clavo", "nuez moscada", "paprika",
+      "pimenton", "oregano", "tomillo", "romero", "especia", "hierba", "aji", "ajo", "cebolla", "perejil", "albahaca", "sal ",
+      "himalaya", "glutamato", "condimento", "sazonador", "adobo", "mostaza", "vainilla en", "cilantro", "eneldo", "azafran")),
+    ("alimentario", "chocolate-confiteria", "Chocolate y confitería", "cookie",
+     ("chocolate", "chocodisco", "cocoa", "cacao", "cobertura", "grageas", "corazones", "recubierto", "confit", "caramelo", "sprinkles",
+      "chispas", "gomitas", "malvavisco", "turron", "galleta", "wafer")),
+    ("alimentario", "edulcorantes", "Edulcorantes y azúcares", "drop-half",
+     ("azucar", "sucralosa", "stevia", "alulosa", "eritritol", "acesulfame", "aspartame", "sacarina", "glucosa", "jarabe",
+      "dextrosa", "fructosa", "fructuosa", "sacarosa", "panela", "miel", "maltodextrina", "maltitol", "sorbitol", "xilitol",
+      "isomalt", "lactosa", "dextrina", "endulzante", "edulcorante", "tagatosa", "trehalosa")),
+    ("alimentario", "proteinas-aminoacidos", "Proteínas y aminoácidos", "barbell",
+     ("proteina", "whey", "suero", "caseina", "caseinato", "albumina", "colageno", "gelatina", "aminoacido", "bcaa",
+      "arginina", "carnitina", "creatina", "glutamina", "prolina", "taurina", "leucina", "lisina", "glicina", "soypro",
+      "aislado", "concentrado", "peptona", "pea protein", "arveja proteina")),
+    ("alimentario", "vitaminas-minerales", "Vitaminas, minerales y suplementos", "pill",
+     ("vitamina", "cianocobalamina", "biotina", "folico", "niacina", "riboflavina", "tiamina", "ascorbico", "citrato",
+      "gluconato", "magnesio", "calcio", "zinc", "hierro", "selenio", "cromo", "potasio", "omega", "melatonina", "probiotico",
+      "prebiotico", "inulina", "fibra", "fos", "fructooligo", "coenzima", "ginseng", "espirulina", "moringa", "colina",
+      "carbonato de", "cloruro de magnesio", "lactato de calcio", "sulfato de zinc", "oxido de magnesio", "yodo",
+      "psyllium", "inositol", "msm", "sulfonil metano", "pro-b", "gluten", "cremor tartaro", "cafeina", "extracto",
+      "matcha", "te verde", "sweet")),
+    ("alimentario", "gomas-espesantes", "Gomas, espesantes y estabilizantes", "drop",
+     ("goma", "xantana", "xanthan", "guar", "arabiga", "pectina", "carragenina", "agar", "alginato", "cmc", "carboximetil",
+      "celulosa", "lecitina", "emulsificante", "emulsionante", "estabilizante", "gelificante", "konjac", "tara", "garrofin",
+      "algarrobo", "gellan", "hidrocoloide", "monogliceridos", "mono y di")),
+    ("alimentario", "conservantes-acidulantes", "Conservantes, acidulantes y fosfatos", "shield-check",
+     ("benzoato", "sorbato", "propionato", "nitrito", "nitrato", "eritorbato", "ascorbato", "natamicina", "nisina", "acido",
+      "acidulante", "conservante", "metabisulfito", "bicarbonato", "fosfato", "pirofosfato", "tripolifosfato", "hexameta",
+      "antioxidante", "bht", "tbhq", "acetato de sodio", "lactato de sodio", "diacetato", "sulfito")),
+    ("alimentario", "saborizantes-colorantes", "Saborizantes, aromas y colorantes", "palette",
+     ("sabor", "saborizante", "vainillina", "vainilla", "colorante", "color ", "caramelo liquido", "aroma", "esencia",
+      "extracto de", "tartrazina", "carmin", "curcumina", "annato", "achiote", "clorofila", "betacaroteno", "dioxido de titanio")),
+    ("alimentario", "conservas-preparados", "Conservas, encurtidos y alimentos preparados", "jar",
+     ("atun", "brevas", "champiñon", "champinon", "jalapeño", "jalapeno", "pepinillo", "salchicha", "sardina", "tomate seco",
+      "habas", "manzana en cubos", "fruta cristalizada", "limonada", "pasta", "encurtido", "almibar", "salsa", "enlatado")),
+    ("alimentario", "lacteos-huevo", "Lácteos y huevo", "egg",
+     ("leche", "queso", "mantequilla", "crema", "huevo", "yogur", "nata", "lactosuero")),
+    ("alimentario", "enzimas-fermentos", "Enzimas, fermentos y cultivos", "flask",
+     ("enzima", "levadura", "transglutaminasa", "cuajo", "fermento", "amilasa", "proteasa", "lactasa", "cultivo", "pectinasa")),
+    # ── Cosmética ──
+    ("cosmetica", "acidos", "Ácidos y exfoliantes", "test-tube",
+     ("acido glicolico", "acido salicilico", "acido lactico", "acido azelaico", "acido mandelico", "acido kojico", "acido malico",
+      "acido citrico", "acido ascorbico", "acido tranexamico", "acido ferulico", "acido lactobionico", "acido", "aha", "bha ")),
+    ("cosmetica", "activos", "Activos y principios cosméticos", "sparkle",
+     ("niacinamida", "retinol", "pantenol", "alantoina", "hialuronico", "arbutina", "resveratrol", "coenzima", "peptido",
+      "ceramida", "cafeina", "papaina", "colageno", "elastina", "keratina", "queratina", "biotina", "escualano", "vitamina",
+      "tocoferol", "dihidroxiacetona", "mentol", "bakuchiol", "argireline", "matrixyl", "adenosina", "centella", "bisabolol",
+      "urea", "glutation", "acetil", "zinc pca", "activo", "piritionato", "alcanfor", "benjui", "salicilato de metilo",
+      "gusano de seda", "mentol", "cafeina")),
+    ("cosmetica", "humectantes-emolientes", "Humectantes y emolientes", "drop",
+     ("glicerina", "propilenglicol", "dipropilenglicol", "butilenglicol", "sorbitol", "vaselina", "miristato", "palmitato",
+      "isopropil", "dimeticona", "silicona", "ciclometicona", "caprilico", "triglicerido", "emoliente", "humectante",
+      "lanolina", "pentilenglicol", "hexilenglicol", "pca", "betaina")),
+    ("cosmetica", "emulsionantes-ceras", "Emulsionantes y ceras cosméticas", "circles-three",
+     ("btms", "lanette", "cetilico", "cetoestearilico", "estearilico", "estearico", "monoestearato", "span", "tween",
+      "polisorbato", "emulsionante", "emulsificante", "glicerilo", "olivem", "montanov", "cera emulsionante", "ceteareth",
+      "steareth", "polawax", "emulgin", "eumulgin", "cutina", "lecitina", "arlacel", "emulan", "comperlan", "eutanol",
+      "sorbitan", "lactilato", "aperlante", "nacarante", "enturbiante", "acrisol")),
+    ("cosmetica", "tensoactivos", "Tensoactivos y limpiadores", "waves",
+     ("tensoactivo", "tenso", "cocoamida", "cocamidopropil", "sci", "lauril", "laureth", "sulfonato", "sles", "sls",
+      "texapon", "glucosido", "decyl", "sarcosinato", "isetionato", "sulfosuccinato", "genapol", "espumante", "jabon")),
+    ("cosmetica", "conservantes", "Conservantes y antioxidantes", "shield-check",
+     ("fenoxietanol", "parabeno", "sharomix", "optiphen", "germall", "bht", "bha", "edta", "conservante", "benzoato",
+      "sorbato", "sodium benzoate", "caprylyl", "etilhexilglicerina", "geogard", "cosgard", "euxyl", "dmdm", "kathon",
+      "acido dehidroacetico", "antioxidante")),
+    ("cosmetica", "espesantes", "Espesantes y formadores de película", "stack",
+     ("carbomero", "carbopol", "hidroxietilcelulosa", "hec", "cmc", "pvp", "polivinil", "xantana", "xanthan", "gelificante",
+      "acrilato", "aristoflex", "sepimax", "sepigel", "ultrez", "goma", "alginato", "carragenina", "espesante",
+      "natrosol", "cellosize", "hidroxietil", "carboximetil", "veegum", "veegun", "tixotrol")),
+    ("cosmetica", "minerales-pigmentos", "Minerales, pigmentos y arcillas", "paint-brush",
+     ("arcilla", "caolin", "bentonita", "talco", "mica", "pigmento", "oxido de zinc", "dioxido de titanio", "oxido de hierro",
+      "colorante", "glitter", "perlado", "ultramarino", "carbon vegetal", "magnesio estearato", "silica")),
+    ("cosmetica", "fragancias", "Fragancias y aromas", "flower-lotus",
+     ("fragancia", "aroma", "perfume", "esencia aromatica", "escencia", "essence", "acorde", "almizcle", "musk", "vainillina")),
+    ("cosmetica", "extractos", "Extractos botánicos y aguas florales", "leaf",
+     ("extracto", "aloe", "agua floral", "hidrolato", "agua de rosas", "matcha", "manzanilla", "calendula", "te verde", "flores secas", "lavanda",
+      "romero extracto", "ginkgo", "botanico", "propoleo", "miel", "avena coloidal", "bambu", "camu", "cafe")),
+    # ── Aceites, ceras y grasas ──
+    ("aceites-ceras-grasas", "aceites-esenciales", "Aceites esenciales", "flower",
+     ("aceite esencial", "esencial", "acete esencial", "limoneno", "eucalipto", "lavanda", "ylang", "arbol de te", "menta",
+      "romero", "tomillo", "clavo", "jazmin", "naranja", "mandarina", "limon", "hierba buena", "albahaca", "cedro", "pino",
+      "trementina", "citronela", "canela", "sandalo", "patchouli", "bergamota", "geranio", "manzanilla", "incienso")),
+    ("aceites-ceras-grasas", "ceras", "Ceras", "hexagon",
+     ("cera", "carnauba", "abejas", "candelilla", "parafina", "microcristalina", "ozoquerita", "cera de soya", "cera de arroz")),
+    ("aceites-ceras-grasas", "mantecas-grasas", "Mantecas y grasas", "cube",
+     ("manteca", "karite", "shea", "cacao", "mango", "sebo", "cebo", "grasa", "laurica", "lanolina", "hidrogenado", "hidrog",
+      "cupuacu", "murumuru", "babasu", "cupuazu")),
+    ("aceites-ceras-grasas", "minerales-siliconas", "Aceites minerales y siliconas", "circle-dashed",
+     ("mineral", "silicona", "vaselina", "petrolato", "dimeticona")),
+    ("aceites-ceras-grasas", "aceites-vegetales", "Aceites vegetales y portadores", "drop",
+     ("aceite", "argan", "jojoba", "ricino", "almendra", "coco", "girasol", "linaza", "neem", "semilla de uva", "oliva",
+      "palmiste", "mct", "escualano", "rosa mosqueta", "aguacate", "chia", "sesamo", "ajonjoli", "calendula", "onagra",
+      "borraja", "canola", "soya", "maiz", "palma", "cañamo", "moringa", "nuez")),
+    # ── Industria ──
+    ("industria", "solventes", "Solventes", "beaker",
+     ("alcohol etilico", "etanol", "isopropilico", "isopropanol", "acetona", "tolueno", "xileno", "hexano", "metanol",
+      "butanol", "thinner", "varsol", "trementina", "glicol", "limoneno", "acetato de etilo", "acetato de butilo", "solvente",
+      "disolvente", "mek", "metil etil", "cloruro de metileno", "diclorometano", "alcohol", "percloroetileno",
+      "tricloroetileno", "isoforona", "isopar", "dowanol", "proxitol", "formamida", "fenol", "freon")),
+    ("industria", "acidos-bases", "Ácidos y bases", "thermometer-hot",
+     ("acido", "soda", "caustica", "hidroxido", "potasa", "amoniaco", "amonio hidroxido", "cal ", "cal viva", "cal hidratada",
+      "carbonato de sodio", "base")),
+    ("industria", "oxidos-oxidantes", "Óxidos, peróxidos y oxidantes", "fire",
+     ("oxido", "peroxido", "percarbonato", "hipoclorito", "cloro", "dioxido", "permanganato", "dicromato", "clorito",
+      "perborato", "oxidante", "agua oxigenada")),
+    ("industria", "sales-minerales", "Sales y minerales industriales", "diamond",
+     ("sulfato", "cloruro", "nitrato", "carbonato", "silicato", "fosfato", "sal industrial", "zeolita", "bentonita", "alumbre",
+      "formiato", "acetato", "fluoruro", "bifloruro", "bifluoruro", "molibdato", "bisulfito", "tiosulfato", "sulfito",
+      "bromuro", "yoduro", "borax", "bicarbonato", "metabisulfito", "nitrito", "sal ", "azufre", "bicromato", "mercurio",
+      "diatomita", "tierras filtrantes")),
+    ("industria", "tensoactivos-limpieza", "Tensoactivos y limpieza", "sparkle",
+     ("tensoactivo", "desengrasante", "detergente", "jabon", "nonil", "etoxilado", "antiespumante", "secuestrante", "lauril",
+      "sulfonato", "cuaternario", "benzalconio", "limpiador", "desinfectante", "amonio cuaternario", "laureth", "sles",
+      "texapon", "betaina", "cocoamida", "abrillantador", "suavizante", "edta", "creolina", "desinfectante", "benzalconio",
+      "triclosan", "irgasan", "nivelador", "surfactante", "dowfax", "praepagen")),
+    ("industria", "conservantes-biocidas", "Conservantes y biocidas", "shield-check",
+     ("glutaraldehido", "formol", "formaldehido", "biocida", "isotiazolinona", "kathon", "bronopol", "benzoato", "sorbato",
+      "fungicida", "bactericida", "conservante", "triclosan", "clorhexidina", "yodo")),
+    ("industria", "resinas-polimeros", "Resinas, polímeros y pigmentos", "paint-bucket",
+     ("resina", "polimero", "latex", "pigmento", "tinte", "colorante", "poliuretano", "epoxi", "epoxica", "acrilico",
+      "pvc", "polietileno", "poliester", "silicona", "adhesivo", "pegante", "cola ", "gelcoat", "fibra de vidrio", "estireno",
+      "dispersion", "primal", "poligen", "polimer", "removedor", "colofonia", "negro de humo", "duraplus", "bacoxin",
+      "slendor", "snowflake", "macccx")),
+    ("industria", "aminas-plastificantes", "Aminas, plastificantes y anhídridos", "circuitry",
+     ("etanolamina", "amina", "ftalato", "plastificante", "anhidrido", "isocianato", "poliol")),
+    ("industria", "reactivos", "Reactivos y especialidades", "atom",
+     ("azul metileno", "indicador", "reactivo", "catalizador", "urea", "glicerina", "propilenglicol", "aditivo", "anticorrosivo",
+      "inhibidor", "lubricante", "refrigerante", "freon", "gas", "carbon activado", "sharomix", "dpg")),
+    # ── Laboratorio ──
+    ("laboratorio", "vidrieria", "Vidriería y material de laboratorio", "flask",
+     ("beaker", "vaso", "probeta", "pipeta", "erlenmeyer", "matraz", "bureta", "embudo", "espatula", "gotero", "agitador",
+      "tubo de ensayo", "frasco", "ambar", "vidrio", "revolvedor", "cuchara", "mortero", "gradilla", "caja petri", "vial")),
+    ("laboratorio", "equipos", "Equipos e instrumentos", "gauge",
+     ("balanza", "gramera", "equipo", "maquina", "encapsuladora", "tableteadora", "viscosimetro", "phmetro", "ph metro",
+      "termometro", "filtracion", "mezclador", "homogeneizador", "estufa", "centrifuga", "microscopio", "refractometro",
+      "plancha", "calentador", "bomba", "selladora")),
+    ("laboratorio", "capsulas-excipientes", "Cápsulas y excipientes farmacéuticos", "pill",
+     ("capsula", "excipiente", "celulosa microcristalina", "estearato de magnesio", "estearato de calcio", "aerosil", "silica",
+      "silicio", "talco", "lactosa", "povidona", "croscarmelosa", "glicolato", "manitol", "hpmc", "gelatina", "pullulan",
+      "liner", "desecante", "pirosil", "licomer")),
+    ("laboratorio", "activos-farma", "Principios activos farmacéuticos", "first-aid",
+     ("acetaminofen", "ibuprofeno", "paracetamol", "fenilefrina", "loratadina", "api", "usp activo", "diclofenaco", "naproxeno",
+      "cetirizina", "omeprazol", "metformina", "amoxicilina", "dexametasona", "clotrimazol", "ketoconazol", "aspirina",
+      "benzocaina", "bisacodilo", "guayacolato", "meloxicam", "nitazoxanida", "pamoato", "piroxicam", "sildenafil",
+      "simeticona", "tadalafil", "principios activos")),
+    ("laboratorio", "estandares-reactivos", "Estándares y reactivos analíticos", "atom",
+     ("estandar", "reactivo", "patron", "buffer", "indicador", "referencia", "solucion valorada", "titulante")),
+    ("laboratorio", "kits", "Kits y sets", "package", ("kit", "set ", "combo")),
+    # ── Agro ──
+    ("agro", "fertilizantes", "Fertilizantes y nutrición vegetal", "plant",
+     ("fertiliz", "abono", "npk", "urea", "nitrato", "fosfato", "sulfato", "molibdato", "quelato", "foliar", "hidroponia",
+      "humus", "algas", "aminoacido")),
+    ("agro", "control-biologico", "Control biológico y sanidad vegetal", "bug",
+     ("potasico", "jabon", "neem", "trichoderma", "bacillus", "beauveria", "extracto", "insecticida", "fungicida",
+      "acaricida", "repelente", "feromona", "azufre", "cobre")),
+    ("agro", "sustratos", "Enmiendas y sustratos", "shovel",
+     ("sustrato", "turba", "perlita", "vermiculita", "carbon", "cal ", "yeso", "zeolita", "fibra de coco", "biochar")),
+)
+
+_SUB_OTROS = {
+    "alimentario": ("otros", "Otros ingredientes alimentarios", "grains"),
+    "cosmetica": ("otros", "Otros insumos cosméticos", "sparkle"),
+    "aceites-ceras-grasas": ("otros", "Otros aceites y grasas", "drop"),
+    "industria": ("otros", "Otros químicos industriales", "factory"),
+    "laboratorio": ("otros", "Otros de laboratorio", "flask"),
+    "agro": ("otros", "Otros insumos agro", "plant"),
+    "": ("otros", "Otras materias primas", "cube"),
+}
+_SUB_INDICE = {(lid, sid): (etq, ico) for lid, sid, etq, ico, _ in SUBCATEGORIAS}
+
+
+def subcategoria_de(nombre: str, linea: str) -> dict:
+    """Segundo nivel de clasificación para la web: {id, label, icono, orden}."""
+    n = " " + normalizar(nombre) + " "
+    orden = 0
+    for lid, sid, etq, ico, kws in SUBCATEGORIAS:
+        if lid != linea:
+            continue
+        orden += 1
+        for kw in kws:
+            k = kw if kw.endswith(" ") else kw
+            if k in n:
+                return {"id": sid, "label": etq, "icono": ico, "orden": orden}
+    sid, etq, ico = _SUB_OTROS.get(linea, _SUB_OTROS[""])
+    return {"id": sid, "label": etq, "icono": ico, "orden": 99}
+
+
+# ─────────────────────────── comparador de proveedores ───────────────────────────
+
+
+def clave_canon(nombre: str) -> str:
+    """Llave para cruzar el mismo producto entre proveedores: nombre público
+    normalizado (sin marca, presentación ni códigos)."""
+    return normalizar(nombre_publico(nombre))
+
+
+def comparar_proveedores(ids: list[int] | None = None, q: str = "", minimo: int = 2, limite: int = 400) -> dict:
+    """Matriz producto × proveedor. Filas = productos (clave canónica) presentes en
+    ≥ `minimo` de los proveedores considerados; celdas = último precio por proveedor."""
+    con = _conn()
+    try:
+        params: list = []
+        sql = """SELECT pp.id, pp.proveedor_id, pp.nombre, pp.linea, pp.cas, p.nombre AS proveedor, p.pais,
+                        (SELECT precio_unitario FROM precios_historicos ph WHERE ph.proveedor_id=pp.proveedor_id AND ph.clave=pp.clave ORDER BY fecha DESC, id DESC LIMIT 1) AS ultimo_precio,
+                        (SELECT moneda FROM precios_historicos ph WHERE ph.proveedor_id=pp.proveedor_id AND ph.clave=pp.clave ORDER BY fecha DESC, id DESC LIMIT 1) AS moneda,
+                        (SELECT fecha FROM precios_historicos ph WHERE ph.proveedor_id=pp.proveedor_id AND ph.clave=pp.clave ORDER BY fecha DESC, id DESC LIMIT 1) AS fecha,
+                        (SELECT COUNT(*) FROM precios_historicos ph WHERE ph.proveedor_id=pp.proveedor_id AND ph.clave=pp.clave) AS n_compras
+                 FROM proveedor_productos pp JOIN proveedores p ON p.id=pp.proveedor_id WHERE p.activo=1"""
+        if ids:
+            sql += f" AND pp.proveedor_id IN ({','.join('?' * len(ids))})"; params += [int(i) for i in ids]
+        rows = [dict(r) for r in con.execute(sql, params).fetchall()]
+    finally:
+        con.close()
+    qn = normalizar(q) if q else ""
+    provs: dict[int, dict] = {}
+    filas: dict[str, dict] = {}
+    for r in rows:
+        if not es_materia_prima(r["nombre"]):
+            continue
+        canon = clave_canon(r["nombre"])
+        if not canon or (qn and qn not in canon and qn not in normalizar(r["nombre"])):
+            continue
+        pv = provs.setdefault(r["proveedor_id"], {"id": r["proveedor_id"], "nombre": r["proveedor"], "pais": r["pais"], "n_productos": 0})
+        pv["n_productos"] += 1
+        f = filas.setdefault(canon, {"clave": canon, "nombre": nombre_publico(r["nombre"]), "linea": r["linea"], "cas": r["cas"], "celdas": {}})
+        f["linea"] = f["linea"] or r["linea"]
+        f["cas"] = f["cas"] or r["cas"]
+        celda = f["celdas"].get(r["proveedor_id"])
+        if celda is None or (r["ultimo_precio"] and not celda.get("ultimo_precio")):
+            f["celdas"][r["proveedor_id"]] = {"producto_id": r["id"], "nombre": r["nombre"], "ultimo_precio": r["ultimo_precio"],
+                                              "moneda": r["moneda"] or "", "fecha": r["fecha"] or "", "n_compras": r["n_compras"] or 0}
+    out = []
+    for f in filas.values():
+        f["n_proveedores"] = len(f["celdas"])
+        if f["n_proveedores"] < max(1, minimo):
+            continue
+        precios = {pid: c["ultimo_precio"] for pid, c in f["celdas"].items() if c["ultimo_precio"] and (c["moneda"] or "COP") == "COP"}
+        f["mejor_pid"] = min(precios, key=precios.get) if precios else None
+        f["celdas"] = {str(k): v for k, v in f["celdas"].items()}
+        out.append(f)
+    out.sort(key=lambda f: (-f["n_proveedores"], f["nombre"].lower()))
+    return {"proveedores": sorted(provs.values(), key=lambda p: -p["n_productos"]), "filas": out[:limite], "total_filas": len(out)}
+
+
+def matriz_coincidencias(top: int = 14) -> dict:
+    """Cuántos productos comparten cada par de proveedores (por clave canónica)."""
+    con = _conn()
+    try:
+        rows = con.execute("""SELECT pp.proveedor_id, pp.nombre, p.nombre AS proveedor FROM proveedor_productos pp
+                              JOIN proveedores p ON p.id=pp.proveedor_id WHERE p.activo=1""").fetchall()
+    finally:
+        con.close()
+    sets: dict[int, set] = {}
+    nombres: dict[int, str] = {}
+    for r in rows:
+        if not es_materia_prima(r["nombre"]):
+            continue
+        c = clave_canon(r["nombre"])
+        if c:
+            sets.setdefault(r["proveedor_id"], set()).add(c)
+            nombres[r["proveedor_id"]] = r["proveedor"]
+    ids = sorted(sets, key=lambda i: -len(sets[i]))[:top]
+    pares = []
+    matriz: dict[str, dict[str, int]] = {}
+    for i, a in enumerate(ids):
+        matriz[str(a)] = {}
+        for b in ids:
+            n = len(sets[a] & sets[b]) if a != b else len(sets[a])
+            matriz[str(a)][str(b)] = n
+            if b in ids[i + 1:] and n:
+                pares.append({"a": a, "b": b, "a_nombre": nombres[a], "b_nombre": nombres[b], "n": n})
+    pares.sort(key=lambda x: -x["n"])
+    return {"proveedores": [{"id": i, "nombre": nombres[i], "n_productos": len(sets[i])} for i in ids], "pares": pares[:40], "matriz": matriz}
+
+
 # ─────────────────────────── clasificación heurística (sin LLM) ───────────────────────────
 
 # (palabra clave en el nombre normalizado → país de origen habitual). Referencia
@@ -1302,6 +1594,40 @@ _REGLAS_ORIGEN: tuple[tuple[str, str], ...] = (
     ("envase", "China"), ("frasco", "China"), ("balanza", "China"), ("gramera", "China"),
 )
 _REGLAS_LINEA: tuple[tuple[str, str], ...] = (
+    # farma (APIs y excipientes) → laboratorio
+    ("benzocaina", "laboratorio"), ("bisacodilo", "laboratorio"), ("cetirizina", "laboratorio"), ("diclofenaco", "laboratorio"),
+    ("fenilefrina", "laboratorio"), ("guayacolato", "laboratorio"), ("meloxicam", "laboratorio"), ("nitazoxanida", "laboratorio"),
+    ("pamoato", "laboratorio"), ("piroxicam", "laboratorio"), ("sildenafil", "laboratorio"), ("simeticona", "laboratorio"),
+    ("tadalafil", "laboratorio"), ("principios activos", "laboratorio"), ("croscarmelosa", "laboratorio"),
+    ("celulosa microcristalina", "laboratorio"), ("estearato de magnesio", "laboratorio"), ("estearato de calcio", "laboratorio"),
+    ("dioxido de silicio", "laboratorio"), ("pirosil", "laboratorio"), ("licomer", "laboratorio"), ("capsula", "laboratorio"),
+    # cosmética: emulsionantes / espesantes / activos de marca
+    ("arlacel", "cosmetica"), ("eumulgin", "cosmetica"), ("emulan", "cosmetica"), ("comperlan", "cosmetica"), ("eutanol", "cosmetica"),
+    ("sorbitan", "cosmetica"), ("lactilato", "cosmetica"), ("aperlante", "cosmetica"), ("nacarante", "cosmetica"),
+    ("enturbiante", "cosmetica"), ("natrosol", "cosmetica"), ("cellosize", "cosmetica"), ("hidroxietil", "cosmetica"),
+    ("carboximetil", "cosmetica"), ("veegum", "cosmetica"), ("veegun", "cosmetica"), ("tixotrol", "cosmetica"),
+    ("piritionato", "cosmetica"), ("alcanfor", "cosmetica"), ("benjui", "cosmetica"), ("salicilato de metilo", "cosmetica"),
+    ("flores secas", "cosmetica"), ("gusano de seda", "cosmetica"), ("escencia", "cosmetica"), ("acrisol", "cosmetica"),
+    # industria: solventes, aminas, plastificantes, resinas, sales, limpieza
+    ("cloruro de metileno", "industria"), ("percloroetileno", "industria"), ("tricloroetileno", "industria"), ("isoforona", "industria"),
+    ("isopar", "industria"), ("dowanol", "industria"), ("proxitol", "industria"), ("formamida", "industria"), ("fenol", "industria"),
+    ("etanolamina", "industria"), ("ftalato", "industria"), ("plastificante", "industria"), ("anhidrido", "industria"),
+    ("colofonia", "industria"), ("negro de humo", "industria"), ("pintura", "industria"), ("poliuretano", "industria"),
+    ("dispersion", "industria"), ("primal", "industria"), ("poligen", "industria"), ("polimer", "industria"), ("removedor", "industria"),
+    ("alumbre", "industria"), ("borax", "industria"), ("bicromato", "industria"), ("bifloruro", "industria"), ("bifluoruro", "industria"),
+    ("cloruro de amonio", "industria"), ("fluoruro", "industria"), ("formiato", "industria"), ("azufre", "industria"),
+    ("mercurio", "industria"), ("creolina", "industria"), ("desinfectante", "industria"), ("benzalconio", "industria"),
+    ("triclosan", "industria"), ("irgasan", "industria"), ("suavizante", "industria"), ("nivelador", "industria"),
+    ("surfactante", "industria"), ("dowfax", "industria"), ("praepagen", "industria"), ("diatomita", "industria"),
+    ("tierras filtrantes", "industria"), ("freon", "industria"), ("duraplus", "industria"), ("bacoxin", "industria"),
+    ("slendor", "industria"), ("snowflake", "industria"), ("macccx", "industria"),
+    # alimentario: conservas, snacks y suplementos
+    ("atun", "alimentario"), ("brevas", "alimentario"), ("champiñon", "alimentario"), ("champinon", "alimentario"),
+    ("chocodisco", "alimentario"), ("cremor", "alimentario"), ("cristalizada", "alimentario"), ("gluten", "alimentario"),
+    ("habas", "alimentario"), ("jalapeño", "alimentario"), ("jalapeno", "alimentario"), ("limonada", "alimentario"),
+    ("manzana", "alimentario"), ("pasta", "alimentario"), ("pepinillo", "alimentario"), ("salchicha", "alimentario"),
+    ("sardina", "alimentario"), ("tomate", "alimentario"), ("psyllium", "alimentario"), ("inositol", "alimentario"),
+    ("msm", "alimentario"), ("sulfonil metano", "alimentario"), ("pro-b", "alimentario"), ("sweet", "alimentario"),
     ("aceite", "aceites-ceras-grasas"), ("esencia", "aceites-ceras-grasas"), ("cera", "aceites-ceras-grasas"),
     ("manteca", "aceites-ceras-grasas"), ("lanolina", "aceites-ceras-grasas"), ("sebo", "aceites-ceras-grasas"),
     ("parafina", "aceites-ceras-grasas"), ("vaselina", "aceites-ceras-grasas"),
@@ -1333,6 +1659,64 @@ _REGLAS_LINEA: tuple[tuple[str, str], ...] = (
     ("benzoato", "industria"), ("sorbato", "industria"), ("glutaraldehido", "industria"), ("azul metileno", "industria"),
     ("propilenglicol", "industria"), ("hidroxido", "industria"), ("sulfato", "industria"), ("peroxido", "industria"),
     ("carbon activado", "industria"), ("alcohol", "industria"), ("soda", "industria"), ("solvente", "industria"),
+    ("aceituna", "alimentario"), ("alcaparra", "alimentario"), ("anis", "alimentario"), ("amaranto", "alimentario"),
+    ("arroz", "alimentario"), ("albaricoque", "alimentario"), ("avellana", "alimentario"), ("azucar", "alimentario"),
+    ("cacahuate", "alimentario"), ("cereza", "alimentario"), ("ciruela", "alimentario"), ("chocolate", "alimentario"),
+    ("cocoa", "alimentario"), ("coco", "alimentario"), ("cranberry", "alimentario"), ("datil", "alimentario"),
+    ("durazno", "alimentario"), ("fruta", "alimentario"), ("fruto", "alimentario"), ("garbanzo", "alimentario"),
+    ("granola", "alimentario"), ("higo", "alimentario"), ("lenteja", "alimentario"), ("macadamia", "alimentario"),
+    ("mango", "alimentario"), ("maracuya", "alimentario"), ("marañon", "alimentario"), ("maranon", "alimentario"),
+    ("melocoton", "alimentario"), ("mora", "alimentario"), ("oregano", "alimentario"), ("papaya", "alimentario"),
+    ("pasas", "alimentario"), ("pecan", "alimentario"), ("pimenton", "alimentario"), ("piña", "alimentario"),
+    ("pina", "alimentario"), ("uvas", "alimentario"), ("uva pasa", "alimentario"), ("aji", "alimentario"),
+    ("comino", "alimentario"), ("laurel", "alimentario"), ("clavo", "alimentario"), ("nuez moscada", "alimentario"),
+    ("paprika", "alimentario"), ("tomillo", "alimentario"), ("romero seco", "alimentario"), ("especia", "alimentario"),
+    ("hierbas", "alimentario"), ("cereal", "alimentario"), ("harina", "alimentario"), ("grano", "alimentario"),
+    ("lino", "alimentario"), ("mijo", "alimentario"), ("sorgo", "alimentario"), ("trigo", "alimentario"),
+    ("centeno", "alimentario"), ("cebada", "alimentario"), ("soya", "alimentario"), ("soja", "alimentario"),
+    ("guisante", "alimentario"), ("arveja", "alimentario"), ("acesulfame", "alimentario"), ("aspartame", "alimentario"),
+    ("sacarina", "alimentario"), ("glucosa", "alimentario"), ("jarabe", "alimentario"), ("pectina", "alimentario"),
+    ("carragenina", "alimentario"), ("agar", "alimentario"), ("caseinato", "alimentario"), ("caseina", "alimentario"),
+    ("fosfato", "alimentario"), ("pirofosfato", "alimentario"), ("tripolifosfato", "alimentario"), ("nitrito", "alimentario"),
+    ("eritorbato", "alimentario"), ("ascorbato", "alimentario"), ("sorbato", "alimentario"), ("propionato", "alimentario"),
+    ("natamicina", "alimentario"), ("nisina", "alimentario"), ("levadura", "alimentario"), ("enzima", "alimentario"),
+    ("transglutaminasa", "alimentario"), ("fibra", "alimentario"), ("dextrina", "alimentario"), ("lactosa", "alimentario"),
+    ("sacarosa", "alimentario"), ("azucar", "alimentario"), ("panela", "alimentario"), ("miel", "alimentario"),
+    ("cafe", "alimentario"), ("te verde", "alimentario"), ("cacao", "alimentario"), ("mantequilla", "alimentario"),
+    ("queso", "alimentario"), ("crema", "alimentario"), ("leche", "alimentario"), ("huevo", "alimentario"),
+    ("omega", "alimentario"), ("probiotico", "alimentario"), ("prebiotico", "alimentario"), ("melatonina", "alimentario"),
+    ("cafeina anhidra", "alimentario"), ("magnesio", "alimentario"), ("calcio", "alimentario"), ("potasio", "alimentario"),
+    ("zinc", "alimentario"), ("hierro", "alimentario"), ("selenio", "alimentario"), ("cromo", "alimentario"),
+    ("acetaminofen", "laboratorio"), ("ibuprofeno", "laboratorio"), ("paracetamol", "laboratorio"), ("estandar", "laboratorio"),
+    ("reactivo", "laboratorio"), ("indicador", "laboratorio"), ("buffer", "laboratorio"), ("equipo", "laboratorio"),
+    ("maquina", "laboratorio"), ("filtr", "laboratorio"), ("silica", "laboratorio"), ("aerosil", "laboratorio"),
+    ("emoliente", "cosmetica"), ("emulsionante", "cosmetica"), ("emulsificante", "cosmetica"), ("humectante", "cosmetica"),
+    ("espesante", "cosmetica"), ("conservante", "cosmetica"), ("fenoxi", "cosmetica"), ("parabeno", "cosmetica"),
+    ("silicona", "cosmetica"), ("dimeticona", "cosmetica"), ("ciclometicona", "cosmetica"), ("pvp", "cosmetica"),
+    ("polivinil", "cosmetica"), ("carbomero", "cosmetica"), ("hidroxietilcelulosa", "cosmetica"), ("cmc", "cosmetica"),
+    ("carboximetil", "cosmetica"), ("metilcelulosa", "cosmetica"), ("alcohol cetoestearilico", "cosmetica"),
+    ("alcohol estearilico", "cosmetica"), ("miristato", "cosmetica"), ("palmitato", "cosmetica"), ("oleato", "cosmetica"),
+    ("cocoato", "cosmetica"), ("lauril", "cosmetica"), ("laureth", "cosmetica"), ("sulfonato", "cosmetica"),
+    ("cocamidopropil", "cosmetica"), ("span", "cosmetica"), ("monoestearato", "cosmetica"), ("glicolato", "cosmetica"),
+    ("propilenglicol", "cosmetica"), ("dipropilenglicol", "cosmetica"), ("butilenglicol", "cosmetica"),
+    ("alcohol bencilico", "cosmetica"), ("alcohol isopropilico", "industria"), ("alcohol etilico", "industria"),
+    ("colageno", "cosmetica"), ("keratina", "cosmetica"), ("queratina", "cosmetica"), ("biotina", "cosmetica"),
+    ("acido hialuronico", "cosmetica"), ("alfa arbutina", "cosmetica"), ("arbutina", "cosmetica"), ("resveratrol", "cosmetica"),
+    ("coenzima", "cosmetica"), ("peptido", "cosmetica"), ("ceramida", "cosmetica"), ("escualano", "cosmetica"),
+    ("manteca", "aceites-ceras-grasas"), ("trementina", "industria"), ("thinner", "industria"), ("varsol", "industria"),
+    ("acetona", "industria"), ("tolueno", "industria"), ("xileno", "industria"), ("hexano", "industria"),
+    ("metanol", "industria"), ("butanol", "industria"), ("glicol", "industria"), ("formol", "industria"),
+    ("formaldehido", "industria"), ("amonio", "industria"), ("cloruro de", "industria"), ("sulfato", "industria"),
+    ("nitrato", "industria"), ("carbonato de sodio", "industria"), ("soda caustica", "industria"), ("caustica", "industria"),
+    ("hidroxido", "industria"), ("peroxido", "industria"), ("percarbonato", "industria"), ("hipoclorito", "industria"),
+    ("acido sulfurico", "industria"), ("acido clorhidrico", "industria"), ("acido nitrico", "industria"),
+    ("acido fosforico", "industria"), ("acido acetico", "industria"), ("acido oxalico", "industria"),
+    ("acido borico", "industria"), ("acido formico", "industria"), ("acido muriatico", "industria"),
+    ("bicarbonato", "alimentario"), ("silicato", "industria"), ("zeolita", "industria"), ("bentonita", "industria"),
+    ("talco", "cosmetica"), ("mica", "cosmetica"), ("pigmento", "cosmetica"), ("colorante", "alimentario"),
+    ("tinte", "industria"), ("resina", "industria"), ("polimero", "industria"), ("latex", "industria"),
+    ("desengrasante", "industria"), ("detergente", "industria"), ("jabon", "industria"), ("limoneno", "industria"),
+    ("nonil", "industria"), ("etoxilado", "industria"), ("antiespumante", "industria"), ("secuestrante", "industria"),
     ("acido", "cosmetica"), ("niacinamida", "cosmetica"), ("retinol", "cosmetica"), ("pantenol", "cosmetica"),
     ("alantoina", "cosmetica"), ("hialuronico", "cosmetica"), ("glicerina", "cosmetica"), ("tween", "cosmetica"),
     ("polisorbato", "cosmetica"), ("betaina", "cosmetica"), ("tensoactivo", "cosmetica"), ("cocoamida", "cosmetica"),
@@ -1355,12 +1739,34 @@ def clasificar_nombre(nombre: str) -> dict:
 _RE_CODIGO_TOKEN = re.compile(r"\b\d+-\d+\b|\b[A-Z]{1,3}\d{2,}[A-Z0-9\-]*\b|\b\d{3,}[A-Z]{2,}\b")
 
 
+_MARCAS = ("dr joe lab", "dr. joe lab", "now foods", "now", "ocean spray", "ocean pacific", "elmar", "pacifico", "pacífico",
+           "el lobo", "onedove", "zatural", "vivosun", "kernek", "gp ", "nature's", "natures", "amazon", "sky organics",
+           "cliganic", "handcraft", "plant therapy", "majestic pure", "viva naturals", "nutricost", "bulk supplements",
+           "bulksupplements", "microingredients", "micro ingredients", "anthony's", "anthonys", "horbaach", "sports research",
+           "kirkland", "member's mark", "great value", "wira", "nutrifresh", "vital proteins", "orgain", "premium", "organic",
+           "orgánico", "organico", "certificado", "certified", "puro", "pure", "grado alimenticio", "food grade",
+           "grado cosmético", "grado cosmetico", "usp grade", "terapéutico", "terapeutico", "importado", "importada",
+           "americano", "americana")
+_DESCRIPTORES_CORTE = (" para ", " ideal ", " con ", " sin ", " - ", " – ", " | ", " apto ", " uso ", " libre de ", " rico en ",
+                       " alta ", " bajo ", " bulto", " saco", " caja", " tambor", " garrafa", " cuñete", " cuñete", " frasco", " bolsa",
+                       " unidades", " unidad", " x ", " por ", " grande", " pequeño", " mediano", " tamaño", " pack", " kit ")
+
+
 def nombre_publico(nombre: str) -> str:
     """Nombre genérico para la web: sin la parte en inglés tras '/', sin códigos de
-    proveedor (WEIFANG, 30-100, REF …), sin presentación ni coletillas comerciales,
-    y en formato título. La presentación se muestra aparte."""
+    proveedor (WEIFANG, 30-100, REF …), sin marcas, sin presentación ni coletillas
+    comerciales ("para cara", "bulto 25 kg", "Dr Joe Lab"), en formato título.
+    La presentación se muestra aparte y solo en productos de la tienda."""
     base = (nombre or "").split("/")[0]
     base = base.split(",")[0]
+    low = " " + normalizar(base) + " "
+    for d in _DESCRIPTORES_CORTE:
+        i = low.find(d)
+        if i > 4:  # deja al menos una palabra antes del corte
+            low = low[:i] + " "
+    base = low.strip()
+    for m in sorted(_MARCAS, key=len, reverse=True):
+        base = re.sub(r"\b" + re.escape(m.strip()) + r"\b", " ", base)
     base = re.sub(r"\([^)]*\)", " ", base)
     base = re.sub(r"\((ref|cod|codigo)[^)]*\)", " ", base, flags=re.I)
     base = _RE_CODIGO_TOKEN.sub(" ", base)
@@ -1369,8 +1775,19 @@ def nombre_publico(nombre: str) -> str:
     base = re.sub(r"\b(weifang|shandong|jiangsu|anhui|hebei|zhejiang|chino|china|importado|nacional|caja|galon|galón|"
                   r"litros?|kilos?|grf|und|unidad|x)\b", " ", base, flags=re.I)
     base = re.sub(r"\b\d+\s*%", " ", base)
+    base = re.sub(r"\b\d+([\.,]\d+)?\b", " ", base)  # números sueltos (cantidades ya sin unidad)
     base = re.sub(r"\s{2,}", " ", base).strip(" -:·,%.")
-    base = base[:70].rsplit(" ", 1)[0] if len(base) > 70 else base
+    base = base[:60].rsplit(" ", 1)[0] if len(base) > 60 else base
+    # tokens con dígitos (grx20l, k30), unidades sueltas y muletillas
+    base = " ".join(t for t in base.split() if not re.search(r"\d", t) and t not in ("kg", "kgs", "gr", "g", "ml", "l", "lt", "und", "ind", "un", "cc"))
+    base = re.sub(r"\b(y|e|o)\s+(natural|puro|pura|organico|organica|premium)\b", " ", base)
+    base = re.sub(r"\s{2,}", " ", base).strip()
+    # sin conectores colgando al final ("Aceite de Pino y", "Avena en")
+    for _ in range(3):
+        base = re.sub(r"\s+(de|del|la|el|los|las|y|e|o|u|en|con|para|por|a|al|sin)$", "", base).strip()
+    # restaurar tildes/mayúsculas originales palabra por palabra
+    orig = {normalizar(t): t for t in re.split(r"[\s/,()]+", nombre or "") if t}
+    base = " ".join(orig.get(t, t) for t in base.split()).strip(" -–·:,.")
     return _titulo(base) if len(base) >= 3 else _titulo(nombre)
 
 
@@ -1379,7 +1796,7 @@ _NO_MATERIA_PRIMA = ("bolsa", "banda", "cinta", "etiqueta", "caja ", "cajas", "c
                      "flanche", "codo", "tubo", "tuberia", "valvula", "manguera", "tornillo", "motor", "reductor",
                      "impresora", "toner", "cartucho", "computador", "monitor", "silla", "mesa", "estante", "bulto de",
                      "arriendo", "honorarios", "suscripcion", "licencia", "starlink", "internet", "seguro", "dhl", "fedex", "ups ",
-                     "express colombia", "nivel 1", "oada", "pila ", "pastillero", "pera ", "linner", "liner", "tapa ", "tapas",
+                     "express colombia", "nivel 1", "oada", "farma azul", "farma cristal", "farma ambar", "explora", "nuestras", "nuestros", "soluciones", "formato", "vinculacion", "vinculación", "politica", "política", "pila ", "pastillero", "pera ", "linner", "liner", "tapa ", "tapas",
                      " — ", "blister", "carton", "cartón", "estuche", "frasco", "envase", "gotero", "atomizador",
                      "spray", "dosificador", "pet ", "pvc", "polietileno", "sodimac", "tapon", "tapón", "union ", "unión", "codo ",
                      "adaptador", "reduccion", "niple", "racor", "abrazadera")
@@ -1390,7 +1807,7 @@ def es_materia_prima(nombre: str) -> bool:
     if "—" in raw or " - " in raw and re.search(r"\d{6,}", raw):
         return False  # "Proveedor — número de factura": línea de gasto, no producto
     n = normalizar(raw)
-    if len(n) < 4 or n in ("pet", "pvc", "azul", "verde", "rojo", "transparente", "blanco", "negro"):
+    if len(n) <= 4 or n in ("azul", "verde", "rojo", "transparente", "blanco", "negro"):
         return False
     return not any(k in n for k in _NO_MATERIA_PRIMA)
 
@@ -1401,13 +1818,26 @@ def autoclasificar_productos(solo_faltantes: bool = True, proveedor_id: int | No
     with _lock:
         con = _conn()
         try:
-            sql = ("SELECT pp.id, pp.nombre, pp.linea, pp.origen_pais, p.pais AS proveedor_pais, p.tipo AS proveedor_tipo "
+            sql = ("SELECT pp.id, pp.proveedor_id, pp.nombre, pp.linea, pp.origen_pais, p.pais AS proveedor_pais, p.tipo AS proveedor_tipo "
                    "FROM proveedor_productos pp JOIN proveedores p ON p.id=pp.proveedor_id")
             params: list = []
             if proveedor_id:
                 sql += " WHERE pp.proveedor_id=?"; params.append(proveedor_id)
-            for r in con.execute(sql, params).fetchall():
+            filas = con.execute(sql, params).fetchall()
+            # línea dominante por proveedor (fallback cuando ninguna regla aplica)
+            dominante: dict[int, str] = {}
+            conteo: dict[int, dict[str, int]] = {}
+            for r in filas:
+                lid = clasificar_nombre(r["nombre"])["linea"] or r["linea"]
+                if lid:
+                    conteo.setdefault(r["proveedor_id"], {}).setdefault(lid, 0)
+                    conteo[r["proveedor_id"]][lid] += 1
+            for pid_, c in conteo.items():
+                dominante[pid_] = max(c, key=c.get)
+            for r in filas:
                 sug = clasificar_nombre(r["nombre"])
+                if not sug["linea"] and not r["linea"]:
+                    sug["linea"] = dominante.get(r["proveedor_id"], "")
                 sets, vals = [], []
                 # El origen heredado de un distribuidor nacional ("Colombia") no es el origen
                 # de fabricación: se considera faltante para poder sugerir el real.
@@ -1454,14 +1884,14 @@ def publicar_oferta_web() -> dict:
     try:
         rows = [dict(r) for r in con.execute(
             """SELECT pp.clave, pp.nombre, pp.cas, pp.presentacion, pp.unidad, pp.linea, pp.origen_pais, pp.sku_siigo,
-                      p.pais AS proveedor_pais
+                      p.pais AS proveedor_pais, p.tipo AS proveedor_tipo
                FROM proveedor_productos pp JOIN proveedores p ON p.id=pp.proveedor_id
                WHERE pp.publicar_web=1 AND p.activo=1 ORDER BY pp.nombre COLLATE NOCASE""").fetchall()]
     finally:
         con.close()
     productos: dict[str, dict] = {}
     for r in rows:
-        if not es_materia_prima(r["nombre"]):
+        if not es_materia_prima(r["nombre"]) or not es_materia_prima(nombre_publico(r["nombre"])):
             continue
         g = productos.get(r["clave"])
         if g is None:
@@ -1476,7 +1906,9 @@ def publicar_oferta_web() -> dict:
             g["cas"] = r["cas"]
         if r["linea"] and not g["linea"]:
             g["linea"] = r["linea"]
-        pais = r["origen_pais"] or r["proveedor_pais"]
+        pais = r["origen_pais"]
+        if pais == "Colombia" and (r.get("proveedor_tipo") == "nacional") and r["proveedor_pais"] == "Colombia":
+            pais = ""  # país del distribuidor, no de fabricación: no se declara
         if pais and pais not in g["origen_paises"]:
             g["origen_paises"].append(pais)
         if r["presentacion"] and r["presentacion"] not in g["presentaciones"]:
@@ -1499,6 +1931,10 @@ def publicar_oferta_web() -> dict:
         f["cas"] = f["cas"] or g["cas"]
         f["linea"] = f["linea"] or g["linea"]
     lista = sorted(fusion.values(), key=lambda g: g["nombre"].lower())
+    for g in lista:
+        sc = subcategoria_de(g["nombre"], g["linea"])
+        g["subcategoria"] = sc["id"]
+        g["subcategoria_label"] = sc["label"]
     paises: dict[str, dict] = {}
     for g in lista:
         for pais in g["origen_paises"]:
@@ -1527,18 +1963,48 @@ _SIGLAS = {"USP", "BP", "EP", "NF", "PVC", "EAN", "MCT", "HPLC", "ACS", "BHT", "
 _MINUSCULAS = {"de", "del", "la", "el", "los", "las", "y", "e", "o", "u", "en", "con", "para", "por", "a", "al"}
 
 
+_ACENTOS = {"acido": "ácido", "citrico": "cítrico", "lactico": "láctico", "malico": "málico", "salicilico": "salicílico",
+            "glicolico": "glicólico", "fosforico": "fosfórico", "acetico": "acético", "benzoico": "benzoico",
+            "sorbico": "sórbico", "estearico": "esteárico", "etilico": "etílico", "cetilico": "cetílico",
+            "bencilico": "bencílico", "isopropilico": "isopropílico", "sodico": "sódico", "potasico": "potásico",
+            "calcico": "cálcico", "magnesico": "magnésico", "oxido": "óxido", "hidroxido": "hidróxido",
+            "sulfurico": "sulfúrico", "clorhidrico": "clorhídrico", "nitrico": "nítrico", "borico": "bórico",
+            "formico": "fórmico", "oleico": "oleico", "laurico": "láurico", "palmitico": "palmítico",
+            "propionico": "propiónico", "ascorbico": "ascórbico", "folico": "fólico", "pantotenico": "pantoténico",
+            "tartarico": "tartárico", "fumarico": "fumárico", "succinico": "succínico", "hialuronico": "hialurónico",
+            "kojico": "kójico", "azelaico": "azelaico", "mandelico": "mandélico", "glutamico": "glutámico",
+            "aspartico": "aspártico", "linoleico": "linoleico", "cetoestearilico": "cetoestearílico",
+            "estearilico": "estearílico", "polivinilico": "polivinílico", "acetaminofen": "acetaminofén",
+            "alantoina": "alantoína", "cafeina": "cafeína", "papaina": "papaína", "alumina": "alúmina",
+            "amonio": "amonio", "caustica": "cáustica", "limon": "limón", "jazmin": "jazmín", "arbol": "árbol",
+            "te": "té", "ajonjoli": "ajonjolí", "mani": "maní", "marañon": "marañón", "maranon": "marañón",
+            "pimenton": "pimentón", "melocoton": "melocotón", "datil": "dátil", "datiles": "dátiles",
+            "arandano": "arándano", "arandanos": "arándanos", "almidon": "almidón", "albumina": "albúmina",
+            "proteina": "proteína", "colageno": "colágeno", "vitamina": "vitamina", "acesulfame": "acesulfame",
+            "carbon": "carbón", "capsulas": "cápsulas", "capsula": "cápsula", "titanio": "titanio", "boro": "boro",
+            "peroxido": "peróxido", "trementina": "trementina", "camelia": "camelia", "cumarina": "cumarina",
+            "fenoxietanol": "fenoxietanol", "esteres": "ésteres", "ester": "éster", "eter": "éter",
+            "aminoacido": "aminoácido", "aminoacidos": "aminoácidos", "quimico": "químico", "cosmetico": "cosmético",
+            "tecnico": "técnico", "farmaceutico": "farmacéutico", "organico": "orgánico", "acetona": "acetona",
+            "menta": "menta", "eucalipto": "eucalipto", "curcuma": "cúrcuma", "cardamomo": "cardamomo",
+            "sesamo": "sésamo", "quinua": "quinua", "chia": "chía", "hidrog": "hidrogenado", "anhidro": "anhidro",
+            "anhidra": "anhidra", "pirofosfato": "pirofosfato", "dioxido": "dióxido", "cloruro": "cloruro"}
+
+
 def _titulo(nombre: str) -> str:
-    """'ACIDO AZELAICO 10g' → 'Acido Azelaico 10g' (respeta unidades y siglas conocidas)."""
+    """'ACIDO AZELAICO 10g' → 'Ácido Azelaico 10g' (unidades, siglas y tildes de vocabulario químico)."""
     out = []
     for i, w in enumerate(nombre.split()):
+        low = w.lower()
         if re.fullmatch(r"\d+[a-zA-Z%]*", w):
             out.append(w)
         elif w.upper() in _SIGLAS:
             out.append(w.upper())
-        elif w.lower() in _MINUSCULAS and i > 0:
-            out.append(w.lower())
+        elif low in _MINUSCULAS and i > 0:
+            out.append(low)
         else:
-            out.append(w[:1].upper() + w[1:].lower())
+            base = _ACENTOS.get(normalizar(low), low)
+            out.append(base[:1].upper() + base[1:])
     return " ".join(out)
 
 

@@ -33,6 +33,7 @@ from app.tools.stock_web import obtener_stock_web, set_stock_web
 from app.tools.origen_materias import cargar_origen_materias, resolver_pais_sku
 from app.services.proveedores_db import (
     PAISES_COORDENADAS as _PAISES_RED,
+    subcategoria_de as _subcategoria_de,
     cargar_oferta_web as _cargar_oferta_web,
     clave_producto as _clave_producto,
     crear_solicitud_cotizacion as _crear_solicitud_cotizacion,
@@ -3481,6 +3482,20 @@ _PUERTOS_SVG = {
 _BODEGA_SVG = {"x": 309, "y": 345}
 _DEPARTAMENTOS_SVG_JSON = ROOT / "app" / "data" / "colombia_departamentos_svg.json"
 
+_BANDERAS = {
+    "China": "🇨🇳", "India": "🇮🇳", "Pakistán": "🇵🇰", "Bolivia": "🇧🇴", "Argentina": "🇦🇷", "Brasil": "🇧🇷", "Perú": "🇵🇪",
+    "Chile": "🇨🇱", "México": "🇲🇽", "Estados Unidos": "🇺🇸", "Alemania": "🇩🇪", "España": "🇪🇸", "Francia": "🇫🇷",
+    "Italia": "🇮🇹", "Países Bajos": "🇳🇱", "Reino Unido": "🇬🇧", "Turquía": "🇹🇷", "Egipto": "🇪🇬", "Marruecos": "🇲🇦",
+    "Sudáfrica": "🇿🇦", "Malasia": "🇲🇾", "Indonesia": "🇮🇩", "Tailandia": "🇹🇭", "Vietnam": "🇻🇳", "Japón": "🇯🇵",
+    "Corea del Sur": "🇰🇷", "Australia": "🇦🇺", "Nueva Zelanda": "🇳🇿", "Colombia": "🇨🇴", "Ghana": "🇬🇭",
+}
+
+
+@app.template_global("bandera")
+def _bandera(pais: str) -> str:
+    return _BANDERAS.get(pais or "", "🌐")
+
+
 LINEA_DESCRIPCION: dict[str, str] = {
     "aceites-ceras-grasas": "Aceites vegetales, esenciales, ceras y mantecas de origen botánico.",
     "agro": "Insumos para cultivo, suelos y control biológico.",
@@ -4178,6 +4193,7 @@ def _cotizar_agrupar(oferta: dict, catalog: list, q: str = "", linea: str = "") 
             "linea": lid,
             "tds": dp.get("tds", False),
             "coa": dp.get("coa", False),
+            "sub": _subcategoria_de(prod.get("nombre") or "", lid),
         }
         vistos.add(clave)
         if qn and qn not in _norm_cat_key(item["nombre"] + " " + item["cas"]):
@@ -4195,7 +4211,8 @@ def _cotizar_agrupar(oferta: dict, catalog: list, q: str = "", linea: str = "") 
         pais_cat = resolver_pais_sku(p.get("ref", ""), lid, cfg_origen)
         item = {"nombre": p.get("name") or "", "clave": clave, "cas": "", "origen": [pais_cat] if pais_cat else [],
                 "presentaciones": [], "en_stock": True, "stock": int(p.get("stock") or 0), "slug": p.get("slug") or "",
-                "linea": lid, "tds": dp.get("tds", False), "coa": dp.get("coa", False)}
+                "linea": lid, "tds": dp.get("tds", False), "coa": dp.get("coa", False),
+                "sub": _subcategoria_de(p.get("name") or "", lid)}
         if qn and qn not in _norm_cat_key(item["nombre"]):
             continue
         if linea and lid != linea:
@@ -4213,6 +4230,14 @@ def _cotizar_agrupar(oferta: dict, catalog: list, q: str = "", linea: str = "") 
                 if o != "Colombia":
                     origenes[o] = origenes.get(o, 0) + 1
         g["origenes"] = [k for k, _ in sorted(origenes.items(), key=lambda kv: -kv[1])[:5]]
+        subs: dict[str, dict] = {}
+        for i in g["refs"]:
+            sc = i["sub"]
+            sg = subs.setdefault(sc["id"], {"id": sc["id"], "label": sc["label"], "icono": sc["icono"], "orden": sc["orden"],
+                                            "refs": [], "n_stock": 0})
+            sg["refs"].append(i)
+            sg["n_stock"] += 1 if i["en_stock"] else 0
+        g["subgrupos"] = sorted(subs.values(), key=lambda x: (x["orden"], x["label"]))
         if g["refs"]:
             out.append(g)
     return out

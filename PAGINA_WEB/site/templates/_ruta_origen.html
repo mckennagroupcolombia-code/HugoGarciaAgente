@@ -37,7 +37,7 @@
     {% if ruta_origen.tiene_datos %}
     <div class="tz-kpis reveal">
       <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">0</span><span class="tz-kpi-label">países de origen</span></div>
-      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_referencias }}">0</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="200">0</span>+</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
       <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_tds }}">0</span><span class="tz-kpi-label">fichas técnicas (TDS)</span></div>
       <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_coa }}">0</span><span class="tz-kpi-label">certificados de análisis (COA)</span></div>
       <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="{{ colombia.n_alcanzados }}">0</span><span class="tz-kpi-of">/{{ colombia.total_departamentos }}</span></span><span class="tz-kpi-label">departamentos con despachos</span></div>
@@ -198,7 +198,7 @@
 
     <div class="tz-cta reveal">
       <div>
-        <strong>Manejamos {{ ruta_origen.n_referencias }} referencias en stock{% if ruta_origen.n_oferta >= 10 %} y {{ ruta_origen.n_oferta }} más bajo pedido{% endif %}, con origen en {{ ruta_origen.n_paises }} países.</strong>
+        <strong>Más de 200 referencias en stock{% if ruta_origen.n_oferta >= 10 %} y cientos más bajo pedido{% endif %}, con origen en {{ ruta_origen.n_paises }} países.</strong>
         <p>Si no está en la tienda, lo conseguimos a través de nuestra red de abastecimiento.</p>
       </div>
       <a href="{{ url_for('cotizar') }}" class="btn btn-primary"><i class="ph ph-globe-hemisphere-west"></i> Conoce nuestra oferta</a>

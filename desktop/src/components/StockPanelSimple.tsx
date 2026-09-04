@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { nombreProductoFila } from "../lib/stockNombreProducto";
 interface StockItem {
   meli_id: string;
   sku: string;
@@ -1464,7 +1465,7 @@ export default function StockPanelSimple() {
       if (prev) {
         byId.set(r.meli_id, {
           ...prev,
-          nombre: prev.nombre || r.titulo,
+          nombre: nombreProductoFila(prev.nombre, r.titulo, r.nombre_siigo),
           sku: r.sku_meli || prev.sku,
           codigo_siigo: r.codigo_siigo || prev.codigo_siigo,
           nombre_siigo: r.nombre_siigo || "",
@@ -1476,7 +1477,7 @@ export default function StockPanelSimple() {
       } else {
         byId.set(r.meli_id, {
           meli_id: r.meli_id,
-          nombre: r.titulo,
+          nombre: nombreProductoFila("", r.titulo, r.nombre_siigo),
           stock: null,
           sku: r.sku_meli || "",
           codigo_siigo: r.codigo_siigo || "",
@@ -1780,9 +1781,11 @@ export default function StockPanelSimple() {
                         type="button"
                         onClick={() => setDetalleProducto(it)}
                         className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-ink underline-offset-2 transition hover:text-accent hover:underline"
-                        title="Ver detalle / precio"
+                        title={it.nombre_siigo && it.nombre_siigo !== it.nombre
+                          ? `${it.nombre} · Alegra: ${it.nombre_siigo}`
+                          : "Ver detalle / precio"}
                       >
-                        {it.nombre || "—"}
+                        {it.nombre || it.nombre_siigo || "—"}
                       </button>
                       {it.permalink && (
                         <a

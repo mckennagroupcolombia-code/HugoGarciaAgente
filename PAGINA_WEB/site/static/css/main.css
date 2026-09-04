@@ -4539,3 +4539,53 @@ body *:not(.ph):not([class^="ph-"]) {
   .tz-map { aspect-ratio: 1000 / 470 !important; }
   .tz-legend { display: none; }
 }
+
+/* ── Cotizar: subcategorías (familias) dentro de cada línea ── */
+.quote-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 18px; }
+.quote-subnav a { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-mid); background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 5px 10px 5px 8px; text-decoration: none; transition: all .15s; }
+.quote-subnav a i { color: var(--cat-accent, var(--green)); font-size: 14px; }
+.quote-subnav a b { font-size: 10.5px; color: var(--cat-accent, var(--green)); background: color-mix(in srgb, var(--cat-accent, var(--green)) 12%, #fff); border-radius: 999px; padding: 1px 6px; }
+.quote-subnav a:hover { border-color: var(--cat-accent, var(--green)); color: var(--text-dark); }
+.quote-sub { margin: 0 0 22px; padding: 16px 18px 12px; border: 1.5px solid var(--green-pale); border-left: 3px solid var(--cat-accent, var(--green)); border-radius: 14px; background: #fff; scroll-margin-top: 110px; }
+.quote-sub-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.quote-sub-icon { display: inline-flex; width: 32px; height: 32px; border-radius: 9px; align-items: center; justify-content: center; background: color-mix(in srgb, var(--cat-accent, var(--green)) 12%, #fff); color: var(--cat-accent, var(--green)); font-size: 17px; }
+.quote-sub-head h4 { font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0; }
+.quote-sub-count { margin-left: auto; font-size: 11.5px; color: var(--text-muted); } .quote-sub-count b { color: var(--text-dark); }
+.quote-sub .quote-list { gap: 0 22px; } .quote-sub .quote-item { padding: 9px 0; }
+.quote-more { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font: inherit; font-size: 12px; font-weight: 700; color: var(--cat-accent, var(--green)); background: none; border: 1.5px dashed color-mix(in srgb, var(--cat-accent, var(--green)) 45%, #fff); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.quote-more:hover { background: color-mix(in srgb, var(--cat-accent, var(--green)) 8%, #fff); }
+.quote-sub[hidden], .quote-subnav[hidden], .quote-more[hidden] { display: none !important; }
+@media (max-width: 640px) { .quote-sub { padding: 12px 12px 10px; } .quote-sub-count { display: block; width: 100%; margin: 4px 0 0; } .quote-sub-head { flex-wrap: wrap; } }
+
+/* ── Cotizar: tarjetas de materia prima ── */
+.qc-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.qc-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 12px; background: #fff; border: 1.5px solid var(--green-pale); border-radius: 14px; transition: transform .18s, box-shadow .18s, border-color .18s; }
+.qc-card::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cat-accent, var(--green)); opacity: .7; }
+.qc-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cat-accent, var(--green)) 45%, #fff); box-shadow: 0 14px 30px -20px color-mix(in srgb, var(--cat-accent, var(--green)) 70%, #000); }
+.qc-card.is-stock { background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, var(--green) 4%, #fff) 100%); }
+.qc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.qc-fam { display: inline-flex; width: 28px; height: 28px; border-radius: 8px; align-items: center; justify-content: center; background: color-mix(in srgb, var(--cat-accent, var(--green)) 12%, #fff); color: var(--cat-accent, var(--green)); font-size: 15px; }
+.qc-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 999px; padding: 3px 8px; }
+.qc-status.is-stock { color: #fff; background: var(--green-dark); border: 1px solid var(--green-dark); }
+.qc-name { font-size: 14.5px; font-weight: 700; color: var(--text-dark); line-height: 1.3; margin: 0; }
+.qc-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: var(--text-muted); }
+.qc-origen { display: inline-flex; flex-wrap: wrap; gap: 8px; color: var(--text-mid); font-weight: 600; }
+.qc-origen-nd { color: var(--text-muted); font-weight: 500; font-style: italic; }
+.qc-cas { font-family: ui-monospace, monospace; font-size: 10.5px; }
+.qc-pres i { color: var(--cat-accent, var(--green)); }
+.qc-docs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+.qc-doc { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; letter-spacing: .4px; border-radius: 6px; padding: 3px 7px; border: 1px solid; }
+.qc-doc.is-ok { color: #0b6b3a; border-color: #b8e2c8; background: #edf9f1; }
+.qc-doc.is-wip { color: #8a5a00; border-color: #f0dcb0; background: #fff8ea; font-weight: 700; letter-spacing: .2px; }
+.qc-actions { display: flex; gap: 6px; margin-top: 2px; }
+.qc-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font: inherit; font-size: 12px; font-weight: 700; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--green); color: var(--green); background: #fff; cursor: pointer; text-decoration: none; transition: background .15s, color .15s; }
+.qc-btn:hover { background: var(--green); color: #fff; }
+.qc-btn-buy { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+.qc-btn-buy:hover { background: var(--green-deep); }
+.qc-card[hidden] { display: none !important; }
+.quote-stat-val i { font-size: 1.8rem; vertical-align: -4px; }
+@media (max-width: 640px) { .qc-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; } .qc-card { padding: 12px 12px 10px; } .qc-name { font-size: 13.5px; } }
+/* La tarjeta también lleva .quote-item (para el buscador): neutralizar su layout de fila */
+.quote-sub .qc-card, .qc-card.quote-item { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 14px 14px 12px 17px; border-bottom: 1.5px solid var(--green-pale); text-align: left; }
+.qc-card .qc-name, .qc-card .qc-meta { text-align: left; width: 100%; }
+@media (max-width: 640px) { .quote-sub .qc-card, .qc-card.quote-item { flex-direction: column; align-items: stretch; padding: 12px 12px 10px 15px; } }

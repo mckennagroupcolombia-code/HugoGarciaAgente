@@ -1292,11 +1292,15 @@ def obtener_estado_stock_meli(
                             break
                     if sku_meli_vivo:
                         break
+            titulo_meli = (item.get("title") or "").strip()
+            nombre_sheets = (nombre_map.get(ml_id) or "").strip()
+            # Título MeLi = nombre de la publicación (lo que el operador espera ver).
+            # La col D de Sheets a menudo trae el código/SKU, no el nombre comercial.
             items.append({
                 "meli_id": ml_id,
                 # Preferir SKU vivo de MeLi; Sheets solo si MeLi no trae código
                 "sku": (sku_meli_vivo or sku_map.get(ml_id, "")),
-                "nombre": nombre_map.get(ml_id, item.get("title")),
+                "nombre": titulo_meli or nombre_sheets or "Producto sin nombre",
                 "stock": stock,
                 "fila": fila_map.get(ml_id),
                 "estado_meli": item.get("status", ""),

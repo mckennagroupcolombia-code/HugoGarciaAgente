@@ -6809,10 +6809,11 @@ def _add_months(d: date, meses: int) -> date:
 
 
 def _proxima_fecha(tipo: str, desde: str, cada_n: int | None,
-                   dias_semana: list | None, dias_mes: list | None) -> str:
+                   dias_semana: list | None, dias_mes: list | None,
+                   hoy: date | None = None) -> str:
     """Calcula la próxima fecha de disparo a partir de `desde` (YYYY-MM-DD inclusive)."""
     base = date.fromisoformat(desde)
-    hoy = date.today()
+    hoy = hoy or date.today()
     inicio = base if base >= hoy else hoy
 
     if tipo == "una_vez":
@@ -6860,13 +6861,59 @@ def _proxima_fecha(tipo: str, desde: str, cada_n: int | None,
     return inicio.isoformat()
 
 
-def _siguiente_tras_hoy(r: dict) -> str:
-    """Calcula la próxima fecha POSTERIOR a hoy para avanzar tras marcar visto."""
-    manana = (date.today() + timedelta(days=1)).isoformat()
-    return _proxima_fecha(
-        r["tipo_rep"], manana,
-        r.get("cada_n_dias"), r.get("dias_semana_parsed"), r.get("dias_mes_parsed"),
-    )
+def _siguiente_tras_hoy(r: dict, hoy: date | None = None) -> str:
+    """Próxima ocurrencia ESTRICTAMENTE posterior a hoy, un ciclo completo.
+
+    No se puede reusar `_proxima_fecha(desde=mañana)`: en `cada_n_dias` y
+    `bimestral` `desde` es el ancla del calendario, no el inicio de búsqueda.
+    Pasar mañana devolvía mañana (o la misma fecha) en vez del siguiente ciclo.
+    """
+    hoy = hoy or date.today()
+    manana = hoy + timedelta(days=1)
+    tipo = r.get("tipo_rep") or "diario"
+    cada_n = r.get("cada_n_dias")
+    dias_semana = r.get("dias_semana_parsed")
+    dias_mes = r.get("dias_mes_parsed")
+    try:
+        actual = date.fromisoformat(str(r.get("proxima_fecha") or "")[:10])
+    except ValueError:
+        actual = hoy
+
+    if tipo == "diario":
+        return manana.isoformat()
+
+    if tipo == "cada_n_dias":
+        n = max(1, int(cada_n or 1))
+        d = actual + timedelta(days=n)
+        while d <= hoy:
+            d += timedelta(days=n)
+        return d.isoformat()
+
+    if tipo == "bimestral":
+        d = _add_months(actual, 2)
+        while d <= hoy:
+            d = _add_months(d, 2)
+        return d.isoformat()
+
+    if tipo == "mensual":
+        dias = sorted(dias_mes or [])
+        if dias:
+            return _proxima_fecha(
+                "mensual", manana.isoformat(), cada_n, dias_semana, dias,
+                hoy=hoy,
+            )
+        d = _add_months(actual, 1)
+        while d <= hoy:
+            d = _add_months(d, 1)
+        return d.isoformat()
+
+    if tipo == "semanal":
+        return _proxima_fecha(
+            "semanal", manana.isoformat(), cada_n, dias_semana, dias_mes,
+            hoy=hoy,
+        )
+
+    return manana.isoformat()
 
 
 def _parse_rec(row) -> dict:

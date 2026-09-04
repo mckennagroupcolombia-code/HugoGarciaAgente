@@ -1,4 +1,13 @@
-### 2026-09-03 21:30 - Contabilidad: altas y compras ahora van a Alegra
+### 2026-09-03 22:30 - Recordatorios: el visto ahora sí pasa al siguiente ciclo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección de Bug
+- **Qué se implementó:**
+  - Al dar visto bueno / reprogramar, los recordatorios **bimestrales** y **cada N días** avanzan un ciclo completo (p. ej. agua de ago-29 a oct-29, no al día siguiente).
+  - El panel usa la fecha local de Colombia, no UTC: de noche ya no se quedan pegados en «Para hoy».
+  - Un recordatorio de una sola vez abre el formulario con el mes siguiente, no con la fecha vencida.
+- **Archivos Modificados:** `tickets_db.py`, `TicketsPanel.tsx`, `test_recordatorios_ciclo.py`, `docs/team-recaps.md`
+
+
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Mejora técnica / Migración ERP
 - **Qué se implementó:**
@@ -1838,4 +1847,36 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `app/services/proveedores_db.py`, `app/routes_proveedores.py`, `app/data/colombia_departamentos_svg.json` (nuevo)
   - `desktop/src/components/ProveedoresPanel.tsx`, `desktop/src/hooks/useProveedores.ts`
   - `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-03 23:30 - Oferta completa desde catálogos web de proveedores + Comparador + nombres limpios en la web
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - `app/tools/catalogos_proveedores_web.py`: extractores por sitio (sin IA) para Global Trading de Colombia (123 productos), Química Interkrol (344), Cadiep (81, proveedor nuevo), Productos 3A (110) y Globalquimia (8). Factores y Mercadeo no publica su portafolio en la web; queda con sus 58 productos comprados y nota para pedir lista de precios.
+  - Pestaña **Comparador** en Proveedores: matriz materia prima × proveedor por nombre genérico, último precio por proveedor, mejor precio resaltado, filtro por mínimo de proveedores y ranking de pares que más se solapan (Interkrol ↔ Cadiep 26, Global Trading ↔ 3A 14, Interkrol ↔ Factores 12…). Botón "Leer catálogo web" en Catálogos.
+  - `nombre_publico()` reescrito: quita marcas (Dr Joe Lab, Ocean Spray…), descriptores ("para cara", "bulto 25 kg"), cantidades y códigos; restaura tildes. En `/cotizar` lo bajo pedido muestra solo el nombre de la materia prima; la presentación solo aparece en productos de la tienda. Oferta publicada: 765 materias primas de 23 países.
+- **Archivos Modificados:**
+  - `app/tools/catalogos_proveedores_web.py` (nuevo), `app/services/proveedores_db.py`, `app/routes_proveedores.py`
+  - `desktop/src/components/ProveedoresPanel.tsx`, `desktop/src/hooks/useProveedores.ts`
+  - `PAGINA_WEB/site/data/oferta_proveedores.json`, `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-04 00:30 - Cotizar: subcategorías por familia + corrección de Alimentario invisible
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de producto (web pública)
+- **Qué se implementó:**
+  - Segundo nivel de clasificación (`SUBCATEGORIAS`, ~45 familias con icono) dentro de las 6 líneas: frutos secos y semillas, frutas deshidratadas, cereales, especias y sales, edulcorantes, proteínas, vitaminas y minerales, gomas, conservantes y acidulantes, saborizantes, ácidos, activos, emulsionantes, tensoactivos, minerales y pigmentos, fragancias, solventes, ácidos y bases, óxidos y oxidantes, sales industriales, cápsulas y excipientes, principios activos farmacéuticos, etc. `/cotizar` muestra chips de navegación por familia, bloques de 24 referencias con "ver más" y el buscador filtra por familia también.
+  - Reglas de línea ampliadas (APIs y excipientes → Laboratorio; aminas, plastificantes, solventes clorados → Industria; conservas y snacks → Alimentario). Solo 2 de 737 referencias quedan sin familia.
+  - Bug: el grupo Alimentario no se veía porque el bloque de 18.000 px con clase `reveal` nunca alcanzaba el umbral del IntersectionObserver. Se quitó `reveal` de los grupos de productos.
+  - Origen: ya no se hereda el país del distribuidor nacional; si no hay país de fabricación conocido no se declara.
+- **Archivos Modificados:**
+  - `app/services/proveedores_db.py`, `PAGINA_WEB/site/website.py`, `templates/cotizar.html`, `static/css/main.css`, `data/oferta_proveedores.json`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-04 01:30 - Cotizar en tarjetas + copy "más de 200 referencias" + documentación en construcción
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora visual (web pública)
+- **Qué se implementó:**
+  - Listado de `/cotizar` rediseñado como tarjetas en cuadrícula (icono de familia, estado En stock/Bajo pedido, bandera de origen, CAS, badges COA/TDS o "Documentación en construcción", botones Comprar/Cotizar). Bloques de 18 con "ver más".
+  - Copy: se retiraron los totales exactos ("888 referencias") y el conteo de COA; ahora "Más de 200 referencias en stock y cientos más bajo pedido" y "COA y ficha técnica por lote". Aplica al hero de Cotizar, al KPI y al CTA del inicio.
+  - `bandera()` global de Jinja (país → emoji) en `website.py`.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/cotizar.html`, `templates/_ruta_origen.html`, `static/css/main.css`, `website.py`, `docs/team-recaps.md`
 

@@ -9,15 +9,15 @@
     <span class="hero-badge">Red global de abastecimiento</span>
     <h1>Materias primas <em>del mundo</em>, en Colombia</h1>
     <p>
-      Manejamos {{ total_general }} referencias con origen declarado en {{ ruta_origen.n_paises }} países
-      ({{ paises_red[:5] | join(', ') }}{% if paises_red | length > 5 %} y más{% endif %}). Lo que está en
-      stock sale hoy de Bogotá; lo que no, lo importamos bajo pedido con la misma trazabilidad: ficha
-      técnica, certificado de análisis y lote.
+      Manejamos más de 200 referencias en stock y cientos más bajo pedido, con origen declarado en
+      {{ ruta_origen.n_paises }} países ({{ paises_red[:5] | join(', ') }}{% if paises_red | length > 5 %} y más{% endif %}).
+      Lo que está en stock sale hoy de Bogotá; lo que no, lo importamos bajo pedido con la misma trazabilidad:
+      ficha técnica, certificado de análisis y lote.
     </p>
     <div class="quote-hero-stats">
-      <div><span class="quote-stat-val" data-count="{{ total_general }}">0</span><span class="quote-stat-label">referencias</span></div>
+      <div><span class="quote-stat-val"><span data-count="200">0</span>+</span><span class="quote-stat-label">referencias en stock</span></div>
       <div><span class="quote-stat-val" data-count="{{ ruta_origen.n_paises }}">0</span><span class="quote-stat-label">países de origen</span></div>
-      <div><span class="quote-stat-val" data-count="{{ ruta_origen.n_coa }}">0</span><span class="quote-stat-label">con certificado de análisis</span></div>
+      <div><span class="quote-stat-val"><i class="ph ph-seal-check"></i></span><span class="quote-stat-label">COA y ficha técnica por lote</span></div>
       <div><span class="quote-stat-val">24–48 h</span><span class="quote-stat-label">respuesta comercial</span></div>
     </div>
   </div>
@@ -40,7 +40,6 @@
         <span><b>{{ g.refs | length }}</b> referencia{% if g.refs | length != 1 %}s{% endif %}</span>
         <span><b>{{ g.n_stock }}</b> en stock</span>
         {% if g.n_pedido %}<span><b>{{ g.n_pedido }}</b> bajo pedido</span>{% endif %}
-        {% if g.n_coa %}<span><b>{{ g.n_coa }}</b> con COA</span>{% endif %}
       </span>
       {% if g.origenes %}<span class="quote-line-origins"><i class="ph ph-globe-hemisphere-west"></i> Origen: {{ g.origenes | join(' · ') }}</span>{% endif %}
     </a>
@@ -73,7 +72,7 @@
     <div>
       <span class="section-eyebrow" style="color:var(--green);">Catálogo ampliado</span>
       <h2>¿Qué <em style="font-style:italic;font-weight:300;color:var(--green);">necesitas</em>?</h2>
-      <p class="shop-header-sub">{{ total }} referencias{% if linea_filter %} en esta línea{% endif %} · Origen declarado · COA y ficha técnica por lote · Presentaciones desde laboratorio hasta industrial</p>
+      <p class="shop-header-sub">{% if linea_filter or q_filter %}{{ total }} referencias{% else %}Más de 200 referencias en stock y cientos bajo pedido{% endif %} · Origen declarado · COA y ficha técnica por lote · Presentaciones desde laboratorio hasta industrial</p>
     </div>
     <form class="quote-search" method="get" action="{{ url_for('cotizar') }}#listado" role="search">
       <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
@@ -108,37 +107,64 @@
   {% endif %}
 
   {% for g in grupos %}
-  <section class="quote-group reveal" id="linea-{{ g.id }}" style="--cat-accent: {{ g.color }}">
+  <section class="quote-group" id="linea-{{ g.id }}" style="--cat-accent: {{ g.color }}">
     <header class="quote-group-head">
       <h3><span class="quote-group-dot"></span>{{ g.name }}</h3>
       <span class="quote-group-count"><b>{{ g.refs | length }}</b> referencia{% if g.refs | length != 1 %}s{% endif %} · {{ g.n_stock }} en stock{% if g.n_pedido %} · {{ g.n_pedido }} bajo pedido{% endif %}{% if g.origenes %} · origen {{ g.origenes[:3] | join(', ') }}{% endif %}</span>
     </header>
-    <ul class="quote-list">
-      {% for it in g.refs %}
-      <li class="quote-item{% if it.en_stock %} quote-item-stock{% endif %}" data-quote-name="{{ (it.nombre ~ ' ' ~ it.cas ~ ' ' ~ (it.origen | join(' '))) | lower }}">
-        <div class="quote-item-main">
-          <span class="quote-item-name">{{ it.nombre }}</span>
-          <span class="quote-item-meta">
-            {% if it.origen %}<span><i class="ph ph-globe-hemisphere-west"></i> {{ it.origen | join(' · ') }}</span>{% endif %}
-            {% if it.cas %}<span>CAS {{ it.cas }}</span>{% endif %}
-            {% if it.presentaciones %}<span><i class="ph ph-package"></i> {{ it.presentaciones[:3] | join(' · ') }}</span>{% endif %}
-            {% if it.coa %}<span class="tz-badge is-coa" title="Certificado de análisis publicado">COA</span>{% endif %}
-            {% if it.tds %}<span class="tz-badge is-tds" title="Ficha técnica publicada">TDS</span>{% endif %}
-          </span>
-        </div>
-        <div class="quote-item-actions">
-          {% if it.en_stock and it.slug %}
-          <a href="{{ url_for('producto', slug=it.slug) }}" class="quote-btn quote-btn-stock"><i class="ph ph-check-circle"></i> En stock{% if it.stock > 0 %} ({{ it.stock }}){% endif %} · Comprar</a>
-          {% else %}
-          <span class="quote-badge">Bajo pedido</span>
-          {% endif %}
-          <button type="button" class="quote-btn" data-quote-open data-producto="{{ it.nombre }}" data-presentaciones="{{ it.presentaciones | join('|') }}">
-            <i class="ph ph-paper-plane-tilt"></i> Cotizar
-          </button>
-        </div>
-      </li>
+    {% if g.subgrupos | length > 1 %}
+    <nav class="quote-subnav" aria-label="Familias de {{ g.name }}">
+      {% for sg in g.subgrupos %}
+      <a href="#sub-{{ g.id }}-{{ sg.id }}"><i class="ph ph-{{ sg.icono }}"></i> {{ sg.label }} <b>{{ sg.refs | length }}</b></a>
       {% endfor %}
-    </ul>
+    </nav>
+    {% endif %}
+    {% for sg in g.subgrupos %}
+    <div class="quote-sub" id="sub-{{ g.id }}-{{ sg.id }}" data-quote-sub>
+      <header class="quote-sub-head">
+        <span class="quote-sub-icon"><i class="ph ph-{{ sg.icono }}"></i></span>
+        <h4>{{ sg.label }}</h4>
+        <span class="quote-sub-count"><b>{{ sg.refs | length }}</b> referencia{% if sg.refs | length != 1 %}s{% endif %}{% if sg.n_stock %} · {{ sg.n_stock }} en stock{% endif %}</span>
+      </header>
+      <ul class="qc-grid">
+        {% for it in sg.refs %}
+        <li class="qc-card{% if it.en_stock %} is-stock{% endif %}{% if loop.index > 18 %} quote-item-extra{% endif %} quote-item" data-quote-name="{{ (it.nombre ~ ' ' ~ it.cas ~ ' ' ~ (it.origen | join(' ')) ~ ' ' ~ sg.label) | lower }}"{% if loop.index > 18 %} hidden{% endif %}>
+          <div class="qc-top">
+            <span class="qc-fam" title="{{ sg.label }}"><i class="ph ph-{{ sg.icono }}"></i></span>
+            {% if it.en_stock %}<span class="qc-status is-stock"><i class="ph ph-check-circle"></i> En stock{% if it.stock > 0 %} · {{ it.stock }}{% endif %}</span>{% else %}<span class="qc-status"><i class="ph ph-globe-hemisphere-west"></i> Bajo pedido</span>{% endif %}
+          </div>
+          <h5 class="qc-name">{{ it.nombre }}</h5>
+          <div class="qc-meta">
+            {% if it.origen %}<span class="qc-origen">{% for o in it.origen[:2] %}<span>{{ bandera(o) }} {{ o }}</span>{% endfor %}</span>{% else %}<span class="qc-origen qc-origen-nd"><i class="ph ph-globe"></i> Origen por confirmar</span>{% endif %}
+            {% if it.cas %}<span class="qc-cas">CAS {{ it.cas }}</span>{% endif %}
+            {% if it.en_stock and it.presentaciones %}<span class="qc-pres"><i class="ph ph-package"></i> {{ it.presentaciones[:2] | join(' · ') }}</span>{% endif %}
+          </div>
+          <div class="qc-docs">
+            {% if it.coa or it.tds %}
+              {% if it.coa %}<span class="qc-doc is-ok" title="Certificado de análisis publicado"><i class="ph ph-seal-check"></i> COA</span>{% endif %}
+              {% if it.tds %}<span class="qc-doc is-ok" title="Ficha técnica publicada"><i class="ph ph-file-text"></i> TDS</span>{% endif %}
+              {% if not it.coa %}<span class="qc-doc is-wip" title="Certificado de análisis en construcción"><i class="ph ph-hourglass"></i> COA en construcción</span>{% endif %}
+            {% else %}
+              <span class="qc-doc is-wip" title="Ficha técnica y certificado de análisis en construcción"><i class="ph ph-hourglass"></i> Documentación en construcción</span>
+            {% endif %}
+          </div>
+          <div class="qc-actions">
+            {% if it.en_stock and it.slug %}
+            <a href="{{ url_for('producto', slug=it.slug) }}" class="qc-btn qc-btn-buy"><i class="ph ph-shopping-cart-simple"></i> Comprar</a>
+            {% endif %}
+            <button type="button" class="qc-btn" data-quote-open data-producto="{{ it.nombre }}" data-presentaciones="{{ it.presentaciones | join('|') if it.en_stock else '' }}">
+              <i class="ph ph-paper-plane-tilt"></i> Cotizar
+            </button>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if sg.refs | length > 18 %}
+      {% set rest = sg.refs | length - 18 %}
+      <button type="button" class="quote-more" data-quote-more>Ver {% if rest == 1 %}la referencia restante{% else %}las {{ rest }} referencias restantes{% endif %} de {{ sg.label | lower }} <i class="ph ph-caret-down"></i></button>
+      {% endif %}
+    </div>
+    {% endfor %}
   </section>
   {% endfor %}
 
@@ -285,22 +311,40 @@
       .finally(function () { btn.disabled = false; btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Enviar solicitud'; });
   });
 
+  /* "Ver más" por familia */
+  document.querySelectorAll('[data-quote-more]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.closest('[data-quote-sub]').querySelectorAll('.quote-item-extra').forEach(function (li) { li.hidden = false; li.classList.remove('quote-item-extra'); });
+      btn.remove();
+    });
+  });
+
   /* Filtro instantáneo sobre el listado ya cargado (la búsqueda del servidor sigue funcionando con Enter). */
   var input = document.querySelector('[data-quote-filter]');
   if (input) {
     var items = Array.prototype.slice.call(document.querySelectorAll('.quote-item'));
+    var subs = Array.prototype.slice.call(document.querySelectorAll('[data-quote-sub]'));
     var groups = Array.prototype.slice.call(document.querySelectorAll('.quote-group'));
     var timer = null;
     input.addEventListener('input', function () {
       clearTimeout(timer);
       timer = setTimeout(function () {
         var q = input.value.trim().toLowerCase();
-        items.forEach(function (li) { li.hidden = q ? li.getAttribute('data-quote-name').indexOf(q) === -1 : false; });
+        items.forEach(function (li) {
+          if (q) { li.hidden = li.getAttribute('data-quote-name').indexOf(q) === -1; }
+          else { li.hidden = li.classList.contains('quote-item-extra'); }
+        });
+        subs.forEach(function (s) {
+          var n = s.querySelectorAll('.quote-item:not([hidden])').length;
+          s.hidden = n === 0;
+          var more = s.querySelector('[data-quote-more]');
+          if (more) more.hidden = !!q;
+        });
         groups.forEach(function (g) {
           var visibles = g.querySelectorAll('.quote-item:not([hidden])').length;
           g.hidden = visibles === 0;
-          var c = g.querySelector('.quote-group-count');
-          if (c) c.textContent = visibles + (visibles === 1 ? ' referencia' : ' referencias');
+          var nav = g.querySelector('.quote-subnav');
+          if (nav) nav.hidden = !!q;
         });
       }, 120);
     });

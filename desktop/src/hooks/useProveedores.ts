@@ -402,3 +402,49 @@ export function usePublicarMasivo() {
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
+
+export interface CeldaComparador {
+  producto_id: number;
+  nombre: string;
+  ultimo_precio: number | null;
+  moneda: string;
+  fecha: string;
+  n_compras: number;
+}
+export interface FilaComparador {
+  clave: string;
+  nombre: string;
+  linea: string;
+  cas: string;
+  celdas: Record<string, CeldaComparador>;
+  n_proveedores: number;
+  mejor_pid: number | null;
+}
+export interface Comparador {
+  proveedores: { id: number; nombre: string; pais: string; n_productos: number }[];
+  filas: FilaComparador[];
+  total_filas: number;
+}
+export function useComparador(ids: number[], q: string, minimo: number) {
+  const params = new URLSearchParams({ ids: ids.join(","), q, minimo: String(minimo) });
+  return useQuery({
+    queryKey: [...KEY, "comparador", ids.join(","), q, minimo],
+    queryFn: () => api.get<Comparador>(`/api/proveedores/comparador?${params}`),
+  });
+}
+export interface Coincidencias {
+  proveedores: { id: number; nombre: string; n_productos: number }[];
+  pares: { a: number; b: number; a_nombre: string; b_nombre: string; n: number }[];
+  matriz: Record<string, Record<string, number>>;
+}
+export function useCoincidencias() {
+  return useQuery({ queryKey: [...KEY, "coincidencias"], queryFn: () => api.get<Coincidencias>("/api/proveedores/coincidencias") });
+}
+export function useCatalogoWeb() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { url: string; proveedor_id?: number; solo_extraer?: boolean; publicar_web?: boolean }) =>
+      api.post<ExtraccionCatalogo & { metodo?: string; n?: number; extraidas?: number; lineas_guardadas?: number }>("/api/proveedores/catalogo-web", body, { timeoutMs: 240_000 }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}

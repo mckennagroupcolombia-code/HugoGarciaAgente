@@ -117,6 +117,26 @@ function tapi(path: string, token: string, options: RequestInit = {}) {
   });
 }
 
+/** Fecha civil local YYYY-MM-DD. `toISOString()` es UTC: en Colombia (UTC-5)
+ *  después de las 19:00 ya es el día siguiente y los recordatorios no salen de "hoy". */
+function fechaHoyLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function fechaMasMeses(iso: string, meses: number): string {
+  const parts = iso.slice(0, 10).split("-").map(Number);
+  const y = parts[0] || new Date().getFullYear();
+  const m = parts[1] || 1;
+  const d = parts[2] || 1;
+  const last = new Date(y, m - 1 + meses + 1, 0).getDate();
+  const dt = new Date(y, m - 1 + meses, Math.min(d, last));
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
 function ticketsUploadUrl(filename: string, token: string) {
   return `/api/tickets/uploads/${encodeURIComponent(filename)}?token=${encodeURIComponent(token)}`;
 }
@@ -4225,7 +4245,7 @@ function CentroMandoHome({
   const [cargando,      setCargando]      = useState(true);
 
   const cargar = useCallback(async () => {
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaHoyLocal();
     const [acc, sol, rec] = await Promise.allSettled([
       tapi("/?tipo=accion&activas=1", token),
       tapi("/?tipo=solicitud&activas=1", token),
@@ -4255,7 +4275,7 @@ function CentroMandoHome({
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
   const fechaHoy = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaHoyLocal();
 
   function SeccionHeader({ icon, titulo, count, onVerTodo }: { icon: string; titulo: string; count?: number; onVerTodo?: () => void }) {
     return (
@@ -22864,7 +22884,7 @@ function PendientesPanel({
   /** Incrementar desde el padre para abrir el formulario (p. ej. CTA del hero). */
   abrirFormSignal?: number;
 }) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaHoyLocal();
 
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -23179,7 +23199,7 @@ function RecordatoriosPanel({
   usuarios?: { id: number; nombre: string }[];
   usuarioActualId?: number;
 }) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = fechaHoyLocal();
   const [showForm, setShowForm] = useState(abrirFormInicial);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -23281,7 +23301,14 @@ function RecordatoriosPanel({
     try {
       await tapi(`/recordatorios/${id}/visto`, token, { method: "POST" });
       onRecargar();
-    } catch { /* ignore */ }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo programar el siguiente ciclo");
+    }
+  }
+
+  function reprogramarUnaVez(r: RecordatorioItem) {
+    const base = r.proxima_fecha < hoy ? hoy : r.proxima_fecha;
+    editarRecordatorio({ ...r, proxima_fecha: fechaMasMeses(base, 1) });
   }
 
   async function eliminar(id: number) {
@@ -23544,7 +23571,7 @@ function RecordatoriosPanel({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => r.tipo_rep === "una_vez" ? editarRecordatorio(r) : void marcarVisto(r.id)}
+                  onClick={() => r.tipo_rep === "una_vez" ? reprogramarUnaVez(r) : void marcarVisto(r.id)}
                   className="flex-1 rounded-xl bg-accent py-2 text-xs font-extrabold text-white transition hover:brightness-110"
                 >
                   {r.tipo_rep === "una_vez" ? "✓ Listo, reprogramar" : "✓ Visto · programar siguiente"}
@@ -25657,7 +25684,7 @@ function AccionesView({
       const data = await tapi("/recordatorios", token);
       const lista = Array.isArray(data) ? data : [];
       setRecordatorios(lista);
-      const hoy = new Date().toISOString().slice(0, 10);
+      const hoy = fechaHoyLocal();
       const activos = lista.filter((r: RecordatorioItem) => r.proxima_fecha <= hoy);
       const sessionKey = `mck-rec-notif-${hoy}`;
       if (activos.length > 0 && !sessionStorage.getItem(sessionKey)) {
@@ -26048,7 +26075,7 @@ function AccionesView({
 
       {/* ── Sub-home de Acciones: cards por sección ── */}
       {!isAdmin && tabAcciones === "subhome" && (() => {
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = fechaHoyLocal();
         const recHoy = recordatorios.filter((r) => r.proxima_fecha <= hoy).length;
         const pendHoy = pendientes.filter((p) => p.fecha_recordatorio && p.fecha_recordatorio <= hoy).length;
         const activas = acciones.filter((t) => t.estado === "en_proceso").length;
@@ -29004,7 +29031,7 @@ function AgenteMandoView({
     opts?: { trasActividad?: boolean },
   ): { texto: string; chips: AgentChip[] } {
     const chips: AgentChip[] = [];
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaHoyLocal();
 
     // Recordatorios vencidos o para hoy
     for (const r of recordatoriosHoy.slice(0, 3)) {

@@ -123,6 +123,10 @@
     {
       "path": "app/routes_proveedores.py",
       "nota": "Endpoints /api/proveedores/* (panel Logística → Proveedores)"
+    },
+    {
+      "path": "app/tools/catalogos_proveedores_web.py",
+      "nota": "Extractores de catálogos web de proveedores (sin LLM)"
     }
   ]
 }

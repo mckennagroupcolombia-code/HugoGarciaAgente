@@ -64,6 +64,7 @@ type DragMode = "move" | "resize";
 /**
  * Ventana flotante arrastrable y redimensionable.
  * Persiste posición/tamaño en localStorage por `id` al soltar.
+ * Minimizar colapsa a una barra flotante sin desmontar `children` (conserva el formulario).
  */
 export default function FloatingToolWindow({
   id,
@@ -93,6 +94,7 @@ export default function FloatingToolWindow({
   const [rect, setRect] = useState<FloatRect>(() =>
     loadRect(id, defaultRect, minWidth, minHeight),
   );
+  const [minimized, setMinimized] = useState(false);
   const rectRef = useRef(rect);
   rectRef.current = rect;
 
@@ -189,51 +191,93 @@ export default function FloatingToolWindow({
     zIndex,
   };
 
+  const dockStyle: CSSProperties = {
+    left: Math.min(rect.x, typeof window !== "undefined" ? Math.max(8, window.innerWidth - 280) : rect.x),
+    bottom: 16,
+    zIndex,
+  };
+
   return createPortal(
-    <div
-      className={`pointer-events-auto fixed flex flex-col overflow-hidden rounded-paper-lg border-2 bg-surface-panel shadow-paper-lg ${borderClassName} ${
-        dragging ? "select-none" : ""
-      }`}
-      style={style}
-      role="dialog"
-      aria-modal="false"
-      aria-label={title}
-    >
+    <>
       <div
-        className={`flex shrink-0 cursor-grab items-center justify-between gap-2 border-b px-3 py-2 active:cursor-grabbing ${headerClassName}`}
-        onPointerDown={startMove}
+        className={`pointer-events-auto fixed flex flex-col overflow-hidden rounded-paper-lg border-2 bg-surface-panel shadow-paper-lg ${borderClassName} ${
+          dragging ? "select-none" : ""
+        } ${minimized ? "hidden" : ""}`}
+        style={style}
+        role="dialog"
+        aria-modal="false"
+        aria-label={title}
+        aria-hidden={minimized}
       >
-        <div className="flex min-w-0 items-center gap-1.5">
-          {titleExtra}
-          <span className="truncate text-[11px] font-extrabold uppercase tracking-wide">
-            {title}
-          </span>
+        <div
+          className={`flex shrink-0 cursor-grab items-center justify-between gap-2 border-b px-3 py-2 active:cursor-grabbing ${headerClassName}`}
+          onPointerDown={startMove}
+        >
+          <div className="flex min-w-0 items-center gap-1.5">
+            {titleExtra}
+            <span className="truncate text-[11px] font-extrabold uppercase tracking-wide">
+              {title}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5" data-no-drag>
+            <button
+              type="button"
+              data-no-drag
+              onClick={() => setMinimized(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-surface-hover hover:text-ink"
+              aria-label={`Minimizar ${title}`}
+              title="Minimizar"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                <path d="M5 12h14" strokeLinecap="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-no-drag
+              onClick={onClose}
+              className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+              aria-label={`Cerrar ${title}`}
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+
+        <div
+          className="absolute bottom-0 right-0 z-10 hidden h-4 w-4 cursor-se-resize sm:block"
+          onPointerDown={startResize}
+          title="Redimensionar"
+          aria-label="Redimensionar ventana"
+        >
+          <span
+            className="absolute bottom-1 right-1 h-2.5 w-2.5 border-b-2 border-r-2 border-muted/70"
+            aria-hidden
+          />
+        </div>
+      </div>
+
+      {minimized && (
         <button
           type="button"
-          data-no-drag
-          onClick={onClose}
-          className="rounded-lg px-2 py-0.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
-          aria-label={`Cerrar ${title}`}
+          onClick={() => setMinimized(false)}
+          style={dockStyle}
+          className={`pointer-events-auto fixed flex max-w-[min(calc(100vw-2rem),18rem)] items-center gap-2 rounded-paper-lg border-2 bg-surface-panel px-3 py-2 shadow-paper-lg transition hover:brightness-[1.03] active:scale-[0.98] ${borderClassName} ${headerClassName}`}
+          aria-label={`Restaurar ${title}`}
+          title="Clic para restaurar"
         >
-          ✕
+          {titleExtra}
+          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-wide">
+            {title}
+          </span>
+          <svg className="ml-auto h-3.5 w-3.5 shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+            <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
-
-      <div
-        className="absolute bottom-0 right-0 z-10 hidden h-4 w-4 cursor-se-resize sm:block"
-        onPointerDown={startResize}
-        title="Redimensionar"
-        aria-label="Redimensionar ventana"
-      >
-        <span
-          className="absolute bottom-1 right-1 h-2.5 w-2.5 border-b-2 border-r-2 border-muted/70"
-          aria-hidden
-        />
-      </div>
-    </div>,
+      )}
+    </>,
     document.body,
   );
 }

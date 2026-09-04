@@ -11,7 +11,10 @@ import {
   useAutoclasificar,
   useBuscarProductos,
   useCatalogoPaises,
+  useCatalogoWeb,
   useCatalogos,
+  useCoincidencias,
+  useComparador,
   useEliminarProducto,
   useEscanearCatalogos,
   useExtraerCatalogo,
@@ -33,11 +36,12 @@ import {
   type SolicitudCotizacion,
 } from "../hooks/useProveedores";
 
-type Tab = "directorio" | "productos" | "catalogos" | "oferta" | "cotizaciones";
+type Tab = "directorio" | "productos" | "comparador" | "catalogos" | "oferta" | "cotizaciones";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "directorio", label: "Directorio" },
   { id: "productos", label: "¿Quién vende…?" },
+  { id: "comparador", label: "Comparador" },
   { id: "catalogos", label: "Catálogos" },
   { id: "oferta", label: "Oferta web" },
   { id: "cotizaciones", label: "Cotizaciones" },
@@ -551,6 +555,98 @@ function QuienVende() {
   );
 }
 
+// ───────────────────────────── Comparador ─────────────────────────────
+
+function Comparador() {
+  const { data: coin } = useCoincidencias();
+  const [sel, setSel] = useState<number[]>([]);
+  const [q, setQ] = useState("");
+  const [minimo, setMinimo] = useState(2);
+  const { data, isLoading } = useComparador(sel, q, minimo);
+  const provs = data?.proveedores ?? [];
+  const filas = data?.filas ?? [];
+  const toggle = (id: number) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const columnas = provs.slice(0, sel.length ? sel.length : 8);
+
+  return (
+    <>
+      <div className={`${CARD} mt-3`}>
+        <h3 className="text-sm font-bold text-ink">Comparador de proveedores</h3>
+        <p className="mt-1 text-xs text-muted">
+          Cruza el nombre genérico de cada materia prima (sin marca ni presentación) entre proveedores. Selecciona los que
+          quieras comparar; sin selección se muestran los 8 con más productos. Verde = último precio más bajo en COP.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(coin?.proveedores ?? []).map((p) => (
+            <button key={p.id} className={`${BTN} ${sel.includes(p.id) ? "border-accent text-accent" : ""}`} onClick={() => toggle(p.id)}>
+              {p.nombre} <span className="text-muted">({p.n_productos})</span>
+            </button>
+          ))}
+          {sel.length > 0 && <button className={BTN} onClick={() => setSel([])}>Limpiar</button>}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar materia prima…" className={`${INPUT} mt-0 sm:w-72`} />
+          <label className="text-xs text-muted">
+            Mínimo de proveedores
+            <select value={minimo} onChange={(e) => setMinimo(Number(e.target.value))} className={`${INPUT} mt-0 ml-2 inline-block w-20`}>
+              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <span className="text-xs text-muted">{data?.total_filas ?? 0} materias primas{minimo > 1 ? ` en ${minimo}+ proveedores` : ""}</span>
+        </div>
+      </div>
+
+      {coin && coin.pares.length > 0 && (
+        <div className={`${CARD} mt-3`}>
+          <h4 className="text-sm font-bold text-ink">Quiénes se solapan más</h4>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {coin.pares.slice(0, 10).map((p) => (
+              <button key={`${p.a}-${p.b}`} className={BTN} onClick={() => setSel([p.a, p.b])} title="Comparar estos dos">
+                {p.a_nombre} ↔ {p.b_nombre} <span className="text-accent">{p.n}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 overflow-x-auto rounded-paper border border-border bg-surface-panel">
+        <table className="w-full text-left text-xs" style={{ minWidth: 520 + columnas.length * 150 }}>
+          <thead className="text-[10px] uppercase text-muted">
+            <tr>
+              <th className="sticky left-0 z-10 bg-surface-panel px-3 py-2">Materia prima</th>
+              <th className="px-2 py-2">Línea</th>
+              {columnas.map((p) => (
+                <th key={p.id} className="px-2 py-2">{p.nombre}<br /><span className="font-normal normal-case text-muted">{p.pais || ""} · {p.n_productos}</span></th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && <tr><td colSpan={2 + columnas.length} className="px-3 py-4 text-muted">Comparando…</td></tr>}
+            {filas.slice(0, 200).map((f) => (
+              <tr key={f.clave} className="border-t border-border">
+                <td className="sticky left-0 z-10 bg-surface-panel px-3 py-1.5 font-bold text-ink">{f.nombre}{f.cas && <span className="ml-1 font-mono text-[10px] font-normal text-muted">{f.cas}</span>}<span className="ml-1 text-[10px] font-normal text-muted">×{f.n_proveedores}</span></td>
+                <td className="px-2 py-1.5 text-muted">{LINEA_LABEL[f.linea] ?? (f.linea || "—")}</td>
+                {columnas.map((p) => {
+                  const c = f.celdas[String(p.id)];
+                  if (!c) return <td key={p.id} className="px-2 py-1.5 text-center text-muted">·</td>;
+                  const mejor = f.mejor_pid === p.id;
+                  return (
+                    <td key={p.id} className={`px-2 py-1.5 ${mejor ? "rounded bg-emerald-100 font-bold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200" : "text-ink"}`} title={`${c.nombre}${c.fecha ? ` · ${c.fecha}` : ""}${c.n_compras ? ` · ${c.n_compras} compras` : ""}`}>
+                      {c.ultimo_precio ? fmtPrecio(c.ultimo_precio, c.moneda || "COP") : <span className="text-accent">✓ lo maneja</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            {!isLoading && filas.length === 0 && <tr><td colSpan={2 + columnas.length} className="px-3 py-4 text-center text-muted">Sin coincidencias con esos criterios.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {filas.length > 200 && <p className="mt-2 text-xs text-muted">Mostrando 200 de {filas.length}. Filtra por nombre.</p>}
+    </>
+  );
+}
+
 // ───────────────────────────── Catálogos ─────────────────────────────
 
 function RevisarLineas({
@@ -678,6 +774,7 @@ function Catalogos() {
   const extraer = useExtraerCatalogo();
   const actualizar = useActualizarCatalogo();
   const extraerUrl = useExtraerUrl();
+  const catalogoWeb = useCatalogoWeb();
   const [url, setUrl] = useState("");
   const [revision, setRevision] = useState<{ lineas: LineaCandidata[]; catalogoId: number | null; sugerido?: { id: number | null; nombre: string; email?: string } } | null>(null);
   const lista = data?.catalogos ?? [];
@@ -719,11 +816,13 @@ function Catalogos() {
           <button
             className={BTN}
             disabled={extraerUrl.isPending || !url.trim()}
-            onClick={() => extraerUrl.mutate(url.trim(), { onSuccess: (r) => r.ok && setRevision({ lineas: r.lineas, catalogoId: null }) })}
+            onClick={() => catalogoWeb.mutate({ url: url.trim(), solo_extraer: true }, { onSuccess: (r) => r.ok && setRevision({ lineas: r.lineas, catalogoId: null }) })}
+            title="Usa el extractor del dominio si existe (glotracol, interkrol, cadiep, productos3a, globalquimia) o la heurística genérica"
           >
-            {extraerUrl.isPending ? "Leyendo…" : "Leer productos de la URL"}
+            {catalogoWeb.isPending ? "Leyendo…" : "Leer catálogo web"}
           </button>
-          {extraerUrl.data && !extraerUrl.data.ok && <span className="text-xs text-red-600">{extraerUrl.data.error}</span>}
+          {catalogoWeb.data && !catalogoWeb.data.ok && <span className="text-xs text-red-600">{catalogoWeb.data.error}</span>}
+          {catalogoWeb.data?.ok && <span className="text-xs text-muted">{catalogoWeb.data.n ?? catalogoWeb.data.lineas?.length} líneas ({catalogoWeb.data.metodo})</span>}
         </div>
       </div>
 
@@ -911,6 +1010,7 @@ export default function ProveedoresPanel() {
       </nav>
       {tab === "directorio" && <Directorio />}
       {tab === "productos" && <QuienVende />}
+      {tab === "comparador" && <Comparador />}
       {tab === "catalogos" && <Catalogos />}
       {tab === "oferta" && <OfertaWeb />}
       {tab === "cotizaciones" && <Cotizaciones />}

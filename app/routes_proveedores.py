@@ -285,6 +285,31 @@ def register_proveedores_routes(app):
         valor = 0 if datos.get("despublicar") else 1
         return jsonify(P.marcar_publicar_masivo(ids, valor))
 
+    @_dual(app, "/api/proveedores/comparador", methods=["GET"])
+    @_auth
+    def proveedores_comparador():
+        ids = [int(x) for x in (request.args.get("ids") or "").split(",") if x.strip().isdigit()]
+        q = (request.args.get("q") or "").strip()
+        minimo = int(request.args.get("minimo") or 2)
+        return jsonify(P.comparar_proveedores(ids or None, q=q, minimo=minimo))
+
+    @_dual(app, "/api/proveedores/coincidencias", methods=["GET"])
+    @_auth
+    def proveedores_coincidencias():
+        return jsonify(P.matriz_coincidencias())
+
+    @_dual(app, "/api/proveedores/catalogo-web", methods=["POST"])
+    @_auth
+    def proveedores_catalogo_web():
+        """Lee el catálogo web de un proveedor con el extractor de su dominio (sin LLM)."""
+        from app.tools.catalogos_proveedores_web import cargar_catalogo_web, extraer_catalogo_web
+        datos = _body()
+        url = str(datos.get("url") or "")
+        pid = datos.get("proveedor_id")
+        if datos.get("solo_extraer") or not pid:
+            return jsonify(extraer_catalogo_web(url))
+        return jsonify(cargar_catalogo_web(int(pid), url, publicar_web=bool(datos.get("publicar_web", True))))
+
     # ── publicación web ────────────────────────────────────────────────
     @_dual(app, "/api/proveedores/publicar-web", methods=["POST"])
     @_auth

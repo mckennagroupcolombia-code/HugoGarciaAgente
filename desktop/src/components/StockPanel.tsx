@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { esVistaStockSimplificada } from "../lib/stockAccess";
+import { nombreProductoFila } from "../lib/stockNombreProducto";
 import StockPanelSimple from "./StockPanelSimple";
 interface StockItem {
   meli_id: string;
@@ -1525,7 +1526,7 @@ function StockPanelCompleto() {
       if (prev) {
         byId.set(r.meli_id, {
           ...prev,
-          nombre: prev.nombre || r.titulo,
+          nombre: nombreProductoFila(prev.nombre, r.titulo, r.nombre_siigo),
           sku: r.sku_meli || prev.sku,
           codigo_siigo: r.codigo_siigo || prev.codigo_siigo,
           nombre_siigo: r.nombre_siigo || "",
@@ -1537,7 +1538,7 @@ function StockPanelCompleto() {
       } else {
         byId.set(r.meli_id, {
           meli_id: r.meli_id,
-          nombre: r.titulo,
+          nombre: nombreProductoFila("", r.titulo, r.nombre_siigo),
           stock: null,
           sku: r.sku_meli || "",
           codigo_siigo: r.codigo_siigo || "",
@@ -2289,9 +2290,11 @@ function StockPanelCompleto() {
                         type="button"
                         onClick={() => setDetalleProducto(it)}
                         className="min-w-0 flex-1 truncate text-left font-medium text-ink underline-offset-2 transition hover:text-accent hover:underline"
-                        title="Ver precio de venta"
+                        title={it.nombre_siigo && it.nombre_siigo !== it.nombre
+                          ? `${it.nombre} · Alegra: ${it.nombre_siigo}`
+                          : "Ver precio de venta"}
                       >
-                        {it.nombre || "—"}
+                        {it.nombre || it.nombre_siigo || "—"}
                       </button>
                       {it.es_full && (
                         <span className="shrink-0 rounded bg-muted/25 px-1 text-[9px] font-semibold text-muted">

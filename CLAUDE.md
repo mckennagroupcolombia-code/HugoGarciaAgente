@@ -499,6 +499,24 @@ se corrigen por SKU en /app → Vitrina Web → Origen de materias. `proveedores
 `autoclasificar_productos()` sugieren línea y origen de productos de proveedores por reglas de nombre;
 `es_materia_prima()` excluye empaques/servicios de la publicación; `nombre_publico()` limpia el nombre.
 
+**Catálogos web de proveedores** (`app/tools/catalogos_proveedores_web.py`): extractores por dominio, sin LLM
+(glotracol.com WooCommerce, interkrol.com Duda `ul.defaultList`, cadiep.com Webflow h4/h5, productos3a.com Webflow
+`.text-block-3`, globalquimia.com.co page-sitemap; fallback heurístico). `CATALOGOS_CONOCIDOS` mapea proveedor →
+URL. Cargados el 2026-09-03: Global Trading 123, Interkrol 344, Cadiep 81, Productos 3A 110, Globalquimia 8.
+Factores y Mercadeo NO publica su portafolio en la web (solo categorías): pedir lista de precios y cargarla por
+Catálogos. **Comparador** (`comparar_proveedores`, `matriz_coincidencias`, `clave_canon` = `nombre_publico`
+normalizado): `GET /api/proveedores/comparador?ids=&q=&minimo=` y `GET /api/proveedores/coincidencias`; pestaña
+Comparador en el panel. En la web pública (`/cotizar`) los productos bajo pedido se muestran SOLO con el nombre
+genérico de la materia prima (`nombre_publico`: sin marca, presentación ni cantidad); la presentación solo se
+muestra en productos de la tienda.
+
+**Subcategorías en la web:** `proveedores_db.SUBCATEGORIAS` + `subcategoria_de(nombre, linea)` (segundo nivel
+por familia: frutos secos y semillas, vitaminas y minerales, óxidos y oxidantes, sales, tensoactivos, solventes,
+cápsulas y excipientes…). `/cotizar` agrupa línea → familia con navegación por chips, bloques de 24 con "ver más"
+y buscador instantáneo. Se calcula al publicar (`oferta_proveedores.json`) y para el stock en `website.py`.
+**Ojo:** no poner `reveal` en contenedores de listas largas (bloques >10.000 px nunca alcanzan el 10% de
+intersección y quedan invisibles; pasó con Alimentario el 2026-09-03).
+
 Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no versionado). Rutas:
 `app/routes_proveedores.py` (`/api/proveedores/*` y alias `/app/api/...`, permiso
 `logistica-internacional`). **Regla:** el sitio público nunca muestra el nombre del proveedor; McKenna
