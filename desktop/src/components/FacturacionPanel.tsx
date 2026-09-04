@@ -16,6 +16,7 @@ const SyncPanel = lazy(() => import("./SyncPanel"));
 const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
 const VentasFacturacionPanel = lazy(() => import("./VentasFacturacionPanel"));
 const AstroKillerPanel = lazy(() => import("./AstroKillerPanel"));
+const CotizarFacturarPanel = lazy(() => import("./CotizarFacturarPanel"));
 
 function Cargando() {
   return (
@@ -62,6 +63,7 @@ export default function FacturacionPanel() {
     if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "trazabilidad") setSub(fromLegacy);
   }, [panel]);
 
+
   useEffect(() => {
     if (!subtabs.length) return;
     if (!subtabs.some((t) => t.id === sub)) {
@@ -93,7 +95,8 @@ export default function FacturacionPanel() {
       >
         {subtabs.map((t) => {
           const selected = sub === t.id;
-          const iconPanel = t.id === "sync" ? "sync" : t.id === "trazabilidad" ? "astro-killer" : "facturas";
+          const iconPanel =
+            t.id === "sync" ? "sync" : t.id === "trazabilidad" ? "astro-killer" : "facturas";
           return (
             <button
               key={t.id}
@@ -120,6 +123,8 @@ export default function FacturacionPanel() {
             <VentasFacturacionPanel key="ventas" />
           ) : sub === "trazabilidad" ? (
             <AstroKillerPanel key="trazabilidad" />
+          ) : sub === "directo" ? (
+            <CotizarFacturarPanel key="directo" />
           ) : (
             <FacturasCompraPanel key="compra" />
           )}

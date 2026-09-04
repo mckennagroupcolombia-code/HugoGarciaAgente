@@ -3920,3 +3920,4 @@ Hoy: 17 nuevas · 18 completadas · 18 iniciadas
 Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
+⏭  Informe reposición: hoy (2026-09-03) no es el último día del mes.

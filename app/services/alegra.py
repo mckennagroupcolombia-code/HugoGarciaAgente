@@ -1073,6 +1073,60 @@ def items_hibridos_normalizados(factura: dict) -> list[dict]:
     return normalizados
 
 
+def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
+    """
+    Busca contactos de Alegra por nombre o identificación, para el picker de
+    cliente del panel Cotizar/Facturar (venta directa por WhatsApp/app).
+
+    Confirmado en vivo (2026-09-03): GET /contacts NO soporta búsqueda de
+    texto libre por nombre (`name`/`query` como parámetro no filtran nada,
+    a diferencia de /items que sí tiene `query`) — solo `identification`
+    exacta. Con la cuenta actual (~40 contactos) pagina y filtra en Python;
+    si la base de contactos crece mucho esto habría que revisarlo.
+    """
+    q = (consulta or "").strip().lower()
+    if len(q) < 2:
+        return []
+    try:
+        headers = _alegra_headers()
+    except RuntimeError:
+        return []
+
+    resultados: list[dict] = []
+    pagina = 0
+    while len(resultados) < max_items and pagina < 15:
+        try:
+            res = requests.get(
+                f"{_ALEGRA_BASE}/contacts", headers=headers,
+                params={"limit": 30, "start": pagina * 30}, timeout=15,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        lote = res.json() or []
+        if not lote:
+            break
+        for c in lote:
+            nombre = (c.get("name") or "").strip()
+            ident = (c.get("identification") or "").strip()
+            if q in nombre.lower() or q in ident:
+                resultados.append({
+                    "id": c.get("id"),
+                    "nombre": nombre,
+                    "identificacion": ident,
+                    "email": c.get("email") or "",
+                    "telefono": c.get("mobile") or c.get("phonePrimary") or "",
+                    "direccion": ((c.get("address") or {}).get("address")) or "",
+                })
+                if len(resultados) >= max_items:
+                    break
+        if len(lote) < 30:
+            break
+        pagina += 1
+    return resultados
+
+
 def buscar_productos_alegra_picker(
     consulta: str, *, max_items: int = 40, excluir_combos: bool = True,
 ) -> list[dict]:

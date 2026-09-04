@@ -46,6 +46,7 @@ export const FACTURACION_SUBTABS = [
   { id: "compra", label: "Facturas de compra" },
   { id: "ventas", label: "Ventas y NC" },
   { id: "trazabilidad", label: "Astro Killer" },
+  { id: "directo", label: "Cotizar/Facturar" },
 ] as const;
 
 export type FacturacionSubtabId = (typeof FACTURACION_SUBTABS)[number]["id"];
@@ -221,7 +222,7 @@ export function guardarUltimoPanelContabilidad(panel: ContabilidadPanelId): void
 export function leerSubtabFacturacion(): FacturacionSubtabId {
   try {
     const v = localStorage.getItem(FACTURACION_SUB_KEY) || "";
-    if (v === "sync" || v === "compra" || v === "ventas" || v === "trazabilidad") return v;
+    if (v === "sync" || v === "compra" || v === "ventas" || v === "trazabilidad" || v === "directo") return v;
     if (v === "facturas") return "compra";
   } catch { /* */ }
   return "compra";

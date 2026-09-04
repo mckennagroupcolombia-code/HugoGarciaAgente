@@ -12132,6 +12132,46 @@
       "estado": "error",
       "actualizado_en": "2026-09-03T18:54:57",
       "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018250969046": {
+      "shipping_id": "47918141355",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T19:21:38",
+      "pack_id": "2000018250969046",
+      "legado_factura_numero": "FV-2-71361",
+      "legado_integracion": "astroselling"
+    },
+    "2000018253407592": {
+      "shipping_id": "47919577358",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T19:52:12",
+      "pack_id": "2000014838092359",
+      "legado_factura_numero": "FV-2-71370",
+      "legado_integracion": "astroselling"
+    },
+    "2000018213775184": {
+      "shipping_id": "47900876504",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T19:52:26",
+      "pack_id": "2000018213775184",
+      "legado_factura_numero": "FV-2-71264",
+      "legado_integracion": "astroselling"
+    },
+    "2000018237497884": {
+      "shipping_id": "47911712119",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T19:55:13",
+      "pack_id": "2000018237497884",
+      "legado_factura_numero": "FV-2-71328",
+      "legado_integracion": "astroselling"
+    },
+    "2000018233780470": {
+      "shipping_id": "47910027217",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T19:55:28",
+      "pack_id": "2000014819237027",
+      "legado_factura_numero": "FV-2-71311",
+      "legado_integracion": "astroselling"
     }
   }
 }

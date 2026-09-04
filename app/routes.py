@@ -6772,6 +6772,59 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 502
 
+    # ── Cotizar / Facturar directo (venta ad-hoc, panel Facturación) ──────────
+
+    @app.route("/api/facturacion/clientes/buscar", methods=["GET"])
+    @app.route("/app/api/facturacion/clientes/buscar", methods=["GET"])
+    def api_facturacion_clientes_buscar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 2:
+            return jsonify({"items": [], "total": 0})
+        try:
+            from app.services.alegra import buscar_clientes_alegra
+            items = buscar_clientes_alegra(q)
+            return jsonify({"items": items, "total": len(items)})
+        except Exception as e:
+            return jsonify({"error": str(e), "items": []}), 502
+
+    @app.route("/api/facturacion/cotizar", methods=["POST"])
+    @app.route("/app/api/facturacion/cotizar", methods=["POST"])
+    def api_facturacion_cotizar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.tools.facturacion_directa import generar_y_enviar_cotizacion
+            resultado = generar_y_enviar_cotizacion(
+                cliente=data.get("cliente") or {},
+                productos=data.get("productos") or [],
+                telefono=data.get("telefono") or "",
+                notas=data.get("notas") or "",
+            )
+            return jsonify(resultado), (200 if resultado.get("ok") else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/facturacion/facturar-directo", methods=["POST"])
+    @app.route("/app/api/facturacion/facturar-directo", methods=["POST"])
+    def api_facturacion_facturar_directo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.tools.facturacion_directa import generar_y_enviar_factura_directa
+            resultado = generar_y_enviar_factura_directa(
+                cliente=data.get("cliente") or {},
+                productos=data.get("productos") or [],
+                telefono=data.get("telefono") or "",
+                referencia=data.get("referencia") or "",
+            )
+            return jsonify(resultado), (200 if resultado.get("ok") else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     # ── Rentabilidad ─────────────────────────────────────────────────────────
 
     @app.route("/api/rentabilidad/productos", methods=["GET"])
