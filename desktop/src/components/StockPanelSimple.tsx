@@ -315,7 +315,7 @@ function filaCoincideBusqueda(f: FilaUnificada, q: string): boolean {
 
 function CanalResultMini({ resultado }: { resultado: SincronizarResultado }) {
   const reactivada = /reactivada/i.test(resultado.meli?.mensaje || "");
-  const detalle = `MeLi ${resultado.meli.ok ? "✓" : "✗"} · Web ${resultado.web.ok ? "✓" : "✗"} · Siigo ref.`;
+  const detalle = `MeLi ${resultado.meli.ok ? "✓" : "✗"} · Web ${resultado.web.ok ? "✓" : "✗"} · Alegra ref.`;
   return (
     <div className="mt-0.5 truncate text-[9px] leading-tight text-muted" title={detalle}>
       {typeof resultado.stock_anterior === "number" && (
@@ -863,13 +863,13 @@ function DialogPrecioVenta({
       if (!meliOk || !siigoOk) {
         const partes: string[] = [];
         partes.push(meliOk ? "MeLi" : `MeLi ✗ ${res.meli?.msg || "falló"}`);
-        partes.push(siigoOk ? "Siigo" : `Siigo ✗ ${res.siigo?.msg || "falló"}`);
+        partes.push(siigoOk ? "Alegra" : `Alegra ✗ ${res.siigo?.msg || "falló"}`);
         setMsgErr(res.error || `No se pudo actualizar: ${partes.join(" · ")}`);
         return;
       }
       setPrecioLocal(precio);
       setEditando(false);
-      setMsgOk("MeLi + Siigo OK");
+      setMsgOk("MeLi + Alegra OK");
       onPrecioActualizado?.(precio);
       void queryClient.invalidateQueries({ queryKey: ["stock-detalle-producto", fila.meli_id, fila.sku] });
       void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
@@ -935,7 +935,7 @@ function DialogPrecioVenta({
                   autoFocus
                   disabled={guardando}
                 />
-                <p className="text-[11px] text-muted">{moneda} · actualiza MeLi y Siigo</p>
+                <p className="text-[11px] text-muted">{moneda} · actualiza MeLi y Alegra</p>
                 <div className="flex justify-center gap-2">
                   <button
                     type="button"
@@ -971,7 +971,7 @@ function DialogPrecioVenta({
                   }`}
                   title={
                     precioBase != null && codePrecio
-                      ? "Clic para editar precio (MeLi + Siigo)"
+                      ? "Clic para editar precio (MeLi + Alegra)"
                       : "Sin SKU o precio para editar"
                   }
                 >
@@ -1111,7 +1111,7 @@ function DialogPrecioVenta({
               <dd className="mt-0.5 truncate font-mono text-ink">{fila.sku || "—"}</dd>
             </div>
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase text-muted">Código Siigo</dt>
+              <dt className="text-[10px] font-bold uppercase text-muted">Código Alegra</dt>
               <dd className="mt-0.5 truncate font-mono text-ink">{fila.codigo_siigo || "—"}</dd>
             </div>
             <div className="col-span-2 rounded-lg border border-border bg-surface px-3 py-2">
@@ -1675,7 +1675,7 @@ export default function StockPanelSimple() {
           {isFetching ? "Actualizando..." : (
             <>
               <span className="sm:hidden">🔄 Actualizar</span>
-              <span className="hidden sm:inline">🔄 Actualizar MeLi + Siigo + ventas</span>
+              <span className="hidden sm:inline">🔄 Actualizar MeLi + Alegra + ventas</span>
             </>
           )}
         </button>

@@ -727,7 +727,7 @@ function ProductoSkuAsociar({
           )}
           {!buscando && items.length === 0 && (
             <li className="px-2 py-1.5 text-[10px] text-muted">
-              Sin coincidencias en catálogo Siigo
+              Sin coincidencias en catálogo Alegra
             </li>
           )}
           {items.map((it) => (

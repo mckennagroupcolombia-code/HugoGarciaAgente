@@ -4,7 +4,7 @@ Tickets de Control de Inventario en el Centro de Mando: solicitud de compra y
 app/tools/notas_credito.py::crear_ticket_nota_credito — crea (o evita
 duplicar) un ticket genérico vía app.services.tickets_db.crear_ticket.
 
-Ninguna función de este archivo modifica MeLi ni Siigo directamente: ambas
+Ninguna función de este archivo modifica MeLi ni Alegra directamente: ambas
 acciones dejan la ejecución real (comprar, borrar la publicación) en manos de
 un colaborador humano vía el ticket.
 """
@@ -86,7 +86,7 @@ def crear_ticket_solicitud_compra(
 ) -> tuple[bool, str]:
     """
     Crea (o evita duplicar) un ticket "Solicitar compra" en el Centro de
-    Mando para un SKU de reventa (MeLi/Siigo) — no confundir con
+    Mando para un SKU de reventa (MeLi/Alegra) — no confundir con
     `ordenes_compra`, que es solo para materiales internos 5S.
 
     Devuelve (ok, mensaje) listo para mostrar en el panel.
@@ -185,7 +185,7 @@ def crear_ticket_baja_publicacion(
         partes_desc.append(f"Motivo: {motivo}")
     partes_desc.append(
         "⚠️ Esta acción NO borra la publicación automáticamente — requiere "
-        "confirmación manual en Mercado Libre (y, si aplica, en Siigo/web)."
+        "confirmación manual en Mercado Libre (y, si aplica, en Alegra/web)."
     )
 
     data = {

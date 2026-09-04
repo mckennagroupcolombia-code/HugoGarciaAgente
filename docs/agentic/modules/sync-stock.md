@@ -2,7 +2,7 @@
 
 ## Proposito
 
-Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo no es fuente de stock.
+Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Alegra (Siigo solo historico hasta 2026-09-02). Alegra/Siigo no son fuente de stock.
 
 ## Archivos Ancla
 
@@ -18,8 +18,8 @@ Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo 
 - Cada plataforma autodecrementa su propio stock al vender.
 - Venta MeLi: leer stock post-venta en MeLi y propagar a web.
 - Venta web: leer stock web post-venta y propagar a MeLi.
-- Siigo solo factura; no gobierna stock.
-- Precio web = precio publicado en MeLi × 0.90 (10% de descuento comercial). Siigo replica el precio MeLi.
+- Alegra solo factura; no gobierna stock.
+- Precio web = precio publicado en MeLi × 0.90 (10% de descuento comercial). Alegra replica el precio MeLi.
 - Sincronizaciones largas deben correr en hilo o proceso controlado.
 - `GET /api/inventario-control/resumen` sirve el último snapshot (TTL ~90s, stale hasta 6h) y refresca MeLi en segundo plano. El barrido vivo de MeLi no puede bloquear el GET del panel.
 
@@ -39,5 +39,5 @@ Sincronizar stock entre MeLi y pagina web, y facturas entre MeLi y Siigo. Siigo 
 ## Memoria Antes de Cambiar
 
 ```bash
-python3 scripts/consultar_memoria_debug.py --q "stock sync meli web siigo facturas"
+python3 scripts/consultar_memoria_debug.py --q "stock sync meli web Alegra facturas"
 ```

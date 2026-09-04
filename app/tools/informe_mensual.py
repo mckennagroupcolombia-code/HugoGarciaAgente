@@ -190,7 +190,7 @@ def _generar_html(servicios, metricas, token_meli, preguntas_pend, casos_ia, mes
         <p style="margin:0;color:#475569;font-size:14px;line-height:1.8;background:#f8fafc;border-radius:10px;padding:18px 20px;">
           El sistema <strong>Hugo García</strong> opera de forma continua (24/7) en un servidor Ubuntu 24.04,
           automatizando la atención al cliente por WhatsApp, la preventa y posventa en MercadoLibre,
-          la sincronización de inventario entre MeLi y WooCommerce, la facturación electrónica DIAN vía SIIGO,
+          la sincronización de inventario entre MeLi y WooCommerce, la facturación electrónica DIAN vía Alegra,
           y la importación de productos desde facturas de proveedores. El presente informe refleja el estado
           técnico al cierre del período <strong>{mes_año}</strong>.
         </p>

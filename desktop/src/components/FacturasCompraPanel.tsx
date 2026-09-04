@@ -66,7 +66,7 @@ interface CrearProductosResp {
 function lanzarSiCrearProductosFallo(res: CrearProductosResp): CrearProductosResp {
   if (res.creados?.length) return res;
   throw new Error(
-    res.errores?.[0]?.error || res.error || res.mensaje || "No se pudo crear el producto en SIIGO",
+    res.errores?.[0]?.error || res.error || res.mensaje || "No se pudo crear el producto en Alegra",
   );
 }
 
@@ -197,7 +197,7 @@ function cop(n: number) {
 
 const ACCION_HISTORIAL: Record<string, { label: string; cls: string }> = {
   inventario: { label: "Inventario", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
-  gasto: { label: "Gasto SIIGO", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200" },
+  gasto: { label: "Gasto Alegra", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200" },
   omitida: { label: "Omitida", cls: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
 };
 
@@ -408,7 +408,7 @@ function DetalleFactura({
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-muted">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        Analizando factura y cruzando con SIIGO…
+        Analizando factura y cruzando con Alegra…
       </div>
     );
   }
@@ -494,7 +494,7 @@ function DetalleFactura({
       {facturaYaRegistrada && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
           <p className="text-xs font-bold text-red-300">
-            Ya registrada en SIIGO:{" "}
+            Ya registrada en Alegra:{" "}
             <span className="font-mono text-ink">{facturaYaRegistrada.name || facturaYaRegistrada.id}</span>
             {facturaYaRegistrada.fecha ? ` · ${facturaYaRegistrada.fecha}` : ""}
           </p>
@@ -539,7 +539,7 @@ function DetalleFactura({
           </span>
           <span className="text-[9px] text-muted hidden sm:inline">→</span>
           <span className="text-[9px] font-bold uppercase tracking-wide text-accent hidden sm:inline">
-            McKenna / SIIGO
+            McKenna / Alegra
           </span>
         </div>
 
@@ -597,7 +597,7 @@ function DetalleFactura({
               onClick={() => crearProductos.mutate(itemsNuevos.map((i) => i.indice))}
               className="h-8 rounded-md border border-sky-500/50 bg-sky-500/10 px-1.5 text-[11px] font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-500/20 disabled:opacity-40"
             >
-              {crearProductos.isPending ? "…" : `SIIGO (${nuevosCount})`}
+              {crearProductos.isPending ? "…" : `Alegra (${nuevosCount})`}
             </button>
           )}
           <button
@@ -655,7 +655,7 @@ interface SiigoBusquedaItem {
   type?: string;
 }
 
-/** Buscador compacto de productos/combos SIIGO para vincular una línea de factura. */
+/** Buscador compacto de productos/combos Alegra para vincular una línea de factura. */
 function SiigoBuscarPicker({
   disabled,
   seedQuery,
@@ -732,14 +732,14 @@ function SiigoBuscarPicker({
         disabled={disabled}
         onClick={abrir}
         className="rounded-md border border-violet-500/50 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-800 dark:text-violet-200 hover:bg-violet-500/20 disabled:opacity-40"
-        title="Buscar producto o combo existente en SIIGO"
+        title="Buscar producto o combo existente en Alegra"
       >
         Buscar
       </button>
       {abierto && (
         <div className="absolute right-0 z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-panel p-2 shadow-xl">
           <p className="mb-1.5 text-[10px] font-semibold text-muted">
-            Buscar producto o combo en SIIGO
+            Buscar producto o combo en Alegra
           </p>
           <input
             ref={inputRef}
@@ -899,7 +899,7 @@ function ItemContrasteRow({
         <div className="flex flex-wrap items-center gap-1.5">
           {existeEnSiigo ? (
             <span className="rounded bg-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
-              En SIIGO
+              En Alegra
               {(siigoProducto?.type || "").toLowerCase() === "combo" ? " · Combo" : ""}
             </span>
           ) : (
@@ -927,7 +927,7 @@ function ItemContrasteRow({
             onChange={(e) => onCodeChange(e.target.value)}
             onBlur={() => { if (codigo.trim()) checkCodigo.mutate(codigo.trim()); }}
             className="min-w-[7rem] flex-1 rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink outline-none focus:border-accent"
-            placeholder="Código SIIGO"
+            placeholder="Código Alegra"
           />
           <button
             type="button"
@@ -949,13 +949,13 @@ function ItemContrasteRow({
               onClick={() => crearEnSiigo.mutate()}
               className="shrink-0 rounded-md bg-sky-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
             >
-              {crearEnSiigo.isPending ? "…" : "Crear SIIGO"}
+              {crearEnSiigo.isPending ? "…" : "Crear en Alegra"}
             </button>
           )}
         </div>
         {siigoProducto && (
           <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono truncate">
-            SIIGO: {siigoProducto.codigo} · {siigoProducto.nombre}
+            Alegra: {siigoProducto.codigo} · {siigoProducto.nombre}
             {(siigoProducto.type || "").toLowerCase() === "combo" ? " (combo)" : ""}
           </p>
         )}
@@ -1187,8 +1187,8 @@ export default function FacturasCompraPanel() {
               </h2>
               <p className="mt-0.5 text-sm text-muted">
                 {total > 0
-                  ? "Abre una factura, contrasta con SIIGO y confirma inventario, gasto u omitir."
-                  : "Nada se registra en SIIGO sin tu aprobación. Escanea Gmail para traer compras nuevas."}
+                  ? "Abre una factura, contrasta con Alegra y confirma inventario, gasto u omitir."
+                  : "Nada se registra en Alegra sin tu aprobación. Escanea Gmail para traer compras nuevas."}
               </p>
             </div>
             {total > 0 && (
@@ -1293,7 +1293,7 @@ function HistorialFacturas({
           >
             <option value="">Todas las acciones</option>
             <option value="inventario">Inventario</option>
-            <option value="gasto">Gasto SIIGO</option>
+            <option value="gasto">Gasto Alegra</option>
             <option value="omitida">Omitidas</option>
           </select>
         </div>
@@ -1357,11 +1357,11 @@ function HistorialFacturas({
                 <div className="border-t border-border px-4 py-3 space-y-3 bg-surface/40">
                   {(row.nuevos ?? 0) > 0 || (row.en_siigo ?? 0) > 0 ? (
                     <p className="text-xs text-muted">
-                      {row.nuevos ?? 0} producto(s) nuevo(s) · {row.en_siigo ?? 0} ya en SIIGO
+                      {row.nuevos ?? 0} producto(s) nuevo(s) · {row.en_siigo ?? 0} ya en Alegra
                     </p>
                   ) : null}
                   {row.siigo_id && (
-                    <p className="text-xs font-mono text-muted">ID SIIGO: {row.siigo_id}</p>
+                    <p className="text-xs font-mono text-muted">ID Alegra: {row.siigo_id}</p>
                   )}
                   {(row.ruta_excel || row.ruta_xml) && (
                     <div className="text-xs font-mono text-muted space-y-0.5">

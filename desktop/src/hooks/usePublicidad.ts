@@ -222,7 +222,7 @@ export function usePublicidadAlertasReasignacion(dias: number = 30) {
   });
 }
 
-// ── Margen real (SKU MeLi ↔ costo de combo Siigo) ───────────────────────────
+// ── Margen real (SKU MeLi ↔ costo de combo Alegra) ───────────────────────────
 
 export interface PublicidadItemConMargen extends PublicidadItem {
   sku: string;

@@ -1,33 +1,128 @@
 {
   "scripts": [
-    {"path": "preventa_meli.py", "nota": "Orquestador preventa MeLi"},
-    {"path": "webhook_meli.py", "nota": "Webhook MeLi puerto 8080"},
-    {"path": "agente_pro.py", "nota": "Flask principal 8081"},
-    {"path": "modulo_posventa.py", "nota": "Postventa MeLi"},
-    {"path": "app/routes.py", "nota": "Endpoints Flask + WhatsApp"},
-    {"path": "app/sync.py", "nota": "Stock y facturas MeLi/Siigo"},
-    {"path": "app/monitor.py", "nota": "Alertas, sync diario stock, preventa"},
-    {"path": "app/core.py", "nota": "Claude + herramientas"},
-    {"path": "app/cli.py", "nota": "Menú consola del agente"},
-    {"path": "scripts/auditar_scripts_cron.py", "nota": "Cron auditoría"},
-    {"path": "scripts/meli_compliance_monitor_cron.py", "nota": "Cron seguimiento publicaciones MeLi compliance"},
-    {"path": "app/tools/analisis_competencia_precios.py", "nota": "Agente competencia de precios MeLi (más vendidos vs títulos similares)"},
-    {"path": "scripts/analisis_competencia_precios_cron.py", "nota": "Cron semanal análisis competencia de precios MeLi"},
-    {"path": "scripts/monitor_correos_certificados_retencion_cron.py", "nota": "Cron diario: correos de proveedores → solicitud certificado retención a Cynthia"},
-    {"path": "scripts/emitir_notas_credito_cron.py", "nota": "Cron diario: notas crédito automáticas para ventas MeLi canceladas con factura ya emitida"},
-    {"path": "scripts/recordatorio_pago_contador_cron.py", "nota": "Cron diario: cuenta de cobro de William (contador) → ticket 'APROBAR PAGO CONTADOR', o aviso si no ha llegado"},
-    {"path": "scripts/recordatorio_pago_nomina_cron.py", "nota": "Cron diario (dispara día 15 y fin de mes): ticket 'APROBAR PAGO NOMINA' por quincena, asignado a Jenniffer"},
-    {"path": "scripts/cargar_meli_catalogo_web.py", "nota": "Cruza publicaciones MeLi → catálogo web clasificado"},
-    {"path": "scripts/informe_reposicion_mensual_cron.py", "nota": "Cron diario (auto-chequea fin de mes): informe de reposición alta rotación a Sede Sur"},
-    {"path": "app/tools/monitor_correos_proveedores.py", "nota": "Detección Gmail + creación de ticket 'solicitud' para certificados de retención"},
-    {"path": "app/meli_reclamos.py", "nota": "Reclamos MeLi → ticket nota crédito"},
-    {"path": "app/services/documentos_web.py", "nota": "Documentos FT+COA+SDS completos en ficha pública del sitio"},
-    {"path": "scripts/postventa_cola_meli.py", "nota": "Cola postventa MeLi puntual (list/limpiar/enviar)"},
-    {"path": "app/tools/generar_catalogo.py", "nota": "Módulo catálogo PDF"},
-    {"path": "scripts/generar_catalogo.py", "nota": "CLI catálogo scripts/"},
-    {"path": "sincronizar_facebook.py", "nota": "Sync Facebook"},
-    {"path": "generar_infografias_facebook.py", "nota": "Infografías"},
-    {"path": "generar_posts_masivos.py", "nota": "Posts masivos"},
-    {"path": "generar_recetas_masivas.py", "nota": "Recetas masivas"}
+    {
+      "path": "preventa_meli.py",
+      "nota": "Orquestador preventa MeLi"
+    },
+    {
+      "path": "webhook_meli.py",
+      "nota": "Webhook MeLi puerto 8080"
+    },
+    {
+      "path": "agente_pro.py",
+      "nota": "Flask principal 8081"
+    },
+    {
+      "path": "modulo_posventa.py",
+      "nota": "Postventa MeLi"
+    },
+    {
+      "path": "app/routes.py",
+      "nota": "Endpoints Flask + WhatsApp"
+    },
+    {
+      "path": "app/sync.py",
+      "nota": "Stock y facturas MeLi/Siigo"
+    },
+    {
+      "path": "app/monitor.py",
+      "nota": "Alertas, sync diario stock, preventa"
+    },
+    {
+      "path": "app/core.py",
+      "nota": "Claude + herramientas"
+    },
+    {
+      "path": "app/cli.py",
+      "nota": "Menú consola del agente"
+    },
+    {
+      "path": "scripts/auditar_scripts_cron.py",
+      "nota": "Cron auditoría"
+    },
+    {
+      "path": "scripts/meli_compliance_monitor_cron.py",
+      "nota": "Cron seguimiento publicaciones MeLi compliance"
+    },
+    {
+      "path": "app/tools/analisis_competencia_precios.py",
+      "nota": "Agente competencia de precios MeLi (más vendidos vs títulos similares)"
+    },
+    {
+      "path": "scripts/analisis_competencia_precios_cron.py",
+      "nota": "Cron semanal análisis competencia de precios MeLi"
+    },
+    {
+      "path": "scripts/monitor_correos_certificados_retencion_cron.py",
+      "nota": "Cron diario: correos de proveedores → solicitud certificado retención a Cynthia"
+    },
+    {
+      "path": "scripts/emitir_notas_credito_cron.py",
+      "nota": "Cron diario: notas crédito automáticas para ventas MeLi canceladas con factura ya emitida"
+    },
+    {
+      "path": "scripts/recordatorio_pago_contador_cron.py",
+      "nota": "Cron diario: cuenta de cobro de William (contador) → ticket 'APROBAR PAGO CONTADOR', o aviso si no ha llegado"
+    },
+    {
+      "path": "scripts/recordatorio_pago_nomina_cron.py",
+      "nota": "Cron diario (dispara día 15 y fin de mes): ticket 'APROBAR PAGO NOMINA' por quincena, asignado a Jenniffer"
+    },
+    {
+      "path": "scripts/cargar_meli_catalogo_web.py",
+      "nota": "Cruza publicaciones MeLi → catálogo web clasificado"
+    },
+    {
+      "path": "scripts/informe_reposicion_mensual_cron.py",
+      "nota": "Cron diario (auto-chequea fin de mes): informe de reposición alta rotación a Sede Sur"
+    },
+    {
+      "path": "app/tools/monitor_correos_proveedores.py",
+      "nota": "Detección Gmail + creación de ticket 'solicitud' para certificados de retención"
+    },
+    {
+      "path": "app/meli_reclamos.py",
+      "nota": "Reclamos MeLi → ticket nota crédito"
+    },
+    {
+      "path": "app/services/documentos_web.py",
+      "nota": "Documentos FT+COA+SDS completos en ficha pública del sitio"
+    },
+    {
+      "path": "scripts/postventa_cola_meli.py",
+      "nota": "Cola postventa MeLi puntual (list/limpiar/enviar)"
+    },
+    {
+      "path": "app/tools/generar_catalogo.py",
+      "nota": "Módulo catálogo PDF"
+    },
+    {
+      "path": "scripts/generar_catalogo.py",
+      "nota": "CLI catálogo scripts/"
+    },
+    {
+      "path": "sincronizar_facebook.py",
+      "nota": "Sync Facebook"
+    },
+    {
+      "path": "generar_infografias_facebook.py",
+      "nota": "Infografías"
+    },
+    {
+      "path": "generar_posts_masivos.py",
+      "nota": "Posts masivos"
+    },
+    {
+      "path": "generar_recetas_masivas.py",
+      "nota": "Recetas masivas"
+    },
+    {
+      "path": "app/services/proveedores_db.py",
+      "nota": "Red de proveedores: quién vende qué, precios históricos, catálogos Gmail, oferta web"
+    },
+    {
+      "path": "app/routes_proveedores.py",
+      "nota": "Endpoints /api/proveedores/* (panel Logística → Proveedores)"
+    }
   ]
 }

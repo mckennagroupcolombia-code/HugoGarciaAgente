@@ -9,7 +9,7 @@ Skills son contexto modular cargado bajo demanda. Primero esta matriz; si un mod
 | Cambiar webhook MeLi | `webhook-meli` | `docs/agentic/modules/webhook-meli.md` | auditoria + tests de despacho/dedup si existen |
 | Cambiar comandos WhatsApp | `whatsapp-routes` | `docs/agentic/modules/whatsapp-routes.md` | tests de parser/helper |
 | Agregar tool Claude | `core-tools` | `docs/agentic/modules/core-tools.md` | tool importado + registrado + auditoria |
-| Cambiar stock/facturas | `sync-stock` | `docs/agentic/modules/sync-stock.md` | mocks de MeLi/web/Siigo |
+| Cambiar stock/facturas | `sync-stock` | `docs/agentic/modules/sync-stock.md` | mocks de MeLi/web/Alegra |
 | Cambiar panel React | `desktop-panel` | `docs/agentic/modules/desktop-panel.md` | `npm run qa:full` |
 | Competencia precios MeLi | `competencia-precios` | `docs/agentic/modules/competencia-precios.md` | tests puros + smoke API |
 | Cambiar systemd/ops | `ops-systemd` | `docs/agentic/modules/ops-systemd.md` | diagnostico en host |
@@ -24,7 +24,7 @@ Skills son contexto modular cargado bajo demanda. Primero esta matriz; si un mod
 | `webhook-meli` | MeLi, questions, orders_v2, messages, `/notifications` | `explore` + `verify` | `webhook_meli.py`, `app/meli_webhook_topics.py` |
 | `whatsapp-routes` | WhatsApp, `resp`, `posventa`, comprobante, `/whatsapp` | `explore` | `app/routes.py` |
 | `core-tools` | Claude, tool-use, herramienta nueva, prompt | `explore` + `review` | `app/core.py` |
-| `sync-stock` | stock, factura, Siigo, MeLi sync, web sync | `explore` + `verify` | `app/sync.py`, `app/services/meli.py` |
+| `sync-stock` | stock, factura, Alegra, MeLi sync, web sync | `explore` + `verify` | `app/sync.py`, `app/services/meli.py` |
 | `desktop-panel` | React, panel, `/app`, hook, Vite | `explore` + `verify` | `desktop/src/api/client.ts`, `app/routes.py` |
 | `competencia-precios` | competencia, precios MeLi, más vendidos, títulos similares | `explore` | `app/tools/analisis_competencia_precios.py` |
 | `ops-systemd` | systemd, nohup, puerto, servicio, cloudflared | `explore` | `scripts/systemd/*`, `start.sh` |

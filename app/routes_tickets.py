@@ -787,11 +787,11 @@ def register_tickets_routes(app):
                 "tareas": [
                     {
                         "slug": TAREA_RECLAMO_MELI_ANULAR_FACTURA,
-                        "nombre": "Reclamos/Devoluciones MeLi → Anular factura + Nota crédito (SIIGO)",
+                        "nombre": "Reclamos/Devoluciones MeLi → Anular factura + Nota crédito (Alegra)",
                     },
                     {
                         "slug": TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
-                        "nombre": "Facturas faltantes MeLi↔Siigo → Sincronizar (SIIGO)",
+                        "nombre": "Facturas faltantes MeLi↔Alegra → Sincronizar (Alegra)",
                     },
                 ],
                 "asignaciones": get_aliados_asignaciones(),

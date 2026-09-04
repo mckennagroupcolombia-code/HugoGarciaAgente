@@ -32,13 +32,13 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   canales: "Chat IA, WhatsApp y chat de la página web.",
   diseno: "Etiquetas, Studio visual e impresión.",
   docs: "Fichas técnicas e información científica de ingredientes.",
-  contabilidad: "Facturas, sync MeLi↔Siigo, stock, rentabilidad y más.",
+  contabilidad: "Facturas, sync MeLi↔Alegra, stock, rentabilidad y más.",
   inventario: "Checklist de stock agotado, crítico o bajo — agrega unidades, pide compra o marca revisado.",
   publicaciones: "Catálogo MeLi / web: fotos, textos, sync y republicar.",
   placas: "Calculadora de dosificación para placas de concreto pulido.",
   contenido: "Quitar marca de agua estática de un video antes de publicarlo.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
-  facturacion: "Sync MeLi↔Siigo/Alegra, facturas de compra, ventas y NC, y Astro Killer (trazabilidad venta→factura).",
+  facturacion: "Sync MeLi↔Alegra, facturas de compra, ventas y NC, y Astro Killer (trazabilidad venta→factura).",
 };
 
 const LAST_KEY_PREFIX = "mckenna-hub-last:";

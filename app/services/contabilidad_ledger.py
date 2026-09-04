@@ -2,11 +2,11 @@
 Libro de ingresos / egresos para Contabilidad.
 
 Fuentes:
-- Ingresos: Siigo + MeLi + página web (orders.db)
+- Ingresos: Alegra + MeLi + página web (orders.db)
 - Egresos: compras Gmail + cobros MeLi + impuestos + servicios +
   cuentas de cobro del correo (honorarios/contabilidad) + cuotas de créditos adquiridos
 
-Las fuentes remotas (Siigo / MeLi) corren en paralelo con presupuesto de tiempo
+Las fuentes remotas (Alegra / MeLi) corren en paralelo con presupuesto de tiempo
 para que el panel no se quede en "Cargando…" indefinidamente.
 """
 from __future__ import annotations
@@ -99,7 +99,7 @@ def _row(
 
 
 def _egresos_compras(desde: str, hasta: str) -> list[dict]:
-    """Facturas de compra confirmadas (Gmail → Siigo).
+    """Facturas de compra confirmadas (Gmail → Alegra).
 
     Usa la fecha de *registro/pago* (`timestamp`) para el flujo de caja del período.
     La fecha del documento queda en `extra.fecha_factura`.
@@ -434,7 +434,7 @@ def _facturas_alegra_rapido(
 ) -> tuple[list[dict], str | None]:
     """Lista facturas Alegra con tope de tiempo (panel interactivo). Alegra usa
     Basic Auth (sin renovar token) y limita a 30 por página (confirmado en
-    vivo — no 100 como Siigo)."""
+    vivo — no 100 como Alegra)."""
     try:
         import requests
         from app.services.alegra import _alegra_headers, _ALEGRA_BASE
@@ -503,7 +503,7 @@ def _facturas_siigo_solo_rapido(
     *,
     deadline: float,
 ) -> tuple[list[dict], str | None]:
-    """Igual que la versión previa a la migración: pagina Siigo (page_size 100,
+    """Igual que la versión previa a la migración: pagina Alegra (page_size 100,
     reintentos 401/429) respetando el deadline. Usado solo para la parte
     histórica (antes del corte) por `_facturas_siigo_rapido`."""
     try:
@@ -519,7 +519,7 @@ def _facturas_siigo_solo_rapido(
 
     token = autenticar_siigo()
     if not token:
-        return [], "Sin credenciales / token Siigo"
+        return [], "Sin credenciales / token Alegra"
 
     facturas: list[dict] = []
     page = 1
@@ -531,7 +531,7 @@ def _facturas_siigo_solo_rapido(
     while page <= _SIIGO_MAX_PAGES:
         if time.monotonic() >= deadline:
             truncado = True
-            aviso = f"Siigo: tiempo límite; {len(facturas)} facturas parciales"
+            aviso = f"Alegra: tiempo límite; {len(facturas)} facturas parciales"
             break
         try:
             params = {"created_start": desde, "page": page, "page_size": _SIIGO_PAGE_SIZE}
@@ -546,12 +546,12 @@ def _facturas_siigo_solo_rapido(
             )
         except requests.Timeout:
             truncado = True
-            aviso = f"Siigo: timeout; {len(facturas)} facturas parciales"
+            aviso = f"Alegra: timeout; {len(facturas)} facturas parciales"
             break
         except Exception as e:
             if facturas:
-                return facturas, f"Siigo: error parcial ({len(facturas)} facturas): {e}"
-            return [], f"Siigo red: {e}"
+                return facturas, f"Alegra: error parcial ({len(facturas)} facturas): {e}"
+            return [], f"Alegra red: {e}"
 
         if res.status_code == 200:
             data = res.json() or {}
@@ -574,7 +574,7 @@ def _facturas_siigo_solo_rapido(
             token = autenticar_siigo(forzar=True)
             puede_reintentar_auth = False
             if not token:
-                return facturas, "Siigo 401 sin token"
+                return facturas, "Alegra 401 sin token"
             continue
 
         if res.status_code == 429 and reintentos_429 < 3:
@@ -582,16 +582,16 @@ def _facturas_siigo_solo_rapido(
             espera = min(int(_siigo_retry_after_seconds(res)), 5)
             if time.monotonic() + espera >= deadline:
                 truncado = True
-                aviso = f"Siigo: rate limit; {len(facturas)} facturas parciales"
+                aviso = f"Alegra: rate limit; {len(facturas)} facturas parciales"
                 break
             time.sleep(espera)
             continue
 
-        return facturas, f"Siigo HTTP {res.status_code}"
+        return facturas, f"Alegra HTTP {res.status_code}"
 
     if page > _SIIGO_MAX_PAGES and not truncado:
         truncado = True
-        aviso = f"Siigo: tope de páginas; {len(facturas)} facturas parciales"
+        aviso = f"Alegra: tope de páginas; {len(facturas)} facturas parciales"
     return facturas, aviso if truncado else None
 
 
@@ -657,7 +657,7 @@ def _ingresos_siigo(
                 fuente="siigo_venta",
                 # Concepto fijo: la UI agrupa por concepto+fecha (sumatoria del día).
                 # El número de factura va en referencia.
-                concepto="Venta Siigo",
+                concepto="Venta Alegra",
                 monto=monto,
                 referencia=num or str(f.get("id") or ""),
                 contraparte=cliente,
@@ -831,7 +831,7 @@ def armar_libro(
                         movimientos.extend(ing_s)
                         if err_s:
                             avisos.append(
-                                err_s if err_s.startswith("Siigo") else f"Siigo: {err_s}"
+                                err_s if err_s.startswith("Alegra") else f"Alegra: {err_s}"
                             )
                     else:
                         ing_m, egr_m, err_m = fut.result(timeout=0.1)
@@ -842,11 +842,11 @@ def armar_libro(
                                 err_m if err_m.startswith("MeLi") else f"MeLi: {err_m}"
                             )
                 except Exception as e:
-                    avisos.append(f"{'Siigo' if kind == 'siigo' else 'MeLi'}: {e}")
+                    avisos.append(f"{'Alegra' if kind == 'Alegra' else 'MeLi'}: {e}")
             for fut in not_done:
                 kind = futures[fut]
                 avisos.append(
-                    f"{'Siigo' if kind == 'siigo' else 'MeLi'}: sin respuesta a tiempo"
+                    f"{'Alegra' if kind == 'Alegra' else 'MeLi'}: sin respuesta a tiempo"
                 )
         finally:
             pool.shutdown(wait=False, cancel_futures=True)

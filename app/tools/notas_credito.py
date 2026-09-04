@@ -9,7 +9,7 @@ anularse / nota crédito.
 
 Esta pieza NO ejecuta la anulación en Siigo/Alegra (el caller decide si pasa
 `detalles_extra={"proveedor_factura": "Alegra"|"Siigo"}` para que el texto
-del ticket diga el proveedor correcto — por defecto asume Siigo); solo crea
+del ticket diga el proveedor correcto — por defecto asume Alegra); solo crea
 la solicitud/acción en el panel para que un colaborador la resuelva
 manualmente.
 """
@@ -122,7 +122,7 @@ def crear_ticket_nota_credito(
     # Callers desde el 2026-09-03 pasan "proveedor_factura" (Siigo o Alegra,
     # ver web_pedidos.py::_proveedor_factura_web) — sin eso, asumir Siigo por
     # compatibilidad con callers viejos que no lo pasan.
-    proveedor = detalles.get("proveedor_factura") or "Siigo"
+    proveedor = detalles.get("proveedor_factura") or "Alegra"
 
     descripcion = (
         f"Solicitud de anulación/nota crédito — canal **{canal}**, referencia **{ref}**.\n\n"

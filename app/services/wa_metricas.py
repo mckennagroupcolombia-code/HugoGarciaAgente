@@ -1064,6 +1064,6 @@ def calcular_metricas(dias: int = 30) -> dict[str, Any]:
         "recomendaciones": recomendaciones,
         "nota_metodologia": (
             "Las etapas comerciales se infieren del texto del chat (palabras clave de pago, comprobante, guía). "
-            "No reemplaza Siigo ni pedidos web; mejora con más historial sincronizado."
+            "No reemplaza Alegra ni pedidos web; mejora con más historial sincronizado."
         ),
     }

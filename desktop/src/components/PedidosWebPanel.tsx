@@ -548,7 +548,7 @@ function OrderRow({
                   )}
                   {order.siigo_invoice_number ? (
                     <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] text-emerald-400">
-                      Factura Siigo #{order.siigo_invoice_number}
+                      Factura Alegra #{order.siigo_invoice_number}
                       {order.siigo_invoice_status ? ` — ${order.siigo_invoice_status}` : ""}
                     </div>
                   ) : puedeFacturar ? (
@@ -560,12 +560,12 @@ function OrderRow({
                       }}
                       disabled={busy}
                       className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
-                      title="Emitir factura electrónica en Siigo"
+                      title="Emitir factura electrónica en Alegra"
                     >
                       {facturando && (
                         <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
                       )}
-                      {facturando ? "Facturando…" : "Facturar con Siigo"}
+                      {facturando ? "Facturando…" : "Facturar con Alegra"}
                     </button>
                   ) : anulado ? (
                     <p className="mt-2 text-[11px] text-muted">
@@ -596,7 +596,7 @@ function OrderRow({
                         onClick={(e) => {
                           e.stopPropagation();
                           const feWarn = facturaEmitida
-                            ? " Hay factura Siigo: se creará ticket de nota crédito."
+                            ? " Hay factura Alegra: se creará ticket de nota crédito."
                             : "";
                           const msg = enviado
                             ? `El pedido ${order.reference} ya tiene guía. ¿Reembolsar ${fmtCOP(order.total)} por Mercado Pago de todas formas y cerrar el pedido?${feWarn}`
@@ -689,7 +689,7 @@ export default function PedidosWebPanel() {
       api.post<FacturarResponse>("/api/pedidos/web/facturar", { reference }, { timeoutMs: 120_000 }),
     onMutate: () => setFacturarMsg(null),
     onSuccess: (res) => {
-      setFacturarMsg({ type: "ok", text: res.message || "Factura emitida en Siigo." });
+      setFacturarMsg({ type: "ok", text: res.message || "Factura emitida en Alegra." });
       qc.invalidateQueries({ queryKey: ["pedidos-web"] });
     },
     onError: (e: Error) => {

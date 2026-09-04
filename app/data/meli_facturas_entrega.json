@@ -12172,6 +12172,30 @@
       "pack_id": "2000014819237027",
       "legado_factura_numero": "FV-2-71311",
       "legado_integracion": "astroselling"
+    },
+    "2000018162378590": {
+      "shipping_id": "47877439674",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T20:22:11",
+      "pack_id": "2000014750928819",
+      "legado_factura_numero": "FV-2-71113",
+      "legado_integracion": "astroselling"
+    },
+    "2000018246768220": {
+      "shipping_id": "47916094761",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T20:32:05",
+      "pack_id": "2000014831698711",
+      "legado_factura_numero": "FV-2-71348",
+      "legado_integracion": "astroselling"
+    },
+    "2000018229307974": {
+      "shipping_id": "47907870629",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T21:31:30",
+      "pack_id": "2000014814963577",
+      "legado_factura_numero": "FV-2-71351",
+      "legado_integracion": "astroselling"
     }
   }
 }

@@ -27,7 +27,7 @@ function anioActualCorto(): number {
   return new Date().getFullYear() % 100;
 }
 
-/** Prefijo estándar de los SKU de combos SIIGO (C-ACIASC250g, C-UREA500g…). */
+/** Prefijo estándar de los SKU de combos Alegra (C-ACIASC250g, C-UREA500g…). */
 const SKU_PREFIJO = "C-";
 
 function sinPrefijoSku(sku: string): string {
@@ -214,7 +214,7 @@ export function CodigosEanPanel() {
   function importarCombos() {
     if (
       !window.confirm(
-        "¿Registrar EAN para todos los combos SIIGO (C-) que aún no estén en la planilla?\n" +
+        "¿Registrar EAN para todos los combos Alegra (C-) que aún no estén en la planilla?\n" +
           "Se asignará el consecutivo siguiente y la presentación se inferirá del SKU (kg→001, 50→050, etc.).",
       )
     ) {
@@ -226,7 +226,7 @@ export function CodigosEanPanel() {
   function subirBarcodesSiigo() {
     if (
       !window.confirm(
-        "¿Subir los EAN de la planilla al campo «Código de barras» de cada combo en SIIGO?\n" +
+        "¿Subir los EAN de la planilla al campo «Código de barras» de cada combo en Alegra?\n" +
           "Solo se llenan los que estén vacíos. Puede tardar varios minutos.",
       )
     ) {
@@ -385,7 +385,7 @@ export function CodigosEanPanel() {
                 loading={importarSiigo.isPending}
                 onClick={importarCombos}
               >
-                Importar combos SIIGO faltantes
+                Importar combos Alegra faltantes
               </Button>
               <Button
                 variant="secondary"
@@ -393,7 +393,7 @@ export function CodigosEanPanel() {
                 loading={syncBarcodeSiigo.isPending}
                 onClick={subirBarcodesSiigo}
               >
-                Subir EAN a SIIGO (código de barras)
+                Subir EAN a Alegra (código de barras)
               </Button>
             </div>
             {importarSiigo.isSuccess && (
@@ -408,12 +408,12 @@ export function CodigosEanPanel() {
               <Banner tone="danger" className="text-xs">
                 {importarSiigo.error instanceof Error
                   ? importarSiigo.error.message
-                  : "Error al importar combos SIIGO"}
+                  : "Error al importar combos Alegra"}
               </Banner>
             )}
             {syncBarcodeSiigo.isSuccess && (
               <Banner tone="success" className="text-xs">
-                SIIGO barcodes: actualizados {syncBarcodeSiigo.data.actualizados} · omitidos{" "}
+                Alegra barcodes: actualizados {syncBarcodeSiigo.data.actualizados} · omitidos{" "}
                 {syncBarcodeSiigo.data.omitidos}
                 {syncBarcodeSiigo.data.errores?.length
                   ? ` · errores: ${syncBarcodeSiigo.data.errores.slice(0, 3).join("; ")}`
@@ -424,7 +424,7 @@ export function CodigosEanPanel() {
               <Banner tone="danger" className="text-xs">
                 {syncBarcodeSiigo.error instanceof Error
                   ? syncBarcodeSiigo.error.message
-                  : "Error al subir barcodes a SIIGO"}
+                  : "Error al subir barcodes a Alegra"}
               </Banner>
             )}
           </div>
@@ -447,13 +447,13 @@ export function CodigosEanPanel() {
             onClick={() => abrirCrearSiigo("crear")}
             title={
               seleccionado
-                ? `Crear ${seleccionado.sku} en Siigo`
+                ? `Crear ${seleccionado.sku} en Alegra`
                 : "Selecciona un producto del listado"
             }
           >
             {seleccionado
-              ? `Crear ${seleccionado.sku} en Siigo`
-              : "Crear en Siigo"}
+              ? `Crear ${seleccionado.sku} en Alegra`
+              : "Crear en Alegra"}
           </Button>
           <Button
             variant="secondary"
@@ -599,8 +599,8 @@ export function CodigosEanPanel() {
             siigoInicial
               ? accionSiigo === "duplicar"
                 ? `Duplicar combo · ${siigoInicial.codigo}`
-                : `Crear en Siigo · ${siigoInicial.codigo}`
-              : "Crear producto o combo en Siigo"
+                : `Crear en Alegra · ${siigoInicial.codigo}`
+              : "Crear producto o combo en Alegra"
           }
           onClose={cerrarCrearSiigo}
           maxWidthClassName="max-w-xl"

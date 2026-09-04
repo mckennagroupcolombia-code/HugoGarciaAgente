@@ -95,7 +95,7 @@ type ConsultaExtractoResp = {
 
 /** Agrupa por fecha + fuente + tipo + concepto (mismo concepto → una casilla con sumatoria). */
 const FUENTE_LABEL: Record<string, string> = {
-  siigo_venta: "Venta Siigo",
+  siigo_venta: "Venta ERP",
   meli_venta: "Venta MeLi",
   meli_cobro: "Cobro MeLi",
   web_venta: "Venta página web",
@@ -520,7 +520,7 @@ export default function IngresosEgresosPanel() {
           </div>
           <label className="flex items-center gap-1.5 text-xs font-medium text-ink">
             <input type="checkbox" checked={incluirSiigo} onChange={(e) => setIncluirSiigo(e.target.checked)} />
-            Siigo
+            Alegra
           </label>
           <label className="flex items-center gap-1.5 text-xs font-medium text-ink">
             <input type="checkbox" checked={incluirMeli} onChange={(e) => setIncluirMeli(e.target.checked)} />
@@ -954,7 +954,7 @@ export default function IngresosEgresosPanel() {
             {libroQ.isLoading && (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-muted">
-                  Cargando movimientos (Siigo/MeLi ~30s)…
+                  Cargando movimientos (Alegra/MeLi ~30s)…
                 </td>
               </tr>
             )}

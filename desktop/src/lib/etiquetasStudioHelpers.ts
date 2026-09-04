@@ -46,7 +46,7 @@ export function targetEscaneoDesdeFila(
   };
 }
 
-/** Plantilla .ai sin SKU en catálogo Siigo. */
+/** Plantilla .ai sin SKU en catálogo Alegra. */
 export function targetEscaneoDesdePlantilla(
   archivoAi: string,
   formato: FormatoImpresionEscaneo,

@@ -79,7 +79,7 @@ function EstadoBadge({ estado }: { estado: string | null }) {
 function nombreIntegracionLegado(integracion: string | null) {
   if (integracion === "astroselling") return "Astroselling (Siigo)";
   if (integracion === "mckenna") return "Siigo (McKenna)";
-  return integracion ?? "Siigo";
+  return integracion ?? "Alegra";
 }
 
 /** Tabla compacta de líneas SKU/producto/cantidad/valor, reusada en ambas columnas. */

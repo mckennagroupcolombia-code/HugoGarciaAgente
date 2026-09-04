@@ -672,10 +672,10 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
 
 const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "facturas",      label: "Facturas de compra" },
-  { id: "sync",          label: "Sincronización MeLi↔Siigo" },
+  { id: "sync",          label: "Sincronización MeLi↔Alegra" },
   { id: "rentabilidad",  label: "Rentabilidad (incl. con Facturas o Sync)" },
   { id: "compras-exterior", label: "Compras exterior / pantallazo (incl. con Facturas, Sync o Rentabilidad)" },
-  { id: "productos-siigo", label: "Crear en Siigo — botón flotante (incl. con Facturas o Sync)" },
+  { id: "productos-siigo", label: "Crear en Alegra — botón flotante (incl. con Facturas o Sync)" },
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
   { id: "creditos-adquiridos", label: "Créditos adquiridos (tasa, cuota, saldo)" },

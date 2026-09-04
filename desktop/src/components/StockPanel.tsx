@@ -320,7 +320,7 @@ const ESTADO_RELACION: Record<string, { label: string; className: string }> = {
     className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   },
   sin_siigo: {
-    label: "Sin Siigo",
+    label: "Sin Alegra",
     className: "bg-danger/15 text-danger",
   },
   sku_divergente: {
@@ -406,7 +406,7 @@ function tienePrefijoC(sku: string, codigoSiigo: string): boolean {
 
 function CanalResultMini({ resultado }: { resultado: SincronizarResultado }) {
   const reactivada = /reactivada/i.test(resultado.meli?.mensaje || "");
-  const detalle = `MeLi ${resultado.meli.ok ? "✓" : "✗"} · Web ${resultado.web.ok ? "✓" : "✗"} · Siigo ref.`;
+  const detalle = `MeLi ${resultado.meli.ok ? "✓" : "✗"} · Web ${resultado.web.ok ? "✓" : "✗"} · Alegra ref.`;
   return (
     <div className="mt-0.5 truncate text-[9px] leading-tight text-muted" title={detalle}>
       {typeof resultado.stock_anterior === "number" && (
@@ -924,13 +924,13 @@ function DialogPrecioVenta({
       if (!meliOk || !siigoOk) {
         const partes: string[] = [];
         partes.push(meliOk ? "MeLi" : `MeLi ✗ ${res.meli?.msg || "falló"}`);
-        partes.push(siigoOk ? "Siigo" : `Siigo ✗ ${res.siigo?.msg || "falló"}`);
+        partes.push(siigoOk ? "Alegra" : `Alegra ✗ ${res.siigo?.msg || "falló"}`);
         setMsgErr(res.error || `No se pudo actualizar: ${partes.join(" · ")}`);
         return;
       }
       setPrecioLocal(precio);
       setEditando(false);
-      setMsgOk("MeLi + Siigo OK");
+      setMsgOk("MeLi + Alegra OK");
       onPrecioActualizado?.(precio);
       void queryClient.invalidateQueries({ queryKey: ["stock-detalle-producto", fila.meli_id, fila.sku] });
       void queryClient.invalidateQueries({ queryKey: ["stock-resumen"] });
@@ -996,7 +996,7 @@ function DialogPrecioVenta({
                   autoFocus
                   disabled={guardando}
                 />
-                <p className="text-[11px] text-muted">{moneda} · actualiza MeLi y Siigo</p>
+                <p className="text-[11px] text-muted">{moneda} · actualiza MeLi y Alegra</p>
                 <div className="flex justify-center gap-2">
                   <button
                     type="button"
@@ -1032,7 +1032,7 @@ function DialogPrecioVenta({
                   }`}
                   title={
                     precioBase != null && codePrecio
-                      ? "Clic para editar precio (MeLi + Siigo)"
+                      ? "Clic para editar precio (MeLi + Alegra)"
                       : "Sin SKU o precio para editar"
                   }
                 >
@@ -1153,7 +1153,7 @@ function DialogPrecioVenta({
               <dd className="mt-0.5 truncate font-mono text-ink">{fila.sku || "—"}</dd>
             </div>
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase text-muted">Código Siigo</dt>
+              <dt className="text-[10px] font-bold uppercase text-muted">Código Alegra</dt>
               <dd className="mt-0.5 truncate font-mono text-ink">{fila.codigo_siigo || "—"}</dd>
             </div>
             <div className="col-span-2 rounded-lg border border-border bg-surface px-3 py-2">
@@ -1861,7 +1861,7 @@ function StockPanelCompleto() {
         partes.push(`MeLi no actualizó (${res?.meli?.error || res?.aviso})`);
       if (res?.vinculo) {
         partes.push(
-          `vínculo Siigo «${codigo}»${
+          `vínculo Alegra «${codigo}»${
             res.vinculo.en_siigo ? " OK" : " (local)"
           }`,
         );
@@ -1936,13 +1936,13 @@ function StockPanelCompleto() {
     },
     onSuccess: (res, { meli_id, codigo_siigo }) => {
       const enSiigo = res?.en_siigo
-        ? ` · encontrado en Siigo${res.nombre_siigo ? `: ${res.nombre_siigo}` : ""}`
-        : " · aún no está en Siigo (vínculo local guardado)";
+        ? ` · encontrado en Alegra${res.nombre_siigo ? `: ${res.nombre_siigo}` : ""}`
+        : " · aún no está en Alegra (vínculo local guardado)";
       setSkuMsg((prev) => ({
         ...prev,
         [meli_id]: {
           ok: true,
-          text: `Vinculado a Siigo «${res?.codigo_siigo || codigo_siigo}»${enSiigo}`,
+          text: `Vinculado a Alegra «${res?.codigo_siigo || codigo_siigo}»${enSiigo}`,
         },
       }));
       setEditMeli(null);
@@ -1957,7 +1957,7 @@ function StockPanelCompleto() {
         ...prev,
         [meli_id]: {
           ok: false,
-          text: err instanceof Error ? err.message : "No se pudo vincular a Siigo",
+          text: err instanceof Error ? err.message : "No se pudo vincular a Alegra",
         },
       }));
     },
@@ -2028,7 +2028,7 @@ function StockPanelCompleto() {
           {isFetching ? "Actualizando..." : (
             <>
               <span className="sm:hidden">🔄 Actualizar</span>
-              <span className="hidden sm:inline">🔄 Actualizar MeLi + Siigo + ventas</span>
+              <span className="hidden sm:inline">🔄 Actualizar MeLi + Alegra + ventas</span>
             </>
           )}
         </button>
@@ -2058,7 +2058,7 @@ function StockPanelCompleto() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Nombre, MCO, SKU o Siigo…"
+            placeholder="Nombre, MCO, SKU o Alegra…"
             className="min-w-0 flex-1 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent sm:px-3 sm:py-2"
           />
           {search.trim() && (
@@ -2141,7 +2141,7 @@ function StockPanelCompleto() {
               <option value="todos">Todos ({counts.totalCodigo})</option>
               <option value="sin_c">Sin C- ({counts.sinC})</option>
               <option value="vinculados">Vinculados ({counts.vinculados})</option>
-              <option value="sin_siigo">Sin Siigo ({counts.sinSiigo})</option>
+              <option value="sin_siigo">Sin Alegra ({counts.sinSiigo})</option>
               <option value="divergentes">SKU distinto ({counts.divergentes})</option>
               <option value="sin_codigo">Sin código ({counts.sinCodigo})</option>
             </select>
@@ -2199,7 +2199,7 @@ function StockPanelCompleto() {
       {filtroCodigo === "sin_c" && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
           Sin prefijo <span className="font-mono font-bold">C-</span>: edita el SKU, cárgalo a MeLi y
-          registra el combo en Siigo / catálogo.
+          registra el combo en Alegra / catálogo.
         </p>
       )}
 
@@ -2223,7 +2223,7 @@ function StockPanelCompleto() {
         <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
           No se pudo cargar ventas 30 d:{" "}
           {ventasQ.error instanceof Error ? ventasQ.error.message : "error"}. Pulsa «Actualizar MeLi +
-          Siigo + ventas».
+          Alegra + ventas».
         </p>
       )}
       {!ventasQ.isLoading && !ventasQ.isError && ventasQ.data && Object.keys(ventasMap).length === 0 && (
@@ -2264,7 +2264,7 @@ function StockPanelCompleto() {
               </th>
               <th className="px-2 py-1.5 font-bold">Ventas 30d</th>
               <th className="px-2 py-1.5 font-bold">SKU</th>
-              <th className="px-2 py-1.5 font-bold">Siigo</th>
+              <th className="px-2 py-1.5 font-bold">Alegra</th>
               <th className="px-2 py-1.5 font-bold">Vínculo</th>
             </tr>
           </thead>
@@ -2473,7 +2473,7 @@ function StockPanelCompleto() {
                             setCodigoDraft("");
                           }
                         }}
-                        placeholder="Código Siigo"
+                        placeholder="Código Alegra"
                         className="w-full min-w-[6.5rem] rounded border border-border bg-surface-input px-1.5 py-0.5 font-mono text-[11px] text-ink outline-none focus:border-accent"
                       />
                     ) : (
@@ -2495,7 +2495,7 @@ function StockPanelCompleto() {
                         <>
                           <button
                             disabled={!puedeGuardarSku || busy || mutPendiente}
-                            title="Guarda SKU en MeLi + vínculo Siigo (Enter)"
+                            title="Guarda SKU en MeLi + vínculo Alegra (Enter)"
                             onClick={() => guardarEdicionSku(it.meli_id, it.sync_bloqueado)}
                             className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white disabled:opacity-40"
                           >
@@ -2530,7 +2530,7 @@ function StockPanelCompleto() {
                             title={
                               (it.codigo_siigo || it.sku).trim()
                                 ? `Vincular ${it.codigo_siigo || it.sku} ↔ ${it.meli_id}`
-                                : "Primero asigna un código Siigo"
+                                : "Primero asigna un código Alegra"
                             }
                             onClick={() => {
                               const codigo = (it.codigo_siigo || it.sku).trim();

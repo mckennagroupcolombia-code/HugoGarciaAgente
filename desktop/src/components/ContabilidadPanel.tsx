@@ -165,7 +165,7 @@ export default function ContabilidadPanel() {
       return (
         <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 p-4">
           <p className="mx-auto max-w-md text-center text-sm text-muted">
-            Usa los iconos del encabezado para crear productos en Siigo, consultar facturas o abrir la
+            Usa los iconos del encabezado para crear productos en Alegra, consultar facturas o abrir la
             calculadora.
           </p>
         </div>

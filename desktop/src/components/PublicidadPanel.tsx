@@ -193,9 +193,9 @@ function MargenRealSeccion({ dias }: { dias: number }) {
 
   return (
     <div className="rounded-xl border-2 border-border bg-surface-panel p-4">
-      <h3 className="text-sm font-bold text-ink mb-1">Margen real (SKU MeLi ↔ costo de combo Siigo)</h3>
+      <h3 className="text-sm font-bold text-ink mb-1">Margen real (SKU MeLi ↔ costo de combo Alegra)</h3>
       <p className="text-xs text-ink-secondary mb-3 max-w-2xl leading-relaxed">
-        Cruza cada publicación con su código de Siigo real (campo <span className="font-mono">seller_custom_field</span>{" "}
+        Cruza cada publicación con su código de Alegra real (campo <span className="font-mono">seller_custom_field</span>{" "}
         de la publicación, no el nombre) y el costo del combo (materia prima + envase + etiqueta + operativos) para
         calcular el ACOS de equilibrio exacto, en vez de estimarlo por rotación. Donde hay margen real, las
         recomendaciones y el plan de campañas de arriba ya lo están usando.
@@ -217,12 +217,12 @@ function MargenRealSeccion({ dias }: { dias: number }) {
               label="Sin SKU en MeLi"
               value={String(data.cobertura.sin_sku_en_meli)}
               subClass="text-warning font-semibold"
-              title="La publicación nunca tuvo el campo SKU (seller_custom_field) cargado — no hay forma de saber a qué combo de Siigo corresponde."
+              title="La publicación nunca tuvo el campo SKU (seller_custom_field) cargado — no hay forma de saber a qué combo de Alegra corresponde."
             />
             <StatTile
-              label="SKU sin costo en Siigo"
+              label="SKU sin costo en Alegra"
               value={String(data.cobertura.con_sku_sin_costo_siigo)}
-              title="Tiene SKU, pero ese código no existe como combo en Siigo o su receta no tiene costo calculado."
+              title="Tiene SKU, pero ese código no existe como combo en Alegra o su receta no tiene costo calculado."
             />
             <StatTile label="Sin ventas en el período" value={String(data.cobertura.con_costo_pero_sin_ventas_periodo)} title="Tiene costo conocido pero no vendió nada vía ads en el período — no hay precio de venta realizado con qué calcular margen." />
           </div>
@@ -252,7 +252,7 @@ function MargenRealSeccion({ dias }: { dias: number }) {
             <>
               <p className="text-[11px] text-muted mb-2">
                 Acción más simple y de mayor impacto: entra a cada publicación en MeLi y llena el campo SKU con el
-                código de Siigo correspondiente — en cuanto lo hagas, la próxima corrida calcula su margen real.
+                código de Alegra correspondiente — en cuanto lo hagas, la próxima corrida calcula su margen real.
               </p>
               <TablaItems items={data.sin_sku_en_meli} />
             </>
@@ -567,7 +567,7 @@ function RecomendacionesSeccion({ dias }: { dias: number }) {
               label="Con margen real"
               value={String(data.resumen.con_margen_real)}
               subClass="text-accent font-semibold"
-              title="Productos donde el límite usado viene del costo real del combo en Siigo, no de un estimado por rotación."
+              title="Productos donde el límite usado viene del costo real del combo en Alegra, no de un estimado por rotación."
             />
             <StatTile
               label="Sin dato de rotación"
@@ -1111,7 +1111,7 @@ export default function PublicidadPanel() {
             </Explicacion>
           </div>
 
-          {/* ── Margen real (SKU MeLi ↔ costo de combo Siigo) ── */}
+          {/* ── Margen real (SKU MeLi ↔ costo de combo Alegra) ── */}
           <MargenRealSeccion dias={dias} />
 
           {/* ── Ads vs. Promociones ── */}

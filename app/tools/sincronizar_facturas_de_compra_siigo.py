@@ -783,8 +783,8 @@ def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bo
                     siigo_id = resultado.get("data", {}).get("id", "N/A")
                     tipo_registro = "Gasto / Cuenta contable" if config_transporte else "Producto"
                     cuenta_info = config_transporte['cuenta_contable'] if config_transporte else "GENERICO"
-                    print(f"\n✅ FACTURA REGISTRADA EN SIIGO")
-                    print(f"   ID Siigo  : {siigo_id}")
+                    print(f"\n✅ FACTURA REGISTRADA EN ALEGRA")
+                    print(f"   ID Alegra : {siigo_id}")
                     print(f"   Factura   : {datos_factura['prefix']}{datos_factura['number']}")
                     print(f"   Total     : ${datos_factura['total_neto']:,.2f} COP")
                     print(f"   Cuenta    : {cuenta_info}")
@@ -793,10 +793,10 @@ def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bo
 
                     if not modo_terminal:
                         enviar_mensaje_whatsapp_grupo(
-                            f"✅ *FACTURA REGISTRADA EN SIIGO*\n"
+                            f"✅ *FACTURA REGISTRADA EN ALEGRA*\n"
                             f"Factura: {datos_factura['prefix']}{datos_factura['number']}\n"
                             f"Total: ${datos_factura['total_neto']:,.2f} COP\n"
-                            f"ID Siigo: {siigo_id}"
+                            f"ID Alegra: {siigo_id}"
                         )
 
                     if modo_terminal:
@@ -821,10 +821,10 @@ def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bo
 
                 else:
                     error_msg = resultado.get('message', str(resultado))
-                    print(f"\n❌ Error al crear factura en SIIGO: {error_msg}")
+                    print(f"\n❌ Error al crear factura en Alegra: {error_msg}")
                     if not modo_terminal:
                         enviar_mensaje_whatsapp_grupo(
-                            f"❌ *ERROR al registrar factura en SIIGO*\n"
+                            f"❌ *ERROR al registrar factura en Alegra*\n"
                             f"Factura: {factura_key}\n"
                             f"Error: {error_msg[:300]}"
                         )

@@ -649,9 +649,15 @@ export default function SaludNegocioPanel() {
 
       {/* ── Estados de carga / error ── */}
       {isLoading && (
-        <div className="flex items-center justify-center gap-3 py-16 text-sm text-muted">
-          <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          Cruzando ventas, costos, ads y gastos fijos…
+        <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted">
+          <div className="flex items-center gap-3">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            Cruzando ventas, costos, ads y gastos fijos…
+          </div>
+          <p className="text-xs text-muted/80 max-w-md text-center">
+            La primera carga del período en curso consulta MeLi y puede tardar hasta un minuto.
+            Las semanas ya cerradas salen de caché.
+          </p>
         </div>
       )}
 
@@ -738,7 +744,7 @@ export default function SaludNegocioPanel() {
             {actual.otros_canales_facturas > 0 && (
               <div className="mt-3 rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-ink-secondary">
                 <strong className="text-ink">Otros canales</strong> ({cop(actual.ingresos_otros_canales)}) son
-                facturas Siigo que no calzan con el patrón de MeLi ni con la referencia web MCKG- —
+                facturas Alegra que no calzan con el patrón de MeLi ni con la referencia web MCKG- —
                 principalmente venta directa por WhatsApp, aproximada por descarte: {actual.otros_canales_facturas}{" "}
                 factura{actual.otros_canales_facturas === 1 ? "" : "s"}
                 {actual.otros_canales_con_marcador_wa > 0

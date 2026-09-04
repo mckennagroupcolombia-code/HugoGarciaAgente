@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Cotizar materias primas — Red global McKenna Group{% endblock %}
+{% block description %}Cotiza materias primas farmacéuticas, cosméticas, alimentarias e industriales que importamos desde fábricas en Asia, Europa y América. Sin stock mínimo: te enviamos precio y presentaciones por correo.{% endblock %}
+
+{% block content %}
+
+<div class="page-hero quote-hero">
+  <div class="inner">
+    <span class="hero-badge">Red global de abastecimiento</span>
+    <h1>Materias primas <em>del mundo</em>, en Colombia</h1>
+    <p>
+      Manejamos {{ total_general }} referencias con origen declarado en {{ ruta_origen.n_paises }} países
+      ({{ paises_red[:5] | join(', ') }}{% if paises_red | length > 5 %} y más{% endif %}). Lo que está en
+      stock sale hoy de Bogotá; lo que no, lo importamos bajo pedido con la misma trazabilidad: ficha
+      técnica, certificado de análisis y lote.
+    </p>
+    <div class="quote-hero-stats">
+      <div><span class="quote-stat-val" data-count="{{ total_general }}">0</span><span class="quote-stat-label">referencias</span></div>
+      <div><span class="quote-stat-val" data-count="{{ ruta_origen.n_paises }}">0</span><span class="quote-stat-label">países de origen</span></div>
+      <div><span class="quote-stat-val" data-count="{{ ruta_origen.n_coa }}">0</span><span class="quote-stat-label">con certificado de análisis</span></div>
+      <div><span class="quote-stat-val">24–48 h</span><span class="quote-stat-label">respuesta comercial</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="quote-lines section">
+  <div class="section-header reveal">
+    <div>
+      <span class="section-eyebrow">Seis líneas comerciales</span>
+      <h2 class="section-title">Conoce nuestra <em>oferta</em></h2>
+    </div>
+  </div>
+  <div class="quote-lines-grid">
+    {% for g in cards %}
+    <a href="{{ url_for('cotizar', linea=g.id) }}#listado" class="quote-line-card reveal reveal-delay-{{ loop.index0 % 3 }}{% if linea_filter == g.id %} is-active{% endif %}" style="--cat-accent: {{ g.color }}">
+      <span class="quote-line-icon"><i class="ph ph-{{ g.icono }}"></i></span>
+      <h3>{{ g.name }}</h3>
+      <p>{{ g.descripcion }}</p>
+      <span class="quote-line-meta">
+        <span><b>{{ g.refs | length }}</b> referencia{% if g.refs | length != 1 %}s{% endif %}</span>
+        <span><b>{{ g.n_stock }}</b> en stock</span>
+        {% if g.n_pedido %}<span><b>{{ g.n_pedido }}</b> bajo pedido</span>{% endif %}
+        {% if g.n_coa %}<span><b>{{ g.n_coa }}</b> con COA</span>{% endif %}
+      </span>
+      {% if g.origenes %}<span class="quote-line-origins"><i class="ph ph-globe-hemisphere-west"></i> Origen: {{ g.origenes | join(' · ') }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="quote-how section">
+  <div class="quote-how-grid">
+    <div class="quote-how-step reveal">
+      <span class="quote-how-num">1</span>
+      <h4>Elige la materia prima</h4>
+      <p>Filtra por línea o busca por nombre o CAS. Lo que está en stock se compra directo en la tienda.</p>
+    </div>
+    <div class="quote-how-step reveal reveal-delay-1">
+      <span class="quote-how-num">2</span>
+      <h4>Pide tu cotización</h4>
+      <p>Indica cantidad y presentación. Consultamos disponibilidad con nuestra red de fábricas e importadores.</p>
+    </div>
+    <div class="quote-how-step reveal reveal-delay-2">
+      <span class="quote-how-num">3</span>
+      <h4>Recibe la oferta por correo</h4>
+      <p>Precio, presentaciones disponibles, documentación (COA / ficha técnica) y tiempo de entrega a tu ciudad.</p>
+    </div>
+  </div>
+</div>
+
+<div class="shop-header quote-header" id="listado">
+  <div class="shop-header-inner">
+    <div>
+      <span class="section-eyebrow" style="color:var(--green);">Catálogo ampliado</span>
+      <h2>¿Qué <em style="font-style:italic;font-weight:300;color:var(--green);">necesitas</em>?</h2>
+      <p class="shop-header-sub">{{ total }} referencias{% if linea_filter %} en esta línea{% endif %} · Origen declarado · COA y ficha técnica por lote · Presentaciones desde laboratorio hasta industrial</p>
+    </div>
+    <form class="quote-search" method="get" action="{{ url_for('cotizar') }}#listado" role="search">
+      <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" name="q" value="{{ q_filter }}" placeholder="Buscar materia prima, CAS o país…" aria-label="Buscar materia prima" data-quote-filter>
+      {% if linea_filter %}<input type="hidden" name="linea" value="{{ linea_filter }}">{% endif %}
+      {% if q_filter %}<a href="{{ url_for('cotizar') }}#listado" class="quote-search-clear" aria-label="Limpiar búsqueda"><i class="ph ph-x"></i></a>{% endif %}
+    </form>
+  </div>
+</div>
+
+<nav class="cat-sticky-nav" id="cat-nav">
+  <a href="{{ url_for('cotizar') }}{% if q_filter %}?q={{ q_filter | urlencode }}{% endif %}#listado" class="nav-item {% if not linea_filter %}active{% endif %}">Todas</a>
+  {% for L in lineas %}
+  <a href="{{ url_for('cotizar', linea=L.id, q=q_filter or None) }}#listado"
+     class="nav-item {% if linea_filter == L.id %}active{% endif %}"
+     style="--cat-accent: {{ L.color }}" data-cat="{{ L.id }}">{{ L.name }}</a>
+  {% endfor %}
+</nav>
+
+<div class="section quote-section">
+  {% if not grupos %}
+  <div class="route-empty reveal">
+    <i class="ph ph-flask" aria-hidden="true"></i>
+    <p>
+      {% if q_filter %}No encontramos «{{ q_filter }}» en el listado, pero eso no significa que no podamos conseguirlo.{% else %}Estamos cargando el listado ampliado.{% endif %}
+      Pide cotización y lo buscamos en nuestra red.
+    </p>
+    <button type="button" class="btn btn-primary" data-quote-open data-producto="{{ q_filter or producto_pre }}" style="margin-top:18px;">
+      <i class="ph ph-paper-plane-tilt"></i> Cotizar «{{ q_filter or 'una materia prima' }}»
+    </button>
+  </div>
+  {% endif %}
+
+  {% for g in grupos %}
+  <section class="quote-group reveal" id="linea-{{ g.id }}" style="--cat-accent: {{ g.color }}">
+    <header class="quote-group-head">
+      <h3><span class="quote-group-dot"></span>{{ g.name }}</h3>
+      <span class="quote-group-count"><b>{{ g.refs | length }}</b> referencia{% if g.refs | length != 1 %}s{% endif %} · {{ g.n_stock }} en stock{% if g.n_pedido %} · {{ g.n_pedido }} bajo pedido{% endif %}{% if g.origenes %} · origen {{ g.origenes[:3] | join(', ') }}{% endif %}</span>
+    </header>
+    <ul class="quote-list">
+      {% for it in g.refs %}
+      <li class="quote-item{% if it.en_stock %} quote-item-stock{% endif %}" data-quote-name="{{ (it.nombre ~ ' ' ~ it.cas ~ ' ' ~ (it.origen | join(' '))) | lower }}">
+        <div class="quote-item-main">
+          <span class="quote-item-name">{{ it.nombre }}</span>
+          <span class="quote-item-meta">
+            {% if it.origen %}<span><i class="ph ph-globe-hemisphere-west"></i> {{ it.origen | join(' · ') }}</span>{% endif %}
+            {% if it.cas %}<span>CAS {{ it.cas }}</span>{% endif %}
+            {% if it.presentaciones %}<span><i class="ph ph-package"></i> {{ it.presentaciones[:3] | join(' · ') }}</span>{% endif %}
+            {% if it.coa %}<span class="tz-badge is-coa" title="Certificado de análisis publicado">COA</span>{% endif %}
+            {% if it.tds %}<span class="tz-badge is-tds" title="Ficha técnica publicada">TDS</span>{% endif %}
+          </span>
+        </div>
+        <div class="quote-item-actions">
+          {% if it.en_stock and it.slug %}
+          <a href="{{ url_for('producto', slug=it.slug) }}" class="quote-btn quote-btn-stock"><i class="ph ph-check-circle"></i> En stock{% if it.stock > 0 %} ({{ it.stock }}){% endif %} · Comprar</a>
+          {% else %}
+          <span class="quote-badge">Bajo pedido</span>
+          {% endif %}
+          <button type="button" class="quote-btn" data-quote-open data-producto="{{ it.nombre }}" data-presentaciones="{{ it.presentaciones | join('|') }}">
+            <i class="ph ph-paper-plane-tilt"></i> Cotizar
+          </button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+
+  <div class="quote-fallback reveal">
+    <div>
+      <h3>¿No está en la lista?</h3>
+      <p>Nuestra red cubre fabricantes e importadores especializados. Cuéntanos qué materia prima buscas y te decimos si la conseguimos.</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-quote-open data-producto=""><i class="ph ph-paper-plane-tilt"></i> Cotizar otra materia prima</button>
+  </div>
+</div>
+
+{% include "_ruta_origen.html" %}
+{% include "_cobertura.html" %}
+
+<!-- ── Modal de cotización ─────────────────────────────────────── -->
+<div class="quote-modal" id="quote-modal" hidden>
+  <div class="quote-modal-backdrop" data-quote-close></div>
+  <form class="quote-modal-card" id="quote-form" novalidate>
+    <button type="button" class="quote-modal-close" data-quote-close aria-label="Cerrar"><i class="ph ph-x"></i></button>
+    <span class="section-eyebrow">Solicitud de cotización</span>
+    <h3 class="quote-modal-title">Cotizar <em id="quote-modal-producto">materia prima</em></h3>
+    <p class="quote-modal-sub">Te respondemos por correo con precio, presentaciones y tiempo de entrega.</p>
+
+    <input type="hidden" name="producto" id="quote-producto">
+    <input type="text" name="website" tabindex="-1" autocomplete="off" class="quote-hp" aria-hidden="true">
+
+    <div class="quote-form-grid">
+      <label class="quote-field quote-field-full" id="quote-producto-libre-wrap" hidden>
+        <span>Materia prima *</span>
+        <input type="text" id="quote-producto-libre" placeholder="Ej. Ácido hialurónico bajo peso molecular">
+      </label>
+      <label class="quote-field">
+        <span>Cantidad estimada *</span>
+        <input type="text" name="cantidad" placeholder="Ej. 25 kg / 200 L" required>
+      </label>
+      <label class="quote-field">
+        <span>Presentación</span>
+        <input type="text" name="presentacion" id="quote-presentacion" list="quote-presentaciones" placeholder="Ej. saco 25 kg">
+        <datalist id="quote-presentaciones"></datalist>
+      </label>
+      <label class="quote-field">
+        <span>Nombre *</span>
+        <input type="text" name="nombre" required autocomplete="name">
+      </label>
+      <label class="quote-field">
+        <span>Empresa</span>
+        <input type="text" name="empresa" autocomplete="organization">
+      </label>
+      <label class="quote-field">
+        <span>Correo *</span>
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label class="quote-field">
+        <span>WhatsApp / teléfono</span>
+        <input type="tel" name="telefono" autocomplete="tel">
+      </label>
+      <label class="quote-field">
+        <span>Ciudad</span>
+        <input type="text" name="ciudad" autocomplete="address-level2">
+      </label>
+      <label class="quote-field quote-field-full">
+        <span>Detalles (grado, pureza, uso, frecuencia de compra…)</span>
+        <textarea name="mensaje" rows="3"></textarea>
+      </label>
+    </div>
+    <p class="quote-form-error" id="quote-error" hidden></p>
+    <div class="quote-form-actions">
+      <button type="submit" class="btn btn-primary" id="quote-submit"><i class="ph ph-paper-plane-tilt"></i> Enviar solicitud</button>
+      <span class="quote-form-note">Al enviar aceptas nuestra <a href="/politica-de-datos">política de datos</a>.</span>
+    </div>
+    <div class="quote-form-ok" id="quote-ok" hidden>
+      <i class="ph ph-check-circle"></i>
+      <strong>¡Solicitud recibida!</strong>
+      <p>Te enviamos una confirmación al correo. En 24–48 h hábiles recibirás la cotización.</p>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var modal = document.getElementById('quote-modal');
+  var form = document.getElementById('quote-form');
+  var okBox = document.getElementById('quote-ok');
+  var errBox = document.getElementById('quote-error');
+  var prodHidden = document.getElementById('quote-producto');
+  var prodTitle = document.getElementById('quote-modal-producto');
+  var libreWrap = document.getElementById('quote-producto-libre-wrap');
+  var libre = document.getElementById('quote-producto-libre');
+  var datalist = document.getElementById('quote-presentaciones');
+
+  function abrir(producto, presentaciones) {
+    form.reset();
+    okBox.hidden = true; errBox.hidden = true;
+    form.querySelector('.quote-form-grid').hidden = false;
+    form.querySelector('.quote-form-actions').hidden = false;
+    prodHidden.value = producto || '';
+    prodTitle.textContent = producto || 'una materia prima';
+    libreWrap.hidden = !!producto;
+    libre.value = producto ? '' : '';
+    datalist.innerHTML = '';
+    (presentaciones || '').split('|').filter(Boolean).forEach(function (p) {
+      var o = document.createElement('option'); o.value = p; datalist.appendChild(o);
+    });
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { (producto ? form.querySelector('[name=cantidad]') : libre).focus(); }, 50);
+  }
+  function cerrar() { modal.hidden = true; document.body.style.overflow = ''; }
+
+  document.querySelectorAll('[data-quote-open]').forEach(function (b) {
+    b.addEventListener('click', function () { abrir(b.getAttribute('data-producto'), b.getAttribute('data-presentaciones')); });
+  });
+  document.querySelectorAll('[data-quote-close]').forEach(function (b) { b.addEventListener('click', cerrar); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) cerrar(); });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errBox.hidden = true;
+    var producto = prodHidden.value || libre.value.trim();
+    if (!producto) { errBox.textContent = 'Indica la materia prima que necesitas.'; errBox.hidden = false; libre.focus(); return; }
+    var fd = new FormData(form);
+    var payload = {};
+    fd.forEach(function (v, k) { payload[k] = v; });
+    payload.producto = producto;
+    if (!payload.nombre || !payload.email || !payload.cantidad) {
+      errBox.textContent = 'Completa nombre, correo y cantidad.'; errBox.hidden = false; return;
+    }
+    var btn = document.getElementById('quote-submit');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    fetch('{{ url_for("cotizar_solicitar") }}', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { throw new Error((res.j && res.j.error) || 'No se pudo enviar. Intenta de nuevo.'); }
+        form.querySelector('.quote-form-grid').hidden = true;
+        form.querySelector('.quote-form-actions').hidden = true;
+        okBox.hidden = false;
+        if (window.fbq) { try { fbq('track', 'Lead', { content_name: producto }); } catch (_) {} }
+      })
+      .catch(function (err) { errBox.textContent = err.message; errBox.hidden = false; })
+      .finally(function () { btn.disabled = false; btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Enviar solicitud'; });
+  });
+
+  /* Filtro instantáneo sobre el listado ya cargado (la búsqueda del servidor sigue funcionando con Enter). */
+  var input = document.querySelector('[data-quote-filter]');
+  if (input) {
+    var items = Array.prototype.slice.call(document.querySelectorAll('.quote-item'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('.quote-group'));
+    var timer = null;
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var q = input.value.trim().toLowerCase();
+        items.forEach(function (li) { li.hidden = q ? li.getAttribute('data-quote-name').indexOf(q) === -1 : false; });
+        groups.forEach(function (g) {
+          var visibles = g.querySelectorAll('.quote-item:not([hidden])').length;
+          g.hidden = visibles === 0;
+          var c = g.querySelector('.quote-group-count');
+          if (c) c.textContent = visibles + (visibles === 1 ? ' referencia' : ' referencias');
+        });
+      }, 120);
+    });
+  }
+
+  {% if producto_pre %}
+  abrir({{ producto_pre | tojson }}, '');
+  {% endif %}
+})();
+</script>
+{% endblock %}

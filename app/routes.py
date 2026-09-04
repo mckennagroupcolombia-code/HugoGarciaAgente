@@ -2971,6 +2971,10 @@ def register_routes(app):
                     "mercadolibre": os.path.exists("credenciales_meli.json"),
                     "google": os.path.exists("credenciales_google.json"),
                     "siigo": os.path.exists("credenciales_SIIGO.json"),
+                    "alegra": bool(
+                        (os.getenv("ALEGRA_EMAIL") or "").strip()
+                        and (os.getenv("ALEGRA_TOKEN") or "").strip()
+                    ),
                 },
                 "version": "1.0.0",
             }
@@ -3370,6 +3374,10 @@ def register_routes(app):
                 "mercadolibre": os.path.exists("credenciales_meli.json"),
                 "google": os.path.exists("credenciales_google.json"),
                 "siigo": os.path.exists("credenciales_SIIGO.json"),
+                "alegra": bool(
+                    (os.getenv("ALEGRA_EMAIL") or "").strip()
+                    and (os.getenv("ALEGRA_TOKEN") or "").strip()
+                ),
             },
             "version": "2.0.0",
         })

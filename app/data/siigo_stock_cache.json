@@ -1,6 +1,6 @@
 {
-  "ts": 1788459198.134772,
-  "actualizado_en": "2026-09-03T13:13:37",
+  "ts": 1788491280.6088896,
+  "actualizado_en": "2026-09-03T22:08:24",
   "por_codigo": {
     "C-REVVID6mm": {
       "nombre": "REVOLVEDOR DE VIDRIO 6mm",
@@ -664,7 +664,7 @@
     },
     "CARACTBITPELg": {
       "nombre": "CARBON ACTIVADO BITUMINOSO PELLETS g",
-      "stock_siigo": -7200
+      "stock_siigo": -4800
     },
     "C-CREMON1000g": {
       "nombre": "CREATINA MONOHIDRATO 1000g",
@@ -2232,7 +2232,7 @@
     },
     "BOTGLILt": {
       "nombre": "BOTERO GLICERINA Lt",
-      "stock_siigo": -25
+      "stock_siigo": -26
     },
     "D-SHA705250mL": {
       "nombre": "SHAROMIX 705 250 mL",
@@ -2248,7 +2248,7 @@
     },
     "SHA705mL": {
       "nombre": "SHAROMIX 705 mL",
-      "stock_siigo": -19250
+      "stock_siigo": -19300
     },
     "MANCACREF500g": {
       "nombre": "MANTECA CACAO REFINADA 500g",
@@ -3140,7 +3140,7 @@
     },
     "BOLVACL": {
       "nombre": "BOLSA VACIO L",
-      "stock_siigo": -242
+      "stock_siigo": -239
     },
     "D-SURLECDULKg": {
       "nombre": "SUERO LECHE DULCE Kg",
@@ -3208,7 +3208,7 @@
     },
     "TEGBETg": {
       "nombre": "TEGO BETAINA COCO g",
-      "stock_siigo": -32250
+      "stock_siigo": -33250
     },
     "D-ACENEE500mL": {
       "nombre": "ACEITE NEEM 500mL",
@@ -3268,7 +3268,7 @@
     },
     "BOLMETKg": {
       "nombre": "BOLSA METALIZADA Kg",
-      "stock_siigo": -19
+      "stock_siigo": -16
     },
     "D-CITPOT500g": {
       "nombre": "CITRATO POTASIO 500g",
@@ -3292,7 +3292,7 @@
     },
     "COPDOS30mL": {
       "nombre": "COPA DOSIFICADORA NATU 30,L FARMECEUTICA (IDL11)",
-      "stock_siigo": -945
+      "stock_siigo": -948
     },
     "D-CITMAG500g": {
       "nombre": "CITRATO MAGNESIO 500g",
@@ -3312,11 +3312,11 @@
     },
     "LNRIND36.2mm": {
       "nombre": "Liner Induccion 36,2mm",
-      "stock_siigo": -1112
+      "stock_siigo": -1115
     },
     "ENVBTR250cc": {
       "nombre": "ENVASE BOTERO 250cc",
-      "stock_siigo": -259
+      "stock_siigo": -261
     },
     "D-ACERIC10mL": {
       "nombre": "ACEITE RICINO 10mL",
@@ -3332,7 +3332,7 @@
     },
     "ETQTRM": {
       "nombre": "ETIQUETA TERMICA 10 X 15",
-      "stock_siigo": -4852
+      "stock_siigo": -4853
     },
     "CRT10X10X10cms": {
       "nombre": "Pieza Carton 10 x 10 x 10 cms",
@@ -3340,7 +3340,7 @@
     },
     "PPLBRB10cms": {
       "nombre": "Papel Burbuja 10cm",
-      "stock_siigo": -12864
+      "stock_siigo": -12871
     },
     "CNTADH20cms": {
       "nombre": "Cinta Adhesiva 20cms",
@@ -3348,7 +3348,7 @@
     },
     "VNP20cms": {
       "nombre": "VINIPEL 20 CMS",
-      "stock_siigo": -6272
+      "stock_siigo": -6276
     },
     "CIR36-24-EC40-GX22-YES-OFF-1": {
       "nombre": "Etiqueta 2\" Circle Blank Label Roll",
@@ -3372,7 +3372,7 @@
     },
     "ETQ30mL": {
       "nombre": "Etiqueta 4\" x 1.5\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -2637
+      "stock_siigo": -2638
     },
     "ETQ250g": {
       "nombre": "Etiqueta 3\" x 2.625\" Rounded-Corner Rectangle Blank Label Roll",
@@ -3380,11 +3380,11 @@
     },
     "BANPVCMICUn": {
       "nombre": "BANDA PVC 35 MICRAS",
-      "stock_siigo": 2363
+      "stock_siigo": 2362
     },
     "GLIVEGg": {
       "nombre": "GLICERINA VEGETAL g",
-      "stock_siigo": -73783
+      "stock_siigo": -74283
     },
     "FARAZU30mL": {
       "nombre": "FARMA AZUL 30mL",
@@ -3656,7 +3656,7 @@
     },
     "TAP38MSENUn": {
       "nombre": "TAPA 38MM SENCILLA BLANCA",
-      "stock_siigo": -1251
+      "stock_siigo": -1254
     },
     "PAS180BLAUn": {
       "nombre": "PASTILLERO 180ML BLANCO",
@@ -3768,11 +3768,11 @@
     },
     "TAPPERSEGNEG18mm": {
       "nombre": "TAPA PERFORADA SEGURIDAD NEGRA 18mm",
-      "stock_siigo": -2000
+      "stock_siigo": -2001
     },
     "GOTPIPNEG90mmUn": {
       "nombre": "GOTERO PIPETA NEGRO 90MM",
-      "stock_siigo": -104
+      "stock_siigo": -105
     },
     "GOTPIP77MUn": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",
@@ -3788,7 +3788,7 @@
     },
     "BOLSEGBLAUn": {
       "nombre": "Bolsa de Seguridad Blanca con Portaguia 12x20",
-      "stock_siigo": -4560
+      "stock_siigo": -4561
     },
     "CMCPH101Kg": {
       "nombre": "Celulosa Microcristalina Avicel Ph 101 KG",
@@ -3872,7 +3872,7 @@
     },
     "333": {
       "nombre": "FARMA 50ML AMBAR",
-      "stock_siigo": -365
+      "stock_siigo": -366
     },
     "181": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",

@@ -106,7 +106,7 @@ export default function ContabilidadHerramientas({
         {puedeCrearSiigo && (
           <ToolBtn
             active={open("crear")}
-            title="Crear producto / combo en Siigo"
+            title="Crear producto / combo en Alegra"
             tone="sky"
             onClick={() => toggle("crear")}
           >
@@ -166,7 +166,7 @@ export default function ContabilidadHerramientas({
       {open("crear") && (
         <FloatingToolWindow
           id="crear-siigo"
-          title="Crear en Siigo"
+          title="Crear en Alegra"
           titleExtra={<Icon name="package" size={14} weight="bold" className="text-sky-600 dark:text-sky-300" />}
           headerClassName="border-border bg-sky-500/10 text-sky-700 dark:text-sky-300"
           borderClassName="border-sky-500/50"

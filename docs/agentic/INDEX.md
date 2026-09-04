@@ -44,7 +44,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 
 - MeLi callbacks productivos van a `webhook_meli.py` en puerto 8080.
 - No mezclar systemd y nohup para el mismo puerto.
-- Stock no sale de Siigo; Siigo solo factura.
+- Stock no sale de Alegra; Alegra solo factura.
 - `app/core.py`: herramienta nueva debe importarse, registrarse y quedar auditada.
 - JSON persistente en `app/data/` necesita contrato de lector/escritor.
 - `agent-teams-lite` es referencia historica; preferir `gentle-ai` si se instala stack externo.

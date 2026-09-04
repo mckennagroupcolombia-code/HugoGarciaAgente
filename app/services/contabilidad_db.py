@@ -2068,9 +2068,9 @@ def _aplicar_costos_lineas_compra(
         except Exception:
             pass
         try:
-            from app.services.siigo import actualizar_costo_componente_siigo
+            from app.services.alegra import actualizar_costo_componente_alegra
 
-            actualizar_costo_componente_siigo(nombre, costo_u)
+            actualizar_costo_componente_alegra(nombre, costo_u)
         except Exception:
             pass
 

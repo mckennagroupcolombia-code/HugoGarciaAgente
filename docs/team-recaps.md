@@ -1,4 +1,13 @@
-### 2026-09-02 23:30 - Cuenta de cobro: número de pedido del documento
+### 2026-09-03 21:30 - Contabilidad: altas y compras ahora van a Alegra
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora técnica / Migración ERP
+- **Qué se implementó:**
+  - El módulo de Contabilidad (crear productos/combos, facturas de compra Gmail, centros de costo, costos de compras exterior) **escribe en Alegra**, no en Siigo.
+  - El panel deja de hablar de Siigo en esas pantallas (Alegra ERP, Crear en Alegra, contrastar con Alegra).
+  - Las facturas de venta **hasta el 2026-09-02** siguen leyéndose de Siigo (histórico); lo nuevo es Alegra. Las rutas `/api/siigo/*` se mantienen como alias para no romper el SPA.
+- **Archivos Modificados:** `alegra.py`, `siigo.py`, `importar_productos_siigo.py`, `sincronizar_facturas_de_compra_siigo.py`, `contabilidad_db.py`, `routes.py`, paneles Contabilidad/Facturación, `test_alegra_contabilidad.py`, `CONTRACTS.md`
+
+
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Corrección / Mejora
 - **Qué se implementó:**
@@ -1800,3 +1809,33 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `docs/agentic/TEAM_WORKFLOW.md`, `docs/agentic/CHECKLIST.md`, `docs/agentic/INDEX.md`, `docs/agentic/CONTRACTS.md`, `docs/agentic/DECISIONS.md`, `CLAUDE.md`, `docs/team-recaps.md`
   - `app/tools/git_history.py`, `app/tools/team_recaps.py`, `app/routes.py`
   - `desktop/src/components/ControlVersionesPanel.tsx`, `desktop/src/lib/gitGraphLayout.ts`, `desktop/src/hooks/useGitLog.ts`, `desktop/src/hooks/useTeamRecaps.ts`, `desktop/src/stores/app.ts`, `desktop/src/lib/panelInfo.ts`, `desktop/src/lib/navStructure.ts`, `desktop/src/icons/mck/paths/panels.tsx`, `desktop/src/App.tsx`
+
+### 2026-09-03 21:00 - Módulo Proveedores (/app) + sección Cotizar y mapamundi real en la web
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Panel **Logística Internacional → Proveedores**: directorio con ficha por proveedor, vista "¿Quién vende…?" (mismo producto en varios proveedores con último precio, mínimo y nº de compras → a quién cotizar), historial de precios, detección de catálogos/listas de precios en Gmail con extracción heurística (sin LLM) que el operador confirma, lectura de productos desde la URL de un proveedor, publicación de la oferta cotizable a la web y gestión de solicitudes de cotización con respuesta por correo.
+  - Importadores sin IA desde compras reales: `facturas_compra_historial.json` (179 precios), Siigo `/v1/purchases` (78 facturas, 250 precios desde 2026-01-01) y `compras_exterior` de Contabilidad. Base SQLite nueva `app/data/proveedores.db` (gitignored).
+  - Web pública: página `/cotizar` (listado ampliado por línea: lo que está en stock enlaza a la tienda, lo demás "Bajo pedido" solo cotizable; buscador instantáneo; modal de solicitud → WhatsApp al grupo + correo de confirmación), enlace "Cotizar" en la navegación y el footer, y el bloque de inicio "Del origen a tu fórmula" ahora usa un mapamundi real (Natural Earth) con rutas animadas hacia Bogotá en dos capas: stock y red de proveedores. El sitio nunca muestra el nombre del proveedor.
+- **Pendiente para que luzca completo:** definir país de origen por línea/SKU en /app → Vitrina Web → Origen de materias, y marcar "Publicar en Cotizar" + país/línea en Proveedores; reiniciar `mckenna-website` para publicar la web.
+- **Archivos Modificados:**
+  - `app/services/proveedores_db.py` (nuevo), `app/routes_proveedores.py` (nuevo), `agente_pro.py`, `app/data/scripts_manifest.json`, `.gitignore`, `.env.example`
+  - `desktop/src/components/ProveedoresPanel.tsx` (nuevo), `desktop/src/hooks/useProveedores.ts` (nuevo), `desktop/src/components/LogisticaInternacionalPanel.tsx`
+  - `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/cotizar.html` (nuevo), `_ruta_origen.html`, `_world_land.svg.html` (nuevo), `base.html`, `static/css/main.css`
+  - `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`
+
+### 2026-09-03 22:00 - Frontend ilustrado de trazabilidad: mapamundi interactivo, Colombia por departamentos y Cotizar por líneas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de producto (web pública) + módulo Proveedores
+- **Qué se implementó:**
+  - Sección "Del origen a tu fórmula": KPIs animados (países, referencias, TDS, COA, departamentos), cadena de custodia ilustrada, filtro por línea, mapamundi con trama de puntos y rutas animadas (barco/avión) hacia Bogotá, panel lateral por país con productos enlazados a su ficha y badges TDS/COA, tour automático.
+  - Sección "Colombia, de punta a punta": mapa real por departamentos con coropleta de pedidos entregados (web + MeLi), tramado en los 12 departamentos por impactar, pulsos de despachos de la semana, puertos de entrada y bodega, anillo de progreso 21/33, ranking y CTA "sé el primero".
+  - `/cotizar`: tarjetas por línea comercial con conteos, orígenes y COA; chips de origen/TDS/COA por referencia; unidades en stock; nuevo copy "Manejamos N referencias… Conoce nuestra oferta".
+  - Proveedores: clasificación heurística de línea/origen por nombre (`autoclasificar`), publicación masiva por proveedor, limpieza de nombres para la web y exclusión de empaques/servicios; 192 productos de proveedores publicados como "bajo pedido" en 21 países.
+  - Orígenes de referencia sembrados por SKU en `origen_materias.json` (autorizado por el usuario; editable desde Vitrina Web).
+- **Archivos Modificados:**
+  - `PAGINA_WEB/site/website.py`, `templates/_ruta_origen.html`, `templates/_cobertura.html`, `templates/_colombia_map.svg.html` (nuevo), `templates/cotizar.html`, `templates/base.html`, `static/js/trazabilidad.js` (nuevo), `static/css/main.css`, `data/origen_materias.json`, `data/oferta_proveedores.json`
+  - `app/services/proveedores_db.py`, `app/routes_proveedores.py`, `app/data/colombia_departamentos_svg.json` (nuevo)
+  - `desktop/src/components/ProveedoresPanel.tsx`, `desktop/src/hooks/useProveedores.ts`
+  - `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, `docs/team-recaps.md`
+

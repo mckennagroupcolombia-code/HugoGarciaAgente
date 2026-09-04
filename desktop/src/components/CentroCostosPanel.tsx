@@ -34,7 +34,7 @@ export default function CentroCostosPanel() {
       </div>
 
       {isLoading && (
-        <p className="text-sm text-muted">Consultando Siigo…</p>
+        <p className="text-sm text-muted">Consultando Alegra…</p>
       )}
 
       {error && (
@@ -44,7 +44,7 @@ export default function CentroCostosPanel() {
       )}
 
       {!isLoading && !error && centros.length === 0 && (
-        <p className="text-sm text-muted">No hay centros de costo registrados en Siigo.</p>
+        <p className="text-sm text-muted">No hay centros de costo registrados en Alegra.</p>
       )}
 
       {centros.length > 0 && (
@@ -54,7 +54,7 @@ export default function CentroCostosPanel() {
               <tr>
                 <th className="px-4 py-2.5">Código</th>
                 <th className="px-4 py-2.5">Nombre</th>
-                <th className="px-4 py-2.5">ID Siigo</th>
+                <th className="px-4 py-2.5">ID Alegra</th>
                 <th className="px-4 py-2.5">Estado</th>
               </tr>
             </thead>
@@ -83,7 +83,7 @@ export default function CentroCostosPanel() {
       )}
 
       <p className="text-xs text-muted">
-        Fuente: API Siigo · {data?.total ?? 0} centro{(data?.total ?? 0) !== 1 ? "s" : ""}
+        Fuente: API Alegra · {data?.total ?? 0} centro{(data?.total ?? 0) !== 1 ? "s" : ""}
       </p>
     </div>
   );

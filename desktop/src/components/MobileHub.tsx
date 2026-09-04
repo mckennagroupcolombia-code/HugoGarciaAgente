@@ -278,7 +278,7 @@ function HomeTab({
       const st: Record<string, boolean> = {};
       if (s?.meli_token_activo != null) st["MeLi"] = !!s.meli_token_activo;
       if (s?.google_sheets != null) st["Sheets"] = !!s.google_sheets;
-      if (s?.siigo_ok != null) st["Siigo"] = !!s.siigo_ok;
+      if (s?.siigo_ok != null) st["Alegra"] = !!s.siigo_ok;
       setStatus(st);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [token]);

@@ -847,7 +847,7 @@ def _format_whatsapp_pedido(order: dict) -> str:
         f"📦 *Ítems ({n}):*\n{items_txt}\n"
         f"\n"
         f"📋 *Cómo responder en este grupo* (copiar y ajustar):\n"
-        f"• Pedir factura en Siigo/registro:\n"
+        f"• Pedir factura en Alegra/registro:\n"
         f"  _facturar {suf}_\n"
         f"  _(también vale la ref completa: facturar {ref})_\n"
         f"• Registrar guía de transportadora:\n"
@@ -868,7 +868,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 
 def _web_siigo_auto_invoice_enabled() -> bool:
-    """Tienda ↔ Siigo: tras pago aprobado emitir FE (WEB_SIIGO_AUTO_INVOICE=0 desactiva; ausente/vacío = sí)."""
+    """Tienda ↔ Alegra: tras pago aprobado emitir FE (WEB_SIIGO_AUTO_INVOICE=0 desactiva; ausente/vacío = sí)."""
     raw = os.getenv("WEB_SIIGO_AUTO_INVOICE")
     if raw is None or not str(raw).strip():
         return True
@@ -1039,7 +1039,7 @@ def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict],
 
 
 def _build_web_order_siigo_observations(order: dict, data: dict, ref: str) -> str:
-    """Texto para campo observations en Siigo: envío, facturación y contacto (como en checkout web)."""
+    """Texto para campo observations en Alegra: envío, facturación y contacto (como en checkout web)."""
     chunks: list[str] = []
     pay = (order.get("payu_ref") or "").strip() or "N/A"
     chunks.append(f"Pedido web {ref}. Mercado Pago: {pay}.")
@@ -1094,7 +1094,7 @@ def _build_web_order_siigo_observations(order: dict, data: dict, ref: str) -> st
 
 def _infer_siigo_city_codes_from_web_order(order: dict, data: dict) -> tuple[str, str]:
     """
-    Códigos ciudad/departamento Siigo para dirección del tercero.
+    Códigos ciudad/departamento Alegra para dirección del tercero.
     Heurística: Bogotá → 11001 / 11; si no, variables de entorno o Bogotá por defecto.
     """
     blob = " ".join(
@@ -1155,7 +1155,7 @@ def _lock_order_for_siigo_invoice(reference: str, force: bool) -> tuple[dict | N
 
 
 def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> tuple[bool, str]:
-    """Emite/reintenta la factura Siigo de un pedido web aprobado, sin duplicarla.
+    """Emite/reintenta la factura Alegra de un pedido web aprobado, sin duplicarla.
 
     Datos tomados del checkout (``website.py`` → ``orders.items_json`` / columnas ``orders``):
 
@@ -1163,10 +1163,10 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
       email y teléfono de facturación; dirección fiscal = ``billing.address`` o envío ``address``.
     - **Observaciones:** bloques ENVÍO (calle, ciudad, depto) y FACTURACIÓN (nombre, NIT, email,
       dirección/ciudad facturación), MP y notas.
-    - **Ciudad DIAN en Siigo:** heurística Bogotá (11001/11) desde ciudad/depto del pedido; si no,
+    - **Ciudad DIAN en Alegra:** heurística Bogotá (11001/11) desde ciudad/depto del pedido; si no,
       ``SIIGO_INVOICE_CUSTOMER_*`` en ``.env``.
     - **Sincronización:** si ``WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE`` (default 1), se hace
-      ``PUT`` del tercero en Siigo antes de facturar para que la FE no use una ficha antigua
+      ``PUT`` del tercero en Alegra antes de facturar para que la FE no use una ficha antigua
       con el mismo documento.
     """
     migrate_orders_table()
@@ -1298,14 +1298,14 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
         return True, (
             f"✅ *Factura automática web emitida*\n"
             f"Pedido: *{ref}*\n"
-            f"Factura Siigo: *{number}*\n"
-            f"Estado DIAN/Siigo: {status}\n"
+            f"Factura Alegra: *{number}*\n"
+            f"Estado DIAN/Alegra: {status}\n"
             f"{cufe_line}"
             f"{mail_line}"
             f"{result.get('url') or _siigo_invoice_url(invoice_id)}"
         )
 
-    error = str(result.get("error") or "Siigo no emitió la factura.")
+    error = str(result.get("error") or "Alegra no emitió la factura.")
     _update_invoice_state(
         ref,
         siigo_invoice_status="error",
@@ -1321,7 +1321,7 @@ def process_order_paid_side_effects(reference: str) -> None:
 
     1. Correo de confirmación al comprador (una vez).
     2. WhatsApp al grupo pedidos web con resumen (una vez).
-    3. Factura electrónica en Siigo con datos del checkout cuando ``WEB_SIIGO_AUTO_INVOICE`` está activo:
+    3. Factura electrónica en Alegra con datos del checkout cuando ``WEB_SIIGO_AUTO_INVOICE`` está activo:
        por defecto **activado** (variable ausente); ``WEB_SIIGO_AUTO_INVOICE=0`` en ``.env`` desactiva.
        La sync del tercero y la emisión están en ``emitir_factura_siigo_pedido_web``.
     """
@@ -1410,9 +1410,9 @@ def process_order_paid_side_effects(reference: str) -> None:
 
                 enviar_whatsapp_reporte(out, numero_destino=GRUPO_PEDIDOS_WEB_WA)
             if not ok:
-                log.warning("Factura Siigo web pendiente/fallida %s: %s", ref, out)
+                log.warning("Factura Alegra web pendiente/fallida %s: %s", ref, out)
         except Exception as e:
-            log.warning("Factura Siigo web %s: %s", ref, e)
+            log.warning("Factura Alegra web %s: %s", ref, e)
 
 
 def registrar_envio_y_notificar(
@@ -1489,7 +1489,7 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
 
 def registrar_entrega_y_facturar(reference: str) -> tuple[bool, str]:
     """
-    Marca el pedido como entregado y dispara la factura Siigo en ESE momento
+    Marca el pedido como entregado y dispara la factura Alegra en ESE momento
     (no al momento de la venta/aprobación). Reduce notas crédito por
     arrepentimiento del cliente entre la compra y la entrega.
 
@@ -1529,7 +1529,7 @@ def anular_pedido_web(
     - `pending` / `approved` / `declined` / `no_realizado`: se pueden anular.
     - Ya `cancelled` / `refunded`: no-op con error.
     - Enviado (`shipping_status=shipped`): requiere `force=True`.
-    - Si hay factura Siigo, anula igual pero avisa (no emite nota crédito automática).
+    - Si hay factura Alegra, anula igual pero avisa (no emite nota crédito automática).
     """
     migrate_orders_table()
     raw = (reference or "").strip()

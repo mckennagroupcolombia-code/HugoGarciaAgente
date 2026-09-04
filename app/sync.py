@@ -30,7 +30,7 @@ from app.services.tickets_db import (
 )
 
 
-TITULO_SYNC_FACTURAS_FALTANTES_SIIGO = "Sync facturas faltantes MeLi↔Siigo"
+TITULO_SYNC_FACTURAS_FALTANTES_SIIGO = "Sync facturas faltantes MeLi↔Alegra"
 
 # Categorías del cruce MeLi↔Siigo (pack sin documento fiscal en MeLi aún).
 SYNC_FACTURA_CAT_SIN_CRUCE = "sin_cruce_siigo"
@@ -152,7 +152,7 @@ def _actualizar_seguimiento_sync_facturas(
 def _indexar_facturas_siigo_por_packs(
     facturas_siigo: list, pack_ids: list[str]
 ) -> dict[str, dict]:
-    """Mapea pack_id → factura Siigo (observations / purchase_order)."""
+    """Mapea pack_id → factura Alegra (observations / purchase_order)."""
     pack_set = {str(p).strip() for p in pack_ids if str(p).strip()}
     fac_match: dict[str, dict] = {}
     for fac in facturas_siigo:
@@ -176,7 +176,7 @@ def _intentar_sync_pack_desde_factura_siigo(
     cache_doc: dict[str, tuple[Any, str]],
 ) -> tuple[str, str | None]:
     """
-    Intenta obtener documento Siigo y subirlo a MeLi.
+    Intenta obtener documento Alegra y subirlo a MeLi.
     Retorna (categoría, detalle_opcional).
     categoría: 'ok' | SYNC_FACTURA_CAT_* .
     """
@@ -184,12 +184,12 @@ def _intentar_sync_pack_desde_factura_siigo(
         est = siigo_factura_estado_log(fac)
         return (
             SYNC_FACTURA_CAT_TIMBRADO,
-            f"estado Siigo: {est or 'pendiente timbrado DIAN'}",
+            f"estado Alegra: {est or 'pendiente timbrado DIAN'}",
         )
 
     sid = str(fac.get("id") or "").strip()
     if not sid:
-        return (SYNC_FACTURA_CAT_SIN_DOC, "factura Siigo sin id")
+        return (SYNC_FACTURA_CAT_SIN_DOC, "factura Alegra sin id")
 
     if sid in cache_doc:
         doc, fmt = cache_doc[sid]
@@ -214,7 +214,7 @@ def _intentar_sync_pack_desde_factura_siigo(
 def _procesar_packs_sync_siigo(
     pack_ids: list[str], facturas_siigo: list
 ) -> dict[str, Any]:
-    """Cruza packs pendientes en MeLi con facturas Siigo y sube cuando es posible."""
+    """Cruza packs pendientes en MeLi con facturas Alegra y sube cuando es posible."""
     categorias = _categorias_sync_facturas_vacias()
     fallo_detalle: dict[str, str] = {}
     exitosas: list[str] = []
@@ -225,7 +225,7 @@ def _procesar_packs_sync_siigo(
         fac = fac_match.get(p_id)
         if not fac:
             categorias[SYNC_FACTURA_CAT_SIN_CRUCE].append(p_id)
-            print(f"   └──> ❓ Pack {p_id}: sin cruce en Siigo (observations/purchase_order)")
+            print(f"   └──> ❓ Pack {p_id}: sin cruce en Alegra (observations/purchase_order)")
             continue
 
         cat, detalle = _intentar_sync_pack_desde_factura_siigo(p_id, fac, cache_doc)
@@ -240,7 +240,7 @@ def _procesar_packs_sync_siigo(
         if cat == SYNC_FACTURA_CAT_TIMBRADO:
             print(f"   └──> ⏭️ Pack {p_id}: esperando timbrado ({detalle})")
         elif cat == SYNC_FACTURA_CAT_SIN_DOC:
-            print(f"   └──> ⚠️ Pack {p_id}: sin PDF/XML en Siigo ({detalle})")
+            print(f"   └──> ⚠️ Pack {p_id}: sin PDF/XML en Alegra ({detalle})")
         else:
             print(f"   └──> ❌ Pack {p_id}: fallo subida MeLi ({detalle})")
 
@@ -305,13 +305,13 @@ def _formatear_reporte_sync_facturas(
             f"⚠️ *ALERTA DE FACTURACIÓN* ⚠️\n"
             f"Subidas a MeLi: {len(exitosas)} · "
             f"Pendientes críticos: {n_crit}"
-            + (f" · En timbrado Siigo: {n_tim}" if n_tim else "")
+            + (f" · En timbrado Alegra: {n_tim}" if n_tim else "")
         )
     elif n_tim:
         resumen = (
-            f"ℹ️ *Sync facturas MeLi↔Siigo*\n"
+            f"ℹ️ *Sync facturas MeLi↔Alegra*\n"
             f"Subidas: {len(exitosas)} · "
-            f"{n_tim} pack(s) con factura en Siigo esperando timbrado DIAN (sin subir aún)."
+            f"{n_tim} pack(s) con factura en Alegra esperando timbrado DIAN (sin subir aún)."
         )
     else:
         return ""
@@ -320,23 +320,23 @@ def _formatear_reporte_sync_facturas(
     secciones = (
         (
             SYNC_FACTURA_CAT_SIN_CRUCE,
-            "Sin cruce en Siigo",
+            "Sin cruce en Alegra",
             "No aparece el Pack ID en observations/purchase_order de ninguna factura reciente.",
         ),
         (
             SYNC_FACTURA_CAT_SIN_DOC,
-            "Factura en Siigo sin PDF/XML",
-            "Hay cruce en Siigo pero aún no hay documento descargable para MeLi.",
+            "Factura en Alegra sin PDF/XML",
+            "Hay cruce en Alegra pero aún no hay documento descargable para MeLi.",
         ),
         (
             SYNC_FACTURA_CAT_FALLO_SUBIDA,
             "Fallo al subir a MeLi",
-            "Documento listo en Siigo pero la API de MeLi rechazó o falló la subida.",
+            "Documento listo en Alegra pero la API de MeLi rechazó o falló la subida.",
         ),
         (
             SYNC_FACTURA_CAT_TIMBRADO,
             "Esperando timbrado DIAN",
-            "Factura en Siigo en borrador/envío; reintentar cuando esté timbrada.",
+            "Factura en Alegra en borrador/envío; reintentar cuando esté timbrada.",
         ),
     )
     for cat, titulo, ayuda in secciones:
@@ -442,20 +442,20 @@ def _crear_accion_sync_facturas_faltantes_siigo(
     )
 
     bloques_desc = [
-        "Se detectaron packs de MeLi sin documento fiscal subido, tras cruce con Siigo.\n",
+        "Se detectaron packs de MeLi sin documento fiscal subido, tras cruce con Alegra.\n",
         "Resolver según categoría (ver abajo). Al cerrar la acción se reintenta el sync automático.\n",
     ]
     notas_por_cat = {
         SYNC_FACTURA_CAT_SIN_CRUCE: (
-            "Buscar el Pack ID en Siigo (observations/purchase_order) o emitir factura "
+            "Buscar el Pack ID en Alegra (observations/purchase_order) o emitir factura "
             "y volver a sincronizar."
         ),
         SYNC_FACTURA_CAT_TIMBRADO: (
-            "Factura en Siigo aún en timbrado; esperar estado timbrado y reintentar sync."
+            "Factura en Alegra aún en timbrado; esperar estado timbrado y reintentar sync."
         ),
         SYNC_FACTURA_CAT_SIN_DOC: (
-            "Hay cruce en Siigo pero falta PDF/XML descargable; completar timbrado o "
-            "regenerar documento en Siigo."
+            "Hay cruce en Alegra pero falta PDF/XML descargable; completar timbrado o "
+            "regenerar documento en Alegra."
         ),
         SYNC_FACTURA_CAT_FALLO_SUBIDA: (
             "Subir manualmente a MeLi o corregir el documento; revisar detalle del error."
@@ -661,8 +661,8 @@ def sincronizar_stock_multicanal(
       en Sheets vs "ALGNA100g" en MeLi), lo que hace fallar esa búsqueda silenciosamente.
       Sin `meli_id` se cae al buscar por SKU (comportamiento anterior).
     - Web: push real si WEB_API_URL/WEB_API_KEY están configurados; si no, solo se
-      regenera el catálogo desde Siigo (la web no tiene control de stock numérico propio).
-    - Siigo: solo lectura de referencia — Siigo es solo para facturación (ver CLAUDE.md),
+      regenera el catálogo desde Alegra (la web no tiene control de stock numérico propio).
+    - Alegra: solo lectura de referencia — Alegra es solo para facturación (ver CLAUDE.md),
       nunca se le escribe el stock.
     """
     nuevo_stock = int(nuevo_stock)
@@ -701,7 +701,7 @@ def sincronizar_stock_multicanal(
                 "ok": "✅" in msg_web,
                 "mensaje": (
                     "Sin API de stock configurada (WEB_API_URL/WEB_API_KEY) — se regeneró "
-                    f"el catálogo desde Siigo, sin número de stock propio. {msg_web}"
+                    f"el catálogo desde Alegra, sin número de stock propio. {msg_web}"
                 ),
                 "numerico": False,
             }
@@ -719,26 +719,26 @@ def sincronizar_stock_multicanal(
         if datos_siigo:
             resultado["siigo"] = {
                 "stock": datos_siigo.get("stock_siigo"),
-                "mensaje": "Solo lectura — Siigo se usa para facturación, no recibe stock automáticamente.",
+                "mensaje": "Solo lectura — Alegra se usa para facturación, no recibe stock automáticamente.",
             }
         else:
-            resultado["siigo"] = {"stock": None, "mensaje": "SKU no encontrado en Siigo."}
+            resultado["siigo"] = {"stock": None, "mensaje": "SKU no encontrado en Alegra."}
     except Exception as e:
-        resultado["siigo"] = {"stock": None, "mensaje": f"❌ Error consultando Siigo: {e}"}
+        resultado["siigo"] = {"stock": None, "mensaje": f"❌ Error consultando Alegra: {e}"}
 
     return resultado
 
 
 def sincronizar_facturas_recientes(dias: int = 1):
-    """Busca facturas en Siigo de los últimos 'dias' y las sube a Mercado Libre."""
+    """Busca facturas en Alegra de los últimos 'dias' y las sube a Mercado Libre."""
     print(
-        f"\n🚀 [SYNC RECIENTE] Iniciando revisión de facturas de Siigo para los últimos {dias} día(s)..."
+        f"\n🚀 [SYNC RECIENTE] Iniciando revisión de facturas de Alegra para los últimos {dias} día(s)..."
     )
     fecha_inicio = (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d")
     try:
         facturas_siigo = obtener_facturas_siigo_paginadas(fecha_inicio)
         if not facturas_siigo:
-            return f"✅ No se encontraron facturas en Siigo desde {fecha_inicio}."
+            return f"✅ No se encontraron facturas en Alegra desde {fecha_inicio}."
         print(f"📊 Se encontraron {len(facturas_siigo)} facturas. Analizando...")
         exitos = 0
         for f in facturas_siigo:
@@ -762,7 +762,7 @@ def sincronizar_facturas_recientes(dias: int = 1):
                     print(f"   └──> ✅ Sincronizado Pack ID: {p_id}{suf}")
                 elif not doc:
                     print(
-                        f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
+                        f"   └──> ⚠️ Sin documento Alegra (PDF/XML) Pack {p_id} "
                         f"({siigo_factura_etiqueta_log(f)} est={siigo_factura_estado_log(f)})"
                     )
         return f"✅ Revisión terminada. Se subieron {exitos} facturas."
@@ -805,7 +805,7 @@ def sincronizar_por_dia_especifico(fecha_consulta: str):
                     print(f"   └──> ✅ Sincronizado Pack ID: {p_id}{suf}")
                 elif not doc:
                     print(
-                        f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
+                        f"   └──> ⚠️ Sin documento Alegra (PDF/XML) Pack {p_id} "
                         f"({siigo_factura_etiqueta_log(f)} est={siigo_factura_estado_log(f)})"
                     )
         return f"✅ Fin del proceso para {fecha_consulta}. Facturas subidas: {exitos}"
@@ -814,7 +814,7 @@ def sincronizar_por_dia_especifico(fecha_consulta: str):
 
 
 def sincronizar_manual_por_id(pack_id: str):
-    """Busca una factura en Siigo por Pack ID y la sube a Mercado Libre."""
+    """Busca una factura en Alegra por Pack ID y la sube a Mercado Libre."""
     print(f"\n🔎 [SYNC MANUAL] Buscando factura para el Pack ID: {pack_id}...")
     fecha_inicio = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
     try:
@@ -827,12 +827,12 @@ def sincronizar_manual_por_id(pack_id: str):
             )
             if str(pack_id).strip() in obs:
                 print(
-                    f"✨ ¡Coincidencia encontrada! Factura Siigo ID: {fac.get('id')}. Procediendo a subir..."
+                    f"✨ ¡Coincidencia encontrada! Factura Alegra ID: {fac.get('id')}. Procediendo a subir..."
                 )
                 if siigo_omitir_pdf_mientras_timbrado(fac):
                     return (
                         f"⏭️ La factura está en timbrado ({siigo_factura_estado_log(fac)}). "
-                        f"No se puede obtener PDF todavía; reintente cuando esté Accepted en Siigo."
+                        f"No se puede obtener PDF todavía; reintente cuando esté Accepted en Alegra."
                     )
                 doc, fmt = obtener_documento_fiscal_siigo_para_meli(fac.get("id"))
                 if doc:
@@ -842,7 +842,7 @@ def sincronizar_manual_por_id(pack_id: str):
                         + (" (XML DIAN)" if fmt == "xml" else "")
                     )
                 else:
-                    return f"❌ Se encontró la factura pero no se pudo descargar PDF ni XML de Siigo."
+                    return f"❌ Se encontró la factura pero no se pudo descargar PDF ni XML de Alegra."
         return "❌ No se encontró una factura en los últimos 90 días con ese Pack ID."
     except Exception as e:
         return f"❌ Error crítico en sync manual: {e}"
@@ -882,9 +882,9 @@ def sincronizar_manual_por_packs(pack_ids: list[str]) -> dict[str, Any]:
 
 
 def sincronizar_inteligente():
-    """Busca órdenes en MeLi sin factura y las cruza con facturas de Siigo."""
+    """Busca órdenes en MeLi sin factura y las cruza con facturas de Alegra."""
     print(
-        "\n🧠 [SYNC INTELIGENTE] Iniciando cruce de datos entre Mercado Libre y Siigo..."
+        "\n🧠 [SYNC INTELIGENTE] Iniciando cruce de datos entre Mercado Libre y Alegra..."
     )
     try:
         token_meli = refrescar_token_meli()
@@ -980,8 +980,8 @@ def sincronizar_inteligente():
             (datetime.now() - timedelta(days=dias_siigo)).strftime("%Y-%m-%d")
         )
         if not facturas_siigo:
-            return f"⚠️ Alerta: MeLi tiene {len(pendientes)} pendientes pero no hay facturas en Siigo para cruzar."
-        print(f"🔍 Obtenidas {len(facturas_siigo)} facturas de Siigo para comparar ({dias_siigo}d).")
+            return f"⚠️ Alerta: MeLi tiene {len(pendientes)} pendientes pero no hay facturas en Alegra para cruzar."
+        print(f"🔍 Obtenidas {len(facturas_siigo)} facturas de Alegra para comparar ({dias_siigo}d).")
 
         resultado = _procesar_packs_sync_siigo(pendientes, facturas_siigo)
         exitosas = resultado["exitosas"]

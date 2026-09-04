@@ -582,11 +582,11 @@ function ImagenesTab({
   return (
     <div className="space-y-6">
 
-      {/* ── Sección Web / SIIGO ── */}
+      {/* ── Sección Web / Alegra ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-bold text-ink">Web / SIIGO</h4>
+            <h4 className="text-sm font-bold text-ink">Web / Alegra</h4>
             <p className="text-[11px] text-muted">
               {fotos?.web.total ?? 0} imagen(es) · La primera es la principal · estándar 1000×1000 fondo blanco
             </p>
@@ -758,7 +758,7 @@ function ImagenesTab({
         <div className="flex gap-3">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink hover:border-accent/30">
             <input type="checkbox" checked={targetWeb} onChange={(e) => setTargetWeb(e.target.checked)} className="h-4 w-4 accent-accent" />
-            Web / SIIGO
+            Web / Alegra
           </label>
           <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${meliItemId ? "border-border bg-surface text-ink hover:border-blue-300" : "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"}`}>
             <input type="checkbox" checked={targetMeli} onChange={(e) => setTargetMeli(e.target.checked)} disabled={!meliItemId} className="h-4 w-4 accent-blue-600" />
@@ -2119,7 +2119,7 @@ function CatalogoClienteView() {
       </div>
 
       <p className="text-xs text-muted">
-        El catálogo se actualiza solo desde SIIGO (fotos, stock, precios) — para corregir un
+        El catálogo se actualiza solo desde Alegra (fotos, stock, precios) — para corregir un
         producto puntual usa la pestaña "Catálogo" de este panel.
       </p>
     </div>
@@ -2212,7 +2212,7 @@ function VerificarPreciosView() {
             <tr>
               <th className="px-3 py-2">Producto</th>
               <th className="px-3 py-2 text-right">MeLi (vivo)</th>
-              <th className="px-3 py-2 text-right">Siigo</th>
+              <th className="px-3 py-2 text-right">Alegra</th>
               <th className="px-3 py-2 text-right">Web</th>
               <th className="px-3 py-2 text-center">Estado</th>
             </tr>
@@ -2284,7 +2284,7 @@ function VerificarPreciosView() {
                       {desync ? (
                         <span className="text-danger">⚠</span>
                       ) : sinDatos ? (
-                        <span title="Solo en MeLi — sin producto en Siigo/Web" className="text-muted">—</span>
+                        <span title="Solo en MeLi — sin producto en Alegra/Web" className="text-muted">—</span>
                       ) : (
                         <span className="text-green-600">✓</span>
                       )}

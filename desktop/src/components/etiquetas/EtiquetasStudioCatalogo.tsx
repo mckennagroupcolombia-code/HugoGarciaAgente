@@ -108,7 +108,7 @@ interface Props {
   mostrarDiagramacion?: boolean;
   /** Preselecciona formato al abrir (p. ej. «500 g»). */
   formatoInicial?: string;
-  /** Muestra el catálogo completo Siigo (como Impresión), no solo filas con .ai. */
+  /** Muestra el catálogo completo Alegra (como Impresión), no solo filas con .ai. */
   catalogoCompleto?: boolean;
   /** Lista archivos .ai de Etiquetas Modelo SVG/ (Studio escaneo). */
   modoModeloSvg?: boolean;
@@ -548,7 +548,7 @@ export function EtiquetasStudioCatalogo({
                     }`}
                   >
                     <p className="truncate font-mono text-[10px] font-semibold text-accent-plum">{a}</p>
-                    <p className="mt-0.5 text-[9px] text-muted">Archivo .ai · sin producto Siigo</p>
+                    <p className="mt-0.5 text-[9px] text-muted">Archivo .ai · sin producto Alegra</p>
                   </button>
                 </li>
               ))}

@@ -8,6 +8,7 @@ export interface StatusInfo {
     mercadolibre: boolean;
     google: boolean;
     siigo: boolean;
+    alegra?: boolean;
   };
   version: string;
 }

@@ -251,9 +251,10 @@ Auth: Bearer `CHAT_API_TOKEN` **o** JWT de tickets (operarios con permiso `empaq
 Persistencia: `app/data/empaque_evidencia.db` + fotos en `app/data/empaque_uploads/`.
 Panel React: id `empaque` (hub Atención). Permiso `permisos_secciones.empaque`.
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
-| `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea Product inventariable; `{ok, mensaje\|error, siigo_producto?}` |
-| `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Siigo + caché; `{items[{codigo,nombre,type}], total}` |
-| `/api/siigo/combos` | POST | `codigo`, `nombre`, `componentes[{code,quantity}]`, `precio_lista?`, `iva?` | Crea Combo; requiere ≥1 componente existente; Premium |
+| `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea producto en **Alegra** (ruta `/api/siigo/*` se mantiene por compatibilidad); `{ok, mensaje\|error, siigo_producto?}` |
+| `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Alegra; `{items[{codigo,nombre,type}], total}` |
+| `/api/siigo/combos` | POST | `codigo`, `nombre`, `componentes[{code,quantity}]`, `precio_lista?`, `iva?` | Crea kit en Alegra; requiere ≥1 componente existente |
+| `/api/siigo/centros-costo` | GET | — | Centros de costo Alegra `{centros[{id,code,name,active}]}` |
 
 También existen prefijos `/app/api/siigo/productos` y `/app/api/siigo/combos` para mutaciones bajo el SPA.
 
@@ -263,8 +264,8 @@ Prefijos: `/api/rentabilidad/*` y `/app/api/rentabilidad/*` (mutaciones multipar
 
 | Endpoint | Metodo | Body | Notas |
 | --- | --- | --- | --- |
-| `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Siigo |
-| `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre), `limit?` | Busca en vivo Siigo + caché; hasta 80 `{codigo,nombre}` |
+| `/api/rentabilidad/componentes` | GET/POST | POST: `nombre`, `costo_unitario`, `categoria?`, `iva_incluido?` | Upsert costo manual + sync Alegra |
+| `/api/rentabilidad/componentes-buscar` | GET | query `q` (SKU o nombre), `limit?` | Busca en vivo Alegra + caché; hasta 80 `{codigo,nombre}` |
 | `/api/rentabilidad/trm` | GET | query `fecha=YYYY-MM-DD` | TRM BanRep (datos.gov.co) USD→COP para esa fecha |
 | `/api/rentabilidad/extraer-compra-imagen` | POST | multipart `imagenes` (1..N) o `imagen`, opcional `fecha_compra`, `trm`, `flete` | Gemini Vision multi-imagen → lineas + landed + `numero_pedido`/`referencia` (Order ID / Invoice No del documento); USD sin TRM → BanRep |
 | `/api/tickets/extraer-lista-compras` | POST | multipart `imagen` o `archivo`, `modo=compra|etiqueta` (auth tickets) | OCR → `{items:[{nombre,cantidad,unidad}]}`; etiquetas: presentación en nombre + `unidad=u` |
@@ -362,6 +363,23 @@ Rutas principales:
 - `DELETE /api/5s/project/<project_id>`
 - `POST /api/5s/template`
 - `PUT/DELETE /api/5s/template/<template_id>`
+
+## Proveedores (Logística Internacional → Proveedores) + web /cotizar
+
+- Backend: `app/routes_proveedores.py` → `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`).
+- Auth: `CHAT_API_TOKEN` o usuario de tickets con `permisos_secciones["logistica-internacional"]` (o `logistica-proveedores`).
+- Todas las rutas existen en `/api/proveedores/...` y `/app/api/proveedores/...`.
+- `GET /api/proveedores/resumen` → `{proveedores, productos, lineas_producto, precios, publicables, catalogos, catalogos_pendientes, cotizaciones_nuevas, paises[], oferta_web_publicada}`.
+- `GET /api/proveedores?q=` → `{proveedores: [{id, nombre, nit, pais, tipo, n_productos, n_precios, ultima_compra, n_catalogos, ...}]}`; `POST` crea (`nombre` obligatorio); `GET/PUT /api/proveedores/<id>` ficha con `productos[]`, `precios[]`, `catalogos[]`.
+- `GET /api/proveedores/productos?q=&linea=&publicables=1` → `{productos: [{clave, nombre, cas, linea, origen_paises[], publicar_web, presentaciones[], skus_siigo[], proveedores: [{proveedor_id, proveedor, ultimo_precio, moneda, precio_min, n_compras, producto_id}], mejor_precio, mejor_proveedor}]}` (una fila por producto, agrupado por `clave` = nombre sin presentación).
+- `PUT /api/proveedores/productos/<id>` (`linea`, `origen_pais`, `publicar_web`, `cas`, `aplicar_a_clave`); `GET /api/proveedores/precios?clave=`.
+- `POST /api/proveedores/importar` `{fuente: todo|historial|compras_exterior|siigo, incluir_siigo, fecha_desde}` — idempotente (UNIQUE en precios).
+- Catálogos: `POST /catalogos/escanear {dias}` (Gmail, solo metadatos) · `GET /catalogos?estado=` · `POST /catalogos/<id>/extraer` → `{lineas: [{nombre, precio, cas, fila, archivo}], detalle[]}` (heurístico, sin LLM) · `POST /catalogos/<id>/importar {proveedor_id|proveedor_nombre, lineas[], moneda, publicar_web, linea, origen_pais}` · `POST /extraer-url {url}` · `POST /importar-lineas`.
+- `POST /api/proveedores/autoclasificar {todos?, proveedor_id?}` → `{ok, actualizados}` (reglas por nombre, sin LLM); `POST /api/proveedores/publicar-masivo {proveedor_ids[], despublicar?}` → `{ok, productos}`.
+- `POST /api/proveedores/publicar-web` → escribe `PAGINA_WEB/site/data/oferta_proveedores.json` `{actualizado, n_productos, productos: [{clave, nombre, cas, linea, origen_paises[], presentaciones[], n_fuentes, skus[]}], paises: [{pais, lat, lon, puerto_entrada, n_productos, muestra[]}]}` y avisa a `:8083/api/oferta/refresh`. **Sin nombres de proveedor.**
+- Cotizaciones: `GET /api/proveedores/cotizaciones?estado=` → `{solicitudes: [{..., estado: nueva|en_proceso|enviada|cerrada, proveedores_posibles[]}]}`; `PUT /cotizaciones/<id> {estado, respuesta, enviar_respuesta}` (correo vía `enviar_email_reporte`, EMAIL_SENDER/EMAIL_PASSWORD). `POST /cotizaciones/notificar {id}` es interno (Bearer CHAT_API_TOKEN) y lo llama website.py.
+- Web (`:8083`): el inicio y `/cotizar` incluyen `_ruta_origen.html` + `_cobertura.html` con JSON embebido (`[data-tz-data]`, `[data-co-data]`) que consume `static/js/trazabilidad.js`. `GET /cotizar?q=&linea=` · `POST /cotizar/solicitar` (JSON o form: `producto`, `nombre`, `email`|`telefono` obligatorios; honeypot `website`; 8/h por IP) → `{ok, id}` · `POST /api/oferta/refresh`.
+- Panel: `desktop/src/hooks/useProveedores.ts`, `desktop/src/components/ProveedoresPanel.tsx` (id de panel existente `logistica-proveedores`).
 
 ## Validacion De Contratos
 

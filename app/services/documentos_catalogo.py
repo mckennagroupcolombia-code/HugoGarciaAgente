@@ -1,5 +1,5 @@
 """
-Catálogo de documentación por producto (combos SIIGO + estado FT/COA/SDS + asociaciones Drive).
+Catálogo de documentación por producto (combos Alegra + estado FT/COA/SDS + asociaciones Drive).
 """
 
 from __future__ import annotations
@@ -354,7 +354,7 @@ def asociar_documento(
         raise ValueError("tipo debe ser ft, coa o sds")
     ref_key = (ref or "").strip().upper()
     if not ref_key:
-        raise ValueError("Se requiere ref (SKU combo SIIGO)")
+        raise ValueError("Se requiere ref (SKU combo Alegra)")
 
     link = (web_view_link or "").strip()
     fid = (drive_id or "").strip()

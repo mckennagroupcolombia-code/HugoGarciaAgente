@@ -1,0 +1,2953 @@
+{
+  "actualizado": "2026-09-03T21:48:44",
+  "n_productos": 192,
+  "productos": [
+    {
+      "clave": "aceite de arbol de te",
+      "nombre": "Aceite de Arbol de Te",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Australia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACETEATREg"
+      ]
+    },
+    {
+      "clave": "aceite de cedro texas",
+      "nombre": "Aceite de Cedro Texas",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACECEDTEXg"
+      ]
+    },
+    {
+      "clave": "aceite de girasol",
+      "nombre": "Aceite de Girasol",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEGIRg"
+      ]
+    },
+    {
+      "clave": "aceite de jojoba golden",
+      "nombre": "Aceite de Jojoba Golden",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEJOJGOLg"
+      ]
+    },
+    {
+      "clave": "aceite de ricino grf x",
+      "nombre": "Aceite de Ricino 20 Kg",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACERICg"
+      ]
+    },
+    {
+      "clave": "aceite esencial de eucalipto",
+      "nombre": "Aceite Esencial de Eucalipto",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEESEEUCg"
+      ]
+    },
+    {
+      "clave": "aceite esencial de jazmin",
+      "nombre": "Aceite Esencial de Jazmin",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEESEJAZg"
+      ]
+    },
+    {
+      "clave": "aceite esencial de manzanilla",
+      "nombre": "Aceite Esencial de Manzanilla",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEESEMANZg"
+      ]
+    },
+    {
+      "clave": "aceite esencial de romero",
+      "nombre": "Aceite Esencial de Romero",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEESEROMg"
+      ]
+    },
+    {
+      "clave": "aceite mct grado alimenticio certificado y terapeutico portador masaje hidratante cabello 0 aditivos",
+      "nombre": "Aceite MCT",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "ACECOCALImL"
+      ]
+    },
+    {
+      "clave": "acetato de sodio",
+      "nombre": "Acetato de Sodio",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACTNALB"
+      ]
+    },
+    {
+      "clave": "acido acetico glacial galon",
+      "nombre": "Acido Acético Glacial",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACDACTGL"
+      ]
+    },
+    {
+      "clave": "acido citrico/citric acid anhy 30-100 weifang",
+      "nombre": "Acido Citrico",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACICITg"
+      ]
+    },
+    {
+      "clave": "acido fosforico 85% galon",
+      "nombre": "Acido Fosforico",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACDFSFGL"
+      ]
+    },
+    {
+      "clave": "acido glicolico",
+      "nombre": "Acido Glicolico",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACIGLIg"
+      ]
+    },
+    {
+      "clave": "acido salicilico chino usp",
+      "nombre": "Acido Salicilico USP",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 3,
+      "skus": [
+        "ACISALCHIg",
+        "ACISALUSPg",
+        "ACDSLCKG"
+      ]
+    },
+    {
+      "clave": "agar-agar de grado laboratorio",
+      "nombre": "Agar-agar de Grado Laboratorio 100 Gr",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Chile"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AGAG100g"
+      ]
+    },
+    {
+      "clave": "agua de rosas galon",
+      "nombre": "Agua de Rosas *",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AGUROSmL"
+      ]
+    },
+    {
+      "clave": "ajonjoli negro saco x",
+      "nombre": "Ajonjoli Negro Saco 25KG",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AJONEGSACg"
+      ]
+    },
+    {
+      "clave": "ajonjoli tostado bulto",
+      "nombre": "Ajonjoli Tostado Bulto 25 Kg",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AJOTOSg"
+      ]
+    },
+    {
+      "clave": "alantoina",
+      "nombre": "Alantoina",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALAg"
+      ]
+    },
+    {
+      "clave": "alcohol bencilico grf x",
+      "nombre": "Alcohol Bencilico 20 Kg",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALCBENg"
+      ]
+    },
+    {
+      "clave": "alcohol bencilico garrafa kilo",
+      "nombre": "Alcohol Bencílico Garrafa",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALCBNCKG"
+      ]
+    },
+    {
+      "clave": "alcohol cetilico",
+      "nombre": "Alcohol Cetilico",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 3,
+      "skus": [
+        "ALCCETg",
+        "ALCCTLKG"
+      ]
+    },
+    {
+      "clave": "alcohol cetilico usp / cetyl alcohol",
+      "nombre": "Alcohol Cetilico USP",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALCCETg"
+      ]
+    },
+    {
+      "clave": "alcohol ceto estearilico lanet",
+      "nombre": "Alcohol Ceto Estearilico=lanet",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALCCETESTg"
+      ]
+    },
+    {
+      "clave": "alcohol etilico 96% ind.grx20l",
+      "nombre": "Alcohol Etilico Ind",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALCETI96PmL"
+      ]
+    },
+    {
+      "clave": "alginato de sodio",
+      "nombre": "Alginato de Sodio Gr",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Chile"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALGNA100g"
+      ]
+    },
+    {
+      "clave": "aloe vera",
+      "nombre": "Aloe Vera",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "México"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALOVERg"
+      ]
+    },
+    {
+      "clave": "alulosa/allulose",
+      "nombre": "Alulosa",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Corea del Sur"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ALUALLg"
+      ]
+    },
+    {
+      "clave": "aminoacido bcaa instant powder",
+      "nombre": "Aminoacido Bcaa Instant Powder",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMIBCAg"
+      ]
+    },
+    {
+      "clave": "aminoacido creatina monohidrato",
+      "nombre": "Aminoacido Creatina Monohidrato",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMICREMONg"
+      ]
+    },
+    {
+      "clave": "aminoacido de seda",
+      "nombre": "Aminoacido de Seda",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GUSSEDmL"
+      ]
+    },
+    {
+      "clave": "aminoacido l - arginina base",
+      "nombre": "Aminoacido L - Arginina Base",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMILARGBASg"
+      ]
+    },
+    {
+      "clave": "aminoacido l - carnitina fumarato",
+      "nombre": "Aminoacido L - Carnitina Fumarato",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMILCARFUMg"
+      ]
+    },
+    {
+      "clave": "aminoacido l - glutamina",
+      "nombre": "Aminoacido L - Glutamina",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMILGLUg"
+      ]
+    },
+    {
+      "clave": "aminoacido l - prolina cas 147-85-3",
+      "nombre": "Aminoacido L - Prolina Cas: -3",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "L-AMIPROg"
+      ]
+    },
+    {
+      "clave": "aminoacido l - teanina",
+      "nombre": "Aminoacido L - Teanina",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMITEAg"
+      ]
+    },
+    {
+      "clave": "aminoacido l - triptofano",
+      "nombre": "Aminoacido L - Triptofano",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AMILTRIg"
+      ]
+    },
+    {
+      "clave": "arcilla blanca usp certificada caolin coloidal",
+      "nombre": "Arcilla Blanca USP Certificada Caolin Coloidal 1 Kg",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ARCKg"
+      ]
+    },
+    {
+      "clave": "avena en hojuelas bulto pacifico",
+      "nombre": "Avena en Hojuelas Bulto 25 Kg Pacifico",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Chile"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AVEHOJg"
+      ]
+    },
+    {
+      "clave": "azul/blanco no 0 0107010484",
+      "nombre": "Azul",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CAPGELVAC0AZUBLA"
+      ]
+    },
+    {
+      "clave": "benzoato de bencilio kilo",
+      "nombre": "Benzoato de Bencilio",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BNZBNCKg"
+      ]
+    },
+    {
+      "clave": "betaina de coco",
+      "nombre": "Betaina de Coco",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "BTNCCLT"
+      ]
+    },
+    {
+      "clave": "bicarbonato de sodio chino",
+      "nombre": "Bicarbonato de Sodio",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BICSODCHIg"
+      ]
+    },
+    {
+      "clave": "bicarbonato de sodio bulto",
+      "nombre": "Bicarbonato de Sodio Bulto 25 Kg",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BICSODg"
+      ]
+    },
+    {
+      "clave": "btms- 50",
+      "nombre": "Btms- 50 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BTM4"
+      ]
+    },
+    {
+      "clave": "btms-50",
+      "nombre": "Btms-50",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BTM50g"
+      ]
+    },
+    {
+      "clave": "cafeina anhidra china",
+      "nombre": "Cafeina Anhidra",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CAFANHCHIg"
+      ]
+    },
+    {
+      "clave": "cafeina anhidra",
+      "nombre": "Cafeína Anhidra 500 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CFN500g"
+      ]
+    },
+    {
+      "clave": "caolin coloidal",
+      "nombre": "Caolin Coloidal",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CAOARCg"
+      ]
+    },
+    {
+      "clave": "caolin usp",
+      "nombre": "Caolin USP",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CAOUSPg"
+      ]
+    },
+    {
+      "clave": "carbonato de calcio prec.liv",
+      "nombre": "Carbonato de Calcio Prec.liv",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CARCALg"
+      ]
+    },
+    {
+      "clave": "carbonato de potasio usp",
+      "nombre": "Carbonato de Potasio USP 500 Gr",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CARK500g"
+      ]
+    },
+    {
+      "clave": "carbon activado",
+      "nombre": "Carbón Activado 500 Gr",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CRBACT500g"
+      ]
+    },
+    {
+      "clave": "carbon activado granulado para filtros de aire /agua",
+      "nombre": "Carbón Activado Granulado para Filtros de Aire",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CARACTGRN500g"
+      ]
+    },
+    {
+      "clave": "cebo cordero kg",
+      "nombre": "Cebo Cordero Kg",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CEBCORg"
+      ]
+    },
+    {
+      "clave": "celulosa microcristalina 101",
+      "nombre": "Celulosa Microcristalina 101",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CELMICg"
+      ]
+    },
+    {
+      "clave": "celulosa microcristalina a 102",
+      "nombre": "Celulosa Microcristalina a 102",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CELMICg"
+      ]
+    },
+    {
+      "clave": "cera carnauba amarilla kilo",
+      "nombre": "Cera Carnauba Amarilla",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CRCRNBKg"
+      ]
+    },
+    {
+      "clave": "cera carnauba amarilla escamas",
+      "nombre": "Cera Carnauba Amarilla Escamas",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CERCARg"
+      ]
+    },
+    {
+      "clave": "cera de abejas amarilla nacion",
+      "nombre": "Cera de Abejas Amarilla Nacion",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CERABEREFAMAg"
+      ]
+    },
+    {
+      "clave": "cera de abejas amarilla refinada",
+      "nombre": "Cera de Abejas Amarilla Refinada 500 Gr",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CRABJRF500g"
+      ]
+    },
+    {
+      "clave": "cera de abejas blanca",
+      "nombre": "Cera de Abejas Blanca 1 Kg",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "CRABJRFBLKg"
+      ]
+    },
+    {
+      "clave": "cera de abejas blanca nacion",
+      "nombre": "Cera de Abejas Blanca Nacion",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CERABEREFBLAg"
+      ]
+    },
+    {
+      "clave": "citrato de calcio",
+      "nombre": "Citrato de Calcio",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CITCALg"
+      ]
+    },
+    {
+      "clave": "citrato de calcio usp",
+      "nombre": "Citrato de Calcio USP",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CITCALg"
+      ]
+    },
+    {
+      "clave": "citrato de magnesio fcc/magnesium citrate",
+      "nombre": "Citrato de Magnesio Fcc",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CITMAGFCCg"
+      ]
+    },
+    {
+      "clave": "citrato de potasio/potassium citrate",
+      "nombre": "Citrato de Potasio",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CITPOTPOTg"
+      ]
+    },
+    {
+      "clave": "citrato de zinc",
+      "nombre": "Citrato de Zinc",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CITZINg"
+      ]
+    },
+    {
+      "clave": "cloruro de calcio kilogramo",
+      "nombre": "Cloruro de Calcio * Kilogramo",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CLOCALKILUn"
+      ]
+    },
+    {
+      "clave": "cloruro de magnesio alta pureza",
+      "nombre": "Cloruro de Magnesio Alta Pureza 1 Kg",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "MgCl2.1kg"
+      ]
+    },
+    {
+      "clave": "cloruro de magnesio hexahidratado/ magnesium chloride hexahydrate",
+      "nombre": "Cloruro de Magnesio Hexahidratado",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CLOMAGHEXg"
+      ]
+    },
+    {
+      "clave": "coco deshidratado hilos bulto elmar",
+      "nombre": "Coco Deshidratado Hilos Bulto 25 Kg Elmar",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "COCDESHILg"
+      ]
+    },
+    {
+      "clave": "cocoamida dea gr x",
+      "nombre": "Cocoamida Dea Gr 20 Kg",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "COCDEAg"
+      ]
+    },
+    {
+      "clave": "colageno en polvo hidrolizado",
+      "nombre": "Colageno en Polvo Hidrolizado",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "COLPOLHIDg"
+      ]
+    },
+    {
+      "clave": "colageno hidro por kilos",
+      "nombre": "Colageno Hidro por",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "COLHIDg"
+      ]
+    },
+    {
+      "clave": "colorante alimentos tuska rojo fresa",
+      "nombre": "Colorante Alimentos Tuska Rojo Fresa 25GR",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TUSR"
+      ]
+    },
+    {
+      "clave": "colageno hidrolizado en polvo",
+      "nombre": "Colágeno Hidrolizado en Polvo Gr",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CLGNHD500g"
+      ]
+    },
+    {
+      "clave": "d-pantenol",
+      "nombre": "D-pantenol",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DPANg"
+      ]
+    },
+    {
+      "clave": "d-pantenol vitamina b5 75%",
+      "nombre": "D-pantenol Vitamina B5 50 Ml",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DPNT50mL"
+      ]
+    },
+    {
+      "clave": "datiles sayed x",
+      "nombre": "Datiles Sayed 10KG",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Egipto"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DATSAYg"
+      ]
+    },
+    {
+      "clave": "dextrosa monohidratada",
+      "nombre": "Dextrosa Monohidratada",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DEXMONg"
+      ]
+    },
+    {
+      "clave": "dioxido de titanio anatase chi",
+      "nombre": "Dioxido de Titanio Anatase Chi",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DIOTITg"
+      ]
+    },
+    {
+      "clave": "dipropilenglicol grx20 kg",
+      "nombre": "Dipropilenglicol Kg",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "DIPGRXKGg"
+      ]
+    },
+    {
+      "clave": "dioxido de titanio",
+      "nombre": "Dióxido de Titanio 500 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "DXDTLB"
+      ]
+    },
+    {
+      "clave": "dr joe lab aceite de escualano para cara hidratante de escualano aceite de escualano organico aceites corporales de escu",
+      "nombre": "Dr Joe Lab Aceite de Escualano para Cara",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACEESCmL"
+      ]
+    },
+    {
+      "clave": "elastina hidrolizada",
+      "nombre": "Elastina Hidrolizada",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "ELAHIDg",
+        "ELSLT"
+      ]
+    },
+    {
+      "clave": "eritritol",
+      "nombre": "Eritritol",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ERIg"
+      ]
+    },
+    {
+      "clave": "estearato de magnesio usp imp",
+      "nombre": "Estearato de Magnesio USP Imp",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ESTMAGg"
+      ]
+    },
+    {
+      "clave": "etil vainillina polvo kilo",
+      "nombre": "Etil Vainillina Polvo",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ETLVNLKG"
+      ]
+    },
+    {
+      "clave": "extracto de malta / dry medium",
+      "nombre": "Extracto de Malta",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "EXTMALg"
+      ]
+    },
+    {
+      "clave": "extracto te verde matcha polvo",
+      "nombre": "Extracto Te Verde Matcha Polvo",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Japón"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "EXTTEMATVERg"
+      ]
+    },
+    {
+      "clave": "farma ambar bjx192",
+      "nombre": "Farma 10ML Ambar Bjx192",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FAR10MAMBUn"
+      ]
+    },
+    {
+      "clave": "farma azul",
+      "nombre": "Farma 10ML Azul",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "FARAZUmL",
+        "FAR30MAZUUn"
+      ]
+    },
+    {
+      "clave": "farma cristal",
+      "nombre": "Farma 30ML Cristal",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FARCRImL"
+      ]
+    },
+    {
+      "clave": "farma ambar bjx117",
+      "nombre": "Farma 50ML Ambar Bjx117",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "333"
+      ]
+    },
+    {
+      "clave": "farma ambar",
+      "nombre": "Farma 5ML Ambar",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 3,
+      "skus": [
+        "FARAMBmL2",
+        "FARAMBmL3",
+        "FARAMBmL"
+      ]
+    },
+    {
+      "clave": "fragancia almendras kilo",
+      "nombre": "Fragancia Almendras",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTAD"
+      ]
+    },
+    {
+      "clave": "fragancia base maracuya",
+      "nombre": "Fragancia Base Maracuyá 1000 Ml",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRM1"
+      ]
+    },
+    {
+      "clave": "fragancia canela kilo",
+      "nombre": "Fragancia Canela",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTCN"
+      ]
+    },
+    {
+      "clave": "fragancia coco x",
+      "nombre": "Fragancia Coco",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "FRACOCmL"
+      ]
+    },
+    {
+      "clave": "fragancia herbal kilo",
+      "nombre": "Fragancia Herbal",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "LTHB",
+        "FRAHERg"
+      ]
+    },
+    {
+      "clave": "fragancia kiwi",
+      "nombre": "Fragancia Kiwi",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 3,
+      "skus": [
+        "FRAKIWg",
+        "FRAKIWmL"
+      ]
+    },
+    {
+      "clave": "fragancia lavanda",
+      "nombre": "Fragancia Lavanda",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Francia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRALAVg"
+      ]
+    },
+    {
+      "clave": "fragancia limon x",
+      "nombre": "Fragancia Limon",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRALIMmL"
+      ]
+    },
+    {
+      "clave": "fragancia menta kilo",
+      "nombre": "Fragancia Menta",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTMT"
+      ]
+    },
+    {
+      "clave": "fragancia oceanfresh x500ml",
+      "nombre": "Fragancia Oceanfresh",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRAOCEmL"
+      ]
+    },
+    {
+      "clave": "fragancia oceanfresh x",
+      "nombre": "Fragancia Oceanfresh 500 Ml",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRAOCEmL"
+      ]
+    },
+    {
+      "clave": "fragancia pina x",
+      "nombre": "Fragancia Piña 500 Ml",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "FRAPINmL"
+      ]
+    },
+    {
+      "clave": "fragancia sandalo",
+      "nombre": "Fragancia Sandalo",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "FRASANUn",
+        "FRASANmL"
+      ]
+    },
+    {
+      "clave": "fragancia sandia kilo",
+      "nombre": "Fragancia Sandia",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTSN"
+      ]
+    },
+    {
+      "clave": "fragancia vainilla kilo",
+      "nombre": "Fragancia Vainilla",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTVN"
+      ]
+    },
+    {
+      "clave": "fragancia vainilla caramelo pn",
+      "nombre": "Fragancia Vainilla Caramelo Pn",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "España"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRAVAICARg"
+      ]
+    },
+    {
+      "clave": "fructosa en polvo/crystal fructose",
+      "nombre": "Fructosa en Polvo",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FRUg"
+      ]
+    },
+    {
+      "clave": "gelatina fg 280 bloom /gelatin fg 280",
+      "nombre": "Gelatina Fg 280 Bloom",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Brasil"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GELSINSABg"
+      ]
+    },
+    {
+      "clave": "girasol kernel bulto",
+      "nombre": "Girasol Kernel Bulto 25 Kg",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GIRKERg"
+      ]
+    },
+    {
+      "clave": "glicerina natural vegetal usp",
+      "nombre": "Glicerina Natural Vegetal USP 500 Ml",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "GLC500mL"
+      ]
+    },
+    {
+      "clave": "glicerina usp gr x",
+      "nombre": "Glicerina USP Gr 25KG",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GLIVEGg"
+      ]
+    },
+    {
+      "clave": "glutamato monosodico malla 100",
+      "nombre": "Glutamato Monosodico Malla 100",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GLUMONMALg"
+      ]
+    },
+    {
+      "clave": "goma guar",
+      "nombre": "Goma Guar",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Pakistán"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GOMGUAg"
+      ]
+    },
+    {
+      "clave": "goma xanthan",
+      "nombre": "Goma Xanthan",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GMXTN500g"
+      ]
+    },
+    {
+      "clave": "goma xanthan food malla 200",
+      "nombre": "Goma Xanthan Food Malla 200",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "GOMXANFOOg"
+      ]
+    },
+    {
+      "clave": "grasa laurica refinada kilo",
+      "nombre": "Grasa Laurica Refinada",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LAUR"
+      ]
+    },
+    {
+      "clave": "gusano de seda litro",
+      "nombre": "Gusano de Seda",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LTGS"
+      ]
+    },
+    {
+      "clave": "harina el lobo x",
+      "nombre": "Harina el Lobo 50",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "HARTRGPANg"
+      ]
+    },
+    {
+      "clave": "hidroxido de potasio potasa caustica - kilo",
+      "nombre": "Hidróxido de Potasio Potasa Caustica",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "HDKKG"
+      ]
+    },
+    {
+      "clave": "hipoclorito de sodio gr 5 gl",
+      "nombre": "Hipoclorito de Sodio Gr = 5 Gl",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "HIPSODGLg"
+      ]
+    },
+    {
+      "clave": "inulina 90%",
+      "nombre": "Inulina",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "INU90Pg"
+      ]
+    },
+    {
+      "clave": "lactato de calcio/calcium lactate",
+      "nombre": "Lactato de Calcio",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Países Bajos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LACCALg"
+      ]
+    },
+    {
+      "clave": "lanolina anhidra kilo",
+      "nombre": "Lanolina Anhidra",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Nueva Zelanda"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LNLNKG"
+      ]
+    },
+    {
+      "clave": "lanolina anhidra usp",
+      "nombre": "Lanolina Anhidra USP",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Nueva Zelanda"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LANg"
+      ]
+    },
+    {
+      "clave": "lauril eter sulfato na28% gx20",
+      "nombre": "Lauril Eter Sulfato",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LAUETESULg"
+      ]
+    },
+    {
+      "clave": "leche en polvo entera",
+      "nombre": "Leche en Polvo Entera",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Nueva Zelanda"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LECPOLENTg"
+      ]
+    },
+    {
+      "clave": "lecitina de soya en polvo",
+      "nombre": "Lecitina de Soya en Polvo",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LECSOYPOLg"
+      ]
+    },
+    {
+      "clave": "lecitina de soya polvo",
+      "nombre": "Lecitina de Soya Polvo",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "LECSOYg"
+      ]
+    },
+    {
+      "clave": "macccx bkl050-012 - vaso de vidrio resistente de 1.7 onzas 1.7 fl oz forma baja de borosilicato 3.3 con graduacion impre",
+      "nombre": "Macccx - Vaso de Vidrio Resistente de 1.7 Onzas",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BKR50mL"
+      ]
+    },
+    {
+      "clave": "macccx vaso de vidrio resistente de 3.4 onzas 3.4 fl oz 3.3 griffin de borosilicato de forma baja con graduacion impresa",
+      "nombre": "Macccx Vaso de Vidrio Resistente de 3.4 Onzas",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "BKR100mL"
+      ]
+    },
+    {
+      "clave": "maltodextrina m150 / maltrin m150",
+      "nombre": "Maltodextrina",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MALM15MALg"
+      ]
+    },
+    {
+      "clave": "maltodextrina m100 gpc",
+      "nombre": "Maltodextrina Gpc",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MALM10GPCg"
+      ]
+    },
+    {
+      "clave": "manteca de cacao",
+      "nombre": "Manteca de Cacao",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "MANCACg",
+        "MNTCCRFKg"
+      ]
+    },
+    {
+      "clave": "mentol cristales",
+      "nombre": "Mentol Cristales 250 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MNTL250g"
+      ]
+    },
+    {
+      "clave": "mentol crystal natural 99% cas 2216-51-5 pb",
+      "nombre": "Mentol Crystal Natural Cas: -5",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MENCRYNATg"
+      ]
+    },
+    {
+      "clave": "mentol crystal natural 99% usp/nf / menthol crystals 99% natural usp",
+      "nombre": "Mentol Crystal Natural USP",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MENCRIg"
+      ]
+    },
+    {
+      "clave": "metabisulfito de sodio food grade kilogramo",
+      "nombre": "Metabisulfito de Sodio Food Grade * Kilogramo",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "METSODFOOUn"
+      ]
+    },
+    {
+      "clave": "molibdato de amonio para hidroponia",
+      "nombre": "Molibdato de Amonio para Hidroponia 500 Gr",
+      "cas": "",
+      "linea": "agro",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "MLBDAMN100G"
+      ]
+    },
+    {
+      "clave": "monopropilenglicol kilo",
+      "nombre": "Monopropilenglicol",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "P100"
+      ]
+    },
+    {
+      "clave": "onedove 4 libras de flores secas",
+      "nombre": "Onedove 4 Libras de Flores Secas",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Francia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": []
+    },
+    {
+      "clave": "onedove flores secas de capullos de lavanda grado ultra azul 100% natural 4 libras",
+      "nombre": "Onedove Flores Secas de Capullos de Lavanda",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Francia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "FLOSECLAVg"
+      ]
+    },
+    {
+      "clave": "oxido de hierro amarillo",
+      "nombre": "Oxido de Hierro Amarillo 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "OXDFEAMKG",
+        "OXM1"
+      ]
+    },
+    {
+      "clave": "oxido de hierro azul",
+      "nombre": "Oxido de Hierro Azul 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "OXDFEAZKG"
+      ]
+    },
+    {
+      "clave": "oxido de hierro negro",
+      "nombre": "Oxido de Hierro Negro 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "OXN1"
+      ]
+    },
+    {
+      "clave": "oxido de hierro rojo",
+      "nombre": "Oxido de Hierro Rojo 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "OXDR"
+      ]
+    },
+    {
+      "clave": "oxido de hierro verde",
+      "nombre": "Oxido de Hierro Verde 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "OXVD"
+      ]
+    },
+    {
+      "clave": "oxido de zinc",
+      "nombre": "Oxido de Zinc",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Perú"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "OXIZINg"
+      ]
+    },
+    {
+      "clave": "papaina",
+      "nombre": "Papaina",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "India"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PAPg"
+      ]
+    },
+    {
+      "clave": "pet/pbd 3s zipp metal",
+      "nombre": "PET",
+      "cas": "",
+      "linea": "",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PETPBD3SUn"
+      ]
+    },
+    {
+      "clave": "pipeta 90",
+      "nombre": "Pipeta #90",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PIPUn"
+      ]
+    },
+    {
+      "clave": "potasa caustica kilo",
+      "nombre": "Potasa Caustica *",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "POTCAUKILUn"
+      ]
+    },
+    {
+      "clave": "potasa caustica-hidroxido de p",
+      "nombre": "Potasa Caustica-hidroxido de P",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "POTCAUHIDg"
+      ]
+    },
+    {
+      "clave": "pro-b 80",
+      "nombre": "Pro-b 80",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PROCONSUEg"
+      ]
+    },
+    {
+      "clave": "propilen glicol gr kg",
+      "nombre": "Propilen Glicol Gr Kg",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PROGLIX20g"
+      ]
+    },
+    {
+      "clave": "proteina concentrada de suero 80% wpc lw",
+      "nombre": "Proteina Concentrada de Suero Wpc",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PROCONSUEg"
+      ]
+    },
+    {
+      "clave": "proteina de soya aislada / isolated soy protein soypro 900 emulsion",
+      "nombre": "Proteina de Soya Aislada",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "PROAISSOYg"
+      ]
+    },
+    {
+      "clave": "sal rosada del himalaya saco grano fino",
+      "nombre": "Sal Rosada del Himalaya Saco 25KG Grano Fino",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SALROSHIMFINg"
+      ]
+    },
+    {
+      "clave": "sal rosada del himalaya saco grano grueso",
+      "nombre": "Sal Rosada del Himalaya Saco 25KG Grano Grueso",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Turquía"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SALROSHIMGRUg"
+      ]
+    },
+    {
+      "clave": "sebo de cordero organico kilo",
+      "nombre": "Sebo de Cordero Orgánico",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Argentina"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SBCRDKg"
+      ]
+    },
+    {
+      "clave": "semilla de chia boliviana saco x",
+      "nombre": "Semilla de Chia Boliviana Saco 25KG",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SEMCHIg"
+      ]
+    },
+    {
+      "clave": "slendor - agitador magnetico con placa caliente y mezclador capacidad de remover de placa caliente maxima de 5 pulgadas ",
+      "nombre": "Slendor - Agitador Magnético con Placa Caliente y Mezclador",
+      "cas": "",
+      "linea": "laboratorio",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "AGTMGNPLN"
+      ]
+    },
+    {
+      "clave": "sodium cocoyl isethionate",
+      "nombre": "Sodium Cocoyl Isethionate",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Indonesia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TENSCIg"
+      ]
+    },
+    {
+      "clave": "sorbitol polvo",
+      "nombre": "Sorbitol Polvo",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Francia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SORPOLg"
+      ]
+    },
+    {
+      "clave": "soypro 900 emulsion",
+      "nombre": "Soypro 900 Emulsion",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SOYEMUg"
+      ]
+    },
+    {
+      "clave": "sucralosa",
+      "nombre": "Sucralosa",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SUCg"
+      ]
+    },
+    {
+      "clave": "suero leche dulce p11 5",
+      "nombre": "Suero Leche Dulce",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SUELECDULg"
+      ]
+    },
+    {
+      "clave": "sulfato de magnesio kilo",
+      "nombre": "Sulfato de Magnesio",
+      "cas": "",
+      "linea": "industria",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "SLFMGKG"
+      ]
+    },
+    {
+      "clave": "taurina",
+      "nombre": "Taurina",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TAUg"
+      ]
+    },
+    {
+      "clave": "tegobetaina-betaina grx20 kg",
+      "nombre": "Tegobetaina-betaina Kg",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TEGBETGRXg"
+      ]
+    },
+    {
+      "clave": "texapon 40% garrafa",
+      "nombre": "Texapon Garrafa",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TEXN"
+      ]
+    },
+    {
+      "clave": "transparente/transparente no 0 010301521",
+      "nombre": "Transparente",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 2,
+      "skus": [
+        "CAPGELVAC0TRA",
+        "CAPGELVAC00TRA"
+      ]
+    },
+    {
+      "clave": "tween 20 monolaureato g x",
+      "nombre": "Tween 20 Monolaureato G 20KG",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "POLTWE20Pg"
+      ]
+    },
+    {
+      "clave": "tween 80 molooleato gr x",
+      "nombre": "Tween 80 Molooleato Gr 20KG",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "TWEMOLg"
+      ]
+    },
+    {
+      "clave": "urea cosmetica",
+      "nombre": "Urea Cosmética 500 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "UR500g"
+      ]
+    },
+    {
+      "clave": "urea cosmetica usp kilo",
+      "nombre": "Urea Cosmética USP",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "URCKG"
+      ]
+    },
+    {
+      "clave": "vaselina blanca usp india",
+      "nombre": "Vaselina Blanca USP India 17",
+      "cas": "",
+      "linea": "aceites-ceras-grasas",
+      "origen_paises": [
+        "Estados Unidos"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "VASBLAUSPg"
+      ]
+    },
+    {
+      "clave": "verde/blanco no 0 0107010450",
+      "nombre": "Verde",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Colombia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "CAPGELVAC0VERBLA"
+      ]
+    },
+    {
+      "clave": "vitamina a acetato 500.000 ws usp",
+      "nombre": "Vitamina a Acetato 500.000 Ws USP",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "VITACE500g"
+      ]
+    },
+    {
+      "clave": "vitamina b-3 nicotinamida usp",
+      "nombre": "Vitamina B-3",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "NIAg"
+      ]
+    },
+    {
+      "clave": "vitamina c cristales/vitamin c crystal",
+      "nombre": "Vitamina C Cristales",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "VITCACIASCg"
+      ]
+    },
+    {
+      "clave": "vitamina d-pantenol",
+      "nombre": "Vitamina D-pantenol",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "Alemania"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "VITPANg"
+      ]
+    },
+    {
+      "clave": "vitamina e atfa 99% usp",
+      "nombre": "Vitamina e Atfa USP",
+      "cas": "",
+      "linea": "alimentario",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "VITETOC99Pg"
+      ]
+    },
+    {
+      "clave": "acido citrico",
+      "nombre": "Ácido Cítrico 1 Kg",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "China"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACDCTRKg"
+      ]
+    },
+    {
+      "clave": "acido estearico",
+      "nombre": "Ácido Estearico 1000 Gr",
+      "cas": "",
+      "linea": "cosmetica",
+      "origen_paises": [
+        "Malasia"
+      ],
+      "presentaciones": [],
+      "n_fuentes": 1,
+      "skus": [
+        "ACDESTKg"
+      ]
+    }
+  ],
+  "paises": [
+    {
+      "pais": "China",
+      "lat": 35.0,
+      "lon": 105.0,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 57,
+      "muestra": [
+        "Acido Citrico",
+        "Acido Glicolico",
+        "Acido Salicilico USP",
+        "Alantoina"
+      ]
+    },
+    {
+      "pais": "Estados Unidos",
+      "lat": 39.0,
+      "lon": -98.0,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 17,
+      "muestra": [
+        "Aceite de Cedro Texas",
+        "Arcilla Blanca USP Certificada Caolin Coloidal 1 Kg",
+        "Caolin Coloidal",
+        "Caolin USP"
+      ]
+    },
+    {
+      "pais": "India",
+      "lat": 21.0,
+      "lon": 78.0,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 13,
+      "muestra": [
+        "Aceite de Ricino 20 Kg",
+        "Aceite Esencial de Eucalipto",
+        "Aceite Esencial de Jazmin",
+        "Aceite Esencial de Manzanilla"
+      ]
+    },
+    {
+      "pais": "Malasia",
+      "lat": 4.2,
+      "lon": 101.9,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 10,
+      "muestra": [
+        "Alcohol Cetilico",
+        "Alcohol Cetilico USP",
+        "Estearato de Magnesio USP Imp",
+        "Glicerina Natural Vegetal USP 500 Ml"
+      ]
+    },
+    {
+      "pais": "España",
+      "lat": 40.0,
+      "lon": -3.7,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 10,
+      "muestra": [
+        "Fragancia Base Maracuyá 1000 Ml",
+        "Fragancia Herbal",
+        "Fragancia Kiwi",
+        "Fragancia Oceanfresh"
+      ]
+    },
+    {
+      "pais": "Indonesia",
+      "lat": -0.8,
+      "lon": 113.9,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 9,
+      "muestra": [
+        "Betaina de Coco",
+        "Carbón Activado 500 Gr",
+        "Carbón Activado Granulado para Filtros de Aire",
+        "Coco Deshidratado Hilos Bulto 25 Kg Elmar"
+      ]
+    },
+    {
+      "pais": "Alemania",
+      "lat": 51.0,
+      "lon": 10.0,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 8,
+      "muestra": [
+        "Btms- 50 1000 Gr",
+        "Btms-50",
+        "Celulosa Microcristalina 101",
+        "Celulosa Microcristalina a 102"
+      ]
+    },
+    {
+      "pais": "Brasil",
+      "lat": -14.2,
+      "lon": -51.9,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 7,
+      "muestra": [
+        "Cera Carnauba Amarilla",
+        "Cera Carnauba Amarilla Escamas",
+        "Colageno en Polvo Hidrolizado",
+        "Colageno Hidro por"
+      ]
+    },
+    {
+      "pais": "Argentina",
+      "lat": -38.4,
+      "lon": -63.6,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 6,
+      "muestra": [
+        "Aceite de Girasol",
+        "Aceite de Jojoba Golden",
+        "Cebo Cordero Kg",
+        "Fragancia Limon"
+      ]
+    },
+    {
+      "pais": "Turquía",
+      "lat": 38.9,
+      "lon": 35.2,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 6,
+      "muestra": [
+        "Agua de Rosas *",
+        "Bicarbonato de Sodio",
+        "Bicarbonato de Sodio Bulto 25 Kg",
+        "Dextrosa Monohidratada"
+      ]
+    },
+    {
+      "pais": "Países Bajos",
+      "lat": 52.1,
+      "lon": 5.3,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 6,
+      "muestra": [
+        "Benzoato de Bencilio",
+        "Cloruro de Calcio * Kilogramo",
+        "Cloruro de Magnesio Alta Pureza 1 Kg",
+        "Cloruro de Magnesio Hexahidratado"
+      ]
+    },
+    {
+      "pais": "Francia",
+      "lat": 46.2,
+      "lon": 2.2,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 4,
+      "muestra": [
+        "Fragancia Lavanda",
+        "Onedove 4 Libras de Flores Secas",
+        "Onedove Flores Secas de Capullos de Lavanda",
+        "Sorbitol Polvo"
+      ]
+    },
+    {
+      "pais": "Chile",
+      "lat": -35.7,
+      "lon": -71.5,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 3,
+      "muestra": [
+        "Agar-agar de Grado Laboratorio 100 Gr",
+        "Alginato de Sodio Gr",
+        "Avena en Hojuelas Bulto 25 Kg Pacifico"
+      ]
+    },
+    {
+      "pais": "Nueva Zelanda",
+      "lat": -40.9,
+      "lon": 174.9,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 3,
+      "muestra": [
+        "Lanolina Anhidra",
+        "Lanolina Anhidra USP",
+        "Leche en Polvo Entera"
+      ]
+    },
+    {
+      "pais": "Australia",
+      "lat": -25.3,
+      "lon": 133.8,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 1,
+      "muestra": [
+        "Aceite de Arbol de Te"
+      ]
+    },
+    {
+      "pais": "México",
+      "lat": 23.6,
+      "lon": -102.5,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 1,
+      "muestra": [
+        "Aloe Vera"
+      ]
+    },
+    {
+      "pais": "Corea del Sur",
+      "lat": 35.9,
+      "lon": 127.8,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 1,
+      "muestra": [
+        "Alulosa"
+      ]
+    },
+    {
+      "pais": "Egipto",
+      "lat": 26.8,
+      "lon": 30.8,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 1,
+      "muestra": [
+        "Datiles Sayed 10KG"
+      ]
+    },
+    {
+      "pais": "Japón",
+      "lat": 36.2,
+      "lon": 138.3,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 1,
+      "muestra": [
+        "Extracto Te Verde Matcha Polvo"
+      ]
+    },
+    {
+      "pais": "Pakistán",
+      "lat": 30.4,
+      "lon": 69.3,
+      "puerto_entrada": "Cartagena",
+      "n_productos": 1,
+      "muestra": [
+        "Goma Guar"
+      ]
+    },
+    {
+      "pais": "Perú",
+      "lat": -9.2,
+      "lon": -75.0,
+      "puerto_entrada": "Buenaventura",
+      "n_productos": 1,
+      "muestra": [
+        "Oxido de Zinc"
+      ]
+    }
+  ]
+}

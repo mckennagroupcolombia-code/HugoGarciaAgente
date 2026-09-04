@@ -183,7 +183,7 @@ const TIPO_SERVICIO_LABELS: Record<string, string> = {
   otro: "Otro",
 };
 
-// ─── Tab: Productos Combo Siigo ───────────────────────────────────────────────
+// ─── Tab: Productos Combo Alegra ───────────────────────────────────────────────
 
 function TabCombos() {
   const [busqueda, setBusqueda] = useState("");
@@ -328,7 +328,7 @@ function TabCombos() {
       }>("/api/rentabilidad/componentes-autofill", { dry_run: false });
       setAutofillResult(
         `Asignados ${d.asignados} componentes` +
-        (d.sin_propuesta > 0 ? ` · ${d.sin_propuesta} sin precio en Siigo` : "")
+        (d.sin_propuesta > 0 ? ` · ${d.sin_propuesta} sin precio en Alegra` : "")
       );
       setAutofillPreview(null);
       const [nuevosCostos] = await Promise.allSettled([
@@ -404,7 +404,7 @@ function TabCombos() {
         </div>
         {catalogoEstado && (
           <span
-            title={catalogoEstado.actualizado ? `Actualizado: ${catalogoEstado.actualizado}` : "Sin catálogo Siigo"}
+            title={catalogoEstado.actualizado ? `Actualizado: ${catalogoEstado.actualizado}` : "Sin catálogo Alegra"}
             className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold cursor-default ${
               catalogoEstado.vigente
                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
@@ -412,7 +412,7 @@ function TabCombos() {
             }`}
           >
             {catalogoEstado.vigente
-              ? `${catalogoEstado.con_precio_compra ?? 0} precios en Siigo`
+              ? `${catalogoEstado.con_precio_compra ?? 0} precios en Alegra`
               : "Catálogo vencido"}
           </span>
         )}
@@ -420,7 +420,7 @@ function TabCombos() {
           type="button"
           onClick={() => void rebuildCatalogo()}
           disabled={rebuilding}
-          title="Reconstruir índice cruzando todas las facturas de compra Siigo"
+          title="Reconstruir índice cruzando todas las facturas de compra Alegra"
           className="shrink-0 rounded-paper border-2 border-border px-3 py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-50 transition"
         >
           {rebuilding ? "Actualizando…" : "Actualizar catálogo"}
@@ -429,7 +429,7 @@ function TabCombos() {
           type="button"
           onClick={() => void escanearFaltantes()}
           disabled={autofillLoading}
-          title="Detecta componentes de combos sin costo y asigna precio desde Siigo (lista o costo bodega)"
+          title="Detecta componentes de combos sin costo y asigna precio desde Alegra (lista o costo bodega)"
           className="shrink-0 rounded-paper border-2 border-accent/60 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:border-accent disabled:opacity-50 transition"
         >
           {autofillLoading && !autofillPreview ? "Escaneando…" : "Rellenar faltantes"}
@@ -449,7 +449,7 @@ function TabCombos() {
               <p className="text-sm font-bold text-ink">Componentes sin costo en combos</p>
               <p className="text-xs text-muted mt-0.5">
                 <span className="font-bold text-ink">{autofillPreview.componentes_sin_costo}</span> únicos detectados ·{" "}
-                <span className="font-bold text-green-600 dark:text-green-400">{autofillPreview.con_propuesta_autofill}</span> con precio en Siigo ·{" "}
+                <span className="font-bold text-green-600 dark:text-green-400">{autofillPreview.con_propuesta_autofill}</span> con precio en Alegra ·{" "}
                 <span className="font-bold text-orange-600">{autofillPreview.sin_propuesta}</span> sin precio disponible
               </p>
             </div>
@@ -491,7 +491,7 @@ function TabCombos() {
                         {c.propuesta_costo != null ? cop(c.propuesta_costo) : "—"}
                       </td>
                       <td className="px-2 py-1 text-center text-[10px] text-muted">
-                        {c.propuesta_fuente === "siigo_lista" ? "Lista Siigo" : c.propuesta_fuente === "siigo_unit_cost" ? "Costo bodega" : "—"}
+                        {c.propuesta_fuente === "siigo_lista" ? "Lista Alegra" : c.propuesta_fuente === "siigo_unit_cost" ? "Costo bodega" : "—"}
                       </td>
                     </tr>
                   ))}
@@ -512,7 +512,7 @@ function TabCombos() {
       {!loading && productos.length > 0 && (
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
-            <span className="font-bold text-ink">{productos.length}</span> combos en Siigo
+            <span className="font-bold text-ink">{productos.length}</span> combos en Alegra
           </span>
           {busqueda && (
             <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
@@ -537,7 +537,7 @@ function TabCombos() {
       {loading && (
         <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          Cargando productos Siigo…
+          Cargando productos Alegra…
         </div>
       )}
       {error && (
@@ -548,7 +548,7 @@ function TabCombos() {
 
       {!loading && productosFiltrados.length === 0 && !error && (
         <p className="py-10 text-center text-sm text-muted">
-          {busqueda ? "Sin resultados para esa búsqueda." : "No hay productos combo en Siigo."}
+          {busqueda ? "Sin resultados para esa búsqueda." : "No hay productos combo en Alegra."}
         </p>
       )}
 
@@ -705,9 +705,9 @@ function TabCombos() {
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
                                         {c.fuente === "siigo" ? (
-                                          <span title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Siigo"}
+                                          <span title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Alegra"}
                                             className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default">
-                                            Siigo
+                                            Alegra
                                           </span>
                                         ) : c.fuente === "excel" ? (
                                           <span title="Precio desde Excel de importaciones"
@@ -739,7 +739,7 @@ function TabCombos() {
                                                 disabled={guardandoCostos[key]}
                                                 className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
                                               >
-                                                {guardandoCostos[key] ? "Sincronizando…" : "Sincronizar con Siigo"}
+                                                {guardandoCostos[key] ? "Sincronizando…" : "Sincronizar con Alegra"}
                                               </button>
                                               <button
                                                 type="button"
@@ -762,7 +762,7 @@ function TabCombos() {
                                                     : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                                 }`}
                                               >
-                                                Siigo {siigoCostoResult[key].ok ? "✓" : "✗"}
+                                                Alegra {siigoCostoResult[key].ok ? "✓" : "✗"}
                                               </span>
                                             )}
                                             <button
@@ -1571,7 +1571,7 @@ function TabPeriodo() {
         </div>
         <button type="button" onClick={() => void analizar()} disabled={cargando}
           className="rounded-paper border-2 border-accent bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent/90 active:translate-y-0.5 disabled:opacity-40">
-          {cargando ? "Consultando facturas Siigo…" : "Analizar período"}
+          {cargando ? "Consultando facturas Alegra…" : "Analizar período"}
         </button>
       </div>
 
@@ -1641,7 +1641,7 @@ function TabPeriodo() {
           )}
 
           {resumen.num_facturas === 0 && (
-            <p className="text-sm text-muted">No hay facturas de venta Siigo en ese período.</p>
+            <p className="text-sm text-muted">No hay facturas de venta Alegra en ese período.</p>
           )}
         </div>
       )}
@@ -1964,7 +1964,7 @@ function TabGanancia() {
         {
           code: codeRaw,
           nuevo_precio: precio,
-          // Solo MeLi + Siigo (la web se regenera en segundo plano en el backend).
+          // Solo MeLi + Alegra (la web se regenera en segundo plano en el backend).
           plataformas: ["meli", "siigo"],
           nombre: row.nombre ?? "",
           meli_id: row.meli_id || "",
@@ -1977,8 +1977,8 @@ function TabGanancia() {
       const partes: string[] = [];
       if (meliOk) partes.push("MeLi");
       else partes.push(`MeLi ✗ ${res.meli?.msg || "falló"}`.trim());
-      if (siigoOk) partes.push("Siigo");
-      else partes.push(`Siigo ✗ ${res.siigo?.msg || "falló"}`.trim());
+      if (siigoOk) partes.push("Alegra");
+      else partes.push(`Alegra ✗ ${res.siigo?.msg || "falló"}`.trim());
 
       if (!meliOk || !siigoOk) {
         setError(
@@ -1989,7 +1989,7 @@ function TabGanancia() {
       }
 
       setEditandoPrecio(null);
-      setMsgPrecio((prev) => ({ ...prev, [code]: "MeLi + Siigo OK" }));
+      setMsgPrecio((prev) => ({ ...prev, [code]: "MeLi + Alegra OK" }));
       setTimeout(
         () =>
           setMsgPrecio((prev) => {
@@ -2035,7 +2035,7 @@ function TabGanancia() {
         return { ...prev, items };
       });
     } catch (e) {
-      setError((e as Error).message || "No se pudo actualizar el precio en MeLi/Siigo");
+      setError((e as Error).message || "No se pudo actualizar el precio en MeLi/Alegra");
     } finally {
       setGuardandoPrecio(false);
     }
@@ -2143,7 +2143,7 @@ function TabGanancia() {
       <p className="text-sm text-muted">
         <strong className="text-ink">Ganancia</strong> = precio de venta − costo real del producto − cobros MeLi
         (cargo por venta + Envíos MeLi). Haz clic en el <strong className="text-ink">precio</strong> para
-        editarlo (actualiza MeLi y Siigo), o en <strong className="text-ink">Costo real</strong> para ajustar
+        editarlo (actualiza MeLi y Alegra), o en <strong className="text-ink">Costo real</strong> para ajustar
         componentes. Los productos con algún componente sin costo aparecen en{" "}
         <strong className="text-orange-700 dark:text-orange-300">naranja</strong>.
       </p>
@@ -2171,7 +2171,7 @@ function TabGanancia() {
           type="button"
           disabled={loading}
           onClick={() => void cargar({ refresh: true })}
-          title="Refresca precios MeLi y costos Siigo (sin caché)"
+          title="Refresca precios MeLi y costos Alegra (sin caché)"
           className="rounded-paper border-2 border-border px-3 py-2 text-sm font-semibold text-ink hover:border-accent disabled:opacity-40"
         >
           {loading ? "Actualizando…" : "Actualizar"}
@@ -2287,7 +2287,7 @@ function TabGanancia() {
                                   ? "text-accent hover:underline"
                                   : "cursor-default text-muted"
                               }`}
-                              title="Clic para cambiar precio (actualiza MeLi y Siigo)"
+                              title="Clic para cambiar precio (actualiza MeLi y Alegra)"
                             >
                               {row.precio_venta != null ? cop(row.precio_venta) : "—"}
                             </button>
@@ -2468,10 +2468,10 @@ function TabGanancia() {
                                       <td className="px-3 py-1.5 text-center text-[10px] text-muted">
                                         {c.fuente === "siigo" ? (
                                           <span
-                                            title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Siigo"}
+                                            title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Alegra"}
                                             className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default"
                                           >
-                                            Siigo
+                                            Alegra
                                           </span>
                                         ) : c.fuente === "excel" ? (
                                           <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 cursor-default">
@@ -2506,7 +2506,7 @@ function TabGanancia() {
                                               disabled={guardandoCostos[key]}
                                               className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
                                             >
-                                              {guardandoCostos[key] ? "Guardando…" : "Guardar en Siigo"}
+                                              {guardandoCostos[key] ? "Guardando…" : "Guardar en Alegra"}
                                             </button>
                                             <button
                                               type="button"
@@ -2538,7 +2538,7 @@ function TabGanancia() {
                                                     : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                                 }`}
                                               >
-                                                Siigo {siigoCostoResult[key].ok ? "✓" : "✗"}
+                                                Alegra {siigoCostoResult[key].ok ? "✓" : "✗"}
                                               </span>
                                             )}
                                             <button
@@ -2691,9 +2691,9 @@ function PanelSinCosto() {
       setMsgOk((prev) => ({
         ...prev,
         [c.nombre]: res.siigo?.ok
-          ? "Guardado + Siigo"
+          ? "Guardado + Alegra"
           : res.siigo
-            ? `Guardado (Siigo: ${res.siigo.msg})`
+            ? `Guardado (Alegra: ${res.siigo.msg})`
             : "Guardado",
       }));
     } catch (e) {
@@ -2729,7 +2729,7 @@ function PanelSinCosto() {
             {lista.length} pendientes
             {guardados.size > 0 ? ` · ${guardados.size} guardados` : ""}
             {data.con_propuesta_autofill > 0
-              ? ` · ${data.con_propuesta_autofill} con sugerencia Siigo`
+              ? ` · ${data.con_propuesta_autofill} con sugerencia Alegra`
               : ""}
           </span>
         )}
@@ -2852,7 +2852,7 @@ function PanelSinCosto() {
                           onClick={() => void guardarUno(c)}
                           className="rounded bg-accent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40"
                         >
-                          {guardando[c.nombre] ? "…" : "Guardar en Siigo"}
+                          {guardando[c.nombre] ? "…" : "Guardar en Alegra"}
                         </button>
                       </td>
                     </tr>

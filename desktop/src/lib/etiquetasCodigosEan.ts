@@ -175,7 +175,7 @@ export interface ResultadoImportacionEan {
   siguiente_numero?: number;
 }
 
-/** Registra en bloque los combos SIIGO activos que aún no tienen EAN. */
+/** Registra en bloque los combos Alegra activos que aún no tienen EAN. */
 export function useImportarCombosEanSiigo() {
   const qc = useQueryClient();
   return useMutation({
@@ -194,7 +194,7 @@ export interface ResultadoSyncBarcodeSiigo {
   en_planilla?: number;
 }
 
-/** Empuja los EAN de la planilla al campo código de barras en SIIGO. */
+/** Empuja los EAN de la planilla al campo código de barras en Alegra. */
 export function useSincronizarBarcodesEanSiigo() {
   return useMutation({
     mutationFn: (opts?: { solo_vacios?: boolean }) =>

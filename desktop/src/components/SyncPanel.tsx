@@ -106,7 +106,7 @@ const OVERRIDE_ACTIONS: ActionDef[] = [
   {
     id: "inteligente",
     label: "Sync Inteligente",
-    description: "Cruce MeLi vs Siigo",
+    description: "Cruce MeLi vs Alegra",
     endpoint: "/api/sync/inteligente",
     icon: "🔄",
   },
@@ -468,7 +468,7 @@ export default function SyncPanel() {
               💲 Precios en Ganancia
             </p>
             <p className="mt-0.5 text-[11px] text-muted/90">
-              Edita el precio de venta desde Ganancia — se aplica a MeLi, Siigo y la web.
+              Edita el precio de venta desde Ganancia — se aplica a MeLi, Alegra y la web.
             </p>
           </button>
 

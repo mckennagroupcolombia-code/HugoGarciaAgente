@@ -153,7 +153,7 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-base font-semibold text-ink">Catálogo de productos (combos SIIGO)</h3>
+        <h3 className="text-base font-semibold text-ink">Catálogo de productos (combos Alegra)</h3>
         {data?.indices_drive && (
           <p className="mt-1 text-xs text-muted">
             PDFs indexados en Drive — FT: {data.indices_drive.ft ?? 0} · COA: {data.indices_drive.coa ?? 0} · SDS:{" "}
@@ -209,7 +209,7 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
       </div>
 
       {isLoading && (
-        <p className="text-sm text-muted">Cargando combos SIIGO y estado documental…</p>
+        <p className="text-sm text-muted">Cargando combos Alegra y estado documental…</p>
       )}
       {error && (
         <p className="text-sm text-danger">

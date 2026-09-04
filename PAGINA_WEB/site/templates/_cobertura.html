@@ -1,61 +1,111 @@
 {#
-  "¿A dónde hemos llegado?" — cobertura geográfica REAL (departamento +
-  municipio), acumulada de tienda web + MercadoLibre. `cobertura` viene de
-  website.py:_calcular_cobertura(). Web es todo el histórico de orders.db;
-  MeLi se alimenta aparte por app/tools/cobertura_meli.py (cron diario, ver
-  scripts/actualizar_cobertura_meli_cron.py) porque no hay endpoint agregado
-  barato para pedirlo en vivo — así que crece día a día desde que ese cron
-  empezó a correr, no es historial completo desde siempre. Lista, sin mapa
-  ilustrado: solo departamentos ordenados por pedidos, con acordeón a los
-  municipios reales dentro de cada uno.
+  "Colombia, de punta a punta" — mapa ilustrado de Colombia por departamentos.
+  Datos REALES: website.py:_construir_colombia_mapa() (cobertura acumulada de
+  tienda web + MercadoLibre, ciudades de esta semana, puertos de entrada y
+  bodega). Geometría: _colombia_map.svg.html (@svg-maps/colombia, MIT).
+  Interacción en static/js/trazabilidad.js (tooltip, panel, pulsos).
 #}
-<section class="coverage-section">
-  <div class="section">
-    <div class="coverage-head reveal">
-      <span class="section-eyebrow">Cobertura nacional</span>
-      <h2 class="section-title">¿A dónde hemos <em>llegado</em>?</h2>
+<section class="co-section" id="cobertura" data-co-root>
+  <div class="section co-inner">
+    <div class="co-head reveal">
+      <span class="section-eyebrow">Distribución nacional en tiempo real</span>
+      <h2 class="section-title">Colombia, <em>de punta a punta</em></h2>
       <p class="section-lead">
-        Departamentos y municipios con pedidos reales ya despachados. Toca uno
-        para ver el detalle.
+        Desde nuestra bodega en Bogotá despachamos a todo el país. Pasa el cursor por un departamento
+        para ver los municipios con pedidos entregados, y descubre a dónde todavía no hemos llegado.
       </p>
-      <div class="coverage-stats">
-        <div>
-          <span class="coverage-stat-val">{{ cobertura.n_departamentos }}<span class="coverage-stat-of">/{{ cobertura.total_departamentos }}</span></span>
-          <span class="coverage-stat-label">departamentos alcanzados</span>
-        </div>
-        <div>
-          <span class="coverage-stat-val">{{ cobertura.n_municipios }}<span class="coverage-stat-of">/{{ cobertura.total_municipios }}</span></span>
-          <span class="coverage-stat-label">municipios y ciudades de Colombia con pedidos</span>
-        </div>
-      </div>
     </div>
 
-    {% if cobertura.n_departamentos > 0 %}
-    <div class="coverage-list reveal">
-      {% for d in cobertura.departamentos %}
-      <div class="coverage-depto">
-        <button type="button" class="coverage-depto-btn" aria-expanded="false" aria-controls="cv-{{ loop.index }}">
-          <span class="coverage-depto-bar" style="--peso:{{ d.peso }};"></span>
-          <span class="coverage-depto-name">{{ d.departamento }}</span>
-          <span class="coverage-depto-count">{{ d.n_municipios }} municipio{% if d.n_municipios != 1 %}s{% endif %} · {{ d.n_pedidos }} pedido{% if d.n_pedidos != 1 %}s{% endif %}</span>
-          <i class="ph ph-caret-down coverage-depto-caret" aria-hidden="true"></i>
-        </button>
-        <ul id="cv-{{ loop.index }}" class="coverage-depto-municipios" hidden>
-          {% for m in d.municipios %}
-          <li>
-            <span>{{ m.municipio }}</span>
-            <span class="coverage-depto-municipio-n">{{ m.n_pedidos }}</span>
-          </li>
-          {% endfor %}
-        </ul>
+    <div class="co-stage reveal">
+      <div class="co-map-wrap">
+        <svg class="co-map" viewBox="0 0 613 694" role="img" aria-label="Mapa de Colombia por departamentos con cobertura de despachos">
+          <defs>
+            <pattern id="co-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" class="co-hatch-line"/>
+            </pattern>
+            <filter id="co-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#022D33" flood-opacity=".14"/>
+            </filter>
+          </defs>
+          <g class="co-deps" filter="url(#co-shadow)">
+            {% include "_colombia_map.svg.html" %}
+          </g>
+          <g class="co-routes">
+            {% for pu in colombia.puertos %}
+            <path class="co-route co-route-{{ pu.tipo }}" d="M {{ pu.x }} {{ pu.y }} Q {{ (pu.x + colombia.bodega.x) / 2 }} {{ ([pu.y, colombia.bodega.y] | min) - 28 }} {{ colombia.bodega.x }} {{ colombia.bodega.y }}"/>
+            {% endfor %}
+          </g>
+          <g class="co-pulses" data-co-pulses></g>
+          <g class="co-pins">
+            {% for pu in colombia.puertos %}
+            <g class="co-port" transform="translate({{ pu.x }} {{ pu.y }})"><circle r="7"/><text y="3.5" text-anchor="middle">{{ '✈' if pu.tipo == 'aereo' else '⚓' }}</text><title>{{ pu.nombre }}</title></g>
+            {% endfor %}
+            <g class="co-home" transform="translate({{ colombia.bodega.x }} {{ colombia.bodega.y }})"><circle class="co-home-halo" r="14"/><circle r="6"/><title>Bodega McKenna · Bogotá</title></g>
+          </g>
+        </svg>
+        <div class="co-tooltip" data-co-tooltip hidden></div>
+        <div class="co-legend" aria-hidden="true">
+          <span><i class="co-lg co-lg-hi"></i> Más pedidos</span>
+          <span><i class="co-lg co-lg-lo"></i> Con despachos</span>
+          <span><i class="co-lg co-lg-none"></i> Por impactar</span>
+          <span><i class="co-lg co-lg-pulse"></i> Despachos esta semana</span>
+        </div>
       </div>
-      {% endfor %}
+
+      <aside class="co-panel">
+        <div class="co-ring" style="--pct: {{ colombia.pct_departamentos }}">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="co-ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="co-ring-fg" cx="60" cy="60" r="52" pathLength="100"/>
+          </svg>
+          <div class="co-ring-txt">
+            <span class="co-ring-val"><span data-count="{{ colombia.n_alcanzados }}">0</span><small>/{{ colombia.total_departamentos }}</small></span>
+            <span class="co-ring-label">departamentos</span>
+          </div>
+        </div>
+        <div class="co-stats">
+          <div><span class="co-stat-val" data-count="{{ colombia.n_municipios }}">0</span><span class="co-stat-label">municipios con pedidos entregados</span></div>
+          <div><span class="co-stat-val" data-live="pedidos_hoy">{{ colombia.pedidos_hoy }}</span><span class="co-stat-label">pedidos hoy (web + MercadoLibre)</span></div>
+        </div>
+
+        {% if colombia.ciudades_semana %}
+        <div class="co-week">
+          <span class="live-dot"></span>
+          <span data-live-ciudades>Esta semana despachamos hacia: {{ colombia.ciudades_semana | join(', ') }}</span>
+        </div>
+        {% endif %}
+
+        <div class="co-top">
+          <span class="co-panel-eyebrow">Donde más nos piden</span>
+          <ol>
+            {% for d in colombia.departamentos[:6] if d.alcanzado %}
+            <li><button type="button" class="co-top-btn" data-co-goto="{{ d.id }}">
+              <span class="co-top-name">{{ d.nombre }}</span>
+              <span class="co-top-bar"><i style="width: {{ (100 * d.intensidad) | round }}%"></i></span>
+              <span class="co-top-n">{{ d.n_municipios }} mun.</span>
+            </button></li>
+            {% endfor %}
+          </ol>
+        </div>
+
+        {% if colombia.pendientes %}
+        <div class="co-pending">
+          <span class="co-panel-eyebrow">Territorio por impactar · {{ colombia.pendientes | length }}</span>
+          <p>Aún no despachamos a estos departamentos. Si formulas desde alguno de ellos, queremos ser tu primer proveedor.</p>
+          <div class="co-pending-chips">
+            {% for d in colombia.pendientes %}
+            <button type="button" class="co-pending-chip" data-co-goto="{{ d.id }}">{{ d.nombre }}</button>
+            {% endfor %}
+          </div>
+          <a class="co-pending-cta" href="{{ url_for('cotizar') }}"><i class="ph ph-paper-plane-tilt"></i> Pide tu primera cotización</a>
+        </div>
+        {% endif %}
+      </aside>
     </div>
-    {% else %}
-    <div class="coverage-empty reveal">
-      <i class="ph ph-map-trifold" aria-hidden="true"></i>
-      <p>Estamos armando la cobertura con los pedidos ya despachados. Vuelve pronto.</p>
-    </div>
-    {% endif %}
+
+    <script type="application/json" data-co-data>{{ {
+      'departamentos': colombia.departamentos,
+      'deps_semana': colombia.deps_semana
+    } | tojson }}</script>
   </div>
 </section>

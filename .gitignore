@@ -129,6 +129,8 @@ renders_etiquetas/
 app/data/tickets.db
 app/data/oauth_states_panel.json
 app/data/wa_chats.db
+app/data/wa_chats.db-wal
+app/data/wa_chats.db-shm
 app/data/postventa_stats.db
 app/data/metricas_diarias.json
 app/data/web_chat_activity.json
@@ -149,3 +151,8 @@ tmp_reportes_stock/
 
 # Contenido · videos subidos/procesados para quitar marca de agua (runtime, puede pesar)
 contenido_video/
+
+# Red de proveedores (SQLite runtime, ver app/services/proveedores_db.py)
+app/data/proveedores.db
+app/data/proveedores.db-wal
+app/data/proveedores.db-shm

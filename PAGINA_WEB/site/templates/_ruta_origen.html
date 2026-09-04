@@ -1,83 +1,215 @@
 {#
-  "Ruta de tu materia prima" — de dónde viene, cómo llega a Colombia y a
-  nuestra bodega. `ruta_origen` viene de website.py:_construir_ruta_origen()
-  (datos reales: país resuelto por línea/SKU desde origen_materias.json,
-  cruzado contra el catálogo vigente). Sin datos configurados aún, se muestra
-  un aviso honesto en vez de un mapa vacío.
+  "Del origen a tu fórmula" — experiencia ilustrada de trazabilidad.
+  Datos: website.py:_construir_ruta_origen() → países de origen (capa `stock`
+  desde origen_materias.json + capa `red` desde la oferta publicada), productos
+  por país con línea/TDS/COA, líneas comerciales y puertos de entrada.
+  Interacción: static/js/trazabilidad.js (filtro por línea, panel de país,
+  contadores, tour automático). El mapa base es _world_land.svg.html.
+  Nunca muestra proveedores.
 #}
-{% set COL_X = 29.4 %}
-{% set COL_Y = 47.4 %}
-<section class="route-section">
-  <div class="section">
-    <div class="route-head reveal">
-      <span class="section-eyebrow">Nuestra red de abastecimiento</span>
-      <h2 class="section-title">Ruta de tu <em>materia prima</em></h2>
+{% set VB = ruta_origen.viewbox if ruta_origen.viewbox else {'y': 0, 'h': 500} %}
+{% set COL = ruta_origen.colombia if ruta_origen.colombia else {'x_pct': 29.4, 'y_pct': 47.4} %}
+{% set CX = COL.x_pct / 100 * 1000 %}
+{% set CY = VB.y + COL.y_pct / 100 * VB.h %}
+<section class="tz-section" id="trazabilidad" data-tz-root>
+  <svg class="tz-molecules" viewBox="0 0 1200 600" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <pattern id="tz-hex" width="52" height="60" patternUnits="userSpaceOnUse" patternTransform="scale(1.6)">
+        <path d="M26 2 L48 15 L48 41 L26 54 L4 41 L4 15 Z" fill="none" stroke="currentColor" stroke-width=".7"/>
+      </pattern>
+    </defs>
+    <rect width="1200" height="600" fill="url(#tz-hex)"/>
+    <g class="tz-mol tz-mol-a"><circle cx="120" cy="90" r="6"/><circle cx="160" cy="70" r="4"/><circle cx="150" cy="120" r="4"/><path d="M120 90 L160 70 M120 90 L150 120"/></g>
+    <g class="tz-mol tz-mol-b"><circle cx="1060" cy="480" r="6"/><circle cx="1100" cy="450" r="4"/><circle cx="1090" cy="515" r="4"/><circle cx="1130" cy="500" r="3"/><path d="M1060 480 L1100 450 M1060 480 L1090 515 L1130 500"/></g>
+    <g class="tz-mol tz-mol-c"><circle cx="980" cy="120" r="5"/><circle cx="1010" cy="150" r="3"/><circle cx="950" cy="150" r="3"/><path d="M980 120 L1010 150 M980 120 L950 150"/></g>
+  </svg>
+
+  <div class="section tz-inner">
+    <div class="tz-head reveal">
+      <span class="section-eyebrow">Trazabilidad de extremo a extremo</span>
+      <h2 class="section-title">Del origen a <em>tu fórmula</em></h2>
       <p class="section-lead">
-        Del país de origen a Colombia, y de ahí a nuestra bodega en Bogotá.
-        Toca un país para ver qué materias primas llegan desde ahí.
+        Cada materia prima que despachamos tiene un origen declarado, un tránsito documentado y un
+        certificado de análisis por lote. Explora de dónde viene lo que formulas y hasta dónde lo llevamos.
       </p>
     </div>
 
     {% if ruta_origen.tiene_datos %}
-    <div class="route-map reveal">
-      <svg class="route-map-bg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <ellipse cx="230" cy="150" rx="150" ry="80" class="route-blob" />
-        <ellipse cx="520" cy="120" rx="120" ry="70" class="route-blob" />
-        <ellipse cx="650" cy="230" rx="170" ry="100" class="route-blob" />
-        <ellipse cx="300" cy="330" rx="110" ry="90" class="route-blob" />
-        <ellipse cx="780" cy="380" rx="90" ry="60" class="route-blob" />
+    <div class="tz-kpis reveal">
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">0</span><span class="tz-kpi-label">países de origen</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_referencias }}">0</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_tds }}">0</span><span class="tz-kpi-label">fichas técnicas (TDS)</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_coa }}">0</span><span class="tz-kpi-label">certificados de análisis (COA)</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="{{ colombia.n_alcanzados }}">0</span><span class="tz-kpi-of">/{{ colombia.total_departamentos }}</span></span><span class="tz-kpi-label">departamentos con despachos</span></div>
+    </div>
 
-        {% for ruta in ruta_origen.rutas %}
-        {% set ox = (ruta.x_pct / 100 * 1000) %}
-        {% set oy = (ruta.y_pct / 100 * 500) %}
-        {% set cx = (COL_X / 100 * 1000) %}
-        {% set cy = (COL_Y / 100 * 500) %}
-        {% set mx = (ox + cx) / 2 %}
-        {% set my = ([oy, cy] | min) - 70 %}
-        <path class="route-line" d="M {{ ox }} {{ oy }} Q {{ mx }} {{ my }} {{ cx }} {{ cy }}"
-              style="animation-delay: {{ loop.index0 * 0.15 }}s"></path>
-        {% endfor %}
+    {# ── Cadena de custodia ilustrada ── #}
+    <ol class="tz-chain reveal" aria-label="Cadena de trazabilidad">
+      <li class="tz-node" data-tz-scroll="#tz-mapa">
+        <span class="tz-node-icon"><i class="ph ph-factory"></i></span>
+        <span class="tz-node-step">01 · Origen</span>
+        <strong>Fábricas en {{ ruta_origen.n_paises }} países</strong>
+        <span class="tz-node-sub">Fabricantes con certificación GMP/ISO y lote declarado</span>
+      </li>
+      <li class="tz-node" data-tz-scroll="#tz-mapa">
+        <span class="tz-node-icon"><i class="ph ph-boat"></i><i class="ph ph-airplane-tilt"></i></span>
+        <span class="tz-node-step">02 · Tránsito</span>
+        <strong>Marítimo y aéreo</strong>
+        <span class="tz-node-sub">Ingreso por Buenaventura, Cartagena y El Dorado con nacionalización DIAN</span>
+      </li>
+      <li class="tz-node" data-tz-scroll="#trazabilidad-docs">
+        <span class="tz-node-icon"><i class="ph ph-flask"></i></span>
+        <span class="tz-node-step">03 · Calidad</span>
+        <strong>Control en Bogotá</strong>
+        <span class="tz-node-sub">{{ ruta_origen.n_coa }} COA y {{ ruta_origen.n_tds }} fichas técnicas publicadas</span>
+      </li>
+      <li class="tz-node" data-tz-scroll="#cobertura">
+        <span class="tz-node-icon"><i class="ph ph-truck"></i></span>
+        <span class="tz-node-step">04 · Distribución</span>
+        <strong>{{ colombia.n_alcanzados }} departamentos</strong>
+        <span class="tz-node-sub">{{ colombia.n_municipios }} municipios con pedidos ya entregados</span>
+      </li>
+    </ol>
 
-        {% set bx = (COL_X / 100 * 1000) + 70 %}
-        {% set by = (COL_Y / 100 * 500) + 55 %}
-        <path class="route-line route-line-final"
-              d="M {{ COL_X / 100 * 1000 }} {{ COL_Y / 100 * 500 }} L {{ bx }} {{ by }}"></path>
-      </svg>
-
-      {% for ruta in ruta_origen.rutas %}
-      <button type="button" class="route-pin" data-route-target="rp-{{ loop.index }}"
-              style="left:{{ ruta.x_pct }}%; top:{{ ruta.y_pct }}%;"
-              aria-expanded="false" aria-controls="rp-{{ loop.index }}">
-        <span class="route-pin-dot"></span>
-        <span class="route-pin-label">{{ ruta.pais }}</span>
+    {# ── Filtro por línea ── #}
+    <div class="tz-filters reveal" role="group" aria-label="Filtrar por línea comercial">
+      <button type="button" class="tz-chip is-active" data-tz-linea="">Todas las líneas</button>
+      {% for L in ruta_origen.lineas %}
+      <button type="button" class="tz-chip" data-tz-linea="{{ L.id }}" style="--chip: {{ L.color }}" title="{{ L.descripcion }}">
+        <i class="ph ph-{{ L.icono }}"></i> {{ L.name }} <span class="tz-chip-n">{{ L.n }}</span>
       </button>
       {% endfor %}
-
-      <span class="route-pin route-pin-colombia" style="left:{{ COL_X }}%; top:{{ COL_Y }}%;">
-        <span class="route-pin-dot route-pin-dot-colombia"></span>
-        <span class="route-pin-label">Colombia</span>
-      </span>
-
-      <span class="route-bodega" style="left:{{ (COL_X / 100 * 1000 + 70) / 1000 * 100 }}%; top:{{ (COL_Y / 100 * 500 + 55) / 500 * 100 }}%;">
-        <i class="ph ph-warehouse" aria-hidden="true"></i>
-        <span>Bodega McKenna · Bogotá</span>
-      </span>
-
-      {% for ruta in ruta_origen.rutas %}
-      <div id="rp-{{ loop.index }}" class="route-pin-card" style="left:{{ ruta.x_pct }}%; top:{{ ruta.y_pct }}%;" hidden>
-        <strong>{{ ruta.pais }}</strong>
-        <span class="route-pin-card-count">{{ ruta.n_productos }} materia{% if ruta.n_productos != 1 %}s{% endif %} prima{% if ruta.n_productos != 1 %}s{% endif %}</span>
-        <ul>
-          {% for prod in ruta.muestra %}
-          <li>{{ prod.nombre }}</li>
-          {% endfor %}
-        </ul>
-        {% if ruta.puerto_entrada %}
-        <span class="route-pin-card-puerto"><i class="ph ph-anchor"></i> Ingresa por {{ ruta.puerto_entrada }}</span>
-        {% endif %}
-      </div>
-      {% endfor %}
     </div>
+
+    {# ── Mapa + panel ── #}
+    <div class="tz-stage reveal" id="tz-mapa">
+      <div class="tz-map" style="aspect-ratio: 1000 / {{ VB.h }};">
+        <svg class="tz-map-svg" viewBox="0 {{ VB.y }} 1000 {{ VB.h }}" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <pattern id="tz-dots" width="5" height="5" patternUnits="userSpaceOnUse">
+              <circle cx="2.5" cy="2.5" r="1.05" class="tz-dot"/>
+            </pattern>
+            <pattern id="tz-grat" width="50" height="50" patternUnits="userSpaceOnUse">
+              <path d="M 50 0 L 0 0 0 50" class="tz-grat-line"/>
+            </pattern>
+            <mask id="tz-land-mask"><use href="#tz-land" fill="#fff"/></mask>
+            <radialGradient id="tz-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="var(--green)" stop-opacity=".45"/>
+              <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+            </radialGradient>
+            <g id="tz-land">{% include "_world_land.svg.html" %}</g>
+            <g id="tz-boat"><path d="M-5 1 L5 1 L3.5 4 L-3.5 4 Z M-1 1 L-1 -3 L2.5 -3 L2.5 1"/></g>
+            <g id="tz-plane"><path d="M6 0 L-2 -1.2 L-5 -4 L-6.5 -4 L-4 0 L-6.5 4 L-5 4 L-2 1.2 Z"/></g>
+          </defs>
+          <rect x="0" y="{{ VB.y }}" width="1000" height="{{ VB.h }}" fill="url(#tz-grat)"/>
+          <use href="#tz-land" class="tz-land-base"/>
+          <rect x="0" y="{{ VB.y }}" width="1000" height="{{ VB.h }}" fill="url(#tz-dots)" mask="url(#tz-land-mask)"/>
+          <circle cx="{{ CX }}" cy="{{ CY }}" r="55" fill="url(#tz-glow)" class="tz-glow"/>
+
+          {% for ruta in ruta_origen.rutas %}
+          {% set ox = ruta.x_pct / 100 * 1000 %}
+          {% set oy = VB.y + ruta.y_pct / 100 * VB.h %}
+          {% set dx = CX - ox %}
+          {% set adx = dx if dx > 0 else -dx %}
+          {% set mx = (ox + CX) / 2 %}
+          {% set my = ([oy, CY] | min) - (adx * 0.24 + 22) %}
+          <g class="tz-route tz-route-{{ ruta.tipo }}" data-tz-pais="{{ ruta.pais }}" data-tz-lineas="{{ ruta.por_linea.keys() | join(' ') }}">
+            <path id="tz-path-{{ loop.index }}" class="tz-line" d="M {{ ox }} {{ oy }} Q {{ mx }} {{ my }} {{ CX }} {{ CY }}" style="animation-delay: -{{ loop.index0 * 0.37 }}s"/>
+            <use href="#tz-{{ 'plane' if ruta.modo == 'aereo' else 'boat' }}" class="tz-packet">
+              <animateMotion dur="{{ 7 + (loop.index0 % 5) * 1.6 }}s" repeatCount="indefinite" begin="-{{ loop.index0 * 1.9 }}s" rotate="auto">
+                <mpath href="#tz-path-{{ loop.index }}"/>
+              </animateMotion>
+            </use>
+          </g>
+          {% endfor %}
+        </svg>
+
+        {% for ruta in ruta_origen.rutas %}
+        <button type="button" class="tz-pin tz-pin-{{ ruta.tipo }}{% if loop.index > 8 %} tz-pin-minor{% endif %}" data-tz-pin="{{ ruta.pais }}" data-tz-lineas="{{ ruta.por_linea.keys() | join(' ') }}"
+                style="left:{{ ruta.x_pct }}%; top:{{ ruta.y_pct }}%;" aria-pressed="false" title="{{ ruta.pais }}: {{ ruta.n_productos }} referencias">
+          <span class="tz-pin-dot">
+            {% for lid, n in (ruta.por_linea.items() | list)[:3] %}
+            {% for L in ruta_origen.lineas if L.id == lid %}<i class="tz-pin-ring" style="--ring: {{ L.color }}; --i: {{ loop.index0 }}"></i>{% endfor %}
+            {% endfor %}
+          </span>
+          <span class="tz-pin-label">{{ ruta.pais }}<b>{{ ruta.n_productos if ruta.n_productos else ruta.n_red }}</b></span>
+        </button>
+        {% endfor %}
+
+        {% for pu in ruta_origen.puertos %}
+        <span class="tz-port" style="left:{{ pu.x_pct }}%; top:{{ pu.y_pct }}%;" title="Puerto de entrada: {{ pu.nombre }}"><i class="ph ph-anchor"></i></span>
+        {% endfor %}
+        <span class="tz-home" style="left:{{ COL.x_pct }}%; top:{{ COL.y_pct }}%;">
+          <span class="tz-home-dot"></span>
+          <span class="tz-home-label"><i class="ph ph-warehouse"></i> Bodega McKenna · Bogotá</span>
+        </span>
+
+        <div class="tz-legend" aria-hidden="true">
+          <span><i class="tz-lg tz-lg-stock"></i> Origen de referencias en stock</span>
+          <span><i class="tz-lg tz-lg-red"></i> Red de abastecimiento bajo pedido</span>
+          <span><i class="ph ph-anchor"></i> Puerto de entrada</span>
+        </div>
+        <div class="tz-live" aria-live="polite"><span class="live-dot"></span> <span data-tz-live>{{ ruta_origen.n_paises }} rutas activas · datos actualizados {{ ruta_origen.actualizado }}</span></div>
+      </div>
+
+      <aside class="tz-panel" data-tz-panel>
+        <div class="tz-panel-default">
+          <span class="tz-panel-eyebrow">Explora la red</span>
+          <h3>Toca un país para ver qué llega desde ahí</h3>
+          <p>Cada referencia enlaza a su ficha técnica y a su certificado de análisis cuando está publicado.</p>
+          <ol class="tz-top">
+            {% for ruta in ruta_origen.rutas[:6] %}
+            <li><button type="button" class="tz-top-btn" data-tz-goto="{{ ruta.pais }}">
+              <span class="tz-top-flag" data-tz-flag="{{ ruta.pais }}"></span>
+              <span class="tz-top-name">{{ ruta.pais }}</span>
+              <span class="tz-top-bar"><i style="width: {{ (100 * ruta.n_productos / (ruta_origen.rutas[0].n_productos or 1)) | round }}%"></i></span>
+              <span class="tz-top-n">{{ ruta.n_productos }}</span>
+            </button></li>
+            {% endfor %}
+          </ol>
+        </div>
+        <div class="tz-panel-country" hidden></div>
+      </aside>
+    </div>
+
+    {# ── Documentación de trazabilidad ── #}
+    <div class="tz-docs reveal" id="trazabilidad-docs">
+      <div class="tz-doc">
+        <span class="tz-doc-icon"><i class="ph ph-file-text"></i></span>
+        <strong>Ficha técnica (TDS)</strong>
+        <p>Especificaciones, uso recomendado, concentración y compatibilidades. Publicada en {{ ruta_origen.n_tds }} referencias.</p>
+      </div>
+      <div class="tz-doc">
+        <span class="tz-doc-icon"><i class="ph ph-seal-check"></i></span>
+        <strong>Certificado de análisis (COA)</strong>
+        <p>Parámetros medidos por lote frente a especificación. {{ ruta_origen.n_coa }} certificados disponibles en línea.</p>
+      </div>
+      <div class="tz-doc">
+        <span class="tz-doc-icon"><i class="ph ph-shield-check"></i></span>
+        <strong>Hoja de seguridad (SDS)</strong>
+        <p>Manipulación, almacenamiento y transporte según el Sistema Globalmente Armonizado.</p>
+      </div>
+      <div class="tz-doc">
+        <span class="tz-doc-icon"><i class="ph ph-qr-code"></i></span>
+        <strong>Lote y origen en la etiqueta</strong>
+        <p>Cada envase declara lote, fecha de reenvase y país de origen, verificable en <a href="/verificar">mckennagroup.co/verificar</a>.</p>
+      </div>
+    </div>
+
+    <div class="tz-cta reveal">
+      <div>
+        <strong>Manejamos {{ ruta_origen.n_referencias }} referencias en stock{% if ruta_origen.n_oferta >= 10 %} y {{ ruta_origen.n_oferta }} más bajo pedido{% endif %}, con origen en {{ ruta_origen.n_paises }} países.</strong>
+        <p>Si no está en la tienda, lo conseguimos a través de nuestra red de abastecimiento.</p>
+      </div>
+      <a href="{{ url_for('cotizar') }}" class="btn btn-primary"><i class="ph ph-globe-hemisphere-west"></i> Conoce nuestra oferta</a>
+    </div>
+
+    <script type="application/json" data-tz-data>{{ {
+      'rutas': ruta_origen.rutas,
+      'lineas': ruta_origen.lineas,
+      'cotizar_url': url_for('cotizar'),
+      'producto_url': url_for('producto', slug='__SLUG__')
+    } | tojson }}</script>
     {% else %}
     <div class="route-empty reveal">
       <i class="ph ph-map-trifold" aria-hidden="true"></i>

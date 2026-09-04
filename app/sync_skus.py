@@ -136,7 +136,7 @@ def reporte_skus_pendientes_wa() -> str:
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
     lineas = [
         f"📋 *Publicaciones MeLi sin SKU combo* — {fecha}",
-        f"Total pendientes: *{len(pendientes)}* publicaciones sin migrar a combo SIIGO",
+        f"Total pendientes: *{len(pendientes)}* publicaciones sin migrar a combo Alegra",
         "",
     ]
     for i, p in enumerate(pendientes, 1):
@@ -146,7 +146,7 @@ def reporte_skus_pendientes_wa() -> str:
 
     lineas += [
         "",
-        "_Para migrar: crear combo en SIIGO con prefijo C-, actualizar SKU en MeLi panel, "
+        "_Para migrar: crear combo en Alegra con prefijo C-, actualizar SKU en MeLi panel, "
         "luego ejecutar *Sincronizar SKUs MeLi→Sheets* desde el panel de operaciones._",
     ]
 

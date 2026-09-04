@@ -4409,7 +4409,7 @@ function TabConfigurar() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar producto SIIGO Combo..."
+            placeholder="Buscar producto Alegra Combo..."
             className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/50 pr-10"
           />
           {busqueda && (
@@ -4436,7 +4436,7 @@ function TabConfigurar() {
           className={claseTarjetaFiltro(filtroCategoria === "todos")}
         >
           <p className="text-xl font-extrabold text-ink">{combos.length}</p>
-          <p className="text-xs text-muted mt-0.5">Combos SIIGO</p>
+          <p className="text-xs text-muted mt-0.5">Combos Alegra</p>
         </button>
         <button
           type="button"
@@ -4503,7 +4503,7 @@ function TabConfigurar() {
       {combos.length === 0 && !cargandoCombos && !errorCombos && (
         <div className="rounded-xl border-2 border-dashed border-border py-12 text-center">
           <p className="text-sm text-muted">
-            {busqueda ? `Sin resultados para "${busqueda}"` : "No se encontraron combos SIIGO"}
+            {busqueda ? `Sin resultados para "${busqueda}"` : "No se encontraron combos Alegra"}
           </p>
         </div>
       )}

@@ -28,6 +28,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Publicaciones → pestaña **Competencia**: `GET/POST /api/meli/competencia-precios*`; `POST .../reporte-captura` arma el reporte desde un pantallazo (el servidor no visita MeLi).
 - Publicaciones → Catálogo pestaña **Sitios**: `GET /api/publicaciones/<sku>?live_meli=1` (`vista_sitios`); `POST /api/publicaciones/<sku>/estado-meli` (`active`\|`paused`). **Agregar fotos** abre la galería (`POST /api/publicaciones/<sku>/imagenes/desde-galeria`). Lista: query `canal`.
 - Inicio (Agenda y Métricas): gadget USD/COP — cifra TRM BanRep (`GET /api/inicio/dolar-hora`) + mini TradingView; clic amplía gráfico horario TV.
+- Logística Internacional → **Proveedores** (`ProveedoresPanel.tsx`, `useProveedores.ts`): `/api/proveedores/*`; pestañas Directorio / ¿Quién vende…? / Catálogos (Gmail, sin LLM) / Oferta web (publica `oferta_proveedores.json` para `/cotizar`) / Cotizaciones. Permiso `logistica-internacional`.
 - Contabilidad → **Créditos adquiridos**: `GET/POST /api/contabilidad/creditos*`; tasa EA o N.A.M.V., cuota y amortización.
 
 ## Riesgos

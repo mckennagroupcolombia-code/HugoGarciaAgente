@@ -106,6 +106,19 @@ _RRHH_COMPENSACIONES_PATH = os.path.join(os.path.dirname(__file__), "..", "data"
 # sin tener que borrar el archivo de caché a mano.
 _CACHE_VERSION = 7
 
+# Resumen completo en memoria: reabrir el panel (o cambiar de pestaña y volver)
+# no debe volver a golpear MeLi/Alegra ~30–40 s. `refresh=True` lo salta.
+# Los buckets cerrados ya viven en disco; esto solo evita recalcular el período
+# en curso + ads_reco + cobros en cada navegación.
+_RESUMEN_MEM: dict[tuple[str, int], tuple[float, dict]] = {}
+_RESUMEN_MEM_TTL_S = 180  # 3 minutos
+
+# Órdenes MeLi del bucket en curso: la paginación de `/orders/search` puede
+# tardar decenas de segundos; cachear unos minutos evita que "Actualizar" o
+# un remount del SPA dispare otra corrida completa.
+_ORDENES_MELI_MEM: dict[tuple[str, str], tuple[float, list]] = {}
+_ORDENES_MELI_TTL_S = 300  # 5 minutos
+
 # Mismos cortes de calificación que `colorNota` en el frontend
 # (desktop/src/components/ui/ScoreRing.tsx) — si cambian allá, cambiar acá.
 _CORTES_CALIFICACION = (
@@ -252,10 +265,20 @@ def _ventas_meli_en_rango(fecha_inicio: str, fecha_fin: str) -> list[dict]:
     cero). Acotado a un mes/semana, el conteo de órdenes queda muy por
     debajo de ese tope.
     """
+    import time as _time
+
     from app.services.meli import listar_ordenes_meli_por_estado
 
+    key = (fecha_inicio, fecha_fin)
+    cached = _ORDENES_MELI_MEM.get(key)
+    now = _time.time()
+    if cached and (now - cached[0]) < _ORDENES_MELI_TTL_S:
+        return cached[1]
+
     dias_atras = (datetime.now().date() - date.fromisoformat(fecha_inicio)).days + 2
-    return listar_ordenes_meli_por_estado("paid", dias_atras=dias_atras, fecha_hasta=fecha_fin)
+    ordenes = listar_ordenes_meli_por_estado("paid", dias_atras=dias_atras, fecha_hasta=fecha_fin)
+    _ORDENES_MELI_MEM[key] = (now, ordenes)
+    return ordenes
 
 
 def _acumular_orden_meli(orden: dict, acc: dict, relacion_por_mid: dict, costos: dict, cobros_por_sku: dict) -> None:
@@ -724,7 +747,16 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
     cambio, 9 de 12 quedan permanentemente sin gasto en ads conocido.
     Los buckets ya cerrados se sirven desde caché en disco (ver sección de
     caché arriba); solo el bucket en curso golpea MeLi/Siigo en cada llamada.
+
+    `refresh=True` (botón Actualizar del panel) invalida la caché en memoria
+    del resumen y fuerza recalcular SOLO el período en curso. Los buckets
+    cerrados no se tocan: ya no cambian, y recalcularlos todos (12 semanas ×
+    paginación MeLi) era lo que dejaba el panel "pensando" varios minutos.
+    Para invalidar cerrados tras un cambio de fórmula, subir `_CACHE_VERSION`.
     """
+    import time as _time
+    from concurrent.futures import ThreadPoolExecutor
+
     from app.services.rentabilidad import (
         _sku_canonico_desde_relacion,
         costos_todos_resumen,
@@ -736,6 +768,12 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
     _n_default = {"dia": 90, "semana": 12, "mes": 12}[periodicidad]
     n = max(1, min(int(n or _n_default), _n_max))
 
+    mem_key = (periodicidad, n)
+    if not refresh:
+        cached_resumen = _RESUMEN_MEM.get(mem_key)
+        if cached_resumen and (_time.time() - cached_resumen[0]) < _RESUMEN_MEM_TTL_S:
+            return cached_resumen[1]
+
     if periodicidad == "dia":
         rangos = _rangos_dias(n)
     elif periodicidad == "semana":
@@ -746,26 +784,56 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
 
     cache_disco = _cargar_cache_disco()
 
+    # Solo buckets abiertos o ausentes en disco. `refresh` ya no mete los
+    # cerrados en pendientes (ver docstring): invalidar fórmula = bump de versión.
     pendientes = [
         r for r in rangos
-        if refresh or not _bucket_cerrado(r, hoy_str) or _clave_bucket(periodicidad, r) not in cache_disco
+        if (not _bucket_cerrado(r, hoy_str)) or _clave_bucket(periodicidad, r) not in cache_disco
     ]
 
-    # Fuentes compartidas por TODOS los buckets — costos/cobros/nómina no
-    # varían por período, se piden una sola vez. Las órdenes MeLi, en cambio,
-    # se piden por bucket (un solo fetch para todo el histórico rompe el
-    # tope de 10000 resultados de `/orders/search` — ver
-    # `_ventas_meli_en_rango`), pero en PARALELO para los pendientes, no en
-    # serie (ver `_prefetch_ordenes_meli`) — si no, la primera carga de un
-    # año completo sin caché tarda varios minutos.
-    relacion_por_mid = _sku_canonico_desde_relacion()
-    costos = costos_todos_resumen(refresh=refresh)
-    cobros = listar_cobros_meli(refresh=refresh)
-    cobros_por_sku = {(c.get("sku") or "").upper(): c for c in cobros.get("items") or [] if c.get("sku")}
-    total_mensual_nomina, fuente_nomina = _total_mensual_nomina()
-    ordenes_por_bucket = _prefetch_ordenes_meli(periodicidad, pendientes)
-    ads_por_bucket = _prefetch_gasto_ads(periodicidad, pendientes, cache_disco)
+    if refresh:
+        # La semana/mes/día en curso debe volver a pedir órdenes/ads a MeLi
+        # aunque sigan en las cachés cortas en memoria.
+        try:
+            from app.services import meli_ads as _meli_ads
+        except Exception:
+            _meli_ads = None
+        for r in pendientes:
+            _ORDENES_MELI_MEM.pop((r["inicio"], r["fin"]), None)
+            if _meli_ads is not None:
+                _meli_ads._GASTO_RANGO_CACHE.pop((r["inicio"], r["fin"]), None)
+        _RESUMEN_MEM.pop(mem_key, None)
+
+    # Costos + cobros + prefetch de pendientes en paralelo: en serie la semana
+    # abierta sola ya pasaba de 30–40 s (órdenes MeLi + facturas + ads).
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        fut_relacion = pool.submit(_sku_canonico_desde_relacion)
+        # Costos/cobros tienen su propia caché; no forzar rebuild completo en
+        # cada "Actualizar" (eso sumaba decenas de segundos sin cambiar el P&L
+        # del período abierto de forma material).
+        fut_costos = pool.submit(lambda: costos_todos_resumen(refresh=False))
+        fut_cobros = pool.submit(lambda: listar_cobros_meli(refresh=False))
+        fut_nomina = pool.submit(_total_mensual_nomina)
+        fut_ordenes = pool.submit(_prefetch_ordenes_meli, periodicidad, pendientes)
+        fut_ads = pool.submit(_prefetch_gasto_ads, periodicidad, pendientes, cache_disco)
+        fut_reco = pool.submit(_resumen_ads_recomendaciones)
+        fut_saldo = pool.submit(_saldo_bancario)
+        fut_politica = pool.submit(_politica_publicidad)
+
+        relacion_por_mid = fut_relacion.result()
+        costos = fut_costos.result()
+        cobros = fut_cobros.result()
+        total_mensual_nomina, fuente_nomina = fut_nomina.result()
+        ordenes_por_bucket = fut_ordenes.result()
+        ads_por_bucket = fut_ads.result()
+        ads_recomendaciones = fut_reco.result()
+        saldo_bancario = fut_saldo.result()
+        politica_publicidad = fut_politica.result()
+
     otras_ventas_por_bucket = _ventas_otras_por_bucket(pendientes, costos)
+    cobros_por_sku = {
+        (c.get("sku") or "").upper(): c for c in cobros.get("items") or [] if c.get("sku")
+    }
 
     filas: list[dict] = []
     margen_anterior: float | None = None
@@ -774,7 +842,8 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
     for rango in rangos:
         clave = _clave_bucket(periodicidad, rango)
         cerrado = _bucket_cerrado(rango, hoy_str)
-        desde_cache = cache_disco.get(clave) if (cerrado and not refresh) else None
+        # Cerrados siempre desde disco (refresh solo afecta el período abierto).
+        desde_cache = cache_disco.get(clave) if cerrado else None
 
         if desde_cache:
             # `**rango` va DESPUÉS de `**desde_cache`: el P&L cacheado se
@@ -814,7 +883,7 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         round(actual["margen_pct"] - anterior["margen_pct"], 2) if actual and anterior else None
     )
 
-    return {
+    resultado = {
         "periodicidad": periodicidad,
         "n": n,
         "generado_en": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -823,7 +892,9 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         "tendencia_margen_pp": tendencia_margen_pp,
         "nomina_mensual": round(total_mensual_nomina, 2),
         "fuente_nomina": fuente_nomina,
-        "ads_recomendaciones": _resumen_ads_recomendaciones(),
-        "saldo_bancario": _saldo_bancario(),
-        "politica_publicidad": _politica_publicidad(),
+        "ads_recomendaciones": ads_recomendaciones,
+        "saldo_bancario": saldo_bancario,
+        "politica_publicidad": politica_publicidad,
     }
+    _RESUMEN_MEM[mem_key] = (_time.time(), resultado)
+    return resultado

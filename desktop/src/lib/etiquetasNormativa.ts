@@ -351,7 +351,7 @@ export function validarEtiquetaStudio(d: EtiquetaStudioDatos): ReglaNormativa[] 
   const textoCompleto = textoCompletoRevision(d);
 
   if (!d.sku.trim()) {
-    reglas.push({ id: "sku", severidad: "error", mensaje: "SKU / código Siigo obligatorio", campo: "sku" });
+    reglas.push({ id: "sku", severidad: "error", mensaje: "SKU / código Alegra obligatorio", campo: "sku" });
   }
   if (!d.nombre_producto.trim()) {
     reglas.push({

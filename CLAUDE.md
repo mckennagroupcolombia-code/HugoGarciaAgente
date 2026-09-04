@@ -208,6 +208,7 @@ GRUPO_INVENTARIO_WA         # ID grupo inventario
 TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
 GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
 GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
+GRUPO_COTIZACIONES_WA       # Solicitudes de cotización desde mckennagroup.co/cotizar (default: GRUPO_PEDIDOS_WEB_WA)
 GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio + entregado
 # Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
 
@@ -456,6 +457,54 @@ tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambi
 tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
 conversación de WhatsApp — se trata aparte, con su propia revisión.
 
+### I. Red de proveedores → sección "Cotizar" de la web + mapamundi
+
+```
+/app → Logística Internacional → Proveedores   (desktop/src/components/ProveedoresPanel.tsx)
+  ├─ Directorio: proveedores + ficha (productos que maneja, último precio, historial de compras)
+  ├─ ¿Quién vende…?: un producto (clave normalizada) → todos los proveedores que lo manejan,
+  │    último precio, mínimo, nº de compras → a quién pedir cotización para el mejor precio
+  ├─ Catálogos: escanea Gmail (adjuntos PDF/XLSX/CSV con "catálogo", "lista de precios",
+  │    "portafolio", "cotización") → extracción heurística SIN LLM → el operador marca líneas
+  │    → se guardan como productos del proveedor (también desde la URL de un proveedor)
+  ├─ Oferta web: productos con publicar_web=1 → POST /api/proveedores/publicar-web
+  │    → PAGINA_WEB/site/data/oferta_proveedores.json  (SIN nombres de proveedor)
+  └─ Cotizaciones: solicitudes que llegan desde mckennagroup.co/cotizar + respuesta por correo
+
+Fuentes automáticas (POST /api/proveedores/importar, repetible sin duplicar):
+  app/data/facturas_compra_historial.json · Siigo /v1/purchases · contabilidad.db → compras_exterior
+
+Web (website.py :8083):
+  /cotizar            listado ampliado (oferta publicada + catálogo en stock) agrupado por línea;
+                      lo que no está en stock solo se cotiza ("Bajo pedido"); lo que sí, enlaza a la tienda
+  /cotizar/solicitar  POST → solicitudes_cotizacion (proveedores.db) → aviso al agente :8081
+                      (/api/proveedores/cotizaciones/notificar, Bearer CHAT_API_TOKEN) → WhatsApp a
+                      GRUPO_COTIZACIONES_WA (default GRUPO_PEDIDOS_WEB_WA) + correo de confirmación al cliente
+  Inicio → "Del origen a tu fórmula": mapamundi real (_world_land.svg.html, Natural Earth) con dos
+  capas: `stock` (origen_materias.json, editable en /app → Vitrina Web → Origen de materias) y
+  `red` (países de origen de la oferta publicada). Paquetes animados (<animateMotion>) sobre cada ruta.
+```
+
+**Experiencia ilustrada en la web (sep-2026):** `_ruta_origen.html` ("Del origen a tu fórmula": KPIs
+animados, cadena de custodia Origen → Tránsito → Calidad → Distribución, filtro por línea, mapamundi con
+trama de puntos, rutas animadas con barco/avión, panel por país con productos + badges TDS/COA, tour
+automático) y `_cobertura.html` ("Colombia, de punta a punta": mapa por departamentos
+`_colombia_map.svg.html` (@svg-maps/colombia, MIT; centros en `app/data/colombia_departamentos_svg.json`),
+coropleta con cobertura REAL de pedidos, tramado en los departamentos por impactar, pulsos de despachos
+de la semana, puertos y bodega). JS: `static/js/trazabilidad.js`. Datos: `website.py::_construir_ruta_origen`
+(cache 5 min; cruza `origen_materias.json` + oferta publicada + `documentos_web` para TDS/COA) y
+`_construir_colombia_mapa`. Los **países de origen del catálogo son de referencia** (sembrados por
+palabra clave el 2026-09-03 en `origen_materias.json`; el usuario autorizó datos de origen aproximados) —
+se corrigen por SKU en /app → Vitrina Web → Origen de materias. `proveedores_db.clasificar_nombre()` /
+`autoclasificar_productos()` sugieren línea y origen de productos de proveedores por reglas de nombre;
+`es_materia_prima()` excluye empaques/servicios de la publicación; `nombre_publico()` limpia el nombre.
+
+Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no versionado). Rutas:
+`app/routes_proveedores.py` (`/api/proveedores/*` y alias `/app/api/...`, permiso
+`logistica-internacional`). **Regla:** el sitio público nunca muestra el nombre del proveedor; McKenna
+es el puente. Ningún endpoint del módulo llama a un LLM (una extracción de catálogos con Claude sería
+un paso aparte, gateado por `llm_budget`).
+
 ---
 
 ## Endpoints Flask
@@ -502,6 +551,7 @@ conversación de WhatsApp — se trata aparte, con su propia revisión.
 | `/api/consultar/producto` | GET | Bearer | Busca producto en Sheets |
 | `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
+| `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |

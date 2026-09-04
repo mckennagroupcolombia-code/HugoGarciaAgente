@@ -60,9 +60,28 @@ interface BusquedaItem {
 
 function esComboSiigo(item: BusquedaItem): boolean {
   const t = (item.type || "").toLowerCase();
-  if (t === "combo") return true;
+  if (t === "combo" || t === "kit") return true;
   if (t === "product") return false;
   return item.codigo.toUpperCase().startsWith("C-");
+}
+
+/** SKU sugerido al duplicar desde búsqueda (evita chocar con el origen). */
+function sugerirCodigoCopia(codigo: string): string {
+  const base = codigo.trim();
+  if (!base) return "C-";
+  const m = base.match(/^(.*?)-COPIA(\d*)$/i);
+  if (m) {
+    const n = m[2] ? Number(m[2]) + 1 : 2;
+    return `${m[1]}-COPIA${n}`;
+  }
+  return `${base}-COPIA`;
+}
+
+function sugerirNombreCopia(nombre: string): string {
+  const n = nombre.trim();
+  if (!n) return "";
+  if (/\(copia(?:\s+\d+)?\)$/i.test(n)) return n;
+  return `${n} (copia)`;
 }
 
 function mapUnidadSiigo(raw?: string): "Un" | "mL" | "g" {
@@ -323,6 +342,8 @@ export default function CrearProductosSiigoPanel({
   function resetFormulario() {
     setResultado(null);
     setCheck(null);
+    setOrigenCombo(null);
+    setErrorReceta(null);
     if (modo === "producto") {
       setCodigo("");
       setNombre("");
@@ -342,7 +363,10 @@ export default function CrearProductosSiigoPanel({
     }
   }
 
-  function copiarRecetaCombo(codigoOrigen: string) {
+  function copiarRecetaCombo(
+    codigoOrigen: string,
+    opts?: { destinoCodigo?: string; destinoNombre?: string },
+  ) {
     const origen = codigoOrigen.trim();
     if (origen.length < 2) return;
     setCatalogoAbierto(false);
@@ -354,11 +378,11 @@ export default function CrearProductosSiigoPanel({
       )
       .then((data) => {
         if (!data.ok) {
-          setErrorReceta(data.error || `No se pudo leer ${origen} en Siigo`);
+          setErrorReceta(data.error || `No se pudo leer ${origen} en Alegra`);
           return;
         }
         if (!data.es_combo) {
-          setErrorReceta(`${data.codigo || origen} no es un combo en Siigo`);
+          setErrorReceta(`${data.codigo || origen} no es un combo en Alegra`);
           return;
         }
         const comps = (data.componentes || []).filter((c) => (c.codigo || "").trim());
@@ -383,6 +407,16 @@ export default function CrearProductosSiigoPanel({
           setComboPrecio(String(Math.round(Number(data.precio_lista))));
         }
         if (typeof data.iva === "boolean") setComboIva(data.iva);
+        if (opts?.destinoCodigo != null) {
+          setComboCodigo(opts.destinoCodigo);
+          setCheck(null);
+          if (opts.destinoCodigo.trim().length >= 2) {
+            verificarCodigo.mutate(opts.destinoCodigo.trim());
+          }
+        }
+        if (opts?.destinoNombre != null) {
+          setComboNombre(opts.destinoNombre);
+        }
         setResultado(null);
       })
       .catch((err: Error) => {
@@ -391,14 +425,38 @@ export default function CrearProductosSiigoPanel({
       .finally(() => setCargandoReceta(false));
   }
 
+  /** Desde resultados de búsqueda: copia receta a un combo nuevo (SKU/nombre destino). */
+  function duplicarDesdeHallazgo(item: BusquedaItem) {
+    setResultado(null);
+    // Flujo EAN «Duplicar combo»: el SKU/nombre nuevos ya vienen de la fila seleccionada.
+    if (duplicarCombo && codigoInicial) {
+      const destinoCodigo = esCodigoCombo(codigoInicial)
+        ? codigoInicial
+        : `C-${codigoInicial}`;
+      const destinoNombre = nombreInicial || sugerirNombreCopia(item.nombre);
+      setComboCodigo(destinoCodigo);
+      setComboNombre(destinoNombre);
+      copiarRecetaCombo(item.codigo, {
+        destinoCodigo,
+        destinoNombre,
+      });
+      return;
+    }
+    const destinoCodigo = sugerirCodigoCopia(item.codigo);
+    const destinoNombre = sugerirNombreCopia(item.nombre);
+    copiarRecetaCombo(item.codigo, { destinoCodigo, destinoNombre });
+  }
+
   function aplicarHallazgo(item: BusquedaItem) {
     if (duplicarCombo) {
-      copiarRecetaCombo(item.codigo);
+      duplicarDesdeHallazgo(item);
       return;
     }
     const combo = esComboSiigo(item);
     setResultado(null);
     setCatalogoAbierto(false);
+    setOrigenCombo(null);
+    setErrorReceta(null);
     if (combo) {
       setModo("combo");
       setComboCodigo(item.codigo);
@@ -463,7 +521,7 @@ export default function CrearProductosSiigoPanel({
     <div className={`mx-auto space-y-2.5 ${modoCompacto ? "max-w-none" : "max-w-3xl space-y-3"}`}>
       {!modoCompacto && (
         <div>
-          <h2 className="text-base font-semibold text-ink">Crear productos y combos en Siigo</h2>
+          <h2 className="text-base font-semibold text-ink">Crear productos y combos en Alegra</h2>
         </div>
       )}
       {codigoInicial && (
@@ -526,7 +584,7 @@ export default function CrearProductosSiigoPanel({
 
       <div ref={catalogoRef} className="space-y-1 rounded-xl border-2 border-accent bg-accent/10 p-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-accent">
-          {duplicarCombo ? "Combo origen (copiar receta)" : "Buscar productos y combos en Siigo"}
+          {duplicarCombo ? "Combo origen (copiar receta)" : "Buscar productos y combos en Alegra"}
         </p>
         <div className="relative">
           <div className="flex gap-2">
@@ -561,7 +619,7 @@ export default function CrearProductosSiigoPanel({
               type="button"
               onClick={onBuscarCatalogo}
               className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm hover:opacity-90"
-              title="Buscar productos y combos existentes en Siigo"
+              title="Buscar productos y combos existentes en Alegra"
               aria-label="Buscar"
             >
               <Icon name="search" size={16} weight="bold" />
@@ -570,7 +628,7 @@ export default function CrearProductosSiigoPanel({
           {catalogoAbierto && (catalogoQ.trim().length >= 1 || catalogoBuscando || catalogoItems.length > 0) && (
             <div className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-xl">
               {catalogoBuscando && (
-                <p className="px-3 py-2 text-[11px] text-muted">Buscando en Siigo…</p>
+                <p className="px-3 py-2 text-[11px] text-muted">Buscando en Alegra…</p>
               )}
               {!catalogoBuscando && catalogoQ.trim().length >= 1 && catalogoItems.length === 0 && (
                 <p className="px-3 py-2 text-[11px] text-muted">
@@ -582,47 +640,69 @@ export default function CrearProductosSiigoPanel({
               {(duplicarCombo ? catalogoItems.filter(esComboSiigo) : catalogoItems).map((s) => {
                 const combo = esComboSiigo(s);
                 return (
-                  <button
+                  <div
                     key={s.codigo}
-                    type="button"
-                    className="flex w-full flex-col items-start gap-0.5 border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-accent/10"
-                    onClick={() => aplicarHallazgo(s)}
+                    className="flex w-full items-stretch gap-1 border-b border-border/50 last:border-0 hover:bg-accent/10"
                   >
-                    <span className="flex items-center gap-1.5">
-                      <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
-                      <span
-                        className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
-                          combo
-                            ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
-                            : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
-                        }`}
-                      >
-                        {combo ? "Combo" : "Producto"}
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-3 py-2 text-left"
+                      onClick={() => aplicarHallazgo(s)}
+                      title={
+                        duplicarCombo
+                          ? "Usar este combo como origen de la receta"
+                          : combo
+                            ? "Cargar este combo en el formulario"
+                            : "Cargar este producto en el formulario"
+                      }
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                        <span
+                          className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
+                            combo
+                              ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
+                              : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
+                          }`}
+                        >
+                          {combo ? "Combo" : "Producto"}
+                        </span>
                       </span>
-                    </span>
-                    <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
-                  </button>
+                      <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
+                    </button>
+                    {combo && (
+                      <button
+                        type="button"
+                        className="m-1.5 shrink-0 self-center rounded-md border border-accent/60 bg-accent/15 px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent/25"
+                        title="Copiar componentes, cantidades y precio a un combo nuevo"
+                        onClick={() => duplicarDesdeHallazgo(s)}
+                      >
+                        Duplicar
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
       </div>
-      {duplicarCombo && (
+      {(duplicarCombo || cargandoReceta || errorReceta || origenCombo) && (
         <div className="space-y-1">
           {cargandoReceta && (
-            <p className="text-xs text-muted">Leyendo receta del combo origen en Siigo…</p>
+            <p className="text-xs text-muted">Leyendo receta del combo origen en Alegra…</p>
           )}
           {errorReceta && (
             <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
               {errorReceta}
             </p>
           )}
-          {origenCombo && !errorReceta && (
+          {origenCombo && !errorReceta && !cargandoReceta && (
             <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-ink">
               Receta copiada de{" "}
               <span className="font-mono font-semibold">{origenCombo.codigo}</span>
-              {origenCombo.nombre ? ` · ${origenCombo.nombre}` : ""}. Revisa componentes y crea el combo nuevo.
+              {origenCombo.nombre ? ` · ${origenCombo.nombre}` : ""}. Revisa código, nombre y
+              componentes; luego crea el combo nuevo.
             </p>
           )}
         </div>
@@ -649,7 +729,7 @@ export default function CrearProductosSiigoPanel({
                   onClick={onVerificar}
                   disabled={codigo.trim().length < 2 || verificarCodigo.isPending}
                   className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-border text-ink hover:border-accent hover:text-accent disabled:opacity-40"
-                  title="Verificar código en Siigo"
+                  title="Verificar código en Alegra"
                   aria-label="Verificar"
                 >
                   {verificarCodigo.isPending ? "…" : <Icon name="check" size={16} weight="bold" />}
@@ -663,7 +743,7 @@ export default function CrearProductosSiigoPanel({
                     catalogoInputRef.current?.scrollIntoView({ block: "nearest" });
                   }}
                   className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-accent bg-accent text-white hover:opacity-90"
-                  title="Buscar productos y combos en Siigo"
+                  title="Buscar productos y combos en Alegra"
                   aria-label="Buscar"
                 >
                   <Icon name="search" size={16} weight="bold" />
@@ -687,7 +767,7 @@ export default function CrearProductosSiigoPanel({
               <input
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre en Siigo (máx. 100)"
+                placeholder="Nombre en Alegra (máx. 150)"
                 maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               />
@@ -757,7 +837,7 @@ export default function CrearProductosSiigoPanel({
                   onClick={onVerificar}
                   disabled={comboCodigo.trim().length < 2 || verificarCodigo.isPending}
                   className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-border text-ink hover:border-accent hover:text-accent disabled:opacity-40"
-                  title="Verificar código en Siigo"
+                  title="Verificar código en Alegra"
                   aria-label="Verificar"
                 >
                   {verificarCodigo.isPending ? "…" : <Icon name="check" size={16} weight="bold" />}
@@ -773,7 +853,7 @@ export default function CrearProductosSiigoPanel({
                     catalogoInputRef.current?.scrollIntoView({ block: "nearest" });
                   }}
                   className="mck-icon-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-accent bg-accent text-white hover:opacity-90"
-                  title="Buscar productos y combos en Siigo"
+                  title="Buscar productos y combos en Alegra"
                   aria-label="Buscar"
                 >
                   <Icon name="search" size={16} weight="bold" />
@@ -833,7 +913,7 @@ export default function CrearProductosSiigoPanel({
               </button>
             </div>
             <p className="text-[10px] text-muted">
-              Puedes agregar insumos o combos existentes (ej. C-AGUDES250mL): Siigo no acepta
+              Puedes agregar insumos o combos existentes (ej. C-AGUDES250mL): Alegra no acepta
               combo-dentro-de-combo, así que la app expande automáticamente a sus productos.
             </p>
             <div className="space-y-2">
@@ -889,7 +969,7 @@ export default function CrearProductosSiigoPanel({
                     {lineaActiva === linea.id && (sugerencias.length > 0 || buscando || busqueda.trim().length >= 1) && (
                       <div className="absolute left-2 right-2 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
                         {buscando && (
-                          <p className="px-3 py-2 text-[11px] text-muted">Buscando en Siigo…</p>
+                          <p className="px-3 py-2 text-[11px] text-muted">Buscando en Alegra…</p>
                         )}
                         {!buscando && sugerencias.length === 0 && busqueda.trim().length >= 1 && (
                           <button
@@ -913,7 +993,7 @@ export default function CrearProductosSiigoPanel({
                               Usar código: {busqueda.trim().replace(/\s/g, "")}
                             </span>
                             <span className="text-[10px] text-muted">
-                              No apareció en la lista — se enviará tal cual a Siigo
+                              No apareció en la lista — se enviará tal cual a Alegra
                             </span>
                           </button>
                         )}
@@ -1003,7 +1083,7 @@ export default function CrearProductosSiigoPanel({
             </>
           ) : (
             <>
-              Código <span className="font-mono font-bold">{check.codigo}</span> disponible en Siigo.
+              Código <span className="font-mono font-bold">{check.codigo}</span> disponible en Alegra.
             </>
           )}
         </div>
@@ -1018,7 +1098,7 @@ export default function CrearProductosSiigoPanel({
           }`}
         >
           {resultado.ok
-            ? resultado.mensaje || "Creado en Siigo"
+            ? resultado.mensaje || "Creado en Alegra"
             : resultado.error || "No se pudo crear"}
         </div>
       )}
@@ -1039,10 +1119,10 @@ export default function CrearProductosSiigoPanel({
           className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
         >
           {creando
-            ? "Creando en Siigo…"
+            ? "Creando en Alegra…"
             : modo === "producto"
-              ? "Crear producto en Siigo"
-              : "Crear combo en Siigo"}
+              ? "Crear producto en Alegra"
+              : "Crear combo en Alegra"}
         </button>
         <button
           type="button"
@@ -1055,7 +1135,7 @@ export default function CrearProductosSiigoPanel({
 
       <p className={`text-muted ${modoCompacto ? "text-[10px]" : "text-xs"}`}>
         Los productos usan categoría de inventario 297 (Productos). Los combos heredan la
-        clasificación de un combo existente. Requiere plan Siigo Nube Premium para combos.
+        clasificación de un combo existente. En Alegra los combos son kits (type=kit).
       </p>
     </div>
   );

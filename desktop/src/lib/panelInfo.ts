@@ -34,7 +34,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Resumen del día: ventas por WhatsApp, preguntas de MercadoLibre respondidas, órdenes recibidas y estado de los servicios.",
     tips: [
       "Los números se actualizan automáticamente cada 30 segundos.",
-      "El indicador verde junto a MeLi, Sheets o Siigo significa que el servicio está funcionando.",
+      "El indicador verde junto a MeLi, Sheets o Alegra significa que el servicio está funcionando.",
       "Si algo aparece en rojo, avisa al administrador.",
     ],
     tier: "core",
@@ -97,7 +97,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Órdenes de compra llegadas por la tienda en línea mckennagroup.co. Puedes facturar, actualizar estado de envío y notificar al cliente.",
     tips: [
       "Cuando llega un pedido, también recibes una alerta en el grupo de WhatsApp.",
-      "El botón 'Facturar' crea la factura en Siigo automáticamente.",
+      "El botón 'Facturar' crea la factura en Alegra automáticamente.",
       "Actualiza el número de guía para que el cliente pueda rastrear su envío.",
     ],
     tier: "core",
@@ -125,8 +125,8 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "Columna Stock: escribe el número final y pulsa Guardar (o Enter). Si estaba en 0/pausada, se reactiva en MeLi.",
       "La columna ± sigue siendo ajuste rápido (+1 / −1 o N).",
-      "Tabla unificada: Publicación (Activa / Pausada), ventas 30 d y códigos MeLi ↔ Siigo. Editar SKU carga a MeLi.",
-      "Siigo solo lectura — no recibe stock desde el panel.",
+      "Tabla unificada: Publicación (Activa / Pausada), ventas 30 d y códigos MeLi ↔ Alegra. Editar SKU carga a MeLi.",
+      "Alegra solo lectura — no recibe stock desde el panel.",
     ],
     tier: "core",
     category: "contabilidad",
@@ -202,10 +202,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "🧾",
     label: "Facturación",
     description:
-      "Sync MeLi↔Siigo/Alegra, facturas de compra desde Gmail, Ventas y NC, y Astro Killer (trazabilidad venta→factura) — todo lo de facturación en un solo lugar. Consultar factura está en el icono del cabezote.",
+      "Sync MeLi↔Alegra, facturas de compra desde Gmail, Ventas y NC, y Astro Killer (trazabilidad venta→factura) — todo lo de facturación en un solo lugar. Consultar factura está en el icono del cabezote.",
     tips: [
-      "Sync: fuerza o revisa la sincronización de facturas de venta con Siigo/Alegra.",
-      "Facturas de compra: escanea Gmail y registra en Siigo con aprobación.",
+      "Sync: fuerza o revisa la sincronización de facturas de venta con Alegra.",
+      "Facturas de compra: escanea Gmail y registra en Alegra con aprobación.",
       "Astro Killer: compara lado a lado cada venta contra lo facturado en Alegra.",
       "Para buscar por producto usa el icono de factura del encabezado.",
     ],
@@ -227,7 +227,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   sync: {
     emoji: "🔄",
     label: "Sync Facturas",
-    description: "Sincroniza automáticamente las facturas de MercadoLibre con el ERP Siigo/Alegra. En modo automático funciona solo — aquí puedes forzar una sincronización manual.",
+    description: "Sincroniza automáticamente las facturas de MercadoLibre con el ERP Alegra. En modo automático funciona solo — aquí puedes forzar una sincronización manual.",
     tips: [
       "Ahora vive dentro de la sección Facturación.",
       "'Sync hoy' revisa las ventas de las últimas 24 horas.",
@@ -239,7 +239,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   facturas: {
     emoji: "🧾",
     label: "Facturas de compra",
-    description: "Facturas de proveedores que llegan por Gmail. El sistema las detecta automáticamente y las organiza para su registro en Siigo.",
+    description: "Facturas de proveedores que llegan por Gmail. El sistema las detecta automáticamente y las organiza para su registro en Alegra.",
     tips: [
       "Ahora vive dentro de la sección Facturación.",
       "Verifica que el proveedor y monto sean correctos antes de aprobar.",
@@ -297,7 +297,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: [
       "El score pondera margen neto (60%), eficiencia de ads por ACOS (20%) y tendencia vs. el período anterior (20%).",
       "La comisión de MeLi usa la tarifa actual aplicada retroactivamente — no hay forma de recuperar el cobro histórico real por orden.",
-      "'Actualizar' fuerza una consulta en vivo a MeLi y Siigo (el resto del tiempo usa cachés de hasta 1 hora / 24 horas).",
+      "'Actualizar' fuerza una consulta en vivo a MeLi y Alegra (el resto del tiempo usa cachés de hasta 1 hora / 24 horas).",
     ],
     tier: "standard",
     category: "contabilidad",
@@ -310,19 +310,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Pega varios pantallazos con Ctrl+V o adjúntalos.",
       "Usa «Guardar para después» si no terminas: retomas desde Borradores pendientes.",
       "En el historial, «Editar» vuelve a cargar el pedido para corregir líneas, SKU o fotos.",
-      "Al confirmar/actualizar costos se archiva el pantallazo y se actualizan costos en Siigo.",
+      "Al confirmar/actualizar costos se archiva el pantallazo y se actualizan costos en Alegra.",
     ],
     tier: "standard",
     category: "contabilidad",
   },
   "productos-siigo": {
     emoji: "📦",
-    label: "Crear en Siigo",
-    description: "Alta de productos (insumos) y combos/kits de venta directamente en Siigo. Disponible en Contabilidad (icono del encabezado) y en Diseño → Códigos EAN.",
+    label: "Crear en Alegra",
+    description: "Alta de productos (insumos) y combos/kits de venta directamente en Alegra. Disponible en Contabilidad (icono del encabezado) y en Diseño → Códigos EAN.",
     tips: [
-      "En Códigos EAN selecciona un producto y pulsa Crear en Siigo, o Duplicar combo para copiar la receta de un combo existente al SKU elegido.",
+      "En Códigos EAN selecciona un producto y pulsa Crear en Alegra, o Duplicar combo para copiar la receta de un combo existente al SKU elegido.",
       "En Contabilidad el icono está en el encabezado, junto a la calculadora.",
-      "Usa Buscar para localizar productos y combos ya creados en Siigo antes de dar de alta uno nuevo.",
+      "Usa Buscar para localizar productos y combos en Alegra. Si el resultado es un combo, pulsa Duplicar para copiar la receta a un SKU nuevo (sufijo -COPIA / «(copia)»).",
       "Verifica el código antes de crear para evitar duplicados.",
       "Los combos usan prefijo C- y necesitan al menos un componente existente.",
     ],
@@ -370,9 +370,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "📒",
     label: "Ingresos / Egresos",
     description:
-      "Tabla contable por fecha: ventas Siigo, MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos, servicios operativos y cuotas de créditos adquiridos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
+      "Tabla contable por fecha: ventas Alegra (y Siigo histórico hasta 2026-09-02), MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos, servicios operativos y cuotas de créditos adquiridos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
     tips: [
-      "Filtra por rango de fechas y por fuente (MeLi, Siigo, web, compras, cuentas de cobro, operativos).",
+      "Filtra por rango de fechas y por fuente (MeLi, Alegra, web, compras, cuentas de cobro, operativos).",
       "Mismo concepto el mismo día → una casilla con sumatoria; clic para desplegar el detalle.",
       "Sube el extracto (CSV/Excel con Fecha + Débito/Crédito) y usa «Vincular» en cada fila; sugiere por monto y fecha.",
       "Las ventas web son pedidos con estado approved en la tienda.",

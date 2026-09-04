@@ -9,9 +9,9 @@ def sincronizar_productos_pagina_web(productos_meli: list) -> str:
 
     Si WEB_API_URL está configurada:
       - con `stock` en el payload → PUT /products/<sku> (actualiza stock_web)
-      - solo `precio` (sin stock) → regenera cache.json desde Siigo; NO toca stock
+      - solo `precio` (sin stock) → regenera cache.json desde Alegra; NO toca stock
         (evitar stock=0 accidental al cambiar precios desde Ganancia)
-    Si no hay API: regenera `PAGINA_WEB/site/data/cache.json` desde Siigo.
+    Si no hay API: regenera `PAGINA_WEB/site/data/cache.json` desde Alegra.
     """
     api_url = (os.getenv("WEB_API_URL") or "").strip().rstrip("/")
     api_key = (os.getenv("WEB_API_KEY") or "").strip()
@@ -86,7 +86,7 @@ def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
 
 
 def _rebuild_catalogo_web_cache() -> str:
-    """Regenera cache.json del sitio desde combos Siigo (precio web = lista − 10%)."""
+    """Regenera cache.json del sitio desde combos Alegra (precio web = lista − 10%)."""
     root = Path(__file__).resolve().parents[2]
     site_dir = root / "PAGINA_WEB" / "site"
     if str(root) not in sys.path:
@@ -99,6 +99,6 @@ def _rebuild_catalogo_web_cache() -> str:
 
         website.get_catalog(force=True)
         cache = site_dir / "data" / "cache.json"
-        return f"✅ Catálogo web regenerado desde Siigo ({cache})"
+        return f"✅ Catálogo web regenerado desde Alegra ({cache})"
     except Exception as e:
         return f"❌ Error regenerando catálogo web: {e}"

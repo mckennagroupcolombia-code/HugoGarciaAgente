@@ -76,7 +76,7 @@ from app.core import obtener_respuesta_ia
 
 def _diagnostico_facturas_compra():
     """
-    Verifica que SIIGO y Gmail estén accesibles antes de iniciar el flujo.
+    Verifica que Alegra y Gmail estén accesibles antes de iniciar el flujo.
     Retorna (token_siigo, gmail_service) o (None, None) si algo falla.
     """
     import requests
@@ -90,10 +90,10 @@ def _diagnostico_facturas_compra():
     # 1. SIIGO — autenticación
     token = autenticar_siigo(forzar=True)  # siempre token fresco al iniciar sesión
     if not token:
-        print("   [❌] SIIGO: fallo de autenticación")
+        print("   [❌] Alegra: fallo de autenticación")
         print("        → Revisa ~/mi-agente/credenciales_SIIGO.json")
         return None, None
-    print("   [✓] SIIGO: autenticado")
+    print("   [✓] Alegra: autenticado")
 
     # 2. SIIGO — tipo de documento FC (ID 5809)
     try:
@@ -156,7 +156,7 @@ def _diagnostico_facturas_compra():
 
 def _cargar_facturas_gmail(gmail_svc, token):
     """
-    Descarga facturas de Gmail y marca cuáles ya están en SIIGO.
+    Descarga facturas de Gmail y marca cuáles ya están en Alegra.
     Retorna lista de dicts con los datos de cada factura.
     """
     import requests
@@ -192,7 +192,7 @@ def _cargar_facturas_gmail(gmail_svc, token):
             )
             if r.status_code != 200:
                 print(
-                    f"  ⚠️ No se pudo consultar SIIGO para detectar duplicados: HTTP {r.status_code}"
+                    f"  ⚠️ No se pudo consultar Alegra para detectar duplicados: HTTP {r.status_code}"
                 )
                 break
             data = r.json()
@@ -209,10 +209,10 @@ def _cargar_facturas_gmail(gmail_svc, token):
                 break
             pagina += 1
         print(
-            f"  🗂️  {len(registradas_siigo)} compra(s) ya registradas en SIIGO desde {FECHA_INICIO_SIIGO}"
+            f"  🗂️  {len(registradas_siigo)} compra(s) ya registradas en Alegra desde {FECHA_INICIO_SIIGO}"
         )
     except Exception as e:
-        print(f"  ⚠️ No se pudo consultar SIIGO para detectar duplicados: {e}")
+        print(f"  ⚠️ No se pudo consultar Alegra para detectar duplicados: {e}")
 
     facturas = []
     for correo in correos:
@@ -259,7 +259,7 @@ def _cargar_facturas_gmail(gmail_svc, token):
                     "es_para_mckg": es_para_mckg,
                 }
             )
-            estado = "✓ ya en SIIGO" if ya_registrada else "pendiente"
+            estado = "✓ ya en Alegra" if ya_registrada else "pendiente"
             dest_aviso = (
                 ""
                 if es_para_mckg
@@ -274,7 +274,7 @@ def _cargar_facturas_gmail(gmail_svc, token):
 
 def _asegurar_proveedor_siigo(token, nit: str, nombre: str) -> bool:
     """
-    Verifica que el proveedor exista en SIIGO como contacto/customer.
+    Verifica que el proveedor exista en Alegra como contacto/customer.
     Si no existe, lo crea con datos mínimos del XML.
     Retorna True si está listo para usarse, False si falló la creación.
     """
@@ -296,11 +296,11 @@ def _asegurar_proveedor_siigo(token, nit: str, nombre: str) -> bool:
         if r.status_code == 200 and r.json().get("results"):
             return True  # ya existe
     except Exception as e:
-        print(f"  ⚠️  No se pudo verificar proveedor en SIIGO: {e}")
+        print(f"  ⚠️  No se pudo verificar proveedor en Alegra: {e}")
         return False
 
     # 2. Crear proveedor con datos mínimos
-    print(f"  ℹ️  Proveedor '{nombre}' (NIT {nit_base}) no existe en SIIGO — creando...")
+    print(f"  ℹ️  Proveedor '{nombre}' (NIT {nit_base}) no existe en Alegra — creando...")
     payload_prov = {
         "type": "Customer",
         "person_type": "Company",
@@ -324,10 +324,10 @@ def _asegurar_proveedor_siigo(token, nit: str, nombre: str) -> bool:
             timeout=10,
         )
         if rc.status_code in (200, 201):
-            print(f"  ✅ Proveedor creado en SIIGO: {nombre} (NIT {nit_base})")
+            print(f"  ✅ Proveedor creado en Alegra: {nombre} (NIT {nit_base})")
             return True
         else:
-            print(f"  ❌ No se pudo crear proveedor en SIIGO: {rc.status_code}")
+            print(f"  ❌ No se pudo crear proveedor en Alegra: {rc.status_code}")
             print(f"     {rc.text[:300]}")
             return False
     except Exception as e:
@@ -337,9 +337,9 @@ def _asegurar_proveedor_siigo(token, nit: str, nombre: str) -> bool:
 
 def _cli_registrar_gasto(token, factura):
     """
-    Registra una factura como gasto consumible en SIIGO.
+    Registra una factura como gasto consumible en Alegra.
     Modelo de referencia: FC-1-42 (document 5809, cost_center 263, payment 1338).
-    Crea el proveedor automáticamente si no existe en SIIGO.
+    Crea el proveedor automáticamente si no existe en Alegra.
     """
     import time as _time
     from app.services.siigo import crear_factura_compra_siigo
@@ -354,9 +354,9 @@ def _cli_registrar_gasto(token, factura):
     nit_base = nit.split("-")[0].strip() if nit else "999999999"
     if nit_base and nit_base != "999999999":
         if not _asegurar_proveedor_siigo(token, nit_base, prov):
-            print(f"  ❌ No se puede registrar: proveedor no pudo crearse en SIIGO.")
+            print(f"  ❌ No se puede registrar: proveedor no pudo crearse en Alegra.")
             print(
-                f"     Crea manualmente el proveedor en SIIGO → Contactos → Nuevo contacto"
+                f"     Crea manualmente el proveedor en Alegra → Contactos → Nuevo contacto"
             )
             return
 
@@ -383,30 +383,30 @@ def _cli_registrar_gasto(token, factura):
         "observations": f"Gasto consumible — {numero} — {prov}",
     }
 
-    print(f"\n  ⏳ Enviando a SIIGO...")
+    print(f"\n  ⏳ Enviando a Alegra...")
     t0 = _time.time()
     res = crear_factura_compra_siigo(payload)
     elapsed = _time.time() - t0
 
     if res.get("status") == "success":
         data = res.get("data", {})
-        print(f"  ✅ Registrado en SIIGO:")
-        print(f"     Número SIIGO : {data.get('name', '—')}")
+        print(f"  ✅ Registrado en Alegra:")
+        print(f"     Número Alegra : {data.get('name', '—')}")
         print(f"     ID           : {data.get('id', '—')}")
         print(f"     Total        : ${total:,.2f} COP")
         print(f"     Tiempo       : {elapsed:.1f}s")
     else:
         err = res.get("message", str(res))
-        print(f"  ❌ Error SIIGO ({elapsed:.1f}s):")
+        print(f"  ❌ Error Alegra ({elapsed:.1f}s):")
         # Imprimir el error completo para diagnóstico
         for linea in err[:600].split(","):
             print(f"     {linea.strip()}")
-        print(f"\n  → Registra manualmente: SIIGO → Compras → Nueva compra o gasto")
+        print(f"\n  → Registra manualmente: Alegra → Compras → Nueva compra o gasto")
 
 
 def _siigo_crear_producto(token: str, producto: dict) -> tuple:
     """
-    Crea un producto en SIIGO via POST /v1/products.
+    Crea un producto en Alegra via POST /v1/products.
     Retorna (ok: bool, mensaje: str).
     """
     import requests
@@ -461,7 +461,7 @@ def _siigo_crear_producto(token: str, producto: dict) -> tuple:
 
 def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -> tuple:
     """
-    Registra la factura de compra en SIIGO con ítems tipo Product.
+    Registra la factura de compra en Alegra con ítems tipo Product.
     Precio por ítem = precio_unitario (sin IVA).
     Retorna (ok: bool, mensaje: str).
     """
@@ -535,7 +535,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
         print(
             f"\n  ⚠️  ALERTA: Discrepancia mayor entre el total calculado y el XML del proveedor:"
         )
-        print(f"     Total calculado (SIIGO) : ${total_calculado:,.2f}")
+        print(f"     Total calculado (Alegra) : ${total_calculado:,.2f}")
         print(f"     Total XML del proveedor : ${total:,.2f}")
         print(f"     Diferencia              : ${diff:,.2f}")
         print(f"     Revisa precios y cantidades antes de continuar.")
@@ -549,7 +549,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
     # Intento 1: usar el total calculado con ROUND_HALF_UP
     payload["payments"] = [{"id": 1338, "value": total_calculado}]
 
-    print(f"\n  📤 Payload compra SIIGO:")
+    print(f"\n  📤 Payload compra Alegra:")
     print(f"     document.id   : {payload['document']['id']}")
     print(f"     cost_center   : {payload['cost_center']}")
     print(f"     supplier      : {nit_base}")
@@ -572,7 +572,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
                 diff <= 1000.0
             ):  # permitir reintento si la diferencia es de hasta $1000 (discrepancias menores/redondeo)
                 print(
-                    f"     ↳ Ajuste de redondeo/discrepancia: XML=${total:,.2f} → SIIGO=${total_siigo_real:,.2f} "
+                    f"     ↳ Ajuste de redondeo/discrepancia: XML=${total:,.2f} → Alegra=${total_siigo_real:,.2f} "
                     f"(Δ ${diff:.2f}) — reintentando..."
                 )
                 payload["payments"] = [{"id": 1338, "value": total_siigo_real}]
@@ -600,7 +600,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
             )
             if rv.status_code == 200 and rv.json().get("id") == siigo_id:
                 print(
-                    f"     ↳ Verificación GET: ✓ existe en SIIGO  total=${rv.json().get('total', 0):,.2f}"
+                    f"     ↳ Verificación GET: ✓ existe en Alegra  total=${rv.json().get('total', 0):,.2f}"
                 )
             else:
                 print(
@@ -609,7 +609,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
         except Exception as ve:
             print(f"     ↳ Verificación GET: no disponible ({ve})")
 
-        return True, f"Factura SIIGO {nombre} — total ${total_ok:,.2f} (ID {siigo_id})"
+        return True, f"Factura Alegra {nombre} — total ${total_ok:,.2f} (ID {siigo_id})"
     else:
         msg = res.get("message", str(res))
         return False, msg[:400]
@@ -617,7 +617,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
 
 def _cli_flujo_inventario(token: str, factura: dict):
     """
-    Flujo A (inventario): crea productos en SIIGO via API y registra la compra.
+    Flujo A (inventario): crea productos en Alegra via API y registra la compra.
     Genera Excel como documentación de respaldo.
     """
     import json as _json
@@ -678,7 +678,7 @@ def _cli_flujo_inventario(token: str, factura: dict):
     SEP = "─" * 54
 
     print(f"\n  {SEP}")
-    print(f"  📦 Productos: {len(nuevos)} nuevos   {len(duplicados)} ya en SIIGO")
+    print(f"  📦 Productos: {len(nuevos)} nuevos   {len(duplicados)} ya en Alegra")
     for p in productos:
         marca = "⚠️  DUPLICADO" if p.get("duplicado") else "✅ Nuevo"
         print(
@@ -688,20 +688,20 @@ def _cli_flujo_inventario(token: str, factura: dict):
 
     # ── Paso 1: Asegurar proveedor ──────────────────────────────
     nit_base = nit.split("-")[0].strip() if "-" in (nit or "") else (nit or "").strip()
-    print(f"\n  [1/3] Verificando proveedor en SIIGO...")
+    print(f"\n  [1/3] Verificando proveedor en Alegra...")
     if nit_base:
         if _asegurar_proveedor_siigo(token, nit_base, prov):
             print(f"  [✓] Proveedor listo: {prov} (NIT {nit_base})")
         else:
-            print(f"  [❌] No se pudo asegurar el proveedor en SIIGO.")
-            print(f"       Revisa Contactos en SIIGO y vuelve a intentar.")
+            print(f"  [❌] No se pudo asegurar el proveedor en Alegra.")
+            print(f"       Revisa Contactos en Alegra y vuelve a intentar.")
             return
     else:
         print(f"  [⚠] NIT de proveedor no disponible — continuando sin verificación")
 
     # ── Paso 2: Crear productos nuevos ─────────────────────────
     if nuevos:
-        print(f"\n  [2/3] Creando {len(nuevos)} producto(s) en SIIGO...")
+        print(f"\n  [2/3] Creando {len(nuevos)} producto(s) en Alegra...")
         todos_ok = True
         for p in nuevos:
             label = f"{p['codigo']}: {p['nombre'][:45]}"
@@ -714,7 +714,7 @@ def _cli_flujo_inventario(token: str, factura: dict):
                 todos_ok = False
         if not todos_ok:
             print(
-                f"\n  ⚠️  Algunos productos no se crearon. La compra puede fallar si SIIGO no los encuentra."
+                f"\n  ⚠️  Algunos productos no se crearon. La compra puede fallar si Alegra no los encuentra."
             )
             cont = (
                 input("  ¿Continuar igualmente con el registro de la compra? [s/n]: ")
@@ -723,14 +723,14 @@ def _cli_flujo_inventario(token: str, factura: dict):
             )
             if cont != "s":
                 print(
-                    f"  ↩️  Abortado. Crea los productos manualmente en SIIGO y vuelve a intentar."
+                    f"  ↩️  Abortado. Crea los productos manualmente en Alegra y vuelve a intentar."
                 )
                 return
     else:
-        print(f"\n  [2/3] Sin productos nuevos — todos ya existen en SIIGO")
+        print(f"\n  [2/3] Sin productos nuevos — todos ya existen en Alegra")
 
     # ── Paso 3: Registrar compra ────────────────────────────────
-    print(f"\n  [3/3] Registrando compra en SIIGO...")
+    print(f"\n  [3/3] Registrando compra en Alegra...")
     import time as _time
 
     t0 = _time.time()
@@ -743,7 +743,7 @@ def _cli_flujo_inventario(token: str, factura: dict):
         if arch.get("ruta"):
             print(f"  📊 Excel de respaldo: {arch['ruta']}")
     else:
-        print(f"\n  ❌ Error al registrar la compra en SIIGO ({elapsed:.1f}s):")
+        print(f"\n  ❌ Error al registrar la compra en Alegra ({elapsed:.1f}s):")
         for linea in msg.split(","):
             print(f"     {linea.strip()}")
         print(f"\n  → Fallback — carga manual:")
@@ -751,16 +751,16 @@ def _cli_flujo_inventario(token: str, factura: dict):
             print(f"     Excel  : {arch['ruta']}")
         if arch.get("ruta_xml"):
             print(f"     XML    : {arch['ruta_xml']}")
-            print(f"     SIIGO → Compras → 'Crear compra o gasto desde un XML o ZIP'")
+            print(f"     Alegra → Compras → 'Crear compra o gasto desde un XML o ZIP'")
 
 
 def _ejecutar_opcion_10():
     """
-    Flujo completo de registro de facturas de compra en SIIGO desde la terminal.
-    1. Diagnóstico de conectividad (SIIGO + Gmail)
+    Flujo completo de registro de facturas de compra en Alegra desde la terminal.
+    1. Diagnóstico de conectividad (Alegra + Gmail)
     2. Escaneo de correos → listado de facturas pendientes
     3. Registro interactivo una a una:
-       - Gasto consumible → API SIIGO (modelo FC-1-42)
+       - Gasto consumible → API Alegra (modelo FC-1-42)
        - Gasto inventario → Flujo A (Excel + XML para carga manual)
     """
     from app.tools.importar_productos_siigo import es_proveedor_especial
@@ -770,7 +770,7 @@ def _ejecutar_opcion_10():
     SEPP = "═" * 58
 
     print(f"\n{SEPP}")
-    print("  🧾  REGISTRO DE FACTURAS DE COMPRA — SIIGO")
+    print("  🧾  REGISTRO DE FACTURAS DE COMPRA — Alegra")
     print(f"{SEPP}")
 
     # ── Diagnóstico ────────────────────────────────────────────
@@ -794,7 +794,7 @@ def _ejecutar_opcion_10():
         d = f["datos"]
         total = d.get("total_neto", 0)
         items = len(d.get("items", []))
-        marca = " [✓ YA EN SIIGO]" if f["ya_registrada"] else ""
+        marca = " [✓ YA EN Alegra]" if f["ya_registrada"] else ""
         alerta = " [⚠ NO ES PARA MCKG]" if not f["es_para_mckg"] else ""
         print(
             f"  [{i}] {f['numero']:<18} | {d.get('proveedor', '?')[:26]:<26} | "
@@ -843,7 +843,7 @@ def _ejecutar_opcion_10():
 
         if factura["ya_registrada"]:
             doc = factura.get("doc_siigo", "?")
-            print(f"  ✓ Ya registrada en SIIGO como {doc} — omitiendo.")
+            print(f"  ✓ Ya registrada en Alegra como {doc} — omitiendo.")
             total_skip += 1
             continue
 
@@ -862,9 +862,9 @@ def _ejecutar_opcion_10():
             print(f"  ✅ Proveedor en lista de materias primas.\n")
             print("  ¿Qué deseas hacer?")
             print(
-                "    [1] Flujo A — Inventario (crea productos + compra en SIIGO via API)"
+                "    [1] Flujo A — Inventario (crea productos + compra en Alegra via API)"
             )
-            print("    [2] Gasto consumible  → registrar en SIIGO ahora (API)")
+            print("    [2] Gasto consumible  → registrar en Alegra ahora (API)")
             print(
                 "    [3] Reclasificar      → Eliminar de materias primas y registrar como gasto consumible"
             )
@@ -915,7 +915,7 @@ def _ejecutar_opcion_10():
         else:
             print(f"  ⚠️  Proveedor no registrado como materia prima ni transporte.\n")
             print("  ¿Cómo registrar esta factura?")
-            print("    [1] Gasto consumible  → registrar en SIIGO ahora (API)")
+            print("    [1] Gasto consumible  → registrar en Alegra ahora (API)")
             print(
                 "    [2] Gasto inventario  → Flujo A (crea productos + compra via API)"
             )
@@ -1112,23 +1112,23 @@ def mostrar_menu():
     print("  🛠️  CENTRO DE MANDO — McKenna Group S.A.S.")
     print("═" * W)
     print("  1. 💬 CHAT         Conversa directo con el Agente (Hugo IA)")
-    print("  2. 🔄 FACTURAS     Sync facturas MeLi ↔ Siigo — elige período")
+    print("  2. 🔄 FACTURAS     Sync facturas MeLi ↔ Alegra — elige período")
     print("  3. 📊 STOCK        Reporte y sync de inventario entre plataformas")
     print("  4. 🔍 CONSULTA     Busca un producto en el catálogo de Google Sheets")
     print("  5. 🎓 APRENDIZAJE  Fuerza aprendizaje de Q&A recientes en MeLi")
-    print("  6. 🧾 COMPRAS      Registra facturas de compra en SIIGO desde Gmail")
+    print("  6. 🧾 COMPRAS      Registra facturas de compra en Alegra desde Gmail")
     print("  7. 🔬 CIENCIA      Genera contenido científico y publica en WordPress")
     print("  8. 🚪 SALIR        Apagar el Centro de Mando")
     print("═" * W)
 
 
 def _submenu_facturas():
-    """Submenú de sincronización de facturas MeLi ↔ Siigo."""
+    """Submenú de sincronización de facturas MeLi ↔ Alegra."""
     W = 62
     print(f"\n{'─' * W}")
     print("  🔄 SYNC FACTURAS — ¿qué período quieres sincronizar?")
     print(f"{'─' * W}")
-    print("  [1] Inteligente    Cruza pendientes MeLi vs Siigo (recomendado)")
+    print("  [1] Inteligente    Cruza pendientes MeLi vs Alegra (recomendado)")
     print("  [2] Últimas 24 h   Facturas emitidas en el último día")
     print("  [3] Últimos N días Tú ingresas cuántos días atrás buscar")
     print("  [4] Fecha exacta   Tú ingresas la fecha (AAAA-MM-DD)")
@@ -1166,7 +1166,7 @@ def _submenu_stock():
     print("  📊 STOCK — ¿qué operación de inventario quieres ejecutar?")
     print(f"{'─' * W}")
     print("  [1] Reporte completo   Sync total MeLi y reporte de stock por WhatsApp")
-    print("  [2] Verificar SKUs     Auditoría de sincronización SKUs MeLi / SIIGO")
+    print("  [2] Verificar SKUs     Auditoría de sincronización SKUs MeLi / Alegra")
     print("  [3] Sincronizar Web    Sincroniza el catálogo de MeLi hacia la página web")
     print("  [0] Volver al menú principal")
     print(f"{'─' * W}")

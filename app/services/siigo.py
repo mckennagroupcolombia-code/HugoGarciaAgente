@@ -182,7 +182,14 @@ def autenticar_siigo(forzar=False):
 
 
 def listar_centros_costo_siigo() -> tuple[list | None, str | None]:
-    """Centros de costo activos en Siigo (API v1/cost-centers)."""
+    """Centros de costo activos. Migrado a Alegra el 2026-09-03."""
+    from app.services.alegra import listar_centros_costo_alegra
+
+    return listar_centros_costo_alegra()
+
+
+def _listar_centros_costo_siigo_legado() -> tuple[list | None, str | None]:
+    """Legado Siigo — no usar desde el panel; se deja por si hace falta auditoría."""
     token = autenticar_siigo()
     if not token:
         return None, "No se pudo autenticar con Siigo"
@@ -854,40 +861,59 @@ def obtener_documento_fiscal_siigo_para_meli(id_factura: str) -> tuple[str, str]
 
 def crear_factura_compra_siigo(factura_data: dict):
     """
-    Crea una factura de compra en SIIGO Nube via API.
-    factura_data debe contener la estructura esperada por la API de SIIGO para facturas de compra.
+    Crea una factura de compra. Migrado a Alegra el 2026-09-03 — traduce el
+    payload Siigo (`supplier.identification`, `provider_invoice`, `items[].code`)
+    al kwargs de `crear_factura_compra_alegra` para no reescribir los 3 call-sites.
     """
-    token = autenticar_siigo()
-    if not token:
-        return {"status": "error", "message": "No se pudo autenticar con Siigo."}
+    from app.services.alegra import crear_factura_compra_alegra
 
-    try:
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Partner-Id": PARTNER_ID,
-            "Content-Type": "application/json"
-        }
-        response = requests.post(
-            "https://api.siigo.com/v1/purchases", # Endpoint corregido para facturas de compra según la documentación
-            json=factura_data,
-            headers=headers,
-            timeout=15
-        )
+    if not isinstance(factura_data, dict):
+        return {"status": "error", "message": "Payload de compra vacío."}
 
-        if response.status_code == 201: # 201 Created
-            print(f"✅ Factura de compra creada en SIIGO: {response.json().get('id')}")
-            return {"status": "success", "data": response.json()}
-        else:
-            print(f"❌ Error al crear factura de compra en SIIGO: {response.status_code} - {response.text}")
-            return {"status": "error", "message": response.text}
-    except requests.exceptions.RequestException as e:
-        print(f"⚠️ Error de red al crear factura en SIIGO: {e}")
-        return {"status": "error", "message": f"Error de red: {e}"}
+    supplier = factura_data.get("supplier") or {}
+    pi = factura_data.get("provider_invoice") or {}
+    items = []
+    for it in factura_data.get("items") or []:
+        if not isinstance(it, dict):
+            continue
+        tipo = str(it.get("type") or "").lower()
+        codigo = str(it.get("code") or "GENERICO").strip() or "GENERICO"
+        if tipo == "account":
+            codigo = "GENERICO"
+        items.append({
+            "codigo": codigo,
+            "descripcion": str(it.get("description") or "")[:255],
+            "cantidad": it.get("quantity") or 1,
+            "precio": it.get("price") or 0,
+        })
+    return crear_factura_compra_alegra(
+        nit_proveedor=str(supplier.get("identification") or ""),
+        fecha=str(factura_data.get("date") or ""),
+        items=items,
+        numero_proveedor=str(pi.get("number") or ""),
+        prefijo_proveedor=str(pi.get("prefix") or ""),
+        observaciones=str(factura_data.get("observations") or ""),
+        nombre_proveedor=str(supplier.get("name") or ""),
+    )
 
 def obtener_facturas_compra_siigo(fecha_inicio: str) -> list:
-    """
-    Obtiene facturas de compra de SIIGO a partir de una fecha de inicio.
-    """
+    """Compras del ERP: Siigo histórico + Alegra desde la migración (2026-09-02)."""
+    from app.services.alegra import obtener_facturas_compra_alegra
+
+    out: list = []
+    try:
+        out.extend(_obtener_facturas_compra_siigo_legado(fecha_inicio) or [])
+    except Exception as e:
+        print(f"⚠️ Compras Siigo histórico no disponible: {e}")
+    try:
+        out.extend(obtener_facturas_compra_alegra(fecha_inicio) or [])
+    except Exception as e:
+        print(f"⚠️ Compras Alegra no disponible: {e}")
+    return out
+
+
+def _obtener_facturas_compra_siigo_legado(fecha_inicio: str) -> list:
+    """Facturas de compra en Siigo (histórico previo a Alegra)."""
     token = autenticar_siigo()
     if not token:
         return []

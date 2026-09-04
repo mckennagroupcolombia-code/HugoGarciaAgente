@@ -82,7 +82,7 @@ function abrirPdfBase64(base64: string, nombre: string) {
 
 /**
  * Contabilidad → Facturación → Ventas y NC: conciliación de ventas MeLi
- * contra su factura Siigo y (si aplica) nota crédito — para auditar que
+ * contra su factura Alegra y (si aplica) nota crédito — para auditar que
  * toda cancelación con factura ya emitida termine con NC confiable, subida
  * a MeLi. Lee un índice local (actualizado a diario por el cron de notas
  * crédito) cruzado en vivo con MeLi.
@@ -127,7 +127,7 @@ export default function VentasFacturacionPanel() {
         <div>
           <h2 className="text-base font-bold text-ink">Ventas y notas crédito</h2>
           <p className="mt-1 text-xs text-muted">
-            Conciliación ventas MeLi ↔ factura Siigo ↔ nota crédito. Útil para verificar que toda
+            Conciliación ventas MeLi ↔ factura Alegra ↔ nota crédito. Útil para verificar que toda
             cancelación con factura ya emitida haya terminado con nota crédito confiable, subida a
             MeLi. "Total factura" se resalta en rojo cuando no coincide con lo que pagó el
             cliente (posible IVA mal facturado).

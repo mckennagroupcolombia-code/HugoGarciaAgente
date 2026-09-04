@@ -40,7 +40,7 @@ fbq('track','PageView');
 {% endif %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts-montserrat.css') }}?v=20260804">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260820a">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260903a">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -159,6 +159,11 @@ fbq('track','PageView');
           <a href="{{ url_for('catalogo') }}" style="{{ LCHROME.estilos.get('header.nav.catalogo', '') }}">Catálogo</a>
         </li>
         {% endif %}
+        {% if not LCHROME.nodos.get('header.nav.cotizar', {}).get('hidden') %}
+        <li class="nav-cotizar {% if request.endpoint == 'cotizar' %}active{% endif %}">
+          <a href="{{ url_for('cotizar') }}" style="{{ LCHROME.estilos.get('header.nav.cotizar', '') }}"><i class="ph ph-globe-hemisphere-west" aria-hidden="true"></i> Cotizar</a>
+        </li>
+        {% endif %}
         {% if not LCHROME.nodos.get('header.nav.guias', {}).get('hidden') %}
         <li class="{% if request.endpoint in ['guias','guia_kit_acidos','guia_detalle'] %}active{% endif %}">
           <a href="{{ url_for('guias') }}" style="{{ LCHROME.estilos.get('header.nav.guias', '') }}">Guías</a>
@@ -243,6 +248,9 @@ fbq('track','PageView');
       {% if not LCHROME.nodos.get('header.nav.catalogo', {}).get('hidden') %}
       <li><a href="{{ url_for('catalogo') }}" style="{{ LCHROME.estilos.get('header.nav.catalogo', '') }}">Catálogo</a></li>
       {% endif %}
+      {% if not LCHROME.nodos.get('header.nav.cotizar', {}).get('hidden') %}
+      <li><a href="{{ url_for('cotizar') }}" style="{{ LCHROME.estilos.get('header.nav.cotizar', '') }}">Cotizar materias primas</a></li>
+      {% endif %}
       {% if not LCHROME.nodos.get('header.nav.guias', {}).get('hidden') %}
       <li><a href="{{ url_for('guias') }}" style="{{ LCHROME.estilos.get('header.nav.guias', '') }}">Guías de Uso</a></li>
       {% endif %}
@@ -324,6 +332,7 @@ fbq('track','PageView');
         <li><a href="{{ url_for('catalogo', cat='Conservantes') }}">Conservantes</a></li>
         <li><a href="{{ url_for('catalogo', cat='Emulsionantes y Surfactantes') }}">Emulsionantes</a></li>
         <li><a href="{{ url_for('catalogo') }}">Ver todo →</a></li>
+        <li><a href="{{ url_for('cotizar') }}">Cotizar importación →</a></li>
       </ul>
     </div>
 
@@ -379,6 +388,7 @@ fbq('track','PageView');
 </a>
 
 <script src="{{ url_for('static', filename='js/main.js') }}?v=20260820a"></script>
+<script src="{{ url_for('static', filename='js/trazabilidad.js') }}?v=20260903a" defer></script>
 {% block scripts %}{% endblock %}
 
 {% if META_PIXEL_ID %}

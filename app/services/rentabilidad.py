@@ -24,6 +24,14 @@ _excel_cache: dict = {}          # {code: {precio, nombre, archivo}}
 _excel_cache_ts: float = 0.0
 _EXCEL_TTL = 3600  # 1 hora
 
+# Resultado ya agregado de costos_todos_resumen — sin esto, Salud del negocio
+# (y otros paneles) reconstruían el mapa code→costo en cada request (~1–20 s
+# según si Alegra aún tenía los kits en memoria). Los costos de combo no
+# cambian minuto a minuto; refresh=True o TTL vencido lo recalculan.
+_costos_todos_mem: dict[str, dict] = {}
+_costos_todos_mem_ts: float = 0.0
+_COSTOS_TODOS_TTL = 3600  # 1 hora
+
 COMISION_MELI_DEFAULT = 0.165
 IVA_DEFAULT = 0.19
 
@@ -793,17 +801,26 @@ def costos_todos_resumen(refresh: bool = False) -> dict:
     Construye el catálogo y carga los combos una sola vez.
     Con refresh=True fuerza reconstrucción del catálogo Siigo y limpia caché de combos/excel.
     """
+    global _costos_todos_mem, _costos_todos_mem_ts
+
     from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo
     from app.services.contabilidad_db import buscar_componente
 
     if refresh:
         invalidar_cache_excel()
+        _costos_todos_mem = {}
+        _costos_todos_mem_ts = 0.0
         try:
             import app.services.alegra as _alegra
             _alegra._combos_alegra_cache = []
             _alegra._combos_alegra_cache_ts = 0.0
         except Exception:
             pass
+    elif (
+        _costos_todos_mem
+        and (time.time() - _costos_todos_mem_ts) < _COSTOS_TODOS_TTL
+    ):
+        return _costos_todos_mem
 
     try:
         catalogo = construir_catalogo_costos(forzar=refresh)
@@ -855,6 +872,8 @@ def costos_todos_resumen(refresh: bool = False) -> dict:
             "sin_costo": sin_costo,
         }
 
+    _costos_todos_mem = resultado
+    _costos_todos_mem_ts = time.time()
     return resultado
 
 

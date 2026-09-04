@@ -158,7 +158,7 @@ export default function Dashboard() {
           <div className="mck-stagger flex flex-wrap gap-2">
             <ServiceBadge name="MercadoLibre" ok={status.servicios.mercadolibre} />
             <ServiceBadge name="Google Sheets" ok={status.servicios.google} />
-            <ServiceBadge name="Siigo ERP" ok={status.servicios.siigo} />
+            <ServiceBadge name="Alegra ERP" ok={status.servicios.alegra ?? status.servicios.siigo} />
             <ServiceBadge name="Token MeLi" ok={m?.token_meli ?? false} />
             <ServiceBadge name="Token Gmail" ok={m?.token_gmail ?? false} />
           </div>

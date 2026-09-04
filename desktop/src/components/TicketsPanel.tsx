@@ -5504,7 +5504,7 @@ function TicketPasoAPasoView({
             </label>
             <ProseTextarea
               className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
-              placeholder="Ej: Factura pendiente en SIIGO, se creó manualmente y se subió a MeLi…"
+              placeholder="Ej: Factura pendiente en Alegra, se creó manualmente y se subió a MeLi…"
               rows={3}
               value={nota}
               onChange={(e) => setNota(e.target.value)}
@@ -13082,7 +13082,7 @@ function SolicitudListaChecklist({
   const itemsActivos = items.filter((i) => i.nombre.trim());
   const todosMarcados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
   const tieneProductos = itemsActivos.length > 0;
-  const comentarioPedido = esEtiqueta ? extraerComentarioPedido(ticket.descripcion || "") : "";
+  const comentarioPedido = extraerComentarioPedido(ticket.descripcion || "");
 
   useEffect(() => { setEstadoLocal(ticket.estado); }, [ticket.id, ticket.estado]);
 
@@ -19454,7 +19454,7 @@ function NuevaSolicitudWizard({
           return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
         }).join("\n")
       : desc;
-    const descripcionFinal = esEtiquetaVar
+    const descripcionFinal = (esCompra || esEtiquetaVar)
       ? adjuntarComentarioPedido(descripcionLista, comentarioPedido)
       : descripcionLista;
     const subtipo = esEtiquetaVar ? "etiqueta" : esCompra ? "compra" : undefined;
@@ -19496,7 +19496,7 @@ function NuevaSolicitudWizard({
           ),
         );
       }
-      const notaPedido = esEtiquetaVar ? comentarioPedido.trim() : "";
+      const notaPedido = (esCompra || esEtiquetaVar) ? comentarioPedido.trim() : "";
       if (notaPedido) {
         await Promise.all(tickets.map((t) =>
           tapi(`/${t.id}/comentarios`, token, {
@@ -19887,7 +19887,7 @@ function NuevaSolicitudWizard({
               <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem con las unidades indicadas</p>
             )}
           </div>
-          {variante === "etiqueta" && (
+          {(variante === "etiqueta" || variante === "compra") && (
             <div className="space-y-2 rounded-2xl border-2 border-dashed border-border px-4 py-4">
               <label className="flex flex-col gap-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Comentarios</span>
@@ -19895,7 +19895,9 @@ function NuevaSolicitudWizard({
                   value={comentarioPedido}
                   onChange={(e) => setComentarioPedido(e.target.value)}
                   rows={3}
-                  placeholder="Opcional: urgencia, formato, instrucciones para quien imprime…"
+                  placeholder={variante === "etiqueta"
+                    ? "Opcional: urgencia, formato, instrucciones para quien imprime…"
+                    : "Opcional: marca, proveedor, urgencia u otras indicaciones…"}
                   className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
                 />
               </label>
@@ -19916,11 +19918,7 @@ function NuevaSolicitudWizard({
                 if (variante === "compra") return `• ${i.nombre} — ${i.cantidad} ${i.unidad}`;
                 return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
               }).join("\n");
-              setDescripcion(
-                variante === "etiqueta"
-                  ? adjuntarComentarioPedido(listaTxt, comentarioPedido)
-                  : listaTxt,
-              );
+              setDescripcion(adjuntarComentarioPedido(listaTxt, comentarioPedido));
               irFase("asignados");
             }}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
@@ -20098,6 +20096,12 @@ function NuevaSolicitudWizard({
                       <li key={`${item.nombre}-${idx}`}>• {item.nombre} — {item.cantidad} {item.unidad}</li>
                     ))}
                   </ul>
+                )}
+                {comentarioPedido.trim() && (
+                  <div className="mt-3 rounded-xl border border-dashed border-border px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Comentarios</p>
+                    <p className="text-sm text-ink whitespace-pre-wrap">{comentarioPedido.trim()}</p>
+                  </div>
                 )}
               </div>
             )}

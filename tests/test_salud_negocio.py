@@ -358,12 +358,18 @@ def test_salud_negocio_resumen_preserva_ads_archivado_tras_bump_de_version(tmp_p
     monkeypatch.setattr("app.services.meli_ads.gasto_ads_por_rango", _ads_rechazado)
     monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
     monkeypatch.setattr(
+        "app.services.alegra.obtener_facturas_hibridas",
+        lambda fecha_inicio, fecha_fin=None, estricto=False: [],
+    )
+    monkeypatch.setattr(
         "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
         lambda dias=30, refresh=False: {
             "resumen": {"pausar": 0, "revisar": 0, "costo_pausar": 0.0, "costo_revisar": 0.0}
         },
     )
     monkeypatch.setattr("app.services.extracto_bancario.saldo_bancario_mas_reciente", lambda: None)
+    monkeypatch.setattr(S, "_RESUMEN_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
 
     resultado = S.salud_negocio_resumen(periodicidad="mes", n=2)  # nueva _CACHE_VERSION -> clave vieja no matchea
 
@@ -401,7 +407,7 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
     )
     monkeypatch.setattr(
         "app.services.rentabilidad.listar_cobros_meli",
-        lambda refresh=False: {"items": [{"sku": "C-TEST", "cargo_venta": 3000.0, "cargo_envio": 2000.0}]},
+        lambda buscar="", refresh=False: {"items": [{"sku": "C-TEST", "cargo_venta": 3000.0, "cargo_envio": 2000.0}]},
     )
     monkeypatch.setattr(
         "app.services.meli_ads.gasto_ads_por_rango",
@@ -423,6 +429,9 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
         "app.services.extracto_bancario.saldo_bancario_mas_reciente",
         lambda: {"saldo": 6604054.59, "fecha": "2026-07-31", "banco": "", "cuenta": "", "extracto_id": 4, "extracto_nombre": "x"},
     )
+    monkeypatch.setattr(S, "_RESUMEN_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
+    monkeypatch.setattr(S, "_ORDENES_MELI_MEM", {})
 
     resultado = S.salud_negocio_resumen(periodicidad="semana", n=1)
 
@@ -468,13 +477,22 @@ def test_saldo_bancario_none_si_extracto_bancario_falla(monkeypatch):
 
 def _mockear_fuentes_minimas(monkeypatch):
     """Fuentes vacías/neutras — solo interesa contar cuántas veces se piden, no el P&L."""
+    # Sin esto, la caché en memoria del resumen hace que la 2ª llamada del
+    # test ni siquiera toque MeLi/ads y rompa los asserts de conteo.
+    monkeypatch.setattr(S, "_RESUMEN_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
+    monkeypatch.setattr(S, "_ORDENES_MELI_MEM", {})
     monkeypatch.setattr(S, "_ventas_web_en_rango", lambda fi, ff: {"ingresos": 0.0, "items": []})
     monkeypatch.setattr("app.services.rentabilidad._sku_canonico_desde_relacion", lambda: {})
     monkeypatch.setattr("app.services.rentabilidad.costos_todos_resumen", lambda refresh=False: {})
-    monkeypatch.setattr("app.services.rentabilidad.listar_cobros_meli", lambda refresh=False: {"items": []})
+    monkeypatch.setattr("app.services.rentabilidad.listar_cobros_meli", lambda buscar="", refresh=False: {"items": []})
     monkeypatch.setattr(S, "_total_mensual_nomina", lambda: (0.0, "sin_datos"))
     monkeypatch.setattr("app.services.contabilidad_db.pagos_servicios_en_rango", lambda fi, ff: [])
     monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
+    monkeypatch.setattr(
+        "app.services.alegra.obtener_facturas_hibridas",
+        lambda fecha_inicio, fecha_fin=None, estricto=False: [],
+    )
     monkeypatch.setattr(
         "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
         lambda dias=30, refresh=False: {
@@ -537,7 +555,8 @@ def test_bucket_cerrado_se_sirve_desde_cache_en_llamadas_siguientes(tmp_path, mo
     assert r1["buckets"][1]["cerrado"] is False
 
 
-def test_refresh_fuerza_recalculo_de_bucket_cerrado(tmp_path, monkeypatch):
+def test_refresh_solo_recalcula_periodo_abierto(tmp_path, monkeypatch):
+    """Actualizar no debe re-paginar MeLi para buckets ya cerrados (eso colgaba el panel)."""
     monkeypatch.setattr(S, "_CACHE_PATH", str(tmp_path / "salud_negocio_cache.json"))
     _mockear_fuentes_minimas(monkeypatch)
     monkeypatch.setattr(S, "_ventas_meli_en_rango", lambda fi, ff: [])
@@ -555,13 +574,9 @@ def test_refresh_fuerza_recalculo_de_bucket_cerrado(tmp_path, monkeypatch):
 
     resultado = S.salud_negocio_resumen(periodicidad="mes", n=2, refresh=True)
 
-    # refresh SÍ recalcula el P&L del bucket cerrado (fuente="calculado" en
-    # ambos), pero NO vuelve a pedirle ads a MeLi para un bucket que ya tiene
-    # gasto en ads archivado con éxito — no hay razón para gastar esa llamada
-    # de nuevo (y en la vida real, si ya salió de la ventana de 90 días,
-    # MeLi la rechazaría de todos modos). Solo el mes en curso, que nunca se
-    # había archivado, pide ads en vivo.
+    # Solo el mes en curso pide ads/MeLi de nuevo; el cerrado sigue en disco.
     assert len(llamadas_ads) == 1
-    assert all(f["fuente"] == "calculado" for f in resultado["buckets"])
+    assert resultado["buckets"][0]["fuente"] == "cache"
+    assert resultado["buckets"][1]["fuente"] == "calculado"
     assert resultado["buckets"][0]["ads_disponible"] is True
-    assert resultado["buckets"][0]["gasto_ads"] == 100.0  # viene del archivo, no de una 2ª llamada
+    assert resultado["buckets"][0]["gasto_ads"] == 100.0

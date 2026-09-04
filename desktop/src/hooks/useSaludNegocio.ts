@@ -72,6 +72,10 @@ export function useSaludNegocioResumen(periodicidad: SaludPeriodicidad = "semana
     queryFn: () =>
       api.get(`/api/salud-negocio/resumen?periodicidad=${periodicidad}&n=${n}`, { timeoutMs: 120_000 }),
     staleTime: 5 * 60_000,
+    // Una sola reintento: el backend ya cachea 3 min; reintentar 3 veces × 40 s
+    // dejaba el panel "pensando" varios minutos si MeLi iba lento.
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 

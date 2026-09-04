@@ -3,7 +3,7 @@ Precios multicanal McKenna.
 
 Prioridad (cada producto con su propio precio):
   1. MercadoLibre — dicta el precio publicado (referencia maestra).
-  2. Siigo — mismo valor que MeLi (es lo que se factura).
+  2. Alegra — mismo valor que MeLi (es lo que se factura).
   3. Página web — 10% de descuento sobre la referencia para mostrar ahorro al comprar
      directo; el envío va en un apartado separado en checkout.
 """
@@ -28,7 +28,7 @@ _DESCUENTOS_WEB_SKU_PATH = Path(__file__).resolve().parents[1] / "data" / "descu
 
 
 def _descuento_web_para_sku(sku: str) -> float:
-    """Descuento web sobre la lista Siigo para un SKU puntual, si tiene una
+    """Descuento web sobre la lista Alegra para un SKU puntual, si tiene una
     excepción registrada (ej. líneas donde MeLi ya publica con un descuento
     propio distinto al 10% general); si no, el descuento global."""
     try:
@@ -44,7 +44,7 @@ DOCUMENTACION_PRECIOS = {
     "titulo": "Prioridad y lógica de precios por canal",
     "resumen": (
         "Cada producto tiene su propio precio. Lo publicado en MercadoLibre es la referencia "
-        "maestra; Siigo replica ese valor para facturación; la web muestra el producto más barato "
+        "maestra; Alegra replica ese valor para facturación; la web muestra el producto más barato "
         "y el envío en un apartado aparte."
     ),
     "prioridad": [
@@ -60,12 +60,12 @@ DOCUMENTACION_PRECIOS = {
         },
         {
             "orden": 2,
-            "canal": "Siigo",
+            "canal": "Alegra",
             "clave": "siigo",
             "rol": "Facturación",
             "descripcion": (
                 "Debe coincidir con MeLi: es el precio de lista con el que se factura "
-                "y se registran ventas directas. Si cambias el precio, Siigo y MeLi van al mismo valor."
+                "y se registran ventas directas. Si cambias el precio, Alegra y MeLi van al mismo valor."
             ),
         },
         {
@@ -82,7 +82,7 @@ DOCUMENTACION_PRECIOS = {
     ],
     "entrada_panel": (
         "Al cambiar precios, ingresa el valor publicado en MeLi de ese producto. "
-        "El sistema propone Siigo igual y web con descuento automático."
+        "El sistema propone Alegra igual y web con descuento automático."
     ),
     "comision_meli_pct": MELI_COMMISSION,
 }
@@ -189,7 +189,7 @@ def resolver_precios_multicanal(
         "precio": referencia,
         "rol": "Facturación",
         "regla": REGLAS_CANALES["siigo"],
-        "nota": f"Lista Siigo {_fmt_cop(referencia)} — mismo valor que MeLi (base de factura).",
+        "nota": f"Lista Alegra {_fmt_cop(referencia)} — mismo valor que MeLi (base de factura).",
     }
     web_canal = {
         "prioridad": 3,
@@ -209,7 +209,7 @@ def resolver_precios_multicanal(
     }
 
     desglose = (
-        f"1° MeLi {_fmt_cop(referencia)} → 2° Siigo {_fmt_cop(referencia)} → "
+        f"1° MeLi {_fmt_cop(referencia)} → 2° Alegra {_fmt_cop(referencia)} → "
         f"3° Web producto {_fmt_cop(web_producto)} + envío en apartado."
     )
 
@@ -238,7 +238,7 @@ def resolver_precios_multicanal(
 
 
 def precios_catalogo_web_desde_siigo(sku: str, lista_siigo: float, nombre: str = "") -> dict:
-    """Catálogo web: Siigo trae el precio MeLi; web muestra producto con descuento."""
+    """Catálogo web: Alegra trae el precio MeLi; web muestra producto con descuento."""
     p = resolver_precios_multicanal(sku, lista_siigo, nombre=nombre)
     return {
         "precio_web_num": p["web"],
@@ -253,7 +253,7 @@ def precios_catalogo_web_desde_siigo(sku: str, lista_siigo: float, nombre: str =
 def estado_sincronizacion_precios(buscar: str = "") -> dict:
     """
     Estado de sincronización de precios por SKU, solo lectura: MeLi (vivo, vía
-    caché de cobros de Ganancia, ~1h), Siigo (lista actual, caché de costos,
+    caché de cobros de Ganancia, ~1h), Alegra (lista actual, caché de costos,
     ~24h) y Web (lo que el catálogo web está sirviendo AHORA MISMO, desde
     cache.json — no lo recalcula, para que el operador vea si el TTL de 6h del
     catálogo web ya alcanzó a reflejar un cambio reciente).
@@ -451,8 +451,8 @@ def reconciliar_precios_meli(
 ) -> dict:
     """
     Trae el precio VIVO de cada publicación activa en MeLi (referencia maestra,
-    ver DOCUMENTACION_PRECIOS) y lo cruza contra el precio actual en Siigo por
-    SKU. Cuando difieren más de `umbral`, corrige Siigo → Sheets → Web (en ese
+    ver DOCUMENTACION_PRECIOS) y lo cruza contra el precio actual en Alegra por
+    SKU. Cuando difieren más de `umbral`, corrige Alegra → Sheets → Web (en ese
     orden) usando exactamente la misma fórmula que el editor manual de
     "Ganancia" (`resolver_precios_multicanal`).
 
@@ -463,7 +463,7 @@ def reconciliar_precios_meli(
 
     dry_run=True (default): solo arma la lista de candidatos, no escribe nada en
     ningún canal — pensado para revisar antes de aplicar, ya que escribe en el
-    mismo Siigo que usa la facturación electrónica real.
+    mismo Alegra que usa la facturación electrónica real.
 
     skus_permitidos: si viene, TODOS los candidatos se siguen reportando (para
     que el llamador vea el panorama completo), pero solo se aplican los que
@@ -473,7 +473,7 @@ def reconciliar_precios_meli(
     aparece acá es seguro de aplicar en automático.
 
     ratio_max: si skus_permitidos es None, no aplica candidatos cuyo precio
-    MeLi vs Siigo difiera más de este factor (default 2×). Con lista explícita
+    MeLi vs Alegra difiera más de este factor (default 2×). Con lista explícita
     el operador asume el riesgo.
     """
     from app.services.google_services import _abrir_hoja

@@ -101,7 +101,7 @@ def _fetch_meli_resource(token: str, resource: str) -> dict[str, Any] | None:
 
 def _siigo_buscar_factura_por_pack_id(pack_id: str) -> dict[str, Any] | None:
     """
-    Busca una factura de venta en Siigo cuyo `observations` o `purchase_order`
+    Busca una factura de venta en Alegra cuyo `observations` o `purchase_order`
     contenga el Pack/Order ID de MeLi. Devuelve metadatos útiles para el ticket.
     """
     pack_id = str(pack_id or "").strip()
@@ -248,7 +248,7 @@ def crear_accion_anular_factura_por_reclamo(resource: str, *, topic: str | None 
     if siigo_info:
         detalles.update(siigo_info)
 
-    proveedor = detalles.get("proveedor_factura") or "Siigo"
+    proveedor = detalles.get("proveedor_factura") or "Alegra"
     descripcion = (
         "Se detectó un reclamo/devolución en MercadoLibre para una venta posiblemente ya facturada.\n\n"
         f"Acción requerida: **anular factura electrónica** y **emitir nota crédito en {proveedor.upper()}**.\n\n"

@@ -305,7 +305,7 @@ export default function CostosProductosPanel() {
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o código SIIGO…"
+            placeholder="Buscar por nombre o código Alegra…"
             className="w-full rounded-xl border-2 border-border bg-surface-panel px-4 py-2.5 pl-9 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition"
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">🔍</span>
@@ -397,7 +397,7 @@ export default function CostosProductosPanel() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-surface-hover border-b-2 border-border text-[10px] font-bold uppercase tracking-wide text-muted">
-                  <th className="px-3 py-3 whitespace-nowrap">Código SIIGO</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Código Alegra</th>
                   <th className="px-3 py-3">Nombre del producto</th>
                   <th className="px-3 py-3 text-center">U/M</th>
                   <th className="px-3 py-3 text-center whitespace-nowrap">

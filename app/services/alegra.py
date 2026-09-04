@@ -70,6 +70,11 @@ def _alegra_headers() -> dict:
     }
 
 
+def creds_alegra_configuradas() -> bool:
+    """True si hay email+token en el entorno — no pega a la API (sirve para /status)."""
+    return bool((os.getenv("ALEGRA_EMAIL") or "").strip() and (os.getenv("ALEGRA_TOKEN") or "").strip())
+
+
 def autenticar_alegra() -> bool:
     """No hay token que renovar (Basic Auth); valida que las credenciales sirven."""
     try:
@@ -83,6 +88,55 @@ def autenticar_alegra() -> bool:
     except requests.RequestException as e:
         print(f"⚠️ Alegra: error de red validando credenciales: {e}")
         return False
+
+
+# Un, mL, g del panel McKenna → unidades de inventario de Alegra (Colombia).
+# La doc escribe "mililiter" (una L) — no "milliliter".
+_ALEGRA_UNIDAD_DESDE_MIN = {"Un": "unit", "mL": "mililiter", "g": "gram"}
+
+
+def listar_centros_costo_alegra() -> tuple[list | None, str | None]:
+    """Centros de costo activos en Alegra (GET /cost-centers). Mismo shape que
+    `listar_centros_costo_siigo`: [{id, code, name, active}]."""
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return None, str(e)
+
+    centros: list[dict] = []
+    start = 0
+    while True:
+        try:
+            res = requests.get(
+                f"{_ALEGRA_BASE}/cost-centers",
+                headers=headers,
+                params={"limit": 30, "start": start},
+                timeout=15,
+            )
+        except requests.RequestException as e:
+            return None, f"Error de red: {e}"
+        if res.status_code != 200:
+            return None, f"Alegra respondió {res.status_code}"
+        lote = res.json() or []
+        if isinstance(lote, dict):
+            lote = lote.get("data") or lote.get("results") or []
+        if not lote:
+            break
+        for c in lote:
+            if not isinstance(c, dict):
+                continue
+            status = str(c.get("status") or "active").lower()
+            centros.append({
+                "id": c.get("id"),
+                "code": c.get("code") or c.get("id"),
+                "name": c.get("name") or "",
+                "active": status in ("active", "1", "true"),
+            })
+        if len(lote) < 30:
+            break
+        start += 30
+    centros.sort(key=lambda x: (str(x.get("code") or ""), str(x.get("name") or "")))
+    return centros, None
 
 
 def buscar_producto_alegra_por_referencia(sku: str):
@@ -1252,6 +1306,130 @@ def detalle_producto_alegra(codigo: str) -> dict:
     }
 
 
+def crear_producto_en_alegra(producto: dict) -> dict:
+    """
+    Crea un producto simple inventariable en Alegra (POST /items, type=simple).
+    Espejo de `crear_producto_en_siigo` — mismo dict de entrada y de retorno
+    `{ok, mensaje|error, siigo_producto?, siigo_id?}` para no romper el panel.
+
+    Campos útiles en `producto`:
+      codigo, nombre, unidad_min (Un|mL|g), precio_neto (costo),
+      precio_unitario, precio_lista (opcional), iva (truthy → IVA).
+    Stock inicial = 0 y `negativeSale=true`: el inventario vendible vive en
+    MeLi/Sheets, no en el ERP (misma regla que Siigo).
+    """
+    import re
+
+    codigo = re.sub(r"[^A-Za-z0-9._-]", "", str(producto.get("codigo") or "").strip())
+    if not codigo or not re.match(r"^[A-Za-z0-9._-]{2,40}$", codigo):
+        return {"ok": False, "error": f"Código inválido: {producto.get('codigo')!r}"}
+    nombre = str(producto.get("nombre") or "").strip()[:150]
+    if not nombre:
+        return {"ok": False, "error": "El nombre del producto es obligatorio"}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    existente = buscar_producto_alegra_por_referencia(codigo)
+    if existente:
+        return {
+            "ok": False,
+            "error": f"El código {codigo} ya existe en Alegra",
+            "siigo_producto": {
+                "codigo": existente.get("sku") or codigo,
+                "nombre": existente.get("nombre") or existente.get("name") or "",
+                "unidad": existente.get("unidad") or "",
+                "activo": True,
+            },
+        }
+
+    try:
+        precio_vu = float(producto.get("precio_unitario") or 0)
+    except (TypeError, ValueError):
+        precio_vu = 0.0
+    try:
+        precio_neto = float(
+            producto.get("precio_neto") if producto.get("precio_neto") is not None else precio_vu
+        )
+    except (TypeError, ValueError):
+        precio_neto = precio_vu
+
+    valor_lista = None
+    if "precio_lista" in producto:
+        try:
+            pl = producto.get("precio_lista")
+            if pl not in (None, "") and float(pl) > 0:
+                valor_lista = round(float(pl), 0)
+        except (TypeError, ValueError):
+            valor_lista = None
+    elif precio_vu > 0:
+        valor_lista = round(precio_vu * 1.3, 0)
+
+    unidad_min = str(producto.get("unidad_min") or "Un").strip() or "Un"
+    unidad_alegra = _ALEGRA_UNIDAD_DESDE_MIN.get(unidad_min, "unit")
+    iva_flag = producto.get("iva", True)
+    if isinstance(iva_flag, str):
+        iva_flag = iva_flag.strip().lower() not in ("0", "false", "no")
+    else:
+        try:
+            iva_flag = float(iva_flag or 0) != 0 if not isinstance(iva_flag, bool) else bool(iva_flag)
+        except (TypeError, ValueError):
+            iva_flag = True
+    tax_id = _env_int("ALEGRA_IVA_TAX_ID")
+
+    payload: dict = {
+        "name": nombre,
+        "reference": codigo[:45],
+        "type": "simple",
+        "price": float(valor_lista or 0),
+        "inventory": {
+            "unit": unidad_alegra,
+            "unitCost": max(0.0, float(precio_neto or 0)),
+            "initialQuantity": 0,
+            "negativeSale": True,
+        },
+    }
+    if iva_flag and tax_id:
+        payload["tax"] = [{"id": tax_id}]
+
+    try:
+        r = requests.post(f"{_ALEGRA_BASE}/items", headers=headers, json=payload, timeout=25)
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red creando producto: {e}"}
+
+    if r.status_code in (200, 201):
+        data = r.json() if r.content else {}
+        _producto_cache.pop(codigo, None)
+        resumen = {
+            "codigo": data.get("reference", codigo),
+            "nombre": data.get("name", nombre),
+            "unidad": unidad_min,
+            "activo": True,
+            "type": "Product",
+        }
+        try:
+            from app.services.rentabilidad import registrar_producto_en_cache_costos
+
+            registrar_producto_en_cache_costos(
+                resumen["codigo"],
+                resumen["nombre"],
+                unit_cost=max(0.0, float(precio_neto or 0)),
+                precio_lista=float(valor_lista or 0),
+            )
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "mensaje": f"Producto {codigo} creado en Alegra",
+            "alegra_id": data.get("id"),
+            "siigo_id": data.get("id"),
+            "siigo_producto": resumen,
+        }
+    return {"ok": False, "error": f"Alegra POST error {r.status_code}: {r.text[:300]}"}
+
+
 def crear_combo_en_alegra(
     codigo: str, nombre: str, componentes: list,
     *, precio_lista: float = 0.0, iva: bool = True, account_group: int | None = None,
@@ -1491,6 +1669,81 @@ def crear_factura_compra_alegra(
         return {"status": "success", "data": r.json()}
     print(f"❌ Error al crear factura de compra en Alegra: {r.status_code} - {r.text[:300]}")
     return {"status": "error", "message": r.text}
+
+
+def bill_alegra_a_shape_compra(bill: dict) -> dict:
+    """Normaliza una factura de proveedor de Alegra al shape que usa
+    `buscar_compra_siigo_registrada` (prefix/number, supplier.identification, date, total)."""
+    if not isinstance(bill, dict):
+        return {}
+    nt = bill.get("numberTemplate") or {}
+    numero = str(nt.get("fullNumber") or nt.get("number") or bill.get("id") or "")
+    provider = bill.get("provider") or bill.get("client") or {}
+    if not isinstance(provider, dict):
+        provider = {}
+    ident = str(
+        provider.get("identification")
+        or (provider.get("identificationObject") or {}).get("number")
+        or ""
+    )
+    return {
+        "id": bill.get("id"),
+        "name": numero,
+        "number": numero,
+        "date": str(bill.get("date") or "")[:10],
+        "total": bill.get("total"),
+        "supplier": {"identification": ident},
+        "provider": {"identification": ident, "name": provider.get("name") or ""},
+        "provider_invoice": {"prefix": "", "number": numero},
+        "observations": bill.get("observations") or "",
+        "_fuente": "alegra",
+    }
+
+
+def obtener_facturas_compra_alegra(fecha_inicio: str) -> list:
+    """Lista facturas de proveedor (GET /bills) desde `fecha_inicio` (YYYY-MM-DD),
+    más nuevas primero. Normalizadas al shape de compras Siigo."""
+    try:
+        headers = _alegra_headers()
+    except RuntimeError:
+        return []
+
+    desde = str(fecha_inicio or "")[:10]
+    out: list[dict] = []
+    start = 0
+    while start < 3000:
+        try:
+            res = requests.get(
+                f"{_ALEGRA_BASE}/bills",
+                headers=headers,
+                params={"limit": 30, "start": start, "order_field": "date", "order_direction": "DESC"},
+                timeout=20,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        lote = res.json() or []
+        if isinstance(lote, dict):
+            lote = lote.get("data") or lote.get("results") or []
+        if not lote:
+            break
+        mas_viejas = True
+        for bill in lote:
+            if not isinstance(bill, dict):
+                continue
+            fecha = str(bill.get("date") or "")[:10]
+            if desde and fecha and fecha < desde:
+                continue
+            mas_viejas = False
+            out.append(bill_alegra_a_shape_compra(bill))
+        if len(lote) < 30:
+            break
+        # Si todo el lote es anterior al corte, no hay más que buscar.
+        if mas_viejas and desde:
+            break
+        start += 30
+    return out
 
 
 _trazabilidad_meli_cache: list = []

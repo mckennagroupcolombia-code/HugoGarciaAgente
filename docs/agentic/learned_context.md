@@ -11,7 +11,7 @@ Resumen portable para otro dev/agente. Mantener corto; mover detalle a fichas o 
 
 ## Invariantes Negocio
 
-- Stock se sincroniza entre MeLi y pagina web; Siigo solo factura.
+- Stock se sincroniza entre MeLi y pagina web; Alegra solo factura.
 - Preventa MeLi con ficha usa Gemini; WhatsApp/chat usa Claude.
 - Si Gemini falla en preventa, se delega al grupo; no responder fallback generico al cliente.
 - Posventa MeLi usa API messages con `x-version: 2`.

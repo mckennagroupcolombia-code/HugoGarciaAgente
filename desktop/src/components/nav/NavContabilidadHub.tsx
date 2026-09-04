@@ -78,7 +78,7 @@ export default function NavContabilidadHub({
         <div className="mck-tooltip-fly pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel/95 p-3 shadow-paper-lg backdrop-blur-sm">
           <p className="mb-1 text-xs font-bold text-ink">{label}</p>
           <p className="text-xs leading-relaxed text-ink-secondary">
-            Facturas de compra, sync MeLi↔Siigo, centros de costo, rentabilidad y más — todo en un
+            Facturas de compra, sync MeLi↔Alegra, centros de costo, rentabilidad y más — todo en un
             solo módulo.
           </p>
         </div>

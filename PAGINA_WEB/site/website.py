@@ -31,6 +31,12 @@ from app.tools.tema_web import (
 )
 from app.tools.stock_web import obtener_stock_web, set_stock_web
 from app.tools.origen_materias import cargar_origen_materias, resolver_pais_sku
+from app.services.proveedores_db import (
+    PAISES_COORDENADAS as _PAISES_RED,
+    cargar_oferta_web as _cargar_oferta_web,
+    clave_producto as _clave_producto,
+    crear_solicitud_cotizacion as _crear_solicitud_cotizacion,
+)
 from app.tools.banners_web import banners_vigentes
 from app.tools.colombia_geo import (
     COLOMBIA_DATA,
@@ -3452,10 +3458,123 @@ def documento_tecnico_pdf(filename: str):
     )
 
 
+# ── Trazabilidad ilustrada: mapamundi (origen) + Colombia (destino) ─────────
+# El SVG de continentes (_world_land.svg.html) está en viewBox 0 0 1000 500
+# (lat 90..-90). Se recorta a MAPA_LAT_TOP..MAPA_LAT_BOTTOM para no mostrar
+# océano vacío; los pines se posicionan en % relativo a ese recorte.
+MAPA_LAT_TOP = 78.0
+MAPA_LAT_BOTTOM = -58.0
+MAPA_VIEWBOX_Y = round((90 - MAPA_LAT_TOP) / 180 * 500, 2)
+MAPA_VIEWBOX_H = round((MAPA_LAT_TOP - MAPA_LAT_BOTTOM) / 180 * 500, 2)
+_COLOMBIA_LATLON = (4.6, -74.1)
+_PUERTOS_LATLON = {
+    "Buenaventura": (3.88, -77.03),
+    "Cartagena": (10.39, -75.51),
+    "Aéreo · El Dorado": (4.70, -74.15),
+}
+# Coordenadas dentro del SVG de Colombia (viewBox 0 0 613 694, @svg-maps/colombia)
+_PUERTOS_SVG = {
+    "Buenaventura": {"x": 181, "y": 352, "tipo": "maritimo", "icono": "boat"},
+    "Cartagena": {"x": 262, "y": 100, "tipo": "maritimo", "icono": "boat"},
+    "Aéreo · El Dorado": {"x": 300, "y": 338, "tipo": "aereo", "icono": "airplane-tilt"},
+}
+_BODEGA_SVG = {"x": 309, "y": 345}
+_DEPARTAMENTOS_SVG_JSON = ROOT / "app" / "data" / "colombia_departamentos_svg.json"
+
+LINEA_DESCRIPCION: dict[str, str] = {
+    "aceites-ceras-grasas": "Aceites vegetales, esenciales, ceras y mantecas de origen botánico.",
+    "agro": "Insumos para cultivo, suelos y control biológico.",
+    "alimentario": "Aminoácidos, proteínas, gomas, sales y excipientes grado alimentario.",
+    "cosmetica": "Activos, ácidos, humectantes y tensoactivos para formulación cosmética.",
+    "industria": "Conservantes, solventes y especialidades para procesos industriales.",
+    "laboratorio": "Vidriería, kits y material para laboratorio y producción a escala.",
+}
+LINEA_ICONO: dict[str, str] = {
+    "aceites-ceras-grasas": "drop",
+    "agro": "plant",
+    "alimentario": "grains",
+    "cosmetica": "sparkle",
+    "industria": "factory",
+    "laboratorio": "flask",
+}
+
+
+def _mapa_xy_pct(lat: float, lon: float) -> tuple[float, float]:
+    x = (lon + 180) / 360 * 100
+    y = (MAPA_LAT_TOP - lat) / (MAPA_LAT_TOP - MAPA_LAT_BOTTOM) * 100
+    return round(x, 2), round(max(0.0, min(100.0, y)), 2)
+
+
+_OFERTA_CACHE: dict = {"mtime": None, "data": None}
+_OFERTA_JSON = Path(__file__).parent / "data/oferta_proveedores.json"
+
+
+def obtener_oferta_web(force: bool = False) -> dict:
+    """oferta_proveedores.json (publicado desde /app → Proveedores). Cache por mtime."""
+    try:
+        mtime = _OFERTA_JSON.stat().st_mtime
+    except OSError:
+        mtime = None
+    if not force and _OFERTA_CACHE["data"] is not None and _OFERTA_CACHE["mtime"] == mtime:
+        return _OFERTA_CACHE["data"]
+    data = _cargar_oferta_web() if mtime is not None else {"productos": [], "paises": [], "n_productos": 0}
+    _OFERTA_CACHE["mtime"] = mtime
+    _OFERTA_CACHE["data"] = data
+    return data
+
+
+_DOCS_PROD_CACHE: dict = {"ts": 0.0, "data": {}}
+
+
+def _documentos_por_producto() -> dict[str, dict]:
+    """{ref: {tds, coa, sds}} para el catálogo vigente (cache 10 min)."""
+    now = time.time()
+    if _DOCS_PROD_CACHE["data"] and now - _DOCS_PROD_CACHE["ts"] < 600:
+        return _DOCS_PROD_CACHE["data"]
+    out: dict[str, dict] = {}
+    try:
+        from app.services.documentos_web import buscar_documento_completo_web
+    except Exception:
+        buscar_documento_completo_web = None  # type: ignore
+    for p in get_all_products():
+        ref = (p.get("ref") or "").strip()
+        if not ref:
+            continue
+        d = None
+        if buscar_documento_completo_web:
+            try:
+                d = buscar_documento_completo_web(p.get("name") or "", ref)
+            except Exception:
+                d = None
+        out[ref] = {
+            "tds": bool(p.get("ficha")) or bool(d and d.get("ft")),
+            "coa": bool(d and d.get("coa")),
+            "sds": bool(d and d.get("sds")),
+        }
+    _DOCS_PROD_CACHE.update({"ts": now, "data": out})
+    return out
+
+
+_RUTA_CACHE: dict = {"ts": 0.0, "key": None, "data": None}
+
+
 def _construir_ruta_origen(catalog: list) -> dict:
-    """País de origen (línea + overrides) con productos reales, para el mapa del inicio."""
+    """Datos de la sección "Del origen a tu fórmula" (mapamundi ilustrado).
+
+    Capas: `stock` (catálogo vigente resuelto por línea/SKU desde
+    origen_materias.json) y `red` (oferta cotizable publicada desde /app →
+    Proveedores; sin nombres de proveedor). Cada país lleva sus productos con
+    línea, color, enlace y si tiene ficha técnica (TDS) / COA — así el mapa se
+    conecta con la documentación de trazabilidad. Cache 5 min.
+    """
+    now = time.time()
+    if _RUTA_CACHE["data"] is not None and now - _RUTA_CACHE["ts"] < 300:
+        return _RUTA_CACHE["data"]
     cfg = cargar_origen_materias()
-    paises_info = cfg.get("paises", {})
+    paises_info = dict(cfg.get("paises", {}))
+    docs = _documentos_por_producto()
+    lineas_cat = {L["id"]: L for L in lineas_desde_catalogo(catalog)}
+
     por_pais: dict[str, list[dict]] = {}
     for p in get_all_products(catalog):
         sku = (p.get("ref") or "").strip()
@@ -3465,22 +3584,144 @@ def _construir_ruta_origen(catalog: list) -> dict:
         pais = resolver_pais_sku(sku, linea_id, cfg)
         if not pais:
             continue
-        por_pais.setdefault(pais, []).append(p)
+        dp = docs.get(sku, {})
+        por_pais.setdefault(pais, []).append({
+            "nombre": p.get("name", ""),
+            "ref": sku,
+            "slug": p.get("slug", ""),
+            "linea": linea_id,
+            "color": lineas_cat.get(linea_id, {}).get("color", CAT_COLOR_DEFAULT),
+            "cat": p.get("cat", ""),
+            "tds": dp.get("tds", False),
+            "coa": dp.get("coa", False),
+            "stock": int(p.get("stock") or 0),
+        })
+
+    oferta = obtener_oferta_web()
+    red_por_pais: dict[str, dict] = {r["pais"]: r for r in oferta.get("paises", []) if r.get("pais")}
 
     rutas = []
-    for pais, productos in sorted(por_pais.items(), key=lambda kv: -len(kv[1])):
-        info = paises_info.get(pais, {})
+    col_x, col_y = _mapa_xy_pct(*_COLOMBIA_LATLON)
+    for pais in set(por_pais) | set(red_por_pais):
+        info = paises_info.get(pais) or {}
         if "lat" not in info or "lon" not in info:
-            continue  # sin coordenadas propias no se puede ubicar en el mapa
+            sug = _PAISES_RED.get(pais) or {}
+            red = red_por_pais.get(pais) or {}
+            lat = red.get("lat", sug.get("lat"))
+            lon = red.get("lon", sug.get("lon"))
+            if lat is None or lon is None:
+                continue
+            info = {"lat": lat, "lon": lon, "puerto_entrada": info.get("puerto_entrada") or red.get("puerto_entrada") or sug.get("puerto_entrada", "")}
+        productos = sorted(por_pais.get(pais, []), key=lambda x: (not x["coa"], not x["tds"], x["nombre"].lower()))
+        red = red_por_pais.get(pais, {})
+        x, y = _mapa_xy_pct(info["lat"], info["lon"])
+        por_linea: dict[str, int] = {}
+        for pr in productos:
+            por_linea[pr["linea"]] = por_linea.get(pr["linea"], 0) + 1
+        puerto = info.get("puerto_entrada", "")
+        modo = "aereo" if "aéreo" in puerto.lower() or "aereo" in puerto.lower() else ("nacional" if pais == "Colombia" else "maritimo")
         rutas.append({
             "pais": pais,
-            "x_pct": round((info["lon"] + 180) / 360 * 100, 2),
-            "y_pct": round((90 - info["lat"]) / 180 * 100, 2),
-            "puerto_entrada": info.get("puerto_entrada", ""),
+            "x_pct": x,
+            "y_pct": y,
+            "lat": info["lat"],
+            "lon": info["lon"],
+            "puerto_entrada": puerto,
+            "modo": modo,
             "n_productos": len(productos),
-            "muestra": [{"nombre": pr.get("name", ""), "ref": pr.get("ref", "")} for pr in productos[:3]],
+            "n_red": int(red.get("n_productos") or 0),
+            "n_tds": sum(1 for pr in productos if pr["tds"]),
+            "n_coa": sum(1 for pr in productos if pr["coa"]),
+            "por_linea": por_linea,
+            "tipo": "stock" if productos else "red",
+            "productos": productos[:60],
+            "muestra_red": list(red.get("muestra") or [])[:4],
         })
-    return {"rutas": rutas[:8], "tiene_datos": bool(rutas)}
+    rutas.sort(key=lambda r: (-(r["n_productos"] + r["n_red"]), r["pais"]))
+    internacionales = [r for r in rutas if r["pais"] != "Colombia"]
+    nacional = next((r for r in rutas if r["pais"] == "Colombia"), None)
+    todos_prod = [pr for r in rutas for pr in r["productos"]]
+    lineas_resumen = []
+    for lid, L in lineas_cat.items():
+        n = sum(1 for pr in todos_prod if pr["linea"] == lid)
+        paises_l = sorted({r["pais"] for r in internacionales if r["por_linea"].get(lid)})
+        lineas_resumen.append({
+            "id": lid, "name": L["name"], "color": L["color"], "n": n, "paises": paises_l[:6],
+            "descripcion": LINEA_DESCRIPCION.get(lid, ""), "icono": LINEA_ICONO.get(lid, "flask"),
+        })
+    data = {
+        "rutas": internacionales[:30],
+        "nacional": nacional,
+        "tiene_datos": bool(internacionales),
+        "colombia": {"x_pct": col_x, "y_pct": col_y},
+        "puertos": [
+            {"nombre": k, "x_pct": _mapa_xy_pct(*v)[0], "y_pct": _mapa_xy_pct(*v)[1]} for k, v in _PUERTOS_LATLON.items()
+        ],
+        "viewbox": {"y": MAPA_VIEWBOX_Y, "h": MAPA_VIEWBOX_H},
+        "n_paises": len(internacionales),
+        "n_stock": sum(r["n_productos"] for r in rutas),
+        "n_red": sum(r["n_red"] for r in rutas),
+        "n_oferta": int(oferta.get("n_productos") or 0),
+        "n_referencias": len(todos_prod),
+        "n_tds": sum(1 for pr in todos_prod if pr["tds"]),
+        "n_coa": sum(1 for pr in todos_prod if pr["coa"]),
+        "lineas": lineas_resumen,
+        "actualizado": datetime.now().strftime("%d/%m/%Y"),
+    }
+    _RUTA_CACHE.update({"ts": now, "data": data})
+    return data
+
+
+def _construir_colombia_mapa() -> dict:
+    """Datos para el mapa ilustrado de Colombia: departamentos alcanzados (real,
+    desde cobertura), intensidad, municipios, pendientes por impactar, puertos de
+    entrada y bodega. Las posiciones vienen de app/data/colombia_departamentos_svg.json."""
+    cob = obtener_cobertura()
+    try:
+        centros = json.loads(_DEPARTAMENTOS_SVG_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        centros = {}
+    alcanzados = {d["departamento"]: d for d in cob.get("departamentos", [])}
+    max_ped = max([d.get("n_pedidos", 0) for d in alcanzados.values()] or [1]) or 1
+    deps = []
+    for nombre, c in centros.items():
+        d = alcanzados.get(nombre)
+        n_ped = int(d.get("n_pedidos", 0)) if d else 0
+        deps.append({
+            "nombre": nombre,
+            "id": c["id"],
+            "cx": c["cx"],
+            "cy": c["cy"],
+            "alcanzado": bool(d),
+            "n_pedidos": n_ped,
+            "n_municipios": int(d.get("n_municipios", 0)) if d else 0,
+            "total_municipios": len(COLOMBIA_DATA.get(nombre, [])),
+            "intensidad": round(min(1.0, 0.25 + 0.75 * (n_ped / max_ped)), 2) if d else 0,
+            "municipios": [m["municipio"] for m in (d.get("municipios") or [])[:6]] if d else [],
+        })
+    deps.sort(key=lambda x: (-x["n_pedidos"], x["nombre"]))
+    pendientes = [x for x in deps if not x["alcanzado"]]
+    actividad = obtener_actividad()
+    ciudades = actividad.get("ciudades_semana") or []
+    deps_semana = []
+    for ciudad in ciudades:
+        r = resolver_departamento_municipio(ciudad)
+        if r and r[0] in centros and r[0] not in deps_semana:
+            deps_semana.append(r[0])
+    return {
+        "departamentos": deps,
+        "pendientes": pendientes,
+        "n_alcanzados": cob.get("n_departamentos", 0),
+        "total_departamentos": cob.get("total_departamentos", TOTAL_DEPARTAMENTOS),
+        "n_municipios": cob.get("n_municipios", 0),
+        "total_municipios": cob.get("total_municipios", TOTAL_MUNICIPIOS),
+        "pct_departamentos": round(100 * cob.get("n_departamentos", 0) / max(1, cob.get("total_departamentos", 1))),
+        "deps_semana": deps_semana[:10],
+        "ciudades_semana": ciudades[:10],
+        "pedidos_hoy": actividad.get("pedidos_hoy", 0),
+        "puertos": [{"nombre": k, **v} for k, v in _PUERTOS_SVG.items()],
+        "bodega": _BODEGA_SVG,
+    }
 
 
 _ACTIVIDAD_CACHE: dict = {"ts": 0.0, "data": None}
@@ -3687,6 +3928,7 @@ def index():
         lineas=lineas_desde_catalogo(catalog),
         featured=featured[:12],
         ruta_origen=_construir_ruta_origen(catalog),
+        colombia=_construir_colombia_mapa(),
         banners=banners_vigentes(),
         actividad=obtener_actividad(),
         cobertura=obtener_cobertura())
@@ -3892,6 +4134,169 @@ def producto(slug):
         doc_completo=doc_completo)
 
 
+# ── Cotizar: oferta cotizable de la red de proveedores (sin stock) ─────────
+_COTIZAR_RATE: dict[str, list[float]] = {}
+
+
+def _cotizar_agrupar(oferta: dict, catalog: list, q: str = "", linea: str = "") -> list[dict]:
+    """Une la oferta publicada (solo cotizable) con el catálogo vigente (en stock),
+    agrupado por línea comercial. Nunca expone proveedores."""
+    qn = _norm_cat_key(q) if q else ""
+    cfg_origen = cargar_origen_materias()
+    docs = _documentos_por_producto()
+    en_stock: dict[str, dict] = {}
+    for p in get_all_products(catalog):
+        clave = _clave_producto(p.get("name") or "")
+        if clave and clave not in en_stock:
+            en_stock[clave] = p
+    grupos: dict[str, dict] = {}
+    for lid, nombre, color in LINEAS_OFICIALES:
+        grupos[lid] = {"id": lid, "name": nombre, "color": color, "refs": [],
+                       "descripcion": LINEA_DESCRIPCION.get(lid, ""), "icono": LINEA_ICONO.get(lid, "flask")}
+    grupos["otros"] = {"id": "otros", "name": "Otras materias primas", "color": CAT_COLOR_DEFAULT, "refs": [],
+                       "descripcion": "Especialidades fuera de las seis líneas principales.", "icono": "cube"}
+    vistos: set[str] = set()
+    for prod in oferta.get("productos", []):
+        clave = prod.get("clave") or ""
+        lid = prod.get("linea") if prod.get("linea") in grupos else "otros"
+        stock = en_stock.get(clave)
+        dp = docs.get((stock or {}).get("ref", ""), {}) if stock else {}
+        origen = list(prod.get("origen_paises") or [])
+        if stock and not origen:
+            pais_cat = resolver_pais_sku(stock.get("ref", ""), lid, cfg_origen)
+            if pais_cat:
+                origen = [pais_cat]
+        item = {
+            "nombre": prod.get("nombre") or "",
+            "clave": clave,
+            "cas": prod.get("cas") or "",
+            "origen": origen,
+            "presentaciones": prod.get("presentaciones") or [],
+            "en_stock": bool(stock),
+            "stock": int((stock or {}).get("stock") or 0),
+            "slug": stock.get("slug") if stock else "",
+            "linea": lid,
+            "tds": dp.get("tds", False),
+            "coa": dp.get("coa", False),
+        }
+        vistos.add(clave)
+        if qn and qn not in _norm_cat_key(item["nombre"] + " " + item["cas"]):
+            continue
+        if linea and lid != linea:
+            continue
+        grupos[lid]["refs"].append(item)
+    # Productos en stock que aún no están en la oferta publicada: también cotizables
+    for clave, p in en_stock.items():
+        if clave in vistos:
+            continue
+        lid = linea_id_de_categoria(p.get("cat"))
+        lid = lid if lid in grupos else "otros"
+        dp = docs.get(p.get("ref", ""), {})
+        pais_cat = resolver_pais_sku(p.get("ref", ""), lid, cfg_origen)
+        item = {"nombre": p.get("name") or "", "clave": clave, "cas": "", "origen": [pais_cat] if pais_cat else [],
+                "presentaciones": [], "en_stock": True, "stock": int(p.get("stock") or 0), "slug": p.get("slug") or "",
+                "linea": lid, "tds": dp.get("tds", False), "coa": dp.get("coa", False)}
+        if qn and qn not in _norm_cat_key(item["nombre"]):
+            continue
+        if linea and lid != linea:
+            continue
+        grupos[lid]["refs"].append(item)
+    out = []
+    for g in grupos.values():
+        g["refs"].sort(key=lambda i: (not i["en_stock"], not i["coa"], i["nombre"].lower()))
+        g["n_stock"] = sum(1 for i in g["refs"] if i["en_stock"])
+        g["n_pedido"] = sum(1 for i in g["refs"] if not i["en_stock"])
+        g["n_coa"] = sum(1 for i in g["refs"] if i["coa"])
+        origenes: dict[str, int] = {}
+        for i in g["refs"]:
+            for o in i["origen"]:
+                if o != "Colombia":
+                    origenes[o] = origenes.get(o, 0) + 1
+        g["origenes"] = [k for k, _ in sorted(origenes.items(), key=lambda kv: -kv[1])[:5]]
+        if g["refs"]:
+            out.append(g)
+    return out
+
+
+@app.route("/cotizar")
+@app.route("/cotizar/")
+def cotizar():
+    q = (request.args.get("q") or "").strip()[:80]
+    linea = (request.args.get("linea") or "").strip()
+    catalog = get_catalog()
+    oferta = obtener_oferta_web()
+    grupos = _cotizar_agrupar(oferta, catalog, q=q, linea=linea)
+    total = sum(len(g["refs"]) for g in grupos)
+    cards = _cotizar_agrupar(oferta, catalog) if (q or linea) else grupos
+    total_general = sum(len(g["refs"]) for g in cards)
+    ruta = _construir_ruta_origen(catalog)
+    paises = sorted({r["pais"] for r in ruta.get("rutas", [])} | {r["pais"] for r in oferta.get("paises", [])})
+    return render_template(
+        "cotizar.html",
+        grupos=grupos,
+        cards=cards,
+        total=total,
+        total_general=total_general,
+        n_coa=sum(g["n_coa"] for g in cards),
+        q_filter=q,
+        linea_filter=linea,
+        lineas=lineas_desde_catalogo(catalog),
+        paises_red=paises,
+        n_oferta=int(oferta.get("n_productos") or 0),
+        ruta_origen=ruta,
+        colombia=_construir_colombia_mapa(),
+        producto_pre=(request.args.get("producto") or "").strip()[:120],
+    )
+
+
+@app.route("/cotizar/solicitar", methods=["POST"])
+def cotizar_solicitar():
+    """Registra una solicitud de cotización (JSON o form) y avisa al agente
+    (:8081 → WhatsApp + correo de confirmación) en segundo plano."""
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    if (data.get("website") or "").strip():  # honeypot
+        return jsonify({"ok": True})
+    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "") or "").split(",")[0].strip()
+    ahora = time.time()
+    hist = [t for t in _COTIZAR_RATE.get(ip, []) if ahora - t < 3600]
+    if len(hist) >= 8:
+        return jsonify({"ok": False, "error": "Demasiadas solicitudes. Intenta más tarde."}), 429
+    hist.append(ahora)
+    _COTIZAR_RATE[ip] = hist
+
+    producto = (data.get("producto") or "").strip()
+    nombre = (data.get("nombre") or "").strip()
+    email = (data.get("email") or "").strip()
+    telefono = (data.get("telefono") or "").strip()
+    if not producto or not nombre or (not email and not telefono):
+        return jsonify({"ok": False, "error": "Indica producto, nombre y un correo o teléfono."}), 400
+    if email and "@" not in email:
+        return jsonify({"ok": False, "error": "Correo inválido."}), 400
+    sol = _crear_solicitud_cotizacion({
+        "nombre": nombre, "empresa": data.get("empresa"), "email": email, "telefono": telefono,
+        "ciudad": data.get("ciudad"), "producto": producto, "presentacion": data.get("presentacion"),
+        "cantidad": data.get("cantidad"), "mensaje": data.get("mensaje"), "origen": "web", "ip": ip,
+    })
+
+    def _avisar():
+        try:
+            base = (os.getenv("AGENTE_API_URL") or "http://127.0.0.1:8081").rstrip("/")
+            tok = normalize_api_token(os.getenv("CHAT_API_TOKEN", ""))
+            requests.post(f"{base}/api/proveedores/cotizaciones/notificar", json={"id": sol.get("id")},
+                          headers={"Authorization": f"Bearer {tok}"}, timeout=30)
+        except Exception as e:
+            print(f"[cotizar] aviso al agente falló: {e}")
+
+    threading.Thread(target=_avisar, daemon=True).start()
+    return jsonify({"ok": True, "id": sol.get("id")})
+
+
+@app.route("/api/oferta/refresh", methods=["POST"])
+def oferta_refresh():
+    obtener_oferta_web(force=True)
+    return jsonify({"ok": True, "n_productos": obtener_oferta_web().get("n_productos", 0)})
+
+
 @app.route("/nosotros")
 def nosotros():
     return render_template("nosotros.html")
@@ -3938,6 +4343,7 @@ def sitemap():
         ("/guias", "0.9", "weekly"),
         ("/recetario", "0.8", "weekly"),
         ("/blog", "0.9", "daily"),
+        ("/cotizar", "0.85", "weekly"),
         ("/nosotros", "0.6", "monthly"),
         ("/contacto", "0.6", "monthly"),
     ]

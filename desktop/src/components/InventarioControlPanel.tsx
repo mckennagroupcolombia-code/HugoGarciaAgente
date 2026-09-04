@@ -211,7 +211,7 @@ function InventarioCard({ item }: { item: ItemInventarioControl }) {
             <p className={`text-xl font-extrabold tabular-nums leading-none ${meta.stockClass}`}>{item.stock_meli}</p>
           </div>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wide text-muted">Siigo</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-muted">Alegra</p>
             <p className="text-base font-bold tabular-nums leading-none text-muted">
               {item.stock_siigo === null ? "—" : item.stock_siigo}
             </p>

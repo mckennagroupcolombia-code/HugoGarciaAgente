@@ -58,8 +58,6 @@ from app.tools.sincronizar_facturas_de_compra_siigo import (
     CARPETA_FACTURAS_LOCAL,
 )
 from app.services.siigo import (
-    autenticar_siigo,
-    PARTNER_ID,
     _siigo_retry_after_seconds,
     normalizar_pulgadas_en_nombre,
     sanitizar_nombre_siigo,
@@ -637,52 +635,36 @@ def _siigo_request_con_reintentos(method: str, url: str, *, headers: dict, max_4
 
 def buscar_producto_en_siigo_por_codigo(codigo: str) -> dict | None:
     """
-    Consulta SIIGO API para saber si ya existe un producto con ese código.
-    Retorna el producto SIIGO cuando hay coincidencia exacta de código.
-    Intenta hasta 2 veces con timeout de 15 s antes de rendirse.
+    Consulta si ya existe un producto con ese código en Alegra (migración 2026-09-03).
+    Retorna un dict con shape Siigo (`code`, `name`, `unit`, `active`) para no
+    reescribir `_resumen_producto_siigo` ni el panel.
     """
     key = (codigo or "").strip().upper()
     cached = _cache_get_producto_siigo(key)
     if cached is not _SENTINEL_NO_CACHE:
         return cached
 
-    token = autenticar_siigo()
-    if not token:
-        print(f"  ⚠️ [SIIGO] Sin token — {codigo} se tratará como producto nuevo")
-        _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
+    try:
+        from app.services.alegra import buscar_producto_alegra_por_referencia
+
+        found = buscar_producto_alegra_por_referencia(codigo)
+    except Exception as e:
+        print(f"  ⚠️ [ALEGRA] Error verificando {codigo}: {e} — se asume nuevo")
         return None
 
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
-
-    for intento in range(1, 3):
-        try:
-            res = _siigo_request_con_reintentos(
-                "GET",
-                f"https://api.siigo.com/v1/products?code={codigo}&page_size=1",
-                headers=headers,
-                timeout=15,
-            )
-            if res.status_code == 200:
-                results = res.json().get('results', [])
-                for p in results:
-                    if p.get('code', '').upper() == codigo.upper():
-                        _CACHE_PRODUCTO_SIIGO[key] = (time.time(), p)
-                        return p
-                _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
-                return None
-            # Cualquier otro status HTTP: no es duplicado
-            _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
-            return None
-        except requests.exceptions.Timeout:
-            if intento < 2:
-                print(f"  ⏳ [SIIGO] Timeout verificando {codigo}, reintentando...")
-            else:
-                print(f"  ⚠️ [SIIGO] Timeout al verificar {codigo} — se asume nuevo (revisa duplicados en Excel)")
-        except Exception as e:
-            print(f"  ⚠️ [SIIGO] Error verificando {codigo}: {e} — se asume nuevo")
-            break
-
-    return None
+    if not found:
+        _CACHE_PRODUCTO_SIIGO[key] = (time.time(), None)
+        return None
+    shaped = {
+        "id": found.get("id"),
+        "code": found.get("sku") or found.get("referencia") or codigo,
+        "name": found.get("name") or found.get("nombre") or "",
+        "unit": {"name": found.get("unidad") or ""},
+        "active": True,
+        "type": "Product",
+    }
+    _CACHE_PRODUCTO_SIIGO[key] = (time.time(), shaped)
+    return shaped
 
 
 def verificar_producto_en_siigo(codigo: str) -> bool:
@@ -2352,113 +2334,25 @@ _SIIGO_UNIT_API = {'Un': '94', 'mL': '79', 'g': '62'}
 
 def crear_producto_en_siigo(producto: dict) -> dict:
     """
-    Crea un producto inventariable en SIIGO vía POST /v1/products.
-    Retorna {ok, mensaje|error, siigo_producto?}.
-
-    Campos útiles en `producto`:
-      codigo, nombre, unidad_min, precio_neto (costo),
-      precio_unitario (base compra/venta según flujo factura),
-      precio_lista (opcional: precio de lista final; si viene, no se aplica ×1.3),
-      iva (>0 → impuesto 3118).
+    Crea un producto inventariable. Migrado a Alegra el 2026-09-03 — delega en
+    `crear_producto_en_alegra`. Retorna el mismo shape `{ok, mensaje|error, siigo_producto?}`.
     """
-    codigo = _codigo_manual_valido(str(producto.get('codigo', '')).strip())
-    if not codigo:
-        return {'ok': False, 'error': 'Código SIIGO vacío o inválido'}
-    existente = buscar_producto_en_siigo_por_codigo(codigo)
-    if existente:
-        return {
-            'ok': False,
-            'error': f'El código {codigo} ya existe en SIIGO',
-            'siigo_producto': _resumen_producto_siigo(existente),
-        }
+    from app.services.alegra import crear_producto_en_alegra
 
-    token = autenticar_siigo()
-    if not token:
-        return {'ok': False, 'error': 'No se pudo autenticar con SIIGO'}
-
-    has_iva = float(producto.get('iva') or 0) > 0
-    taxes = [{'id': 3118}] if has_iva else []
-    try:
-        precio_vu = float(producto.get('precio_unitario') or 0)
-    except (TypeError, ValueError):
-        precio_vu = 0.0
-    try:
-        precio_neto = float(producto.get('precio_neto') if producto.get('precio_neto') is not None else precio_vu)
-    except (TypeError, ValueError):
-        precio_neto = precio_vu
-
-    # Precio de lista opcional. Si se envía `prices` con value 0/null, Siigo falla
-    # (parameter_required). Sin precio: omitir el bloque completo.
-    valor_lista = None
-    if 'precio_lista' in producto:
-        try:
-            pl = producto.get('precio_lista')
-            if pl not in (None, '') and float(pl) > 0:
-                valor_lista = round(float(pl), 0)
-        except (TypeError, ValueError):
-            valor_lista = None
-    elif precio_vu > 0:
-        # Flujo factura (sin precio_lista explícito): deriva lista ≈ ×1.3
-        valor_lista = round(precio_vu * 1.3, 0)
-
-    unit_cost = max(0.0, float(precio_neto or 0))
-    siigo_unit_code = _SIIGO_UNIT_API.get(producto.get('unidad_min', 'Un'), '94')
-
-    payload = {
-        'code': codigo,
-        'name': sanitizar_nombre_siigo(producto.get('nombre', '')),
-        'account_group': 297,
-        'type': 'Product',
-        'stock_control': True,
-        'unit': {'code': siigo_unit_code},
-        'warehouses': [{'id': 41, 'quantity': 0, 'unit_cost': unit_cost}],
-        'taxes': taxes,
-    }
-    if valor_lista is not None and valor_lista > 0:
-        payload['prices'] = [{
-            'currency_code': 'COP',
-            'price_list': [{'position': 1, 'value': valor_lista}],
-        }]
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Partner-Id': PARTNER_ID,
-        'Content-Type': 'application/json',
-    }
-    try:
-        r = _siigo_request_con_reintentos(
-            'POST',
-            'https://api.siigo.com/v1/products',
-            headers=headers,
-            json=payload,
-            timeout=20,
-        )
-        if r.status_code in (200, 201):
-            data = r.json()
-            resumen = _resumen_producto_siigo(data) or {
-                'codigo': data.get('code', codigo),
-                'nombre': data.get('name', producto.get('nombre', '')),
-                'unidad': producto.get('unidad_min', ''),
-                'activo': True,
-            }
-            try:
-                from app.services.rentabilidad import registrar_producto_en_cache_costos
-                registrar_producto_en_cache_costos(
-                    resumen.get('codigo') or codigo,
-                    resumen.get('nombre') or str(producto.get('nombre', '')),
-                    unit_cost=unit_cost,
-                    precio_lista=float(valor_lista or 0),
-                )
-            except Exception:
-                pass
-            return {
-                'ok': True,
-                'mensaje': f"Producto {codigo} creado en SIIGO",
-                'siigo_id': data.get('id'),
-                'siigo_producto': resumen,
-            }
-        return {'ok': False, 'error': f'SIIGO HTTP {r.status_code}: {(r.text or "")[:250]}'}
-    except Exception as e:
-        return {'ok': False, 'error': str(e)}
+    resultado = crear_producto_en_alegra(producto)
+    if resultado.get("ok"):
+        resumen = resultado.get("siigo_producto") or {}
+        codigo = str(resumen.get("codigo") or producto.get("codigo") or "").strip()
+        if codigo:
+            _CACHE_PRODUCTO_SIIGO[codigo.upper()] = (time.time(), {
+                "id": resultado.get("alegra_id") or resultado.get("siigo_id"),
+                "code": codigo,
+                "name": resumen.get("nombre") or "",
+                "unit": {"name": resumen.get("unidad") or ""},
+                "active": True,
+                "type": "Product",
+            })
+    return resultado
 
 
 def crear_productos_factura_en_siigo(
@@ -2492,7 +2386,7 @@ def crear_productos_factura_en_siigo(
             omitidos.append({
                 'indice': indice,
                 'codigo': item.get('codigo'),
-                'motivo': 'Ya existe en SIIGO',
+                'motivo': 'Ya existe en Alegra',
                 'siigo_producto': item.get('siigo_producto'),
             })
             continue
@@ -2531,7 +2425,7 @@ def crear_productos_factura_en_siigo(
         'omitidos': omitidos,
         'errores': errores,
         'mensaje': (
-            f"{len(creados)} producto(s) creado(s) en SIIGO"
+            f"{len(creados)} producto(s) creado(s) en Alegra"
             + (f", {len(errores)} error(es)" if errores else '')
             + (f", {len(omitidos)} ya existían" if omitidos else '')
         ),
@@ -2555,7 +2449,7 @@ def procesar_items_inventario(sufijo: str, indices: list, codigos_manual: dict |
         doc = compra_registrada.get('name') or compra_registrada.get('id') or 'SIIGO'
         return {
             'ok': False,
-            'error': f'Factura ya registrada en SIIGO ({doc}). No se debe inventariar de nuevo.',
+            'error': f'Factura ya registrada en Alegra/Siigo ({doc}). No se debe inventariar de nuevo.',
             'compra_registrada_siigo': compra_registrada,
         }
 
@@ -2709,43 +2603,16 @@ def _valor_factura_datos(datos: dict) -> float:
 
 
 def obtener_compras_siigo_para_dedupe(fecha_inicio: str = FECHA_INICIO_COMPRAS_SIIGO) -> list[dict]:
-    """Carga compras SIIGO para evitar re-encolar facturas ya registradas."""
+    """Carga compras del ERP (Siigo histórico + Alegra) para no re-encolar facturas ya registradas."""
     ahora = time.time()
     cache = _CACHE_COMPRAS_SIIGO
     if cache.get("data") and (ahora - float(cache.get("ts") or 0)) < _CACHE_COMPRAS_SIIGO_TTL_SEG:
         return list(cache["data"])  # type: ignore[arg-type]
 
-    token = autenticar_siigo()
-    if not token:
-        print("  ⚠️ [SIIGO] Sin token — no se podrán detectar compras ya registradas")
-        return []
+    from app.services.siigo import obtener_facturas_compra_siigo
 
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
-    compras = []
-    pagina = 1
-    while True:
-        try:
-            res = requests.get(
-                "https://api.siigo.com/v1/purchases",
-                params={"date_start": fecha_inicio, "page": pagina, "page_size": 100},
-                headers=headers,
-                timeout=20,
-            )
-            if res.status_code != 200:
-                print(f"  ⚠️ [SIIGO] No se pudo consultar compras: HTTP {res.status_code}")
-                break
-            data = res.json()
-            resultados = data.get('results') or []
-            compras.extend(resultados)
-            pag = data.get('pagination') or {}
-            total = int(pag.get('total_results') or len(compras))
-            if not resultados or len(compras) >= total:
-                break
-            pagina += 1
-        except Exception as e:
-            print(f"  ⚠️ [SIIGO] Error consultando compras registradas: {e}")
-            break
-    print(f"  🗂️  {len(compras)} compra(s) SIIGO cargadas para detectar duplicados")
+    compras = obtener_facturas_compra_siigo(fecha_inicio) or []
+    print(f"  🗂️  {len(compras)} compra(s) ERP (Siigo+Alegra) cargadas para detectar duplicados")
     _CACHE_COMPRAS_SIIGO["ts"] = time.time()
     _CACHE_COMPRAS_SIIGO["data"] = compras
     return compras
@@ -3069,7 +2936,7 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str, origen: str = '
         )
         _quitar_pendiente(key)
         threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
-        return f"⏭️ Factura *{numero_factura}* omitida. No se registró nada en SIIGO."
+        return f"⏭️ Factura *{numero_factura}* omitida. No se registró nada en Alegra."
 
     if cmd == 'gasto':
         total = entrada.get('total', 0)
@@ -3110,7 +2977,7 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str, origen: str = '
                 datos=datos,
                 estado='ok',
                 siigo_id=str(siigo_id),
-                mensaje=f'Gasto registrado en SIIGO ({siigo_id})',
+                mensaje=f'Gasto registrado en Alegra ({siigo_id})',
             )
         else:
             error = resultado.get("message", str(resultado))
@@ -3130,18 +2997,18 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str, origen: str = '
         if resultado.get("status") == "success":
             siigo_id = resultado.get("data", {}).get("id", "—")
             return (
-                f"✅ *Factura {numero_factura} registrada en SIIGO*\n"
+                f"✅ *Factura {numero_factura} registrada en Alegra*\n"
                 f"🏢 Proveedor: {proveedor}\n"
                 f"📦 {n_items} ítem(s)  |  💰 Total: ${total:,.0f} COP\n"
-                f"🆔 ID SIIGO: {siigo_id}"
+                f"🆔 ID Alegra: {siigo_id}"
             )
         else:
             error = resultado.get("message", str(resultado))
             return (
-                f"❌ *Error al registrar {numero_factura} en SIIGO*\n"
+                f"❌ *Error al registrar {numero_factura} en Alegra*\n"
                 f"🏢 Proveedor: {proveedor}\n"
                 f"⚠️ Error: {error[:200]}\n\n"
-                f"Registra manualmente: SIIGO → Compras → Nueva compra o gasto"
+                f"Registra manualmente: Alegra → Gastos → Nueva factura de proveedor"
             )
 
     # ── Inventario (proveedor nuevo) ─────────────────────────────

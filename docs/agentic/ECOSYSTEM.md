@@ -45,7 +45,7 @@ El orquestador debe analizar lenguaje natural y decidir:
 | "preguntas MeLi", "orders_v2", "messages" | `webhook-meli` + Explore/Verify | `docs/agentic/modules/webhook-meli.md` |
 | "WhatsApp", "resp", "posventa", "comprobante" | `whatsapp-routes` + Explore | `docs/agentic/modules/whatsapp-routes.md` |
 | "tool", "Claude", "prompt", "Hugo responde" | `core-tools` + Review | `docs/agentic/modules/core-tools.md` |
-| "stock", "facturas", "Siigo", "MeLi sync" | `sync-stock` + Explore/Verify | `docs/agentic/modules/sync-stock.md` |
+| "stock", "facturas", "Alegra", "MeLi sync" | `sync-stock` + Explore/Verify | `docs/agentic/modules/sync-stock.md` |
 | "panel", "React", "Vite", "dashboard" | `desktop-panel` + Verify | `docs/agentic/modules/desktop-panel.md` |
 | "systemd", "puerto", "nohup", "deploy" | `ops-systemd` + Explore | `docs/agentic/modules/ops-systemd.md` |
 | "tests", "CI", "regresion" | `backend-qa` + Verify | `docs/agentic/modules/backend-qa.md` |

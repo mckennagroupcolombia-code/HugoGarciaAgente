@@ -3,6 +3,7 @@ import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import type { LogisticaPanel } from "../lib/logisticaAccess";
 import ImportacionesPanel from "./ImportacionesPanel";
+import ProveedoresPanel from "./ProveedoresPanel";
 
 interface SeccionDef {
   id: LogisticaPanel;
@@ -16,7 +17,7 @@ const SECCIONES: Record<LogisticaPanel, SeccionDef> = {
   "logistica-importaciones": {
     id: "logistica-importaciones",
     titulo: "Importaciones",
-    descripcion: "Facturas de compra internacional, codificación SIIGO y archivos Excel/XML.",
+    descripcion: "Facturas de compra internacional, codificación Alegra y archivos Excel/XML.",
     icon: "logistica-importaciones",
     proximamente: [
       "Cola de facturas XML desde Gmail",
@@ -82,6 +83,9 @@ export default function LogisticaInternacionalPanel() {
 
   if (seccion === "logistica-importaciones") {
     return <ImportacionesPanel />;
+  }
+  if (seccion === "logistica-proveedores") {
+    return <ProveedoresPanel />;
   }
 
   return (
