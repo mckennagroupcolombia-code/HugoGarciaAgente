@@ -41,15 +41,20 @@ export default function FacturacionPanel() {
   // acceso a Facturas — quien podía ver cualquiera de las dos secciones antes
   // de unificarlas sigue viéndola ahora que es una pestaña más.
   const puedeTrazabilidad = Boolean(puedeVerModuloContabilidad(user, "astro-killer")) || puedeFacturas;
+  // Cotizar/Facturar: permiso propio y EXPLÍCITO, no heredado de Facturas —
+  // crea facturas DIAN reales para ventas ad-hoc, es más sensible que ver/
+  // sincronizar lo que ya existe (mismo criterio que Libro Mayor).
+  const puedeDirecto = Boolean(puedeVerModuloContabilidad(user, "cotizar-facturar"));
 
   const subtabs = useMemo(
     () =>
       FACTURACION_SUBTABS.filter((t) => {
         if (t.id === "sync") return puedeSync;
         if (t.id === "trazabilidad") return puedeTrazabilidad;
+        if (t.id === "directo") return puedeDirecto;
         return puedeFacturas;
       }),
-    [puedeSync, puedeFacturas, puedeTrazabilidad],
+    [puedeSync, puedeFacturas, puedeTrazabilidad, puedeDirecto],
   );
 
   const [sub, setSub] = useState<FacturacionSubtabId>(() => {

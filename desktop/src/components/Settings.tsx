@@ -670,9 +670,17 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "settings",   label: "Ajustes" },
 ];
 
-const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
+// Facturación salió de Contabilidad el 2026-09-03 (sección propia de nivel
+// superior, ver lib/navStructure.ts) — sus permisos se separan del grupo de
+// abajo para que la gestión de usuarios refleje la misma estructura.
+const FACTURACION_SECCIONES: { id: string; label: string }[] = [
   { id: "facturas",      label: "Facturas de compra" },
   { id: "sync",          label: "Sincronización MeLi↔Alegra" },
+  { id: "astro-killer",  label: "Astro Killer — trazabilidad venta→factura (incl. con Facturas)" },
+  { id: "cotizar-facturar", label: "Cotizar/Facturar directo — crea facturas DIAN reales (permiso propio, no heredado)" },
+];
+
+const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "rentabilidad",  label: "Rentabilidad (incl. con Facturas o Sync)" },
   { id: "compras-exterior", label: "Compras exterior / pantallazo (incl. con Facturas, Sync o Rentabilidad)" },
   { id: "productos-siigo", label: "Crear en Alegra — botón flotante (incl. con Facturas o Sync)" },
@@ -772,6 +780,23 @@ function PermisosEditor({
             </label>
             );
           })}
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-border bg-surface-hover px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Facturación</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+          {FACTURACION_SECCIONES.map((s) => (
+            <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={Boolean(permisos[s.id])}
+                onChange={() => toggle(s.id)}
+                className="h-3.5 w-3.5 rounded border-border accent-accent"
+              />
+              {s.label}
+            </label>
+          ))}
         </div>
       </div>
 

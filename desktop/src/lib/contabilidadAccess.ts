@@ -127,7 +127,8 @@ export function puedeVerModuloContabilidad(
   // esta función sigue siendo la fuente de verdad de sus permisos — la
   // exención evita que el guard de "no es de contabilidad" las descarte.
   const esFacturacionExterna =
-    seccion === "facturacion" || seccion === "sync" || seccion === "facturas" || seccion === "astro-killer";
+    seccion === "facturacion" || seccion === "sync" || seccion === "facturas"
+    || seccion === "astro-killer" || seccion === "cotizar-facturar";
   if (!esPanelContabilidad(seccion) && seccion !== "impuestos" && seccion !== "servicios" && !esFacturacionExterna) {
     return null;
   }
@@ -137,6 +138,12 @@ export function puedeVerModuloContabilidad(
   if (!p) return false;
   if (seccion === "facturacion") {
     return Boolean(p.facturacion || p.facturas || p.sync);
+  }
+  if (seccion === "cotizar-facturar") {
+    // Permiso propio y explícito, NO heredado de facturas/sync — crea
+    // facturas DIAN reales para ventas ad-hoc (mismo criterio que
+    // libro-mayor: dato/acción sensible, no se hereda automáticamente).
+    return Boolean(p["cotizar-facturar"]);
   }
   if (seccion === "stock") {
     return Boolean(p.stock || p.facturacion || p.facturas || p.sync || p.rentabilidad);

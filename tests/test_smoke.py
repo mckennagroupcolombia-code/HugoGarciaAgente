@@ -1530,7 +1530,7 @@ def test_formatear_reporte_sync_facturas_secciones() -> None:
     }
     reporte = _formatear_reporte_sync_facturas([], categorias)
     assert "ALERTA DE FACTURACIÓN" in reporte
-    assert "Sin cruce en Siigo" in reporte
+    assert "Sin cruce en Alegra" in reporte
     assert "Esperando timbrado DIAN" in reporte
     assert "- 111" in reporte
     assert "- 222" in reporte

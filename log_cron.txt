@@ -3921,3 +3921,9 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-09-03) no es el último día del mes.
+[cursor/wa-metricas-panel a4e4f90] Auto-commit: actualizacion diaria 2026-09-03 23:00
+ 29 files changed, 10415 insertions(+), 1639 deletions(-)
+ create mode 100644 app/tools/catalogos_proveedores_web.py
+ create mode 100644 desktop/src/lib/stockNombreProducto.ts
+ create mode 100644 tests/test_recordatorios_ciclo.py
+[2026-09-03 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-03 23:00'
