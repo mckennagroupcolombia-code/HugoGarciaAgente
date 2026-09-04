@@ -74,17 +74,47 @@ export function lineaDescripcionEtiqueta(nombre: string, cantidad: number): stri
   return c > 1 ? `• ${n} × ${c} u` : `• ${n}`;
 }
 
+const RE_MARCADOR_COMENTARIO_PEDIDO = /^comentarios?:\s*$/i;
+
+function indiceMarcadorComentarioPedido(texto: string): number {
+  const lines = (texto || "").split("\n");
+  return lines.findIndex((l) => RE_MARCADOR_COMENTARIO_PEDIDO.test(l.trim()));
+}
+
+/** Texto de comentarios al final de la descripción del pedido (`Comentarios:\n…`). */
+export function extraerComentarioPedido(texto: string): string {
+  const lines = (texto || "").split("\n");
+  const idx = indiceMarcadorComentarioPedido(texto);
+  if (idx < 0) return "";
+  return lines.slice(idx + 1).join("\n").trim();
+}
+
+export function textoListaSinComentarioPedido(texto: string): string {
+  const lines = (texto || "").split("\n");
+  const idx = indiceMarcadorComentarioPedido(texto);
+  if (idx < 0) return (texto || "").trim();
+  return lines.slice(0, idx).join("\n").trim();
+}
+
+export function adjuntarComentarioPedido(lista: string, comentario: string): string {
+  const items = (lista || "").trim();
+  const nota = (comentario || "").trim();
+  if (!nota) return items;
+  if (!items) return `Comentarios:\n${nota}`;
+  return `${items}\n\nComentarios:\n${nota}`;
+}
+
 export function fmtUnidadesEtiqueta(cantidad: number | string | undefined): string {
   const c = Math.floor(Number(cantidad) || 1);
   return c > 1 ? `${c} u` : "";
 }
 
 export function parseLineasPedidoEtiqueta(texto: string): LineaPedidoEtiqueta[] {
-  return (texto || "")
+  return textoListaSinComentarioPedido(texto || "")
     .split("\n")
     .map((l) => l.replace(/^[\s•\-*]+/, "").trim())
     .filter(Boolean)
-    .filter((l) => !/^(pdf|lote|vencimiento|agrega)/i.test(l))
+    .filter((l) => !/^(pdf|lote|vencimiento|agrega|comentarios?:)/i.test(l))
     .filter((l) => !esLineaProsaPedidoEtiqueta(l))
     .map((label) => {
       const cantMatch = label.match(/(?:×|x|\*)\s*(\d+)|(\d+)\s*(?:u(?:nidades?)?|etiquetas?)\b/i);

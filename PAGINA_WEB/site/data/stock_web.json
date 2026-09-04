@@ -44,8 +44,8 @@
     "updated_at": "2026-09-01T21:33:20.173634"
   },
   "C-SHA70550ML": {
-    "stock": 2,
-    "updated_at": "2026-09-02T18:21:34.476519"
+    "stock": 0,
+    "updated_at": "2026-09-03T14:19:29.776115"
   },
   "C-URE250G": {
     "stock": 5,
@@ -56,8 +56,8 @@
     "updated_at": "2026-09-02T05:10:07.580985"
   },
   "C-ACIKOJ5P30ML": {
-    "stock": 2,
-    "updated_at": "2026-09-02T19:08:09.906830"
+    "stock": 1,
+    "updated_at": "2026-09-03T07:24:53.008764"
   },
   "C-CLOMAGHEXKG": {
     "stock": 3,
@@ -68,8 +68,8 @@
     "updated_at": "2026-09-02T05:10:07.653767"
   },
   "C-TEGBET500ML": {
-    "stock": 2,
-    "updated_at": "2026-09-02T05:10:12.431727"
+    "stock": 0,
+    "updated_at": "2026-09-03T11:35:58.317760"
   },
   "OILNM60ML": {
     "stock": 5,
@@ -156,8 +156,8 @@
     "updated_at": "2026-09-02T05:10:08.336500"
   },
   "C-CITPOT250G": {
-    "stock": 18,
-    "updated_at": "2026-09-02T05:10:12.295294"
+    "stock": 16,
+    "updated_at": "2026-09-03T18:29:58.431789"
   },
   "C-CERABEREFBLAKG": {
     "stock": 10,
@@ -300,8 +300,8 @@
     "updated_at": "2026-09-02T05:10:09.607174"
   },
   "C-TENSCI100G": {
-    "stock": 10,
-    "updated_at": "2026-09-02T05:10:09.694562"
+    "stock": 9,
+    "updated_at": "2026-09-03T15:11:10.272405"
   },
   "C-BENSOD500G": {
     "stock": 5,
@@ -361,7 +361,7 @@
   },
   "C-TAU250G": {
     "stock": 13,
-    "updated_at": "2026-09-02T05:10:10.323207"
+    "updated_at": "2026-09-03T10:15:39.323553"
   },
   "OILESNMNT5ML": {
     "stock": 7,
@@ -384,12 +384,12 @@
     "updated_at": "2026-09-02T05:10:12.916271"
   },
   "C-GELSINSAB500G": {
-    "stock": 12,
-    "updated_at": "2026-09-02T05:10:10.800988"
+    "stock": 11,
+    "updated_at": "2026-09-03T16:52:58.851672"
   },
   "C-AMILARG100G": {
-    "stock": 9,
-    "updated_at": "2026-09-02T05:10:10.570818"
+    "stock": 7,
+    "updated_at": "2026-09-03T12:27:13.919580"
   },
   "C-ACIMAL100G": {
     "stock": 10,
@@ -900,8 +900,8 @@
     "updated_at": "2026-09-02T05:10:10.999502"
   },
   "C-TEGBETLT": {
-    "stock": 2,
-    "updated_at": "2026-09-01T14:27:46.787897"
+    "stock": 1,
+    "updated_at": "2026-09-03T13:59:48.700282"
   },
   "ACDASCTMG250G": {
     "stock": 10,
@@ -1061,7 +1061,7 @@
   },
   "C-NUEBRA250G": {
     "stock": 8,
-    "updated_at": "2026-09-02T05:10:15.471199"
+    "updated_at": "2026-09-03T11:34:47.296928"
   },
   "C-COCDESHIL500G": {
     "stock": 10,
@@ -1077,7 +1077,7 @@
   },
   "C-SEMCAL250G": {
     "stock": 7,
-    "updated_at": "2026-09-02T05:10:15.202913"
+    "updated_at": "2026-09-03T11:30:39.523796"
   },
   "C-ALMNAL500G": {
     "stock": 13,
@@ -1192,12 +1192,12 @@
     "updated_at": "2026-08-08T05:06:29.210909"
   },
   "C-ESPCCRCRV22CM": {
-    "stock": 89,
-    "updated_at": "2026-09-01T17:12:58.716115"
+    "stock": 88,
+    "updated_at": "2026-09-03T16:36:39.111400"
   },
   "C-CARACTPEL800G": {
-    "stock": 29,
-    "updated_at": "2026-09-02T17:52:12.516977"
+    "stock": 26,
+    "updated_at": "2026-09-03T06:41:00.617127"
   },
   "TEST": {
     "stock": 6,
@@ -1940,8 +1940,8 @@
     "updated_at": "2026-08-14T05:06:01.539624"
   },
   "C-ACDKOJDPAL30ML": {
-    "stock": 6,
-    "updated_at": "2026-09-03T00:05:12.550581"
+    "stock": 2,
+    "updated_at": "2026-09-03T10:17:28.072429"
   },
   "HRNTRG00KG": {
     "stock": 0,
@@ -1949,7 +1949,7 @@
   },
   "C-KITACIHIA30ML": {
     "stock": 16,
-    "updated_at": "2026-09-02T05:10:12.151890"
+    "updated_at": "2026-09-03T18:30:43.773641"
   },
   "C-CEBCOR150G": {
     "stock": 2,
@@ -2028,8 +2028,8 @@
     "updated_at": "2026-09-02T05:10:12.272614"
   },
   "C-ACEESEBER5ML": {
-    "stock": 12,
-    "updated_at": "2026-09-02T05:10:12.330307"
+    "stock": 11,
+    "updated_at": "2026-09-03T12:55:45.487116"
   },
   "C-GELSILCRI250G": {
     "stock": 6,
@@ -2080,8 +2080,8 @@
     "updated_at": "2026-09-02T06:05:19.121679"
   },
   "C-ACETEATRE30ML": {
-    "stock": 18,
-    "updated_at": "2026-09-01T14:24:40.453119"
+    "stock": 17,
+    "updated_at": "2026-09-03T15:11:05.905123"
   },
   "GTRVDR10ML12UN": {
     "stock": 8,
@@ -2112,8 +2112,8 @@
     "updated_at": "2026-08-23T19:57:06.848408"
   },
   "C-LTEA100G": {
-    "stock": 16,
-    "updated_at": "2026-09-01T16:05:00.545002"
+    "stock": 15,
+    "updated_at": "2026-09-03T12:18:15.249426"
   },
   "AS-4": {
     "stock": 4171,
@@ -2136,11 +2136,15 @@
     "updated_at": "2026-09-02T05:10:16.292205"
   },
   "C-ALGSODCLOCAL50G": {
-    "stock": 2,
-    "updated_at": "2026-09-02T05:10:15.335690"
+    "stock": 0,
+    "updated_at": "2026-09-03T08:49:50.963516"
   },
   "PLVSLCPH": {
     "stock": 4,
     "updated_at": "2026-09-02T15:39:17.975420"
+  },
+  "C-ACEESECLA5ML": {
+    "stock": 8,
+    "updated_at": "2026-09-03T15:15:38.823515"
   }
 }

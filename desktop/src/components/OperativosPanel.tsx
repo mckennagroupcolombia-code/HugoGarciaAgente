@@ -103,7 +103,7 @@ export default function OperativosPanel() {
               aria-label={t.label}
               title={t.label}
               onClick={() => setSub(t.id)}
-              className={hubTabClass(selected)}
+              className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
             >
               <PanelIcon panel={iconFor(t.id)} size={22} active={selected} bubble={false} />
               <span className={HUB_TAB_LABEL}>{t.label}</span>

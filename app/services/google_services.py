@@ -205,7 +205,7 @@ def buscar_producto_completo(consulta: str):
     Acepta nombre (columna D) o SKU (columna B).
     Retorna nombre oficial de SIIGO, precio, stock y ficha técnica.
     """
-    from app.services.siigo import buscar_producto_siigo_por_sku
+    from app.services.alegra import buscar_producto_alegra_por_referencia as buscar_producto_siigo_por_sku
 
     print(f"🔍 [CATÁLOGO] Buscando producto: '{consulta}'...")
     try:

@@ -10,6 +10,7 @@ import {
   parseLineasPedidoEtiqueta,
   inferirTipoEtiqueta,
   fmtUnidadesEtiqueta,
+  extraerComentarioPedido,
   type SolicitudEtiquetaBasica,
 } from "../lib/etiquetasSolicitudes";
 import {
@@ -4620,6 +4621,7 @@ function ChecklistPedidoEtiquetas({
   const activos = items.filter((i) => i.nombre.trim() && !esLineaProsaPedidoEtiqueta(i.nombre));
   const hechos = activos.filter((i) => !!i.comprado).length;
   const todosMarcados = activos.length > 0 && hechos === activos.length;
+  const comentarioPedido = extraerComentarioPedido(pedido.descripcion || "");
 
   useEffect(() => {
     autoCierreRef.current = false;
@@ -4739,6 +4741,13 @@ function ChecklistPedidoEtiquetas({
           </span>
         )}
       </div>
+
+      {comentarioPedido && (
+        <div className="rounded-xl border-2 border-dashed border-border px-3 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Comentarios</p>
+          <p className="text-sm text-ink whitespace-pre-wrap">{comentarioPedido}</p>
+        </div>
+      )}
 
       {loading && <p className="py-6 text-center text-sm text-muted italic">Cargando lista…</p>}
 

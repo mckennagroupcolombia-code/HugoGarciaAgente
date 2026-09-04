@@ -2,52 +2,37 @@
   "pendientes": {
     "2000014787263683": {
       "primera_vez": "2026-08-31T05:05:57",
-      "ultima_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     },
     "2000014803882255": {
       "primera_vez": "2026-09-01T05:07:31",
-      "ultima_vez": "2026-09-02T05:09:05",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014814963577": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000018230210348": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     },
     "2000014816067223": {
       "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014817768345": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
-      "categoria": "sin_cruce_siigo"
-    },
-    "2000014823563983": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     },
     "2000014823879235": {
       "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     },
-    "2000014824820907": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
+    "2000018150500610": {
+      "primera_vez": "2026-09-03T05:07:28",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     },
-    "2000014825014213": {
-      "primera_vez": "2026-09-02T05:09:05",
-      "ultima_vez": "2026-09-02T05:09:05",
+    "2000018253845602": {
+      "primera_vez": "2026-09-03T05:07:28",
+      "ultima_vez": "2026-09-03T05:07:28",
+      "categoria": "sin_cruce_siigo"
+    },
+    "2000014839949139": {
+      "primera_vez": "2026-09-03T05:07:28",
+      "ultima_vez": "2026-09-03T05:07:28",
       "categoria": "sin_cruce_siigo"
     }
   }

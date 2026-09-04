@@ -202,37 +202,50 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "🧾",
     label: "Facturación",
     description:
-      "Sync MeLi↔Siigo y facturas de compra desde Gmail. Consultar factura está en el icono del cabezote.",
+      "Sync MeLi↔Siigo/Alegra, facturas de compra desde Gmail, Ventas y NC, y Astro Killer (trazabilidad venta→factura) — todo lo de facturación en un solo lugar. Consultar factura está en el icono del cabezote.",
     tips: [
-      "Sync: fuerza o revisa la sincronización de facturas de venta MeLi con Siigo.",
+      "Sync: fuerza o revisa la sincronización de facturas de venta con Siigo/Alegra.",
       "Facturas de compra: escanea Gmail y registra en Siigo con aprobación.",
+      "Astro Killer: compara lado a lado cada venta contra lo facturado en Alegra.",
       "Para buscar por producto usa el icono de factura del encabezado.",
     ],
     tier: "standard",
-    category: "contabilidad",
+    category: "facturacion",
+  },
+  "astro-killer": {
+    emoji: "🎯",
+    label: "Astro Killer",
+    description:
+      "Trazabilidad de ventas MeLi: ID de venta → factura Alegra → notas crédito asociadas. Útil cuando un cliente pide corregir/re-facturar (ej. cambio de datos de empresa). Vive dentro de la sección Facturación.",
+    tips: [
+      "Cada venta muestra el historial completo de facturas — incluidas las anuladas y su nota crédito.",
+      "Reemplaza a Astroselling: ahora la facturación automática de MeLi corre por acá, contra Alegra.",
+    ],
+    tier: "standard",
+    category: "facturacion",
   },
   sync: {
     emoji: "🔄",
     label: "Sync Facturas",
-    description: "Sincroniza automáticamente las facturas de MercadoLibre con el ERP Siigo. En modo automático funciona solo — aquí puedes forzar una sincronización manual.",
+    description: "Sincroniza automáticamente las facturas de MercadoLibre con el ERP Siigo/Alegra. En modo automático funciona solo — aquí puedes forzar una sincronización manual.",
     tips: [
-      "Ahora vive dentro de la pestaña Facturación.",
+      "Ahora vive dentro de la sección Facturación.",
       "'Sync hoy' revisa las ventas de las últimas 24 horas.",
       "Usa 'Por Pack ID' cuando una factura específica no se subió correctamente.",
     ],
     tier: "standard",
-    category: "contabilidad",
+    category: "facturacion",
   },
   facturas: {
     emoji: "🧾",
     label: "Facturas de compra",
     description: "Facturas de proveedores que llegan por Gmail. El sistema las detecta automáticamente y las organiza para su registro en Siigo.",
     tips: [
-      "Ahora vive dentro de la pestaña Facturación.",
+      "Ahora vive dentro de la sección Facturación.",
       "Verifica que el proveedor y monto sean correctos antes de aprobar.",
     ],
     tier: "standard",
-    category: "contabilidad",
+    category: "facturacion",
   },
   "costos-productos": {
     emoji: "📊",

@@ -24,6 +24,7 @@ export type Panel =
   | "publicaciones"
   | "vitrina-web"
   | "facturacion"
+  | "astro-killer"
   | "facturas"
   | "costos-productos"
   | "centros-costo"

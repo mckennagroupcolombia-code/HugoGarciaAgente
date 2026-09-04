@@ -4,11 +4,14 @@ Ticket de "anular factura / nota crédito" en el Centro de Mando — genérico p
 Generaliza el patrón que ya funcionaba solo para reclamos de MeLi
 (app/meli_reclamos.py::crear_accion_anular_factura_por_reclamo) para poder
 usarlo también desde pedidos web (y a futuro WhatsApp) cuando un pedido con
-factura Siigo ya emitida necesita anularse / notar crédito.
+factura ya emitida (Siigo histórico o Alegra desde el 2026-09-03) necesita
+anularse / nota crédito.
 
-Esta pieza NO ejecuta acciones en SIIGO (no hay endpoint de nota crédito
-integrado todavía); solo crea la solicitud/acción en el panel para que un
-colaborador la resuelva manualmente.
+Esta pieza NO ejecuta la anulación en Siigo/Alegra (el caller decide si pasa
+`detalles_extra={"proveedor_factura": "Alegra"|"Siigo"}` para que el texto
+del ticket diga el proveedor correcto — por defecto asume Siigo); solo crea
+la solicitud/acción en el panel para que un colaborador la resuelva
+manualmente.
 """
 
 from __future__ import annotations
@@ -116,24 +119,28 @@ def crear_ticket_nota_credito(
         "siigo_factura_url": siigo_factura_url,
         **(detalles_extra or {}),
     }
+    # Callers desde el 2026-09-03 pasan "proveedor_factura" (Siigo o Alegra,
+    # ver web_pedidos.py::_proveedor_factura_web) — sin eso, asumir Siigo por
+    # compatibilidad con callers viejos que no lo pasan.
+    proveedor = detalles.get("proveedor_factura") or "Siigo"
 
     descripcion = (
         f"Solicitud de anulación/nota crédito — canal **{canal}**, referencia **{ref}**.\n\n"
-        "Acción requerida: **anular factura electrónica** y **emitir nota crédito en SIIGO** "
+        f"Acción requerida: **anular factura electrónica** y **emitir nota crédito en {proveedor.upper()}** "
         "si corresponde.\n\n"
         + (f"Motivo: {motivo.strip()}\n\n" if motivo and motivo.strip() else "")
         + (
-            f"Factura Siigo (detectada):\n"
+            f"Factura {proveedor} (detectada):\n"
             f"- Número: {siigo_factura_numero}\n"
             f"- Estado: {siigo_factura_estado}\n"
             + (f"- URL: {siigo_factura_url}\n" if siigo_factura_url else "")
             + "\n"
             if siigo_factura_numero
-            else "Nota: no se detectó automáticamente el número de factura Siigo — revisar manualmente.\n\n"
+            else f"Nota: no se detectó automáticamente el número de factura {proveedor} — revisar manualmente.\n\n"
         )
         + "Instrucciones:\n"
         "- Verificar si la venta ya tuvo factura electrónica emitida.\n"
-        "- Anular factura / emitir nota crédito en SIIGO según corresponda.\n"
+        f"- Anular factura / emitir nota crédito en {proveedor.upper()} según corresponda.\n"
         "- Dejar el número de nota crédito / soporte en comentarios del ticket."
     )
 

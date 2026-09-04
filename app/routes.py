@@ -666,6 +666,12 @@ def _token_tras_anular(texto: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def _token_tras_entregado(texto: str) -> str | None:
+    t = _normalizar_texto_comando_wa(texto)
+    m = re.search(r"\bentregado\s+(\S+)", t, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
 from app.sync import (
     sincronizar_stock_todas_las_plataformas,
     sincronizar_facturas_recientes,
@@ -1969,7 +1975,7 @@ def register_routes(app):
         if _intentar_ok_preventa(message_text):
             return jsonify({"status": "ok", "respuesta": None})
 
-        # --- Comandos pedidos web: facturar / envio (varios grupos operativos) ---
+        # --- Comandos pedidos web: facturar / entregado / envio (varios grupos operativos) ---
         if _remote_es_grupo_web_pedido(remote_jid) and message_text:
             tn = _normalizar_texto_comando_wa(message_text)
             destino_grupo = _jid_limpio(remote_jid)
@@ -1995,6 +2001,32 @@ def register_routes(app):
 
                 spawn_thread(
                     _wa_pedido_facturar,
+                    args=(tn, destino_grupo),
+                    daemon=True,
+                )
+                return jsonify({"status": "ok", "respuesta": None})
+
+            if re.search(r"\bentregado\b", tn, re.IGNORECASE):
+
+                def _wa_pedido_entregado(texto_norm: str, destino: str):
+                    from app.tools import web_pedidos as wp
+
+                    tok = _token_tras_entregado(texto_norm)
+                    if not tok:
+                        enviar_whatsapp_reporte(
+                            "⚠️ Usa: *entregado 250* (últimos 3) o *entregado MCKG-…*",
+                            numero_destino=destino,
+                        )
+                        return
+                    ref_cmd, err = wp.resolver_referencia_desde_token(tok)
+                    if err:
+                        enviar_whatsapp_reporte(err, numero_destino=destino)
+                        return
+                    _ok, out = wp.registrar_entrega_y_facturar(ref_cmd)
+                    enviar_whatsapp_reporte(out, numero_destino=destino)
+
+                spawn_thread(
+                    _wa_pedido_entregado,
                     args=(tn, destino_grupo),
                     daemon=True,
                 )
@@ -6550,6 +6582,29 @@ def register_routes(app):
             return jsonify({"error": err}), 400 if "Solo" in err or "Sesión" in err else 404
         return jsonify({"ok": ok})
 
+    # ── Astro Killer: trazabilidad venta MeLi → factura Alegra → notas crédito ──
+
+    @app.route("/api/alegra/trazabilidad-meli", methods=["GET"])
+    @app.route("/app/api/alegra/trazabilidad-meli", methods=["GET"])
+    def api_alegra_trazabilidad_meli():
+        """Panel Astro Killer: venta MeLi (o pedido web) -> historial completo de
+        facturas Alegra asociadas -> notas crédito de cada una."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra import listar_ventas_meli_con_trazabilidad
+
+            forzar = (request.args.get("forzar") or "").strip().lower() in ("1", "true")
+            desde = (request.args.get("desde") or "").strip() or None
+            try:
+                limit = min(max(int(request.args.get("limit") or 200), 1), 500)
+            except (TypeError, ValueError):
+                limit = 200
+            ventas = listar_ventas_meli_con_trazabilidad(desde=desde, limite=limit, forzar=forzar)
+            return jsonify({"ventas": ventas, "total": len(ventas)})
+        except Exception as e:
+            return jsonify({"error": str(e), "ventas": []}), 502
+
     # ── Facturas de compra (clasificación desde panel) ─────────────────────
 
     @app.route("/api/siigo/centros-costo", methods=["GET"])
@@ -6637,7 +6692,7 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
-            from app.services.siigo import crear_combo_en_siigo
+            from app.services.alegra import crear_combo_en_alegra as crear_combo_en_siigo
             from app.panel_activity import log_line
 
             body = request.get_json(silent=True) or {}
@@ -6685,7 +6740,7 @@ def register_routes(app):
         if len(q) < 1:
             return jsonify({"items": [], "total": 0})
         try:
-            from app.services.siigo import buscar_productos_siigo_picker
+            from app.services.alegra import buscar_productos_alegra_picker as buscar_productos_siigo_picker
             excluir = (request.args.get("excluir_combos") or "1").strip().lower() not in (
                 "0", "false", "no",
             )
@@ -6710,7 +6765,7 @@ def register_routes(app):
         if not codigo:
             return jsonify({"ok": False, "error": "codigo es obligatorio"}), 400
         try:
-            from app.services.siigo import detalle_producto_siigo
+            from app.services.alegra import detalle_producto_alegra as detalle_producto_siigo
             resultado = detalle_producto_siigo(codigo)
             status = 200 if resultado.get("ok") else 404
             return jsonify(resultado), status
@@ -6812,14 +6867,14 @@ def register_routes(app):
         except (TypeError, ValueError):
             limit = 40
 
-        # Preferir búsqueda en vivo Siigo (misma que Crear productos / combos)
+        # Preferir búsqueda en vivo Alegra (misma que Crear productos / combos)
         try:
-            from app.services.siigo import buscar_productos_siigo_picker
+            from app.services.alegra import buscar_productos_alegra_picker as buscar_productos_siigo_picker
             items = buscar_productos_siigo_picker(
                 q, max_items=limit, excluir_combos=True,
             )
             if items:
-                return jsonify({"items": items, "total": len(items), "fuente": "siigo"})
+                return jsonify({"items": items, "total": len(items), "fuente": "alegra"})
         except Exception:
             items = []
 
@@ -6879,7 +6934,7 @@ def register_routes(app):
         from app.services.contabilidad_db import upsert_componente
         row = upsert_componente(nombre, costo_neto, categoria, iva_incluido)
 
-        from app.services.siigo import actualizar_costo_componente_siigo
+        from app.services.alegra import actualizar_costo_componente_alegra as actualizar_costo_componente_siigo
         siigo_result = actualizar_costo_componente_siigo(
             nombre, costo_neto, codigo=codigo
         )
@@ -7137,7 +7192,7 @@ def register_routes(app):
             upsert_componente,
         )
         from app.services.compra_exterior_ocr import calcular_landed
-        from app.services.siigo import actualizar_costo_componente_siigo
+        from app.services.alegra import actualizar_costo_componente_alegra as actualizar_costo_componente_siigo
 
         catalogo = None
         try:
@@ -8108,7 +8163,7 @@ def register_routes(app):
         # 2° Siigo — facturación (precio lista = mismo que MeLi)
         if "siigo" in plataformas:
             try:
-                from app.services.siigo import actualizar_precio_combo_siigo
+                from app.services.alegra import actualizar_precio_alegra_producto as actualizar_precio_combo_siigo
                 resultados["siigo"] = actualizar_precio_combo_siigo(code, precios["lista"])
             except Exception as e:
                 resultados["siigo"] = {"ok": False, "msg": str(e)}

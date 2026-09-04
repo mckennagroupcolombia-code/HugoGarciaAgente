@@ -53,7 +53,7 @@ export default function DisenoNavTabs() {
             aria-label={t.label}
             title={t.label}
             onClick={() => irAEtiquetas(t.id)}
-            className={hubTabClass(selected)}
+            className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
           >
             <Icon name={t.icon} size={22} weight="bold" className="shrink-0" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>

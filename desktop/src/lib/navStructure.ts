@@ -18,7 +18,8 @@ export type NavCategory =
   | "publicaciones"
   | "placas"
   | "contenido"
-  | "sistemas";
+  | "sistemas"
+  | "facturacion";
 
 export interface NavItemDef {
   panel: Panel;
@@ -136,6 +137,16 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "tareas-programadas", tier: "advanced" },
     ],
   },
+  {
+    // Separada de Contabilidad: Facturación (Sync, Facturas de compra, Ventas y
+    // NC, Astro Killer) es su propia sección de nivel superior — antes convivía
+    // como dos pestañas sueltas ("Facturación" y "Astro Killer") dentro del hub
+    // Contabilidad, lo cual no tenía sentido siendo ambas sobre facturación.
+    id: "facturacion",
+    label: "Facturación",
+    hub: true,
+    items: [{ panel: "facturacion", tier: "standard" }],
+  },
 ] as const;
 
 /** Orden de fallback al validar panel persistido (login / refresh). */
@@ -157,6 +168,7 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   placas: "Placas",
   contenido: "Contenido",
   sistemas: "Sistemas",
+  facturacion: "Facturación",
 };
 
 export function navSectionDef(sectionId: NavCategory) {

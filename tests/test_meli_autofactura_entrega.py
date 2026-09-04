@@ -52,7 +52,7 @@ def test_construir_lineas_factura_ok(monkeypatch):
     monkeypatch.setattr(
         m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "AH-50", "title": "Ácido Hialurónico 50g"}
     )
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: {"code": sku})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
 
     lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
 
@@ -80,17 +80,17 @@ def test_construir_lineas_factura_sin_sku_en_siigo(monkeypatch):
         ]
     }
     monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "RARO-1"})
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: None)
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: None)
     monkeypatch.setattr(m.time, "sleep", lambda _s: None)  # sin esperar los reintentos reales
 
     lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
 
     assert lines == []
-    assert "RARO-1" in error and "no existe en Siigo" in error
+    assert "RARO-1" in error and "no existe en Alegra" in error
 
 
 def test_construir_lineas_factura_reintenta_tras_fallo_transitorio_siigo(monkeypatch):
-    """Un None puntual de Siigo (timeout/5xx) no debe marcarse como 'no existe' si reintentar funciona."""
+    """Un None puntual de Alegra (timeout/5xx) no debe marcarse como 'no existe' si reintentar funciona."""
     from app.tools import meli_autofactura_entrega as m
 
     orden = {
@@ -105,9 +105,9 @@ def test_construir_lineas_factura_reintenta_tras_fallo_transitorio_siigo(monkeyp
 
     def _fake_buscar(sku):
         llamadas.append(sku)
-        return None if len(llamadas) < 2 else {"code": sku}
+        return None if len(llamadas) < 2 else {"id": "1", "name": sku, "price": 0}
 
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", _fake_buscar)
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", _fake_buscar)
 
     lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
 
@@ -125,7 +125,7 @@ def test_construir_lineas_factura_sin_sku_en_meli(monkeypatch):
         ]
     }
     monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": ""})
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: {"code": sku})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
 
     lines, error = m._construir_lineas_factura_desde_orden_meli(orden)
 
@@ -134,7 +134,7 @@ def test_construir_lineas_factura_sin_sku_en_meli(monkeypatch):
 
 
 def test_procesar_entrega_modo_sombra_no_llama_siigo(monkeypatch, tmp_path):
-    """MELI_AUTOFACTURA_ENTREGA_ACTIVO=0 (default): calcula y registra, pero no toca Siigo/DIAN."""
+    """MELI_AUTOFACTURA_ENTREGA_ACTIVO=0 (default): calcula y registra, pero no toca Alegra/DIAN."""
     from app.tools import meli_autofactura_entrega as m
 
     estado_path = tmp_path / "meli_facturas_entrega.json"
@@ -156,10 +156,10 @@ def test_procesar_entrega_modo_sombra_no_llama_siigo(monkeypatch, tmp_path):
     monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
     monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: orden)
     monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "PROD-A"})
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: {"code": sku})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
 
-    llamadas_siigo = []
-    monkeypatch.setattr(m, "crear_factura_venta_siigo", lambda **kw: llamadas_siigo.append(kw) or {"ok": True})
+    llamadas_alegra = []
+    monkeypatch.setattr(m, "crear_factura_venta_alegra", lambda **kw: llamadas_alegra.append(kw) or {"ok": True})
 
     reportes = []
     monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
@@ -167,7 +167,7 @@ def test_procesar_entrega_modo_sombra_no_llama_siigo(monkeypatch, tmp_path):
 
     m.procesar_entrega_meli_para_factura("SHIP-1")
 
-    assert llamadas_siigo == []  # modo sombra: nunca se llega a tocar Siigo/DIAN
+    assert llamadas_alegra == []  # modo sombra: nunca se llega a tocar Alegra/DIAN
     assert reportes == []  # tampoco se manda reporte de éxito/error en modo sombra
 
     estado = json.loads(estado_path.read_text(encoding="utf-8"))
@@ -186,6 +186,7 @@ def test_procesar_entrega_activo_llama_siigo_y_reporta(monkeypatch, tmp_path):
     shipment = {"status": "delivered", "order_id": "ORD-2", "receiver_address": {}}
     orden = {
         "status": "paid",
+        "pack_id": "ORD-2",
         "order_items": [
             {"item": {"id": "MCO2", "title": "Producto B"}, "quantity": 1, "unit_price": 5000}
         ],
@@ -194,12 +195,17 @@ def test_procesar_entrega_activo_llama_siigo_y_reporta(monkeypatch, tmp_path):
     monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
     monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: orden)
     monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "PROD-B"})
-    monkeypatch.setattr(m, "buscar_producto_siigo_por_sku", lambda sku: {"code": sku})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
     monkeypatch.setattr(
         m,
-        "crear_factura_venta_siigo",
-        lambda **kw: {"ok": True, "invoice_id": "inv1", "number": "FE-1", "status": "Accepted", "cufe": "abc", "url": "https://x"},
+        "crear_factura_venta_alegra",
+        lambda **kw: {
+            "ok": True, "invoice_id": "1", "number": "FE-1", "status": "Accepted", "cufe": "abc",
+            "url": "https://app.alegra.com/invoice/view/id/1", "pdf_base64": None,
+        },
     )
+    monkeypatch.setattr(m, "meli_pack_tiene_documento_fiscal", lambda pack_id: False)
+    monkeypatch.setattr(m, "subir_factura_meli", lambda *a, **kw: "✅")
 
     reportes = []
     monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
@@ -213,6 +219,147 @@ def test_procesar_entrega_activo_llama_siigo_y_reporta(monkeypatch, tmp_path):
     assert entrada["siigo_invoice_number"] == "FE-1"
     assert len(reportes) == 1
     assert "FE-1" in reportes[0]
+
+
+def test_procesar_entrega_no_refactura_si_pack_ya_en_indice_legado(monkeypatch, tmp_path):
+    """Pre-chequeo ANTES de llamar a Alegra: si el pack ya tiene factura en el
+    índice legado (Siigo/astroselling), no se crea otra factura en Alegra —
+    ni siquiera para luego descubrir el duplicado al subir el PDF a MeLi.
+    Bug real confirmado en vivo 2026-09-03: sin este chequeo temprano, cada
+    entrega nueva de un pack ya facturado por Astroselling generaba OTRA
+    factura DIAN en Alegra (8 casos el mismo día, FE11-FE20)."""
+    from app.tools import meli_autofactura_entrega as m
+
+    estado_path = tmp_path / "meli_facturas_entrega.json"
+    monkeypatch.setattr(m, "ESTADO_PATH", str(estado_path))
+    monkeypatch.setenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "1")
+
+    shipment = {"status": "delivered", "order_id": "ORD-7", "receiver_address": {}}
+    orden = {
+        "status": "paid",
+        "pack_id": "PACK-7",
+        "order_items": [
+            {"item": {"id": "MCO7", "title": "Producto E"}, "quantity": 1, "unit_price": 5000}
+        ],
+    }
+
+    monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: orden)
+
+    from app.services import conciliacion_meli as cm
+
+    monkeypatch.setattr(
+        cm, "leer_indice_facturacion_meli",
+        lambda: {"indice": {"PACK-7": {"factura_numero": "FV-2-99999", "integracion": "astroselling"}}},
+    )
+
+    llamadas_alegra = []
+    monkeypatch.setattr(m, "crear_factura_venta_alegra", lambda **kw: llamadas_alegra.append(kw) or {"ok": True})
+
+    reportes = []
+    monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
+    monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
+
+    m.procesar_entrega_meli_para_factura("SHIP-7")
+
+    assert llamadas_alegra == []  # nunca se llega a llamar Alegra
+    assert reportes == []  # tampoco genera ruido en WhatsApp — es el camino normal
+    estado = json.loads(estado_path.read_text(encoding="utf-8"))
+    entrada = estado["procesadas"]["ORD-7"]
+    assert entrada["estado"] == "ya_facturada_legado"
+    assert entrada["legado_factura_numero"] == "FV-2-99999"
+
+
+def test_procesar_entrega_sube_pdf_a_meli(monkeypatch, tmp_path):
+    """Con PDF disponible y el pack sin documento fiscal previo, se sube a MeLi."""
+    from app.tools import meli_autofactura_entrega as m
+
+    estado_path = tmp_path / "meli_facturas_entrega.json"
+    monkeypatch.setattr(m, "ESTADO_PATH", str(estado_path))
+    monkeypatch.setenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "1")
+
+    shipment = {"status": "delivered", "order_id": "ORD-5", "receiver_address": {}}
+    orden = {
+        "status": "paid",
+        "pack_id": "PACK-5",
+        "order_items": [
+            {"item": {"id": "MCO5", "title": "Producto C"}, "quantity": 1, "unit_price": 5000}
+        ],
+    }
+
+    monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: orden)
+    monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "PROD-C"})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+    monkeypatch.setattr(
+        m,
+        "crear_factura_venta_alegra",
+        lambda **kw: {
+            "ok": True, "invoice_id": "1", "number": "FE-1", "status": "Accepted", "cufe": "abc",
+            "url": "https://app.alegra.com/invoice/view/id/1", "pdf_base64": "QkFTRTY0",
+        },
+    )
+    monkeypatch.setattr(m, "meli_pack_tiene_documento_fiscal", lambda pack_id: False)
+
+    subidas = []
+    monkeypatch.setattr(m, "subir_factura_meli", lambda pack_id, b64, **kw: subidas.append((pack_id, b64)) or "✅")
+
+    reportes = []
+    monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
+    monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
+
+    m.procesar_entrega_meli_para_factura("SHIP-5")
+
+    assert subidas == [("PACK-5", "QkFTRTY0")]
+    estado = json.loads(estado_path.read_text(encoding="utf-8"))
+    assert estado["procesadas"]["ORD-5"]["pdf_subido_meli"] is True
+    assert "⚠️" not in reportes[0]
+
+
+def test_procesar_entrega_no_duplica_pdf_si_pack_ya_tiene_fiscal(monkeypatch, tmp_path):
+    """Si el pack ya tiene documento fiscal (ej. Astroselling ya facturó), NO sube el de Alegra encima."""
+    from app.tools import meli_autofactura_entrega as m
+
+    estado_path = tmp_path / "meli_facturas_entrega.json"
+    monkeypatch.setattr(m, "ESTADO_PATH", str(estado_path))
+    monkeypatch.setenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "1")
+
+    shipment = {"status": "delivered", "order_id": "ORD-6", "receiver_address": {}}
+    orden = {
+        "status": "paid",
+        "pack_id": "PACK-6",
+        "order_items": [
+            {"item": {"id": "MCO6", "title": "Producto D"}, "quantity": 1, "unit_price": 5000}
+        ],
+    }
+
+    monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: orden)
+    monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "PROD-D"})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+    monkeypatch.setattr(
+        m,
+        "crear_factura_venta_alegra",
+        lambda **kw: {
+            "ok": True, "invoice_id": "1", "number": "FE-1", "status": "Accepted", "cufe": "abc",
+            "url": "https://app.alegra.com/invoice/view/id/1", "pdf_base64": "QkFTRTY0",
+        },
+    )
+    monkeypatch.setattr(m, "meli_pack_tiene_documento_fiscal", lambda pack_id: True)
+
+    subidas = []
+    monkeypatch.setattr(m, "subir_factura_meli", lambda pack_id, b64, **kw: subidas.append((pack_id, b64)) or "✅")
+
+    reportes = []
+    monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
+    monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
+
+    m.procesar_entrega_meli_para_factura("SHIP-6")
+
+    assert subidas == []  # no se sube el PDF de Alegra encima del que ya existe
+    estado = json.loads(estado_path.read_text(encoding="utf-8"))
+    assert estado["procesadas"]["ORD-6"]["pdf_subido_meli"] is False
+    assert "posible doble" in reportes[0].lower() or "revisar astro killer" in reportes[0].lower()
 
 
 def test_procesar_entrega_dedup_orden_ya_facturada(monkeypatch, tmp_path):

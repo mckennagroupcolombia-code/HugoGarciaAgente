@@ -82,7 +82,7 @@ export default function HubNavTabs({
               aria-label={info?.label ?? id}
               title={info?.label ?? id}
               onClick={() => irA(id)}
-              className={hubTabClass(selected)}
+              className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
             >
               <PanelIcon panel={id} size={22} active={selected} bubble={false} />
               <span className={HUB_TAB_LABEL}>{info?.label ?? id}</span>

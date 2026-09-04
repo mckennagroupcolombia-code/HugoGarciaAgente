@@ -2533,7 +2533,7 @@ export default function FichasTecnicasPanel() {
             aria-label={t.label}
             title={t.label}
             onClick={() => setTab(t.id)}
-            className={hubTabClass(tab === t.id)}
+            className={hubTabClass(tab === t.id, "mck-hub-tab-etiquetado flex-col")}
           >
             <Icon name={t.icon} size={22} weight="bold" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>

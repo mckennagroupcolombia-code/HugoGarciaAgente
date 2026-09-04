@@ -373,7 +373,8 @@ def _ventas_otras_por_bucket(rangos: list[dict], costos: dict) -> dict[str, dict
     if not rangos:
         return resultado
 
-    from app.services.siigo import obtener_facturas_siigo_paginadas
+    from app.services.alegra import obtener_facturas_hibridas as obtener_facturas_siigo_paginadas
+    from app.services.alegra import items_hibridos_normalizados
 
     fecha_desde = min(r["inicio"] for r in rangos)
     try:
@@ -395,7 +396,7 @@ def _ventas_otras_por_bucket(rangos: list[dict], costos: dict) -> dict[str, dict
         if _MARCADOR_WA_DIRECTO in (f.get("observations") or "").lower():
             acc["con_marcador_wa"] += 1
         acc["ingresos"] += float(f.get("total") or 0)
-        for item in (f.get("items") or []):
+        for item in items_hibridos_normalizados(f):
             code = (item.get("code") or "").strip().upper()
             qty = float(item.get("quantity") or 0)
             acc["unidades"] += qty

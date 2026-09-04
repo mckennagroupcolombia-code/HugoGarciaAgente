@@ -2,11 +2,13 @@ import type { Panel } from "../stores/app";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { esAdminPanel } from "./adminAccess";
 
-/** Subpaneles del hub Contabilidad (orden de pestañas). */
+/** Subpaneles del hub Contabilidad (orden de pestañas).
+ * Facturación (+ Sync, Facturas de compra y Astro Killer, que viven dentro de
+ * ella) ya NO es parte de Contabilidad — es su propia sección de nivel
+ * superior en el menú "Ir a…" (ver lib/navStructure.ts). Sigue viviendo en
+ * este archivo por conveniencia (menos módulos que reorganizar), pero
+ * `esPanelContabilidad` ya no la incluye. */
 export const CONTABILIDAD_PANELS = [
-  "facturacion",
-  "sync",
-  "facturas",
   "ingresos-egresos",
   "creditos-adquiridos",
   "libro-mayor",
@@ -31,21 +33,19 @@ export const CONTABILIDAD_PANEL_OCULTO = "centros-costo" as const;
 /**
  * Pestañas ocultas del cabezote:
  * - productos-siigo → FAB
- * - sync / facturas → viven dentro de Facturación
  * - rrhh → vive dentro de Operativos
  */
 export const CONTABILIDAD_TAB_OCULTAS = new Set<ContabilidadPanelId>([
   "productos-siigo",
-  "sync",
-  "facturas",
   "rrhh",
 ]);
 
-/** Subvistas internas de la pestaña Facturación. */
+/** Subvistas internas de la sección Facturación (incluye Astro Killer). */
 export const FACTURACION_SUBTABS = [
   { id: "sync", label: "Sync" },
   { id: "compra", label: "Facturas de compra" },
   { id: "ventas", label: "Ventas y NC" },
+  { id: "trazabilidad", label: "Astro Killer" },
 ] as const;
 
 export type FacturacionSubtabId = (typeof FACTURACION_SUBTABS)[number]["id"];
@@ -61,9 +61,8 @@ export type OperativosSubtabId = (typeof OPERATIVOS_SUBTABS)[number]["id"];
 
 export type FacturasVistaBoot = "pendientes" | "historial" | "consultar";
 
-/** sync/facturas → Facturación; rrhh → Operativos. */
+/** rrhh → Operativos. */
 export function normalizarPanelContabilidad(panel: string): ContabilidadPanelId | null {
-  if (panel === "sync" || panel === "facturas") return "facturacion";
   if (panel === "rrhh") return "operativos";
   if (esPanelContabilidad(panel)) return panel;
   return null;
@@ -72,6 +71,7 @@ export function normalizarPanelContabilidad(panel: string): ContabilidadPanelId 
 export function subtabDesdePanelLegacy(panel: string): FacturacionSubtabId | null {
   if (panel === "sync") return "sync";
   if (panel === "facturas") return "compra";
+  if (panel === "astro-killer") return "trazabilidad";
   return null;
 }
 
@@ -121,7 +121,13 @@ export function puedeVerModuloContabilidad(
   seccion: string,
 ): boolean | null {
   if (seccion === CONTABILIDAD_PANEL_OCULTO) return false;
-  if (!esPanelContabilidad(seccion) && seccion !== "impuestos" && seccion !== "servicios") {
+  // facturacion/sync/facturas/astro-killer ya no son miembros de
+  // CONTABILIDAD_PANELS (viven en su propia sección de nivel superior), pero
+  // esta función sigue siendo la fuente de verdad de sus permisos — la
+  // exención evita que el guard de "no es de contabilidad" las descarte.
+  const esFacturacionExterna =
+    seccion === "facturacion" || seccion === "sync" || seccion === "facturas" || seccion === "astro-killer";
+  if (!esPanelContabilidad(seccion) && seccion !== "impuestos" && seccion !== "servicios" && !esFacturacionExterna) {
     return null;
   }
   if (!user) return false;
@@ -215,7 +221,7 @@ export function guardarUltimoPanelContabilidad(panel: ContabilidadPanelId): void
 export function leerSubtabFacturacion(): FacturacionSubtabId {
   try {
     const v = localStorage.getItem(FACTURACION_SUB_KEY) || "";
-    if (v === "sync" || v === "compra" || v === "ventas") return v;
+    if (v === "sync" || v === "compra" || v === "ventas" || v === "trazabilidad") return v;
     if (v === "facturas") return "compra";
   } catch { /* */ }
   return "compra";
@@ -265,5 +271,5 @@ export function primerPanelContabilidad(
     const n = normalizarPanelContabilidad(hubLast);
     if (n && visibles.includes(n)) return n;
   } catch { /* */ }
-  return visibles[0] ?? "facturacion";
+  return visibles[0] ?? CONTABILIDAD_PANELS[0];
 }

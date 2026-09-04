@@ -2056,51 +2056,14 @@ def precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> floa
 
 def buscar_producto_siigo_por_sku(sku: str):
     """
-    Busca un producto en SIIGO por SKU y retorna nombre oficial,
-    precio de venta y unidad de medida.
+    Migrado a Alegra el 2026-09-03 — delega en `buscar_producto_alegra_por_referencia()`
+    (app/services/alegra.py), que devuelve el mismo shape (sku/nombre/precio/unidad/
+    referencia/stock_siigo/tax_ids/tax_rate_total) para no romper a los ~15
+    consumidores de esta función (core.py, google_services.py, sync.py, etc.).
     """
-    token = autenticar_siigo()
-    if not token:
-        return None
+    from app.services.alegra import buscar_producto_alegra_por_referencia
 
-    try:
-        res = requests.get(
-            f"https://api.siigo.com/v1/products?code={sku}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Partner-Id": PARTNER_ID
-            },
-            timeout=10
-        )
-        if res.status_code == 200:
-            data = res.json()
-            productos = data.get('results', [])
-            if productos:
-                p = productos[0]
-                # prices[0].price_list[0].value
-                try:
-                    precio = p['prices'][0]['price_list'][0]['value']
-                except (IndexError, KeyError):
-                    precio = 0
-                # unit es un objeto {"code": ..., "name": ...}
-                unidad_raw = p.get('unit', {})
-                unidad = unidad_raw.get('name', '') if isinstance(unidad_raw, dict) else str(unidad_raw)
-                impuestos = p.get('taxes') or []
-                return {
-                    "sku": sku,
-                    "nombre": p.get('name', ''),
-                    "precio": precio,
-                    "unidad": unidad,
-                    "referencia": p.get('code', sku),
-                    "stock_siigo": p.get('available_quantity', None),
-                    "tax_ids": [t.get("id") for t in impuestos if t.get("id")],
-                    "tax_rate_total": sum(float(t.get("percentage") or 0) for t in impuestos),
-                }
-        else:
-            print(f"⚠️ SIIGO products API: {res.status_code} para SKU {sku}")
-    except Exception as e:
-        print(f"❌ Error consultando SIIGO por SKU: {e}")
-    return None
+    return buscar_producto_alegra_por_referencia(sku)
 
 
 def buscar_productos_siigo_picker(
@@ -2259,63 +2222,15 @@ _COMBOS_TTL = 300  # 5 minutos
 
 def listar_productos_combo_siigo() -> list:
     """
-    Devuelve los items crudos de la API SIIGO con type Combo (activos).
-    Si el filtro type=Combo no devuelve datos, pagina todos los productos y filtra.
+    Migrado a Alegra el 2026-09-03 — delega en `listar_productos_combo_alegra()`
+    (app/services/alegra.py), que devuelve los kits normalizados al mismo shape
+    que esta función original de Siigo (code/name/components/taxes/tax_included),
+    para no romper a `buscar_combos_siigo_estructurado` ni a los demás
+    consumidores internos de este archivo.
     """
-    global _combos_cache, _combos_cache_ts
-    if _combos_cache and time.time() - _combos_cache_ts < _COMBOS_TTL:
-        return _combos_cache
+    from app.services.alegra import listar_productos_combo_alegra
 
-    out = []
-    seen = set()
-
-    def consume_results(results, strict_combo: bool) -> None:
-        for p in results:
-            code = (p.get("code") or "").strip()
-            if not code or code.upper() in seen:
-                continue
-            t = (p.get("type") or "").strip().lower()
-            if strict_combo and t != "combo":
-                continue
-            if not p.get("active", True):
-                continue
-            seen.add(code.upper())
-            out.append(p)
-
-    def _paginar(params: dict, max_pages: int) -> None:
-        for page in range(1, max_pages):
-            res = _siigo_get(
-                "https://api.siigo.com/v1/products",
-                params={**params, "page": page, "page_size": 100},
-            )
-            if res is None or res.status_code != 200:
-                break
-            data = res.json()
-            results = data.get("results") or []
-            if not results:
-                break
-            consume_results(results, strict_combo=True)
-            pag = data.get("pagination") or {}
-            total = int(pag.get("total_results") or 0)
-            if total and page * 100 >= total:
-                break
-            if len(results) < 100:
-                break
-
-    _paginar({"type": "Combo", "active": "true"}, max_pages=500)
-
-    if not out:
-        _paginar({}, max_pages=2000)
-
-    if out:
-        _combos_cache = out
-        _combos_cache_ts = time.time()
-        return out
-    # API caída o respuesta vacía al refrescar: devolver el catálogo anterior
-    # (aunque esté vencido) en vez de una lista vacía — con [] el chat web le
-    # decía al cliente "no encontré esa referencia" para productos que sí
-    # existen, de forma intermitente según el minuto del TTL.
-    return _combos_cache
+    return listar_productos_combo_alegra()
 
 
 _ACCOUNT_GROUP_PRODUCTO_DEFAULT = 297

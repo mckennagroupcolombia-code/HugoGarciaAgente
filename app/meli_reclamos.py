@@ -4,9 +4,10 @@ Reclamos / devoluciones MeLi → crear acción en Centro de mando (tickets).
 Objetivo: cuando se abre un reclamo (y potencialmente una devolución) de una venta ya
 facturada, generar automáticamente una "acción" para que un colaborador:
 - anule la factura electrónica
-- emita la nota crédito en SIIGO
+- emita la nota crédito en el proveedor que corresponda (Siigo histórico, Alegra desde
+  el 2026-09-02 — ver `app/services/alegra.py::FECHA_CORTE_MIGRACION_ALEGRA`)
 
-Esta pieza NO ejecuta acciones en SIIGO; solo crea la solicitud/acción en el panel.
+Esta pieza NO ejecuta acciones en Siigo/Alegra; solo crea la solicitud/acción en el panel.
 """
 
 from __future__ import annotations
@@ -109,10 +110,12 @@ def _siigo_buscar_factura_por_pack_id(pack_id: str) -> dict[str, Any] | None:
     try:
         from datetime import datetime, timedelta
 
-        from app.services.siigo import (
-            obtener_facturas_siigo_paginadas,
-            siigo_factura_etiqueta_log,
-            siigo_factura_estado_log,
+        from app.services.alegra import (
+            obtener_facturas_hibridas as obtener_facturas_siigo_paginadas,
+            etiqueta_log_hibrida as siigo_factura_etiqueta_log,
+            estado_log_hibrido as siigo_factura_estado_log,
+            url_factura_hibrida,
+            es_factura_alegra,
         )
 
         fecha_inicio = (datetime.now() - timedelta(days=120)).strftime("%Y-%m-%d")
@@ -123,16 +126,16 @@ def _siigo_buscar_factura_por_pack_id(pack_id: str) -> dict[str, Any] | None:
                 factura_id = str(fac.get("id") or "").strip()
                 etiqueta = siigo_factura_etiqueta_log(fac)
                 estado = siigo_factura_estado_log(fac)
-                url = (
-                    f"https://siigonube.siigo.com/#/invoice/843/{factura_id}"
-                    if factura_id
-                    else ""
-                )
+                url = url_factura_hibrida(fac)
                 return {
                     "siigo_factura_id": factura_id or None,
                     "siigo_factura_numero": fac.get("number") or etiqueta,
                     "siigo_factura_estado": estado,
                     "siigo_factura_url": url or None,
+                    # No confundir a quien atiende el reclamo: la factura detectada
+                    # puede ser Siigo (histórico) o Alegra (desde el 2026-09-02) —
+                    # el texto fijo "SIIGO" quedaba mal desde la migración.
+                    "proveedor_factura": "Alegra" if es_factura_alegra(fac) else "Siigo",
                 }
     except Exception:
         return None
@@ -235,21 +238,22 @@ def crear_accion_anular_factura_por_reclamo(resource: str, *, topic: str | None 
         "meli_payload_preview": payload,
         "instrucciones": [
             "Verificar si la venta ya tuvo factura electrónica emitida.",
-            "Anular factura / emitir nota crédito en SIIGO según corresponda.",
+            "Anular factura / emitir nota crédito en el proveedor que corresponda (Siigo o Alegra).",
             "Dejar el número de nota crédito / soporte en comentarios del ticket.",
         ],
     }
 
-    # Enriquecer con número de factura Siigo (si el Pack ID está embebido en observations/purchase_order).
+    # Enriquecer con número de factura (Siigo o Alegra, si el Pack ID está embebido en observations/purchase_order).
     siigo_info = _siigo_buscar_factura_por_pack_id(ids.get("pack_id") or ids.get("order_id") or "")
     if siigo_info:
         detalles.update(siigo_info)
 
+    proveedor = detalles.get("proveedor_factura") or "Siigo"
     descripcion = (
         "Se detectó un reclamo/devolución en MercadoLibre para una venta posiblemente ya facturada.\n\n"
-        "Acción requerida: **anular factura electrónica** y **emitir nota crédito en SIIGO**.\n\n"
+        f"Acción requerida: **anular factura electrónica** y **emitir nota crédito en {proveedor.upper()}**.\n\n"
         + (
-            "Factura Siigo (detectada):\n"
+            f"Factura {proveedor} (detectada):\n"
             f"- Número: {detalles.get('siigo_factura_numero')}\n"
             f"- Estado: {detalles.get('siigo_factura_estado')}\n"
             + (f"- URL: {detalles.get('siigo_factura_url')}\n" if detalles.get("siigo_factura_url") else "")

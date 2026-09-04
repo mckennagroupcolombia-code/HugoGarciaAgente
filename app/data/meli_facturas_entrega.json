@@ -8225,8 +8225,8 @@
     },
     "2000018109125990": {
       "shipping_id": "47851877778",
-      "estado": "facturada",
-      "actualizado_en": "2026-09-02T23:42:44",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T15:44:33",
       "preview": {
         "lineas": [
           {
@@ -8244,9 +8244,12 @@
         "email": ""
       },
       "proveedor": "alegra",
-      "factura_id": "1",
-      "factura_numero": "FE1",
-      "cufe": "41fbb6d5e1dc8c4738eac7a51421b6f07d94404568d14379f61db858e9de894c88d1a46de4421a73e8acb4a572557099"
+      "factura_id": "2",
+      "factura_numero": "FE2",
+      "cufe": "06c98c332e7c17b6c05d68047edd3217705f8da849e563aba77692272a39b5fe068f14f3920e822fb5cc58ea846739d3",
+      "nota": "FE1 (monto incorrecto por bug de IVA) anulada con NC1 el 2026-09-03. Re-emitida como FE2 con el monto correcto.",
+      "nota_credito_numero": "NC2",
+      "nota_credito_motivo": "Doble facturacion: ya facturada por Astroselling (FV-2-70961)."
     },
     "2000018055412884": {
       "shipping_id": "47827067244",
@@ -10114,8 +10117,8 @@
     },
     "2000018160260968": {
       "shipping_id": "47876136213",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-08-29T20:50:35",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T15:44:33",
       "preview": {
         "lineas": [
           {
@@ -10131,7 +10134,13 @@
         "direccion_envio": "Diagonal 67 31-150, Bello, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "factura_numero": "FE3",
+      "factura_id": "3",
+      "cufe": "",
+      "nota_credito_numero": "NC3",
+      "nota_credito_motivo": "Doble facturacion: ya facturada por Astroselling (FV-2-71112 / A71112)."
     },
     "2000018170898100": {
       "shipping_id": "47881170761",
@@ -11539,6 +11548,590 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018240886874": {
+      "shipping_id": "47913236565",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T09:07:13",
+      "error": "No puedo emitir factura automática: Aceite De Argán 50 Ml 100% Puro (MCO594012281): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018210744986": {
+      "shipping_id": "47899130009",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-03T09:25:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 15500.0
+          }
+        ],
+        "total": 15500.0,
+        "nombre_cliente": "Yamile Lozada Beltran",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 24a 43-32, Barrancabermeja, Santander",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239901384": {
+      "shipping_id": "47912757873",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T09:54:13",
+      "error": "No puedo emitir factura automática: Creatina Monohidrato 1000g N/a (MCO2130155125): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018196821188": {
+      "shipping_id": "47892667871",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T10:17:30",
+      "error": "No puedo emitir factura automática: Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml (MCO577035616): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018223423350": {
+      "shipping_id": "47905059965",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T11:31:58",
+      "error": "No puedo emitir factura automática: Arcilla Blanca Usp Certificada Caolin Coloidal  1 Kg (MCO591316612): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018215998992": {
+      "shipping_id": "47901608995",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T13:09:09",
+      "error": "No puedo emitir factura automática: Ácido Hialurónico Solución 85% Todas (MCO1336703989): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018239577292": {
+      "shipping_id": "47912896676",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T16:10:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-URE500g",
+            "nombre": "Urea Cosmética 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 16915.0
+          }
+        ],
+        "total": 16915.0,
+        "nombre_cliente": "Alejandra García",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 59 sur #60-19, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "4",
+      "siigo_invoice_number": "FE4",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "e5d5496a49c15810da027d5ce928f297ec6d01a4d7b7ff3cad1b4e059f56b3c6e42a7e59cbac251c0375889bd9bffecb",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC4",
+      "nota_credito_motivo": "Duplicada/parcial: la venta pertenece a un pack multi-orden ya facturado por Astroselling (FV-2-71337)."
+    },
+    "2000018216783562": {
+      "shipping_id": "47901974747",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T13:28:43",
+      "error": "No puedo emitir factura automática: Manteca De Karite Blanca X 125gr (MCO2445430648): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018233868844": {
+      "shipping_id": "47910070127",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T13:45:27",
+      "error": "No puedo emitir factura automática: Aceite Ricino Castor Puro 250ml (MCO1636834856): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018246327236": {
+      "shipping_id": "47915899579",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T13:56:44",
+      "error": "No puedo emitir factura automática: Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml (MCO577035616): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018241240262": {
+      "shipping_id": "47913417095",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T16:10:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESEYLAYLA5mL",
+            "nombre": "Aceite Esencial Puro De Ylang Ylang Mckenna Group Para Difusor 5 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 28900.0
+          }
+        ],
+        "total": 28900.0,
+        "nombre_cliente": "Marcela Cristancho",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 19 #3-, Duitama, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "5",
+      "siigo_invoice_number": "FE5",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "5d22a484db999f7d6896f2a7ae02e36eb1b504d11dd1bbd95c9a9a3989b7d336b1721f812ee8de40d7fb6d35ed089bd8",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC5",
+      "nota_credito_motivo": "Duplicada/parcial: la venta pertenece a un pack multi-orden ya facturado por Astroselling (FV-2-71357)."
+    },
+    "2000018221028984": {
+      "shipping_id": "47904124060",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T14:19:39",
+      "error": "No puedo emitir factura automática: Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel (MCO615593853): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018173869348": {
+      "shipping_id": "47882787288",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T16:10:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-POLTWE20P500mL",
+            "nombre": "Polisorbato Tween 20 Usp 250ml",
+            "cantidad": 1.0,
+            "precio_unitario": 26500.0
+          }
+        ],
+        "total": 26500.0,
+        "nombre_cliente": "Cristian Luna",
+        "identificacion": "222222222222",
+        "direccion_envio": "Carrera 12 #10-37, Sopetrán, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "6",
+      "siigo_invoice_number": "FE6",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "158ebe6db07484e4f218e4eb4d3417615771ecaec9f76b3fbb7d4174af865dbb91fe1bf5606241febd53ff4f4e412e5c",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC6",
+      "nota_credito_motivo": "Duplicada/parcial: la venta pertenece a un pack multi-orden ya facturado por Astroselling (FV-2-71199)."
+    },
+    "2000018239622050": {
+      "shipping_id": "47912620893",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T16:10:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-FRU500g",
+            "nombre": "Fructosa  Pura 500gr N/a",
+            "cantidad": 2.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 26350.0,
+        "nombre_cliente": "María Luisa Betancur Caro",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 39B #47A-25, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "7",
+      "siigo_invoice_number": "FE7",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4332dcbacfc54f0d6adc0683b7478be32d4b0cf5de55d5dc317082424b953eedaa6e49b42947313db222e42dcf591f61",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC7",
+      "nota_credito_motivo": "Duplicada/parcial: la venta pertenece a un pack multi-orden ya facturado por Astroselling (FV-2-71339)."
+    },
+    "2000018230182884": {
+      "shipping_id": "47908295927",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T14:25:41",
+      "error": "No puedo emitir factura automática: Ácido Hialurónico Solución 85% Todas (MCO1336703989): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018213014654": {
+      "shipping_id": "47900513118",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T14:30:57",
+      "error": "No puedo emitir factura automática: Maltodextrina Alimentos 500 Gr Dulce (MCO648703323): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018233872176": {
+      "shipping_id": "47910069639",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T16:10:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LTRI100g",
+            "nombre": "L Triptofano 100gr N/a",
+            "cantidad": 4.0,
+            "precio_unitario": 32000.0
+          }
+        ],
+        "total": 128000.0,
+        "nombre_cliente": "James Cepeda",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 7A #14A-02, Sogamoso, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "8",
+      "siigo_invoice_number": "FE8",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2b9b4233c43d360622ea06339cd097be8ba702228596167012532dbbf37bf678411b651834b26b61effe1c85d6df6fd2",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC8",
+      "nota_credito_motivo": "Duplicada/parcial: la venta pertenece a un pack multi-orden ya facturado por Astroselling (FV-2-71314)."
+    },
+    "2000018233363832": {
+      "shipping_id": "47909847301",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-03T14:57:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LTRI100g",
+            "nombre": "L Triptofano 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 32000.0
+          }
+        ],
+        "total": 32000.0,
+        "nombre_cliente": "James Cepeda",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 7A #14A-02, Sogamoso, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018233832264": {
+      "shipping_id": "47910052313",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-03T14:57:16",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LTRI100g",
+            "nombre": "L Triptofano 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 32000.0
+          }
+        ],
+        "total": 32000.0,
+        "nombre_cliente": "James Cepeda",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 7A #14A-02, Sogamoso, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018230538610": {
+      "shipping_id": "47908471865",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T15:12:38",
+      "error": "No puedo emitir factura automática: Ácido Salicílico 20% 30 Ml Todo Tipo De Piel (MCO1262287931): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018255344678": {
+      "shipping_id": "47920157579",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T16:05:00",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-PROAISSOY500g",
+            "nombre": "Proteína Aislada De Soya 500gr N/a",
+            "cantidad": 2.0,
+            "precio_unitario": 23715.0
+          }
+        ],
+        "total": 47430.0,
+        "nombre_cliente": "Jorge Upegui",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 96 #45A-40, Barrios Unidos, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "9",
+      "siigo_invoice_number": "FE9",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "eb84341f2efcf9a8a43dba1e3648c1b80af6f527c28514c332a2cd2c60296714c46ebb5fc3336f656b3919a368f33a5d",
+      "pdf_subido_meli": true
+    },
+    "2000018237476430": {
+      "shipping_id": "47911691717",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-03T15:39:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "OLTKLt",
+            "nombre": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+            "cantidad": 1.0,
+            "precio_unitario": 25000.0
+          }
+        ],
+        "total": 25000.0,
+        "nombre_cliente": "Adriana Martínez",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 27b #61-75, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018253845602": {
+      "shipping_id": "47919493469",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T16:05:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 15500.0
+          }
+        ],
+        "total": 15500.0,
+        "nombre_cliente": "Sofia Rojas",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 102 #70b-43, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "siigo_invoice_id": "10",
+      "siigo_invoice_number": "FE10",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "cf0f976902c9e75985205987f6d4b44e4e2cbc70a4c6bc194dd238b51aedadce7b0c48842b646df450b5cc28b394dfed",
+      "pdf_subido_meli": true
+    },
+    "2000018251980424": {
+      "shipping_id": "47918914410",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:50",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "11",
+      "siigo_invoice_number": "FE11",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "8a214c806d72f71578e58b24b4f0be9f49c9215627637092891301fc7a76ad2211f29f4bf669e0e607ac5bfca0cc7b6e",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC9",
+      "nota_credito_motivo": "Duplicada: FV-2-71...  Astroselling"
+    },
+    "2000018256620810": {
+      "shipping_id": "47920722809",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:50",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "12",
+      "siigo_invoice_number": "FE12",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "810731ce593fe0cf488a801a1066e3fdd9696b983f390f5c69fbfe5a5a5114f38605e8e2496944b7c91956700f4615b7",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC10",
+      "nota_credito_motivo": "Duplicada: Astroselling"
+    },
+    "2000018239846862": {
+      "shipping_id": "47912724709",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "13",
+      "siigo_invoice_number": "FE13",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "1e7a19be7a820b7ebddbd990048442a51e1bb8ec4bf23539d956a5071f9a30052128e90e5db3b2075313edde858bc523",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC11",
+      "nota_credito_motivo": "Duplicada: Astroselling FV-2-71342"
+    },
+    "2000018234221258": {
+      "shipping_id": "47910228991",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "14",
+      "siigo_invoice_number": "FE14",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f2b730ceafaa576593606bd6b8b9c7a414cfdf3a2c873a1bcb84aed88e326b2749adba2170865faf847c57717e2cc672",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC12",
+      "nota_credito_motivo": "Duplicada: Astroselling"
+    },
+    "2000018262435586": {
+      "shipping_id": "47923781552",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T16:38:25",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "15",
+      "siigo_invoice_number": "FE15",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "ac6b86a4bd593e5c677ced87febdddd820124fa508f71dd18452180a17c76f348a7ea6c6b6ddd95fd04d3f5b67205810",
+      "pdf_subido_meli": true
+    },
+    "2000018260480486": {
+      "shipping_id": "47922519867",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T17:17:04",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "16",
+      "siigo_invoice_number": "FE16",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "97172ac2dd4244a81980f537320b16a52524ef7474c9ff81effe5a8a22da9bec6c004a87e3f2704bfbc9f26845c0f3bc",
+      "pdf_subido_meli": true,
+      "nota_credito_legado_numero": "NC-2-840",
+      "nota_credito_legado_motivo": "Se anulo la factura vieja de Astroselling (FV-2-71386) en Siigo, no la de Alegra (FE16) — FE16 ya era la que veia el cliente en MeLi."
+    },
+    "2000018261718126": {
+      "shipping_id": "47923134299",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T16:51:13",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "17",
+      "siigo_invoice_number": "FE17",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "8c98d0fe311394cb2b1e7c2a8a8e1b4ef54448d483fec5e30e3b618dd1304ef5ae5e7c7ca02bfebfb5b99dfcf0067d6e",
+      "pdf_subido_meli": true
+    },
+    "2000018251609988": {
+      "shipping_id": "47918752804",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "18",
+      "siigo_invoice_number": "FE18",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "3c93f635bcefced74e246210731ec4215c1c4fb599569821271d80431db68e3c4414509592653f302fd25cb16094d377",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC13",
+      "nota_credito_motivo": "Duplicada: Astroselling FV-2-71366"
+    },
+    "2000018251132166": {
+      "shipping_id": "47918214933",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "19",
+      "siigo_invoice_number": "FE19",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "aa1fb50a1a696a493adb7a28c3c145868dde2d00dd5ceb3d28a96789498bb3384e9e0586c929c3c4417c1ab634900eba",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC14",
+      "nota_credito_motivo": "Duplicada: Astroselling FV-2-71363"
+    },
+    "2000018257548602": {
+      "shipping_id": "47921428660",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-03T17:15:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "20",
+      "siigo_invoice_number": "FE20",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "1fe154b169c72524dca331876cfd06e03d9d6140f64a1b4d3298baba30999dad9827255a831eaeb64e3e6b90d7307caa",
+      "pdf_subido_meli": false,
+      "nota_credito_numero": "NC15",
+      "nota_credito_motivo": "Duplicada: Astroselling FV-2-71379"
+    },
+    "2000018261201022": {
+      "shipping_id": "47922881513",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T17:04:00",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "21",
+      "siigo_invoice_number": "FE21",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "6e92704057ffe10ef2f0e5e6215a7e32856c2da5299f977738c974587795978ffe0d6fae73dd9eeeaf0e35673cb4d19b",
+      "pdf_subido_meli": true
+    },
+    "2000018261059930": {
+      "shipping_id": "47922823497",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T17:04:22",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "22",
+      "siigo_invoice_number": "FE22",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "96d104c2ea314654b286a50785945ff9dc5a7314f2b5d4e0fa31f9f613906d1c6ad736533cdefd6073d97da37f999249",
+      "pdf_subido_meli": true
+    },
+    "2000018265576248": {
+      "shipping_id": "47924974541",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-03T17:06:47",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "23",
+      "siigo_invoice_number": "FE23",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "a1c96972a8a53fc1c7ecde680fc1f8ce893b4a931dcff92acdf345ea348ebb685246a0795d33dea2e27b69e2081eeb1b",
+      "pdf_subido_meli": true
+    },
+    "2000018151545502": {
+      "shipping_id": "47872055403",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T17:13:18",
+      "pack_id": "2000014740387267",
+      "legado_factura_numero": "FV-2-71085",
+      "legado_integracion": "astroselling"
+    },
+    "2000018227716030": {
+      "shipping_id": "47907103913",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T17:49:52",
+      "pack_id": "2000018227716030",
+      "legado_factura_numero": "FV-2-71287",
+      "legado_integracion": "astroselling"
+    },
+    "2000018258029892": {
+      "shipping_id": "47921363633",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T17:59:25",
+      "pack_id": "2000018258029892",
+      "legado_factura_numero": "FV-2-71382",
+      "legado_integracion": "astroselling"
+    },
+    "2000018249434352": {
+      "shipping_id": "47917658936",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T18:06:39",
+      "pack_id": "2000014834312105",
+      "legado_factura_numero": "FV-2-71359",
+      "legado_integracion": "astroselling"
+    },
+    "2000018229803676": {
+      "shipping_id": "47908402690",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T18:17:36",
+      "pack_id": "2000014815409383",
+      "legado_factura_numero": "FV-2-71292",
+      "legado_integracion": "astroselling"
+    },
+    "2000018244235704": {
+      "shipping_id": "47914906669",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T18:39:23",
+      "pack_id": "2000014829353959",
+      "legado_factura_numero": "FV-2-71345",
+      "legado_integracion": "astroselling"
+    },
+    "2000018233970640": {
+      "shipping_id": "47910403288",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T18:50:36",
+      "pack_id": "2000014802231439",
+      "legado_factura_numero": "FV-2-71315",
+      "legado_integracion": "astroselling"
+    },
+    "2000018256088422": {
+      "shipping_id": "47920485619",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-03T18:54:28",
+      "pack_id": "2000014840625497",
+      "legado_factura_numero": "FV-2-71376",
+      "legado_integracion": "astroselling"
+    },
+    "2000018251434350": {
+      "shipping_id": "47918363829",
+      "estado": "error",
+      "actualizado_en": "2026-09-03T18:54:57",
+      "error": "No se pudo obtener la orden de MeLi."
     }
   }
 }

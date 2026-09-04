@@ -2367,7 +2367,7 @@ export default function PublicacionesPanel() {
           title="Catálogo"
           aria-label="Catálogo"
           onClick={() => setMainView("catalogo")}
-          className={hubTabClass(mainView === "catalogo", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "catalogo", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="folder" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Catálogo</span>
@@ -2376,7 +2376,7 @@ export default function PublicacionesPanel() {
           title="Galería catálogo web (IMAGENES_PRODUCTOS_CATALOGO)"
           aria-label="Galería catálogo web"
           onClick={() => setMainView("galeria")}
-          className={hubTabClass(mainView === "galeria", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "galeria", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="image" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Galería catálogo</span>
@@ -2385,7 +2385,7 @@ export default function PublicacionesPanel() {
           title="Catálogo cliente"
           aria-label="Catálogo cliente"
           onClick={() => setMainView("catalogo-cliente")}
-          className={hubTabClass(mainView === "catalogo-cliente", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "catalogo-cliente", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="link" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Catálogo cliente</span>
@@ -2394,7 +2394,7 @@ export default function PublicacionesPanel() {
           title="Verificar precios"
           aria-label="Verificar precios"
           onClick={() => setMainView("precios")}
-          className={hubTabClass(mainView === "precios", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "precios", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="calculator" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Verificar precios</span>
@@ -2403,7 +2403,7 @@ export default function PublicacionesPanel() {
           title="Competencia"
           aria-label="Competencia"
           onClick={() => setMainView("competencia")}
-          className={hubTabClass(mainView === "competencia", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "competencia", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="target" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Competencia</span>
@@ -2412,7 +2412,7 @@ export default function PublicacionesPanel() {
           title="Republicar MeLi"
           aria-label="Republicar MeLi"
           onClick={() => setMainView("compliance")}
-          className={hubTabClass(mainView === "compliance", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "compliance", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="refresh" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Republicar MeLi</span>
@@ -2421,7 +2421,7 @@ export default function PublicacionesPanel() {
           title="Crear desde cero"
           aria-label="Crear desde cero"
           onClick={() => setMainView("crear")}
-          className={hubTabClass(mainView === "crear", "flex-1 justify-center")}
+          className={hubTabClass(mainView === "crear", "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name="plus" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Crear desde cero</span>

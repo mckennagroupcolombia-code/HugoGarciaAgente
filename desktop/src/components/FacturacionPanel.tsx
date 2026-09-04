@@ -15,6 +15,7 @@ import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 const SyncPanel = lazy(() => import("./SyncPanel"));
 const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
 const VentasFacturacionPanel = lazy(() => import("./VentasFacturacionPanel"));
+const AstroKillerPanel = lazy(() => import("./AstroKillerPanel"));
 
 function Cargando() {
   return (
@@ -35,25 +36,30 @@ export default function FacturacionPanel() {
 
   const puedeSync = Boolean(puedeVerModuloContabilidad(user, "sync"));
   const puedeFacturas = Boolean(puedeVerModuloContabilidad(user, "facturas"));
+  // Astro Killer: permiso propio (heredado del antiguo tab independiente) o
+  // acceso a Facturas — quien podía ver cualquiera de las dos secciones antes
+  // de unificarlas sigue viéndola ahora que es una pestaña más.
+  const puedeTrazabilidad = Boolean(puedeVerModuloContabilidad(user, "astro-killer")) || puedeFacturas;
 
   const subtabs = useMemo(
     () =>
       FACTURACION_SUBTABS.filter((t) => {
         if (t.id === "sync") return puedeSync;
+        if (t.id === "trazabilidad") return puedeTrazabilidad;
         return puedeFacturas;
       }),
-    [puedeSync, puedeFacturas],
+    [puedeSync, puedeFacturas, puedeTrazabilidad],
   );
 
   const [sub, setSub] = useState<FacturacionSubtabId>(() => {
     const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra") return fromLegacy;
+    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "trazabilidad") return fromLegacy;
     return leerSubtabFacturacion();
   });
 
   useEffect(() => {
     const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra") setSub(fromLegacy);
+    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "trazabilidad") setSub(fromLegacy);
   }, [panel]);
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export default function FacturacionPanel() {
       >
         {subtabs.map((t) => {
           const selected = sub === t.id;
-          const iconPanel = t.id === "sync" ? "sync" : "facturas";
+          const iconPanel = t.id === "sync" ? "sync" : t.id === "trazabilidad" ? "astro-killer" : "facturas";
           return (
             <button
               key={t.id}
@@ -97,7 +103,7 @@ export default function FacturacionPanel() {
               aria-label={t.label}
               title={t.label}
               onClick={() => setSub(t.id)}
-              className={hubTabClass(selected)}
+              className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
             >
               <PanelIcon panel={iconPanel} size={22} active={selected} bubble={false} />
               <span className={HUB_TAB_LABEL}>{t.label}</span>
@@ -112,6 +118,8 @@ export default function FacturacionPanel() {
             <SyncPanel />
           ) : sub === "ventas" ? (
             <VentasFacturacionPanel key="ventas" />
+          ) : sub === "trazabilidad" ? (
+            <AstroKillerPanel key="trazabilidad" />
           ) : (
             <FacturasCompraPanel key="compra" />
           )}

@@ -1,7 +1,8 @@
 """
 REC-08: Reportes Financieros Semanales Automatizados
 Genera y envía por correo HTML un resumen semanal con:
-  - Total facturado (SIIGO)
+  - Total facturado (Siigo histórico + Alegra desde el 2026-09-02, ver
+    app/services/alegra.py::obtener_facturas_hibridas)
   - Número de órdenes (MeLi + WC)
   - Producto más vendido
   - Clientes nuevos vs recurrentes
@@ -26,14 +27,14 @@ DESPACHOS_DB = os.path.join("/home/mckg/mi-agente", "app", "data", "despachos.db
 
 
 def _datos_siigo_semana(fecha_inicio: str) -> dict:
-    """Obtiene facturas de venta de SIIGO en el rango de la semana."""
+    """Obtiene facturas de venta (Siigo histórico + Alegra) en el rango de la semana."""
     try:
-        from app.services.siigo import obtener_facturas_siigo_paginadas
+        from app.services.alegra import obtener_facturas_hibridas as obtener_facturas_siigo_paginadas
         facturas = obtener_facturas_siigo_paginadas(fecha_inicio)
         total    = sum(f.get("total", 0) for f in facturas)
         return {"facturas": len(facturas), "total": total}
     except Exception as e:
-        print(f"⚠️ [REPORTE] Error SIIGO: {e}")
+        print(f"⚠️ [REPORTE] Error obteniendo facturas: {e}")
         return {"facturas": 0, "total": 0}
 
 
@@ -95,7 +96,7 @@ def _html_reporte(siigo, clientes, producto_estrella, semana_label, fecha_genera
           <td width="48%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;vertical-align:top;">
             <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:700;">💰 Total Facturado</div>
             <div style="font-size:28px;font-weight:800;color:#1e3a8a;margin-top:6px;">${siigo['total']:,.0f}</div>
-            <div style="font-size:11px;color:#64748b;margin-top:2px;">COP · {siigo['facturas']} factura(s) SIIGO</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">COP · {siigo['facturas']} factura(s)</div>
           </td>
           <td width="4%"></td>
           <td width="48%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;vertical-align:top;">
@@ -122,7 +123,7 @@ def _html_reporte(siigo, clientes, producto_estrella, semana_label, fecha_genera
     <!-- NOTA -->
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;font-size:12px;color:#1e40af;line-height:1.7;margin-top:4px;">
       📌 Este reporte es generado automáticamente por el sistema Hugo García cada lunes a las 7 AM.
-      Los datos de facturación provienen de SIIGO ERP en tiempo real.
+      Los datos de facturación provienen de Siigo/Alegra (ERP de venta) en tiempo real.
     </div>
 
   </td></tr>

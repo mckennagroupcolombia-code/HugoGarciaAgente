@@ -426,13 +426,86 @@ def _ingresos_web(desde: str, hasta: str) -> list[dict]:
     return out
 
 
-def _facturas_siigo_rapido(
+def _facturas_alegra_rapido(
     desde: str,
     hasta: str,
     *,
     deadline: float,
 ) -> tuple[list[dict], str | None]:
-    """Lista facturas Siigo con page_size alto y tope de tiempo (panel interactivo)."""
+    """Lista facturas Alegra con tope de tiempo (panel interactivo). Alegra usa
+    Basic Auth (sin renovar token) y limita a 30 por página (confirmado en
+    vivo — no 100 como Siigo)."""
+    try:
+        import requests
+        from app.services.alegra import _alegra_headers, _ALEGRA_BASE
+        headers = _alegra_headers()
+    except Exception as e:
+        return [], str(e)
+
+    _ALEGRA_PAGE_SIZE = 30
+    facturas: list[dict] = []
+    pagina = 0
+    truncado = False
+    aviso: str | None = None
+
+    while pagina <= _SIIGO_MAX_PAGES * 3:  # 30/pagina ~ misma cantidad de llamadas que 100/pagina antes
+        if time.monotonic() >= deadline:
+            truncado = True
+            aviso = f"Alegra: tiempo límite; {len(facturas)} facturas parciales"
+            break
+        try:
+            params = {
+                "date_afterEqual": desde,
+                "limit": _ALEGRA_PAGE_SIZE,
+                "start": pagina * _ALEGRA_PAGE_SIZE,
+            }
+            if hasta:
+                params["date_beforeEqual"] = hasta
+            to = _segundos_restantes(deadline, tope=12.0)
+            res = requests.get(
+                f"{_ALEGRA_BASE}/invoices",
+                headers=headers,
+                params=params,
+                timeout=to,
+            )
+        except requests.Timeout:
+            truncado = True
+            aviso = f"Alegra: timeout; {len(facturas)} facturas parciales"
+            break
+        except Exception as e:
+            if facturas:
+                return facturas, f"Alegra: error parcial ({len(facturas)} facturas): {e}"
+            return [], f"Alegra red: {e}"
+
+        if res.status_code == 200:
+            batch = res.json() or []
+            if not batch:
+                break
+            for f in batch:
+                f["purchase_order"] = f.get("anotation") or ""
+            facturas.extend(batch)
+            if len(batch) < _ALEGRA_PAGE_SIZE:
+                break
+            pagina += 1
+            continue
+
+        return facturas, f"Alegra HTTP {res.status_code}"
+
+    if pagina > _SIIGO_MAX_PAGES * 3 and not truncado:
+        truncado = True
+        aviso = f"Alegra: tope de páginas; {len(facturas)} facturas parciales"
+    return facturas, aviso if truncado else None
+
+
+def _facturas_siigo_solo_rapido(
+    desde: str,
+    hasta: str,
+    *,
+    deadline: float,
+) -> tuple[list[dict], str | None]:
+    """Igual que la versión previa a la migración: pagina Siigo (page_size 100,
+    reintentos 401/429) respetando el deadline. Usado solo para la parte
+    histórica (antes del corte) por `_facturas_siigo_rapido`."""
     try:
         import requests
         from app.services.siigo import (
@@ -461,11 +534,7 @@ def _facturas_siigo_rapido(
             aviso = f"Siigo: tiempo límite; {len(facturas)} facturas parciales"
             break
         try:
-            params = {
-                "created_start": desde,
-                "page": page,
-                "page_size": _SIIGO_PAGE_SIZE,
-            }
+            params = {"created_start": desde, "page": page, "page_size": _SIIGO_PAGE_SIZE}
             if hasta:
                 params["created_end"] = hasta
             to = _segundos_restantes(deadline, tope=12.0)
@@ -524,6 +593,35 @@ def _facturas_siigo_rapido(
         truncado = True
         aviso = f"Siigo: tope de páginas; {len(facturas)} facturas parciales"
     return facturas, aviso if truncado else None
+
+
+def _facturas_siigo_rapido(
+    desde: str,
+    hasta: str,
+    *,
+    deadline: float,
+) -> tuple[list[dict], str | None]:
+    """Combina Siigo (histórico, antes del corte de migración 2026-09-02) con
+    Alegra (desde el corte) dentro del mismo presupuesto de tiempo del panel."""
+    from app.services.alegra import FECHA_CORTE_MIGRACION_ALEGRA
+
+    avisos = []
+    facturas: list[dict] = []
+
+    if desde < FECHA_CORTE_MIGRACION_ALEGRA:
+        hasta_siigo = min(hasta, FECHA_CORTE_MIGRACION_ALEGRA) if hasta else None
+        f_siigo, aviso_siigo = _facturas_siigo_solo_rapido(desde, hasta_siigo or "", deadline=deadline)
+        facturas.extend(f for f in f_siigo if (f.get("date") or "")[:10] < FECHA_CORTE_MIGRACION_ALEGRA)
+        if aviso_siigo:
+            avisos.append(aviso_siigo)
+
+    desde_alegra = max(desde, FECHA_CORTE_MIGRACION_ALEGRA)
+    f_alegra, aviso_alegra = _facturas_alegra_rapido(desde_alegra, hasta, deadline=deadline)
+    facturas.extend(f_alegra)
+    if aviso_alegra:
+        avisos.append(aviso_alegra)
+
+    return facturas, "; ".join(avisos) if avisos else None
 
 
 def _ingresos_siigo(

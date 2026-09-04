@@ -17,30 +17,26 @@ URL_WA = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 
 
 def _get_siigo_skus() -> dict:
-    """Retorna dict {code: nombre} de todos los productos SIIGO."""
-    from app.services.siigo import autenticar_siigo, PARTNER_ID
-    token = autenticar_siigo()
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    """Retorna dict {code: nombre} de todos los productos Alegra
+    (migrado de Siigo 2026-09-03 — ver app/services/alegra.py)."""
+    from app.services.alegra import _alegra_headers, _ALEGRA_BASE
+    headers = _alegra_headers()
     productos = {}
-    page = 1
+    pagina = 0
     while True:
         r = requests.get(
-            f"https://api.siigo.com/v1/products?page={page}&page_size=100",
-            headers=headers, timeout=20
+            f"{_ALEGRA_BASE}/items",
+            headers=headers, params={"limit": 30, "start": pagina * 30}, timeout=20
         ).json()
-        results = r.get("results", [])
-        for p in results:
-            code = (p.get("code") or "").strip()
+        if not r:
+            break
+        for p in r:
+            code = (p.get("reference") or "").strip()
             if code:
                 productos[code] = (p.get("name") or "").strip()
-        pag = r.get("pagination", {})
-        total = pag.get("total_results", 0)
-        page_size = pag.get("page_size", 100)
-        import math
-        total_pages = math.ceil(total / page_size) if page_size else 1
-        if page >= total_pages or not results:
+        if len(r) < 30:
             break
-        page += 1
+        pagina += 1
     return productos
 
 

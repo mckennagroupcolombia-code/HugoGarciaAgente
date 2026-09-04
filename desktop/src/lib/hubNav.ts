@@ -22,6 +22,7 @@ export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
   placas: "package",
   contenido: "camera",
   sistemas: "monitor",
+  facturacion: "scroll",
 };
 
 /** Tooltip al pasar el mouse sobre el botón del hub. */
@@ -37,6 +38,7 @@ export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   placas: "Calculadora de dosificación para placas de concreto pulido.",
   contenido: "Quitar marca de agua estática de un video antes de publicarlo.",
   sistemas: "Supervisor de WhatsApp y canal de voz IA.",
+  facturacion: "Sync MeLi↔Siigo/Alegra, facturas de compra, ventas y NC, y Astro Killer (trazabilidad venta→factura).",
 };
 
 const LAST_KEY_PREFIX = "mckenna-hub-last:";

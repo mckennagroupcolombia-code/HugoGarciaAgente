@@ -224,7 +224,7 @@ export default function LibroMayorPanel() {
               title={v === "simple" ? "Simple" : "Avanzada"}
               aria-label={v === "simple" ? "Simple" : "Avanzada"}
               onClick={() => cambiarVista(v)}
-              className={hubTabClass(vista === v)}
+              className={hubTabClass(vista === v, "mck-hub-tab-etiquetado flex-col")}
             >
               <Icon name={v === "simple" ? "listChecks" : "flask"} size={22} weight="bold" />
               <span className={HUB_TAB_LABEL}>{v === "simple" ? "Simple" : "Avanzada"}</span>
@@ -994,7 +994,7 @@ function VistaAvanzada() {
             title={t.label}
             aria-label={t.label}
             onClick={() => setSub(t.id)}
-            className={hubTabClass(sub === t.id)}
+            className={hubTabClass(sub === t.id, "mck-hub-tab-etiquetado flex-col")}
           >
             <Icon name={t.icon} size={22} weight="bold" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>

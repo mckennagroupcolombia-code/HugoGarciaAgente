@@ -109,6 +109,11 @@ def listar_stock_siigo_bulk(refresh: bool = False) -> dict[str, dict]:
         if (now - ts) < _SIIGO_STOCK_CACHE_TTL_S and isinstance(cached.get("por_codigo"), dict):
             return cached["por_codigo"]
 
+    # PENDIENTE: no migrado a Alegra — esta función lee `available_quantity` de
+    # Siigo como referencia de solo lectura (Siigo nunca fue fuente de verdad de
+    # stock). Los productos importados a Alegra durante la migración 2026-09-03
+    # no tienen inventario/bodegas configurados, así que migrar esto ahora
+    # devolvería 0 en todo — peor que mantenerlo apuntando a Siigo por ahora.
     from app.services.siigo import autenticar_siigo, PARTNER_ID
 
     token = autenticar_siigo()

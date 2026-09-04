@@ -442,10 +442,14 @@ def _ensure_siigo_invoice_pdf_path(
     if not invoice_id:
         return None
     try:
-        from app.services.siigo import descargar_factura_pdf_siigo
+        # descargar_factura_pdf_alegra() usa GET /invoices/{id}?fields=pdf (URL firmada
+        # de CloudFront) — confirmado en vivo 2026-09-03. Antes de ese fix devolvía
+        # siempre "" y los correos de factura a clientes web salían sin PDF adjunto
+        # desde la migración a Alegra, sin que nada lo reportara como error.
+        from app.services.alegra import descargar_factura_pdf_alegra
         import base64
 
-        b64 = descargar_factura_pdf_siigo(invoice_id)
+        b64 = descargar_factura_pdf_alegra(invoice_id)
         if not b64 or "Error" in str(b64):
             return None
         pdf_dir = _ROOT / "facturas_descargadas"
@@ -455,7 +459,7 @@ def _ensure_siigo_invoice_pdf_path(
         out.write_bytes(base64.b64decode(b64))
         return str(out)
     except Exception as e:
-        log.warning("No se pudo descargar PDF Siigo %s: %s", invoice_id, e)
+        log.warning("No se pudo descargar PDF Alegra %s: %s", invoice_id, e)
         return None
 
 
@@ -880,8 +884,28 @@ def _whatsapp_pedido_factura_siigo_reportable(ok: bool, out: str) -> bool:
     return "Factura automática web emitida" in out
 
 
+def _es_invoice_id_alegra(invoice_id: str | None) -> bool:
+    """Los ids de Alegra son enteros pequeños ("1", "2"...); los de Siigo son
+    UUID con guiones. Distingue sin depender de la fecha de la factura —
+    pedidos web facturados antes de que este archivo migrara a Alegra
+    (2026-09-03) siguen con un `siigo_invoice_id` real de Siigo en la BD."""
+    invoice_id = str(invoice_id or "").strip()
+    return bool(invoice_id) and invoice_id.isdigit()
+
+
 def _siigo_invoice_url(invoice_id: str | None) -> str:
-    return f"https://siigonube.siigo.com/#/invoice/843/{invoice_id}" if invoice_id else ""
+    invoice_id = str(invoice_id or "").strip()
+    if not invoice_id:
+        return ""
+    if _es_invoice_id_alegra(invoice_id):
+        return f"https://app.alegra.com/invoice/view/id/{invoice_id}"
+    # Bug real hasta este fix: toda factura Siigo histórica generaba un link a
+    # app.alegra.com que no existe — no era solo un detalle de texto.
+    return f"https://siigonube.siigo.com/#/invoice/843/{invoice_id}"
+
+
+def _proveedor_factura_web(invoice_id: str | None) -> str:
+    return "Alegra" if _es_invoice_id_alegra(invoice_id) else "Siigo"
 
 
 def _money_float(value, default: float = 0.0) -> float:
@@ -947,12 +971,16 @@ def _parse_order_items_json(order: dict) -> tuple[dict, str | None]:
 
 
 def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict], str | None]:
-    from app.services.siigo import buscar_producto_siigo_por_sku, precio_base_con_impuesto as _precio_base_con_impuesto
+    from app.services.alegra import buscar_producto_alegra_por_referencia
 
     items = data.get("items") or []
     if not items:
         return [], "El pedido no tiene ítems para facturar."
 
+    # OJO: precio_unitario va SIEMPRE como el precio final (lo que pagó el cliente,
+    # IVA incluido) — crear_factura_venta_alegra() descuenta el IVA internamente
+    # usando el impuesto real de la ficha del producto en Alegra. NO restar el IVA
+    # acá (bug confirmado en vivo el 2026-09-02: hacerlo dos veces sub-factura la venta).
     lines = []
     missing = []
     for it in items:
@@ -966,54 +994,44 @@ def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict],
         if price < 0:
             missing.append(f"{code}: precio inválido")
             continue
-        siigo_prod = buscar_producto_siigo_por_sku(code)
-        if not siigo_prod:
-            missing.append(f"{code}: no existe en Siigo")
+        alegra_prod = buscar_producto_alegra_por_referencia(code)
+        if not alegra_prod:
+            missing.append(f"{code}: no existe en Alegra")
             continue
-        tax_ids = siigo_prod.get("tax_ids") or []
-        tax_rate = siigo_prod.get("tax_rate_total") or 0
-        line = {
+        lines.append({
             "codigo": code,
             "nombre": name,
             "cantidad": qty,
-            "precio_unitario": _precio_base_con_impuesto(price, tax_rate) if tax_ids else price,
-        }
-        if tax_ids:
-            line["tax_ids"] = tax_ids
-        lines.append(line)
+            "precio_unitario": price,
+        })
 
     shipping = _money_float(data.get("shipping"), 0)
     if shipping > 0:
         shipping_code = _shipping_sku_for_amount(shipping)
-        shipping_prod = buscar_producto_siigo_por_sku(shipping_code) if shipping_code else None
+        shipping_prod = buscar_producto_alegra_por_referencia(shipping_code) if shipping_code else None
         if shipping_code and not shipping_prod:
-            # Montos nuevos (tarifas 2026 por peso) no tienen producto propio en Siigo:
+            # Montos nuevos (tarifas 2026 por peso) no tienen producto propio en Alegra:
             # cae al producto genérico de envío con precio variable por línea.
             generic = os.getenv("WEB_SIIGO_SHIPPING_CODE_GENERIC", "WEB-ENVIO-VAR").strip()
-            shipping_prod = buscar_producto_siigo_por_sku(generic) if generic else None
+            shipping_prod = buscar_producto_alegra_por_referencia(generic) if generic else None
             if generic and shipping_prod:
                 shipping_code = generic
             else:
                 missing.append(
-                    f"envío {shipping_code}: no existe en Siigo (ni el genérico {generic or 'WEB-ENVIO-VAR'})"
+                    f"envío {shipping_code}: no existe en Alegra (ni el genérico {generic or 'WEB-ENVIO-VAR'})"
                 )
                 shipping_code = ""
         if not shipping_code:
             if not missing:
                 missing.append("envío: no se pudo resolver SKU de envío")
         else:
-            ship_tax_ids = (shipping_prod or {}).get("tax_ids") or []
-            ship_tax_rate = (shipping_prod or {}).get("tax_rate_total") or 0
-            ship_line = {
+            lines.append({
                 "codigo": shipping_code,
                 "nombre": os.getenv("WEB_SIIGO_SHIPPING_NAME", "Envío pedido web").strip()
                 or "Envío pedido web",
                 "cantidad": 1,
-                "precio_unitario": _precio_base_con_impuesto(shipping, ship_tax_rate) if ship_tax_ids else shipping,
-            }
-            if ship_tax_ids:
-                ship_line["tax_ids"] = ship_tax_ids
-            lines.append(ship_line)
+                "precio_unitario": shipping,
+            })
 
     if missing:
         return [], "No puedo emitir factura automática: " + "; ".join(missing)
@@ -1165,8 +1183,9 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
         number = order.get("siigo_invoice_number") or order.get("siigo_invoice_id")
         status = order.get("siigo_invoice_status") or "emitida"
         cufe = order.get("siigo_invoice_cufe") or "pendiente/no registrado"
+        proveedor = _proveedor_factura_web(order.get("siigo_invoice_id"))
         return True, (
-            f"✅ *{ref}* ya tiene factura Siigo *{number}*.\n"
+            f"✅ *{ref}* ya tiene factura {proveedor} *{number}*.\n"
             f"Estado: {status}\n"
             f"CUFE: {cufe}\n"
             f"{_siigo_invoice_url(order.get('siigo_invoice_id'))}"
@@ -1202,25 +1221,12 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
     observations = _build_web_order_siigo_observations(order, data, ref)
 
     try:
-        from app.services.siigo import crear_factura_venta_siigo, sincronizar_tercero_siigo_antes_factura_web
+        from app.services.alegra import crear_factura_venta_alegra
 
-        city_code, state_code = _infer_siigo_city_codes_from_web_order(order, data)
-        if _env_bool("WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE", True):
-            sync = sincronizar_tercero_siigo_antes_factura_web(
-                nombre_cliente=billing_name,
-                identificacion=billing_nit,
-                direccion=fiscal_address_line,
-                email=billing_email,
-                telefono=order.get("buyer_phone") or "",
-                city_code=city_code,
-                state_code=state_code,
-            )
-            if not sync.get("ok"):
-                log.warning("Siigo sync tercero antes de factura %s: %s", ref, sync.get("error"))
-        else:
-            log.info("WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE=0: omito sync tercero Siigo para %s", ref)
-
-        result = crear_factura_venta_siigo(
+        # A diferencia de Siigo, crear_factura_venta_alegra() ya sincroniza el
+        # contacto (nombre/dirección/email/teléfono frescos) internamente antes
+        # de facturar — no hace falta un paso separado de sync.
+        result = crear_factura_venta_alegra(
             nombre_cliente=billing_name,
             identificacion=billing_nit,
             direccion_envio=fiscal_address_line,
@@ -1232,14 +1238,10 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
             purchase_order=ref,
             descargar_pdf=True,
             enviar_dian=True,
-            # Siigo envía al correo de la cuenta (p. ej. facturasmckennagroup@gmail.com).
-            # El PDF al cliente va por SMTP (send_siigo_invoice_email_to_customer).
             enviar_correo=_env_bool("WEB_SIIGO_SIIGO_MAIL", False),
-            customer_city_code=city_code,
-            customer_state_code=state_code,
         )
     except Exception as e:
-        result = {"ok": False, "error": f"Error llamando Siigo: {e}"}
+        result = {"ok": False, "error": f"Error llamando Alegra: {e}"}
 
     now = datetime.now().isoformat()
     if result.get("ok"):
@@ -1601,6 +1603,7 @@ def anular_pedido_web(
 
     siigo_num = (order.get("siigo_invoice_number") or "").strip()
     if siigo_num:
+        proveedor = _proveedor_factura_web(order.get("siigo_invoice_id"))
         try:
             from app.tools.notas_credito import crear_ticket_nota_credito
 
@@ -1611,12 +1614,13 @@ def anular_pedido_web(
                 siigo_factura_numero=siigo_num,
                 siigo_factura_estado=order.get("siigo_invoice_status"),
                 siigo_factura_url=_siigo_invoice_url(order.get("siigo_invoice_id")),
+                detalles_extra={"proveedor_factura": proveedor},
             )
-            parts.append(f"⚠️ Tiene factura Siigo #{siigo_num}. {tk_msg}")
+            parts.append(f"⚠️ Tiene factura {proveedor} #{siigo_num}. {tk_msg}")
         except Exception as e:
             log.warning("Ticket nota crédito %s: %s", ref, e)
             parts.append(
-                f"⚠️ Tiene factura Siigo #{siigo_num}: anula o nota crédito manual en Siigo si aplica "
+                f"⚠️ Tiene factura {proveedor} #{siigo_num}: anula o nota crédito manual en {proveedor} si aplica "
                 f"(no se pudo crear el ticket automático: {e})."
             )
     if motivo:
@@ -2006,6 +2010,7 @@ def reembolsar_pedido_web(
 
     siigo_num = (order.get("siigo_invoice_number") or "").strip()
     if siigo_num:
+        proveedor = _proveedor_factura_web(order.get("siigo_invoice_id"))
         try:
             from app.tools.notas_credito import crear_ticket_nota_credito
 
@@ -2016,12 +2021,13 @@ def reembolsar_pedido_web(
                 siigo_factura_numero=siigo_num,
                 siigo_factura_estado=order.get("siigo_invoice_status"),
                 siigo_factura_url=_siigo_invoice_url(order.get("siigo_invoice_id")),
+                detalles_extra={"proveedor_factura": proveedor},
             )
-            parts.append(f"⚠️ Tiene factura Siigo #{siigo_num}. {tk_msg}")
+            parts.append(f"⚠️ Tiene factura {proveedor} #{siigo_num}. {tk_msg}")
         except Exception as e:
             log.warning("Ticket nota crédito (refund) %s: %s", ref, e)
             parts.append(
-                f"⚠️ Tiene factura Siigo #{siigo_num}: gestiona nota crédito en Siigo "
+                f"⚠️ Tiene factura {proveedor} #{siigo_num}: gestiona nota crédito en {proveedor} "
                 f"(no se pudo crear el ticket: {e})."
             )
     if motivo:
@@ -2071,12 +2077,11 @@ def marcar_pedidos_expirados(horas: int = 24) -> int:
 
 
 def check_and_finalize_processing_invoices() -> int:
-    """Re-consulta Siigo para facturas en estado Processing y envía correo cuando DIAN las acepta.
+    """Re-consulta Alegra para facturas en estado Processing y envía correo cuando DIAN las acepta.
 
     Retorna el número de facturas cuyo correo se envió en esta ronda.
     """
     import requests as _requests
-    from app.services.siigo import autenticar_siigo, _stamp_info_siigo
 
     if not ORDERS_DB.exists():
         return 0
@@ -2095,12 +2100,14 @@ def check_and_finalize_processing_invoices() -> int:
     if not rows:
         return 0
 
-    token = autenticar_siigo()
-    if not token:
-        log.warning("check_and_finalize_processing_invoices: no pudo autenticar con Siigo")
+    from app.services.alegra import _alegra_headers, _ALEGRA_BASE
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError:
+        log.warning("check_and_finalize_processing_invoices: no pudo autenticar con Alegra")
         return 0
 
-    headers = {"Authorization": f"Bearer {token}", "Partner-Id": "SiigoAPI"}
     finalized = 0
 
     for row in rows:
@@ -2109,17 +2116,20 @@ def check_and_finalize_processing_invoices() -> int:
         ref = order.get("reference") or ""
         try:
             res = _requests.get(
-                f"https://api.siigo.com/v1/invoices/{invoice_id}",
+                f"{_ALEGRA_BASE}/invoices/{invoice_id}",
                 headers=headers,
                 timeout=15,
             )
             if res.status_code != 200:
                 continue
             factura = res.json()
-            stamp = _stamp_info_siigo(factura)
-            stamp_status = stamp.get("status", "")
+            stamp = factura.get("stamp") or {}
+            # Alegra ya viene síncrono en la creación (a diferencia de Siigo, que a
+            # veces queda "Processing" y hay que reconsultar) — este chequeo diferido
+            # queda como red de seguridad por si algún día vuelve pendiente.
+            stamp_status = stamp.get("legalStatus", "")
 
-            if stamp_status != "Accepted":
+            if "ACCEPTED" not in stamp_status:
                 continue
 
             cufe = stamp.get("cufe") or stamp.get("cude") or ""

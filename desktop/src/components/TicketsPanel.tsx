@@ -49,6 +49,8 @@ import {
   parseLineasPedidoEtiqueta,
   lineaDescripcionEtiqueta,
   fmtUnidadesEtiqueta,
+  extraerComentarioPedido,
+  adjuntarComentarioPedido,
 } from "../lib/etiquetasSolicitudes";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
@@ -13080,6 +13082,7 @@ function SolicitudListaChecklist({
   const itemsActivos = items.filter((i) => i.nombre.trim());
   const todosMarcados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
   const tieneProductos = itemsActivos.length > 0;
+  const comentarioPedido = esEtiqueta ? extraerComentarioPedido(ticket.descripcion || "") : "";
 
   useEffect(() => { setEstadoLocal(ticket.estado); }, [ticket.id, ticket.estado]);
 
@@ -13280,6 +13283,12 @@ function SolicitudListaChecklist({
         <p className={pantallaCompleta ? "text-sm text-muted" : "text-xs text-muted"}>
           Para la acción: <strong className="text-ink">{ticket.ticket_padre_titulo}</strong>
         </p>
+      )}
+      {comentarioPedido && (
+        <div className="rounded-2xl border-2 border-dashed border-border px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Comentarios</p>
+          <p className="text-sm text-ink whitespace-pre-wrap">{comentarioPedido}</p>
+        </div>
       )}
       {loading && <p className="text-sm text-muted">Cargando lista…</p>}
       {!loading && !tieneProductos && !msg && puedeOperar && !resuelta && (
@@ -19263,6 +19272,9 @@ function NuevaSolicitudWizard({
   );
   const [descripcion, setDescripcion] = useState(descripcionInicial);
   const [listaComprasDraft, setListaComprasDraft] = useState<CompraDraftSolicitud[]>(bootEtiquetaDraft);
+  const [comentarioPedido, setComentarioPedido] = useState(
+    bootEtiqueta ? extraerComentarioPedido(descripcionInicial) : "",
+  );
   const [compraNombre, setCompraNombre] = useState("");
   const [compraCantidad, setCompraCantidad] = useState("1");
   const [compraUnidad, setCompraUnidad] = useState("und");
@@ -19318,11 +19330,13 @@ function NuevaSolicitudWizard({
       setTitulo("Pedido de etiquetas");
       setDescripcion("");
       setListaComprasDraft([]);
+      setComentarioPedido("");
       irFase("compras");
     } else if (v === "compra") {
       setTitulo("Solicitud de compras");
       setDescripcion("");
       setListaComprasDraft([]);
+      setComentarioPedido("");
       irFase("compras");
     } else {
       irFase("elegir_proc");
@@ -19434,12 +19448,15 @@ function NuevaSolicitudWizard({
       const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
       tituloFinal = resumen ? (`Etiquetas: ${resumen}`).slice(0, 150) : "Pedido de etiquetas";
     }
-    const descripcionFinal = (esCompra || esEtiquetaVar)
+    const descripcionLista = (esCompra || esEtiquetaVar)
       ? listaComprasDraft.map((i) => {
           if (esCompra) return `• ${i.nombre} — ${i.cantidad} ${i.unidad}`;
           return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
         }).join("\n")
       : desc;
+    const descripcionFinal = esEtiquetaVar
+      ? adjuntarComentarioPedido(descripcionLista, comentarioPedido)
+      : descripcionLista;
     const subtipo = esEtiquetaVar ? "etiqueta" : esCompra ? "compra" : undefined;
     if (ocrLoading) return;
     setLoading(true);
@@ -19478,6 +19495,15 @@ function NuevaSolicitudWizard({
             ),
           ),
         );
+      }
+      const notaPedido = esEtiquetaVar ? comentarioPedido.trim() : "";
+      if (notaPedido) {
+        await Promise.all(tickets.map((t) =>
+          tapi(`/${t.id}/comentarios`, token, {
+            method: "POST",
+            body: JSON.stringify({ texto: notaPedido, es_interno: false }),
+          }),
+        ));
       }
       if (adjuntoFile) {
         await Promise.all(tickets.map(async (t) => {
@@ -19861,6 +19887,20 @@ function NuevaSolicitudWizard({
               <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem con las unidades indicadas</p>
             )}
           </div>
+          {variante === "etiqueta" && (
+            <div className="space-y-2 rounded-2xl border-2 border-dashed border-border px-4 py-4">
+              <label className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Comentarios</span>
+                <textarea
+                  value={comentarioPedido}
+                  onChange={(e) => setComentarioPedido(e.target.value)}
+                  rows={3}
+                  placeholder="Opcional: urgencia, formato, instrucciones para quien imprime…"
+                  className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
+                />
+              </label>
+            </div>
+          )}
           <button
             type="button"
             disabled={listaComprasDraft.length === 0 || ocrLoading}
@@ -19872,10 +19912,15 @@ function NuevaSolicitudWizard({
                 const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
                 setTitulo(resumen ? `Etiquetas: ${resumen}`.slice(0, 150) : "Pedido de etiquetas");
               }
-              setDescripcion(listaComprasDraft.map((i) => {
+              const listaTxt = listaComprasDraft.map((i) => {
                 if (variante === "compra") return `• ${i.nombre} — ${i.cantidad} ${i.unidad}`;
                 return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
-              }).join("\n"));
+              }).join("\n");
+              setDescripcion(
+                variante === "etiqueta"
+                  ? adjuntarComentarioPedido(listaTxt, comentarioPedido)
+                  : listaTxt,
+              );
               irFase("asignados");
             }}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
@@ -20017,7 +20062,7 @@ function NuevaSolicitudWizard({
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tarea</p>
               <p className="text-lg font-extrabold text-ink">{titulo.trim()}</p>
-              {descripcion.trim() && descripcion.trim() !== titulo.trim() && (
+              {variante !== "etiqueta" && variante !== "compra" && descripcion.trim() && descripcion.trim() !== titulo.trim() && (
                 <p className="mt-1 text-sm text-muted">{descripcion.trim()}</p>
               )}
             </div>
@@ -20034,6 +20079,12 @@ function NuevaSolicitudWizard({
                       </li>
                     ))}
                   </ul>
+                )}
+                {comentarioPedido.trim() && (
+                  <div className="mt-3 rounded-xl border border-dashed border-border px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Comentarios</p>
+                    <p className="text-sm text-ink whitespace-pre-wrap">{comentarioPedido.trim()}</p>
+                  </div>
                 )}
               </div>
             )}

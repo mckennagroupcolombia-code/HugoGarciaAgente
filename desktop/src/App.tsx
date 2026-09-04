@@ -20,6 +20,7 @@ const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
+const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
@@ -104,9 +105,6 @@ function PanelRouterInner() {
       return <PreventaPanel />;
     case "postventa":
       return <PostventaPanel />;
-    case "sync":
-    case "facturas":
-    case "facturacion":
     case "costos-productos":
     case "rentabilidad":
     case "publicidad":
@@ -120,6 +118,11 @@ function PanelRouterInner() {
     case "libro-mayor":
     case "stock":
       return <ContabilidadPanel />;
+    case "facturacion":
+    case "sync":
+    case "facturas":
+    case "astro-killer":
+      return <FacturacionPanel />;
     case "fichas":
       return <FichasTecnicasPanel />;
     case "pedidos":

@@ -415,7 +415,7 @@ def listar_productos_documentacion(
     incluir_sheets: bool = True,
     refrescar_drive: bool = False,
 ) -> dict[str, Any]:
-    from app.services.siigo import _combo_item_desde_raw, listar_productos_combo_siigo
+    from app.services.alegra import _combo_item_desde_raw_alegra as _combo_item_desde_raw, listar_productos_combo_alegra as listar_productos_combo_siigo
 
     t0 = time.time()
     raw_list = listar_productos_combo_siigo()

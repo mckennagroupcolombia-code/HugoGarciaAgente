@@ -516,7 +516,7 @@ export default function CrearProductosSiigoPanel({
               setResultado(null);
               setCheck(null);
             }}
-            className={hubTabClass(modo === t.id, "flex-1 justify-center")}
+            className={hubTabClass(modo === t.id, "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
           >
             <Icon name={t.icon} size={22} weight="bold" />
             <span className={HUB_TAB_LABEL}>{t.label}</span>

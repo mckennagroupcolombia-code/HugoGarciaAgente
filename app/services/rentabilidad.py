@@ -263,6 +263,10 @@ def construir_catalogo_costos(forzar: bool = False) -> dict:
         if cache:
             return cache
 
+    # PENDIENTE: esta función pagina también /v1/purchases (histórico de facturas
+    # de compra) para calcular costos — ese histórico todavía no existe en Alegra
+    # (falta migrar "Compras", ver conversación de migración 2026-09-03). Se deja
+    # leyendo de Siigo por ahora, sin bloquear el resto del catálogo de costos.
     from app.services.siigo import _siigo_get
 
     # ── Paso 1: catálogo completo de productos → nombre_norm → code ──────────
@@ -457,7 +461,7 @@ def escanear_componentes_sin_costo() -> dict:
     Recorre todos los combos (productos de venta) y lista componentes únicos
     (insumos/compras) que aún no tienen costo asignado.
     """
-    from app.services.siigo import listar_productos_combo_siigo
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo
 
     try:
         catalogo = construir_catalogo_costos()
@@ -670,7 +674,7 @@ def combo_costos_desglose(code: str) -> dict:
       2. Registro manual en contabilidad_db (fallback)
     Devuelve desglose detallado + totales por categoría.
     """
-    from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo, _precio_lista_alegra_producto as _precio_lista_siigo_producto
     from app.services.contabilidad_db import buscar_componente
 
     # Intentar cargar el catálogo de costos (usa caché si está vigente)
@@ -789,15 +793,15 @@ def costos_todos_resumen(refresh: bool = False) -> dict:
     Construye el catálogo y carga los combos una sola vez.
     Con refresh=True fuerza reconstrucción del catálogo Siigo y limpia caché de combos/excel.
     """
-    from app.services.siigo import listar_productos_combo_siigo
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo
     from app.services.contabilidad_db import buscar_componente
 
     if refresh:
         invalidar_cache_excel()
         try:
-            import app.services.siigo as _siigo
-            _siigo._combos_cache = []
-            _siigo._combos_cache_ts = 0.0
+            import app.services.alegra as _alegra
+            _alegra._combos_alegra_cache = []
+            _alegra._combos_alegra_cache_ts = 0.0
         except Exception:
             pass
 
@@ -1733,7 +1737,7 @@ def enviar_recordatorios_pagos() -> dict:
 
 def listar_productos_rentabilidad() -> tuple[list, str | None]:
     """Devuelve combos Siigo con componentes, precios e IVA para la calculadora."""
-    from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo, _precio_lista_alegra_producto as _precio_lista_siigo_producto
 
     try:
         combos = listar_productos_combo_siigo()
@@ -1843,8 +1847,9 @@ def calcular_rentabilidad(
 # ─── Análisis de período ─────────────────────────────────────────────────────
 
 def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
-    """Agrega facturas de venta Siigo en el rango dado."""
-    from app.services.siigo import obtener_facturas_siigo_paginadas
+    """Agrega facturas de venta (Siigo histórico + Alegra desde el corte) en el rango dado."""
+    from app.services.alegra import obtener_facturas_hibridas as obtener_facturas_siigo_paginadas
+    from app.services.alegra import items_hibridos_normalizados
 
     try:
         facturas = obtener_facturas_siigo_paginadas(fecha_inicio)
@@ -1860,14 +1865,14 @@ def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
     total_con_iva = sum(float(f.get("total") or 0) for f in facturas_rango)
     total_iva = 0.0
     for f in facturas_rango:
-        for item in (f.get("items") or []):
+        for item in items_hibridos_normalizados(f):
             for tax in (item.get("taxes") or []):
                 total_iva += float(tax.get("value") or 0)
 
     total_sin_iva = total_con_iva - total_iva
     productos: dict[str, dict] = {}
     for f in facturas_rango:
-        for item in (f.get("items") or []):
+        for item in items_hibridos_normalizados(f):
             code = (item.get("code") or "").strip()
             if not code:
                 continue

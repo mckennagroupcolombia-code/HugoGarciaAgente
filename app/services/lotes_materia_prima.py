@@ -448,7 +448,7 @@ def buscar_lote_publico(codigo: str) -> dict[str, Any] | None:
 
 def _catalogo_siigo_para_match() -> list[dict[str, str]]:
     try:
-        from app.services.siigo import _combo_item_desde_raw, listar_productos_combo_siigo
+        from app.services.alegra import _combo_item_desde_raw_alegra as _combo_item_desde_raw, listar_productos_combo_alegra as listar_productos_combo_siigo
 
         raw_list = listar_productos_combo_siigo()
         return [_combo_item_desde_raw(r) for r in raw_list if r.get("active", True)]

@@ -32,6 +32,8 @@ from app.services.meli import (
     consultar_envio_meli,
     consultar_item_meli_basico,
     consultar_orden_meli_completa,
+    meli_pack_tiene_documento_fiscal,
+    subir_factura_meli,
 )
 from app.services.alegra import (
     buscar_producto_alegra_por_referencia,
@@ -45,7 +47,7 @@ _ESTADO_LOCK = threading.Lock()
 NIT_CONSUMIDOR_FINAL_MELI = (os.getenv("SIIGO_MELI_NIT_CONSUMIDOR_FINAL", "222222222222") or "222222222222").strip()
 NOMBRE_CONSUMIDOR_FINAL_MELI = "Consumidor Final"
 
-_ESTADOS_TERMINALES = ("facturada", "en_proceso")
+_ESTADOS_TERMINALES = ("facturada", "en_proceso", "anulada", "ya_facturada_legado")
 
 
 def _autofactura_activa() -> bool:
@@ -138,13 +140,30 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
         if precio is None:
             precio = item_info.get("unit_price")
 
-        detalle = consultar_item_meli_basico(item_id) if item_id else None
-        sku = (detalle or {}).get("seller_custom_field") or ""
+        # OJO: usar SIEMPRE el seller_custom_field que YA viene en la línea de la
+        # orden (item_info) — es el de la VARIACIÓN específica comprada (color,
+        # tamaño, etc.). consultar_item_meli_basico(item_id) reconsulta por el
+        # item_id "padre" y puede devolver el SKU de otra variación del mismo
+        # producto — bug confirmado en vivo el 2026-09-03 con un item con
+        # variantes de color (order trajo AS-19, la reconsulta trajo GOTVID50mL).
+        # Solo se recurre a la reconsulta si la orden no trajera el dato.
+        sku = (item_info.get("seller_custom_field") or "").strip()
         if not sku:
-            for attr in (detalle or {}).get("attributes") or []:
+            for attr in item_info.get("attributes") or []:
                 if attr.get("id") == "SELLER_SKU":
                     sku = (attr.get("value_name") or "").strip()
                     break
+
+        detalle = None
+        if not sku and item_id:
+            detalle = consultar_item_meli_basico(item_id)
+            sku = (detalle or {}).get("seller_custom_field") or ""
+            if not sku:
+                for attr in (detalle or {}).get("attributes") or []:
+                    if attr.get("id") == "SELLER_SKU":
+                        sku = (attr.get("value_name") or "").strip()
+                        break
+
         nombre = item_info.get("title") or (detalle or {}).get("title") or "Producto"
 
         if not sku:
@@ -224,6 +243,34 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             )
             return
 
+        # Pre-chequeo contra el índice legado (Siigo / astroselling.com) ANTES de
+        # llamar a Alegra — no solo antes de subir el PDF a MeLi. Sin esto, cada
+        # entrega nueva de una orden que Astroselling ya facturó ayer (backlog,
+        # no facturación concurrente) genera OTRA factura DIAN duplicada en
+        # Alegra igual, aunque después no se suba a MeLi. Confirmado en vivo
+        # 2026-09-03: 8 duplicados nuevos (FE11-FE20) se crearon esta tarde por
+        # tener el chequeo solo en el paso de subida, no acá.
+        pack_id = str(orden.get("pack_id") or order_id).strip()
+        try:
+            from app.services.conciliacion_meli import leer_indice_facturacion_meli
+
+            legado = leer_indice_facturacion_meli().get("indice", {}).get(pack_id)
+        except Exception:
+            legado = None
+        if legado:
+            _registrar_estado_orden(
+                order_id,
+                estado="ya_facturada_legado",
+                pack_id=pack_id,
+                legado_factura_numero=legado.get("factura_numero"),
+                legado_integracion=legado.get("integracion"),
+            )
+            print(
+                f"⏭️ [MELI-AUTOFACTURA] Orden {order_id} (pack {pack_id}) ya tiene factura "
+                f"{legado.get('integracion')} {legado.get('factura_numero')} — no se factura de nuevo en Alegra."
+            )
+            return
+
         lines, line_error = _construir_lineas_factura_desde_orden_meli(orden)
         if line_error:
             _registrar_estado_orden(order_id, estado="error", error=line_error)
@@ -284,6 +331,30 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
         )
 
         if result.get("ok"):
+            numero = result.get("number") or result.get("invoice_id")
+
+            # Sube el PDF a MeLi (fiscal_documents del pack) para que el comprador la vea
+            # ahí — hasta ahora esto solo lo hacía Astroselling (externo) o el sync de
+            # facturas de compra Siigo (Flujo F), nunca este flujo. Si el pack YA tiene un
+            # documento fiscal (ej. Astroselling ya facturó esta misma venta, ver caso
+            # FE2/FE3 duplicando FV-2-70961/FV-2-71112 el 2026-09-03), NO se sube el de
+            # Alegra encima — MeLi solo admite un documento fiscal por pack y tipo, y
+            # subir uno nuevo ahí sin resolver primero cuál es el válido perpetuaría la
+            # doble factura en vez de solo evidenciarla (para eso ya está el aviso ⚠️ en
+            # el panel Astro Killer).
+            pack_id = str(orden.get("pack_id") or order_id).strip()
+            pdf_subido = False
+            aviso_pdf = ""
+            if not result.get("pdf_base64"):
+                aviso_pdf = "\n⚠️ No se pudo descargar el PDF de Alegra — súbelo a MeLi manualmente."
+            elif meli_pack_tiene_documento_fiscal(pack_id):
+                aviso_pdf = "\n⚠️ El pack ya tenía un documento fiscal en MeLi (revisar Astro Killer: posible doble) — no se subió el de Alegra."
+            else:
+                subida = subir_factura_meli(pack_id, result["pdf_base64"], formato="pdf", prefijo_archivo="Fac")
+                pdf_subido = subida == "✅"
+                if not pdf_subido:
+                    aviso_pdf = f"\n⚠️ La factura se creó en Alegra pero no se pudo subir el PDF a MeLi: {subida}"
+
             _registrar_estado_orden(
                 order_id,
                 estado="facturada",
@@ -292,12 +363,13 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
                 siigo_invoice_number=result.get("number"),
                 siigo_invoice_status=result.get("status"),
                 siigo_invoice_cufe=result.get("cufe") or None,
+                pdf_subido_meli=pdf_subido,
             )
-            numero = result.get("number") or result.get("invoice_id")
             enviar_whatsapp_reporte(
                 f"✅ *Autofactura MeLi*: orden {order_id} (envío {shipping_id}) entregada y facturada en Alegra.\n"
                 f"Factura: {numero}\n"
-                f"{result.get('url') or ''}",
+                f"{result.get('url') or ''}"
+                f"{aviso_pdf}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
         else:

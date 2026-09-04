@@ -446,7 +446,7 @@ def vincular_meli_con_siigo(codigo_siigo: str, meli_id: str) -> dict:
     Verifica que el código exista en Siigo cuando sea posible.
     """
     from app.services.publicaciones import actualizar_publicacion, normalizar_meli_item_id
-    from app.services.siigo import buscar_producto_siigo_por_sku
+    from app.services.alegra import buscar_producto_alegra_por_referencia as buscar_producto_siigo_por_sku
 
     sku = _norm(codigo_siigo)
     mid = normalizar_meli_item_id(_norm(meli_id))

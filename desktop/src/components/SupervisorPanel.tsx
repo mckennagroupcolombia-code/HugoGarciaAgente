@@ -74,7 +74,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
           title={t.label}
           aria-label={t.label}
           onClick={() => onChange(t.id)}
-          className={hubTabClass(active === t.id, "flex-1 justify-center")}
+          className={hubTabClass(active === t.id, "flex-1 justify-center mck-hub-tab-etiquetado flex-col")}
         >
           <Icon name={t.icon} size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>{t.label}</span>

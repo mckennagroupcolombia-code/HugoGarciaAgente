@@ -135,6 +135,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M12 12L16 8" />
     </>
   ),
+  "astro-killer": (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
   rentabilidad: (
     <>
       <path d="M3 17l3-6 4 4 4-7 4 3" />

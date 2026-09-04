@@ -38,9 +38,9 @@ function TabCargando() {
 
 function renderSubpanel(id: ContabilidadPanelId) {
   switch (id) {
-    case "facturacion":
-    case "sync":
-    case "facturas":
+    // Ya no navegable directo (tab oculta, se accede vía el icono del
+    // encabezado) — Facturación/Sync/Facturas/Astro Killer viven ahora en su
+    // propia sección de nivel superior (ver FacturacionPanel.tsx).
     case "productos-siigo":
       return <FacturacionPanel />;
     case "stock":
@@ -139,7 +139,7 @@ export default function ContabilidadPanel() {
   }, [panel, tabs, user, advanced, setPanel]);
 
   const nActivo = normalizarPanelContabilidad(panel);
-  const subpanelId = nActivo && tabs.includes(nActivo) ? nActivo : (tabs[0] ?? "facturacion");
+  const subpanelId = nActivo && tabs.includes(nActivo) ? nActivo : (tabs[0] ?? CONTABILIDAD_PANELS[0]);
 
   useEffect(() => {
     if (!KEEP_ALIVE.has(subpanelId)) return;

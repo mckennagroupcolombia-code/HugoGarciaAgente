@@ -10,12 +10,13 @@ import requests
 from datetime import datetime, timedelta
 
 # --- Importaciones de Servicios y Utilidades Modulares ---
-from app.services.siigo import (
-    obtener_facturas_siigo_paginadas,
-    siigo_factura_etiqueta_log,
-    siigo_factura_estado_log,
-    siigo_omitir_pdf_mientras_timbrado,
-    obtener_documento_fiscal_siigo_para_meli,
+# Migrado de Siigo a Alegra 2026-09-03 — ver app/services/alegra.py
+from app.services.alegra import (
+    obtener_facturas_hibridas as obtener_facturas_siigo_paginadas,
+    alegra_factura_etiqueta_log as siigo_factura_etiqueta_log,
+    alegra_factura_estado_log as siigo_factura_estado_log,
+    alegra_omitir_pdf_mientras_timbrado as siigo_omitir_pdf_mientras_timbrado,
+    obtener_documento_fiscal_alegra_para_meli as obtener_documento_fiscal_siigo_para_meli,
 )
 from app.services.meli import meli_pack_tiene_documento_fiscal, subir_factura_meli
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte, jid_grupo_inventario_wa
@@ -712,7 +713,7 @@ def sincronizar_stock_multicanal(
         return resultado
 
     try:
-        from app.services.siigo import buscar_producto_siigo_por_sku
+        from app.services.alegra import buscar_producto_alegra_por_referencia as buscar_producto_siigo_por_sku
 
         datos_siigo = buscar_producto_siigo_por_sku(sku)
         if datos_siigo:

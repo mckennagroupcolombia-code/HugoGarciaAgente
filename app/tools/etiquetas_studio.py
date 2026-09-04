@@ -184,7 +184,7 @@ def generar_pdf_temporal_para_impresion(datos: dict) -> tuple[str, dict]:
 
 def mapa_sku_por_archivo_ai() -> dict[str, dict[str, str]]:
     """Archivo .ai en Etiquetas Modelo SVG → SKU/nombre Siigo (catálogo Studio)."""
-    from app.services.siigo import listar_productos_combo_siigo
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo
     from app.tools.etiquetas_ai_engine import resolver_plantilla_ai
 
     out: dict[str, dict[str, str]] = {}
@@ -526,7 +526,7 @@ def listar_catalogo_studio(
         _load_overrides,
         _meli_id_efectivo_sku,
     )
-    from app.services.siigo import listar_productos_combo_siigo
+    from app.services.alegra import listar_productos_combo_alegra as listar_productos_combo_siigo
     from app.tools.etiquetas_ai_engine import listar_plantillas_ai, resolver_plantilla_ai
 
     studio_all = _load_studio_all()

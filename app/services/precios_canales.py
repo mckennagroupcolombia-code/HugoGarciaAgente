@@ -478,7 +478,10 @@ def reconciliar_precios_meli(
     """
     from app.services.google_services import _abrir_hoja
     from app.services.meli import _obtener_seller_id_meli
-    from app.services.siigo import actualizar_precio_combo_siigo, buscar_producto_siigo_por_sku
+    from app.services.alegra import (
+        actualizar_precio_alegra_producto as actualizar_precio_combo_siigo,
+        buscar_producto_alegra_por_referencia as buscar_producto_siigo_por_sku,
+    )
     from app.utils import refrescar_token_meli
 
     resultado: dict = {"dry_run": dry_run, "candidatos": [], "aplicados": 0, "errores": []}

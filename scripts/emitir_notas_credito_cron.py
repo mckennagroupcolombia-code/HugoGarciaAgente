@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """
 Cron: detecta ventas MeLi canceladas que ya tenían factura electrónica
-emitida en Siigo y aún no tienen nota crédito, y las emite automáticamente
-vía API de Siigo (reason=2 "anulación de factura electrónica", referenciando
-la factura original). Reporta por WhatsApp solo si hubo actividad.
+emitida (Siigo histórico o Alegra desde el 2026-09-02, ver
+`app/services/alegra.py::obtener_facturas_hibridas`/`FECHA_CORTE_MIGRACION_ALEGRA`)
+y aún no tienen nota crédito, y las emite automáticamente contra el proveedor
+que corresponda (reason=2 / "anulación de factura electrónica" en Siigo,
+`VOID_ELECTRONIC_INVOICE` en Alegra), referenciando la factura original.
+Reporta por WhatsApp solo si hubo actividad.
+
+Hasta el 2026-09-03 este cron solo miraba Siigo — cualquier cancelación de
+una venta ya facturada en Alegra quedaba sin nota crédito automática, mismo
+patrón que el incidente original (ver más abajo) pero con el proveedor
+nuevo. Se corrigió el mismo día que se detectó, sin dejarlo acumular.
 
 Origen: la auditoría manual del 10-ago-2026 encontró 44 casos acumulados
 desde el 26-jun-2026 sin que nadie se diera cuenta — el flujo de tickets
@@ -101,27 +109,32 @@ def _texto_factura(f: dict) -> str:
     return f"{f.get('observations', '')} {f.get('purchase_order', '')}"
 
 
-def _subir_nota_credito_a_meli(pack_id: str, nc_id: str) -> tuple[bool, str]:
+def _subir_nota_credito_a_meli(pack_id: str, nc_id: str, *, es_alegra: bool) -> tuple[bool, str]:
     """
-    Descarga el PDF de la nota crédito en Siigo y lo sube al pack en MeLi
-    (mismo endpoint fiscal_documents que la factura). Sin esto, Siigo queda
-    con la nota crédito correcta pero MeLi solo muestra la factura original
-    en "ver factura" — como si la cancelación nunca se hubiera resuelto.
+    Descarga el PDF de la nota crédito (Siigo o Alegra según `es_alegra`) y lo
+    sube al pack en MeLi (mismo endpoint fiscal_documents que la factura). Sin
+    esto, el proveedor queda con la nota crédito correcta pero MeLi solo
+    muestra la factura original en "ver factura" — como si la cancelación
+    nunca se hubiera resuelto.
 
     MeLi solo admite UN documento fiscal por pack (confirmado con un 409
     "File Not allowed... there can be only one fiscal_document per pack" al
     intentar subir la NC junto a la factura ya existente): hay que borrar el
-    documento anterior antes de subir la nota crédito. Siigo conserva ambos
-    documentos siempre — esto solo reemplaza lo que MeLi expone.
+    documento anterior antes de subir la nota crédito. El proveedor conserva
+    ambos documentos siempre — esto solo reemplaza lo que MeLi expone.
     """
-    from app.services.siigo import descargar_nota_credito_pdf_siigo
     from app.services.meli import subir_factura_meli, eliminar_documentos_fiscales_meli
 
     if not nc_id:
         return False, "Sin ID de nota crédito para descargar el PDF."
-    pdf_b64 = descargar_nota_credito_pdf_siigo(nc_id)
+    if es_alegra:
+        from app.services.alegra import descargar_nota_credito_pdf_alegra as _descargar_nc
+    else:
+        from app.services.siigo import descargar_nota_credito_pdf_siigo as _descargar_nc
+    pdf_b64 = _descargar_nc(nc_id)
     if not pdf_b64 or "Error" in str(pdf_b64):
-        return False, f"No se pudo descargar el PDF de la nota crédito en Siigo: {pdf_b64}"
+        proveedor = "Alegra" if es_alegra else "Siigo"
+        return False, f"No se pudo descargar el PDF de la nota crédito en {proveedor}: {pdf_b64}"
 
     borrado_ok, borrado_error = eliminar_documentos_fiscales_meli(pack_id)
     if not borrado_ok:
@@ -228,9 +241,14 @@ def main() -> int:
 
     from app.services.meli import listar_ordenes_canceladas_meli
     from app.services.siigo import (
-        obtener_facturas_siigo_paginadas,
         buscar_nota_credito_existente_siigo,
         crear_nota_credito_siigo,
+    )
+    from app.services.alegra import (
+        obtener_facturas_hibridas,
+        es_factura_alegra,
+        buscar_nota_credito_existente_alegra,
+        crear_nota_credito_alegra,
     )
     from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 
@@ -243,20 +261,24 @@ def main() -> int:
 
     fecha_inicio_facturas = (datetime.now() - timedelta(days=dias_atras + 5)).strftime("%Y-%m-%d")
     try:
-        facturas = obtener_facturas_siigo_paginadas(fecha_inicio_facturas, estricto=True)
+        # Híbrido: Siigo hasta el corte de migración + Alegra desde ahí — si
+        # solo miráramos Siigo, cualquier cancelación de una venta ya
+        # facturada en Alegra se trataría como "sin factura" y se
+        # descartaría sin nota crédito, sin dejar rastro.
+        facturas = obtener_facturas_hibridas(fecha_inicio_facturas, estricto=True)
     except Exception as e:
         # No seguir: una lista de facturas incompleta hace que cancelaciones
         # con factura real se traten como "sin factura" y se descarten sin
         # dejar rastro (ver historial de este archivo). Mejor abortar la
         # corrida, avisar y reintentar mañana con la lista completa.
-        print(f"🔴 No se pudo obtener el listado completo de facturas Siigo, se aborta esta corrida: {e}")
-        errores = [{"pack": "-", "factura": "-", "error": f"Paginación de facturas Siigo incompleta: {e}"}]
+        print(f"🔴 No se pudo obtener el listado completo de facturas (Siigo+Alegra), se aborta esta corrida: {e}")
+        errores = [{"pack": "-", "factura": "-", "error": f"Paginación de facturas incompleta: {e}"}]
         _crear_ticket_revision(errores)
         if not _quiet():
             enviar_whatsapp_reporte(_mensaje_whatsapp([], [], errores), jid_grupo_facturacion_ventas_wa())
         registrar_ejecucion(JOB_ID)
         return 1
-    print(f"   {len(facturas)} facturas Siigo en la ventana.")
+    print(f"   {len(facturas)} facturas (Siigo+Alegra) en la ventana.")
 
     try:
         from app.services.conciliacion_meli import (
@@ -291,60 +313,84 @@ def main() -> int:
         if not factura:
             continue  # cancelada sin factura emitida — no aplica nota crédito
 
-        factura_numero = factura.get("name") or str(factura.get("number") or "")
+        es_alegra = es_factura_alegra(factura)
+        proveedor = "Alegra" if es_alegra else "Siigo"
+        factura_numero = (
+            (factura.get("numberTemplate") or {}).get("fullNumber")
+            if es_alegra
+            else (factura.get("name") or str(factura.get("number") or ""))
+        )
         factura_id = factura.get("id")
 
-        existente = buscar_nota_credito_existente_siigo(factura_id)
+        existente = (
+            buscar_nota_credito_existente_alegra(factura_id) if es_alegra
+            else buscar_nota_credito_existente_siigo(factura_id)
+        )
         if existente:
-            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, existente.get("id"))
+            nc_nombre_existente = (
+                (existente.get("numberTemplate") or {}).get("fullNumber") if es_alegra
+                else existente.get("name")
+            )
+            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, existente.get("id"), es_alegra=es_alegra)
             duplicados.append({
                 "pack": pack_id, "factura": factura_numero,
-                "nc_existente": existente.get("name"),
+                "nc_existente": nc_nombre_existente,
             })
             if not subida_ok:
-                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {existente.get('name')} ya existía en Siigo pero no se pudo subir a MeLi: {subida_error}"})
+                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {nc_nombre_existente} ya existía en {proveedor} pero no se pudo subir a MeLi: {subida_error}"})
             procesadas[pack_id] = {
                 "estado": "ya_tenia_nc", "factura": factura_numero,
-                "nc": existente.get("name"), "subida_meli": subida_ok,
+                "nc": nc_nombre_existente, "subida_meli": subida_ok, "proveedor": proveedor,
                 "actualizado_en": datetime.now().isoformat(timespec="seconds"),
             }
             continue
 
-        items = [
-            {
-                "code": it["code"],
-                "description": it.get("description", ""),
-                "quantity": it["quantity"],
-                "price": it["price"],
-                "tax_ids": [t["id"] for t in (it.get("taxes") or [])],
-            }
-            for it in factura.get("items", [])
-        ]
-        payments = [{"id": p["id"], "value": p["value"]} for p in factura.get("payments", [])]
+        if es_alegra:
+            # crear_nota_credito_alegra resuelve cliente/ítems/bodega directo de la
+            # factura por id — no hace falta reconstruirlos como con Siigo.
+            resultado = crear_nota_credito_alegra(
+                factura_id=factura_id,
+                motivo=(
+                    f"Nota credito por cancelacion de orden Mercado Libre (pack {pack_id}). "
+                    f"Factura ya emitida antes de la cancelacion. Generada automaticamente por cron."
+                ),
+            )
+        else:
+            items = [
+                {
+                    "code": it["code"],
+                    "description": it.get("description", ""),
+                    "quantity": it["quantity"],
+                    "price": it["price"],
+                    "tax_ids": [t["id"] for t in (it.get("taxes") or [])],
+                }
+                for it in factura.get("items", [])
+            ]
+            payments = [{"id": p["id"], "value": p["value"]} for p in factura.get("payments", [])]
 
-        resultado = crear_nota_credito_siigo(
-            invoice_id=factura_id,
-            items=items,
-            payments=payments,
-            reason=2,
-            observaciones=(
-                f"Nota crédito por cancelación de orden Mercado Libre (pack {pack_id}). "
-                f"Factura ya emitida antes de la cancelación. Generada automáticamente por cron."
-            ),
-        )
+            resultado = crear_nota_credito_siigo(
+                invoice_id=factura_id,
+                items=items,
+                payments=payments,
+                reason=2,
+                observaciones=(
+                    f"Nota crédito por cancelación de orden Mercado Libre (pack {pack_id}). "
+                    f"Factura ya emitida antes de la cancelación. Generada automáticamente por cron."
+                ),
+            )
 
         if resultado.get("ok"):
-            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, resultado.get("credit_note_id"))
+            subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, resultado.get("credit_note_id"), es_alegra=es_alegra)
             emitidas.append({
                 "pack": pack_id, "factura": factura_numero,
                 "nc_name": resultado["name"], "total": resultado.get("total") or factura.get("total") or 0,
                 "status": resultado.get("status"),
             })
             if not subida_ok:
-                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {resultado['name']} se emitió en Siigo pero no se pudo subir a MeLi: {subida_error}"})
+                errores.append({"pack": pack_id, "factura": factura_numero, "error": f"NC {resultado['name']} se emitió en {proveedor} pero no se pudo subir a MeLi: {subida_error}"})
             procesadas[pack_id] = {
                 "estado": "emitida", "factura": factura_numero, "nc": resultado["name"],
-                "subida_meli": subida_ok,
+                "subida_meli": subida_ok, "proveedor": proveedor,
                 "actualizado_en": datetime.now().isoformat(timespec="seconds"),
             }
             print(f"   ✅ {factura_numero} -> {resultado['name']} ({resultado.get('status')}) — MeLi: {'✅' if subida_ok else '❌ ' + subida_error}")

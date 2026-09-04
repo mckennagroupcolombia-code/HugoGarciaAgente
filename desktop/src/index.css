@@ -2350,8 +2350,10 @@ html[data-mck-skin="botica"].dark .mck-header-glass {
   background: rgb(32 40 32 / 0.94);
 }
 
-/* Pestañas con icono: el texto queda oculto (tooltip / lector). El icono es lo visible.
-   No recortar .mck-illus-icon: es un span y es el dibujo, no la etiqueta. */
+/* Pestañas con icono sin `.mck-hub-tab-etiquetado`: el texto queda oculto (tooltip / lector),
+   solo el icono es visible. No recortar .mck-illus-icon: es un span y es el dibujo, no la etiqueta.
+   En la práctica todas las tab-bars del panel usan `.mck-hub-tab-etiquetado` (ver hubTabClass) para
+   mostrar el nombre apilado debajo del icono — este bloque queda como fallback accesible. */
 .mck-hub-tab:has(.mck-icon, .mck-illus-icon) {
   justify-content: center;
   min-width: 2.5rem;
@@ -2369,8 +2371,7 @@ html[data-mck-skin="botica"].dark .mck-header-glass {
   white-space: nowrap;
   border: 0;
 }
-/* Excepción: los tabs de Inicio (Agenda/Mensajes/Métricas) sí muestran el nombre,
-   apilado debajo del icono — son solo 2-3 botones, no un tab-bar denso. */
+/* `.mck-hub-tab-etiquetado`: nombre visible por defecto, apilado debajo del icono. */
 .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) {
   min-height: 3.1rem;
 }

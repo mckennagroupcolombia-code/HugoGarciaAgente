@@ -950,7 +950,7 @@ def _siigo_invoice_row_for_test(db_path: Path, reference: str = "MCKG-ABC12336E"
 
 
 def test_emitir_factura_siigo_pedido_web_success(monkeypatch, tmp_path):
-    from app.services import siigo
+    from app.services import alegra
     from app.tools import web_pedidos as wp
 
     db_path = tmp_path / "orders.db"
@@ -959,27 +959,32 @@ def test_emitir_factura_siigo_pedido_web_success(monkeypatch, tmp_path):
     monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_8500", raising=False)
     _insert_web_order_for_siigo_test(db_path)
 
-    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", lambda sku: {"sku": sku})
+    # emitir_factura_siigo_pedido_web (nombre legado) ya usa Alegra internamente
+    # desde el 2026-09-03 — mockear app.services.siigo aquí no interceptaba nada
+    # y los tests terminaban pegándole a la API real de Alegra (bug encontrado en
+    # la auditoría de integración Siigo→Alegra del mismo día).
+    monkeypatch.setattr(alegra, "buscar_producto_alegra_por_referencia", lambda sku: {"id": sku, "name": sku, "price": 0})
     captured = {}
 
-    def fake_crear_factura_venta_siigo(**kwargs):
+    def fake_crear_factura_venta_alegra(**kwargs):
         captured.update(kwargs)
         return {
             "ok": True,
-            "invoice_id": "inv-123",
-            "number": "FE-123",
+            "invoice_id": "4",
+            "number": "FE4",
             "status": "Accepted",
             "cufe": "CUFE123",
             "stamp": {"status": "Accepted", "cufe": "CUFE123"},
-            "url": "https://siigo.test/inv-123",
+            "url": "https://app.alegra.com/invoice/view/id/4",
+            "pdf_path": None,
         }
 
-    monkeypatch.setattr(siigo, "crear_factura_venta_siigo", fake_crear_factura_venta_siigo)
+    monkeypatch.setattr(alegra, "crear_factura_venta_alegra", fake_crear_factura_venta_alegra)
 
     ok, msg = wp.emitir_factura_siigo_pedido_web("MCKG-ABC12336E")
 
     assert ok is True
-    assert "FE-123" in msg
+    assert "FE4" in msg
     assert captured["purchase_order"] == "MCKG-ABC12336E"
     assert captured["identificacion"] == "1012381852"
     assert captured["total"] == 28500
@@ -988,8 +993,8 @@ def test_emitir_factura_siigo_pedido_web_success(monkeypatch, tmp_path):
         "WEB-ENVIO-8500",
     ]
     row = _siigo_invoice_row_for_test(db_path)
-    assert row["siigo_invoice_id"] == "inv-123"
-    assert row["siigo_invoice_number"] == "FE-123"
+    assert row["siigo_invoice_id"] == "4"
+    assert row["siigo_invoice_number"] == "FE4"
     assert row["siigo_invoice_status"] == "Accepted"
     assert row["siigo_invoice_cufe"] == "CUFE123"
     assert row["siigo_invoice_emitted_at"]
@@ -1028,7 +1033,7 @@ def test_emitir_factura_siigo_pedido_web_no_duplica(monkeypatch, tmp_path):
 
 
 def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, tmp_path):
-    from app.services import siigo
+    from app.services import alegra
     from app.tools import web_pedidos as wp
 
     db_path = tmp_path / "orders.db"
@@ -1040,14 +1045,14 @@ def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, t
     def fake_buscar_producto(sku):
         if sku in ("WEB-ENVIO-8500", "WEB-ENVIO-VAR"):
             return None
-        return {"sku": sku}
+        return {"id": sku, "name": sku, "price": 0}
 
-    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", fake_buscar_producto)
+    monkeypatch.setattr(alegra, "buscar_producto_alegra_por_referencia", fake_buscar_producto)
 
     def fail_if_called(**_kwargs):
         raise AssertionError("No debe crear factura sin SKU de envio")
 
-    monkeypatch.setattr(siigo, "crear_factura_venta_siigo", fail_if_called)
+    monkeypatch.setattr(alegra, "crear_factura_venta_alegra", fail_if_called)
 
     ok, msg = wp.emitir_factura_siigo_pedido_web("MCKG-ABC12336E")
 
@@ -1059,8 +1064,8 @@ def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, t
 
 
 def test_lineas_factura_web_envio_cae_a_generico(monkeypatch):
-    """Montos de envío sin producto propio en Siigo (tarifas 2026) usan WEB-ENVIO-VAR."""
-    from app.services import siigo
+    """Montos de envío sin producto propio en Alegra (tarifas 2026) usan WEB-ENVIO-VAR."""
+    from app.services import alegra
     from app.tools import web_pedidos as wp
 
     monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
@@ -1069,9 +1074,9 @@ def test_lineas_factura_web_envio_cae_a_generico(monkeypatch):
     def fake_buscar_producto(sku):
         if sku.startswith("WEB-ENVIO-") and sku not in ("WEB-ENVIO-VAR",):
             return None
-        return {"sku": sku}
+        return {"id": sku, "name": sku, "price": 0}
 
-    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", fake_buscar_producto)
+    monkeypatch.setattr(alegra, "buscar_producto_alegra_por_referencia", fake_buscar_producto)
 
     data = {
         "items": [{"ref": "ACDCTRKg", "name": "Ácido Cítrico Kg", "qty": 1, "price": 20000}],
@@ -1086,7 +1091,7 @@ def test_lineas_factura_web_envio_cae_a_generico(monkeypatch):
 def test_marcar_solicitud_facturacion_reintenta(monkeypatch, tmp_path):
     import sqlite3
 
-    from app.services import siigo
+    from app.services import alegra
     from app.tools import web_pedidos as wp
 
     db_path = tmp_path / "orders.db"
@@ -1104,18 +1109,19 @@ def test_marcar_solicitud_facturacion_reintenta(monkeypatch, tmp_path):
     con.commit()
     con.close()
 
-    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", lambda sku: {"sku": sku})
+    monkeypatch.setattr(alegra, "buscar_producto_alegra_por_referencia", lambda sku: {"id": sku, "name": sku, "price": 0})
     monkeypatch.setattr(
-        siigo,
-        "crear_factura_venta_siigo",
+        alegra,
+        "crear_factura_venta_alegra",
         lambda **_kwargs: {
             "ok": True,
-            "invoice_id": "inv-retry",
+            "invoice_id": "99",
             "number": "FE-RETRY",
             "status": "Accepted",
             "cufe": "CUFERETRY",
             "stamp": {"status": "Accepted", "cufe": "CUFERETRY"},
-            "url": "https://siigo.test/inv-retry",
+            "url": "https://app.alegra.com/invoice/view/id/99",
+            "pdf_path": None,
         },
     )
 

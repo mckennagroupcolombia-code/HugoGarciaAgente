@@ -180,9 +180,14 @@ def consultar_envio_meli(shipping_id: str) -> dict | None:
         return None
 
 
-def consultar_orden_meli_completa(order_id: str) -> dict | None:
-    """GET /orders/{id} crudo (a diferencia de consultar_detalle_venta_meli, que devuelve texto)."""
-    token = refrescar_token_meli()
+def consultar_orden_meli_completa(order_id: str, *, token: str | None = None) -> dict | None:
+    """GET /orders/{id} crudo (a diferencia de consultar_detalle_venta_meli, que devuelve texto).
+
+    `token`: opcional, para reusar un token ya refrescado en llamadas en lote
+    (ej. Astro Killer armando el detalle de N ventas) — `refrescar_token_meli()`
+    hace un refresh OAuth completo cada vez que se llama sin esto, y llamarlo
+    una vez por orden en un loop es innecesariamente lento."""
+    token = token or refrescar_token_meli()
     if not token:
         return None
     try:
@@ -201,9 +206,10 @@ def consultar_orden_meli_completa(order_id: str) -> dict | None:
         return None
 
 
-def consultar_item_meli_basico(item_id: str) -> dict | None:
-    """GET /items/{id} crudo (seller_custom_field, title, etc.)."""
-    token = refrescar_token_meli()
+def consultar_item_meli_basico(item_id: str, *, token: str | None = None) -> dict | None:
+    """GET /items/{id} crudo (seller_custom_field, title, etc.). `token`: ver
+    `consultar_orden_meli_completa` — reusar en llamadas en lote."""
+    token = token or refrescar_token_meli()
     if not token:
         return None
     try:
