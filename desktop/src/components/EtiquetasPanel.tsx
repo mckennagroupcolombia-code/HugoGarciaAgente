@@ -67,7 +67,7 @@ import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
-import { puedeVerTabEtiquetas, esCynthiaEtiquetas, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
+import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -6978,11 +6978,11 @@ export default function EtiquetasPanel() {
   const solicitudActivaStore = useAppStore((s) => s.etiquetasSolicitudActiva);
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
   const ticketsUser = useTicketsAuth((s) => s.user);
-  const verAvanzado = esCynthiaEtiquetas(ticketsUser);
+  const verAvanzado = puedeVerEtiquetasAvanzado(ticketsUser);
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
     const user = useTicketsAuth.getState().user;
-    if (esTabEtiquetasSoloCynthia(t) && !esCynthiaEtiquetas(user)) return "imprimir";
+    if (esTabEtiquetasSoloCynthia(t) && !puedeVerEtiquetasAvanzado(user)) return "imprimir";
     return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
       ? t
       : "imprimir";

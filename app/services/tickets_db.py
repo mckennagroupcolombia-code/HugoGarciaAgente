@@ -5715,6 +5715,33 @@ def es_cynthia_etiquetas(usuario: dict | None) -> bool:
     return email in _CYNTHIA_ETIQUETAS_EMAILS
 
 
+_ETIQUETAS_AVANZADO_EMAILS = frozenset({
+    "armandogarciadeveloper@gmail.com",
+})
+
+_ETIQUETAS_AVANZADO_USER_IDS = frozenset({8})
+
+
+def puede_ver_etiquetas_avanzado(usuario: dict | None) -> bool:
+    """Acceso a Studio visual / Papel-tinta / EAN: Cynthia o usuarios listados aquí.
+
+    A diferencia de es_cynthia_etiquetas, esto NO otorga la elevación admin de
+    Cynthia (es_admin_efectivo) — solo desbloquea estas pestañas de Etiquetas.
+    """
+    if es_cynthia_etiquetas(usuario):
+        return True
+    if not usuario:
+        return False
+    try:
+        uid = int(usuario.get("id") or 0)
+    except (TypeError, ValueError):
+        uid = 0
+    if uid in _ETIQUETAS_AVANZADO_USER_IDS:
+        return True
+    email = (usuario.get("email") or "").strip().lower()
+    return email in _ETIQUETAS_AVANZADO_EMAILS
+
+
 def es_admin_efectivo(usuario: dict | None) -> bool:
     """Admin real (nivel >= 3) o Cynthia con privilegios de administrador en el panel."""
     if not usuario:

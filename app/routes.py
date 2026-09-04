@@ -17697,20 +17697,20 @@ def register_routes(app):
     # ── Editor Plantillas Visuales ───────────────────────────────────────────
 
     def _require_studio_visual():
-        """Auth + acceso Etiquetas avanzadas (solo Cynthia). Response de error o None."""
+        """Auth + acceso Etiquetas avanzadas (Cynthia u otros autorizados). Response de error o None."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.services.tickets_db import es_cynthia_etiquetas
+        from app.services.tickets_db import puede_ver_etiquetas_avanzado
 
         usuario = _panel_tickets_usuario()
-        if es_cynthia_etiquetas(usuario):
+        if puede_ver_etiquetas_avanzado(usuario):
             return None
         # Cynthia elevada a admin envía CHAT_API_TOKEN y el front antiguo no
         # mandaba X-Tickets-Token: sin esto el inventario aparece vacío.
         if usuario is None and chat_api_token_matches_request():
             return None
         return jsonify({
-            "error": "Esta sección de Etiquetas solo está disponible para Cynthia",
+            "error": "Esta sección de Etiquetas no está disponible para tu usuario",
         }), 403
 
     def _require_cynthia_etiquetas():
