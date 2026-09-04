@@ -767,7 +767,9 @@ export default function CrearProductosSiigoPanel({
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
               <input
                 value={nombre}
-                onChange={(e) => setNombre(nombreMayusculasAlegra(e.target.value))}
+                onChange={(e) =>
+                  setNombre(nombreMayusculasAlegra(e.target.value, 100, { trimSpaces: false }))
+                }
                 placeholder="NOMBRE EN ALEGRA (ej. UREA 250 g)"
                 maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
@@ -880,7 +882,9 @@ export default function CrearProductosSiigoPanel({
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
               <input
                 value={comboNombre}
-                onChange={(e) => setComboNombre(nombreMayusculasAlegra(e.target.value))}
+                onChange={(e) =>
+                  setComboNombre(nombreMayusculasAlegra(e.target.value, 100, { trimSpaces: false }))
+                }
                 placeholder="NOMBRE DEL KIT / COMBO (ej. ACEITE 30 mL)"
                 maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"

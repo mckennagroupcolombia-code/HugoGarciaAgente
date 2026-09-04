@@ -68,6 +68,10 @@ def test_nombre_mayusculas_alegra_preserva_unidades():
     assert _nombre_mayusculas_alegra("Aceite Arbol de Te 5 mL") == "ACEITE ARBOL DE TE 5 mL"
     assert _nombre_mayusculas_alegra("aceite 30ml") == "ACEITE 30mL"
     assert _nombre_mayusculas_alegra("vitamina 100MG") == "VITAMINA 100MG"
+    # Espacios entre palabras se conservan (el bug del panel era trim en cada tecla
+    # en el frontend; al guardar Alegra también debe aceptar nombres multi-palabra).
+    assert _nombre_mayusculas_alegra("  acido  ascorbico  100 g  ") == "ACIDO  ASCORBICO  100 g"
+    assert " " in _nombre_mayusculas_alegra("niacinamida 10%")
 
 
 def test_crear_producto_en_alegra_rechaza_duplicado(monkeypatch):
