@@ -1260,6 +1260,28 @@ from app.utils import refrescar_token_meli
 # Memoria para deduplicación de preguntas
 preguntas_procesadas = {}
 
+# Órdenes ya contadas hoy en la métrica "ordenes_meli". MeLi manda un webhook
+# orders_v2 por cada cambio de la orden (pago, status, tags, mediations…), no
+# solo al crearse — sin este dedup, "pedidos hoy" contaba notificaciones en vez
+# de pedidos reales. Mismo fix que webhook_meli.py (el proceso que de verdad
+# recibe /notifications en producción).
+_ordenes_contadas_hoy: dict[str, str] = {}  # order_id -> fecha "YYYY-MM-DD"
+
+
+def _registrar_orden_metrica_si_es_nueva(order_id: str) -> None:
+    from app.monitor import incrementar_metrica
+
+    hoy = time.strftime("%Y-%m-%d")
+    if _ordenes_contadas_hoy.get(order_id) == hoy:
+        return
+    for oid in [k for k, v in _ordenes_contadas_hoy.items() if v != hoy]:
+        del _ordenes_contadas_hoy[oid]
+    _ordenes_contadas_hoy[order_id] = hoy
+    try:
+        incrementar_metrica("ordenes_meli")
+    except Exception:
+        pass
+
 
 def limpiar_preguntas_antiguas():
     """Elimina del registro las preguntas procesadas hace más de 5 minutos."""
@@ -1813,10 +1835,7 @@ def register_routes(app):
             order_id = plan["order_id"]
             print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
             spawn_thread(_procesar_orden_meli, args=(order_id,))
-            try:
-                incrementar_metrica("ordenes_meli")
-            except Exception:
-                pass
+            _registrar_orden_metrica_si_es_nueva(order_id)
         elif t == "postventa":
             print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
             registrar_meli_webhook_incidente(

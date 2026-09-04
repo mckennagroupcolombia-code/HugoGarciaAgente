@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { Icon } from "../icons";
+import { nombreMayusculasAlegra } from "../lib/alegraNombreProducto";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 type Modo = "producto" | "combo";
@@ -200,7 +201,7 @@ export default function CrearProductosSiigoPanel({
     mutationFn: () =>
       api.post<CrearResp>("/api/siigo/productos", {
         codigo: codigo.trim(),
-        nombre: nombre.trim(),
+        nombre: nombreMayusculasAlegra(nombre),
         unidad,
         precio_costo: Number(precioCosto || 0),
         ...(Number(precioVenta || 0) > 0
@@ -231,7 +232,7 @@ export default function CrearProductosSiigoPanel({
     mutationFn: () =>
       api.post<CrearResp>("/api/siigo/combos", {
         codigo: comboCodigo.trim(),
-        nombre: comboNombre.trim(),
+        nombre: nombreMayusculasAlegra(comboNombre),
         ...(Number(comboPrecio || 0) > 0
           ? { precio_lista: Number(comboPrecio) }
           : {}),
@@ -766,8 +767,8 @@ export default function CrearProductosSiigoPanel({
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
               <input
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre en Alegra (máx. 150)"
+                onChange={(e) => setNombre(nombreMayusculasAlegra(e.target.value))}
+                placeholder="NOMBRE EN ALEGRA (ej. UREA 250 g)"
                 maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               />
@@ -879,8 +880,8 @@ export default function CrearProductosSiigoPanel({
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">Nombre</span>
               <input
                 value={comboNombre}
-                onChange={(e) => setComboNombre(e.target.value)}
-                placeholder="Nombre del kit / combo"
+                onChange={(e) => setComboNombre(nombreMayusculasAlegra(e.target.value))}
+                placeholder="NOMBRE DEL KIT / COMBO (ej. ACEITE 30 mL)"
                 maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               />

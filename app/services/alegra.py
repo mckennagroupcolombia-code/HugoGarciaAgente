@@ -48,6 +48,22 @@ _contacto_cache: dict[str, str] = {}  # identificacion -> alegra contact id (pro
 _producto_cache: dict[str, dict] = {}  # sku -> {"id":..., "price":...} (proceso actual)
 
 
+def _nombre_mayusculas_alegra(nombre: str, *, max_len: int = 150) -> str:
+    """Nombres de ítems en Alegra: MAYÚSCULAS, con unidades `mL` y `g` en esa grafía.
+
+    Ej.: ``urea 250 g`` → ``UREA 250 g``; ``aceite 30ml`` → ``ACEITE 30mL``.
+    """
+    import re
+
+    s = (nombre or "").strip().upper()
+    if not s:
+        return ""
+    # Tras upper(), las unidades quedan ML / G; restaurar solo si van tras un número.
+    s = re.sub(r"(\d)(\s*)ML\b", r"\1\2mL", s)
+    s = re.sub(r"(\d)(\s*)G\b", r"\1\2g", s)
+    return s[:max_len]
+
+
 def _env_int(nombre: str, default: int | None = None) -> int | None:
     raw = (os.getenv(nombre) or "").strip()
     if not raw:
@@ -1323,7 +1339,7 @@ def crear_producto_en_alegra(producto: dict) -> dict:
     codigo = re.sub(r"[^A-Za-z0-9._-]", "", str(producto.get("codigo") or "").strip())
     if not codigo or not re.match(r"^[A-Za-z0-9._-]{2,40}$", codigo):
         return {"ok": False, "error": f"Código inválido: {producto.get('codigo')!r}"}
-    nombre = str(producto.get("nombre") or "").strip()[:150]
+    nombre = _nombre_mayusculas_alegra(str(producto.get("nombre") or ""))
     if not nombre:
         return {"ok": False, "error": "El nombre del producto es obligatorio"}
 
@@ -1444,7 +1460,7 @@ def crear_combo_en_alegra(
     codigo_limpio = re.sub(r"[^A-Za-z0-9._-]", "", (codigo or "").strip())
     if not codigo_limpio or not re.match(r"^[A-Za-z0-9._-]{2,40}$", codigo_limpio):
         return {"ok": False, "error": f"Código inválido: {codigo}"}
-    nombre_limpio = (nombre or "").strip()
+    nombre_limpio = _nombre_mayusculas_alegra(nombre or "")
     if not nombre_limpio:
         return {"ok": False, "error": "El nombre del combo es obligatorio"}
 
@@ -1490,7 +1506,7 @@ def crear_combo_en_alegra(
 
     tax_id = _env_int("ALEGRA_IVA_TAX_ID")
     payload = {
-        "name": nombre_limpio[:150],
+        "name": nombre_limpio,
         "reference": codigo_limpio,
         "price": round(float(precio_lista or 0), 0),
         "type": "kit",
@@ -1519,6 +1535,106 @@ def crear_combo_en_alegra(
             },
         }
     return {"ok": False, "error": f"Alegra POST error {r.status_code}: {r.text[:300]}"}
+
+
+def mayusculizar_nombres_productos_alegra(
+    *,
+    dry_run: bool = False,
+    limit: int | None = None,
+) -> dict:
+    """Pone en MAYÚSCULAS el `name` de todos los ítems Alegra (productos y kits).
+
+    Solo hace PUT cuando el nombre actual no está ya en mayúsculas.
+    Retorna {ok, dry_run, revisados, a_cambiar, actualizados, errores, ejemplos}.
+    """
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    revisados = 0
+    a_cambiar: list[dict] = []
+    actualizados = 0
+    errores: list[str] = []
+    pagina = 0
+    tope = int(limit) if limit and limit > 0 else None
+
+    while True:
+        try:
+            res = requests.get(
+                f"{_ALEGRA_BASE}/items",
+                headers=headers,
+                params={"limit": 30, "start": pagina * 30},
+                timeout=25,
+            )
+        except requests.RequestException as e:
+            return {
+                "ok": False,
+                "error": f"Error listando ítems: {e}",
+                "revisados": revisados,
+                "actualizados": actualizados,
+                "errores": errores,
+            }
+        if res.status_code != 200:
+            return {
+                "ok": False,
+                "error": f"Alegra GET items {res.status_code}: {res.text[:200]}",
+                "revisados": revisados,
+                "actualizados": actualizados,
+                "errores": errores,
+            }
+        lote = res.json() or []
+        if not lote:
+            break
+        for item in lote:
+            if tope is not None and revisados >= tope:
+                break
+            revisados += 1
+            item_id = item.get("id")
+            nombre = str(item.get("name") or "")
+            nombre_ok = _nombre_mayusculas_alegra(nombre)
+            if not item_id or not nombre_ok or nombre == nombre_ok:
+                continue
+            ref = (item.get("reference") or "").strip()
+            a_cambiar.append({
+                "id": item_id,
+                "codigo": ref,
+                "antes": nombre,
+                "despues": nombre_ok,
+            })
+            if dry_run:
+                continue
+            try:
+                put = requests.put(
+                    f"{_ALEGRA_BASE}/items/{item_id}",
+                    headers=headers,
+                    json={"name": nombre_ok},
+                    timeout=20,
+                )
+            except requests.RequestException as e:
+                errores.append(f"{ref or item_id}: red {e}")
+                continue
+            if put.status_code != 200:
+                errores.append(f"{ref or item_id}: PUT {put.status_code} {put.text[:120]}")
+                continue
+            actualizados += 1
+            if ref:
+                _producto_cache.pop(ref, None)
+        if tope is not None and revisados >= tope:
+            break
+        if len(lote) < 30:
+            break
+        pagina += 1
+
+    return {
+        "ok": len(errores) == 0,
+        "dry_run": dry_run,
+        "revisados": revisados,
+        "a_cambiar": len(a_cambiar),
+        "actualizados": actualizados if not dry_run else 0,
+        "errores": errores[:30],
+        "ejemplos": a_cambiar[:8],
+    }
 
 
 def actualizar_costo_componente_alegra(

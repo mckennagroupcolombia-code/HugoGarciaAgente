@@ -52,12 +52,22 @@ def test_crear_producto_en_alegra_payload(monkeypatch):
     })
     assert out["ok"] is True
     assert out["siigo_producto"]["codigo"] == "UREA250"
+    assert captured["json"]["name"] == "UREA COSMÉTICA"
     assert captured["json"]["type"] == "simple"
     assert captured["json"]["inventory"]["unit"] == "gram"
     assert captured["json"]["inventory"]["initialQuantity"] == 0
     assert captured["json"]["inventory"]["negativeSale"] is True
     assert captured["json"]["price"] == 25000
     assert captured["json"]["tax"] == [{"id": 19}]
+
+
+def test_nombre_mayusculas_alegra_preserva_unidades():
+    from app.services.alegra import _nombre_mayusculas_alegra
+
+    assert _nombre_mayusculas_alegra("urea cosmética 250 g") == "UREA COSMÉTICA 250 g"
+    assert _nombre_mayusculas_alegra("Aceite Arbol de Te 5 mL") == "ACEITE ARBOL DE TE 5 mL"
+    assert _nombre_mayusculas_alegra("aceite 30ml") == "ACEITE 30mL"
+    assert _nombre_mayusculas_alegra("vitamina 100MG") == "VITAMINA 100MG"
 
 
 def test_crear_producto_en_alegra_rechaza_duplicado(monkeypatch):

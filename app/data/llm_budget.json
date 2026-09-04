@@ -1,13 +1,13 @@
 {
  "fecha": "2026-09-03",
- "gasto_usd": 0.650172,
- "llamadas": 52,
+ "gasto_usd": 0.698499,
+ "llamadas": 56,
  "por_modelo": {
-  "claude-sonnet-4-6": 0.650151,
+  "claude-sonnet-4-6": 0.698478,
   "gemini-2.5-pro": 2.1e-05
  },
  "por_contexto": {
-  "cliente_chat": 0.650151,
+  "cliente_chat": 0.698478,
   "meli_preventa": 2.1e-05
  },
  "alerta_enviada": false,
