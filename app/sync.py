@@ -1316,8 +1316,8 @@ def obtener_estado_stock_meli(
             f"(ya no operables en MeLi)."
         )
 
-    # Incluir pausadas de MeLi que no están en Sheets — p.ej. mismo SKU C-CITCAL500g
-    # en una publicación pausada distinta a la fila del Sheet.
+    # Incluir activas/pausadas de MeLi que no están en Sheets — p.ej. publicaciones
+    # nuevas o desactualizadas en la hoja (la hoja no es el universo real de MeLi).
     if max_seconds is not None and (time.time() - t0) >= max_seconds:
         return items
     try:
@@ -1328,25 +1328,26 @@ def obtener_estado_stock_meli(
         ids_extra: list[str] = []
         seen_ids = {str(it.get("meli_id") or "").upper() for it in items}
         if seller_id:
-            offset = 0
-            while True:
-                r = requests.get(
-                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
-                    params={"status": "paused", "limit": 100, "offset": offset},
-                    headers=headers,
-                    timeout=30,
-                ).json()
-                batch_ids = r.get("results") or []
-                if not batch_ids:
-                    break
-                for iid in batch_ids:
-                    su = str(iid).strip().upper()
-                    if su and su not in seen_ids:
-                        seen_ids.add(su)
-                        ids_extra.append(str(iid).strip())
-                offset += len(batch_ids)
-                if offset >= (r.get("paging") or {}).get("total", 0):
-                    break
+            for estado_busqueda in ("active", "paused"):
+                offset = 0
+                while True:
+                    r = requests.get(
+                        f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                        params={"status": estado_busqueda, "limit": 100, "offset": offset},
+                        headers=headers,
+                        timeout=30,
+                    ).json()
+                    batch_ids = r.get("results") or []
+                    if not batch_ids:
+                        break
+                    for iid in batch_ids:
+                        su = str(iid).strip().upper()
+                        if su and su not in seen_ids:
+                            seen_ids.add(su)
+                            ids_extra.append(str(iid).strip())
+                    offset += len(batch_ids)
+                    if offset >= (r.get("paging") or {}).get("total", 0):
+                        break
 
         for i in range(0, len(ids_extra), 20):
             if max_seconds is not None and (time.time() - t0) >= max_seconds:
@@ -1404,7 +1405,7 @@ def obtener_estado_stock_meli(
                 )
         if ids_extra:
             print(
-                f"ℹ️ [STOCK] +{len(ids_extra)} publicaciones pausadas MeLi "
+                f"ℹ️ [STOCK] +{len(ids_extra)} publicaciones activas/pausadas MeLi "
                 f"no listadas en Sheets añadidas al resumen."
             )
     except Exception as e:

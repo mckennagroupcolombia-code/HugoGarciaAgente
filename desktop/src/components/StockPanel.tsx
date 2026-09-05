@@ -387,7 +387,11 @@ function nivelStock(stock: number | null | undefined): {
 }
 
 function normalizeSearchToken(s: string): string {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function filaCoincideBusqueda(f: FilaUnificada, q: string): boolean {

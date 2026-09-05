@@ -14,8 +14,7 @@ import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
 const SyncPanel = lazy(() => import("./SyncPanel"));
 const FacturasCompraPanel = lazy(() => import("./FacturasCompraPanel"));
-const VentasFacturacionPanel = lazy(() => import("./VentasFacturacionPanel"));
-const AstroKillerPanel = lazy(() => import("./AstroKillerPanel"));
+const VentasAstroKillerPanel = lazy(() => import("./VentasAstroKillerPanel"));
 const CotizarFacturarPanel = lazy(() => import("./CotizarFacturarPanel"));
 
 function Cargando() {
@@ -37,10 +36,11 @@ export default function FacturacionPanel() {
 
   const puedeSync = Boolean(puedeVerModuloContabilidad(user, "sync"));
   const puedeFacturas = Boolean(puedeVerModuloContabilidad(user, "facturas"));
-  // Astro Killer: permiso propio (heredado del antiguo tab independiente) o
-  // acceso a Facturas — quien podía ver cualquiera de las dos secciones antes
-  // de unificarlas sigue viéndola ahora que es una pestaña más.
-  const puedeTrazabilidad = Boolean(puedeVerModuloContabilidad(user, "astro-killer")) || puedeFacturas;
+  // "Ventas, NC y Astro Killer" fusiona las dos pestañas viejas: permiso
+  // propio de Astro Killer (heredado del tab independiente que tenía antes)
+  // o acceso a Facturas — quien podía ver cualquiera de las dos secciones
+  // antes de unificarlas sigue viéndola ahora que es una sola pestaña.
+  const puedeVentas = Boolean(puedeVerModuloContabilidad(user, "astro-killer")) || puedeFacturas;
   // Cotizar/Facturar: permiso propio y EXPLÍCITO, no heredado de Facturas —
   // crea facturas DIAN reales para ventas ad-hoc, es más sensible que ver/
   // sincronizar lo que ya existe (mismo criterio que Libro Mayor).
@@ -50,22 +50,22 @@ export default function FacturacionPanel() {
     () =>
       FACTURACION_SUBTABS.filter((t) => {
         if (t.id === "sync") return puedeSync;
-        if (t.id === "trazabilidad") return puedeTrazabilidad;
+        if (t.id === "ventas") return puedeVentas;
         if (t.id === "directo") return puedeDirecto;
         return puedeFacturas;
       }),
-    [puedeSync, puedeFacturas, puedeTrazabilidad, puedeDirecto],
+    [puedeSync, puedeFacturas, puedeVentas, puedeDirecto],
   );
 
   const [sub, setSub] = useState<FacturacionSubtabId>(() => {
     const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "trazabilidad") return fromLegacy;
+    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "ventas") return fromLegacy;
     return leerSubtabFacturacion();
   });
 
   useEffect(() => {
     const fromLegacy = subtabDesdePanelLegacy(panel);
-    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "trazabilidad") setSub(fromLegacy);
+    if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "ventas") setSub(fromLegacy);
   }, [panel]);
 
 
@@ -100,8 +100,7 @@ export default function FacturacionPanel() {
       >
         {subtabs.map((t) => {
           const selected = sub === t.id;
-          const iconPanel =
-            t.id === "sync" ? "sync" : t.id === "trazabilidad" ? "astro-killer" : "facturas";
+          const iconPanel = t.id === "sync" ? "sync" : t.id === "ventas" ? "astro-killer" : "facturas";
           return (
             <button
               key={t.id}
@@ -125,9 +124,7 @@ export default function FacturacionPanel() {
           {sub === "sync" ? (
             <SyncPanel />
           ) : sub === "ventas" ? (
-            <VentasFacturacionPanel key="ventas" />
-          ) : sub === "trazabilidad" ? (
-            <AstroKillerPanel key="trazabilidad" />
+            <VentasAstroKillerPanel key="ventas" />
           ) : sub === "directo" ? (
             <CotizarFacturarPanel key="directo" />
           ) : (

@@ -43,6 +43,7 @@ from app.services.alegra import (
     buscar_producto_alegra_por_referencia,
     crear_factura_venta_alegra,
 )
+from app.tools.revision_facturacion import crear_o_actualizar_ticket_revision_facturacion
 from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 
 ESTADO_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "meli_facturas_entrega.json")
@@ -408,7 +409,16 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             if not result.get("pdf_base64"):
                 aviso_pdf = "\n⚠️ No se pudo descargar el PDF de Alegra — súbelo a MeLi manualmente."
             elif meli_pack_tiene_documento_fiscal(pack_id):
-                aviso_pdf = "\n⚠️ El pack ya tenía un documento fiscal en MeLi (revisar Astro Killer: posible doble) — no se subió el de Alegra."
+                # En vez de solo avisar en texto (el operador tenía que ir a
+                # revisar Astro Killer a mano, sin dejar rastro de por qué),
+                # se deja el caso como paso de checklist en el Centro de Mando
+                # — ver app/tools/revision_facturacion.py.
+                ticket_ok, ticket_msg = crear_o_actualizar_ticket_revision_facturacion([{
+                    "order_id": order_id,
+                    "tipo": "posible_duplicado",
+                    "motivo_sugerido": f"Pack {pack_id} ya tenía documento fiscal en MeLi antes de esta factura Alegra {numero}.",
+                }])
+                aviso_pdf = f"\n⚠️ El pack ya tenía un documento fiscal en MeLi — no se subió el de Alegra. {ticket_msg if ticket_ok else '(no se pudo crear el ticket de revisión: ' + ticket_msg + ')'}"
             else:
                 subida = subir_factura_meli(pack_id, result["pdf_base64"], formato="pdf", prefijo_archivo="Fac")
                 pdf_subido = subida == "✅"

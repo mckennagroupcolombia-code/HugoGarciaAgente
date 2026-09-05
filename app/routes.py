@@ -2908,8 +2908,12 @@ def register_routes(app):
             from app.core import INSTRUCCIONES_FUERA_HORARIO
 
             contexto_extra = INSTRUCCIONES_FUERA_HORARIO
+        # Postventa (borrador con aprobación) usa su propio canal/modelo — ver
+        # app/services/canales_config.py ("postventa"). El resto de WhatsApp
+        # sigue en el canal "whatsapp" normal.
+        canal_respuesta_ia = "postventa" if is_after_sale else "whatsapp"
         respuesta_ia, _ = obtener_respuesta_ia(
-            message_text, sender_id, canal="whatsapp", contexto_sistema=contexto_extra
+            message_text, sender_id, canal=canal_respuesta_ia, contexto_sistema=contexto_extra
         )
 
         # Re-verificar modo humano: puede haberse activado desde el panel
@@ -3512,6 +3516,46 @@ def register_routes(app):
 
         return jsonify(calcular_estadisticas(dias=dias))
 
+    @app.route("/api/ventas-email/pendientes")
+    def api_ventas_email_pendientes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.gmail_ventas import _mensaje_error_gmail, listar_correos_ventas
+
+        try:
+            correos = listar_correos_ventas()
+            return jsonify({"correos": correos, "total": len(correos)})
+        except Exception as e:
+            return jsonify({"error": _mensaje_error_gmail(e)}), 502
+
+    @app.route("/api/ventas-email/<message_id>")
+    def api_ventas_email_detalle(message_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.gmail_ventas import _mensaje_error_gmail, obtener_correo_ventas
+
+        try:
+            return jsonify(obtener_correo_ventas(message_id))
+        except Exception as e:
+            return jsonify({"error": _mensaje_error_gmail(e)}), 502
+
+    @app.route("/api/responder-ventas-email", methods=["POST"])
+    def api_responder_ventas_email():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        message_id = str(data.get("message_id") or "").strip()
+        texto = str(data.get("texto") or "").strip()
+        if not message_id or not texto:
+            return jsonify({"ok": False, "error": "Faltan campos"}), 400
+        from app.services.gmail_ventas import _mensaje_error_gmail, responder_correo_ventas
+
+        try:
+            resultado = responder_correo_ventas(message_id, texto)
+            return jsonify({"ok": True, **resultado})
+        except Exception as e:
+            return jsonify({"ok": False, "error": _mensaje_error_gmail(e)}), 502
+
     @app.route("/api/sync/schedule")
     def api_sync_schedule():
         if not _api_token_valido():
@@ -3828,47 +3872,11 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
-    @app.route("/api/contabilidad/ventas-facturacion")
-    def api_contabilidad_ventas_facturacion():
-        """
-        Conciliación Ventas MeLi ↔ Factura Siigo ↔ Nota crédito, para el panel
-        Contabilidad → Facturación → "Ventas y NC". Lee el índice local que
-        arma scripts/emitir_notas_credito_cron.py (no repagina Siigo en cada
-        request) y lo cruza en vivo con MeLi (liviano, solo /orders/search).
-        """
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        estado = (request.args.get("estado") or "canceladas").strip().lower()
-        if estado not in ("canceladas", "concretadas"):
-            return jsonify({"error": "estado debe ser 'canceladas' o 'concretadas'"}), 400
-        try:
-            dias = max(1, min(90, int(request.args.get("dias") or 30)))
-        except ValueError:
-            dias = 30
-        try:
-            from app.services.conciliacion_meli import listar_ventas_meli_conciliacion
-            data = listar_ventas_meli_conciliacion(estado, dias=dias)
-            return jsonify(data)
-        except Exception as e:
-            return jsonify({"error": str(e)[:300]}), 500
-
-    @app.route("/api/contabilidad/ventas-facturacion/documento")
-    def api_contabilidad_ventas_facturacion_documento():
-        """PDF de la factura o nota crédito de un pack, bajo demanda (no se cachea)."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
-        pack_id = (request.args.get("pack_id") or "").strip()
-        tipo = (request.args.get("tipo") or "").strip().lower()
-        if not pack_id or tipo not in ("factura", "nota_credito"):
-            return jsonify({"error": "pack_id y tipo ('factura'|'nota_credito') requeridos"}), 400
-        try:
-            from app.services.conciliacion_meli import obtener_documento_pdf
-            data = obtener_documento_pdf(pack_id, tipo)
-            if not data.get("ok"):
-                return jsonify(data), 404
-            return jsonify(data)
-        except Exception as e:
-            return jsonify({"error": str(e)[:300]}), 500
+    # NOTA: "/api/contabilidad/ventas-facturacion" (+ /documento) se fusionó en
+    # "/api/facturacion/ventas-unificadas" (+ /documento) — ver bloque
+    # "Facturación → Ventas, NC y Astro Killer" más arriba. `conciliacion_meli`
+    # sigue viva (la usa `facturacion_ventas_unificado.py` como fallback
+    # histórico), solo se retiraron estas dos rutas duplicadas.
 
     @app.route("/api/stock/detalle-producto")
     @app.route("/app/api/stock/detalle-producto")
@@ -6609,28 +6617,138 @@ def register_routes(app):
             return jsonify({"error": err}), 400 if "Solo" in err or "Sesión" in err else 404
         return jsonify({"ok": ok})
 
-    # ── Astro Killer: trazabilidad venta MeLi → factura Alegra → notas crédito ──
+    # ── Facturación → Ventas, NC y Astro Killer: ¿esta venta MeLi/web quedó ──
+    # ── bien facturada? (fusiona lo que antes eran "Astro Killer" y "Ventas y NC") ──
 
-    @app.route("/api/alegra/trazabilidad-meli", methods=["GET"])
-    @app.route("/app/api/alegra/trazabilidad-meli", methods=["GET"])
-    def api_alegra_trazabilidad_meli():
-        """Panel Astro Killer: venta MeLi (o pedido web) -> historial completo de
-        facturas Alegra asociadas -> notas crédito de cada una."""
+    @app.route("/api/facturacion/ventas-unificadas", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas", methods=["GET"])
+    def api_facturacion_ventas_unificadas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        segmento = (request.args.get("segmento") or "concretadas").strip().lower()
+        if segmento not in ("concretadas", "canceladas", "todas"):
+            return jsonify({"error": "segmento debe ser 'concretadas', 'canceladas' o 'todas'"}), 400
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        try:
+            limite = min(max(int(request.args.get("limit") or 40), 1), 150)
+        except (TypeError, ValueError):
+            limite = 40
+        forzar = (request.args.get("forzar") or "").strip().lower() in ("1", "true")
+        try:
+            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado
+
+            data = listar_ventas_meli_unificado(dias=dias, segmento=segmento, limite=limite, forzar=forzar)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300], "ventas": []}), 502
+
+    @app.route("/api/facturacion/ventas-unificadas/documento", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/documento", methods=["GET"])
+    def api_facturacion_ventas_unificadas_documento():
+        """PDF de factura/nota crédito, bajo demanda. `alegra_id` (factura_id
+        o nc_id de Alegra) si la venta se facturó en Alegra; si no, cae al
+        `pack_id` del índice legado Siigo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        tipo = (request.args.get("tipo") or "").strip().lower()
+        if tipo not in ("factura", "nota_credito"):
+            return jsonify({"error": "tipo ('factura'|'nota_credito') requerido"}), 400
+        alegra_id = (request.args.get("alegra_id") or "").strip()
+        pack_id = (request.args.get("pack_id") or "").strip()
+        try:
+            if alegra_id:
+                from app.services.alegra import descargar_factura_pdf_alegra, descargar_nota_credito_pdf_alegra
+
+                b64 = (
+                    descargar_factura_pdf_alegra(alegra_id) if tipo == "factura"
+                    else descargar_nota_credito_pdf_alegra(alegra_id)
+                )
+                if not b64:
+                    return jsonify({"ok": False, "error": "No se pudo descargar el PDF de Alegra."}), 404
+                return jsonify({"ok": True, "nombre": f"{alegra_id}.pdf", "base64": b64})
+            if not pack_id:
+                return jsonify({"error": "alegra_id o pack_id requerido"}), 400
+            from app.services.conciliacion_meli import obtener_documento_pdf
+
+            data = obtener_documento_pdf(pack_id, tipo)
+            if not data.get("ok"):
+                return jsonify(data), 404
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
+    def api_facturacion_ventas_unificadas_comprador(order_id):
+        """Nombre/identificación reales del comprador MeLi (billing_info), bajo
+        demanda — para ventas sin factura Alegra todavía (no viene gratis)."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
-            from app.services.alegra import listar_ventas_meli_con_trazabilidad
+            from app.services.meli import consultar_billing_info_meli
+            from app.tools.meli_autofactura_entrega import _parsear_billing_info
 
-            forzar = (request.args.get("forzar") or "").strip().lower() in ("1", "true")
-            desde = (request.args.get("desde") or "").strip() or None
-            try:
-                limit = min(max(int(request.args.get("limit") or 200), 1), 500)
-            except (TypeError, ValueError):
-                limit = 200
-            ventas = listar_ventas_meli_con_trazabilidad(desde=desde, limite=limit, forzar=forzar)
-            return jsonify({"ventas": ventas, "total": len(ventas)})
+            info = consultar_billing_info_meli(order_id)
+            datos = _parsear_billing_info(info) if info else None
+            if not datos:
+                return jsonify({"ok": False, "error": "MeLi no tiene billing_info utilizable para esta orden."}), 404
+            return jsonify({
+                "ok": True,
+                "nombre": datos["nombre_cliente"],
+                "identificacion": datos["identificacion"],
+            })
         except Exception as e:
-            return jsonify({"error": str(e), "ventas": []}), 502
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/cliente/<identificacion>/conteo", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/cliente/<identificacion>/conteo", methods=["GET"])
+    def api_facturacion_ventas_unificadas_cliente_conteo(identificacion):
+        """Conteo histórico real (no acotado al rango del panel) de facturas
+        Alegra de un cliente — botón "ver histórico completo"."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra import contar_facturas_cliente_alegra
+
+            data = contar_facturas_cliente_alegra(identificacion)
+            if not data.get("ok"):
+                return jsonify(data), 502
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
+    def api_facturacion_ventas_unificadas_generar_ticket():
+        """Crea/actualiza el ticket-checklist de Centro de Mando con los casos
+        actualmente flaggeados (posible duplicado, factura sin subir a MeLi,
+        sin facturar vencida, cancelada sin NC vencida) — reemplaza la alerta
+        de WhatsApp en texto plano."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        segmento = (request.args.get("segmento") or "todas").strip().lower()
+        if segmento not in ("concretadas", "canceladas", "todas"):
+            segmento = "todas"
+        try:
+            dias = max(1, min(90, int(request.args.get("dias") or 30)))
+        except ValueError:
+            dias = 30
+        try:
+            from app.services.facturacion_ventas_unificado import (
+                items_flaggeados_para_ticket,
+                listar_ventas_meli_unificado,
+            )
+            from app.tools.revision_facturacion import crear_o_actualizar_ticket_revision_facturacion
+
+            data = listar_ventas_meli_unificado(dias=dias, segmento=segmento, limite=500, forzar=True)
+            items = items_flaggeados_para_ticket(data)
+            ok, mensaje = crear_o_actualizar_ticket_revision_facturacion(items)
+            return jsonify({"ok": ok, "mensaje": mensaje, "casos": len(items)})
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
 
     # ── Facturas de compra (clasificación desde panel) ─────────────────────
 
@@ -6782,6 +6900,101 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e), "items": []}), 502
 
+    @app.route("/api/siigo/productos/nombre", methods=["PUT", "PATCH"])
+    @app.route("/app/api/siigo/productos/nombre", methods=["PUT", "PATCH"])
+    def api_siigo_productos_actualizar_nombre():
+        """Renombra un producto/kit en Alegra por código (reference)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        codigo = str(body.get("codigo") or "").strip()
+        nombre = str(body.get("nombre") or "").strip()
+        if not codigo or not nombre:
+            return jsonify({"ok": False, "error": "codigo y nombre son obligatorios"}), 400
+        try:
+            from app.services.alegra import actualizar_nombre_alegra_producto
+            from app.panel_activity import log_line
+
+            log_line(f"▶ actualizar_nombre_alegra {codigo}")
+            resultado = actualizar_nombre_alegra_producto(codigo, nombre)
+            if resultado.get("ok"):
+                log_line(f"✔ actualizar_nombre_alegra {codigo}")
+                return jsonify({
+                    "ok": True,
+                    "mensaje": resultado.get("msg"),
+                    "codigo": resultado.get("codigo") or codigo,
+                    "nombre": resultado.get("nombre") or nombre,
+                })
+            log_line(
+                f"✖ actualizar_nombre_alegra {codigo} — "
+                f"{str(resultado.get('msg') or '')[:120]}"
+            )
+            return jsonify({"ok": False, "error": resultado.get("msg") or "Error"}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/siigo/combos", methods=["PUT", "PATCH"])
+    @app.route("/app/api/siigo/combos", methods=["PUT", "PATCH"])
+    def api_siigo_actualizar_combo():
+        """Ajusta composición (y opcionalmente nombre/precio) de un kit Alegra.
+
+        Solo funciona si el combo no tiene movimientos; Alegra rechaza el PUT
+        en ese caso y devolvemos error claro + ``bloqueado_movimientos``.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        codigo = str(body.get("codigo") or "").strip()
+        componentes = body.get("componentes") or body.get("components") or []
+        if not codigo:
+            return jsonify({"ok": False, "error": "codigo es obligatorio"}), 400
+        if not isinstance(componentes, list) or len(componentes) < 1:
+            return jsonify({
+                "ok": False,
+                "error": "componentes es obligatorio (al menos uno)",
+            }), 400
+        nombre = body.get("nombre")
+        precio_lista = body.get("precio_lista")
+        if precio_lista in ("", None):
+            precio_lista = None
+        else:
+            try:
+                precio_lista = float(precio_lista)
+            except (TypeError, ValueError):
+                return jsonify({"ok": False, "error": "precio_lista inválido"}), 400
+        try:
+            from app.services.alegra import actualizar_combo_alegra
+            from app.panel_activity import log_line
+
+            log_line(f"▶ actualizar_combo_alegra {codigo}")
+            resultado = actualizar_combo_alegra(
+                codigo,
+                componentes,
+                nombre=str(nombre) if nombre is not None else None,
+                precio_lista=precio_lista,
+            )
+            if resultado.get("ok"):
+                log_line(f"✔ actualizar_combo_alegra {codigo}")
+                return jsonify({
+                    "ok": True,
+                    "mensaje": resultado.get("mensaje") or resultado.get("msg"),
+                    "codigo": resultado.get("codigo") or codigo,
+                    "nombre": resultado.get("nombre"),
+                    "componentes": resultado.get("componentes") or [],
+                    "bloqueado_movimientos": False,
+                })
+            err = resultado.get("error") or resultado.get("msg") or "Error"
+            log_line(f"✖ actualizar_combo_alegra {codigo} — {str(err)[:120]}")
+            status = 409 if resultado.get("bloqueado_movimientos") else 400
+            return jsonify({
+                "ok": False,
+                "error": err,
+                "bloqueado_movimientos": bool(resultado.get("bloqueado_movimientos")),
+                "codigo": resultado.get("codigo") or codigo,
+            }), status
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/siigo/productos/detalle", methods=["GET"])
     @app.route("/app/api/siigo/productos/detalle", methods=["GET"])
     def api_siigo_productos_detalle():
@@ -6848,6 +7061,50 @@ def register_routes(app):
                 telefono=data.get("telefono") or "",
                 referencia=data.get("referencia") or "",
             )
+            return jsonify(resultado), (200 if resultado.get("ok") else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/facturacion/conversaciones-wa", methods=["GET"])
+    @app.route("/app/api/facturacion/conversaciones-wa", methods=["GET"])
+    def api_facturacion_conversaciones_wa():
+        """Conversaciones recientes de clientes por WhatsApp (nodo bot-mckenna
+        ya guarda el historial vía obtener_respuesta_ia) para elegir en
+        Cotizar/Facturar en vez de pegar el texto a mano."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        q = (request.args.get("q") or "").strip()
+        try:
+            limite = min(max(int(request.args.get("limit") or 30), 1), 100)
+        except (TypeError, ValueError):
+            limite = 30
+        try:
+            from app.core import listar_conversaciones_wa_recientes
+            items = listar_conversaciones_wa_recientes(limite=limite, q=q)
+            return jsonify({"items": items, "total": len(items)})
+        except Exception as e:
+            return jsonify({"error": str(e), "items": []}), 500
+
+    @app.route("/api/facturacion/extraer-conversacion", methods=["POST"])
+    @app.route("/app/api/facturacion/extraer-conversacion", methods=["POST"])
+    def api_facturacion_extraer_conversacion():
+        """Prellena Cotizar/Facturar a partir de una conversación real de
+        WhatsApp (`usuario_id`) o de texto pegado por el operador (`texto`) —
+        solo extracción a JSON + candidatos Alegra, nunca crea nada (ver
+        app/tools/extraccion_cotizacion_wa.py)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        texto = (data.get("texto") or "").strip()
+        usuario_id = (data.get("usuario_id") or "").strip()
+        try:
+            if not texto and usuario_id:
+                from app.core import texto_conversacion_wa
+                texto = texto_conversacion_wa(usuario_id)
+            if not texto:
+                return jsonify({"ok": False, "error": "Falta el texto de la conversación."}), 400
+            from app.tools.extraccion_cotizacion_wa import extraer_datos_cotizacion
+            resultado = extraer_datos_cotizacion(texto)
             return jsonify(resultado), (200 if resultado.get("ok") else 400)
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500

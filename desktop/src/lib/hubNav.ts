@@ -28,7 +28,7 @@ export const HUB_SECTION_ICON: Record<NavCategory, UiIconName> = {
 /** Tooltip al pasar el mouse sobre el botón del hub. */
 export const HUB_SECTION_HINT: Record<NavCategory, string> = {
   inicio: "Agenda del equipo y métricas del día.",
-  atencion: "Preventa MeLi, postventa, pedidos web y evidencia de empaque.",
+  atencion: "Preventa MeLi, postventa, correo ventas@, pedidos web y evidencia de empaque.",
   canales: "Chat IA, WhatsApp y chat de la página web.",
   diseno: "Etiquetas, Studio visual e impresión.",
   docs: "Fichas técnicas e información científica de ingredientes.",

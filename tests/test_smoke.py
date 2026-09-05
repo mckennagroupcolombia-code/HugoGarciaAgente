@@ -50,7 +50,7 @@ def test_canales_cliente_flujo_sin_tools_api(monkeypatch) -> None:
     assert by_id["whatsapp"]["es_cliente"] is True
     assert "ollama" in (by_id["whatsapp"].get("categorias_modelo") or [])
     assert "claude" in (by_id["whatsapp"].get("categorias_modelo") or [])
-    assert by_id["web_chat"]["modelo_id"] == "claude-sonnet-4-6"
+    assert by_id["web_chat"]["modelo_id"] == "claude-sonnet-5"
 
 
 def test_wa_alertas_intencion_lifecycle() -> None:

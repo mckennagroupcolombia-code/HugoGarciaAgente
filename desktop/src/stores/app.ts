@@ -15,6 +15,7 @@ export type Panel =
   | "supervisor"
   | "preventa"
   | "postventa"
+  | "ventas-email"
   | "sync"
   | "stock"
   | "control-inventario"

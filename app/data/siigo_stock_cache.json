@@ -1,6 +1,6 @@
 {
-  "ts": 1788491280.6088896,
-  "actualizado_en": "2026-09-03T22:08:24",
+  "ts": 1788557945.2808578,
+  "actualizado_en": "2026-09-04T16:39:28",
   "por_codigo": {
     "C-REVVID6mm": {
       "nombre": "REVOLVEDOR DE VIDRIO 6mm",
@@ -276,7 +276,7 @@
     },
     "EMPPLA1-4Lb50Un": {
       "nombre": "EMPQUE PLASTICO DARNEL 1-4 Lb 50uN",
-      "stock_siigo": -3
+      "stock_siigo": 0
     },
     "C-CEBCOR150g": {
       "nombre": "CEBO DE CORDERO 125g",
@@ -2012,7 +2012,7 @@
     },
     "BOX11X4X4": {
       "nombre": "CAJA 11 X 4 X 4",
-      "stock_siigo": -1031
+      "stock_siigo": -1030
     },
     "LANOLINA40g": {
       "nombre": "LANOLINA 40g",
@@ -2676,7 +2676,7 @@
     },
     "ACIHIABAPESg": {
       "nombre": "ACIDO HIALURONICO BAJO PESO mL",
-      "stock_siigo": -4440
+      "stock_siigo": -4410
     },
     "FOR-ACILAC85PmL": {
       "nombre": "ACIDO LACTICO 85% mL",
@@ -2820,7 +2820,7 @@
     },
     "AGUDESmL": {
       "nombre": "AGUA DESTILADA mL",
-      "stock_siigo": -101290
+      "stock_siigo": -101272
     },
     "D-GLU100": {
       "nombre": "L GLUTAMINA 100g",
@@ -3092,7 +3092,7 @@
     },
     "AMICREMONg": {
       "nombre": "CREATINA MONOHIDRATO g",
-      "stock_siigo": -91800
+      "stock_siigo": -91550
     },
     "INU250g": {
       "nombre": "INULINA 250g",
@@ -3152,7 +3152,7 @@
     },
     "SCO5g": {
       "nombre": "CUCHARA MEDIDORA 5g",
-      "stock_siigo": -660
+      "stock_siigo": -659
     },
     "SUELECDULg": {
       "nombre": "SUERO LECHE DULCE g",
@@ -3300,7 +3300,7 @@
     },
     "BOLVAC8X12": {
       "nombre": "BOLSA VACIO 8X12",
-      "stock_siigo": -2834
+      "stock_siigo": -2833
     },
     "D-ACERIC500mL": {
       "nombre": "ACEITE RICINO 500mL",
@@ -3328,11 +3328,11 @@
     },
     "OPRMNM4MN": {
       "nombre": "Operativos Minimos 1 min",
-      "stock_siigo": -14689
+      "stock_siigo": -14683
     },
     "ETQTRM": {
       "nombre": "ETIQUETA TERMICA 10 X 15",
-      "stock_siigo": -4853
+      "stock_siigo": -4850
     },
     "CRT10X10X10cms": {
       "nombre": "Pieza Carton 10 x 10 x 10 cms",
@@ -3340,7 +3340,7 @@
     },
     "PPLBRB10cms": {
       "nombre": "Papel Burbuja 10cm",
-      "stock_siigo": -12871
+      "stock_siigo": -12866
     },
     "CNTADH20cms": {
       "nombre": "Cinta Adhesiva 20cms",
@@ -3348,7 +3348,7 @@
     },
     "VNP20cms": {
       "nombre": "VINIPEL 20 CMS",
-      "stock_siigo": -6276
+      "stock_siigo": -6272
     },
     "CIR36-24-EC40-GX22-YES-OFF-1": {
       "nombre": "Etiqueta 2\" Circle Blank Label Roll",
@@ -3372,15 +3372,15 @@
     },
     "ETQ30mL": {
       "nombre": "Etiqueta 4\" x 1.5\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -2638
+      "stock_siigo": -2635
     },
     "ETQ250g": {
       "nombre": "Etiqueta 3\" x 2.625\" Rounded-Corner Rectangle Blank Label Roll",
-      "stock_siigo": -4434
+      "stock_siigo": -4433
     },
     "BANPVCMICUn": {
       "nombre": "BANDA PVC 35 MICRAS",
-      "stock_siigo": 2362
+      "stock_siigo": 2365
     },
     "GLIVEGg": {
       "nombre": "GLICERINA VEGETAL g",
@@ -3388,7 +3388,7 @@
     },
     "FARAZU30mL": {
       "nombre": "FARMA AZUL 30mL",
-      "stock_siigo": 24485
+      "stock_siigo": 24488
     },
     "FARCRI30mL": {
       "nombre": "FARMA CRISTAL 30mL",
@@ -3688,7 +3688,7 @@
     },
     "ACIGLIg": {
       "nombre": "ACIDO GLICOLICO",
-      "stock_siigo": -2213
+      "stock_siigo": -2195
     },
     "GOMGUAg": {
       "nombre": "GOMA GUAR",
@@ -3768,7 +3768,7 @@
     },
     "TAPPERSEGNEG18mm": {
       "nombre": "TAPA PERFORADA SEGURIDAD NEGRA 18mm",
-      "stock_siigo": -2001
+      "stock_siigo": -1998
     },
     "GOTPIPNEG90mmUn": {
       "nombre": "GOTERO PIPETA NEGRO 90MM",
@@ -3776,7 +3776,7 @@
     },
     "GOTPIP77MUn": {
       "nombre": "GOTERO PIPETA 77MM NEGRO",
-      "stock_siigo": -702
+      "stock_siigo": -699
     },
     "TAPAIR18MUn": {
       "nombre": "TAPON AIREADOR BLANCO ECO 18MM",
@@ -3788,7 +3788,7 @@
     },
     "BOLSEGBLAUn": {
       "nombre": "Bolsa de Seguridad Blanca con Portaguia 12x20",
-      "stock_siigo": -4561
+      "stock_siigo": -4560
     },
     "CMCPH101Kg": {
       "nombre": "Celulosa Microcristalina Avicel Ph 101 KG",
@@ -3964,7 +3964,7 @@
     },
     "BLSMTL13X21cms": {
       "nombre": "Bolsa 13 x 21 cms",
-      "stock_siigo": -5074
+      "stock_siigo": -5070
     },
     "ETQ76X68mm": {
       "nombre": "Etiqueta 76 X 68mm",
@@ -4072,7 +4072,7 @@
     },
     "AGDSTgL": {
       "nombre": "Agua Destilada gL",
-      "stock_siigo": -16833
+      "stock_siigo": -16803
     },
     "PLSTWEN20": {
       "nombre": "Polisorbato Tween 20 Usp 500ml",

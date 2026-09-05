@@ -16,6 +16,7 @@ const Chat = lazy(() => import("./components/Chat"));
 const VozIA = lazy(() => import("./components/VozIA"));
 const PreventaPanel = lazy(() => import("./components/PreventaPanel"));
 const PostventaPanel = lazy(() => import("./components/PostventaPanel"));
+const VentasEmailPanel = lazy(() => import("./components/VentasEmailPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
@@ -105,6 +106,8 @@ function PanelRouterInner() {
       return <PreventaPanel />;
     case "postventa":
       return <PostventaPanel />;
+    case "ventas-email":
+      return <VentasEmailPanel />;
     case "costos-productos":
     case "rentabilidad":
     case "publicidad":

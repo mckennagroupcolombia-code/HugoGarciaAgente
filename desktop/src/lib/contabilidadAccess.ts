@@ -40,12 +40,15 @@ export const CONTABILIDAD_TAB_OCULTAS = new Set<ContabilidadPanelId>([
   "rrhh",
 ]);
 
-/** Subvistas internas de la sección Facturación (incluye Astro Killer). */
+/** Subvistas internas de la sección Facturación.
+ * "ventas" fusiona lo que antes eran dos subtabs separadas ("Ventas y NC" y
+ * "Astro Killer" / "trazabilidad") — se mantiene el id "ventas" para no
+ * romper `leerSubtabFacturacion`/localStorage de usuarios que ya lo tenían
+ * guardado. */
 export const FACTURACION_SUBTABS = [
   { id: "sync", label: "Sync" },
   { id: "compra", label: "Facturas de compra" },
-  { id: "ventas", label: "Ventas y NC" },
-  { id: "trazabilidad", label: "Astro Killer" },
+  { id: "ventas", label: "Ventas, NC y Astro Killer" },
   { id: "directo", label: "Cotizar/Facturar" },
 ] as const;
 
@@ -72,7 +75,7 @@ export function normalizarPanelContabilidad(panel: string): ContabilidadPanelId 
 export function subtabDesdePanelLegacy(panel: string): FacturacionSubtabId | null {
   if (panel === "sync") return "sync";
   if (panel === "facturas") return "compra";
-  if (panel === "astro-killer") return "trazabilidad";
+  if (panel === "astro-killer") return "ventas";
   return null;
 }
 
@@ -229,7 +232,9 @@ export function guardarUltimoPanelContabilidad(panel: ContabilidadPanelId): void
 export function leerSubtabFacturacion(): FacturacionSubtabId {
   try {
     const v = localStorage.getItem(FACTURACION_SUB_KEY) || "";
-    if (v === "sync" || v === "compra" || v === "ventas" || v === "trazabilidad" || v === "directo") return v;
+    if (v === "sync" || v === "compra" || v === "ventas" || v === "directo") return v;
+    // "trazabilidad" (Astro Killer) quedó fusionada dentro de "ventas".
+    if (v === "trazabilidad") return "ventas";
     if (v === "facturas") return "compra";
   } catch { /* */ }
   return "compra";

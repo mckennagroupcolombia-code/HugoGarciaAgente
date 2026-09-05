@@ -141,86 +141,13 @@ def _fecha_cancelacion(orden: dict) -> datetime | None:
         return None
 
 
-def listar_ventas_meli_conciliacion(estado: str, dias: int = 30) -> dict:
-    """
-    estado: "canceladas" | "concretadas"
-
-    Cruza MeLi (en vivo, liviano — solo /orders/search) con el índice local
-    de facturación (persistido por el cron de notas crédito, sin llamadas
-    extra a Siigo) y el estado ya conocido de notas crédito.
-    """
-    from app.services.meli import listar_ordenes_meli_por_estado
-
-    indice_data = leer_indice_facturacion_meli()
-    indice = indice_data["indice"]
-    nc_estado = _leer_estado_notas_credito()
-
-    status_meli = "cancelled" if estado == "canceladas" else "paid"
-    ordenes = listar_ordenes_meli_por_estado(status_meli, dias_atras=dias)
-    margen_horas = _margen_horas_default()
-
-    # Total pagado por pack (no por orden): un pack puede tener varias
-    # órdenes MeLi y la factura Siigo cubre el pack completo — comparar la
-    # factura contra una sola orden de un pack multi-orden daría una
-    # discrepancia falsa.
-    total_pagado_pack: dict[str, float] = {}
-    for orden in ordenes:
-        pid = str(orden.get("pack_id") or orden.get("id") or "").strip()
-        if pid:
-            total_pagado_pack[pid] = total_pagado_pack.get(pid, 0) + (orden.get("total_amount") or 0)
-
-    ventas = []
-    for orden in ordenes:
-        pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
-        if not pack_id:
-            continue
-        fact = indice.get(pack_id)
-        nc = nc_estado.get(pack_id)
-
-        total_pack = total_pagado_pack.get(pack_id) or orden.get("total_amount") or 0
-        factura_total = fact.get("total") if fact else None
-        iva_discrepancia = (
-            factura_total is not None
-            and total_pack
-            and not (0.97 <= (factura_total / total_pack) <= 1.03)
-        )
-
-        fila = {
-            "pack_id": pack_id,
-            "fecha": orden.get("date_closed") or orden.get("date_created"),
-            "total": orden.get("total_amount"),
-            "factura_numero": fact.get("factura_numero") if fact else None,
-            "factura_total": factura_total,
-            "iva_discrepancia": bool(iva_discrepancia),
-            "integracion": fact.get("integracion") if fact else None,
-            "nota_credito": nc.get("nc") if nc else None,
-            "nc_subida_meli": bool(nc.get("subida_meli")) if nc else None,
-        }
-
-        if estado == "canceladas":
-            if not fact:
-                fila["estado_auditoria"] = "sin_factura"
-            elif nc:
-                fila["estado_auditoria"] = "resuelto" if nc.get("subida_meli") else "nc_sin_subir_meli"
-            else:
-                fc = _fecha_cancelacion(orden)
-                if fc:
-                    ahora = datetime.now(fc.tzinfo) if fc.tzinfo else datetime.now()
-                    en_margen = (ahora - fc) < timedelta(hours=margen_horas)
-                else:
-                    en_margen = False
-                fila["estado_auditoria"] = "en_margen" if en_margen else "pendiente_revisar"
-        else:
-            if not fact:
-                fila["estado_auditoria"] = "sin_facturar"
-            elif iva_discrepancia:
-                fila["estado_auditoria"] = "iva_incorrecto"
-            else:
-                fila["estado_auditoria"] = "facturada"
-
-        ventas.append(fila)
-
-    return {"actualizado_en": indice_data.get("actualizado_en"), "ventas": ventas}
+# NOTA: `listar_ventas_meli_conciliacion` (panel "Ventas y NC" standalone) se
+# retiró — cruzaba solo contra este índice legado Siigo, ciego a las facturas
+# Alegra desde la migración del 2026-09-02 (causa real de las falsas alarmas
+# "sin_facturar" reportadas el 2026-09-04). Su lógica quedó fusionada en
+# `app/services/facturacion_ventas_unificado.py::listar_ventas_meli_unificado`,
+# que sigue usando `leer_indice_facturacion_meli`, `_leer_estado_notas_credito`,
+# `_margen_horas_default` y `_fecha_cancelacion` de este mismo módulo.
 
 
 def obtener_documento_pdf(pack_id: str, tipo: str) -> dict:

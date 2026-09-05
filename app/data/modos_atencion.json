@@ -1,16 +1,155 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us"
+    "573009990001@c.us",
+    "32079177846882@lid",
+    "15204217806882@lid",
+    "151414894534795@lid",
+    "573146826249@c.us",
+    "92294585839779@lid",
+    "573183229174@c.us",
+    "114916748968179@lid",
+    "573112078541@c.us",
+    "573181707871@c.us",
+    "201967246799088@lid",
+    "573155145096@c.us",
+    "15788853469359@lid",
+    "573188840971@c.us",
+    "37271759769852@lid",
+    "85659398189183@lid",
+    "573001886170@c.us",
+    "54821012902003@lid",
+    "573115713149@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1788473024.2724156
+    "573009990001@c.us": 1788473024.2724156,
+    "32079177846882@lid": 1788530563.095603,
+    "15204217806882@lid": 1788530566.7539864,
+    "151414894534795@lid": 1788530572.949561,
+    "573146826249@c.us": 1788530572.949561,
+    "92294585839779@lid": 1788530613.9253674,
+    "573183229174@c.us": 1788530613.9253674,
+    "114916748968179@lid": 1788530619.4351373,
+    "573112078541@c.us": 1788530619.4351373,
+    "573181707871@c.us": 1788530624.4343865,
+    "201967246799088@lid": 1788530624.4343865,
+    "573155145096@c.us": 1788530628.9567466,
+    "15788853469359@lid": 1788530628.9567466,
+    "573188840971@c.us": 1788533617.6687155,
+    "37271759769852@lid": 1788533617.6687155,
+    "85659398189183@lid": 1788542045.3955173,
+    "573001886170@c.us": 1788542045.3955173,
+    "54821012902003@lid": 1788554019.3906803,
+    "573115713149@c.us": 1788554019.3906803
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1788473024.2724156,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "hola"
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "32079177846882@lid": {
+      "timestamp": 1788530563.095603,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "15204217806882@lid": {
+      "timestamp": 1788530566.7539864,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "151414894534795@lid": {
+      "timestamp": 1788530572.949561,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573146826249@c.us": {
+      "timestamp": 1788530572.949561,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "92294585839779@lid": {
+      "timestamp": 1788530613.9253674,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573183229174@c.us": {
+      "timestamp": 1788530613.9253674,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "114916748968179@lid": {
+      "timestamp": 1788530619.4351373,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573112078541@c.us": {
+      "timestamp": 1788530619.4351373,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573181707871@c.us": {
+      "timestamp": 1788530624.4343865,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "201967246799088@lid": {
+      "timestamp": 1788530624.4343865,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573155145096@c.us": {
+      "timestamp": 1788530628.9567466,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "15788853469359@lid": {
+      "timestamp": 1788530628.9567466,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573188840971@c.us": {
+      "timestamp": 1788533617.6687155,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "37271759769852@lid": {
+      "timestamp": 1788533617.6687155,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "85659398189183@lid": {
+      "timestamp": 1788542045.3955173,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "573001886170@c.us": {
+      "timestamp": 1788542045.3955173,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Para concretar la compra"
+    },
+    "54821012902003@lid": {
+      "timestamp": 1788554019.3906803,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573115713149@c.us": {
+      "timestamp": 1788554019.3906803,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
     }
+  },
+  "bot_global_activo": true,
+  "horario_bot": {
+    "habilitado": false,
+    "hora_inicio": "08:00",
+    "hora_fin": "18:00",
+    "dias": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   }
 }

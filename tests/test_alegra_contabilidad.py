@@ -151,3 +151,150 @@ def test_listar_centros_costo_alegra(monkeypatch):
     assert centros[0]["name"] == "Admin"
     assert centros[1]["active"] is True
     assert centros[1]["code"] == "VEN"
+
+
+def test_actualizar_nombre_alegra_producto(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    ag._producto_cache["UREA250"] = {"id": "1", "name": "viejo", "price": 0}
+
+    puts = []
+
+    def _get(url, headers=None, params=None, timeout=None):
+        return _Resp(200, [{"id": "42", "name": "urea cosmética 250 g", "reference": "UREA250"}])
+
+    def _put(url, headers=None, json=None, timeout=None):
+        puts.append({"url": url, "json": json})
+        return _Resp(200, {"id": "42", "name": json["name"]})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+
+    out = ag.actualizar_nombre_alegra_producto("UREA250", "  urea cosmética 250 g  ")
+    assert out["ok"] is True
+    assert out["nombre"] == "UREA COSMÉTICA 250 g"
+    assert puts[0]["url"].endswith("/items/42")
+    assert puts[0]["json"] == {"name": "UREA COSMÉTICA 250 g"}
+    assert "UREA250" not in ag._producto_cache
+
+
+def test_actualizar_nombre_alegra_producto_sin_cambios(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    puts = []
+
+    def _get(url, headers=None, params=None, timeout=None):
+        return _Resp(200, [{"id": "7", "name": "NIACINAMIDA 10%", "reference": "NIAC"}])
+
+    def _put(url, headers=None, json=None, timeout=None):
+        puts.append(json)
+        return _Resp(200, {})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+
+    out = ag.actualizar_nombre_alegra_producto("NIAC", "niacinamida 10%")
+    assert out["ok"] is True
+    assert out["msg"] == "Sin cambios"
+    assert puts == []
+
+
+def test_actualizar_nombre_alegra_producto_no_existe(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    monkeypatch.setattr(
+        ag.requests, "get",
+        lambda *a, **k: _Resp(200, []),
+    )
+    out = ag.actualizar_nombre_alegra_producto("NOEXISTE", "Algo")
+    assert out["ok"] is False
+    assert "no existe" in out["msg"].lower()
+
+
+def test_actualizar_combo_alegra_ok(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    puts = []
+
+    def _get(url, headers=None, params=None, timeout=None):
+        ref = (params or {}).get("reference")
+        if ref == "C-TEST":
+            return _Resp(200, [{
+                "id": "99",
+                "name": "KIT TEST",
+                "reference": "C-TEST",
+                "type": "kit",
+                "inventory": {"unit": "unit", "initialQuantity": 0, "availableQuantity": 0},
+            }])
+        return _Resp(200, [])
+
+    def _put(url, headers=None, json=None, timeout=None):
+        puts.append({"url": url, "json": json})
+        return _Resp(200, {"id": "99"})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+    monkeypatch.setattr(
+        ag, "buscar_producto_alegra_por_referencia",
+        lambda c: {"id": f"id-{c}", "name": c, "nombre": c},
+    )
+
+    out = ag.actualizar_combo_alegra(
+        "C-TEST",
+        [{"codigo": "UREA", "cantidad": 2}, {"codigo": "NIAC", "cantidad": 1}],
+        nombre="kit test actualizado",
+    )
+    assert out["ok"] is True
+    assert puts[0]["url"].endswith("/items/99")
+    assert puts[0]["json"]["subitems"] == [
+        {"item": {"id": "id-UREA"}, "quantity": 2.0},
+        {"item": {"id": "id-NIAC"}, "quantity": 1.0},
+    ]
+    assert puts[0]["json"]["name"] == "KIT TEST ACTUALIZADO"
+
+
+def test_actualizar_combo_alegra_bloqueado_por_movimientos(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+
+    def _get(url, headers=None, params=None, timeout=None):
+        return _Resp(200, [{
+            "id": "7",
+            "name": "KIT",
+            "reference": "C-X",
+            "type": "kit",
+            "inventory": {"unit": "unit", "initialQuantity": 0, "availableQuantity": 0},
+        }])
+
+    def _put(url, headers=None, json=None, timeout=None):
+        return _Resp(400, {"message": "El ítem no se puede editar porque tiene movimientos asociados"})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+    monkeypatch.setattr(
+        ag, "buscar_producto_alegra_por_referencia",
+        lambda c: {"id": "1", "name": c},
+    )
+
+    out = ag.actualizar_combo_alegra("C-X", [{"codigo": "A", "cantidad": 1}])
+    assert out["ok"] is False
+    assert out.get("bloqueado_movimientos") is True
+    assert "movimientos" in out["error"].lower()
+
+
+def test_actualizar_combo_alegra_no_es_kit(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    monkeypatch.setattr(
+        ag.requests, "get",
+        lambda *a, **k: _Resp(200, [{"id": "1", "type": "simple", "reference": "P1", "name": "X"}]),
+    )
+    out = ag.actualizar_combo_alegra("P1", [{"codigo": "A", "cantidad": 1}])
+    assert out["ok"] is False
+    assert "combo" in out["error"].lower() or "kit" in out["error"].lower()

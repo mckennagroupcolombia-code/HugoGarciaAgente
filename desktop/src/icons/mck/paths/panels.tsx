@@ -63,6 +63,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <circle cx="15" cy="11" r="0.75" />
     </>
   ),
+  "ventas-email": (
+    <>
+      <rect x="4" y="6" width="16" height="12" rx="1.5" />
+      <path d="M4.5 7l7.5 6 7.5-6" />
+    </>
+  ),
   sync: (
     <>
       <path d="M20 11a7 7 0 1 0-1.6-4.4M20 4v4h-4" />

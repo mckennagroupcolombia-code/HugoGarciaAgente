@@ -141,6 +141,24 @@
       ],
       "contexto": "Cliente pregunta la diferencia entre ácido hialurónico de alto y bajo peso molecular (McKenna maneja ambas presentaciones)",
       "instruccion": "Explique con este contenido técnico exacto: el ácido hialurónico de ALTO peso molecular posee moléculas grandes que permanecen en la superficie cutánea, formando una película protectora que hidrata de forma inmediata la capa córnea. El de BAJO peso molecular cuenta con fragmentos lo suficientemente pequeños para penetrar a capas más profundas de la epidermis y la dermis, estimulando la síntesis endógena de colágeno, promoviendo la reparación tisular y rellenando arrugas desde el interior a largo plazo. Como McKenna Group vende AMBOS pesos moleculares, persuada al cliente hacia el uso combinado destacando el efecto sinérgico multicapa: mientras el peso alto retiene agua en la capa externa formando barrera protectora contra la pérdida transepidérmica de agua, el peso bajo penetra en epidermis y dermis superior para bioestimular los fibroblastos, promover la síntesis endógena de ácido hialurónico propio y rellenar desde las capas profundas. Ofrezca las dos referencias del catálogo cuando surja esta pregunta."
+    },
+    {
+      "id": "karite_cera_abejas_amarilla_blanca",
+      "trigger": [
+        "karite amarilla",
+        "karité amarilla",
+        "karite blanca",
+        "karité blanca",
+        "diferencia karite",
+        "diferencia karité",
+        "manteca de karite amarilla y blanca",
+        "cera de abejas amarilla",
+        "cera de abejas blanca",
+        "diferencia cera de abejas",
+        "cera amarilla o blanca"
+      ],
+      "contexto": "Cliente pregunta la diferencia entre manteca de karité amarilla/blanca y/o cera de abejas amarilla/blanca (McKenna maneja ambas presentaciones de las dos materias primas)",
+      "instruccion": "Explique con este contenido técnico exacto. MANTECA DE KARITÉ: la AMARILLA es la versión sin refinar (cruda, extraída por prensado en frío del fruto del árbol de karité); conserva de forma natural caroteno (precursor de vitamina A), vitamina E y ácido cinámico, lo que le da su color amarillo-dorado y su aroma característico a nuez/ahumado; por eso tiene mayor poder antiinflamatorio, cicatrizante y antioxidante, y se prefiere en tratamientos terapéuticos (piel muy reseca, estrías, dermatitis, bálsamos naturales) donde el aroma y color no son un problema. La BLANCA es la versión refinada: pasa por un proceso de filtrado/blanqueo que elimina impurezas, el aroma fuerte y el pigmento natural (los carotenoides); pierde parte de esos antioxidantes en el proceso pero sigue siendo un excelente emoliente y oclusivo, con textura más lisa y neutra en color y olor; por eso se prefiere en formulación cosmética (cremas, lociones, jabones perfumados) donde no se quiere alterar el color ni la fragancia del producto final. CERA DE ABEJAS: la AMARILLA es la cera natural tal como la producen las abejas, sin refinar; contiene propóleo, polen y pigmentos de las plantas que visitaron, lo que le da su color amarillo/marrón y aroma a miel, además de compuestos con actividad antibacteriana natural; se usa en velas, bálsamos labiales y ungüentos artesanales donde el aroma/color no molesta. La BLANCA se obtiene blanqueando la cera natural (filtración fina y exposición solar prolongada, o agentes blanqueadores) para eliminar el color y el olor; se usa en cosmética donde se necesita una base neutra que no interfiera con el color o la fragancia final (cremas, bálsamos perfumados, velas decorativas de color). En ambos casos el color no es un defecto de calidad: es sin refinar (amarilla, más nutrientes naturales) vs. refinada (blanca, más neutra para formular). Como McKenna Group vende las dos versiones de cada materia prima, ofrezca ambas referencias y ayude al cliente a elegir según su uso: terapéutico/natural → amarilla; formulación cosmética que necesite neutralidad de color/olor → blanca."
     }
   ]
 }

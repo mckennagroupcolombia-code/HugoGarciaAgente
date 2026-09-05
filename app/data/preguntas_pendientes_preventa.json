@@ -2408,6 +2408,29 @@
       "pregunta": "Hola.. Cual es el precio del aceite de semilla de uva, ácido hialuronico, áloe vera, y elastina?",
       "timestamp": "2026-09-02T16:25:29.859148",
       "respondida": true
+    },
+    {
+      "question_id": "13653688012",
+      "titulo_producto": "Arcilla Blanca Usp Certificada Caolin Coloidal  1 Kg",
+      "pregunta": "Es apta para consumo oral todos los días?",
+      "timestamp": "2026-09-04T18:43:30.178883",
+      "respondida": true
+    },
+    {
+      "question_id": "13652942865",
+      "titulo_producto": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+      "pregunta": "Hola buenas , noche este es el segundo pedido que hago y no lo entregan no entiendo qué es lo que pasa",
+      "timestamp": "2026-09-04T20:13:43.136619",
+      "respondida": true,
+      "borrador_ia": "Hola, veci, buenas noches. Lamento mucho el inconveniente con la entrega de su pedido, entiendo su preocupación.\n\nLe comento que este tema de envíos lo maneja directamente la plataforma de Mercado Libre a través de la transportadora asignada, por lo que le recomiendo revisar el estado del envío desde la sección \"Mis compras\" en su cuenta, donde debe aparecer el detalle y motivo del retraso.\n\nSi desde ahí no encuentra una solución clara, puede abrir un reclamo directamente en Mercado Libre para que el equipo de soporte le ayude a agilizar la entrega. Quedo atento a cualquier otra inquietud que tenga. ¡Feliz noche!"
+    },
+    {
+      "question_id": "13653804200",
+      "titulo_producto": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+      "pregunta": "Me puede regalar por favor el número de guía",
+      "timestamp": "2026-09-04T20:18:53.761810",
+      "respondida": true,
+      "borrador_ia": "Hola veci, buenas noches, con gusto le colaboro.\n\nEl número de guía no lo manejamos directamente nosotros como vendedores, ya que la asignación y seguimiento del envío la controla la plataforma de Mercado Libre junto con la transportadora asignada. Le recomiendo ingresar a la sección \"Mis compras\" en su cuenta, donde debe aparecer el detalle del envío junto con el número de guía correspondiente.\n\nSi no logra visualizarlo desde ahí, puede abrir un reclamo directamente en Mercado Libre para que el equipo de soporte le brinde esa información y le ayude a agilizar la entrega. Quedo atento a cualquier otra inquietud que tenga. ¡Feliz noche!"
     }
   ]
 }

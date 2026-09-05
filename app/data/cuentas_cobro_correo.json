@@ -1,5 +1,5 @@
 {
-  "actualizado_en": "2026-09-03T09:02:08",
+  "actualizado_en": "2026-09-04T09:01:29",
   "cobros": [
     {
       "mid": "1141",
@@ -768,6 +768,19 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUL IO DE 2026",
       "fecha": "2026-07-28",
       "periodo": "2026-07",
+      "proveedor": "william"
+    },
+    {
+      "mid": "20802",
+      "from": "William Fernando Novoa Molano <williamfer94@hotmail.com>",
+      "email_date": "2026-09-04",
+      "subject": "CUENTA DE COBRO AGOSTO",
+      "filename": "CUENTA DE COBRO AGOSTO 2026.pdf",
+      "monto": 647811.0,
+      "concepto": "HONORARIOS ASESORIA CONTABLE MES DE AGO STO DE 2026",
+      "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE AGO STO DE 2026",
+      "fecha": "2026-08-28",
+      "periodo": "2026-08",
       "proveedor": "william"
     }
   ]

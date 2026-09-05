@@ -28,6 +28,9 @@ interface DetalleComboSiigo {
   precio_lista?: number;
   iva?: boolean;
   componentes?: Array<{ codigo: string; nombre: string; cantidad: number }>;
+  /** null/undefined = desconocido; true = señal de movimientos (bloquear UI). */
+  tiene_movimientos?: boolean | null;
+  editable_composicion?: boolean;
 }
 
 interface SiigoResumen {
@@ -175,8 +178,17 @@ export default function CrearProductosSiigoPanel({
   const [cargandoReceta, setCargandoReceta] = useState(false);
   const [errorReceta, setErrorReceta] = useState<string | null>(null);
 
+  /** Modo ajustar composición de un combo existente (solo sin movimientos). */
+  const [ajustandoCombo, setAjustandoCombo] = useState(false);
+  const [comboEditableComposicion, setComboEditableComposicion] = useState(true);
+  const [avisoMovimientosCombo, setAvisoMovimientosCombo] = useState<string | null>(null);
+
   const [check, setCheck] = useState<CodigoCheck | null>(null);
   const [resultado, setResultado] = useState<CrearResp | null>(null);
+
+  /** Edición inline del nombre desde resultados de búsqueda. */
+  const [editandoCodigo, setEditandoCodigo] = useState<string | null>(null);
+  const [editandoNombre, setEditandoNombre] = useState("");
 
   const codigoActivo = modo === "producto" ? codigo : comboCodigo;
 
@@ -263,14 +275,127 @@ export default function CrearProductosSiigoPanel({
     },
   });
 
+  const actualizarNombre = useMutation({
+    mutationFn: (payload: { codigo: string; nombre: string }) =>
+      api.put<{ ok: boolean; mensaje?: string; error?: string; codigo?: string; nombre?: string }>(
+        "/api/siigo/productos/nombre",
+        {
+          codigo: payload.codigo.trim(),
+          nombre: nombreMayusculasAlegra(payload.nombre),
+        },
+      ),
+    onSuccess: (res, vars) => {
+      if (!res.ok) {
+        setResultado({ ok: false, error: res.error || "No se pudo actualizar el nombre" });
+        return;
+      }
+      const codigoOk = res.codigo || vars.codigo.trim();
+      const nombreOk = res.nombre || nombreMayusculasAlegra(vars.nombre);
+      setCatalogoItems((prev) =>
+        prev.map((it) => (it.codigo === codigoOk ? { ...it, nombre: nombreOk } : it)),
+      );
+      if (codigo.trim().toUpperCase() === codigoOk.toUpperCase()) setNombre(nombreOk);
+      if (comboCodigo.trim().toUpperCase() === codigoOk.toUpperCase()) setComboNombre(nombreOk);
+      setCheck((prev) =>
+        prev && prev.codigo.trim().toUpperCase() === codigoOk.toUpperCase()
+          ? {
+              ...prev,
+              siigo_producto: {
+                ...(prev.siigo_producto || { codigo: codigoOk }),
+                codigo: codigoOk,
+                nombre: nombreOk,
+              },
+            }
+          : prev,
+      );
+      setEditandoCodigo(null);
+      setEditandoNombre("");
+      setResultado({
+        ok: true,
+        mensaje: res.mensaje || `Nombre de ${codigoOk} actualizado en Alegra`,
+        siigo_producto: { codigo: codigoOk, nombre: nombreOk },
+      });
+    },
+    onError: (err: Error) => {
+      setResultado({ ok: false, error: err.message });
+    },
+  });
+
+  const actualizarCombo = useMutation({
+    mutationFn: () =>
+      api.put<{
+        ok: boolean;
+        mensaje?: string;
+        error?: string;
+        codigo?: string;
+        nombre?: string;
+        bloqueado_movimientos?: boolean;
+      }>("/api/siigo/combos", {
+        codigo: comboCodigo.trim(),
+        nombre: nombreMayusculasAlegra(comboNombre),
+        ...(Number(comboPrecio || 0) > 0 ? { precio_lista: Number(comboPrecio) } : {}),
+        componentes: componentes
+          .filter((c) => c.codigo.trim())
+          .map((c) => ({
+            codigo: c.codigo.trim(),
+            cantidad: Number(c.cantidad || 1),
+          })),
+      }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        if (res.bloqueado_movimientos) {
+          setComboEditableComposicion(false);
+          setAvisoMovimientosCombo(
+            res.error
+              || "Este combo ya tiene movimientos y no se puede cambiar la composición.",
+          );
+        }
+        setResultado({ ok: false, error: res.error || "No se pudo actualizar el combo" });
+        return;
+      }
+      setAvisoMovimientosCombo(null);
+      setComboEditableComposicion(true);
+      setResultado({
+        ok: true,
+        mensaje: res.mensaje || `Composición de ${comboCodigo.trim()} actualizada`,
+        siigo_producto: {
+          codigo: res.codigo || comboCodigo.trim(),
+          nombre: res.nombre || nombreMayusculasAlegra(comboNombre),
+          type: "Combo",
+        },
+      });
+      setCheck({
+        codigo: res.codigo || comboCodigo.trim(),
+        existe_en_siigo: true,
+        duplicado: true,
+        siigo_producto: {
+          codigo: res.codigo || comboCodigo.trim(),
+          nombre: res.nombre || nombreMayusculasAlegra(comboNombre),
+          type: "Combo",
+        },
+      });
+    },
+    onError: (err: Error) => {
+      const msg = err.message || "No se pudo actualizar el combo";
+      if (/movimiento/i.test(msg)) {
+        setComboEditableComposicion(false);
+        setAvisoMovimientosCombo(msg);
+      }
+      setResultado({ ok: false, error: msg });
+    },
+  });
+
   useEffect(() => {
     if (!catalogoAbierto) return;
     const onDoc = (e: MouseEvent) => {
-      if (!catalogoRef.current?.contains(e.target as Node)) setCatalogoAbierto(false);
+      if (!catalogoRef.current?.contains(e.target as Node)) {
+        if (editandoCodigo) return; // no cerrar mientras se edita el nombre
+        setCatalogoAbierto(false);
+      }
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [catalogoAbierto]);
+  }, [catalogoAbierto, editandoCodigo]);
 
   useEffect(() => {
     if (!catalogoAbierto) return;
@@ -345,6 +470,11 @@ export default function CrearProductosSiigoPanel({
     setCheck(null);
     setOrigenCombo(null);
     setErrorReceta(null);
+    setEditandoCodigo(null);
+    setEditandoNombre("");
+    setAjustandoCombo(false);
+    setComboEditableComposicion(true);
+    setAvisoMovimientosCombo(null);
     if (modo === "producto") {
       setCodigo("");
       setNombre("");
@@ -429,6 +559,9 @@ export default function CrearProductosSiigoPanel({
   /** Desde resultados de búsqueda: copia receta a un combo nuevo (SKU/nombre destino). */
   function duplicarDesdeHallazgo(item: BusquedaItem) {
     setResultado(null);
+    setAjustandoCombo(false);
+    setAvisoMovimientosCombo(null);
+    setComboEditableComposicion(true);
     // Flujo EAN «Duplicar combo»: el SKU/nombre nuevos ya vienen de la fila seleccionada.
     if (duplicarCombo && codigoInicial) {
       const destinoCodigo = esCodigoCombo(codigoInicial)
@@ -448,6 +581,84 @@ export default function CrearProductosSiigoPanel({
     copiarRecetaCombo(item.codigo, { destinoCodigo, destinoNombre });
   }
 
+  /** Carga el combo existente para editar componentes (solo si no tiene movimientos). */
+  function ajustarDesdeHallazgo(item: BusquedaItem) {
+    const origen = item.codigo.trim();
+    if (origen.length < 2) return;
+    setResultado(null);
+    setErrorReceta(null);
+    setOrigenCombo(null);
+    setCatalogoAbierto(false);
+    setCargandoReceta(true);
+    setAjustandoCombo(true);
+    setAvisoMovimientosCombo(null);
+    setComboEditableComposicion(true);
+    setModo("combo");
+    setComboCodigo(item.codigo);
+    setComboNombre(nombreMayusculasAlegra(item.nombre, 100, { trimSpaces: false }));
+    void api
+      .get<DetalleComboSiigo>(
+        `/api/siigo/productos/detalle?codigo=${encodeURIComponent(origen)}`,
+      )
+      .then((data) => {
+        if (!data.ok) {
+          setErrorReceta(data.error || `No se pudo leer ${origen} en Alegra`);
+          setAjustandoCombo(false);
+          return;
+        }
+        if (!data.es_combo) {
+          setErrorReceta(`${data.codigo || origen} no es un combo en Alegra`);
+          setAjustandoCombo(false);
+          return;
+        }
+        const comps = (data.componentes || []).filter((c) => (c.codigo || "").trim());
+        if (comps.length < 1) {
+          setErrorReceta(`${data.codigo} no tiene componentes para ajustar`);
+          setAjustandoCombo(false);
+          return;
+        }
+        setComboCodigo(data.codigo || origen);
+        setComboNombre(
+          nombreMayusculasAlegra(data.nombre || item.nombre, 100, { trimSpaces: false }),
+        );
+        if (data.precio_lista != null && Number(data.precio_lista) > 0) {
+          setComboPrecio(String(Math.round(Number(data.precio_lista))));
+        }
+        if (typeof data.iva === "boolean") setComboIva(data.iva);
+        setComponentes(
+          comps.map((c) => ({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            codigo: c.codigo.trim(),
+            nombre: c.nombre || "",
+            cantidad: String(c.cantidad || 1),
+          })),
+        );
+        const bloqueado =
+          data.tiene_movimientos === true || data.editable_composicion === false;
+        setComboEditableComposicion(!bloqueado);
+        if (bloqueado) {
+          setAvisoMovimientosCombo(
+            "Este combo ya tiene movimientos en Alegra: no se puede cambiar la composición. Usá Duplicar para crear uno nuevo.",
+          );
+        }
+        setCheck({
+          codigo: data.codigo || origen,
+          existe_en_siigo: true,
+          duplicado: true,
+          siigo_producto: {
+            codigo: data.codigo || origen,
+            nombre: data.nombre || item.nombre,
+            type: "Combo",
+          },
+        });
+      })
+      .catch((err: Error) => {
+        setErrorReceta(err.message || "Error al cargar el combo");
+        setAjustandoCombo(false);
+      })
+      .finally(() => setCargandoReceta(false));
+  }
+
   function aplicarHallazgo(item: BusquedaItem) {
     if (duplicarCombo) {
       duplicarDesdeHallazgo(item);
@@ -458,6 +669,9 @@ export default function CrearProductosSiigoPanel({
     setCatalogoAbierto(false);
     setOrigenCombo(null);
     setErrorReceta(null);
+    setAjustandoCombo(false);
+    setAvisoMovimientosCombo(null);
+    setComboEditableComposicion(true);
     if (combo) {
       setModo("combo");
       setComboCodigo(item.codigo);
@@ -506,6 +720,25 @@ export default function CrearProductosSiigoPanel({
       .finally(() => setCatalogoBuscando(false));
   }
 
+  function iniciarEdicionNombre(item: BusquedaItem) {
+    setCatalogoAbierto(true);
+    setEditandoCodigo(item.codigo);
+    setEditandoNombre(nombreMayusculasAlegra(item.nombre, 100, { trimSpaces: false }));
+    setResultado(null);
+  }
+
+  function cancelarEdicionNombre() {
+    setEditandoCodigo(null);
+    setEditandoNombre("");
+  }
+
+  function guardarEdicionNombre(codigoDestino?: string, nombreDestino?: string) {
+    const c = (codigoDestino || editandoCodigo || codigoActivo).trim();
+    const n = nombreMayusculasAlegra(nombreDestino ?? editandoNombre);
+    if (!c || !n || actualizarNombre.isPending) return;
+    actualizarNombre.mutate({ codigo: c, nombre: n });
+  }
+
   function onVerificar() {
     const c = codigoActivo.trim();
     if (c.length < 2) return;
@@ -516,6 +749,12 @@ export default function CrearProductosSiigoPanel({
     setResultado(null);
     if (modo === "producto") crearProducto.mutate();
     else crearCombo.mutate();
+  }
+
+  function onGuardarComposicion() {
+    setResultado(null);
+    if (!ajustandoCombo || !comboEditableComposicion || actualizarCombo.isPending) return;
+    actualizarCombo.mutate();
   }
 
   return (
@@ -569,6 +808,9 @@ export default function CrearProductosSiigoPanel({
                     setCodigo(c.replace(/^c-/i, ""));
                   }
                   if (comboNombre.trim() && !nombre.trim()) setNombre(comboNombre);
+                  setAjustandoCombo(false);
+                  setAvisoMovimientosCombo(null);
+                  setComboEditableComposicion(true);
                 }
               }
               setModo(t.id);
@@ -640,46 +882,127 @@ export default function CrearProductosSiigoPanel({
               )}
               {(duplicarCombo ? catalogoItems.filter(esComboSiigo) : catalogoItems).map((s) => {
                 const combo = esComboSiigo(s);
+                const editando = editandoCodigo === s.codigo;
                 return (
                   <div
                     key={s.codigo}
-                    className="flex w-full items-stretch gap-1 border-b border-border/50 last:border-0 hover:bg-accent/10"
+                    className="flex w-full flex-col border-b border-border/50 last:border-0 hover:bg-accent/10"
                   >
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-3 py-2 text-left"
-                      onClick={() => aplicarHallazgo(s)}
-                      title={
-                        duplicarCombo
-                          ? "Usar este combo como origen de la receta"
-                          : combo
-                            ? "Cargar este combo en el formulario"
-                            : "Cargar este producto en el formulario"
-                      }
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
-                        <span
-                          className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
-                            combo
-                              ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
-                              : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
-                          }`}
-                        >
-                          {combo ? "Combo" : "Producto"}
-                        </span>
-                      </span>
-                      <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
-                    </button>
-                    {combo && (
+                    <div className="flex w-full items-stretch gap-1">
                       <button
                         type="button"
-                        className="m-1.5 shrink-0 self-center rounded-md border border-accent/60 bg-accent/15 px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent/25"
-                        title="Copiar componentes, cantidades y precio a un combo nuevo"
-                        onClick={() => duplicarDesdeHallazgo(s)}
+                        className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-3 py-2 text-left"
+                        onClick={() => aplicarHallazgo(s)}
+                        title={
+                          duplicarCombo
+                            ? "Usar este combo como origen de la receta"
+                            : combo
+                              ? "Cargar este combo en el formulario"
+                              : "Cargar este producto en el formulario"
+                        }
                       >
-                        Duplicar
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-bold text-ink">{s.codigo}</span>
+                          <span
+                            className={`rounded px-1 py-px text-[8px] font-bold uppercase ${
+                              combo
+                                ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100"
+                                : "bg-sky-200 text-sky-900 dark:bg-sky-800 dark:text-sky-100"
+                            }`}
+                          >
+                            {combo ? "Combo" : "Producto"}
+                          </span>
+                        </span>
+                        {!editando && (
+                          <span className="line-clamp-2 text-[10px] text-muted">{s.nombre}</span>
+                        )}
                       </button>
+                      <button
+                        type="button"
+                        className="m-1.5 shrink-0 self-center rounded-md border border-border px-1.5 py-1 text-muted hover:border-accent hover:text-accent"
+                        title="Editar nombre en Alegra"
+                        aria-label={`Editar nombre de ${s.codigo}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (editando) cancelarEdicionNombre();
+                          else iniciarEdicionNombre(s);
+                        }}
+                      >
+                        <Icon name="pencil" size={12} weight="bold" />
+                      </button>
+                      {combo && (
+                        <button
+                          type="button"
+                          className="m-1.5 shrink-0 self-center rounded-md border border-accent/60 bg-accent/15 px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent/25"
+                          title="Copiar componentes, cantidades y precio a un combo nuevo"
+                          onClick={() => duplicarDesdeHallazgo(s)}
+                        >
+                          Duplicar
+                        </button>
+                      )}
+                      {combo && !duplicarCombo && (
+                        <button
+                          type="button"
+                          className="m-1.5 shrink-0 self-center rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-800 hover:bg-amber-500/20 dark:text-amber-200"
+                          title="Ajustar componentes/cantidades (solo si el combo no tiene movimientos)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            ajustarDesdeHallazgo(s);
+                          }}
+                        >
+                          Ajustar
+                        </button>
+                      )}
+                    </div>
+                    {editando && (
+                      <div
+                        className="flex flex-col gap-1.5 border-t border-border/40 bg-surface px-2 py-2"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          autoFocus
+                          value={editandoNombre}
+                          onChange={(e) =>
+                            setEditandoNombre(
+                              nombreMayusculasAlegra(e.target.value, 100, { trimSpaces: false }),
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              guardarEdicionNombre(s.codigo, editandoNombre);
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelarEdicionNombre();
+                            }
+                          }}
+                          maxLength={100}
+                          placeholder="NUEVO NOMBRE EN ALEGRA"
+                          className="w-full rounded-md border border-accent bg-surface-panel px-2 py-1.5 text-xs text-ink outline-none"
+                        />
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            disabled={
+                              actualizarNombre.isPending
+                              || !nombreMayusculasAlegra(editandoNombre)
+                            }
+                            onClick={() => guardarEdicionNombre(s.codigo, editandoNombre)}
+                            className="rounded-md bg-sky-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-sky-700 disabled:opacity-40"
+                          >
+                            {actualizarNombre.isPending ? "Guardando…" : "Guardar nombre"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actualizarNombre.isPending}
+                            onClick={cancelarEdicionNombre}
+                            className="rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-ink hover:border-accent"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
@@ -688,14 +1011,30 @@ export default function CrearProductosSiigoPanel({
           )}
         </div>
       </div>
-      {(duplicarCombo || cargandoReceta || errorReceta || origenCombo) && (
+      {(duplicarCombo || cargandoReceta || errorReceta || origenCombo || ajustandoCombo) && (
         <div className="space-y-1">
           {cargandoReceta && (
-            <p className="text-xs text-muted">Leyendo receta del combo origen en Alegra…</p>
+            <p className="text-xs text-muted">
+              {ajustandoCombo
+                ? "Cargando composición del combo en Alegra…"
+                : "Leyendo receta del combo origen en Alegra…"}
+            </p>
           )}
           {errorReceta && (
             <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
               {errorReceta}
+            </p>
+          )}
+          {ajustandoCombo && !errorReceta && !cargandoReceta && (
+            <p
+              className={`rounded-lg border px-3 py-2 text-xs ${
+                comboEditableComposicion
+                  ? "border-amber-400/50 bg-amber-50 text-amber-950 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-100"
+                  : "border-danger/40 bg-danger/10 text-danger"
+              }`}
+            >
+              {avisoMovimientosCombo
+                || `Modo ajustar: editá componentes/cantidades de ${comboCodigo || "este combo"} y guardá. Solo funciona si el kit no tiene movimientos en Alegra.`}
             </p>
           )}
           {origenCombo && !errorReceta && !cargandoReceta && (
@@ -828,12 +1167,17 @@ export default function CrearProductosSiigoPanel({
                 <input
                   value={comboCodigo}
                   onChange={(e) => {
+                    if (ajustandoCombo) return;
                     setComboCodigo(e.target.value.replace(/\s/g, ""));
                     setCheck(null);
                     setResultado(null);
                   }}
+                  readOnly={ajustandoCombo}
                   placeholder="C-PRODUCTO100g"
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+                  className={`w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent ${
+                    ajustandoCombo ? "opacity-80" : ""
+                  }`}
+                  title={ajustandoCombo ? "En modo ajustar el código no se cambia" : undefined}
                 />
                 <button
                   type="button"
@@ -1109,26 +1453,71 @@ export default function CrearProductosSiigoPanel({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onCrear}
-          disabled={
-            creando
-            || existe
-            || (modo === "producto"
-              ? !codigo.trim() || !nombre.trim()
-              : !comboCodigo.trim()
-                || !comboNombre.trim()
-                || componentes.every((c) => !c.codigo.trim()))
-          }
-          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
-        >
-          {creando
-            ? "Creando en Alegra…"
-            : modo === "producto"
-              ? "Crear producto en Alegra"
-              : "Crear combo en Alegra"}
-        </button>
+        {!ajustandoCombo && (
+          <button
+            type="button"
+            onClick={onCrear}
+            disabled={
+              creando
+              || !!existe
+              || (modo === "producto"
+                ? !codigo.trim() || !nombre.trim()
+                : !comboCodigo.trim()
+                  || !comboNombre.trim()
+                  || componentes.every((c) => !c.codigo.trim()))
+            }
+            className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-40"
+          >
+            {creando
+              ? "Creando en Alegra…"
+              : modo === "producto"
+                ? "Crear producto en Alegra"
+                : "Crear combo en Alegra"}
+          </button>
+        )}
+        {ajustandoCombo && (
+          <button
+            type="button"
+            onClick={onGuardarComposicion}
+            disabled={
+              actualizarCombo.isPending
+              || !comboEditableComposicion
+              || !comboCodigo.trim()
+              || !comboNombre.trim()
+              || componentes.every((c) => !c.codigo.trim())
+            }
+            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-amber-700 disabled:opacity-40"
+            title={
+              comboEditableComposicion
+                ? "Guarda componentes y cantidades en Alegra"
+                : "Combo con movimientos: composición bloqueada"
+            }
+          >
+            {actualizarCombo.isPending
+              ? "Guardando composición…"
+              : "Guardar composición en Alegra"}
+          </button>
+        )}
+        {existe && (
+          <button
+            type="button"
+            onClick={() =>
+              guardarEdicionNombre(
+                codigoActivo,
+                modo === "producto" ? nombre : comboNombre,
+              )
+            }
+            disabled={
+              actualizarNombre.isPending
+              || !codigoActivo.trim()
+              || !(modo === "producto" ? nombre.trim() : comboNombre.trim())
+            }
+            className="rounded-lg border border-sky-600 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-800 shadow-sm transition hover:bg-sky-100 disabled:opacity-40 dark:bg-sky-950/40 dark:text-sky-200"
+            title="Guarda el nombre editado en Alegra (producto o combo ya existente)"
+          >
+            {actualizarNombre.isPending ? "Guardando nombre…" : "Guardar nombre en Alegra"}
+          </button>
+        )}
         <button
           type="button"
           onClick={resetFormulario}

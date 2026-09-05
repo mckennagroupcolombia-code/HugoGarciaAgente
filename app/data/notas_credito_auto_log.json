@@ -795,6 +795,22 @@
       "nc": "NC-2-838",
       "subida_meli": true,
       "actualizado_en": "2026-09-03T07:23:35"
+    },
+    "2000014728564119": {
+      "estado": "emitida",
+      "factura": "FV-2-71039",
+      "nc": "NC-2-841",
+      "subida_meli": true,
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-04T07:23:57"
+    },
+    "2000014668644615": {
+      "estado": "emitida",
+      "factura": "FV-2-70856",
+      "nc": "NC-2-842",
+      "subida_meli": true,
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-04T07:24:15"
     }
   }
 }

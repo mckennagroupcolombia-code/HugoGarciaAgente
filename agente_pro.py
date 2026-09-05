@@ -154,6 +154,38 @@ def create_app():
     except Exception as e:
         print(f"⚠️ Siembra ChromaDB preventa: {e}")
 
+    # Precalentamiento de Facturación → Ventas, NC y Astro Killer: con el
+    # volumen real de ventas MeLi de McKenna, la primera carga del día (sin
+    # caché) de la vista por defecto (concretadas, 7 días) toma ~45-50s —
+    # supera el timeout del proxy/túnel delante de Flask y el panel devuelve
+    # 504 (confirmado en vivo 2026-09-04). En vez de resignarse a esa espera,
+    # este hilo recalcula esa misma vista cada 50s (bajo la caché de 60s de
+    # `listar_ventas_meli_unificado`) para que casi siempre haya un resultado
+    # tibio listo cuando alguien abre el panel. Desactivar con
+    # FACTURACION_PREWARM_ACTIVO=0 si el tráfico extra a MeLi/Alegra molesta.
+    if (os.getenv("FACTURACION_PREWARM_ACTIVO", "1") or "1").strip() == "1":
+        try:
+            import threading
+            import time as _time
+
+            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado
+
+            def _prewarm_facturacion_loop():
+                _time.sleep(25)  # deja que el resto del arranque termine primero
+                while True:
+                    try:
+                        listar_ventas_meli_unificado(dias=7, segmento="concretadas", limite=30, forzar=True)
+                    except Exception as _e:
+                        print(f"⚠️ Precalentamiento Facturación: {_e}")
+                    _time.sleep(50)
+
+            threading.Thread(
+                target=_prewarm_facturacion_loop, daemon=True, name="facturacion-prewarm",
+            ).start()
+            print("✅ Precalentamiento de Facturación → Ventas, NC y Astro Killer activo")
+        except Exception as e:
+            print(f"⚠️ Precalentamiento Facturación: {e}")
+
     return app
 
 

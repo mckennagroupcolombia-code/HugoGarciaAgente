@@ -159,9 +159,13 @@ def consultar_detalle_venta_meli(pack_id: str):
         return f"Error de red consultando detalle de venta en Meli: {e}"
 
 
-def consultar_envio_meli(shipping_id: str) -> dict | None:
-    """GET /shipments/{id} crudo. None si falla la consulta. Usado para detectar 'delivered'."""
-    token = refrescar_token_meli()
+def consultar_envio_meli(shipping_id: str, *, token: str | None = None) -> dict | None:
+    """GET /shipments/{id} crudo. None si falla la consulta. Usado para detectar 'delivered'.
+
+    `token`: opcional, para reusar un token ya refrescado en llamadas en lote
+    (ver `consultar_orden_meli_completa`) — sin esto, cada llamada dispara su
+    propio refresh OAuth completo, que es mucho más lento que el GET en sí."""
+    token = token or refrescar_token_meli()
     if not token:
         return None
     try:

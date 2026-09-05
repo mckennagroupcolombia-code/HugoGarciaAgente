@@ -497,6 +497,80 @@ def _guardar_historial_persistente(usuario_id: str, messages: list) -> None:
         _log_error(f"Guardar historial persistente usuario={usuario_id}", e)
 
 
+def listar_conversaciones_wa_recientes(limite: int = 40, q: str = "") -> list[dict]:
+    """Últimas conversaciones reales de clientes por WhatsApp (excluye web
+    chat `web-*` y grupos `@g.us`) — usado por Facturación → Cotizar/Facturar
+    para elegir la conversación en vez de pegar el texto a mano."""
+    try:
+        _ensure_conversaciones_db()
+        q = (q or "").strip()
+        limite = max(1, min(int(limite or 40), 100))
+        with sqlite3.connect(_CONVERSACIONES_DB) as conn:
+            filtro_q = "AND usuario_id LIKE ?" if q else ""
+            params: list = [f"%{q}%"] if q else []
+            rows = conn.execute(
+                f"""
+                SELECT usuario_id, MAX(updated_at) AS ultimo, COUNT(*) AS n
+                FROM conversaciones_whatsapp
+                WHERE (usuario_id LIKE '%@c.us' OR usuario_id LIKE '%@lid')
+                {filtro_q}
+                GROUP BY usuario_id
+                ORDER BY ultimo DESC
+                LIMIT ?
+                """,
+                (*params, limite),
+            ).fetchall()
+            resultado = []
+            for usuario_id, ultimo, n in rows:
+                fila = conn.execute(
+                    "SELECT role, content_json FROM conversaciones_whatsapp "
+                    "WHERE usuario_id = ? ORDER BY idx DESC LIMIT 1",
+                    (usuario_id,),
+                ).fetchone()
+                resumen = ""
+                if fila:
+                    role, content_json = fila
+                    try:
+                        content = json.loads(content_json)
+                    except json.JSONDecodeError:
+                        content = content_json
+                    texto = _extraer_texto_visible_mensaje(content)
+                    prefijo_interno = f"Usuario_{usuario_id}: "
+                    if texto.startswith(prefijo_interno):
+                        texto = texto[len(prefijo_interno):]
+                    prefijo = "Cliente: " if role == "user" else "Hugo: "
+                    resumen = (prefijo + texto)[:140] if texto else ""
+                resultado.append({
+                    "usuario_id": usuario_id,
+                    "telefono": usuario_id.split("@")[0],
+                    "resumen": resumen,
+                    "ultimo": ultimo,
+                    "n_mensajes": n,
+                })
+            return resultado
+    except Exception as e:
+        _log_error("Listar conversaciones WA recientes", e)
+        return []
+
+
+def texto_conversacion_wa(usuario_id: str, max_turnos: int = 30) -> str:
+    """Historial de un cliente de WhatsApp como texto plano legible (Cliente:
+    / Hugo (McKenna):), para prellenar Cotizar/Facturar sin que el operador
+    tenga que pegarlo a mano (ver app/tools/extraccion_cotizacion_wa.py)."""
+    historial = _cargar_historial_persistente(usuario_id)[-max_turnos:]
+    prefijo_interno = f"Usuario_{usuario_id}: "
+    lineas = []
+    for m in historial:
+        texto = _extraer_texto_visible_mensaje(m.get("content"))
+        if not texto:
+            continue
+        if texto.startswith(prefijo_interno):
+            texto = texto[len(prefijo_interno):]
+        prefijo = "Cliente" if m.get("role") == "user" else "Hugo (McKenna)"
+        lineas.append(f"{prefijo}: {texto}")
+    return "\n".join(lineas)
+
+
 def _memoria_vectorial_para_chat(
     pregunta: str,
     historial: list | None = None,

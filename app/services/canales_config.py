@@ -16,6 +16,18 @@ _LOCK = threading.Lock()
 # Catálogo fijo (mismo que panel /api/sistema/modelos, sin Ollama dinámico)
 MODELOS_FIJOS: list[dict[str, Any]] = [
     {
+        "id": "claude-sonnet-5",
+        "nombre": "Claude Sonnet 5",
+        "categoria": "claude",
+        "proveedor": "Anthropic API",
+    },
+    {
+        "id": "claude-opus-5",
+        "nombre": "Claude Opus 5",
+        "categoria": "claude",
+        "proveedor": "Anthropic API",
+    },
+    {
         "id": "claude-sonnet-4-6",
         "nombre": "Claude Sonnet 4.6",
         "categoria": "claude",
@@ -46,7 +58,7 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "id": "whatsapp",
         "nombre": "WhatsApp",
         "icono": "wa",
-        "modelo_id": "claude-sonnet-4-6",
+        "modelo_id": "claude-sonnet-5",
         "modo": "Cliente · catálogo + texto",
         "flujo": "cliente_texto",
         "descripcion": (
@@ -58,10 +70,26 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "categorias_modelo": ["claude", "ollama", "gemini"],
     },
     {
+        "id": "postventa",
+        "nombre": "Postventa MeLi (borrador)",
+        "icono": "wa",
+        "modelo_id": "claude-opus-5",
+        "modo": "Cliente · borrador con aprobación",
+        "flujo": "cliente_texto",
+        "descripcion": (
+            "Borrador de respuesta a mensajes postventa MeLi (reclamos, RUT, dudas de "
+            "entrega) recibidos por WhatsApp con es_postventa=true; siempre pasa por "
+            "aprobación humana antes de enviarse. Prueba acotada con Claude Opus 5 "
+            "(2026-09-04) — casos de mayor ambigüedad que el chat de venta normal."
+        ),
+        "editable": True,
+        "categorias_modelo": ["claude", "ollama", "gemini"],
+    },
+    {
         "id": "meli_preventa",
         "nombre": "MeLi Preventa",
         "icono": "ml",
-        "modelo_id": "claude-sonnet-4-6",
+        "modelo_id": "claude-sonnet-5",
         "modo": "Operaciones · ficha MeLi",
         "flujo": "operaciones",
         "descripcion": "Responde con ficha técnica. Sin ficha → delega al equipo.",
@@ -72,7 +100,7 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "id": "web_chat",
         "nombre": "Web Chat (burbuja)",
         "icono": "web",
-        "modelo_id": "claude-sonnet-4-6",
+        "modelo_id": "claude-sonnet-5",
         "modo": "Cliente · combo SIIGO + texto",
         "flujo": "cliente_texto",
         "descripcion": (
@@ -184,7 +212,7 @@ def _resolver_meta_modelo(modelo_id: str) -> dict[str, str]:
             "proveedor": "Local (Ollama)",
         }
     return {
-        "modelo_id": modelo_id or "claude-sonnet-4-6",
+        "modelo_id": modelo_id or "claude-sonnet-5",
         "modelo_nombre": modelo_id or "Desconocido",
         "modelo_categoria": "claude" if str(modelo_id).startswith("claude-") else "gemini",
         "proveedor": "API",
@@ -195,16 +223,16 @@ def obtener_modelo_canal(canal_id: str) -> str:
     """ID de modelo asignado al canal (o default de la definición)."""
     canal_id = (canal_id or "").strip()
     if not canal_id or canal_id == "panel_chat":
-        return "claude-sonnet-4-6"
+        return "claude-sonnet-5"
     with _LOCK:
         overrides = _load_overrides()
     if canal_id in overrides:
         return overrides[canal_id]
     for c in CANALES_DEFINICION:
         if c["id"] == canal_id:
-            mid = c.get("modelo_id") or "claude-sonnet-4-6"
-            return mid if mid != "seleccionable" else "claude-sonnet-4-6"
-    return "claude-sonnet-4-6"
+            mid = c.get("modelo_id") or "claude-sonnet-5"
+            return mid if mid != "seleccionable" else "claude-sonnet-5"
+    return "claude-sonnet-5"
 
 
 def es_canal_cliente(canal_id: str) -> bool:

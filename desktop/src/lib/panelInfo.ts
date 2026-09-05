@@ -91,6 +91,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "atencion",
   },
+  "ventas-email": {
+    emoji: "✉️",
+    label: "Correo Ventas",
+    description: "Bandeja de ventas@mckennagroup.co: correos de clientes que llegan por correo en vez de WhatsApp o MeLi.",
+    tips: [
+      "Solo muestra correos sin leer del buzón ventas@.",
+      "Responder envía el correo real y lo marca como leído.",
+      "Requiere que ventas@mckennagroup.co esté autorizado para delegación de dominio en Google Workspace.",
+    ],
+    tier: "core",
+    category: "atencion",
+  },
   pedidos: {
     emoji: "📦",
     label: "Pedidos Web",

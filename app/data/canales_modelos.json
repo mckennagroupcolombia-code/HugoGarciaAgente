@@ -1,8 +1,9 @@
 {
-  "updated_at": "2026-08-10T00:00:00",
+  "updated_at": "2026-09-04T00:00:00",
   "asignaciones": {
-    "web_chat": "claude-sonnet-4-6",
-    "whatsapp": "claude-sonnet-4-6",
-    "meli_preventa": "claude-sonnet-4-6"
+    "web_chat": "claude-sonnet-5",
+    "whatsapp": "claude-sonnet-5",
+    "meli_preventa": "claude-sonnet-5",
+    "postventa": "claude-opus-5"
   }
 }

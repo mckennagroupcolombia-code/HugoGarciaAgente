@@ -210,21 +210,45 @@ def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> flo
     return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
+def _nombre_object_persona(nombre: str) -> dict:
+    """Alegra exige `nameObject` (firstName/lastName) para kindOfPerson
+    PERSON_ENTITY — `name` solo no basta (confirmado en vivo 2026-09-04:
+    POST /contacts sin nameObject devuelve 400 "El campo nameObject es
+    obligatorio". LEGAL_ENTITY sí acepta solo `name`, no hace falta ahí)."""
+    partes = (nombre or "").strip().split(None, 1)
+    if not partes:
+        return {"firstName": NOMBRE_CONSUMIDOR_FINAL_MELI}
+    if len(partes) == 1:
+        return {"firstName": partes[0]}
+    return {"firstName": partes[0], "lastName": partes[1]}
+
+
 def _resolver_o_crear_contacto_alegra(
     *, nombre: str, identificacion: str, email: str = "", telefono: str = "", direccion: str = "",
-) -> str | None:
-    """Busca un contacto por identificación; si no existe, lo crea. Retorna el id de Alegra."""
+) -> tuple[str | None, str]:
+    """Busca un contacto por identificación; si no existe, lo crea. Retorna
+    (id_de_alegra, error) — error vacío si ok. El detalle de error se propaga
+    al operador (panel Cotizar/Facturar) en vez de quedarse solo en el print
+    de consola, que se puede perder si el proceso se reinicia justo después."""
     identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
     if not identificacion:
-        return None
+        return None, "Identificación vacía."
     if identificacion in _contacto_cache:
-        return _contacto_cache[identificacion]
+        return _contacto_cache[identificacion], ""
 
-    headers = _alegra_headers()
-    res = requests.get(
-        f"{_ALEGRA_BASE}/contacts", headers=headers,
-        params={"identification": identificacion, "limit": 5}, timeout=15,
-    )
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return None, str(e)
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/contacts", headers=headers,
+            params={"identification": identificacion, "limit": 5}, timeout=15,
+        )
+    except requests.RequestException as e:
+        return None, f"Error de red consultando el contacto en Alegra: {e}"
+
     if res.status_code == 200:
         resultados = res.json() or []
         if resultados:
@@ -236,6 +260,7 @@ def _resolver_o_crear_contacto_alegra(
             # aunque no cambien — no es un PATCH parcial real (confirmado en vivo).
             update_payload: dict = {
                 "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
+                "nameObject": _nombre_object_persona(nombre),
                 "identificationObject": {
                     "type": "CC" if len(identificacion) <= 10 else "NIT",
                     "number": identificacion,
@@ -248,18 +273,30 @@ def _resolver_o_crear_contacto_alegra(
             if telefono:
                 update_payload["phonePrimary"] = telefono
             if direccion:
-                update_payload["address"] = {"address": direccion}
+                # `address.address` sin `department` (catálogo Alegra) devuelve
+                # 400 "El departamento es inválido" (confirmado en vivo
+                # 2026-09-04) — el panel solo captura dirección en texto libre,
+                # sin departamento, así que se guarda en observations en vez de
+                # bloquear la creación/actualización del contacto.
+                update_payload["observations"] = f"Dirección: {direccion}"
             if update_payload:
                 try:
                     requests.put(f"{_ALEGRA_BASE}/contacts/{cid}", headers=headers, json=update_payload, timeout=15)
                 except requests.RequestException:
                     pass
             _contacto_cache[identificacion] = cid
-            return cid
+            return cid, ""
+    elif res.status_code != 404:
+        print(
+            f"⚠️ Alegra: GET /contacts?identification={identificacion} devolvió "
+            f"HTTP {res.status_code}: {res.text[:300]}",
+            flush=True,
+        )
+        return None, f"Alegra rechazó la búsqueda del contacto (HTTP {res.status_code}): {res.text[:300]}"
 
-    es_consumidor_final = identificacion == "".join(ch for ch in NIT_CONSUMIDOR_FINAL_MELI if ch.isdigit())
     payload = {
         "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
+        "nameObject": _nombre_object_persona(nombre),
         "identificationObject": {
             "type": "CC" if len(identificacion) <= 10 else "NIT",
             "number": identificacion,
@@ -272,15 +309,20 @@ def _resolver_o_crear_contacto_alegra(
     if telefono:
         payload["phonePrimary"] = telefono
     if direccion:
-        payload["address"] = {"address": direccion}
+        # Ver nota equivalente arriba (update_payload) — mismo motivo.
+        payload["observations"] = f"Dirección: {direccion}"
 
-    res = requests.post(f"{_ALEGRA_BASE}/contacts", headers=headers, json=payload, timeout=20)
+    try:
+        res = requests.post(f"{_ALEGRA_BASE}/contacts", headers=headers, json=payload, timeout=20)
+    except requests.RequestException as e:
+        return None, f"Error de red creando el contacto en Alegra: {e}"
     if res.status_code not in (200, 201):
-        print(f"⚠️ Alegra: no se pudo crear contacto {identificacion}: {res.text[:300]}")
-        return None
+        detalle = res.text[:300]
+        print(f"⚠️ Alegra: no se pudo crear contacto {identificacion}: {detalle}", flush=True)
+        return None, f"Alegra rechazó el contacto (HTTP {res.status_code}): {detalle}"
     cid = str(res.json().get("id"))
     _contacto_cache[identificacion] = cid
-    return cid
+    return cid, ""
 
 
 def crear_factura_venta_alegra(
@@ -304,8 +346,10 @@ def crear_factura_venta_alegra(
     para minimizar cambios en los call-sites.
 
     `productos`: [{"codigo": "SKU", "nombre": "...", "cantidad": 1, "precio_unitario": 1000}]
-    (el `tax_ids` de Siigo no aplica igual acá — el IVA se resuelve por
-    ALEGRA_IVA_TAX_ID/producto en Alegra, ver TODO al final de este archivo).
+    (el `tax_ids` de Siigo no aplica igual acá — el IVA de cada línea sale
+    ÚNICAMENTE de lo que el producto tenga configurado en Alegra; un producto
+    con `tax: []` — ej. envío — factura sin IVA, sin fallback a un tax id
+    global. Ver nota en el bucle de abajo, caso FE29).
     """
     try:
         headers = _alegra_headers()
@@ -320,14 +364,16 @@ def crear_factura_venta_alegra(
     if not nombre_cliente or not identificacion_digits:
         return {"ok": False, "error": "Faltan nombre o identificación del cliente."}
 
-    contacto_id = _resolver_o_crear_contacto_alegra(
+    contacto_id, error_contacto = _resolver_o_crear_contacto_alegra(
         nombre=nombre_cliente, identificacion=identificacion_digits,
         email=email, telefono=telefono, direccion=direccion_envio,
     )
     if not contacto_id:
-        return {"ok": False, "error": f"No se pudo resolver/crear el contacto {identificacion_digits} en Alegra."}
-
-    tax_id = _env_int("ALEGRA_IVA_TAX_ID")  # TODO: confirmar el id real del IVA 19% en la cuenta
+        detalle = f" {error_contacto}" if error_contacto else ""
+        return {
+            "ok": False,
+            "error": f"No se pudo resolver/crear el contacto {identificacion_digits} en Alegra.{detalle}",
+        }
 
     items = []
     for p in productos:
@@ -351,7 +397,15 @@ def crear_factura_venta_alegra(
         # El precio que llega (MeLi/checkout web) ya incluye IVA — hay que sacarlo antes
         # de mandarlo, si no Alegra lo suma OTRA VEZ encima (bug confirmado en vivo:
         # FE1 salió en $4.522 en vez de $3.800 por no hacer esta conversión).
-        producto_tax_ids = producto_alegra.get("tax_ids") or ([tax_id] if tax_id else [])
+        #
+        # OJO: NO caer a `tax_id` (ALEGRA_IVA_TAX_ID) cuando `tax_ids` viene
+        # vacío — un producto con `tax: []` en Alegra está intencionalmente
+        # exento (ej. envío: WEB-ENVIO-18000/VAR no lleva IVA en venta directa
+        # web/WhatsApp), no es "no sabemos, asumamos 19%". Bug confirmado en
+        # vivo (FE29, 2026-09-04): el fallback le metió IVA al envío y la
+        # factura salió en $212.850 en vez de los $209.430 cotizados — el
+        # propio producto en Alegra ya traía `tax: []` correctamente.
+        producto_tax_ids = producto_alegra.get("tax_ids") or []
         producto_tax_rate = producto_alegra.get("tax_rate_total") or 0
         precio_base = (
             _precio_base_con_impuesto(precio_unitario, producto_tax_rate)
@@ -572,7 +626,14 @@ def crear_nota_credito_alegra(
     if not client_id or not items_factura or total is None:
         return {"ok": False, "error": f"La factura {factura_id} no trae cliente/ítems/total — no se puede anular."}
 
-    if factura.get("balance") == 0 and factura.get("payments"):
+    # Cualquier pago registrado reduce el saldo por debajo del total de la
+    # factura, y Alegra rechaza (código 9030) una NC de anulación total cuyo
+    # `amount` (= total de la factura) supere ese saldo — pasa tanto con
+    # balance 0 (caso normal, pago = total) como con balance parcial (ej.
+    # FE29: se pagó el total COTIZADO, pero la factura salió más alta por un
+    # bug de IVA, dejando balance > 0 pero < total). Por eso no se condiciona
+    # a `balance == 0`: si hay pagos, se revierten siempre antes de anular.
+    if factura.get("payments"):
         ok_pagos, err_pagos = _revertir_pagos_factura_alegra(headers, factura)
         if not ok_pagos:
             return {"ok": False, "error": f"No se pudo liberar el saldo de la factura para anularla: {err_pagos}"}
@@ -924,6 +985,289 @@ def actualizar_precio_alegra_producto(code: str, nuevo_precio: float) -> dict:
     return {"ok": True, "msg": f"Precio de {code} actualizado a {nuevo_precio}"}
 
 
+def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
+    """Actualiza el `name` de un producto/kit Alegra por su `reference`.
+
+    Aplica `_nombre_mayusculas_alegra` (MAYÚSCULAS + grafía `mL`/`g`).
+    Retorna ``{"ok", "msg", "codigo"?, "nombre"?}``.
+    """
+    codigo = (codigo or "").strip()
+    nombre_ok = _nombre_mayusculas_alegra(nuevo_nombre)
+    if not codigo:
+        return {"ok": False, "msg": "codigo es obligatorio"}
+    if not nombre_ok:
+        return {"ok": False, "msg": "nombre es obligatorio"}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "msg": str(e)}
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": codigo, "limit": 5},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
+    if res.status_code != 200:
+        return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
+    productos = res.json() or []
+    if not productos:
+        return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra"}
+
+    item = productos[0]
+    item_id = item.get("id")
+    if not item_id:
+        return {"ok": False, "msg": f"Producto {codigo} sin id en Alegra"}
+    nombre_actual = str(item.get("name") or "")
+    if nombre_actual == nombre_ok:
+        return {
+            "ok": True,
+            "msg": "Sin cambios",
+            "codigo": codigo,
+            "nombre": nombre_ok,
+        }
+
+    try:
+        res2 = requests.put(
+            f"{_ALEGRA_BASE}/items/{item_id}",
+            headers=headers,
+            json={"name": nombre_ok},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red actualizando nombre: {e}"}
+    if res2.status_code != 200:
+        return {"ok": False, "msg": f"Alegra PUT error {res2.status_code}: {res2.text[:200]}"}
+
+    _producto_cache.pop(codigo, None)
+    return {
+        "ok": True,
+        "msg": f"Nombre de {codigo} actualizado",
+        "codigo": codigo,
+        "nombre": nombre_ok,
+    }
+
+
+def _mensaje_bloqueo_movimientos_alegra(texto: str) -> str | None:
+    """Si Alegra rechaza editar por movimientos, mensaje claro en español."""
+    t = (texto or "").lower()
+    marcas = (
+        "movimiento",
+        "movimientos",
+        "has movements",
+        "associated transactions",
+        "no se puede editar",
+        "cannot be edited",
+        "no se puede modificar",
+        "ya fue usado",
+        "already been used",
+    )
+    if any(m in t for m in marcas):
+        return (
+            "Este combo ya tiene movimientos en Alegra y no se puede cambiar la "
+            "composición. Duplicá el combo o creá uno nuevo con la receta corregida."
+        )
+    return None
+
+
+def _inferir_movimientos_item_alegra(prod: dict) -> bool | None:
+    """Heurística suave sobre el JSON del ítem. None = desconocido (dejar intentar PUT)."""
+    if not isinstance(prod, dict):
+        return None
+    inv = prod.get("inventory") or {}
+    if not isinstance(inv, dict):
+        inv = {}
+    try:
+        aq = inv.get("availableQuantity")
+        iq = inv.get("initialQuantity")
+        if aq is not None and iq is not None and float(aq) != float(iq):
+            return True
+    except (TypeError, ValueError):
+        pass
+    for wh in inv.get("warehouses") or []:
+        if not isinstance(wh, dict):
+            continue
+        try:
+            wq = wh.get("availableQuantity")
+            wi = wh.get("initialQuantity")
+            if wq is not None and wi is not None and float(wq) != float(wi):
+                return True
+            if wq is not None and float(wq) != 0 and wi is None:
+                # Stock distinto de cero sin initial explícito → probable movimiento
+                return True
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def actualizar_combo_alegra(
+    codigo: str,
+    componentes: list,
+    *,
+    nombre: str | None = None,
+    precio_lista: float | None = None,
+) -> dict:
+    """Actualiza la composición (subitems) de un kit Alegra por `reference`.
+
+    Alegra suele rechazar el PUT si el ítem ya tiene movimientos (facturas, etc.).
+    En ese caso retorna ``ok=False`` con mensaje claro y ``bloqueado_movimientos=True``.
+
+    componentes: [{code|codigo, quantity|cantidad}, ...] — al menos uno.
+    Retorna ``{ok, msg|error, codigo?, componentes?, bloqueado_movimientos?}``.
+    """
+    import re
+
+    global _combos_alegra_cache, _combos_alegra_cache_ts
+
+    codigo_limpio = re.sub(r"[^A-Za-z0-9._-]", "", (codigo or "").strip())
+    if not codigo_limpio:
+        return {"ok": False, "error": "codigo es obligatorio"}
+
+    comps_raw: list[tuple[str, float]] = []
+    for raw in componentes or []:
+        if not isinstance(raw, dict):
+            continue
+        c = re.sub(
+            r"[^A-Za-z0-9._-]",
+            "",
+            str(raw.get("code") or raw.get("codigo") or "").strip(),
+        )
+        if not c:
+            continue
+        try:
+            qty = float(
+                raw.get("quantity")
+                if raw.get("quantity") is not None
+                else raw.get("cantidad") or 1
+            )
+        except (TypeError, ValueError):
+            qty = 1.0
+        if qty <= 0:
+            return {"ok": False, "error": f"Cantidad inválida para componente {c}"}
+        comps_raw.append((c, qty))
+
+    if len(comps_raw) < 1:
+        return {"ok": False, "error": "El combo necesita al menos un componente"}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": codigo_limpio, "limit": 5},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red obteniendo combo: {e}"}
+    if res.status_code != 200:
+        return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
+    productos = res.json() or []
+    if not productos:
+        return {"ok": False, "error": f"Combo {codigo_limpio} no existe en Alegra"}
+
+    item = productos[0]
+    tipo = (item.get("type") or "").strip().lower()
+    if tipo != "kit":
+        return {
+            "ok": False,
+            "error": f"{codigo_limpio} no es un combo/kit en Alegra (type={tipo or 'simple'})",
+        }
+    item_id = item.get("id")
+    if not item_id:
+        return {"ok": False, "error": f"Combo {codigo_limpio} sin id en Alegra"}
+
+    inferido = _inferir_movimientos_item_alegra(item)
+    if inferido is True:
+        return {
+            "ok": False,
+            "error": (
+                "Este combo parece tener movimientos de inventario en Alegra y no "
+                "se puede cambiar la composición. Duplicá el combo o creá uno nuevo."
+            ),
+            "bloqueado_movimientos": True,
+            "codigo": codigo_limpio,
+        }
+
+    subitems = []
+    comps_out = []
+    for c, qty in comps_raw:
+        prod = buscar_producto_alegra_por_referencia(c)
+        if not prod:
+            return {
+                "ok": False,
+                "error": (
+                    f"Componente '{c}' no existe en Alegra. "
+                    "Créalo primero o verifica el código."
+                ),
+            }
+        subitems.append({"item": {"id": prod["id"]}, "quantity": qty})
+        comps_out.append({
+            "codigo": c,
+            "nombre": prod.get("name") or prod.get("nombre") or "",
+            "cantidad": qty,
+        })
+
+    payload: dict = {"subitems": subitems}
+    if nombre is not None and str(nombre).strip():
+        payload["name"] = _nombre_mayusculas_alegra(nombre)
+    if precio_lista is not None:
+        try:
+            pl = float(precio_lista)
+            if pl >= 0:
+                payload["price"] = round(pl, 0)
+        except (TypeError, ValueError):
+            pass
+
+    try:
+        res2 = requests.put(
+            f"{_ALEGRA_BASE}/items/{item_id}",
+            headers=headers,
+            json=payload,
+            timeout=25,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red actualizando combo: {e}"}
+
+    if res2.status_code != 200:
+        cuerpo = res2.text[:400] if res2.text else ""
+        bloqueo = _mensaje_bloqueo_movimientos_alegra(cuerpo)
+        if bloqueo:
+            return {
+                "ok": False,
+                "error": bloqueo,
+                "bloqueado_movimientos": True,
+                "codigo": codigo_limpio,
+            }
+        return {
+            "ok": False,
+            "error": f"Alegra PUT error {res2.status_code}: {cuerpo[:300]}",
+            "codigo": codigo_limpio,
+        }
+
+    _producto_cache.pop(codigo_limpio, None)
+    _combos_alegra_cache = []
+    _combos_alegra_cache_ts = 0.0
+
+    nombre_final = payload.get("name") or (item.get("name") or "")
+    return {
+        "ok": True,
+        "msg": f"Composición de {codigo_limpio} actualizada en Alegra",
+        "mensaje": f"Composición de {codigo_limpio} actualizada en Alegra",
+        "codigo": codigo_limpio,
+        "nombre": nombre_final,
+        "componentes": comps_out,
+        "bloqueado_movimientos": False,
+    }
+
+
 def obtener_documento_fiscal_alegra_para_meli(id_factura: str) -> tuple[str, str]:
     """Espejo de `obtener_documento_fiscal_siigo_para_meli` — PDF para subir a
     MeLi (fiscal_documents). Sin XML de respaldo todavía (Alegra no expone un
@@ -1197,6 +1541,70 @@ def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
     return resultados
 
 
+def contar_facturas_cliente_alegra(identificacion: str) -> dict:
+    """Conteo HISTÓRICO real (no acotado al rango cargado en el panel) de
+    facturas de un cliente en Alegra — para el botón "ver histórico completo"
+    de Facturación → Ventas, NC y Astro Killer (ayuda a detectar doble
+    facturación a un mismo cliente). Resuelve el contacto por identificación
+    exacta (mismo endpoint que `_resolver_o_crear_contacto_alegra`, pero sin
+    crear si no existe) y pide `GET /invoices?client_id=` con `limit=1` para
+    leer el total de la paginación sin traer todas las facturas."""
+    identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    if not identificacion:
+        return {"ok": False, "error": "Identificación vacía."}
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/contacts", headers=headers,
+            params={"identification": identificacion, "limit": 5}, timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red: {e}"}
+    if res.status_code != 200 or not (res.json() or []):
+        return {"ok": True, "contacto_id": None, "total_facturas": 0}
+    contacto = res.json()[0]
+    contacto_id = contacto.get("id")
+    try:
+        res2 = requests.get(
+            f"{_ALEGRA_BASE}/invoices", headers=headers,
+            params={"client_id": contacto_id, "limit": 1}, timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red: {e}"}
+    if res2.status_code != 200:
+        return {"ok": False, "error": f"Alegra respondió {res2.status_code}"}
+    # Alegra no siempre expone un total de paginación explícito en la
+    # respuesta de /invoices (a diferencia de otros endpoints) — si no viene,
+    # se cae a contar página por página (con este cliente el volumen esperado
+    # es bajo, no un cliente con miles de facturas).
+    total = (res2.json() if isinstance(res2.json(), dict) else None) or {}
+    total_facturas = (total.get("metadata") or {}).get("total") if isinstance(total, dict) else None
+    if total_facturas is None:
+        total_facturas = 0
+        start = 0
+        while True:
+            try:
+                pag = requests.get(
+                    f"{_ALEGRA_BASE}/invoices", headers=headers,
+                    params={"client_id": contacto_id, "limit": 30, "start": start}, timeout=15,
+                )
+            except requests.RequestException:
+                break
+            if pag.status_code != 200:
+                break
+            lote = pag.json() or []
+            if not lote:
+                break
+            total_facturas += len(lote)
+            if len(lote) < 30:
+                break
+            start += 30
+    return {"ok": True, "contacto_id": contacto_id, "nombre": contacto.get("name"), "total_facturas": total_facturas}
+
+
 def buscar_productos_alegra_picker(
     consulta: str, *, max_items: int = 40, excluir_combos: bool = True,
 ) -> list[dict]:
@@ -1309,6 +1717,9 @@ def detalle_producto_alegra(codigo: str) -> dict:
             "cantidad": qty,
         })
 
+    tiene_mov = _inferir_movimientos_item_alegra(prod)
+    editable = True if tiene_mov is None else (not tiene_mov)
+
     return {
         "ok": True,
         "codigo": (prod.get("reference") or codigo_limpio).strip(),
@@ -1319,6 +1730,8 @@ def detalle_producto_alegra(codigo: str) -> dict:
         "iva": bool(prod.get("tax")),
         "activo": (prod.get("status") or "active") == "active",
         "componentes": componentes,
+        "tiene_movimientos": tiene_mov,
+        "editable_composicion": bool(es_combo and editable),
     }
 
 
@@ -1862,11 +2275,6 @@ def obtener_facturas_compra_alegra(fecha_inicio: str) -> list:
     return out
 
 
-_trazabilidad_meli_cache: list = []
-_trazabilidad_meli_cache_ts: float = 0.0
-_TRAZABILIDAD_TTL = 60  # segundos
-
-
 def _detalle_venta_meli(order_id: str, *, token: str | None = None) -> dict | None:
     """Ítems (SKU/cantidad/precio) y total pagado de la venta real en MeLi —
     para el panel Astro Killer, comparar lado a lado "lo que se vendió" contra
@@ -1939,187 +2347,9 @@ def _detalle_venta_web(reference: str) -> dict | None:
         return None
 
 
-def listar_ventas_meli_con_trazabilidad(desde: str | None = None, limite: int = 200, forzar: bool = False) -> list[dict]:
-    """
-    Panel de trazabilidad Astro Killer: agrupa TODAS las facturas de Alegra por
-    `anotation` (el order_id de MeLi, o la referencia MCKG-xxx de un pedido
-    web — lo llena `crear_factura_venta_alegra` vía `purchase_order`) y cruza
-    cada una con sus notas crédito.
-
-    Deliberadamente NO depende de app/data/meli_facturas_entrega.json para el
-    historial — ese archivo solo guarda la factura *vigente* de cada orden, así
-    que un caso de "factura mal emitida → nota crédito → re-factura" perdería
-    el rastro de la primera factura y su nota crédito si se mirara solo ahí.
-    Consultando Alegra directo se ve el historial completo por venta.
-    """
-    import time as _time
-
-    global _trazabilidad_meli_cache, _trazabilidad_meli_cache_ts
-    if not forzar and _trazabilidad_meli_cache and _time.time() - _trazabilidad_meli_cache_ts < _TRAZABILIDAD_TTL:
-        return _trazabilidad_meli_cache[:limite]
-
-    try:
-        headers = _alegra_headers()
-    except RuntimeError:
-        return []
-
-    desde = desde or FECHA_CORTE_MIGRACION_ALEGRA
-    facturas = obtener_facturas_alegra_paginadas(desde)
-
-    # Traer todas las notas crédito de Alegra e indexarlas por factura referenciada.
-    notas_por_factura: dict[str, list[dict]] = {}
-    pagina = 0
-    while True:
-        r = requests.get(f"{_ALEGRA_BASE}/credit-notes", headers=headers, params={"limit": 30, "start": pagina * 30}, timeout=20)
-        if r.status_code != 200:
-            break
-        lote = r.json() or []
-        if not lote:
-            break
-        for nc in lote:
-            for inv in nc.get("invoices") or []:
-                fid = str(inv.get("id"))
-                stamp_nc = nc.get("stamp") or {}
-                notas_por_factura.setdefault(fid, []).append({
-                    "id": nc.get("id"),
-                    "numero": (nc.get("numberTemplate") or {}).get("fullNumber"),
-                    "fecha": nc.get("date"),
-                    "total": nc.get("total"),
-                    "tipo": nc.get("type"),
-                    "cufe": stamp_nc.get("cufe") or "",
-                    "legal_status": stamp_nc.get("legalStatus") or nc.get("status"),
-                    "url": f"https://app.alegra.com/credit-note/view/id/{nc.get('id')}",
-                })
-        if len(lote) < 30:
-            break
-        pagina += 1
-
-    # Agrupar facturas por orden (anotation). order_id de MeLi es numérico largo;
-    # las referencias de pedidos web empiezan con "MCKG-".
-    por_orden: dict[str, list[dict]] = {}
-    for f in facturas:
-        anot = (f.get("purchase_order") or f.get("anotation") or "").strip()
-        if not anot:
-            continue
-        por_orden.setdefault(anot, []).append(f)
-
-    # Cruce con el índice legado (Siigo / astroselling.com, previo a la migración a
-    # Alegra) — mismo order_id/pack_id de MeLi. Sin esto, una venta facturada dos
-    # veces (Astroselling ya la facturó en Siigo y luego este flujo la vuelve a
-    # facturar en Alegra) no se ve como doble en este panel: cada sistema solo
-    # conoce su propia factura. Ver hallazgo 2026-09-03 (FE2/FE3 duplicando
-    # FV-2-70961/FV-2-71112, ambas ya subidas a MeLi por astroselling.com).
-    from app.services.conciliacion_meli import leer_indice_facturacion_meli
-
-    indice_legado = leer_indice_facturacion_meli().get("indice", {})
-
-    # Un solo refresh de token MeLi para toda la función (resolución de pack_id
-    # acá abajo + detalle de venta más adelante) — refrescar_token_meli() no
-    # cachea, así que sin esto cada orden dispara su propio refresh OAuth
-    # completo y la función se vuelve impracticable con más de un puñado de
-    # ventas (confirmado en vivo: bajó de 90s+ a bajar la cantidad de refreshes).
-    token_meli = None
-    if any(oid.isdigit() and len(oid) >= 10 for oid in por_orden):
-        from app.utils import refrescar_token_meli
-
-        token_meli = refrescar_token_meli()
-
-    # Pre-resolver en paralelo el pack_id de las órdenes MeLi sin match directo
-    # en el índice legado — uno por uno en serie (como era antes) hacía que un
-    # solo llamado lento de MeLi (pasa, varía con la API) bloqueara todas las
-    # ventas siguientes en fila.
-    from concurrent.futures import ThreadPoolExecutor
-
-    a_resolver = [
-        oid for oid in por_orden
-        if oid.isdigit() and len(oid) >= 10 and oid not in indice_legado
-    ]
-    if a_resolver:
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            list(pool.map(lambda oid: _resolver_pack_id_meli(oid, token=token_meli), a_resolver))
-
-    # Mismo problema con la referencia (SKU) de cada línea de factura Alegra
-    # (`items_hibridos_normalizados` abajo) — precalentar en paralelo antes del
-    # loop secuencial en vez de una llamada en serie por línea.
-    ids_item_a_resolver = {
-        it.get("id") for f in facturas if es_factura_alegra(f)
-        for it in (f.get("items") or [])
-        if not it.get("reference") and it.get("id") and str(it.get("id")) not in _item_referencia_cache
-    }
-    if ids_item_a_resolver:
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            list(pool.map(_resolver_referencia_item_alegra, ids_item_a_resolver))
-
-    out = []
-    for order_id, lista in por_orden.items():
-        lista.sort(key=lambda f: f.get("date") or "")
-        facturas_out = []
-        for f in lista:
-            fid = str(f.get("id"))
-            stamp = f.get("stamp") or {}
-            facturas_out.append({
-                "factura_id": fid,
-                "numero": (f.get("numberTemplate") or {}).get("fullNumber"),
-                "fecha": f.get("date"),
-                "estado": f.get("status"),
-                "total": f.get("total"),
-                "cufe": stamp.get("cufe") or "",
-                "url": f"https://app.alegra.com/invoice/view/id/{fid}",
-                "notas_credito": notas_por_factura.get(fid, []),
-                # SKU/cantidad/total por línea facturada — para comparar lado a
-                # lado contra `venta_original` (lo que realmente se vendió) y
-                # detectar de un vistazo si no coinciden.
-                "items": [
-                    {"sku": it.get("code") or "—", "nombre": it.get("description"), "cantidad": it.get("quantity"), "total": it.get("total")}
-                    for it in items_hibridos_normalizados(f)
-                ],
-            })
-        # El índice legado está indexado por pack_id de MeLi, no por order_id —
-        # en un pack de una sola orden coinciden, pero en un pack multi-orden NO
-        # (bug confirmado en vivo 2026-09-03: por buscar solo por order_id, este
-        # panel no marcó como duplicadas 4 de las 5 facturas que sí lo eran). Se
-        # busca primero por order_id (barato) y si no hay match y la venta es de
-        # MeLi, se resuelve el pack_id real contra la API antes de descartar.
-        legado = indice_legado.get(order_id)
-        es_meli_orden = order_id.isdigit() and len(order_id) >= 10
-        if not legado and es_meli_orden:
-            pack_id_real = _resolver_pack_id_meli(order_id, token=token_meli)
-            if pack_id_real and pack_id_real != order_id:
-                legado = indice_legado.get(pack_id_real)
-        out.append({
-            "order_id": order_id,
-            "es_meli": es_meli_orden,
-            "facturas": facturas_out,
-            "factura_legado": legado,
-            # Alegra no tiene un status "anulada" fiable para descartar el caso ya
-            # corregido — si ya se emitió la nota crédito correspondiente, queda
-            # visible igual en `notas_credito` de la factura de Alegra; el badge es
-            # solo una señal para revisar, no una afirmación de que sigue sin resolver.
-            "posible_duplicado": bool(legado),
-        })
-
-    out.sort(key=lambda x: max((f["fecha"] or "" for f in x["facturas"]), default=""), reverse=True)
-    out = out[:limite]
-
-    # Detalle de la venta real (SKUs/cantidades/precios pagados) para comparar
-    # lado a lado contra lo facturado — solo para el subconjunto final que se
-    # va a mostrar, no para todo `por_orden`. Un solo refresh de token MeLi
-    # reusado por todas las órdenes (refrescar_token_meli() no cachea — un
-    # refresh OAuth completo por orden hacía esto impracticable con más de
-    # un puñado de ventas) y en paralelo (I/O, no CPU) para que no escale
-    # linealmente con la cantidad de ventas mostradas.
-    from concurrent.futures import ThreadPoolExecutor
-
-    def _detalle_de(venta: dict):
-        if venta["es_meli"]:
-            return _detalle_venta_meli(venta["order_id"], token=token_meli)
-        return _detalle_venta_web(venta["order_id"])
-
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        detalles = list(pool.map(_detalle_de, out))
-    for venta, detalle in zip(out, detalles):
-        venta["venta_original"] = detalle
-
-    _trazabilidad_meli_cache = out
-    _trazabilidad_meli_cache_ts = _time.time()
-    return out
+# NOTA: `listar_ventas_meli_con_trazabilidad` (panel Astro Killer standalone)
+# se retiró — su lógica (agrupar facturas Alegra por orden, cruzar con el
+# índice legado, notas crédito, detalle de venta real) quedó fusionada en
+# `app/services/facturacion_ventas_unificado.py::listar_ventas_meli_unificado`,
+# que además recorre las ÓRDENES (no solo las facturas) para poder detectar
+# "sin_facturar" — algo que esta función nunca pudo hacer.

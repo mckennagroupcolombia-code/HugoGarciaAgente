@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 
 interface ClienteResultado {
@@ -33,8 +33,51 @@ interface AccionResultado {
   error?: string;
 }
 
+interface ProductoExtraido {
+  nombre: string;
+  cantidad: number;
+  candidatos: ProductoResultado[];
+}
+
+interface ExtraccionResultado {
+  ok: boolean;
+  cliente?: { nombre: string; identificacion: string; telefono: string; correo: string; direccion: string };
+  productos?: ProductoExtraido[];
+  notas?: string;
+  error?: string;
+}
+
+interface ConversacionWA {
+  usuario_id: string;
+  telefono: string;
+  resumen: string;
+  ultimo: string;
+  n_mensajes: number;
+}
+
 function pesos(v: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
+}
+
+function formatTelefono(tel: string): string {
+  const d = (tel || "").replace(/\D/g, "");
+  const local = d.length === 12 && d.startsWith("57") ? d.slice(2) : d;
+  if (local.length === 10) return `+57 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  return tel;
+}
+
+function formatFecha(iso: string): string {
+  try {
+    const d = new Date(iso.includes("T") ? iso : `${iso.replace(" ", "T")}Z`);
+    const mins = Math.round((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return "ahora";
+    if (mins < 60) return `hace ${mins} min`;
+    const horas = Math.round(mins / 60);
+    if (horas < 24) return `hace ${horas} h`;
+    return `hace ${Math.round(horas / 24)} d`;
+  } catch {
+    return iso;
+  }
 }
 
 export default function CotizarFacturarPanel() {
@@ -59,6 +102,22 @@ export default function CotizarFacturarPanel() {
   const [enCurso, setEnCurso] = useState<"cotizar" | "facturar" | null>(null);
   const [resultado, setResultado] = useState<{ tipo: "cotizar" | "facturar"; data: AccionResultado } | null>(null);
   const [confirmarFactura, setConfirmarFactura] = useState(false);
+
+  // Extracción desde conversación de WhatsApp
+  const [textoConversacion, setTextoConversacion] = useState("");
+  const [extrayendo, setExtrayendo] = useState(false);
+  const [errorExtraccion, setErrorExtraccion] = useState<string | null>(null);
+  const [productosPendientes, setProductosPendientes] = useState<ProductoExtraido[]>([]);
+  const [conversaciones, setConversaciones] = useState<ConversacionWA[]>([]);
+  const [cargandoConversaciones, setCargandoConversaciones] = useState(false);
+  const [mostrarConversaciones, setMostrarConversaciones] = useState(false);
+  const [filtroConversaciones, setFiltroConversaciones] = useState("");
+
+  const conversacionesFiltradas = useMemo(() => {
+    const q = filtroConversaciones.replace(/\D/g, "");
+    if (!q) return conversaciones;
+    return conversaciones.filter((c) => c.telefono.includes(q));
+  }, [conversaciones, filtroConversaciones]);
 
   // Búsqueda de cliente (debounced)
   useEffect(() => {
@@ -126,7 +185,7 @@ export default function CotizarFacturarPanel() {
     setResultadosCliente([]);
   }
 
-  async function agregarProducto(p: ProductoResultado) {
+  async function agregarProducto(p: ProductoResultado, cantidadInicial = 1) {
     setBusquedaProducto("");
     setResultadosProducto([]);
     if (lineas.some((l) => l.codigo === p.codigo)) return;
@@ -139,7 +198,87 @@ export default function CotizarFacturarPanel() {
     } catch {
       precio = 0;
     }
-    setLineas((prev) => [...prev, { codigo: p.codigo, nombre: p.nombre, cantidad: 1, precio_unitario: precio }]);
+    setLineas((prev) => [
+      ...prev,
+      { codigo: p.codigo, nombre: p.nombre, cantidad: cantidadInicial || 1, precio_unitario: precio },
+    ]);
+  }
+
+  async function procesarExtraccion(payload: { texto: string } | { usuario_id: string }) {
+    setExtrayendo(true);
+    setErrorExtraccion(null);
+    try {
+      const data = await api.post<ExtraccionResultado>("/api/facturacion/extraer-conversacion", payload);
+      if (!data.ok) {
+        setErrorExtraccion(data.error || "No se pudo extraer la información.");
+        return;
+      }
+      const c = data.cliente;
+      if (c) {
+        if (c.nombre && !nombre.trim()) setNombre(c.nombre);
+        if (c.identificacion && !identificacion.trim()) setIdentificacion(c.identificacion);
+        if (c.telefono && !telefono.trim()) setTelefono(c.telefono);
+        if (c.correo && !correo.trim()) setCorreo(c.correo);
+        if (c.direccion && !direccion.trim()) setDireccion(c.direccion);
+      }
+      if (data.notas && !notas.trim()) setNotas(data.notas);
+
+      const pendientes: ProductoExtraido[] = [];
+      for (const p of data.productos ?? []) {
+        if (p.candidatos.length === 1) {
+          await agregarProducto(p.candidatos[0], p.cantidad || 1);
+        } else {
+          pendientes.push(p);
+        }
+      }
+      if (pendientes.length > 0) setProductosPendientes((prev) => [...prev, ...pendientes]);
+    } catch (e) {
+      setErrorExtraccion((e as Error).message);
+    } finally {
+      setExtrayendo(false);
+    }
+  }
+
+  async function ejecutarExtraccion() {
+    const texto = textoConversacion.trim();
+    if (!texto) return;
+    await procesarExtraccion({ texto });
+  }
+
+  async function cargarConversaciones() {
+    setCargandoConversaciones(true);
+    try {
+      const data = await api.get<{ items: ConversacionWA[] }>("/api/facturacion/conversaciones-wa?limit=40");
+      setConversaciones(data.items ?? []);
+    } catch {
+      setConversaciones([]);
+    } finally {
+      setCargandoConversaciones(false);
+    }
+  }
+
+  function alternarConversaciones() {
+    const nuevoValor = !mostrarConversaciones;
+    setMostrarConversaciones(nuevoValor);
+    if (nuevoValor && conversaciones.length === 0) void cargarConversaciones();
+  }
+
+  async function elegirConversacion(c: ConversacionWA) {
+    setMostrarConversaciones(false);
+    if (!telefono.trim()) {
+      const digitos = c.telefono.replace(/\D/g, "");
+      if (digitos.length === 10 || digitos.length === 12) setTelefono(digitos);
+    }
+    await procesarExtraccion({ usuario_id: c.usuario_id });
+  }
+
+  function confirmarPendiente(idx: number, candidato: ProductoResultado, cantidad: number) {
+    void agregarProducto(candidato, cantidad || 1);
+    setProductosPendientes((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function descartarPendiente(idx: number) {
+    setProductosPendientes((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function actualizarLinea(codigo: string, campo: "cantidad" | "precio_unitario", valor: number) {
@@ -205,6 +344,110 @@ export default function CotizarFacturarPanel() {
           cotización es solo un PDF informativo (sin DIAN); Facturar crea una factura electrónica
           real en Alegra. Ambas se envían por WhatsApp al cliente.
         </p>
+      </div>
+
+      {/* Extracción desde conversación de WhatsApp */}
+      <div className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">🪄 Extraer de conversación de WhatsApp</p>
+        <p className="mb-2 text-xs text-muted">
+          Elige la conversación real del cliente (nodo WhatsApp), o pega el texto manualmente
+          abajo. Solo rellena los campos vacíos — revisa siempre antes de cotizar o facturar.
+        </p>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={alternarConversaciones}
+            disabled={extrayendo}
+            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {mostrarConversaciones ? "Ocultar conversaciones" : "🔎 Elegir conversación reciente"}
+          </button>
+          {cargandoConversaciones && <span className="text-xs text-muted">Cargando…</span>}
+        </div>
+
+        {mostrarConversaciones && (
+          <div className="mb-3 overflow-hidden rounded-lg border border-border/70">
+            <input
+              type="text"
+              value={filtroConversaciones}
+              onChange={(e) => setFiltroConversaciones(e.target.value)}
+              placeholder="Filtrar por número…"
+              className="w-full border-b border-border bg-surface px-3 py-2 text-xs text-ink outline-none"
+            />
+            <div className="max-h-56 overflow-y-auto">
+              {conversacionesFiltradas.length === 0 && !cargandoConversaciones && (
+                <p className="px-3 py-2 text-xs text-muted">Sin conversaciones recientes de clientes.</p>
+              )}
+              {conversacionesFiltradas.map((c) => (
+                <button
+                  key={c.usuario_id}
+                  type="button"
+                  disabled={extrayendo}
+                  onClick={() => void elegirConversacion(c)}
+                  className="block w-full border-b border-border/50 px-3 py-2 text-left text-xs last:border-0 hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-ink">{formatTelefono(c.telefono)}</span>
+                    <span className="shrink-0 text-[10px] text-muted">{formatFecha(c.ultimo)}</span>
+                  </div>
+                  {c.resumen && <p className="mt-0.5 truncate text-muted">{c.resumen}</p>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <textarea
+          value={textoConversacion}
+          onChange={(e) => setTextoConversacion(e.target.value)}
+          placeholder='O pega aquí el texto manualmente: "Cliente: Hola, necesito 2kg de ácido cítrico..."'
+          rows={4}
+          className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={!textoConversacion.trim() || extrayendo}
+            onClick={() => void ejecutarExtraccion()}
+            className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {extrayendo ? "Extrayendo…" : "Extraer del texto pegado"}
+          </button>
+          {errorExtraccion && <span className="text-xs text-red-600">{errorExtraccion}</span>}
+        </div>
+        {productosPendientes.length > 0 && (
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <p className="text-xs font-semibold text-ink">Productos por confirmar (no se agregaron solos):</p>
+            {productosPendientes.map((p, idx) => (
+              <div key={`${p.nombre}-${idx}`} className="rounded-lg border border-border/70 bg-surface p-2 text-xs">
+                <p className="mb-1">
+                  <span className="font-semibold text-ink">&ldquo;{p.nombre}&rdquo;</span>{" "}
+                  <span className="text-muted">— cant. {p.cantidad}</span>
+                </p>
+                {p.candidatos.length === 0 ? (
+                  <p className="text-muted">Sin coincidencia en Siigo/Alegra — búscalo manualmente abajo.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {p.candidatos.map((c) => (
+                      <button
+                        key={c.codigo}
+                        type="button"
+                        onClick={() => confirmarPendiente(idx, c, p.cantidad)}
+                        className="rounded border border-border px-2 py-1 hover:border-accent hover:text-accent"
+                      >
+                        {c.codigo} — {c.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button type="button" onClick={() => descartarPendiente(idx)} className="mt-1 text-muted underline">
+                  Descartar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Cliente */}

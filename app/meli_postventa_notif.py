@@ -58,6 +58,40 @@ def _guardar_state_posventa(data: dict) -> None:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+_EMOJI_RE = re.compile(
+    "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF]+",
+    flags=re.UNICODE,
+)
+
+_CIERRE_AGRADECIMIENTO_RE = re.compile(
+    r"^[\s!.,;:]*"
+    r"(ok|listo|perfecto|vale|dale|de acuerdo)?[\s,.]*"
+    r"(muchas |muchisimas |mil |bastantes? )?"
+    r"(gracias+|thank(s| you)|thx)"
+    r"[\s!.,;:]*"
+    r"(por (todo|la ayuda|la atenci[oó]n|todo el apoyo))?"
+    r"[\s!.,;:]*"
+    r"(amigo|amiga|hermano|hermana|vecin[oa]|profe|crack)?"
+    r"[\s!.,;:]*$",
+    re.IGNORECASE,
+)
+
+
+def _es_solo_agradecimiento_o_cierre(texto: str) -> bool:
+    """
+    True si el mensaje es solo un agradecimiento/cierre de conversación
+    ("Gracias", "Ok, muchas gracias!", "Gracias amiga 🙏") sin una solicitud
+    nueva. Sin esto, un "gracias" de cortesía disparaba la misma alerta con
+    "responde con posventa <código>"; si el operador contestaba "con gusto"
+    el cliente a veces respondía "gracias" otra vez y se repetía la alerta
+    sin nada accionable — un bucle de cortesía.
+    """
+    limpio = _EMOJI_RE.sub("", texto or "").strip()
+    if not limpio:
+        return False
+    return bool(_CIERRE_AGRADECIMIENTO_RE.match(limpio))
+
+
 def sufijo_pack_postventa(pack_id: str) -> str:
     """Últimos 3 dígitos del pack/orden — código corto para posventa {sufijo}: …"""
     digits = re.sub(r"\D", "", str(pack_id))
@@ -504,6 +538,31 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 print(
                     f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
                 )
+
+                # Cierre de cortesía ("Gracias", "Ok, muchas gracias!"): no alertar
+                # al grupo ni pedir respuesta — cierra la conversación en silencio
+                # para no generar un ida-y-vuelta de "gracias" → alerta → "de nada"
+                # → "gracias" → alerta...
+                if _es_solo_agradecimiento_o_cierre(texto):
+                    procesados.add(msg_id)
+                    state["pendientes"].pop(str(pack_id), None)
+                    if sufijo:
+                        state["pendientes"].pop(sufijo, None)
+                    entrada_cierre = {
+                        "pack_id": pack_id,
+                        "codigo": sufijo,
+                        "comprador": nombre_comprador,
+                        "from_id": from_id,
+                        "texto": texto,
+                        "msg_id": msg_id,
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    }
+                    _stats_mensaje_cerrado(entrada_cierre, "omitido")
+                    print(
+                        f"🙏 [POSVENTA] Mensaje {msg_id} de {nombre_comprador} es agradecimiento/cierre; "
+                        f"no se alerta al grupo."
+                    )
+                    continue
 
                 # Si el vendedor ya contestó DESPUÉS de este mensaje (respuesta
                 # directa en MeLi, o hilo viejo que resucita porque el state se
