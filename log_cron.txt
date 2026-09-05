@@ -4031,3 +4031,15 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-09-04) no es el último día del mes.
+[cursor/wa-metricas-panel abfc2d0] Auto-commit: actualizacion diaria 2026-09-04 23:00
+ 60 files changed, 6014 insertions(+), 2621 deletions(-)
+ create mode 100644 app/services/facturacion_ventas_unificado.py
+ create mode 100644 app/services/gmail_ventas.py
+ create mode 100644 app/tools/extraccion_cotizacion_wa.py
+ create mode 100644 app/tools/revision_facturacion.py
+ delete mode 100644 desktop/src/components/AstroKillerPanel.tsx
+ create mode 100644 desktop/src/components/VentasAstroKillerPanel.tsx
+ create mode 100644 desktop/src/components/VentasEmailPanel.tsx
+ delete mode 100644 desktop/src/components/VentasFacturacionPanel.tsx
+ create mode 100644 desktop/src/hooks/useVentasEmail.ts
+[2026-09-04 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-04 23:00'
