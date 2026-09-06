@@ -184,6 +184,33 @@ def consultar_envio_meli(shipping_id: str, *, token: str | None = None) -> dict 
         return None
 
 
+def consultar_pack_meli(pack_id: str, *, token: str | None = None) -> dict | None:
+    """GET /packs/{id} crudo — trae `orders: [{id, ...}]`, las órdenes que
+    componen el pack. Un pack puede tener pack_id != order_id incluso con una
+    sola orden adentro (confirmado en vivo 2026-09-05: no es exclusivo de
+    packs multi-orden, como asumía el código heredado)."""
+    pack_id = str(pack_id or "").strip()
+    if not pack_id:
+        return None
+    token = token or refrescar_token_meli()
+    if not token:
+        return None
+    try:
+        res = requests.get(
+            f"https://api.mercadolibre.com/packs/{pack_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return None
+    if res.status_code != 200:
+        return None
+    try:
+        return res.json()
+    except ValueError:
+        return None
+
+
 def consultar_orden_meli_completa(order_id: str, *, token: str | None = None) -> dict | None:
     """GET /orders/{id} crudo (a diferencia de consultar_detalle_venta_meli, que devuelve texto).
 

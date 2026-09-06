@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>McKenna Group — Panel de Operaciones</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="manifest" href="/app/manifest.json" />
+    <meta name="theme-color" content="#0c6069" />
+    <script>
+      /* Evita flash claro→oscuro antes de hidratar React */
+      (function () {
+        try {
+          var dark = false;
+          var saved = localStorage.getItem("mck-theme-mode-hint");
+          if (saved === "dark") dark = true;
+          else if (saved === "light") dark = false;
+          else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) dark = true;
+          if (dark) {
+            document.documentElement.classList.add("dark");
+            document.documentElement.style.colorScheme = "dark";
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute("content", "#2B454F");
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html.dark .mck-splash { background: #2B454F !important; }
+      html.dark .mck-splash > div:first-child { color: #7ec8d4 !important; }
+      html.dark .mck-splash > div:last-child { color: #8fa8b0 !important; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/app/assets/index-alUHf8A3.js"></script>
+    <link rel="modulepreload" crossorigin href="/app/assets/vendor-CBurBohW.js">
+    <link rel="stylesheet" crossorigin href="/app/assets/index-Ceu8AfI5.css">
+  </head>
+  <body class="bg-surface font-sans font-medium text-ink antialiased [-webkit-font-smoothing:antialiased] [letter-spacing:-0.01em]">
+    <div id="root">
+      <!-- Splash pre-JS: React lo reemplaza al montar. Evita la pantalla en blanco mientras carga el bundle. -->
+      <div class="mck-splash" style="display:flex;min-height:100vh;align-items:center;justify-content:center;background:#E8FAFB;flex-direction:column;gap:12px">
+        <div style="font-size:40px;font-weight:900;color:#0C6069;line-height:1">M</div>
+        <div style="font-size:12px;color:#2D7E86;font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.05em;text-transform:uppercase">Cargando panel…</div>
+      </div>
+    </div>
+  </body>
+</html>

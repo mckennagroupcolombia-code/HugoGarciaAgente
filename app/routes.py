@@ -6680,6 +6680,25 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    @app.route("/api/facturacion/ventas-unificadas/buscar/<identificador>", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/buscar/<identificador>", methods=["GET"])
+    def api_facturacion_ventas_unificadas_buscar(identificador):
+        """Busca UNA venta por order_id o pack_id, sin importar el rango de
+        días ni el `limite` del listado masivo — para cuando un operador
+        tiene un ID puntual (reclamo, WhatsApp) que puede no estar entre las
+        primeras filas cargadas."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.facturacion_ventas_unificado import consultar_venta_individual
+
+            fila = consultar_venta_individual(identificador)
+            if not fila:
+                return jsonify({"ok": False, "error": "No se encontró esa orden/pack en MeLi."}), 404
+            return jsonify({"ok": True, "venta": fila})
+        except Exception as e:
+            return jsonify({"error": str(e)[:300]}), 500
+
     @app.route("/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     @app.route("/app/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     def api_facturacion_ventas_unificadas_comprador(order_id):

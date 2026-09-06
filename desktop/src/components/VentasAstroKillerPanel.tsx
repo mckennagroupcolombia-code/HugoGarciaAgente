@@ -399,8 +399,46 @@ export default function VentasAstroKillerPanel() {
   const ventas = q.data?.ventas ?? [];
   const totalEnRango = q.data?.total_en_rango ?? ventas.length;
   const hayMas = totalEnRango > ventas.length;
-  const filtradas = busqueda.trim() ? ventas.filter((v) => v.order_id.includes(busqueda.trim())) : ventas;
+  const filtradasLocal = busqueda.trim() ? ventas.filter((v) => v.order_id.includes(busqueda.trim())) : ventas;
   const pendientesRevision = ventas.filter((v) => !v.revisado && (v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion)));
+
+  // Búsqueda puntual en MeLi: la lista cargada solo trae `limite` filas del
+  // rango — un ID que exista pero no esté entre esas filas daba "sin
+  // resultados" aunque la venta esté resuelta (confirmado en vivo 2026-09-05,
+  // ticket TKT-2026-1156/1160). Se dispara aparte, solo con Enter/click,
+  // porque es una consulta en vivo a MeLi+Alegra (no instantánea).
+  const [resultadoBusqueda, setResultadoBusqueda] = useState<VentaUnificada | null>(null);
+  const [buscandoEnMeli, setBuscandoEnMeli] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
+  const idBuscable = /^\d{9,17}$/.test(busqueda.trim());
+  const filtradas = resultadoBusqueda ? [resultadoBusqueda] : filtradasLocal;
+
+  useEffect(() => {
+    setResultadoBusqueda(null);
+    setErrorBusqueda(null);
+  }, [busqueda]);
+
+  async function buscarEnMeli() {
+    const id = busqueda.trim();
+    if (!id) return;
+    setBuscandoEnMeli(true);
+    setErrorBusqueda(null);
+    try {
+      const res = await api.get<{ ok: boolean; venta?: VentaUnificada; error?: string }>(
+        `/api/facturacion/ventas-unificadas/buscar/${id}`,
+      );
+      if (!res.ok || !res.venta) {
+        setErrorBusqueda(res.error || "No se encontró esa orden/pack en MeLi.");
+        setResultadoBusqueda(null);
+        return;
+      }
+      setResultadoBusqueda(res.venta);
+    } catch (e) {
+      setErrorBusqueda((e as Error).message || "No se pudo buscar en MeLi.");
+    } finally {
+      setBuscandoEnMeli(false);
+    }
+  }
 
   function refrescar() {
     void qc.invalidateQueries({ queryKey: ["ventas-unificadas", segmento, dias, limite] });
@@ -524,11 +562,36 @@ export default function VentasAstroKillerPanel() {
           type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && idBuscable) void buscarEnMeli();
+          }}
           placeholder="Buscar por ID de orden MeLi o referencia web…"
           className="min-w-[220px] flex-1 rounded-paper border-2 border-border bg-surface px-3 py-1.5 text-xs text-ink outline-none focus:border-accent"
         />
+        {idBuscable && !resultadoBusqueda && (
+          <button
+            type="button"
+            onClick={() => void buscarEnMeli()}
+            disabled={buscandoEnMeli}
+            className="text-xs font-bold text-accent hover:underline disabled:opacity-40"
+            title="La lista solo trae las últimas filas del rango — esto busca ese ID puntual directo en MeLi, esté o no entre ellas"
+          >
+            {buscandoEnMeli ? "Buscando en MeLi…" : "🔎 Buscar en MeLi"}
+          </button>
+        )}
+        {resultadoBusqueda && (
+          <button
+            type="button"
+            onClick={() => setResultadoBusqueda(null)}
+            className="text-xs font-bold text-muted hover:text-ink"
+          >
+            × Ver lista normal
+          </button>
+        )}
         <span className="text-xs text-muted">
-          {busqueda
+          {resultadoBusqueda
+            ? "Resultado de búsqueda directa en MeLi"
+            : busqueda
             ? `${filtradas.length} venta(s) filtradas`
             : hayMas
               ? `Mostrando ${ventas.length} de ${totalEnRango} en el rango`
@@ -548,6 +611,7 @@ export default function VentasAstroKillerPanel() {
         )}
       </div>
 
+      {errorBusqueda && <p className="text-xs font-semibold text-danger">{errorBusqueda}</p>}
       {verError && <p className="text-xs font-semibold text-danger">{verError}</p>}
       {q.isError && <p className="text-xs text-danger">{(q.error as Error).message || "No se pudo cargar el listado."}</p>}
       {q.isLoading && (

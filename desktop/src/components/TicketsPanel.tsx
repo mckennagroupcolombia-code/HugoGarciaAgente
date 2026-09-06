@@ -14424,8 +14424,11 @@ function SolicitudCard({
   async function abrirIntervencion() {
     if (usuarios.length === 0) {
       try {
-        const data = await tapi("/usuarios", token);
-        setUsuarios(Array.isArray(data) ? data.filter((u: UserInfo) => u.id !== user.id && u.activo) : []);
+        // /usuarios/invitables ya excluye inactivos, admin y cuentas de
+        // prueba/legadas — no repetir ese filtro acá (antes solo se filtraba
+        // "activo", así que Administrador y duplicados legados sí aparecían).
+        const data = await tapi("/usuarios/invitables", token);
+        setUsuarios(Array.isArray(data) ? data.filter((u: UserInfo) => u.id !== user.id) : []);
       } catch { /* ignore */ }
     }
     setShowIntervencion(true);
@@ -28199,8 +28202,10 @@ function ResolverActividadChat({
 
   async function cargarUsuarios() {
     try {
-      const data = await tapi("/usuarios", token);
-      setUsuarios(Array.isArray(data) ? data.filter((u: any) => u.activo) : []);
+      // /usuarios/invitables ya excluye inactivos, admin y cuentas de
+      // prueba/legadas — ver abrirIntervencion() más arriba, mismo fix.
+      const data = await tapi("/usuarios/invitables", token);
+      setUsuarios(Array.isArray(data) ? data : []);
     } catch { /* ignore */ }
   }
 

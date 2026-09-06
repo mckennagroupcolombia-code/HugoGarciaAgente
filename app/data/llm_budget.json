@@ -1,15 +1,13 @@
 {
- "fecha": "2026-09-04",
- "gasto_usd": 0.269673,
- "llamadas": 25,
+ "fecha": "2026-09-05",
+ "gasto_usd": 0.19695,
+ "llamadas": 17,
  "por_modelo": {
-  "claude-sonnet-4-6": 0.050664,
-  "claude-sonnet-5": 0.219009
+  "claude-sonnet-5": 0.19695
  },
  "por_contexto": {
-  "cliente_chat": 0.229384,
-  "facturacion_extraccion": 0.005052,
-  "meli_preventa": 0.035237
+  "cliente_chat": 0.138632,
+  "meli_preventa": 0.058318
  },
  "alerta_enviada": false,
  "historial": [
@@ -383,6 +381,20 @@
    "por_contexto": {
     "cliente_chat": 0.698478,
     "meli_preventa": 2.1e-05
+   }
+  },
+  {
+   "fecha": "2026-09-04",
+   "gasto_usd": 0.269673,
+   "llamadas": 25,
+   "por_modelo": {
+    "claude-sonnet-4-6": 0.050664,
+    "claude-sonnet-5": 0.219009
+   },
+   "por_contexto": {
+    "cliente_chat": 0.229384,
+    "facturacion_extraccion": 0.005052,
+    "meli_preventa": 0.035237
    }
   }
  ]

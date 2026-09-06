@@ -824,6 +824,15 @@ def register_tickets_routes(app):
     def tickets_get_usuarios():
         return jsonify(listar_usuarios()), 200
 
+    @app.route("/api/tickets/usuarios/invitables", methods=["GET"])
+    @_auth
+    def tickets_get_usuarios_invitables():
+        """Para selectores de "invitar a colaborar"/"pedir intervención":
+        activos, sin admin/tester/cuentas legadas — ver
+        `usuarios_invitables()` en tickets_db.py."""
+        from app.services.tickets_db import usuarios_invitables
+        return jsonify(usuarios_invitables()), 200
+
     @app.route("/api/tickets/usuarios/activos", methods=["GET"])
     @_auth
     def tickets_get_usuarios_activos():

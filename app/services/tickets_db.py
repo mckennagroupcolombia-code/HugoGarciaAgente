@@ -1644,6 +1644,40 @@ def listar_usuarios(incluir_bots: bool = False) -> list:
         return [_usuario_full(db, r["id"]) for r in rows]
 
 
+# Cuentas de sistema/prueba/legadas que no deben ofrecerse como destinatario
+# de una invitación real a una persona: el "admin" genérico, el bot de sede
+# sur, cuentas de prueba, y duplicados legados ya reemplazados por la cuenta
+# activa correcta (Cynthua -> @cynthia, velastella -> stella). Mismo criterio
+# que ya usaba `app/routes_rrhh.py::_actividad_equipo` para no contar a estas
+# cuentas como "equipo real" — centralizado acá para no mantener dos listas
+# que puedan desincronizarse.
+USUARIOS_TECNICOS_O_PRUEBA = ("admin", "tester", _USERNAME_BOT_SEDE_SUR, "prueba", "Cynthua", "velastella")
+
+
+def usuarios_invitables() -> list:
+    """Usuarios que tiene sentido ofrecer en un selector de "invitar a
+    colaborar" / "pedir intervención" en un ticket: activos, sin cuentas de
+    sistema/prueba/legadas (`USUARIOS_TECNICOS_O_PRUEBA`).
+
+    A diferencia de `listar_usuarios()` (que trae TODO, incluyendo inactivos
+    y admin — otros consumidores como app/tools/sede_sur.py sí lo necesitan
+    así), esta es específicamente para invitar a una PERSONA real a trabajar
+    en algo — un admin/tester/cuenta legada nunca es la respuesta correcta
+    ahí (confirmado en vivo 2026-09-05: el selector mostraba "Administrador"
+    y cuentas duplicadas inactivas como "Cynthua"/"velastella")."""
+    with _conn() as db:
+        placeholders = ",".join("?" * len(USUARIOS_TECNICOS_O_PRUEBA))
+        rows = db.execute(
+            f"""
+            SELECT id FROM usuarios
+            WHERE activo = 1 AND username NOT IN ({placeholders})
+            ORDER BY nombre
+            """,
+            USUARIOS_TECNICOS_O_PRUEBA,
+        ).fetchall()
+        return [_usuario_full(db, r["id"]) for r in rows]
+
+
 def usuarios_activos_recientes(limite: int = 4) -> list:
     """Los N usuarios que de verdad abren el panel, por fecha de último login real
     (tabla `sesiones`, se crea solo vía /api/tickets/auth/login) — no por actividad

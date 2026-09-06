@@ -60,6 +60,7 @@ from app.services.conciliacion_meli import (
 from app.services.meli import (
     consultar_envio_meli,
     consultar_orden_meli_completa,
+    consultar_pack_meli,
     meli_pack_tiene_documento_fiscal,
 )
 
@@ -77,6 +78,24 @@ _CACHE_TTL = 60  # segundos, mismo criterio que tenía Astro Killer
 _cache_ordenes: dict[tuple[str, int], tuple[float, list]] = {}
 _cache_alegra: dict[str, tuple[float, list, dict]] = {}
 _CACHE_TTL_FUENTES = 90  # segundos
+
+
+def _sin_autorreferencia(legado: dict | None, facturas_out: list[dict]) -> dict | None:
+    """`scripts/emitir_notas_credito_cron.py` arma el índice legado con
+    `obtener_facturas_hibridas` (Siigo + Alegra) desde la migración — y
+    `construir_indice_facturacion_meli` matchea por texto de observaciones,
+    que para las facturas creadas por `meli_autofactura_entrega.py` incluye
+    literalmente "MercadoLibre — Orden {order_id}". Sin este filtro, TODA
+    venta facturada en Alegra por ese flujo terminaba marcada
+    `posible_duplicado=True` contra SÍ MISMA (confirmado en vivo 2026-09-05,
+    ticket TKT-2026-1160: la "factura legada" y la factura Alegra mostrada
+    tenían el mismo `factura_id`). Un duplicado real es una factura DISTINTA
+    referenciando la misma venta, no la misma factura contada dos veces."""
+    if not legado:
+        return None
+    if any(str(f.get("factura_id")) == str(legado.get("factura_id")) for f in facturas_out):
+        return None
+    return legado
 
 
 def _cliente_desde_factura(f: dict) -> dict | None:
@@ -275,6 +294,7 @@ def listar_ventas_meli_unificado(
         # distinto al de esta orden) se resuelve más abajo, solo para el
         # subconjunto final visible y solo si esta orden tiene factura Alegra.
         legado = indice_legado.get(order_id) or indice_legado.get(pack_id)
+        legado = _sin_autorreferencia(legado, facturas_out)
 
         cliente = None
         for f in facturas_orden:
@@ -299,7 +319,12 @@ def listar_ventas_meli_unificado(
             "es_cancelada": es_cancelada,
             "fecha": o.get("date_closed") or o.get("date_created"),
             "total": o.get("total_amount"),
-            "meli_url": f"https://vendedores.mercadolibre.com.co/ventas/{order_id}/detalle",
+            # OJO: es pack_id, no order_id — confirmado en vivo 2026-09-05 con
+            # la venta de los beakers (pack 2000014865364705, order_id
+            # 2000018281990134, un solo pedido en el pack pero igual con
+            # pack_id distinto — la suposición de que "un pack de una sola
+            # orden usa el mismo id" ya estaba mal en el código heredado).
+            "meli_url": f"https://vendedores.mercadolibre.com.co/ventas/{pack_id}/detalle",
             "cliente": cliente,
             "facturas_cliente_en_rango": conteo_cliente_en_rango.get(cliente["identificacion"], 0) if cliente and cliente.get("identificacion") else 0,
             "facturas": facturas_out,
@@ -380,7 +405,7 @@ def listar_ventas_meli_unificado(
         if fila["facturas"] and not fila["factura_legado"]:
             pack_real = _resolver_pack_id_meli(fila["order_id"], token=token_meli)
             if pack_real and pack_real != fila["order_id"]:
-                legado_real = indice_legado.get(pack_real)
+                legado_real = _sin_autorreferencia(indice_legado.get(pack_real), fila["facturas"])
                 if legado_real:
                     fila["factura_legado"] = legado_real
                     fila["posible_duplicado"] = True
@@ -488,3 +513,150 @@ def items_flaggeados_para_ticket(resultado: dict) -> list[dict]:
         if tipo:
             items.append({"order_id": v["order_id"], "tipo": tipo, "motivo_sugerido": motivo})
     return items
+
+
+def consultar_venta_individual(identificador: str) -> dict | None:
+    """Busca UNA venta MeLi por order_id o pack_id, sin importar el rango de
+    días ni el `limite` del listado masivo.
+
+    Necesario porque `listar_ventas_meli_unificado` ordena por fecha y
+    recorta por `limite` — con el volumen real de McKenna (cientos de
+    órdenes por semana), una venta puntual (la que trae un reclamo, un
+    mensaje de WhatsApp) puede quedar fuera de las primeras N filas, y la
+    búsqueda del panel hoy solo filtra lo YA cargado, no busca en MeLi. Un
+    operador con un ID concreto en la mano veía "sin resultados" para una
+    venta que en realidad sí existe y está resuelta (confirmado en vivo
+    2026-09-05, ticket TKT-2026-1156/1160: pack 2000014865364705, MeLi ya
+    tenía el documento fiscal pero no estaba entre las filas cargadas).
+    """
+    identificador = str(identificador or "").strip()
+    if not identificador or not identificador.isdigit():
+        return None
+
+    from app.utils import refrescar_token_meli
+
+    token_meli = refrescar_token_meli()
+    orden = consultar_orden_meli_completa(identificador, token=token_meli)
+    if orden and orden.get("id"):
+        order_id = str(orden["id"])
+        pack_id = str(orden.get("pack_id") or order_id)
+    else:
+        # No es un order_id válido — probar como pack_id. Un pack puede tener
+        # pack_id != order_id incluso con una sola orden adentro (confirmado
+        # en vivo: no es exclusivo de packs multi-orden).
+        pack = consultar_pack_meli(identificador, token=token_meli)
+        ordenes_pack = (pack or {}).get("orders") or []
+        if not pack or not ordenes_pack:
+            return None
+        pack_id = str(pack.get("id") or identificador)
+        order_id = str(ordenes_pack[0].get("id") or "")
+        if not order_id:
+            return None
+        orden = consultar_orden_meli_completa(order_id, token=token_meli)
+        if not orden:
+            return None
+
+    try:
+        headers = _alegra_headers()
+        facturas, notas_por_factura = _facturas_alegra_cacheadas(headers, FECHA_CORTE_MIGRACION_ALEGRA)
+    except RuntimeError:
+        facturas, notas_por_factura = [], {}
+
+    facturas_orden = sorted(
+        [f for f in facturas if (f.get("purchase_order") or f.get("anotation") or "").strip() == order_id],
+        key=lambda f: f.get("date") or "",
+    )
+    facturas_out = []
+    for f in facturas_orden:
+        fid = str(f.get("id"))
+        stamp = f.get("stamp") or {}
+        facturas_out.append({
+            "factura_id": fid,
+            "numero": (f.get("numberTemplate") or {}).get("fullNumber"),
+            "fecha": f.get("date"),
+            "estado": f.get("status"),
+            "total": f.get("total"),
+            "cufe": stamp.get("cufe") or "",
+            "url": f"https://app.alegra.com/invoice/view/id/{fid}",
+            "notas_credito": notas_por_factura.get(fid, []),
+            "items": [
+                {"sku": it.get("code") or "—", "nombre": it.get("description"),
+                 "cantidad": it.get("quantity"), "total": it.get("total")}
+                for it in items_hibridos_normalizados(f)
+            ],
+        })
+
+    indice_legado = leer_indice_facturacion_meli().get("indice", {})
+    legado = _sin_autorreferencia(indice_legado.get(order_id) or indice_legado.get(pack_id), facturas_out)
+    if not legado and facturas_orden:
+        pack_real = _resolver_pack_id_meli(order_id, token=token_meli)
+        if pack_real and pack_real != order_id:
+            legado = _sin_autorreferencia(indice_legado.get(pack_real), facturas_out)
+
+    cliente = None
+    for f in facturas_orden:
+        cliente = _cliente_desde_factura(f)
+        if cliente:
+            break
+
+    es_cancelada = orden.get("status") == "cancelled"
+    fila = {
+        "order_id": order_id,
+        "pack_id": pack_id,
+        "es_meli": True,
+        "es_cancelada": es_cancelada,
+        "fecha": orden.get("date_closed") or orden.get("date_created"),
+        "total": orden.get("total_amount"),
+        "meli_url": f"https://vendedores.mercadolibre.com.co/ventas/{pack_id}/detalle",
+        "cliente": cliente,
+        "facturas_cliente_en_rango": 0,  # búsqueda puntual: no se agrega contra el rango cargado
+        "facturas": facturas_out,
+        "factura_legado": legado,
+        "posible_duplicado": bool(legado and facturas_orden),
+        "monto_discrepancia": False,
+        "nota_credito_legado": None,
+        "nc_subida_meli_legado": None,
+        "venta_original": _detalle_venta_meli(order_id, token=token_meli),
+    }
+
+    from app.tools.revision_facturacion import pasos_abiertos_facturacion, revisado_map_facturacion
+
+    revis = revisado_map_facturacion().get(order_id)
+    abierto = pasos_abiertos_facturacion().get(order_id)
+    fila["revisado"] = bool(revis)
+    fila["revisado_notas"] = revis.get("notas") if revis else None
+    fila["ticket_id"] = (revis or abierto or {}).get("ticket_id")
+    fila["paso_id"] = (revis or abierto or {}).get("paso_id")
+
+    if es_cancelada:
+        fila["estado_facturacion"] = "cancelada_resuelta" if (legado or facturas_orden) else "cancelada_sin_factura"
+        return fila
+
+    if facturas_orden or legado:
+        tiene_doc = meli_pack_tiene_documento_fiscal(pack_id, token=token_meli)
+        fila["meli_doc_fiscal"] = tiene_doc
+        fila["estado_facturacion"] = "facturada_completa" if tiene_doc else "facturada_pendiente_subir_meli"
+        return fila
+
+    shipping_id = (orden.get("shipping") or {}).get("id")
+    envio = consultar_envio_meli(str(shipping_id), token=token_meli) if shipping_id else None
+    estado_envio = (envio or {}).get("status")
+    fila["shipping_status"] = estado_envio
+    if estado_envio != "delivered":
+        fila["estado_facturacion"] = "en_transito"
+        return fila
+
+    margen_horas = _margen_horas_default()
+    fecha_entrega_txt = (
+        ((envio or {}).get("status_history") or {}).get("date_delivered") or (envio or {}).get("date_created")
+    )
+    en_margen = True
+    if fecha_entrega_txt:
+        try:
+            fe = datetime.fromisoformat(str(fecha_entrega_txt).replace("Z", "+00:00"))
+            ahora = datetime.now(fe.tzinfo) if fe.tzinfo else datetime.now()
+            en_margen = (ahora - fe) < timedelta(hours=margen_horas)
+        except ValueError:
+            en_margen = False
+    fila["estado_facturacion"] = "en_margen_entrega" if en_margen else "sin_facturar"
+    return fila
