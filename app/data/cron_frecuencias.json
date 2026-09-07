@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-06T07:23:16"
+    "ultima_ejecucion": "2026-09-07T07:23:28"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -25,7 +25,7 @@
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-31T08:17:56"
+    "ultima_ejecucion": "2026-09-07T08:15:52"
   },
   "informe_reposicion_mensual": {
     "intervalo_horas": 168,
@@ -33,34 +33,38 @@
   },
   "archivar_gasto_ads": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-31T08:23:58"
+    "ultima_ejecucion": "2026-09-07T08:21:29"
   },
   "resumen_costos_llm": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-31T07:45:01"
+    "ultima_ejecucion": "2026-09-07T07:45:01"
   },
   "recordatorio_inventario": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-31T08:31:26"
+    "ultima_ejecucion": "2026-09-07T08:32:23"
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-06T07:05:39"
+    "ultima_ejecucion": "2026-09-07T07:06:19"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-06T06:51:11"
+    "ultima_ejecucion": "2026-09-07T06:51:24"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-08-31T09:00:01"
+    "ultima_ejecucion": "2026-09-07T09:00:01"
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-06T09:02:34"
+    "ultima_ejecucion": "2026-09-07T09:01:36"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-06T09:05:01"
+    "ultima_ejecucion": "2026-09-07T09:05:01"
+  },
+  "reintentar_avisos_pedidos_web": {
+    "intervalo_horas": 1,
+    "ultima_ejecucion": "2026-09-07T11:22:27"
   }
 }

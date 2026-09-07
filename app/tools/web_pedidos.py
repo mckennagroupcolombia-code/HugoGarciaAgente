@@ -787,7 +787,26 @@ def send_shipped_email(order: dict, tracking_number: str, carrier: str) -> bool:
     return _send_smtp(email, subj, text, html)
 
 
-def _format_whatsapp_pedido(order: dict) -> str:
+_MP_PAYMENT_TYPE_LABELS = {
+    "bank_transfer": "PSE / transferencia bancaria",
+    "credit_card": "Tarjeta de crédito",
+    "debit_card": "Tarjeta débito",
+    "ticket": "Efectivo (corresponsal/Efecty)",
+    "account_money": "Saldo Mercado Pago",
+    "digital_currency": "Billetera digital",
+}
+
+
+def _mp_metodo_pago_legible(order: dict) -> str:
+    tipo = str(order.get("payment_type") or "").strip().lower()
+    metodo = str(order.get("payment_method") or "").strip()
+    label = _MP_PAYMENT_TYPE_LABELS.get(tipo, tipo or "—")
+    if metodo and metodo.lower() != tipo:
+        label = f"{label} ({metodo})"
+    return label
+
+
+def _format_whatsapp_pedido(order: dict, *, reenviado: bool = False) -> str:
     """Aviso operativo al grupo de guías/envíos con los datos clave del pedido."""
     try:
         data = json.loads(order.get("items_json") or "{}")
@@ -811,6 +830,15 @@ def _format_whatsapp_pedido(order: dict) -> str:
     items_txt = "\n".join(item_lines) if item_lines else "• (sin detalle)"
     ref = order["reference"]
     pay = order.get("payu_ref") or "—"
+    mp_url = f"https://www.mercadopago.com.co/activities/{pay}" if pay and pay != "—" else ""
+    metodo_pago = _mp_metodo_pago_legible(order)
+    created_raw = str(order.get("created_at") or "").strip()
+    created = created_raw
+    if created_raw:
+        try:
+            created = datetime.fromisoformat(created_raw).strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            pass
     total = f"${order.get('total', 0):,.0f}".replace(",", ".")
     city = order.get("buyer_city", "") or "—"
     dept = data.get("dept") or "—"
@@ -828,9 +856,19 @@ def _format_whatsapp_pedido(order: dict) -> str:
     bill_email = billing.get("email") or order.get("buyer_email", "") or "—"
     bill_addr = billing.get("address") or address
     suf = ref[-3:].upper() if len(ref) >= 3 else ref.upper()
+    encabezado = "🔁 *Aviso reenviado* (el envío original falló)" if reenviado else "🛒 *Web pagado*"
+    verificacion = (
+        f"✅ *Pago confirmado por Mercado Pago* (estado `approved` vía API)\n"
+        f"💳 *Método:* {metodo_pago}\n"
+        + (f"🔗 *Ver transacción en MP:* {mp_url}\n" if mp_url else "")
+        + (f"🕐 *Fecha del pago:* {created}\n" if created else "")
+        + f"\n⚠️ Un pago PSE/transferencia puede tardar en verse reflejado en la cuenta bancaria aunque MP ya lo confirme como aprobado; si no aparece pronto, validar con el payment_id en el panel de Mercado Pago antes de escalar.\n"
+    )
     return (
-        f"🛒 *Web pagado* `{ref}`\n"
+        f"{encabezado} `{ref}`\n"
         f"💰 *{total} COP* · MP `{pay}`\n"
+        f"\n"
+        f"{verificacion}"
         f"\n"
         f"👤 *Cliente:* {order.get('buyer_name', '')}\n"
         f"🪪 *CC/NIT:* {cedula}\n"
@@ -1389,7 +1427,15 @@ def process_order_paid_side_effects(reference: str) -> None:
         try:
             from app.utils import enviar_whatsapp_reporte
 
-            body = _format_whatsapp_pedido(order2)
+            reenviado = False
+            creado_txt = str(order2.get("created_at") or "").strip()
+            if creado_txt:
+                try:
+                    creado_dt = datetime.fromisoformat(creado_txt)
+                    reenviado = (datetime.now() - creado_dt) > timedelta(minutes=30)
+                except ValueError:
+                    pass
+            body = _format_whatsapp_pedido(order2, reenviado=reenviado)
             if enviar_whatsapp_reporte(body, numero_destino=GRUPO_PEDIDOS_WEB_WA):
                 con = sqlite3.connect(ORDERS_DB)
                 con.execute(

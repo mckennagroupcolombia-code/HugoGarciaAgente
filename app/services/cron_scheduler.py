@@ -106,6 +106,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Lista nuestros más vendidos y el precio publicado nuestro. No consulta el marketplace ni otros vendedores (MeLi lo prohíbe por API; no hacemos scraping).",
         "script": "scripts/analisis_competencia_precios_cron.py",
     },
+    "reintentar_avisos_pedidos_web": {
+        "nombre": "Reintento avisos WhatsApp pedidos web",
+        "descripcion": "Reenvía al grupo Guias_Envios pagina web el aviso de pedidos pagados cuyo aviso original se perdió (ej. bridge de WhatsApp caído/sincronizando). Solo mira pedidos recientes, no reabre casos históricos.",
+        "script": "scripts/reintentar_avisos_pedidos_web_cron.py",
+    },
     "cobertura_meli": {
         "nombre": "Cobertura geográfica MeLi (departamento/municipio)",
         "descripcion": "Acumula día a día en qué municipios reales se despachan pedidos de MercadoLibre (GET /shipments/{id} por envío nuevo), para la sección \"¿A dónde hemos llegado?\" del inicio de la tienda web. No hay backfill retroactivo: solo crece hacia adelante.",

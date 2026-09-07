@@ -69,6 +69,10 @@
       "nota": "Cron diario (dispara día 15 y fin de mes): ticket 'APROBAR PAGO NOMINA' por quincena, asignado a Jenniffer"
     },
     {
+      "path": "scripts/reintentar_avisos_pedidos_web_cron.py",
+      "nota": "Cron cada 30 min: reenvía al grupo Guias_Envios pagina web el aviso de pedidos pagados recientes (últimos 7 días) cuyo aviso original se perdió (ej. bridge de WhatsApp caído)"
+    },
+    {
       "path": "scripts/cargar_meli_catalogo_web.py",
       "nota": "Cruza publicaciones MeLi → catálogo web clasificado"
     },
