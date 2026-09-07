@@ -17,6 +17,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Memoria agente (Tricap) | `docs/agentic/modules/agent-orchestrator.md` | `app/memory/working.py`, `app/memory/episodic.py`, `app/memory/semantic.py`, `app/memory/compressor.py` | import + `pytest tests/ -q` |
 | Stock/facturas | `docs/agentic/modules/sync-stock.md` | `app/sync.py`, `app/services/meli.py`, `app/services/siigo.py` | tests puros/mocks + auditoria |
 | Panel React | `docs/agentic/modules/desktop-panel.md` | `desktop/src/api/client.ts`, hooks, panel afectado, `app/routes.py` | `cd desktop && npm run qa:full` |
+| Studio visual / etiquetas físicas | `docs/agentic/modules/desktop-panel.md` | `plantillas_visuales.py`, `etiquetaFormulario.ts`, `VisualCanvasEditor.tsx` | `pytest tests/test_formulario_manteca.py` — no poner `ficha_mp` en stickers |
 | Etiquetas MeLi / materia prima | `docs/agentic/modules/meli-materia-prima.md` | `desktop/src/lib/etiquetasNormativa.ts`, `app/tools/etiquetas_ficha.py`, `EtiquetasStudioPanel.tsx` | Studio → Alternativa + checklist prompt |
 | Monitor compliance MeLi | `docs/agentic/modules/meli-compliance-monitor.md` | `app/tools/meli_compliance_monitor.py`, `scripts/meli_compliance_monitor_cron.py` | crear-nueva dry_run + cron |
 | Más vendidos MeLi + reporte por pantallazo | `docs/agentic/modules/competencia-precios.md` | `app/tools/analisis_competencia_precios.py`, `CompetenciaPreciosPanel.tsx` | `pytest tests/test_analisis_competencia_precios.py` |
@@ -27,6 +28,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Ecosistema Gentleman | `docs/agentic/ECOSYSTEM.md` | `docs/agentic/*`, `.agents/skills/*`, `.cursor/skills*` | no instalar sin backup |
 | Revision AI | `docs/agentic/modules/guardian-review.md` | `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, workflows QA | modo reporte antes de bloquear |
 | Autoria, sync git y recaps de equipo | `docs/agentic/TEAM_WORKFLOW.md` | `docs/team-recaps.md`, `app/tools/git_history.py`, `app/tools/team_recaps.py`, `ControlVersionesPanel.tsx` | `pytest tests/test_smoke.py`, revisar entrada en `docs/team-recaps.md` |
+| Telemetria (logs/metricas/errores) | `docs/agentic/modules/telemetria.md` | `app/services/telemetria.py`, `app/observability.py`, `bot-mckenna/server.js`, `TelemetriaPanel.tsx` | `pytest tests/test_smoke.py`, prueba manual descrita en la ficha |
 
 ## Protocolo Corto
 

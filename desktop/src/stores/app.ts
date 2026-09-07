@@ -53,6 +53,7 @@ export type Panel =
   | "logistica-proveedores"
   | "logistica-seguimiento"
   | "control-versiones"
+  | "telemetria"
   | "meli-oauth"
   | "gmail-oauth"
   | "tareas-programadas"

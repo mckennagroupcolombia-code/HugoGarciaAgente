@@ -75,6 +75,13 @@ export interface DatosFichaTecnicaMp {
   /** Pictograma GHS (data URL SVG). Vacío = rombo de atención por defecto. */
   ghsSrc?: string;
   ghsCodigo?: string;
+  /** Campos extra de la etiqueta física 76×66 (MANTECA y clones). */
+  origen?: string;
+  apariencia?: string;
+  olor?: string;
+  composicion?: string;
+  grado?: string;
+  ghs?: string;
 }
 
 export type LineaIndividualFichaMp =
@@ -148,7 +155,9 @@ export type CampoTextoFichaMp =
   | "nombre"
   | "tagline"
   | "concentracion"
+  | "concentracionValor"
   | "cas"
+  | "casNumero"
   | "descripcion"
   | "feat0"
   | "feat1"
@@ -158,7 +167,13 @@ export type CampoTextoFichaMp =
   | "peso"
   | "atencion"
   | "almacenamiento"
-  | "marca";
+  | "marca"
+  | "origen"
+  | "apariencia"
+  | "olor"
+  | "composicion"
+  | "grado"
+  | "ghs";
 
 export interface EstiloCampoTextoFichaMp {
   /** Multiplicador sobre el tamaño base del bloque (1 = sin cambio). */
@@ -174,8 +189,10 @@ export const CAMPOS_TEXTO_FICHA_MP: {
   { id: "abreviatura", label: "Abreviatura", boldDefault: true },
   { id: "nombre", label: "Nombre del producto", boldDefault: true },
   { id: "tagline", label: "Tagline", boldDefault: false },
-  { id: "concentracion", label: "Concentración", boldDefault: true },
-  { id: "cas", label: "CAS", boldDefault: true },
+  { id: "concentracion", label: "Concentración (bloque)", boldDefault: true },
+  { id: "concentracionValor", label: "Concentración", boldDefault: true },
+  { id: "cas", label: "CAS (bloque)", boldDefault: true },
+  { id: "casNumero", label: "CAS", boldDefault: true },
   { id: "descripcion", label: "Descripción", boldDefault: false },
   { id: "feat0", label: "Destacado 1", boldDefault: true },
   { id: "feat1", label: "Destacado 2", boldDefault: true },
@@ -186,6 +203,12 @@ export const CAMPOS_TEXTO_FICHA_MP: {
   { id: "marca", label: "Marca", boldDefault: true },
   { id: "atencion", label: "Advertencia", boldDefault: false },
   { id: "almacenamiento", label: "Almacenamiento", boldDefault: false },
+  { id: "origen", label: "Origen", boldDefault: false },
+  { id: "apariencia", label: "Apariencia", boldDefault: false },
+  { id: "olor", label: "Olor", boldDefault: false },
+  { id: "composicion", label: "Composición", boldDefault: false },
+  { id: "grado", label: "Grado", boldDefault: false },
+  { id: "ghs", label: "GHS", boldDefault: true },
 ];
 
 export const ESTILO_FICHA_MP_DEFAULT: EstiloFichaMp = {
@@ -314,6 +337,12 @@ export const DATOS_EJEMPLO_SCI: DatosFichaTecnicaMp = {
   ciudad: "BOGOTÁ — COLOMBIA",
   web: "mckennagroup.co",
   ean13: "7701602502633",
+  origen: "Colombia",
+  apariencia: "",
+  olor: "",
+  composicion: "",
+  grado: "Alimentario",
+  ghs: "NO GHS",
 };
 
 function svgDataUrl(inner: string, color: string, viewBox = "0 0 64 64"): string {
@@ -575,6 +604,17 @@ export function esPlantillaFichaMp(doc: Pick<PlantillaVisualDoc, "ficha_mp">): b
   return Boolean(doc.ficha_mp && typeof doc.ficha_mp === "object");
 }
 
+/** Plantilla de etiqueta física con cajas variables (`campoProducto`),
+ *  p. ej. MANTECA DE CACAO 76×66. No regenera el layout SCI. */
+export function esPlantillaFormularioEtiqueta(
+  doc: Pick<PlantillaVisualDoc, "formulario" | "elementos" | "ficha_mp">,
+): boolean {
+  if (doc.formulario) return true;
+  return (doc.elementos || []).some(
+    (el) => el.type === "text" && Boolean((el as { campoProducto?: string }).campoProducto),
+  );
+}
+
 /** `campoProducto` que existen pero no deben ofrecerse como columna variable
  *  en "Aplicar en lote" (la marca no cambia de producto a producto, aunque
  *  técnicamente sí lleve un `campoProducto` para poder editarla campo a campo). */
@@ -594,8 +634,12 @@ export function contenidoCampoProductoFichaMp(
   switch (campo) {
     case "concentracion":
       return `${datos.concentracionLabel}\n${datos.concentracionValor}`;
+    case "concentracionValor":
+      return datos.concentracionValor;
     case "cas":
       return `${datos.casLabel}\n${datos.cas}`;
+    case "casNumero":
+      return datos.cas;
     case "feat0":
       return datos.features[0]?.titulo ?? "";
     case "feat1":
@@ -622,6 +666,18 @@ export function contenidoCampoProductoFichaMp(
       return datos.almacenamiento;
     case "marca":
       return datos.marca;
+    case "origen":
+      return datos.origen ?? "";
+    case "apariencia":
+      return datos.apariencia ?? "";
+    case "olor":
+      return datos.olor ?? "";
+    case "composicion":
+      return datos.composicion ?? "";
+    case "grado":
+      return datos.grado ?? "";
+    case "ghs":
+      return datos.ghs || datos.ghsCodigo || "";
     default:
       return "";
   }

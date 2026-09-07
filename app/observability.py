@@ -86,6 +86,15 @@ def spawn_thread(
             if rid:
                 token = _request_id_ctx.set(rid)
             return target(*args, **kwargs)
+        except Exception as e:
+            from app.services import telemetria
+
+            telemetria.registrar_error(
+                "hilo_no_manejado",
+                origen=getattr(target, "__name__", str(target)),
+                exception=e,
+            )
+            raise
         finally:
             if token is not None:
                 _request_id_ctx.reset(token)

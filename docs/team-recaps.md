@@ -1,3 +1,13 @@
+### 2026-09-07 01:25 - Studio: MANTECA 1000g como formulario de etiqueta
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - La etiqueta física **MANTECA DE CACAO REFINADA 1000g** (76×66 mm) quedó como formulario: 12 cajas variables (`nombre`, `tagline`, `concentracionValor`, `casNumero`, `ghs`, `origen`, `apariencia`, `olor`, `composicion`, `grado`, `almacenamiento`, `peso`) con autofit. Cambiar un dato solo reescribe el texto; x/y/ancho/alto/fuente de diseño no se mueven.
+  - Panel lateral «Formulario de etiqueta» en el editor + carga desde ficha técnica (`GET /api/fichas/datos`). Aplicar en lote ya no exige plantilla SCI (`ficha_mp`).
+  - La caja del tagline se recortó a la barra naranja (el scan la dejaba 200 px y tapaba Concentración/ORIGEN). Export PNG idéntico al original; relleno con urea no solapa.
+  - **No** se marcó `ficha_mp` (eso regeneraría el layout SCI y destruiría la sticker).
+- **Archivos Modificados:** `desktop/src/lib/etiquetaFormulario.ts`, `FormularioEtiquetaPanel.tsx`, `VisualCanvasEditor.tsx`, `plantillaFichaTecnicaMp.ts`, `plantillas_visuales.py`, `AplicarLotePanel.tsx`, `scripts/marcar_manteca_formulario.py`, `tests/test_formulario_manteca.py`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`
+
 ### 2026-09-07 00:45 - Studio: autofit de texto + Aplicar en lote
 - **Autor:** Claude (Sonnet 5)
 - **Tipo de Cambio:** Corrección de raíz / Feature

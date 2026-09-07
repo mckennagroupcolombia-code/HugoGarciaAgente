@@ -74,17 +74,15 @@ export interface ElementoTexto extends ElementoBase {
   marcoAncho?: number;
   /** Color del anillo; por defecto el color del texto. */
   marcoColor?: string;
-  /** Reduce fontSize/lineHeight automáticamente al exportar si el texto no
-   *  cabe en `height`, en vez de sobreponerse al elemento siguiente.
+  /** Reduce fontSize/lineHeight automáticamente al exportar (y en el lienzo)
+   *  si el texto no cabe en `height`, en vez de sobreponerse al siguiente.
    *  undefined/false = comportamiento actual (puede desbordar). */
   autofit?: boolean;
   /** Piso de fontSize al reducir por autofit. undefined = 55% del fontSize
    *  base de ese elemento. */
   minFontSize?: number;
-  /** Solo en plantillas de ficha MP (`doc.ficha_mp`): qué campo de
-   *  `DatosFichaTecnicaMp` alimenta este texto (valor de `CampoTextoFichaMp`,
-   *  tipado en plantillaFichaTecnicaMp.ts para evitar import circular aquí).
-   *  Ausente = contenido fijo de marca/diseño, no se toca en aplicación masiva. */
+  /** Qué dato de producto/ficha técnica alimenta este texto.
+   *  Ausente = contenido fijo de marca/diseño (no se toca en lote ni en el formulario). */
   campoProducto?: string;
 }
 
@@ -129,6 +127,8 @@ export interface PlantillaVisualDoc {
   elementos: ElementoVisual[];
   /** Estado del formulario «Diligenciar etiqueta» (HTML SCI). */
   ficha_mp?: Record<string, unknown>;
+  /** Etiqueta física con cajas variables (`campoProducto`). No regenera layout. */
+  formulario?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -1072,6 +1072,7 @@ export function fusionarMetadatosPlantillaTrasGuardar(
     id: servidor.id || local.id,
     nombre: servidor.nombre ?? local.nombre,
     ficha_mp: servidor.ficha_mp ?? local.ficha_mp,
+    formulario: servidor.formulario ?? local.formulario,
     created_at: servidor.created_at ?? local.created_at,
     updated_at: servidor.updated_at ?? local.updated_at,
   };

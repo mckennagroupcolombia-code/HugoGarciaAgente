@@ -18,7 +18,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Produccion sirve `desktop/dist` desde Flask.
 - Mutaciones pueden usar `/app/api/...` para evitar proxies que devuelven HTML.
 - GET del panel empieza en `/api` y reintenta `/app/api` si llega HTML: el endpoint Flask debe existir en **ambos** prefijos. El catch-all SPA `/app/<path>` no puede servir `index.html` para `/app/api/*`.
-- Studio visual (Cynthia): «Diligenciar etiqueta» es formulario HTML (no lienzo). Zoom, sliders de tipo/iconos/cajas y `POST /api/plantillas-visuales` con `ficha_mp` para reabrir el mismo formulario.
+- Studio visual (Cynthia): «Diligenciar etiqueta» es formulario HTML (no lienzo) **solo** si la plantilla tiene `ficha_mp`. Etiquetas físicas (p. ej. MANTECA 76×66) se marcan con `formulario: true` + `campoProducto`/`autofit` en el lienzo: el formulario lateral edita `content` sin regenerar layout. **Nunca** poner `ficha_mp` en esas stickers (eso reconstruye la plantilla SCI).
 - Auth usa Bearer `CHAT_API_TOKEN`.
 - Preferencias UI (`preferencias_ui.panel`): `mode`, `fontSans`, `accentRgb`, `radius`, `skin` (variantes visibles `matrix` | `sakura` | `barbie`; `clasica`/`atelier` se mapean a Sakura), `fontScale`, `menuScale`, `colors` (menú/títulos/cajas), `customThemes` (hasta 12 temas del usuario).
 - Cambios en endpoint deben reflejarse en hook/tipo UI.

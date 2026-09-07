@@ -26,6 +26,7 @@ const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
 const SupervisorPanel = lazy(() => import("./components/SupervisorPanel"));
 const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPanel"));
+const TelemetriaPanel = lazy(() => import("./components/TelemetriaPanel"));
 const MeliOAuthPanel = lazy(() => import("./components/MeliOAuthPanel"));
 const GmailOAuthPanel = lazy(() => import("./components/GmailOAuthPanel"));
 const TareasProgramadasPanel = lazy(() => import("./components/TareasProgramadasPanel"));
@@ -96,6 +97,8 @@ function PanelRouterInner() {
       return <SupervisorPanel />;
     case "control-versiones":
       return <ControlVersionesPanel />;
+    case "telemetria":
+      return <TelemetriaPanel />;
     case "meli-oauth":
       return <MeliOAuthPanel />;
     case "gmail-oauth":

@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -59,11 +60,39 @@ export default function TextoCapaLienzo({
   chrome,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const textoRef = useRef<HTMLDivElement | null>(null);
   const [flotante, setFlotante] = useState<{ left: number; top: number; width: number } | null>(
     null,
   );
   const taRef = useRef<HTMLTextAreaElement | null>(null);
-  const hitH = alturaCajaTexto(el);
+  const usarAutofit =
+    Boolean(el.autofit) && el.forma !== "circulo" && (el.arco ?? 0) === 0;
+  const hitH = usarAutofit ? Math.max(1, el.height) : alturaCajaTexto(el);
+  const [fitSize, setFitSize] = useState(el.fontSize);
+
+  useLayoutEffect(() => {
+    if (!usarAutofit) {
+      setFitSize(el.fontSize);
+      return;
+    }
+    const node = textoRef.current;
+    if (!node) return;
+    const min = Math.max(4, el.minFontSize ?? el.fontSize * 0.55);
+    let s = el.fontSize;
+    const lh = el.lineHeight ?? LINE_HEIGHT_DEFECTO;
+    const apply = (sz: number) => {
+      node.style.fontSize = `${sz}px`;
+      node.style.lineHeight = `${lh * sz}px`;
+    };
+    apply(s);
+    let guard = 0;
+    while (node.scrollHeight > node.clientHeight + 0.5 && s > min && guard < 40) {
+      s = Math.max(min, s * 0.94);
+      apply(s);
+      guard += 1;
+    }
+    setFitSize(s);
+  }, [usarAutofit, el.content, el.fontSize, el.width, el.height, el.lineHeight, el.minFontSize]);
 
   useEffect(() => {
     if (!editando) {
@@ -103,11 +132,11 @@ export default function TextoCapaLienzo({
     zIndex: el.zIndex,
     boxSizing: "border-box",
     color: el.color,
-    fontSize: `${el.fontSize}px`,
+    fontSize: `${usarAutofit ? fitSize : el.fontSize}px`,
     fontFamily: el.fontFamily,
     fontWeight: pesoFontWeightCss(el.fontWeight),
     textAlign: el.align,
-    lineHeight: `${(el.lineHeight ?? LINE_HEIGHT_DEFECTO) * el.fontSize}px`,
+    lineHeight: `${(el.lineHeight ?? LINE_HEIGHT_DEFECTO) * (usarAutofit ? fitSize : el.fontSize)}px`,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     overflow: "visible",
@@ -156,7 +185,15 @@ export default function TextoCapaLienzo({
             {esPrincipal ? "Doble clic o Enter para editar" : "Texto"}
           </div>
         )}
-        <div style={{ pointerEvents: "none", width: "100%" }}>
+        <div
+          ref={textoRef}
+          style={{
+            pointerEvents: "none",
+            width: "100%",
+            height: usarAutofit ? "100%" : undefined,
+            overflow: usarAutofit ? "hidden" : "visible",
+          }}
+        >
           {el.forma === "circulo" ? (
             <TextoCirculoDom el={el} />
           ) : (el.arco ?? 0) !== 0 ? (

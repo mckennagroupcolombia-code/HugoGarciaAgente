@@ -24,6 +24,7 @@ Resumen portable para otro dev/agente. Mantener corto; mover detalle a fichas o 
 
 ## Aprendizajes Recientes
 
+- **Etiqueta física ≠ ficha SCI:** en Studio, `ficha_mp` reconstruye el layout HTML SCI. Las stickers (MANTECA 76×66) se marcan con `formulario: true` + `campoProducto`/`autofit` en el lienzo; el formulario solo cambia `content`. Nunca poner `ficha_mp` en esas plantillas.
 - **Recordatorios (visto / reprogramar):** `_siguiente_tras_hoy` no puede pasar «mañana» como ancla a `_proxima_fecha`. En `bimestral` y `cada_n_dias` eso devolvía mañana (o la misma fecha) en vez del siguiente ciclo. Avanzar desde `proxima_fecha` un periodo completo hasta `> hoy`. En el panel, `fechaHoyLocal()` — no `toISOString().slice(0,10)` (UTC): en Colombia después de las 19:00 el recordatorio diario sigue en «Para hoy».
 - **Hero Clásico 2 columnas:** `@media (max-width:1200px) { .hero-right { display:none } }` dejaba el home solo oscuro. Apilar recién a 900px; no `display:none`. `estilo_nodo_layout` no debe emitir `display:inline-block` (rompe `display:grid` del `.hero`).
 - **Header sitio público:** logo+8 enlaces+buscar+WA no caben en 1280px; con `overflow-x:hidden` en body se corta «Iniciar sesión». Compactar padding y ocultar buscar/WA ≤1200; hamburguesa ≤1100.

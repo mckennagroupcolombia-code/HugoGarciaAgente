@@ -69,10 +69,12 @@ import GaleriaIconosQuimicosModal from "./GaleriaIconosQuimicosModal";
 import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import BarraContenidoTexto from "./BarraContenidoTexto";
+import FormularioEtiquetaPanel from "./FormularioEtiquetaPanel";
 import TextoCapaLienzo from "./TextoCapaLienzo";
 import { geometriaArco, alturaCajaTexto, ajustarArcoAZonaSeguraCircular } from "./TextoArcoSvg";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
+import { CAMPOS_TEXTO_FICHA_MP, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
 
 interface Props {
   doc: PlantillaVisualDoc;
@@ -2862,6 +2864,9 @@ export default function VisualCanvasEditor({
           />
           <aside className={`flex h-full w-full flex-col overflow-hidden border-l ${studio.panel}`}>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+              {esPlantillaFormularioEtiqueta(doc) && (
+                <FormularioEtiquetaPanel doc={doc} onChange={onChange} />
+              )}
               <>
                 {seleccionIds.length > 1 ? (
                   <div className="space-y-3 text-sm">
@@ -2971,9 +2976,39 @@ export default function VisualCanvasEditor({
             {seleccionado.type === "text" && (
               <>
                 <p className="rounded-lg border border-border bg-surface px-2.5 py-2 text-[11px] leading-snug text-muted">
-                  Elige y edita el texto en la <span className="font-semibold text-ink">barra clara de abajo</span>.
+                  Elige y edita el texto en la <span className="font-semibold text-ink">barra clara de abajo</span>
+                  {esPlantillaFormularioEtiqueta(doc) ? " o en el formulario" : ""}.
                   Aquí: tipografía, arco y círculo.
                 </p>
+                <label>
+                  <span className="text-xs text-muted">Campo de ficha / producto</span>
+                  <select
+                    value={seleccionado.campoProducto || ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      patchElemento(seleccionado.id, {
+                        campoProducto: v || undefined,
+                        autofit: v ? true : seleccionado.autofit,
+                      });
+                    }}
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  >
+                    <option value="">Fijo (no cambia por producto)</option>
+                    {CAMPOS_TEXTO_FICHA_MP.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
+                  <span className="text-xs text-muted">Autofit (no sobreponer)</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(seleccionado.autofit)}
+                    onChange={(e) => patchElemento(seleccionado.id, { autofit: e.target.checked })}
+                  />
+                </label>
                 <label>
                   <span className="text-xs text-muted">Tipografía</span>
                   <select

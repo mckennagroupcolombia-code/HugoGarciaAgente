@@ -5520,6 +5520,15 @@ def not_found(e):
     return render_template("404.html"), 404
 
 
+@app.errorhandler(500)
+def _website_error(e):
+    from app.services import telemetria
+
+    orig = getattr(e, "original_exception", None)
+    telemetria.registrar_error("http_500", origen=request.path, exception=orig or e)
+    return "Ha ocurrido un error interno. Por favor intenta de nuevo en unos minutos.", 500
+
+
 def _orders_maintenance_loop() -> None:
     """Hilo daemon: expira pedidos pendientes >24h y completa envíos de correos de FE diferidos."""
     import time as _time

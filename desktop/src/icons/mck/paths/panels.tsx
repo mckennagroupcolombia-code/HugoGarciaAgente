@@ -316,6 +316,15 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M7 12c0-2.5 2-4 5-4h3" />
     </>
   ),
+  "telemetria": (
+    <>
+      <path d="M12 20v-6" />
+      <path d="M9 20h6" />
+      <circle cx="12" cy="9" r="2.5" />
+      <path d="M7.5 9a4.5 4.5 0 0 1 9 0" />
+      <path d="M4.5 9a7.5 7.5 0 0 1 15 0" />
+    </>
+  ),
   "meli-oauth": (
     <>
       <path d="M9 3v5" />

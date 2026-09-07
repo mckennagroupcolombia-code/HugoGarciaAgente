@@ -33,6 +33,39 @@ function logActividad(tipo, datos) {
     if (activityLog.length > MAX_LOG) activityLog.pop();
 }
 
+// ==========================================
+// TELEMETRÍA — logs estructurados + envío al backend Python (fire-and-forget)
+// No reemplaza activityLog/logActividad (siguen igual para /monitor); esto
+// además deja rastro en consola en JSON y lo unifica en el panel de
+// Telemetría del backend (GET /api/telemetria/resumen en :8081).
+// ==========================================
+const TELEMETRIA_URL = 'http://127.0.0.1:8081/api/telemetria/evento';
+
+function logEvent(event, level, fields) {
+    const payload = { ts: new Date().toISOString(), event, level: level || 'info', ...(fields || {}) };
+    console.log(JSON.stringify(payload));
+    axios.post(TELEMETRIA_URL, {
+        event,
+        level: level || 'info',
+        origen: 'bot-node',
+        mensaje: (fields && (fields.mensaje || fields.error)) || '',
+        detalle: fields || {},
+    }, { timeout: 3000 }).catch(() => {});
+}
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ uncaughtException:', err);
+    logEvent('uncaught_exception', 'error', { mensaje: err.message, stack: err.stack });
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ unhandledRejection:', reason);
+    logEvent('unhandled_rejection', 'error', {
+        mensaje: reason && reason.message ? reason.message : String(reason),
+        stack: reason && reason.stack ? reason.stack : '',
+    });
+});
+
 function normalizarComando(texto) {
     return String(texto || '')
         .replace(/[\u200b-\u200d\ufeff]/g, '')
@@ -233,6 +266,7 @@ client.on('ready', () => {
 
 client.on('auth_failure', msg => {
     console.error('❌ Error de autenticación:', msg);
+    logEvent('whatsapp_auth_failure', 'error', { mensaje: String(msg) });
 });
 
 client.on('disconnected', (reason) => {
@@ -246,6 +280,7 @@ client.on('disconnected', (reason) => {
         client.initialize().catch(err => {
             console.error('❌ Reconexión falló:', err.message);
             logActividad('ERROR', { texto: `Reconexión falló: ${err.message}. systemd reiniciará el proceso.` });
+            logEvent('whatsapp_reconexion_fallida', 'error', { mensaje: err.message });
             process.exit(1);
         });
     }, 10000);

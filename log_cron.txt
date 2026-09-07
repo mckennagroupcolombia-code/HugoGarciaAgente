@@ -4488,3 +4488,11 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Reporte enviado a WhatsApp con éxito.
 ✅ Resumen enviado al grupo SEDE SUR
 ⏭  Informe reposición: hoy (2026-09-06) no es el último día del mes.
+[cursor/wa-metricas-panel 16f3514] Auto-commit: actualizacion diaria 2026-09-06 23:00
+ 57 files changed, 166300 insertions(+), 1893 deletions(-)
+ create mode 100644 app/services/alegra_catalogo_db.py
+ create mode 100644 desktop/src/components/CatalogoAlegraPanel.tsx
+ delete mode 100644 desktop/src/components/plantillas-visuales/SelectorDisenoPlantilla.tsx
+ create mode 100644 sqlite3
+ create mode 100644 tests/test_alegra_catalogo_db.py
+[2026-09-06 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-06 23:00'

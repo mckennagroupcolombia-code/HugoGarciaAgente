@@ -25,13 +25,21 @@ const CAMPO_A_DATOS: Partial<Record<CampoTextoFichaMp, keyof DatosFichaTecnicaMp
   nombre: "nombre",
   tagline: "tagline",
   concentracion: "concentracionValor",
+  concentracionValor: "concentracionValor",
   cas: "cas",
+  casNumero: "cas",
   descripcion: "descripcion",
   aplicaciones: "aplicaciones",
   incorporacion: "incorporacion",
   peso: "peso",
   atencion: "atencionTexto",
   almacenamiento: "almacenamiento",
+  origen: "origen",
+  apariencia: "apariencia",
+  olor: "olor",
+  composicion: "composicion",
+  grado: "grado",
+  ghs: "ghs",
 };
 
 interface FilaLote {
@@ -78,18 +86,18 @@ export default function AplicarLotePanel({
           `/api/plantillas-visuales/${plantillaId}`,
         );
         if (cancelado) return;
-        const parsed = parsearFichaMpDePlantilla(res.plantilla);
-        if (!parsed) {
-          setError("Esta plantilla no es una ficha MP (falta ficha_mp) — no se puede aplicar en lote.");
-          return;
-        }
-        setDatosBase(parsed.datos);
         const usados = new Set<CampoTextoFichaMp>();
         for (const el of res.plantilla.elementos || []) {
           if (el.type === "text" && el.campoProducto) {
             usados.add(el.campoProducto as CampoTextoFichaMp);
           }
         }
+        if (usados.size === 0) {
+          setError("Esta plantilla no tiene campos de producto — no se puede aplicar en lote.");
+          return;
+        }
+        const parsed = parsearFichaMpDePlantilla(res.plantilla);
+        setDatosBase(parsed?.datos ?? fusionarDatosFichaMp());
         const todos = CAMPOS_TEXTO_FICHA_MP.map((c) => c.id).filter(
           (id) => !CAMPOS_PRODUCTO_FIJOS_MARCA.includes(id),
         );

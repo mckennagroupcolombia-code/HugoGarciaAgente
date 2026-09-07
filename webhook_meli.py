@@ -84,6 +84,15 @@ def _webhook_bind_request_id():
     bind_flask_request(request)
 
 
+@app.errorhandler(500)
+def _webhook_meli_error(e):
+    from app.services import telemetria
+
+    orig = getattr(e, "original_exception", None)
+    telemetria.registrar_error("http_500", origen=request.path, exception=orig or e)
+    return jsonify({"error": "internal"}), 500
+
+
 def obtener_nombre_producto(item_id):
     """Obtiene el título de la publicación de Mercado Libre."""
     token_actual = refrescar_token_meli() or os.environ.get("MELI_ACCESS_TOKEN")

@@ -38,6 +38,10 @@ htmlcov/
 
 # Incidentes notificaciones MeLi (runtime, puede crecer)
 app/data/webhook_meli_incidents.jsonl
+
+# Telemetría interna (runtime, cambia a diario)
+app/data/telemetria_errores.jsonl
+app/data/telemetria_metricas.json
 # Audio alertas 5S (subidas .wav)
 app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)
@@ -156,3 +160,6 @@ contenido_video/
 app/data/proveedores.db
 app/data/proveedores.db-wal
 app/data/proveedores.db-shm
+
+# Renders de verificación del formulario de etiqueta (runtime)
+app/data/verificacion_formulario_manteca/

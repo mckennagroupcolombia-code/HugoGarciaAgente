@@ -1187,6 +1187,36 @@ def _contexto_html(
     # Lote
     lote = (d.get("lote") or "").strip()
 
+    # Info clave normativa/etiqueta (opcional; solo se muestra si viene diligenciada)
+    concentracion = (d.get("concentracion") or "").strip()
+    grado = (d.get("grado") or "").strip()
+    hs_code = (d.get("hs_code") or d.get("codigo_arancelario") or "").strip()
+    documento_id = (d.get("documento_id") or "").strip()
+    version_doc = (d.get("version") or "").strip()
+
+    marco_normativo_raw = d.get("marco_normativo")
+    marco_normativo: list[tuple[str, str]] = []
+    if isinstance(marco_normativo_raw, str):
+        for linea in marco_normativo_raw.split("\n"):
+            linea = linea.strip()
+            if not linea:
+                continue
+            partes = linea.split(":", 1)
+            if len(partes) == 2:
+                marco_normativo.append((partes[0].strip(), partes[1].strip()))
+            else:
+                marco_normativo.append(("", linea))
+    elif isinstance(marco_normativo_raw, list):
+        for item in marco_normativo_raw:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                marco_normativo.append((str(item[0]).strip(), str(item[1]).strip()))
+            elif isinstance(item, str) and item.strip():
+                partes = item.split(":", 1)
+                if len(partes) == 2:
+                    marco_normativo.append((partes[0].strip(), partes[1].strip()))
+                else:
+                    marco_normativo.append(("", item.strip()))
+
     # Color de acento (tema)
     _hex_re = re.compile(r'^#[0-9A-Fa-f]{6}$')
     color_raw = (d.get("color_acento") or "").strip()
@@ -1216,6 +1246,12 @@ def _contexto_html(
         "modo_uso": modo_uso,
         "recomendaciones": recomendaciones,
         "lote": lote,
+        "concentracion": concentracion,
+        "grado": grado,
+        "hs_code": hs_code,
+        "documento_id": documento_id,
+        "version_doc": version_doc,
+        "marco_normativo": marco_normativo,
         "color_acento": color_acento,
         "composicion": composicion,
         "cabezote_src": cabezote_src,
@@ -1265,6 +1301,30 @@ def generar_pdf_html(
 COMPLETO_PDF_DIR = FICHAS_DIR / "completo"
 
 
+def _filas_tabla_n(raw, n: int = 4) -> list[list[str]]:
+    """Normaliza filas de tabla (lista de dicts/listas/strings 'a|b|c') a n columnas."""
+    filas: list[list[str]] = []
+    if not raw:
+        return filas
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, dict):
+                vals = [str(v) for v in item.values()]
+                filas.append((vals + [""] * n)[:n])
+            elif isinstance(item, (list, tuple)):
+                filas.append([str(c) for c in item] + [""] * max(0, n - len(item)))
+            elif isinstance(item, str):
+                partes = item.split("|")
+                filas.append([p.strip() for p in partes] + [""] * max(0, n - len(partes)))
+    elif isinstance(raw, str):
+        for linea in raw.split("\n"):
+            linea = linea.strip()
+            if linea:
+                partes = linea.split("|")
+                filas.append([p.strip() for p in partes] + [""] * max(0, n - len(partes)))
+    return [f[:n] for f in filas]
+
+
 def _contexto_coa(datos_coa: dict) -> dict:
     """Aplana los datos del formulario COA para el template HTML combinado."""
     ident = (datos_coa.get("identificacion") or {})
@@ -1306,6 +1366,9 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
         "fecha_emision": (lote.get("fecha_emision") or "").strip(),
         "parametros": filas,
+        "metales": _filas_tabla_n(datos_coa.get("metales"), 4),
+        "microbiologia": _filas_tabla_n(datos_coa.get("microbiologia"), 4),
+        "dictamen": (datos_coa.get("dictamen") or "").strip(),
         "empaque": (emp.get("empaque_original") or "").strip(),
         "almacenamiento": (emp.get("almacenamiento") or "").strip(),
         "precauciones": (emp.get("precauciones") or "").strip(),

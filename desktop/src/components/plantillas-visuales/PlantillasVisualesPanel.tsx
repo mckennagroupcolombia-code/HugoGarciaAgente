@@ -26,7 +26,7 @@ import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
-import { esPlantillaFichaMp } from "../../lib/plantillaFichaTecnicaMp";
+import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -1483,9 +1483,10 @@ export default function PlantillasVisualesPanel({
                   <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {labelFormato(p.formato)}
-                    {esPlantillaFichaMp(p) ? " · formulario" : ""}
+                    {esPlantillaFichaMp(p) ? " · formulario SCI" : ""}
+                    {esPlantillaFormularioEtiqueta(p) && !esPlantillaFichaMp(p) ? " · formulario" : ""}
                   </p>
-                  {esPlantillaFichaMp(p) && (
+                  {esPlantillaFormularioEtiqueta(p) && (
                     <button
                       type="button"
                       onClick={(e) => {

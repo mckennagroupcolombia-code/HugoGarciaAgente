@@ -123,6 +123,18 @@ def _autocorregir_y_reportar(error: str, contexto: str, origen: str) -> None:
     Import lazy para evitar ciclos con monitor/core.
     """
     try:
+        from app.services import telemetria
+
+        telemetria.registrar_error(
+            "incidente_autocorreccion",
+            origen=origen,
+            contexto=contexto[:2000],
+            mensaje=error[:500],
+        )
+    except Exception:
+        pass
+
+    try:
         from app.services.autocorrector import manejar_incidente_autocorreccion
         from app.utils import jid_grupo_alertas_sistemas_wa
 

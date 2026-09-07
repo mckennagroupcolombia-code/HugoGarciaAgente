@@ -45,11 +45,23 @@ def _plantilla_ficha_mp():
     }
 
 
-def test_aplicar_plantilla_lote_rechaza_plantilla_sin_ficha_mp():
+def test_aplicar_plantilla_lote_sin_ficha_mp_si_hay_campo_producto():
     doc = _plantilla_ficha_mp()
-    del doc["ficha_mp"]
+    doc.pop("ficha_mp", None)
     pv.guardar_plantilla(doc)
-    with pytest.raises(ValueError):
+    resultados = pv.aplicar_plantilla_lote(
+        "tpl-manteca-cacao",
+        [{"sku": "MP-010", "datos": {"nombre": "UREA COSMETICA"}}],
+    )
+    assert resultados[0]["ok"] is True
+
+
+def test_aplicar_plantilla_lote_rechaza_plantilla_sin_campos():
+    doc = _plantilla_ficha_mp()
+    for el in doc["elementos"]:
+        el.pop("campoProducto", None)
+    pv.guardar_plantilla(doc)
+    with pytest.raises(ValueError, match="campoProducto"):
         pv.aplicar_plantilla_lote("tpl-manteca-cacao", [{"sku": "MP-001", "datos": {}}])
 
 

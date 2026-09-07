@@ -305,6 +305,11 @@ def guardar_plantilla(body: dict) -> dict:
     sku = (sku or "").strip()
     if sku:
         entry["sku"] = sku
+    formulario = body.get("formulario")
+    if formulario is None:
+        formulario = (existente or {}).get("formulario")
+    if formulario:
+        entry["formulario"] = True
     items = [p for p in todas if p.get("id") != pid]
     items.insert(0, entry)
     _save_all(items)
@@ -1114,8 +1119,11 @@ def aplicar_plantilla_lote(
     """Aplica una plantilla de ficha MP a varios productos/SKUs, con autofit
     real por elemento — el reemplazo de "repetir el formulario a mano"."""
     base = obtener_plantilla(plantilla_id)
-    if not base or not isinstance(base.get("ficha_mp"), dict):
-        raise ValueError("La plantilla no es una ficha MP (falta 'ficha_mp')")
+    if not base:
+        raise ValueError("Plantilla no encontrada")
+    elementos = base.get("elementos") or []
+    if not any(isinstance(el, dict) and el.get("campoProducto") for el in elementos):
+        raise ValueError("La plantilla no tiene campos de producto (campoProducto)")
     resultados: list[dict] = []
     for prod in productos:
         sku = str(prod.get("sku") or "").strip()

@@ -466,6 +466,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "sistemas",
   },
+  "telemetria": {
+    emoji: "📡",
+    label: "Telemetría",
+    description: "Logs, errores y métricas técnicas de toda la aplicación: puente de WhatsApp (Node), webhook MeLi y agente (Flask).",
+    tips: [
+      "Estado de servicios: si un punto aparece rojo, ese proceso no respondió en el último chequeo.",
+      "Errores recientes: cada fila se puede expandir para ver el traceback completo y el contexto.",
+      "Eventos de hoy: contadores técnicos (no reemplazan las métricas de negocio del Dashboard).",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
   "meli-oauth": {
     emoji: "🔌",
     label: "Conexión MercadoLibre",
