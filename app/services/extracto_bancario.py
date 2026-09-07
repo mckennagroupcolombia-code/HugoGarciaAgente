@@ -1346,6 +1346,33 @@ def vincular(extracto_mov_id: int, movimiento_id: str, notas: str = "") -> dict[
     return dict(row) if row else {"id": vid, "extracto_mov_id": extracto_mov_id, "movimiento_id": mid}
 
 
+def vincular_lote(pares: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aplica vincular() para varios pares {extracto_mov_id, movimiento_id} de una vez.
+
+    Usado por el auto-match del panel: cada par se procesa por separado para que un
+    par inválido (línea ya vinculada por otro, id mal formado) no tumbe el resto.
+    """
+    ok = 0
+    errores: list[dict[str, Any]] = []
+    for par in pares:
+        try:
+            mov_id = str(par.get("movimiento_id") or "")
+            ext_mov_id = int(par.get("extracto_mov_id") or 0)
+            if not mov_id or not ext_mov_id:
+                raise ValueError("par incompleto")
+            vincular(ext_mov_id, mov_id)
+            ok += 1
+        except Exception as e:
+            errores.append(
+                {
+                    "movimiento_id": par.get("movimiento_id"),
+                    "extracto_mov_id": par.get("extracto_mov_id"),
+                    "error": str(e),
+                }
+            )
+    return {"vinculados": ok, "errores": errores}
+
+
 def desvincular(*, vinculo_id: int | None = None, movimiento_id: str | None = None) -> bool:
     ensure_extracto_tables()
     with _conn() as con:
@@ -1408,7 +1435,7 @@ def candidatos_para_movimiento(
     fecha: str,
     monto: float,
     tipo_libro: str,
-    ventana_dias: int = 3,
+    ventana_dias: int = 7,
     tolerancia: float = 1.0,
     limit: int = 30,
 ) -> list[dict[str, Any]]:
@@ -1469,10 +1496,19 @@ def candidatos_para_movimiento(
 def sugerencias_auto(
     movimientos_libro: list[dict[str, Any]],
     *,
-    ventana_dias: int = 2,
+    ventana_dias: int = 7,
     tolerancia: float = 0.5,
 ) -> list[dict[str, Any]]:
-    """Empareja 1:1 libro↔extracto por monto+fecha (sin tocar DB)."""
+    """Empareja 1:1 libro↔extracto por monto+fecha (sin tocar DB).
+
+    `ventana_dias=7` (antes 2): en datos reales, servicios/impuestos/cuentas de cobro y
+    pagos a proveedores suelen registrarse en el libro 2-3 días antes o después del débito
+    real en el banco (fecha de factura/registro vs. fecha de pago). Con 2 días se perdían
+    la mayoría de esos casos aun con el monto exacto. 7 días no introdujo falsos positivos
+    en pruebas contra datos reales (jul-ago 2026): cada candidato encontrado era único para
+    ese monto en la ventana. Cuando SÍ hay más de un candidato al mismo monto, la sugerencia
+    se marca `ambiguo=True` para que el operador la revise antes de confirmarla.
+    """
     ensure_extracto_tables()
     if not movimientos_libro:
         return []
@@ -1490,23 +1526,24 @@ def sugerencias_auto(
             tolerancia=tolerancia,
             limit=5,
         )
-        for c in cands:
-            if c["id"] in usados_banco:
-                continue
-            usados_banco.add(c["id"])
-            sugerencias.append(
-                {
-                    "movimiento_id": mid,
-                    "extracto_mov_id": c["id"],
-                    "libro": {
-                        "fecha": mov.get("fecha"),
-                        "tipo": mov.get("tipo"),
-                        "concepto": mov.get("concepto"),
-                        "monto": mov.get("monto"),
-                        "fuente": mov.get("fuente"),
-                    },
-                    "extracto": c,
-                }
-            )
-            break
+        disponibles = [c for c in cands if c["id"] not in usados_banco]
+        if not disponibles:
+            continue
+        elegido = disponibles[0]
+        usados_banco.add(elegido["id"])
+        sugerencias.append(
+            {
+                "movimiento_id": mid,
+                "extracto_mov_id": elegido["id"],
+                "libro": {
+                    "fecha": mov.get("fecha"),
+                    "tipo": mov.get("tipo"),
+                    "concepto": mov.get("concepto"),
+                    "monto": mov.get("monto"),
+                    "fuente": mov.get("fuente"),
+                },
+                "extracto": elegido,
+                "ambiguo": len(disponibles) > 1,
+            }
+        )
     return sugerencias

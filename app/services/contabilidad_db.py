@@ -176,6 +176,30 @@ def init_db() -> None:
             fecha_compra TEXT NOT NULL DEFAULT '',
             trm_fuente TEXT NOT NULL DEFAULT ''
         )""",
+        # Espejo local del catálogo Alegra (productos + kits / combos).
+        """CREATE TABLE IF NOT EXISTS alegra_items (
+            id TEXT NOT NULL,
+            reference TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL DEFAULT '',
+            type TEXT NOT NULL DEFAULT 'product',
+            status TEXT NOT NULL DEFAULT 'active',
+            unit TEXT NOT NULL DEFAULT '',
+            unit_cost REAL NOT NULL DEFAULT 0,
+            precio_lista REAL NOT NULL DEFAULT 0,
+            iva INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT '',
+            synced_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        """CREATE TABLE IF NOT EXISTS alegra_kit_components (
+            kit_reference TEXT NOT NULL,
+            component_reference TEXT NOT NULL,
+            component_name TEXT NOT NULL DEFAULT '',
+            quantity REAL NOT NULL DEFAULT 1,
+            PRIMARY KEY (kit_reference, component_reference)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_alegra_items_type ON alegra_items(type)",
+        "CREATE INDEX IF NOT EXISTS idx_alegra_items_name ON alegra_items(name)",
+        "CREATE INDEX IF NOT EXISTS idx_alegra_items_reference ON alegra_items(reference)",
     ]
     with _conn() as con:
         for sql in _migraciones:
@@ -482,6 +506,40 @@ def eliminar_pago(pago_id: int) -> None:
     _ensure()
     with _conn() as con:
         con.execute("DELETE FROM pagos_servicios WHERE id = ?", (pago_id,))
+
+
+def actualizar_pago(
+    pago_id: int,
+    *,
+    fecha: str | None = None,
+    monto: float | None = None,
+    notas: str | None = None,
+    comprobante: str | None = None,
+) -> dict | None:
+    """Corrige un pago ya registrado (ej. monto mal digitado). No toca lo que no se pase."""
+    _ensure()
+    campos: list[str] = []
+    valores: list = []
+    if fecha is not None:
+        campos.append("fecha = ?")
+        valores.append(fecha)
+    if monto is not None:
+        campos.append("monto = ?")
+        valores.append(float(monto))
+    if notas is not None:
+        campos.append("notas = ?")
+        valores.append(notas)
+    if comprobante is not None:
+        campos.append("comprobante = ?")
+        valores.append(comprobante)
+    if not campos:
+        return obtener_pago(pago_id)
+    valores.append(pago_id)
+    with _conn() as con:
+        con.execute(
+            f"UPDATE pagos_servicios SET {', '.join(campos)} WHERE id = ?", valores
+        )
+    return obtener_pago(pago_id)
 
 
 def pagos_servicios_en_rango(fecha_inicio: str, fecha_fin: str) -> list[dict]:

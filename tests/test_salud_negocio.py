@@ -147,8 +147,8 @@ def test_ventas_otras_por_bucket_excluye_meli_y_web_suma_el_resto(monkeypatch):
         {"date": "2026-08-08", "total": 15000.0, "observations": "", "items": []},  # factura manual sin marcador
     ]
     monkeypatch.setattr(
-        "app.services.siigo.obtener_facturas_siigo_paginadas",
-        lambda fecha_inicio, estricto=False: facturas,
+        "app.services.alegra.obtener_facturas_hibridas",
+        lambda fecha_inicio, fecha_fin=None, estricto=False: facturas,
     )
     costos = {"C-TEST": {"costo_total": 4000.0}}
 
@@ -370,6 +370,10 @@ def test_salud_negocio_resumen_preserva_ads_archivado_tras_bump_de_version(tmp_p
     monkeypatch.setattr("app.services.extracto_bancario.saldo_bancario_mas_reciente", lambda: None)
     monkeypatch.setattr(S, "_RESUMEN_MEM", {})
     monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
+    monkeypatch.setattr(S, "_RESUMEN_MEM_STALE_MAX_S", 0)
+    monkeypatch.setattr(S, "_OTRAS_FACTURAS_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_INFLIGHT", {})
+    monkeypatch.setattr(S, "_RESUMEN_BG_RUNNING", set())
 
     resultado = S.salud_negocio_resumen(periodicidad="mes", n=2)  # nueva _CACHE_VERSION -> clave vieja no matchea
 
@@ -418,7 +422,10 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
         "app.services.contabilidad_db.pagos_servicios_en_rango",
         lambda fi, ff: [{"monto": 50000.0}],
     )
-    monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
+    monkeypatch.setattr(
+        "app.services.alegra.obtener_facturas_hibridas",
+        lambda fecha_inicio, fecha_fin=None, estricto=False: [],
+    )
     monkeypatch.setattr(
         "app.services.meli_ads_recomendaciones.calcular_recomendaciones_publicidad",
         lambda dias=30, refresh=False: {
@@ -431,7 +438,11 @@ def test_salud_negocio_resumen_cruza_todas_las_fuentes(monkeypatch):
     )
     monkeypatch.setattr(S, "_RESUMEN_MEM", {})
     monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
+    monkeypatch.setattr(S, "_RESUMEN_MEM_STALE_MAX_S", 0)
     monkeypatch.setattr(S, "_ORDENES_MELI_MEM", {})
+    monkeypatch.setattr(S, "_OTRAS_FACTURAS_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_INFLIGHT", {})
+    monkeypatch.setattr(S, "_RESUMEN_BG_RUNNING", set())
 
     resultado = S.salud_negocio_resumen(periodicidad="semana", n=1)
 
@@ -481,14 +492,17 @@ def _mockear_fuentes_minimas(monkeypatch):
     # test ni siquiera toque MeLi/ads y rompa los asserts de conteo.
     monkeypatch.setattr(S, "_RESUMEN_MEM", {})
     monkeypatch.setattr(S, "_RESUMEN_MEM_TTL_S", 0)
+    monkeypatch.setattr(S, "_RESUMEN_MEM_STALE_MAX_S", 0)
     monkeypatch.setattr(S, "_ORDENES_MELI_MEM", {})
+    monkeypatch.setattr(S, "_OTRAS_FACTURAS_MEM", {})
+    monkeypatch.setattr(S, "_RESUMEN_INFLIGHT", {})
+    monkeypatch.setattr(S, "_RESUMEN_BG_RUNNING", set())
     monkeypatch.setattr(S, "_ventas_web_en_rango", lambda fi, ff: {"ingresos": 0.0, "items": []})
     monkeypatch.setattr("app.services.rentabilidad._sku_canonico_desde_relacion", lambda: {})
     monkeypatch.setattr("app.services.rentabilidad.costos_todos_resumen", lambda refresh=False: {})
     monkeypatch.setattr("app.services.rentabilidad.listar_cobros_meli", lambda buscar="", refresh=False: {"items": []})
     monkeypatch.setattr(S, "_total_mensual_nomina", lambda: (0.0, "sin_datos"))
     monkeypatch.setattr("app.services.contabilidad_db.pagos_servicios_en_rango", lambda fi, ff: [])
-    monkeypatch.setattr("app.services.siigo.obtener_facturas_siigo_paginadas", lambda fecha_inicio, estricto=False: [])
     monkeypatch.setattr(
         "app.services.alegra.obtener_facturas_hibridas",
         lambda fecha_inicio, fecha_fin=None, estricto=False: [],

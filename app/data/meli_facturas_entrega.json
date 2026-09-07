@@ -12553,17 +12553,6 @@
       "siigo_invoice_cufe": "647bd0fbb7ed1f0141d51ab095b297b29252866d8df3f6a08230c5fbae8996b355594f6136774c24de8840372c019422",
       "pdf_subido_meli": true
     },
-    "2000018275336562": {
-      "shipping_id": "47929836520",
-      "estado": "facturada",
-      "actualizado_en": "2026-09-04T19:14:35",
-      "proveedor": "alegra",
-      "siigo_invoice_id": "52",
-      "siigo_invoice_number": "FE52",
-      "siigo_invoice_status": "open",
-      "siigo_invoice_cufe": "80ff7768cb4c5a6ea735300ea05b5031f762a76d7223a89dc4c5d551a0140a6eedba6d3e51282a1978cc7765e78f7803",
-      "pdf_subido_meli": true
-    },
     "2000018284302818": {
       "shipping_id": "47933804957",
       "estado": "facturada",
@@ -12589,13 +12578,17 @@
     "2000018281469736": {
       "shipping_id": "47932472473",
       "estado": "facturada",
-      "actualizado_en": "2026-09-04T20:04:05",
+      "actualizado_en": "2026-09-06T21:07:58",
       "proveedor": "alegra",
-      "siigo_invoice_id": "55",
-      "siigo_invoice_number": "FE55",
+      "siigo_invoice_id": "90",
+      "siigo_invoice_number": "FE90",
       "siigo_invoice_status": "closed",
-      "siigo_invoice_cufe": "05d55bf12b9edd9c71452d2f29ac155c75fae35c37c5f7ecd3e67cace97971f75a78dfbb3cd860587535c1fe6714c46a",
-      "pdf_subido_meli": true
+      "siigo_invoice_cufe": "2d87a690d1f6ed470cb060f412d367772dd635719524fc6051f23118d6ca18e7ff5ca8624ab753dcccc709178bfe3f7f",
+      "pdf_subido_meli": true,
+      "pack_id": "2000014864845647",
+      "consolidada": true,
+      "reemplaza_factura_previa": "FE55",
+      "nota_credito_previa": "NC20"
     },
     "2000018266348554": {
       "shipping_id": "47925636016",
@@ -12773,13 +12766,17 @@
     "2000018269241178": {
       "shipping_id": "47926756029",
       "estado": "facturada",
-      "actualizado_en": "2026-09-05T15:55:30",
+      "actualizado_en": "2026-09-06T21:07:27",
       "proveedor": "alegra",
-      "siigo_invoice_id": "71",
-      "siigo_invoice_number": "FE71",
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
       "siigo_invoice_status": "closed",
-      "siigo_invoice_cufe": "64de177f9571672f293d2a606e65fa6495740169ccce9f6abb2139b2ef67aef5e820fc24ced72eeca197734c4a16a49e",
-      "pdf_subido_meli": true
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
     },
     "2000018270611806": {
       "shipping_id": "47927410601",
@@ -12845,6 +12842,1495 @@
       "siigo_invoice_number": "FE77",
       "siigo_invoice_status": "closed",
       "siigo_invoice_cufe": "f833e5a2821c0e352ff5b694437a70f1978570b7f9dd8e86de88b6c2e672971d203012e9b6ab3f7bbd8efa160dc3985d",
+      "pdf_subido_meli": true
+    },
+    "2000018287459530": {
+      "shipping_id": "47935344719",
+      "estado": "error",
+      "actualizado_en": "2026-09-06T09:00:01",
+      "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018295940302": {
+      "shipping_id": "47939499736",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T09:50:35",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "79",
+      "siigo_invoice_number": "FE79",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c62a4c841a553c2a0c5f06ffc1e8b3c5df11434b6c6132076346cdfddfe2753fb144ffc7d44add87aae8eaf2747bf4a0",
+      "pdf_subido_meli": true
+    },
+    "2000018291944260": {
+      "shipping_id": "47937645394",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T14:28:26",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "80",
+      "siigo_invoice_number": "FE80",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4fa69b08a555cc923aa903349df1db5657af1615e698098470f47d00f5f287fc2c46a1f7c5b000ff89b9523ae42b4fee",
+      "pdf_subido_meli": true
+    },
+    "2000018291353210": {
+      "shipping_id": "47937383232",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T14:58:58",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "81",
+      "siigo_invoice_number": "FE81",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "70635902c252ad38dbb48982a9c4fa1f0c00a429997258d0c27a8ec026637a4739dad685a66d8bc5fce3c1d6b1603527",
+      "pdf_subido_meli": true
+    },
+    "2000018284868968": {
+      "shipping_id": "47934374218",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:41:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ARADES250g",
+            "nombre": "Arándanos Deshidratados 250g",
+            "cantidad": 1.0,
+            "precio_unitario": 11500.0
+          }
+        ],
+        "total": 11500.0,
+        "nombre_cliente": "Margarita Rosa Maya Urrego",
+        "identificacion": "1007285848",
+        "direccion_envio": "Carrera 84c #6csur-36, Belén El Rincón, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014868087133",
+      "siigo_invoice_id": "82",
+      "siigo_invoice_number": "FE82",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "7247a9b721865fd06977b250292665a88d66f8e135370cb6c3cf62a738fce6729fd799eb2bd2ad9c9cb1dc981ab3cbf2",
+      "pdf_subido_meli": true
+    },
+    "2000018284863774": {
+      "shipping_id": "47934374218",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:41:29",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANCACREFKg",
+            "nombre": "Manteca De Cacao 1 Kg",
+            "cantidad": 1.0,
+            "precio_unitario": 30999.0
+          }
+        ],
+        "total": 30999.0,
+        "nombre_cliente": "Margarita Rosa Maya Urrego",
+        "identificacion": "1007285848",
+        "direccion_envio": "Carrera 84c #6csur-36, Belén El Rincón, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014868087133",
+      "siigo_invoice_id": "83",
+      "siigo_invoice_number": "FE83",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "d02ee571fa7f7d7ac72d15b088af5eb5735ecf237183ab1200c8f1708b0b7327e4004724c5f16c3541a7130d823fcca5",
+      "pdf_subido_meli": true
+    },
+    "2000018284870788": {
+      "shipping_id": "47934374218",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:41:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19671.0
+          }
+        ],
+        "total": 19671.0,
+        "nombre_cliente": "Margarita Rosa Maya Urrego",
+        "identificacion": "1007285848",
+        "direccion_envio": "Carrera 84c #6csur-36, Belén El Rincón, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014868087133",
+      "siigo_invoice_id": "84",
+      "siigo_invoice_number": "FE84",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "6f160beb4ee05474604d96c63e2699e109e684dec4d9013eda4dd6c769721cd4a11e873cc2c3dbceac4d2c5a18b6c41c",
+      "pdf_subido_meli": true
+    },
+    "2000018284870792": {
+      "shipping_id": "47934374218",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:41:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDLAC85P30mL",
+            "nombre": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 17425.0
+          }
+        ],
+        "total": 17425.0,
+        "nombre_cliente": "Margarita Rosa Maya Urrego",
+        "identificacion": "1007285848",
+        "direccion_envio": "Carrera 84c #6csur-36, Belén El Rincón, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014868087133",
+      "siigo_invoice_id": "85",
+      "siigo_invoice_number": "FE85",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "3f9cf766273fe145be326fa6f5530cc00610ff738ab23458b40bdf69689006d9d75bd00c51b3ab86d34d3b83e59fd523",
+      "pdf_subido_meli": true
+    },
+    "2000018280064898": {
+      "shipping_id": "47931798291",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:51:20",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITCACIASC500g",
+            "nombre": "Acido Ascórbico X 500 Gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 18468.0
+          }
+        ],
+        "total": 18468.0,
+        "nombre_cliente": "Jhony Gilberto Alvarez Gonzalez",
+        "identificacion": "79575446",
+        "direccion_envio": "Carrera 123 #131-61, Nueva Tibabuyes, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014863615981",
+      "siigo_invoice_id": "86",
+      "siigo_invoice_number": "FE86",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "ca41a874563faa072e6963b79ecef709d5fc8d9336c252617d80c71e61087f2d7f983d5f6ec4d9a7468c1d326c9bc1ca",
+      "pdf_subido_meli": true
+    },
+    "2000018272615556": {
+      "shipping_id": "47928332239",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T19:51:55",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "ARCRJ250g",
+            "nombre": "Arcilla Roja 250 Gr Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 25500.0
+          }
+        ],
+        "total": 25500.0,
+        "nombre_cliente": "Manuel Ricardo Toro Velasquez",
+        "identificacion": "79694496",
+        "direccion_envio": "Carrera 51 #103B-60, Bogotá, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014856466381",
+      "siigo_invoice_id": "87",
+      "siigo_invoice_number": "FE87",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "3731f127a99c687260d88bc23b328002c35f785c8afc92b97c56e5fdc58794452c8f3f6c10a94e6b30c4c964e6bbd20d",
+      "pdf_subido_meli": true
+    },
+    "2000018173874934": {
+      "shipping_id": "47882787288",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-06T19:56:21",
+      "pack_id": "2000014762157305",
+      "legado_factura_numero": "FV-2-71199",
+      "legado_integracion": "astroselling"
+    },
+    "2000018234215814": {
+      "shipping_id": "47910228991",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-06T19:56:27",
+      "pack_id": "2000014819640823",
+      "legado_factura_numero": "FV-2-71317",
+      "legado_integracion": "astroselling"
+    },
+    "2000018234221262": {
+      "shipping_id": "47910228991",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-06T19:56:28",
+      "pack_id": "2000014819640823",
+      "legado_factura_numero": "FV-2-71317",
+      "legado_integracion": "astroselling"
+    },
+    "2000018238290840": {
+      "shipping_id": "47912338332",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:56:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITCAL500g",
+            "nombre": "Citrato De Potasio 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24225.0
+          }
+        ],
+        "total": 24225.0,
+        "nombre_cliente": "HAVID CAMPO",
+        "identificacion": "1044619059",
+        "direccion_envio": "Calle 37c 8A1-09, El Campito, Barranquilla, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018238557890": {
+      "shipping_id": "47912459564",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:56:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 7990.0
+          }
+        ],
+        "total": 7990.0,
+        "nombre_cliente": "Janneth Alba Castillo Ramirez",
+        "identificacion": "52326549",
+        "direccion_envio": "Carrera 3 # 5-61 SN, Gachetá, Gachetá, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018238561172": {
+      "shipping_id": "47912459564",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:56:51",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-REVVID6mm",
+            "nombre": "Revolvedor De Vidrio 30 Cm X 6 Mm Laboratorio",
+            "cantidad": 1.0,
+            "precio_unitario": 14800.0
+          }
+        ],
+        "total": 14800.0,
+        "nombre_cliente": "Janneth Alba Castillo Ramirez",
+        "identificacion": "52326549",
+        "direccion_envio": "Carrera 3 # 5-61 SN, Gachetá, Gachetá, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018238561174": {
+      "shipping_id": "47912459564",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:56:53",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GELSINSAB500g",
+            "nombre": "Gelatina Sin Sabor 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24565.0
+          }
+        ],
+        "total": 24565.0,
+        "nombre_cliente": "Janneth Alba Castillo Ramirez",
+        "identificacion": "52326549",
+        "direccion_envio": "Carrera 3 # 5-61 SN, Gachetá, Gachetá, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239549570": {
+      "shipping_id": "47912882168",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:57:00",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON250g",
+            "nombre": "Creatina Monohidrato 250gr N/a",
+            "cantidad": 2.0,
+            "precio_unitario": 22499.0
+          }
+        ],
+        "total": 44998.0,
+        "nombre_cliente": "Evelyn Beatríz Jiménez de la peña",
+        "identificacion": "45690784",
+        "direccion_envio": "M 57 lote 6 altos de plan parejo 2 SN, Turbaco, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239584516": {
+      "shipping_id": "47912896676",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:57:24",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDLAC85P30mL",
+            "nombre": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 17425.0
+          }
+        ],
+        "total": 17425.0,
+        "nombre_cliente": "Alejandra García",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 59 sur #60-19, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239592078": {
+      "shipping_id": "47912896676",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:57:30",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19671.0
+          }
+        ],
+        "total": 19671.0,
+        "nombre_cliente": "Aleja Garcia",
+        "identificacion": "5482892",
+        "direccion_envio": "Calle 59 sur #60-19, Madelena, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239588190": {
+      "shipping_id": "47912896676",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:57:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEARGAN50mL",
+            "nombre": "Aceite De Argán 50 Ml 100% Puro",
+            "cantidad": 1.0,
+            "precio_unitario": 28900.0
+          }
+        ],
+        "total": 28900.0,
+        "nombre_cliente": "Aleja Garcia",
+        "identificacion": "5482892",
+        "direccion_envio": "Calle 59 sur #60-19, Madelena, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239620458": {
+      "shipping_id": "47912620893",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:57:57",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GELSINSAB500g",
+            "nombre": "Gelatina Sin Sabor 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24565.0
+          }
+        ],
+        "total": 24565.0,
+        "nombre_cliente": "María Luisa Betancur Caro",
+        "identificacion": "222222222222",
+        "direccion_envio": "Calle 39B #47A-25, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239619402": {
+      "shipping_id": "47912620893",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:58:00",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MAL500g",
+            "nombre": "Maltodextrina Alimentos 500 Gr Dulce",
+            "cantidad": 1.0,
+            "precio_unitario": 8900.0
+          }
+        ],
+        "total": 8900.0,
+        "nombre_cliente": "JULIAN DURANGO",
+        "identificacion": "71389139",
+        "direccion_envio": "Calle 39B #47A-25, Alcala, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239619404": {
+      "shipping_id": "47912620893",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:58:04",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CEBCOR150g",
+            "nombre": "Sebo De Cordero Orgánico 150 G",
+            "cantidad": 1.0,
+            "precio_unitario": 31900.0
+          }
+        ],
+        "total": 31900.0,
+        "nombre_cliente": "JULIAN DURANGO",
+        "identificacion": "71389139",
+        "direccion_envio": "Calle 39B #47A-25, Alcala, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239622052": {
+      "shipping_id": "47912620893",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T19:58:08",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEJOJ30mL",
+            "nombre": "Aceite De Jojoba",
+            "cantidad": 1.0,
+            "precio_unitario": 27900.0
+          }
+        ],
+        "total": 27900.0,
+        "nombre_cliente": "JULIAN DURANGO",
+        "identificacion": "71389139",
+        "direccion_envio": "Calle 39B #47A-25, Alcala, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018239675734": {
+      "shipping_id": "47912644401",
+      "estado": "error",
+      "actualizado_en": "2026-09-06T19:58:19",
+      "error": "No puedo emitir factura automática: C-AGUDESSOBRpH: no existe en Alegra"
+    },
+    "2000018241234790": {
+      "shipping_id": "47913417095",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:01:56",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEJOJ30mL",
+            "nombre": "Aceite De Jojoba",
+            "cantidad": 1.0,
+            "precio_unitario": 27900.0
+          }
+        ],
+        "total": 27900.0,
+        "nombre_cliente": "Maria Marcela Cristancho Leguizamon",
+        "identificacion": "1007379431",
+        "direccion_envio": "Carrera 19 #3-, Candido Quintero, Duitama, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018241240264": {
+      "shipping_id": "47913417095",
+      "estado": "error",
+      "actualizado_en": "2026-09-06T20:02:02",
+      "error": "No puedo emitir factura automática: C-ACEESENJEN5mL: no existe en Alegra"
+    },
+    "2000018241240266": {
+      "shipping_id": "47913417095",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESEJAZ5mL",
+            "nombre": "Aceite Esencial Jazmín Puro 5ml Mckenna Group Aromaterapia Masajes",
+            "cantidad": 1.0,
+            "precio_unitario": 19000.0
+          }
+        ],
+        "total": 19000.0,
+        "nombre_cliente": "Maria Marcela Cristancho Leguizamon",
+        "identificacion": "1007379431",
+        "direccion_envio": "Carrera 19 #3-, Candido Quintero, Duitama, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018251194388": {
+      "shipping_id": "47918535340",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:13",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 7990.0
+          }
+        ],
+        "total": 7990.0,
+        "nombre_cliente": "Tatiana Andrea la de Hoz Vasquez",
+        "identificacion": "43924737",
+        "direccion_envio": "Carrera 67 103d-16, Pedregal, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018251189296": {
+      "shipping_id": "47918535340",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:16",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TEGBET250mL",
+            "nombre": "Betaina De Coco  250ml",
+            "cantidad": 1.0,
+            "precio_unitario": 11645.0
+          }
+        ],
+        "total": 11645.0,
+        "nombre_cliente": "Tatiana Andrea la de Hoz Vasquez",
+        "identificacion": "43924737",
+        "direccion_envio": "Carrera 67 103d-16, Pedregal, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018251187820": {
+      "shipping_id": "47918535340",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:20",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CERABEREFBLA500g",
+            "nombre": "Cera De Abejas  Blanca 500gr",
+            "cantidad": 1.0,
+            "precio_unitario": 18615.0
+          }
+        ],
+        "total": 18615.0,
+        "nombre_cliente": "Tatiana Andrea la de Hoz Vasquez",
+        "identificacion": "43924737",
+        "direccion_envio": "Carrera 67 103d-16, Pedregal, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018251187824": {
+      "shipping_id": "47918535340",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:25",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACISAL100g",
+            "nombre": "Ácido Salicílico 100gr Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 9945.0
+          }
+        ],
+        "total": 9945.0,
+        "nombre_cliente": "Tatiana Andrea la de Hoz Vasquez",
+        "identificacion": "43924737",
+        "direccion_envio": "Carrera 67 103d-16, Pedregal, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018256134244": {
+      "shipping_id": "47920796230",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:33",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-RET5P30mL",
+            "nombre": "Retinol 5% 30 Ml Noche",
+            "cantidad": 1.0,
+            "precio_unitario": 39655.0
+          }
+        ],
+        "total": 39655.0,
+        "nombre_cliente": "Adriana Maria Montoya Valencia",
+        "identificacion": "43490220",
+        "direccion_envio": "Carrera 7a #65a-18, parrales, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018256134246": {
+      "shipping_id": "47920796230",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 21165.0
+          }
+        ],
+        "total": 21165.0,
+        "nombre_cliente": "Adriana Maria Montoya Valencia",
+        "identificacion": "43490220",
+        "direccion_envio": "Carrera 7a #65a-18, parrales, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018256130550": {
+      "shipping_id": "47920796230",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:42",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITC30P30mL",
+            "nombre": "Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 16065.0
+          }
+        ],
+        "total": 16065.0,
+        "nombre_cliente": "Adriana Maria Montoya Valencia",
+        "identificacion": "43490220",
+        "direccion_envio": "Carrera 7a #65a-18, parrales, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018257862342": {
+      "shipping_id": "47921270159",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:02:57",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 21165.0
+          }
+        ],
+        "total": 21165.0,
+        "nombre_cliente": "Claudia Liliana Montoya Fuertes",
+        "identificacion": "43801378",
+        "direccion_envio": "carrera 33 calle 29 B -36 senderos de Cimarronas Rionegro Antioquía 33 SN, Cuatro Esquinas, Rionegro, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018261206130": {
+      "shipping_id": "47922881513",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:03:22",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITE30mL",
+            "nombre": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
+            "cantidad": 1.0,
+            "precio_unitario": 18530.0
+          }
+        ],
+        "total": 18530.0,
+        "nombre_cliente": "Olga Liliana Bermudez Aldana",
+        "identificacion": "52526788",
+        "direccion_envio": "Calle 138 #58D-1, Colina, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018262092088": {
+      "shipping_id": "47923320307",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:03:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDHIABAJPES85P30mL",
+            "nombre": "Ácido Hialurónico 30ml Bajo Pes Todo Tipo De Piel Día/noche",
+            "cantidad": 1.0,
+            "precio_unitario": 19465.0
+          }
+        ],
+        "total": 19465.0,
+        "nombre_cliente": "Magda Gisela Castañeda Beltran",
+        "identificacion": "1121818832",
+        "direccion_envio": "Vereda San José la Zuria SN, Comuna 8, Villavicencio, Meta",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018262092090": {
+      "shipping_id": "47923320307",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:03:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON1000g",
+            "nombre": "Creatina Monohidrato 1000g N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 73000.0
+          }
+        ],
+        "total": 73000.0,
+        "nombre_cliente": "Magda Gisela Castañeda Beltran",
+        "identificacion": "1121818832",
+        "direccion_envio": "Vereda San José la Zuria SN, Comuna 8, Villavicencio, Meta",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018261046868": {
+      "shipping_id": "47923098026",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:03:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITC30P30mL",
+            "nombre": "Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 16065.0
+          }
+        ],
+        "total": 16065.0,
+        "nombre_cliente": "Kelly Gonzalez",
+        "identificacion": "1144195269",
+        "direccion_envio": "Carrera 24a 33b 20 piso 3 SN, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018265436336": {
+      "shipping_id": "47924908195",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:03:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TEGBET500mL",
+            "nombre": "Betaina De Coco 500ml",
+            "cantidad": 2.0,
+            "precio_unitario": 22705.0
+          }
+        ],
+        "total": 45410.0,
+        "nombre_cliente": "Quessep Arboleda Alicia",
+        "identificacion": "25282016",
+        "direccion_envio": "Cl 5 Norte #9-12, Loma Linda, Popayán, Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266128640": {
+      "shipping_id": "47925236435",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:05",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AMILARG100g",
+            "nombre": "L Arginina Base 100gr N/a",
+            "cantidad": 2.0,
+            "precio_unitario": 18812.0
+          }
+        ],
+        "total": 37624.0,
+        "nombre_cliente": "victor lopez",
+        "identificacion": "1047365478",
+        "direccion_envio": "Edificio las Las gavias #SN SN, La Floresta, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266892616": {
+      "shipping_id": "47925607467",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:13",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 21080.0
+          }
+        ],
+        "total": 21080.0,
+        "nombre_cliente": "Gina Certain Yance",
+        "identificacion": "32894099",
+        "direccion_envio": "Calle 145 #21-71, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266883824": {
+      "shipping_id": "47925607467",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:18",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-EXTALOVER30mL",
+            "nombre": "Extracto De Aloe Vera 30 Ml 92% Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 13700.0
+          }
+        ],
+        "total": 13700.0,
+        "nombre_cliente": "Gina Certain Yance",
+        "identificacion": "32894099",
+        "direccion_envio": "Calle 145 #21-71, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266883826": {
+      "shipping_id": "47925607467",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:20",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEJOJ30mL",
+            "nombre": "Aceite De Jojoba",
+            "cantidad": 1.0,
+            "precio_unitario": 27900.0
+          }
+        ],
+        "total": 27900.0,
+        "nombre_cliente": "Gina Certain Yance",
+        "identificacion": "32894099",
+        "direccion_envio": "Calle 145 #21-71, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266888890": {
+      "shipping_id": "47925607467",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19671.0
+          }
+        ],
+        "total": 19671.0,
+        "nombre_cliente": "Gina Certain Yance",
+        "identificacion": "32894099",
+        "direccion_envio": "Calle 145 #21-71, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018266892618": {
+      "shipping_id": "47925607467",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:04:54",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 7990.0
+          }
+        ],
+        "total": 7990.0,
+        "nombre_cliente": "Gina Certain Yance",
+        "identificacion": "32894099",
+        "direccion_envio": "Calle 145 #21-71, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018268369730": {
+      "shipping_id": "47926326247",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:05:03",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AGUDES250mL",
+            "nombre": "Agua Destilada  250 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 5780.0
+          }
+        ],
+        "total": 5780.0,
+        "nombre_cliente": "Blanca Gonzalez de Londoño",
+        "identificacion": "30340118",
+        "direccion_envio": "Carrera5 N2 Sur-32. Barrio Renan Barco SN, Víctor Renán Barco, La Dorada, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018268370366": {
+      "shipping_id": "47926326247",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:05:05",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 2.0,
+            "precio_unitario": 15500.0
+          }
+        ],
+        "total": 31000.0,
+        "nombre_cliente": "Blanca Gonzalez de Londoño",
+        "identificacion": "30340118",
+        "direccion_envio": "Carrera5 N2 Sur-32. Barrio Renan Barco SN, Víctor Renán Barco, La Dorada, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018268370372": {
+      "shipping_id": "47926326247",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:05:23",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 11076.0
+          }
+        ],
+        "total": 11076.0,
+        "nombre_cliente": "Blanca Gonzalez de Londoño",
+        "identificacion": "30340118",
+        "direccion_envio": "Carrera5 N2 Sur-32. Barrio Renan Barco SN, Víctor Renán Barco, La Dorada, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018269248646": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAOCARCKg",
+            "nombre": "Arcilla Blanca Usp Certificada Caolin Coloidal  1 Kg",
+            "cantidad": 1.0,
+            "precio_unitario": 20100.0
+          }
+        ],
+        "total": 20100.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018269241176": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TENSCI100g",
+            "nombre": "Tensioactivo Sci",
+            "cantidad": 1.0,
+            "precio_unitario": 21900.0
+          }
+        ],
+        "total": 21900.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018269246842": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESECLA5mL",
+            "nombre": "Aceite Esencial Clavo Mckenna Group 5ml AnaLGésico Dental Y Difusor",
+            "cantidad": 1.0,
+            "precio_unitario": 17500.0
+          }
+        ],
+        "total": 17500.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018269250592": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 11076.0
+          }
+        ],
+        "total": 11076.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018269246844": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITE30mL",
+            "nombre": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
+            "cantidad": 1.0,
+            "precio_unitario": 18530.0
+          }
+        ],
+        "total": 18530.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018269241180": {
+      "shipping_id": "47926756029",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TEGBET250mL",
+            "nombre": "Betaina De Coco  250ml",
+            "cantidad": 1.0,
+            "precio_unitario": 11645.0
+          }
+        ],
+        "total": 11645.0,
+        "nombre_cliente": "MARCELA TABORDA E",
+        "identificacion": "21527424",
+        "direccion_envio": "Calle 9 Sur 79a 125, Belén, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014853277127",
+      "consolidada": true,
+      "siigo_invoice_id": "89",
+      "siigo_invoice_number": "FE89",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "c78ff87b1eaf2243ab4d84e91b56679a909f6447dabb374e61603c6ecdf2b8238d13fd016b97016595b49c28bb5bd9ac",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE71",
+      "nota_credito_previa": "NC19"
+    },
+    "2000018270614654": {
+      "shipping_id": "47927410601",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:06:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAOARC500g",
+            "nombre": "Arcilla Blanca Usp Caolín 500gr",
+            "cantidad": 1.0,
+            "precio_unitario": 10500.0
+          }
+        ],
+        "total": 10500.0,
+        "nombre_cliente": "Danier Rivas Garcia",
+        "identificacion": "1130643214",
+        "direccion_envio": "Calle 9 #20B-404, Ciudad Guabinas, Yumbo, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018270616304": {
+      "shipping_id": "47927410601",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:06:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VASPRE100mL",
+            "nombre": "Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado",
+            "cantidad": 1.0,
+            "precio_unitario": 22900.0
+          }
+        ],
+        "total": 22900.0,
+        "nombre_cliente": "Danier Rivas Garcia",
+        "identificacion": "1130643214",
+        "direccion_envio": "Calle 9 #20B-404, Ciudad Guabinas, Yumbo, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018272473696": {
+      "shipping_id": "47928268735",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:06:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLU100g",
+            "nombre": "L Glutamina 100 Gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 18900.0
+          }
+        ],
+        "total": 18900.0,
+        "nombre_cliente": "Juan Felipe Montes Dávila",
+        "identificacion": "1017240471",
+        "direccion_envio": "Calle 32 e #65c34-201, Fátima, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018272476856": {
+      "shipping_id": "47928268735",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:06:46",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITPOT250g",
+            "nombre": "Citrato De Potasio 250gr Citrato",
+            "cantidad": 2.0,
+            "precio_unitario": 14450.0
+          }
+        ],
+        "total": 28900.0,
+        "nombre_cliente": "Juan Felipe Montes Dávila",
+        "identificacion": "1017240471",
+        "direccion_envio": "Calle 32 e #65c34-201, Fátima, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018272475256": {
+      "shipping_id": "47928268735",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:06:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BICSOD500g",
+            "nombre": "Bicarbonato De Sodio  500 Gramos",
+            "cantidad": 2.0,
+            "precio_unitario": 4500.0
+          }
+        ],
+        "total": 9000.0,
+        "nombre_cliente": "Juan Felipe Montes Dávila",
+        "identificacion": "1017240471",
+        "direccion_envio": "Calle 32 e #65c34-201, Fátima, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018273936620": {
+      "shipping_id": "47928921545",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:07:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLIVEG250mL",
+            "nombre": "Glicerina Vegetal Usp 250 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 8925.0
+          }
+        ],
+        "total": 8925.0,
+        "nombre_cliente": "Jhonnathan Camilo Tovar Salamanca",
+        "identificacion": "1015433055",
+        "direccion_envio": "Calle 77A #89A-37, París-Francia, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018279961694": {
+      "shipping_id": "47931750589",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:07:10",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19671.0
+          }
+        ],
+        "total": 19671.0,
+        "nombre_cliente": "Escobar Gomez Alexandra",
+        "identificacion": "1036612901",
+        "direccion_envio": "Calle 41 #59bb-35, bucaros, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018279961696": {
+      "shipping_id": "47931750589",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-06T20:07:12",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 2.0,
+            "precio_unitario": 11076.0
+          }
+        ],
+        "total": 22152.0,
+        "nombre_cliente": "Escobar Gomez Alexandra",
+        "identificacion": "1036612901",
+        "direccion_envio": "Calle 41 #59bb-35, bucaros, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018281473040": {
+      "shipping_id": "47932472473",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-EXTALOVER30mL",
+            "nombre": "Extracto De Aloe Vera 30 Ml 92% Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 13700.0
+          }
+        ],
+        "total": 13700.0,
+        "nombre_cliente": "Adriana Alarcon",
+        "identificacion": "52123790",
+        "direccion_envio": "Transversal 22a #46a-81sur, Ciudad Tunal, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014864845647",
+      "consolidada": true,
+      "siigo_invoice_id": "90",
+      "siigo_invoice_number": "FE90",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2d87a690d1f6ed470cb060f412d367772dd635719524fc6051f23118d6ca18e7ff5ca8624ab753dcccc709178bfe3f7f",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE55",
+      "nota_credito_previa": "NC20"
+    },
+    "2000018281469734": {
+      "shipping_id": "47932472473",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANTKARAMA125g",
+            "nombre": "Manteca De Karité Orgánica Amarilla Sin - G A $191",
+            "cantidad": 1.0,
+            "precio_unitario": 27115.0
+          }
+        ],
+        "total": 27115.0,
+        "nombre_cliente": "Adriana Alarcon",
+        "identificacion": "52123790",
+        "direccion_envio": "Transversal 22a #46a-81sur, Ciudad Tunal, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014864845647",
+      "consolidada": true,
+      "siigo_invoice_id": "90",
+      "siigo_invoice_number": "FE90",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2d87a690d1f6ed470cb060f412d367772dd635719524fc6051f23118d6ca18e7ff5ca8624ab753dcccc709178bfe3f7f",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE55",
+      "nota_credito_previa": "NC20"
+    },
+    "2000018281480130": {
+      "shipping_id": "47932472473",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACICIT250g",
+            "nombre": "Acido Cítrico 250gr",
+            "cantidad": 2.0,
+            "precio_unitario": 4885.0
+          }
+        ],
+        "total": 9770.0,
+        "nombre_cliente": "Adriana Alarcon",
+        "identificacion": "52123790",
+        "direccion_envio": "Transversal 22a #46a-81sur, Ciudad Tunal, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014864845647",
+      "consolidada": true,
+      "siigo_invoice_id": "90",
+      "siigo_invoice_number": "FE90",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2d87a690d1f6ed470cb060f412d367772dd635719524fc6051f23118d6ca18e7ff5ca8624ab753dcccc709178bfe3f7f",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE55",
+      "nota_credito_previa": "NC20"
+    },
+    "2000018281480132": {
+      "shipping_id": "47932472473",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T21:07:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 11076.0
+          }
+        ],
+        "total": 11076.0,
+        "nombre_cliente": "Adriana Alarcon",
+        "identificacion": "52123790",
+        "direccion_envio": "Transversal 22a #46a-81sur, Ciudad Tunal, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014864845647",
+      "consolidada": true,
+      "siigo_invoice_id": "90",
+      "siigo_invoice_number": "FE90",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2d87a690d1f6ed470cb060f412d367772dd635719524fc6051f23118d6ca18e7ff5ca8624ab753dcccc709178bfe3f7f",
+      "pdf_subido_meli": true,
+      "reemplaza_factura_previa": "FE55",
+      "nota_credito_previa": "NC20"
+    },
+    "2000018275336562": {
+      "shipping_id": "47929836520",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-06T20:14:03",
+      "proveedor": "alegra",
+      "pack_id": "2000014859008089",
+      "siigo_invoice_id": "88",
+      "siigo_invoice_number": "FE88",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "68bb5014cbdeca102b30042c73b5bc29c11b20c714b2b8feaa69efab7d59183b970dd1be33cb43ee29c1f15d8eab1a99",
       "pdf_subido_meli": true
     }
   }

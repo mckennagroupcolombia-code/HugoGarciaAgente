@@ -444,6 +444,16 @@ def test_procesar_entrega_no_duplica_pdf_si_pack_ya_tiene_fiscal(monkeypatch, tm
     subidas = []
     monkeypatch.setattr(m, "subir_factura_meli", lambda pack_id, b64, **kw: subidas.append((pack_id, b64)) or "✅")
 
+    # OJO: sin este mock, un pack ya facturado (la rama "posible duplicado")
+    # crea un ticket REAL en app/data/tickets.db — confirmado en vivo el
+    # 2026-09-06: esta prueba dejó un ticket con datos ficticios (ORD-6/PACK-6)
+    # en la base de producción, que hubo que borrar a mano.
+    tickets_creados = []
+    monkeypatch.setattr(
+        m, "crear_o_actualizar_ticket_revision_facturacion",
+        lambda casos: (tickets_creados.append(casos), (True, "🎫 Ticket #999 creado"))[1],
+    )
+
     reportes = []
     monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
     monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
@@ -453,10 +463,100 @@ def test_procesar_entrega_no_duplica_pdf_si_pack_ya_tiene_fiscal(monkeypatch, tm
     assert subidas == []  # no se sube el PDF de Alegra encima del que ya existe
     estado = json.loads(estado_path.read_text(encoding="utf-8"))
     assert estado["procesadas"]["ORD-6"]["pdf_subido_meli"] is False
-    assert "posible doble" in reportes[0].lower() or "revisar astro killer" in reportes[0].lower()
+    assert tickets_creados and tickets_creados[0][0]["order_id"] == "ORD-6"
+    assert tickets_creados[0][0]["tipo"] == "posible_duplicado"
+    assert "Ticket #999" in reportes[0]
+
+
+def test_procesar_entrega_pack_multiorden_factura_todas_las_ordenes(monkeypatch, tmp_path):
+    """Regresión del bug real (pack 2000014868087133, 2026-09-05): un carrito con
+    varios productos genera varias órdenes que comparten un mismo shipment/pack.
+    `shipments/{id}.order_id` solo trae UNA de ellas — deben facturarse TODAS."""
+    from app.tools import meli_autofactura_entrega as m
+
+    estado_path = tmp_path / "meli_facturas_entrega.json"
+    monkeypatch.setattr(m, "ESTADO_PATH", str(estado_path))
+    monkeypatch.setenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "1")
+
+    # El shipment solo reporta ORD-7A, pero el pack tiene dos órdenes hermanas.
+    shipment = {"status": "delivered", "order_id": "ORD-7A", "receiver_address": {}}
+    ordenes = {
+        "ORD-7A": {
+            "status": "paid",
+            "pack_id": "PACK-7",
+            "order_items": [
+                {"item": {"id": "MCO7A", "title": "Producto E"}, "quantity": 1, "unit_price": 11500}
+            ],
+        },
+        "ORD-7B": {
+            "status": "paid",
+            "pack_id": "PACK-7",
+            "order_items": [
+                {"item": {"id": "MCO7B", "title": "Producto F"}, "quantity": 1, "unit_price": 30999}
+            ],
+        },
+    }
+
+    monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: ordenes[order_id])
+    monkeypatch.setattr(m, "consultar_pack_meli", lambda pack_id: {"orders": [{"id": "ORD-7A"}, {"id": "ORD-7B"}]})
+    monkeypatch.setattr(
+        m,
+        "consultar_item_meli_basico",
+        lambda item_id: {"seller_custom_field": "PROD-E" if item_id == "MCO7A" else "PROD-F"},
+    )
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+
+    facturas_creadas = []
+
+    def _fake_crear_factura(**kw):
+        facturas_creadas.append(kw)
+        numero = f"FE-{len(facturas_creadas)}"
+        return {
+            "ok": True, "invoice_id": numero, "number": numero, "status": "Accepted", "cufe": "abc",
+            "url": f"https://app.alegra.com/invoice/view/id/{numero}", "pdf_base64": "QkFTRTY0",
+        }
+
+    monkeypatch.setattr(m, "crear_factura_venta_alegra", _fake_crear_factura)
+    monkeypatch.setattr(m, "meli_pack_tiene_documento_fiscal", lambda pack_id: False)
+
+    subidas = []
+    monkeypatch.setattr(m, "subir_factura_meli", lambda pack_id, b64, **kw: subidas.append(pack_id) or "✅")
+
+    tickets = []
+    monkeypatch.setattr(m, "crear_o_actualizar_ticket_revision_facturacion", lambda casos: (tickets.append(casos), (True, ""))[1])
+
+    reportes = []
+    monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: reportes.append(texto))
+    monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
+
+    m.procesar_entrega_meli_para_factura("SHIP-7")
+
+    # Las DOS órdenes del pack se facturaron por separado en Alegra (una por producto).
+    assert len(facturas_creadas) == 2
+    assert {kw["purchase_order"] for kw in facturas_creadas} == {"ORD-7A", "ORD-7B"}
+    assert {kw["total"] for kw in facturas_creadas} == {11500.0, 30999.0}
+
+    estado = json.loads(estado_path.read_text(encoding="utf-8"))
+    assert estado["procesadas"]["ORD-7A"]["estado"] == "facturada"
+    assert estado["procesadas"]["ORD-7B"]["estado"] == "facturada"
+
+    # MeLi solo admite un documento fiscal por pack: se sube UNA sola vez, no dos,
+    # y la segunda orden NO debe generar un ticket de "posible duplicado".
+    assert subidas == ["PACK-7"]
+    assert tickets == []
+    assert estado["procesadas"]["ORD-7A"]["pdf_subido_meli"] is True
+    assert estado["procesadas"]["ORD-7B"]["pdf_subido_meli"] is True
+    assert len(reportes) == 2
+    assert not any("posible duplicado" in r.lower() for r in reportes)
 
 
 def test_procesar_entrega_dedup_orden_ya_facturada(monkeypatch, tmp_path):
+    """No se vuelve a facturar una orden ya terminal, aun si hay que resolver el
+    pack (single-order) para llegar a esa conclusión — ver
+    test_procesar_entrega_pack_multiorden_dedup_parcial para el caso multi-orden,
+    donde SÍ hace falta resolver el pack porque el shipment puede reportar
+    precisamente la orden que ya estaba facturada."""
     from app.tools import meli_autofactura_entrega as m
 
     estado_path = tmp_path / "meli_facturas_entrega.json"
@@ -467,13 +567,77 @@ def test_procesar_entrega_dedup_orden_ya_facturada(monkeypatch, tmp_path):
 
     shipment = {"status": "delivered", "order_id": "ORD-3"}
     monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: {"pack_id": "PACK-3"})
+    monkeypatch.setattr(m, "consultar_pack_meli", lambda pack_id: {"orders": [{"id": "ORD-3"}]})
 
     llamado = []
-    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: llamado.append(order_id))
+    monkeypatch.setattr(m, "crear_factura_venta_alegra", lambda **kw: llamado.append(kw))
 
     m.procesar_entrega_meli_para_factura("SHIP-3")
 
-    assert llamado == []  # no vuelve a consultar/facturar una orden ya facturada
+    assert llamado == []  # no vuelve a facturar una orden ya facturada
+
+
+def test_procesar_entrega_pack_multiorden_dedup_parcial(monkeypatch, tmp_path):
+    """El shipment reporta justo la orden YA facturada del pack — el bug real
+    (2026-09-06, pack 2000014868087133) era que esto hacía abortar todo el
+    procesamiento antes de descubrir las hermanas pendientes. Debe facturar
+    solo la hermana pendiente, sin re-facturar la que ya estaba lista."""
+    from app.tools import meli_autofactura_entrega as m
+
+    estado_path = tmp_path / "meli_facturas_entrega.json"
+    estado_path.write_text(
+        json.dumps({"procesadas": {"ORD-8A": {
+            "estado": "facturada", "pdf_subido_meli": True, "pack_id": "PACK-8",
+        }}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(m, "ESTADO_PATH", str(estado_path))
+    monkeypatch.setenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "1")
+
+    # El shipment reporta ORD-8A (ya facturada); ORD-8B es la hermana pendiente.
+    shipment = {"status": "delivered", "order_id": "ORD-8A", "receiver_address": {}}
+    ordenes = {
+        "ORD-8A": {"status": "paid", "pack_id": "PACK-8", "order_items": []},
+        "ORD-8B": {
+            "status": "paid",
+            "pack_id": "PACK-8",
+            "order_items": [
+                {"item": {"id": "MCO8B", "title": "Producto G"}, "quantity": 1, "unit_price": 17425}
+            ],
+        },
+    }
+
+    monkeypatch.setattr(m, "consultar_envio_meli", lambda shipping_id: shipment)
+    monkeypatch.setattr(m, "consultar_orden_meli_completa", lambda order_id: ordenes[order_id])
+    monkeypatch.setattr(m, "consultar_pack_meli", lambda pack_id: {"orders": [{"id": "ORD-8A"}, {"id": "ORD-8B"}]})
+    monkeypatch.setattr(m, "consultar_item_meli_basico", lambda item_id: {"seller_custom_field": "PROD-G"})
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+
+    facturas_creadas = []
+    monkeypatch.setattr(
+        m,
+        "crear_factura_venta_alegra",
+        lambda **kw: (facturas_creadas.append(kw), {
+            "ok": True, "invoice_id": "9", "number": "FE-9", "status": "Accepted", "cufe": "abc",
+            "url": "https://app.alegra.com/invoice/view/id/9", "pdf_base64": "QkFTRTY0",
+        })[1],
+    )
+    monkeypatch.setattr(m, "subir_factura_meli", lambda pack_id, b64, **kw: "✅")
+    monkeypatch.setattr(m, "meli_pack_tiene_documento_fiscal", lambda pack_id: True)  # ya lo subió ORD-8A antes
+    monkeypatch.setattr(m, "crear_o_actualizar_ticket_revision_facturacion", lambda casos: (True, ""))
+    monkeypatch.setattr(m, "enviar_whatsapp_reporte", lambda texto, numero_destino=None: None)
+    monkeypatch.setattr(m, "registrar_meli_webhook_incidente", lambda *a, **kw: None)
+
+    m.procesar_entrega_meli_para_factura("SHIP-8")
+
+    # Solo se facturó la hermana pendiente (ORD-8B), nunca ORD-8A de nuevo.
+    assert len(facturas_creadas) == 1
+    assert facturas_creadas[0]["purchase_order"] == "ORD-8B"
+
+    estado = json.loads(estado_path.read_text(encoding="utf-8"))
+    assert estado["procesadas"]["ORD-8B"]["estado"] == "facturada"
+    assert estado["procesadas"]["ORD-8A"]["estado"] == "facturada"  # sin cambios
 
 
 def test_procesar_entrega_ignora_estados_no_delivered(monkeypatch, tmp_path):

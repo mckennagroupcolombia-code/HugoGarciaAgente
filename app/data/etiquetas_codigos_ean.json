@@ -1475,6 +1475,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "27f4e51fb244",
+      "sku": "C-AJONEG250g",
+      "nombre_producto": "AJONJOLI NEGRO 250g",
+      "numero_producto": 133,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701332502646",
+      "creado_at": "2026-09-06T15:10:52"
+    },
+    {
       "id": "9f87b5e8457e",
       "sku": "C-COCPROBET500mL",
       "nombre_producto": "COCOAMIDA 500mL",
@@ -1484,6 +1495,17 @@
       "bimestre": 3,
       "codigo": "7701345002638",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "ef40aaa72c8a",
+      "sku": "C-AJONEG500g",
+      "nombre_producto": "AJONJOLI NEGRO 500g",
+      "numero_producto": 135,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701355002642",
+      "creado_at": "2026-09-06T15:10:52"
     },
     {
       "id": "f3a3627d8585",
@@ -1575,6 +1597,28 @@
       "actualizado_at": "2026-07-23T08:57:39"
     },
     {
+      "id": "262a354625f1",
+      "sku": "C-BAYGOJ250g",
+      "nombre_producto": "BAYAS DE GOJI BERRY 250g",
+      "numero_producto": 144,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701442502642",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
+      "id": "331e1d971e07",
+      "sku": "C-BAYGOJ500g",
+      "nombre_producto": "BAYAS DE GOJI BERRY 500g",
+      "numero_producto": 145,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701455002641",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
       "id": "5d1d26cc109f",
       "sku": "C-DPAN50mL",
       "nombre_producto": "D PANTENOL 50 mL",
@@ -1595,6 +1639,17 @@
       "bimestre": 3,
       "codigo": "7701471202636",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "f79b9f21d472",
+      "sku": "C-DATSAY250g",
+      "nombre_producto": "DATILES SAYED 250g",
+      "numero_producto": 148,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701482502640",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "aaedcd4b9987",
@@ -1618,6 +1673,28 @@
       "codigo": "7701500302634",
       "creado_at": "2026-07-14T15:35:25",
       "actualizado_at": "2026-07-14T21:31:19"
+    },
+    {
+      "id": "1435ea1ea37d",
+      "sku": "C-DATSAY500g",
+      "nombre_producto": "DATILES SAYED 500g",
+      "numero_producto": 151,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701515002642",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
+      "id": "e654a129b102",
+      "sku": "C-SALROSHIMFIN250g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO FINO 250g",
+      "numero_producto": 152,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701522502647",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "3adf6c4a9299",
@@ -1675,6 +1752,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "e51a3af4dec8",
+      "sku": "C-SALROSHIMFIN500g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO FINO 500g",
+      "numero_producto": 158,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701585002641",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
       "id": "5cf56fa05481",
       "sku": "C-GELSINSAB500g",
       "nombre_producto": "GELATINA SIN SABOR 500g",
@@ -1717,6 +1805,17 @@
       "bimestre": 3,
       "codigo": "7701620012635",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "cb477ca71f1a",
+      "sku": "C-SALROSHIMGRU250g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 250g",
+      "numero_producto": 163,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701632502643",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "0f8ad80f0096",
@@ -1805,6 +1904,17 @@
       "bimestre": 3,
       "codigo": "7701710002638",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "b39b6025a7e3",
+      "sku": "C-SALROSHIMGRU500g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 500g",
+      "numero_producto": 172,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701725002647",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "7146f592618a",
@@ -1904,6 +2014,17 @@
       "bimestre": 3,
       "codigo": "7701812502630",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "29b4efec81b1",
+      "sku": "C-SEMCHI250g",
+      "nombre_producto": "SEMILLA DE CHIA 250g",
+      "numero_producto": 182,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701822502644",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "99ac7b1c7050",
@@ -2027,6 +2148,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "7ab97089824a",
+      "sku": "C-SEMCHI500g",
+      "nombre_producto": "SEMILLA DE CHIA 500g",
+      "numero_producto": 194,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701945002649",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
       "id": "d80a7169cd52",
       "sku": "C-MENCRI100g",
       "nombre_producto": "MENTOL CRISTAL 100g",
@@ -2113,6 +2245,28 @@
       "bimestre": 3,
       "codigo": "7702025002634",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "91497e3e5622",
+      "sku": "C-ACECOC250mL",
+      "nombre_producto": "ACEITE DE COCO 250mL",
+      "numero_producto": 203,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702032502646",
+      "creado_at": "2026-09-06T15:16:52"
+    },
+    {
+      "id": "41eac1500509",
+      "sku": "C-ACECOC500mL",
+      "nombre_producto": "ACEITE DE COCO 500mL",
+      "numero_producto": 204,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702045002645",
+      "creado_at": "2026-09-06T15:16:52"
     },
     {
       "id": "c071e122d71f",

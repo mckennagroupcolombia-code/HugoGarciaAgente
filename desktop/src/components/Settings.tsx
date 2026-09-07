@@ -685,6 +685,7 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "compras-exterior", label: "Compras exterior / pantallazo (incl. con Facturas, Sync o Rentabilidad)" },
   { id: "productos-siigo", label: "Crear en Alegra — botón flotante (incl. con Facturas o Sync)" },
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
+  { id: "catalogo-alegra", label: "Catálogo Alegra — productos y combos (espejo local)" },
   { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
   { id: "creditos-adquiridos", label: "Créditos adquiridos (tasa, cuota, saldo)" },
   { id: "libro-mayor",   label: "Libro Mayor — partida doble, cuentas T (permiso propio, no heredado)" },

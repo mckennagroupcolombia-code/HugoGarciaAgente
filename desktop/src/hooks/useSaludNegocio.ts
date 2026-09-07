@@ -64,6 +64,8 @@ export interface SaludNegocioResumen {
   fuente_nomina: "rrhh_compensaciones" | "contabilidad_empleados" | "sin_datos";
   ads_recomendaciones: SaludAdsRecomendaciones | null;
   saldo_bancario: SaludBancario | null;
+  /** true si el backend sirvió un resumen en caché mientras recalcula en background */
+  stale?: boolean;
 }
 
 export function useSaludNegocioResumen(periodicidad: SaludPeriodicidad = "semana", n: number = 8) {

@@ -28,6 +28,7 @@ export type Panel =
   | "astro-killer"
   | "facturas"
   | "costos-productos"
+  | "catalogo-alegra"
   | "centros-costo"
   | "rentabilidad"
   | "publicidad"

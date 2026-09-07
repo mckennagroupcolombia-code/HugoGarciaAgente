@@ -93,6 +93,7 @@ import json
 import os
 import re
 import sqlite3
+import threading
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 
@@ -110,14 +111,27 @@ _CACHE_VERSION = 7
 # no debe volver a golpear MeLi/Alegra ~30–40 s. `refresh=True` lo salta.
 # Los buckets cerrados ya viven en disco; esto solo evita recalcular el período
 # en curso + ads_reco + cobros en cada navegación.
+# 10 min (antes 3): el cold path sigue costando decenas de segundos; un TTL
+# corto + remount del SPA re-disparaba MeLi/Alegra y el proxy cortaba con 504.
 _RESUMEN_MEM: dict[tuple[str, int], tuple[float, dict]] = {}
-_RESUMEN_MEM_TTL_S = 180  # 3 minutos
+_RESUMEN_MEM_TTL_S = 600  # 10 minutos
+# Si el TTL ya venció pero hay un resumen previo, se sirve de inmediato
+# (marcado stale) mientras un hilo recalcula — evita 504 en la 2ª visita.
+_RESUMEN_MEM_STALE_MAX_S = 3600  # 1 hora
+_RESUMEN_INFLIGHT: dict[tuple[str, int], threading.Event] = {}
+_RESUMEN_INFLIGHT_LOCK = threading.Lock()
 
 # Órdenes MeLi del bucket en curso: la paginación de `/orders/search` puede
 # tardar decenas de segundos; cachear unos minutos evita que "Actualizar" o
 # un remount del SPA dispare otra corrida completa.
 _ORDENES_MELI_MEM: dict[tuple[str, str], tuple[float, list]] = {}
 _ORDENES_MELI_TTL_S = 300  # 5 minutos
+
+# Facturas híbridas (Siigo histórico + Alegra) para "otros canales": el GET
+# paginado tarda ~40–60 s en frío y era el culpable del 504 del panel
+# (corría en SERIE después de costos/MeLi). Cache corto + prefetch paralelo.
+_OTRAS_FACTURAS_MEM: dict[tuple[str, str], tuple[float, list]] = {}
+_OTRAS_FACTURAS_TTL_S = 300  # 5 minutos
 
 # Mismos cortes de calificación que `colorNota` en el frontend
 # (desktop/src/components/ui/ScoreRing.tsx) — si cambian allá, cambiar acá.
@@ -384,29 +398,52 @@ def _clasificar_canal_factura_siigo(factura: dict) -> str:
     return "otro"
 
 
-def _ventas_otras_por_bucket(rangos: list[dict], costos: dict) -> dict[str, dict]:
+def _fetch_facturas_otras_en_rangos(rangos: list[dict]) -> list[dict]:
     """
-    Para cada rango en `rangos`, ingresos/costo/unidades de facturas de venta
-    de Siigo que NO son de MeLi ni de la web — una sola paginación de Siigo
-    para todo el lote de buckets pendientes (no una por bucket), igual que
-    `_prefetch_ordenes_meli`/`_prefetch_gasto_ads` evitan repetir llamadas.
+    GET híbrido Siigo+Alegra acotado al min/max de `rangos`, con caché 5 min.
+    Separado del costeo para poder correrlo en paralelo con `costos_todos_resumen`
+    (antes iba en serie y sumaba ~50 s al cold path → HTTP 504 del proxy).
     """
-    vacio = {"ingresos": 0.0, "costo_producto": 0.0, "unidades": 0.0, "facturas": 0, "con_marcador_wa": 0}
+    import time as _time
+
+    if not rangos:
+        return []
+    fecha_desde = min(r["inicio"] for r in rangos)
+    fecha_hasta = max(r["fin"] for r in rangos)
+    key = (fecha_desde, fecha_hasta)
+    cached = _OTRAS_FACTURAS_MEM.get(key)
+    now = _time.time()
+    if cached and (now - cached[0]) < _OTRAS_FACTURAS_TTL_S:
+        return cached[1]
+
+    from app.services.alegra import obtener_facturas_hibridas
+
+    try:
+        facturas = obtener_facturas_hibridas(fecha_desde, fecha_hasta)
+    except Exception:
+        facturas = []
+    _OTRAS_FACTURAS_MEM[key] = (now, facturas)
+    return facturas
+
+
+def _ventas_otras_desde_facturas(
+    rangos: list[dict], costos: dict, facturas: list[dict]
+) -> dict[str, dict]:
+    """Clasifica facturas ya descargadas en buckets "otro" y aplica costo de producto."""
+    from app.services.alegra import items_hibridos_normalizados
+
+    vacio = {
+        "ingresos": 0.0,
+        "costo_producto": 0.0,
+        "unidades": 0.0,
+        "facturas": 0,
+        "con_marcador_wa": 0,
+    }
     resultado: dict[str, dict] = {r["inicio"]: dict(vacio) for r in rangos}
     if not rangos:
         return resultado
 
-    from app.services.alegra import obtener_facturas_hibridas as obtener_facturas_siigo_paginadas
-    from app.services.alegra import items_hibridos_normalizados
-
-    fecha_desde = min(r["inicio"] for r in rangos)
-    try:
-        facturas = obtener_facturas_siigo_paginadas(fecha_desde)
-    except Exception:
-        return resultado
-
     rangos_ordenados = sorted(rangos, key=lambda r: r["inicio"])
-
     for f in facturas:
         fecha = (f.get("date") or "")[:10]
         if not fecha or _clasificar_canal_factura_siigo(f) != "otro":
@@ -428,6 +465,15 @@ def _ventas_otras_por_bucket(rangos: list[dict], costos: dict) -> dict[str, dict
                 acc["costo_producto"] += float(costo_info.get("costo_total") or 0) * qty
 
     return resultado
+
+
+def _ventas_otras_por_bucket(rangos: list[dict], costos: dict) -> dict[str, dict]:
+    """
+    Para cada rango en `rangos`, ingresos/costo/unidades de facturas de venta
+    que NO son de MeLi ni de la web — una sola paginación híbrida para todo el
+    lote de buckets pendientes (no una por bucket).
+    """
+    return _ventas_otras_desde_facturas(rangos, costos, _fetch_facturas_otras_en_rangos(rangos))
 
 
 # ─── Costos administrativos ───────────────────────────────────────────────
@@ -755,13 +801,6 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
     Para invalidar cerrados tras un cambio de fórmula, subir `_CACHE_VERSION`.
     """
     import time as _time
-    from concurrent.futures import ThreadPoolExecutor
-
-    from app.services.rentabilidad import (
-        _sku_canonico_desde_relacion,
-        costos_todos_resumen,
-        listar_cobros_meli,
-    )
 
     periodicidad = periodicidad if periodicidad in ("dia", "semana", "mes") else "semana"
     _n_max = {"dia": 120, "semana": 26, "mes": 24}[periodicidad]
@@ -769,10 +808,79 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
     n = max(1, min(int(n or _n_default), _n_max))
 
     mem_key = (periodicidad, n)
+    now = _time.time()
     if not refresh:
         cached_resumen = _RESUMEN_MEM.get(mem_key)
-        if cached_resumen and (_time.time() - cached_resumen[0]) < _RESUMEN_MEM_TTL_S:
+        if cached_resumen:
+            age = now - cached_resumen[0]
+            if age < _RESUMEN_MEM_TTL_S:
+                return cached_resumen[1]
+            # TTL vencido pero aún usable: responder ya (evita 504 del proxy)
+            # y recalcular en background para la próxima visita.
+            if age < _RESUMEN_MEM_STALE_MAX_S:
+                _kick_salud_refresh_bg(periodicidad, n, mem_key)
+                stale = dict(cached_resumen[1])
+                stale["stale"] = True
+                return stale
+
+    # Una sola corrida a la vez por (periodicidad, n): el panel reintenta y el
+    # remount del SPA disparaba 2–3 cold paths en paralelo (~90 s c/u) → 504.
+    soy_lider = False
+    with _RESUMEN_INFLIGHT_LOCK:
+        ev = _RESUMEN_INFLIGHT.get(mem_key)
+        if ev is None:
+            ev = threading.Event()
+            _RESUMEN_INFLIGHT[mem_key] = ev
+            soy_lider = True
+    if not soy_lider:
+        ev.wait(timeout=120)
+        cached_resumen = _RESUMEN_MEM.get(mem_key)
+        if cached_resumen:
             return cached_resumen[1]
+
+    try:
+        return _salud_negocio_resumen_calcular_fresco(periodicidad, n, refresh, mem_key)
+    finally:
+        if soy_lider:
+            with _RESUMEN_INFLIGHT_LOCK:
+                done = _RESUMEN_INFLIGHT.pop(mem_key, None)
+                if done is not None:
+                    done.set()
+
+
+_RESUMEN_BG_RUNNING: set[tuple[str, int]] = set()
+
+
+def _kick_salud_refresh_bg(periodicidad: str, n: int, mem_key: tuple[str, int]) -> None:
+    """Recálculo en daemon; como máximo uno por clave."""
+    with _RESUMEN_INFLIGHT_LOCK:
+        if mem_key in _RESUMEN_BG_RUNNING or mem_key in _RESUMEN_INFLIGHT:
+            return
+        _RESUMEN_BG_RUNNING.add(mem_key)
+
+    def _bg():
+        try:
+            _salud_negocio_resumen_calcular_fresco(periodicidad, n, False, mem_key)
+        except Exception:
+            pass
+        finally:
+            with _RESUMEN_INFLIGHT_LOCK:
+                _RESUMEN_BG_RUNNING.discard(mem_key)
+
+    threading.Thread(target=_bg, daemon=True, name="salud-negocio-refresh").start()
+
+
+def _salud_negocio_resumen_calcular_fresco(
+    periodicidad: str, n: int, refresh: bool, mem_key: tuple[str, int]
+) -> dict:
+    import time as _time
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app.services.rentabilidad import (
+        _sku_canonico_desde_relacion,
+        costos_todos_resumen,
+        listar_cobros_meli,
+    )
 
     if periodicidad == "dia":
         rangos = _rangos_dias(n)
@@ -802,11 +910,17 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
             _ORDENES_MELI_MEM.pop((r["inicio"], r["fin"]), None)
             if _meli_ads is not None:
                 _meli_ads._GASTO_RANGO_CACHE.pop((r["inicio"], r["fin"]), None)
+        if pendientes:
+            _OTRAS_FACTURAS_MEM.pop(
+                (min(x["inicio"] for x in pendientes), max(x["fin"] for x in pendientes)),
+                None,
+            )
         _RESUMEN_MEM.pop(mem_key, None)
 
     # Costos + cobros + prefetch de pendientes en paralelo: en serie la semana
     # abierta sola ya pasaba de 30–40 s (órdenes MeLi + facturas + ads).
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    # `fut_otras` debe ir AQUÍ (no después): el GET híbrido ~50 s en frío.
+    with ThreadPoolExecutor(max_workers=10) as pool:
         fut_relacion = pool.submit(_sku_canonico_desde_relacion)
         # Costos/cobros tienen su propia caché; no forzar rebuild completo en
         # cada "Actualizar" (eso sumaba decenas de segundos sin cambiar el P&L
@@ -816,6 +930,7 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         fut_nomina = pool.submit(_total_mensual_nomina)
         fut_ordenes = pool.submit(_prefetch_ordenes_meli, periodicidad, pendientes)
         fut_ads = pool.submit(_prefetch_gasto_ads, periodicidad, pendientes, cache_disco)
+        fut_otras = pool.submit(_fetch_facturas_otras_en_rangos, pendientes)
         fut_reco = pool.submit(_resumen_ads_recomendaciones)
         fut_saldo = pool.submit(_saldo_bancario)
         fut_politica = pool.submit(_politica_publicidad)
@@ -826,11 +941,12 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         total_mensual_nomina, fuente_nomina = fut_nomina.result()
         ordenes_por_bucket = fut_ordenes.result()
         ads_por_bucket = fut_ads.result()
+        facturas_otras = fut_otras.result()
         ads_recomendaciones = fut_reco.result()
         saldo_bancario = fut_saldo.result()
         politica_publicidad = fut_politica.result()
 
-    otras_ventas_por_bucket = _ventas_otras_por_bucket(pendientes, costos)
+    otras_ventas_por_bucket = _ventas_otras_desde_facturas(pendientes, costos, facturas_otras)
     cobros_por_sku = {
         (c.get("sku") or "").upper(): c for c in cobros.get("items") or [] if c.get("sku")
     }
@@ -895,6 +1011,7 @@ def salud_negocio_resumen(periodicidad: str = "semana", n: int = 12, refresh: bo
         "ads_recomendaciones": ads_recomendaciones,
         "saldo_bancario": saldo_bancario,
         "politica_publicidad": politica_publicidad,
+        "stale": False,
     }
     _RESUMEN_MEM[mem_key] = (_time.time(), resultado)
     return resultado

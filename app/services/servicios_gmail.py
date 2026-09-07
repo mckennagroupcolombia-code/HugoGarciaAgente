@@ -248,6 +248,47 @@ def _pago_ya_existe(comprobante: str) -> bool:
     return row is not None
 
 
+_RE_NUM_RECIBO = re.compile(r"#\s*([A-Za-z0-9][A-Za-z0-9-]{4,})")
+
+
+def _numero_recibo(texto: str) -> str | None:
+    """N° de factura/recibo (ej. 'PBC #2102-5744-9538') si el texto trae uno."""
+    m = _RE_NUM_RECIBO.search(texto or "")
+    return m.group(1) if m else None
+
+
+def _pago_duplicado_probable(servicio_id: int, fecha: str, monto: float, subj: str) -> bool:
+    """True si ya hay un pago del mismo servicio/fecha/monto que probablemente sea el
+    mismo cobro (dos correos transaccionales del mismo proveedor para una sola compra:
+    ej. 'activation confirmation' + 'payment processed'), no dos cargos reales aparte.
+
+    Caso real que motivó esto (sep-2026): Starlink mandó "Service Activation Confirmation"
+    y "Payment Processed" el mismo día por el mismo monto — dos IDs de Gmail distintos,
+    cero número de factura en ninguno de los dos → quedaron dos pagos_servicios para un
+    solo cobro real. Si ambos correos SÍ traen un número de factura/recibo (`_numero_recibo`)
+    y son distintos, se asume que son cargos legítimos distintos (pasó con Anthropic:
+    mismo día, mismo monto, pero recibos "#2102-5744-9538" vs "#2518-0902-0765").
+    """
+    from app.services.contabilidad_db import _conn, _ensure
+
+    _ensure()
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT notas FROM pagos_servicios
+               WHERE servicio_id = ? AND fecha = ? AND ABS(monto - ?) < 0.01""",
+            (servicio_id, fecha, monto),
+        ).fetchall()
+    if not rows:
+        return False
+    nuevo_num = _numero_recibo(subj)
+    for r in rows:
+        existente_num = _numero_recibo(dict(r).get("notas") or "")
+        if nuevo_num and existente_num and nuevo_num != existente_num:
+            continue  # números distintos → cargos distintos, no es duplicado
+        return True
+    return False
+
+
 def _servicio_por_empresa(empresa: str) -> dict | None:
     for s in listar_servicios(ver_todo=True):
         if (s.get("empresa") or "").strip().lower() == empresa.strip().lower():
@@ -284,6 +325,7 @@ def sincronizar_suscripciones_gmail(*, newer_than: str = "3y") -> dict:
         "servicios_creados": 0,
         "pagos_nuevos": 0,
         "pagos_omitidos": 0,
+        "pagos_duplicados_omitidos": 0,
         "sin_monto": 0,
         "errores": [],
     }
@@ -300,6 +342,7 @@ def sincronizar_suscripciones_gmail(*, newer_than: str = "3y") -> dict:
             "encontrados": 0,
             "pagos_nuevos": 0,
             "omitidos": 0,
+            "duplicados_omitidos": 0,
             "sin_monto": 0,
             "muestras": [],
         }
@@ -366,9 +409,32 @@ def sincronizar_suscripciones_gmail(*, newer_than: str = "3y") -> dict:
                     )
                 continue
 
+            fecha = _fecha_iso(h.get("date", ""), msg.get("internalDate"))
+
+            srv_existente = srv or _servicio_por_empresa(prov["empresa"])
+            if srv_existente and _pago_duplicado_probable(
+                int(srv_existente["id"]), fecha, float(monto), subj
+            ):
+                # Mismo servicio+fecha+monto que un pago ya registrado, y ninguno de los
+                # dos correos trae un n° de factura/recibo que los distinga → probable
+                # duplicado (dos correos transaccionales del mismo cobro, no dos cargos).
+                entrada["duplicados_omitidos"] += 1
+                resumen["pagos_duplicados_omitidos"] += 1
+                if len(entrada["muestras"]) < 5:
+                    entrada["muestras"].append(
+                        {
+                            "fecha": fecha,
+                            "monto": monto,
+                            "moneda": moneda,
+                            "subject": subj[:100],
+                            "duplicado_omitido": True,
+                        }
+                    )
+                continue
+
             if srv is None:
-                creado_antes = _servicio_por_empresa(prov["empresa"]) is None
-                srv = _asegurar_servicio(
+                creado_antes = srv_existente is None
+                srv = srv_existente or _asegurar_servicio(
                     prov["empresa"],
                     prov["tipo"],
                     notas=f"Origen Gmail · query {prov['clave']}",
@@ -376,7 +442,6 @@ def sincronizar_suscripciones_gmail(*, newer_than: str = "3y") -> dict:
                 if creado_antes:
                     resumen["servicios_creados"] += 1
 
-            fecha = _fecha_iso(h.get("date", ""), msg.get("internalDate"))
             notas = f"{moneda} · {subj[:160]}"
             registrar_pago(
                 int(srv["id"]),

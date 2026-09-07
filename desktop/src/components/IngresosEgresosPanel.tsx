@@ -1,6 +1,49 @@
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+
+const EXTRACTO_EXTS = [".csv", ".xlsx", ".xlsm", ".txt", ".tsv", ".pdf"];
+
+function esArchivoExtracto(file: File): boolean {
+  const name = (file.name || "").toLowerCase();
+  if (EXTRACTO_EXTS.some((ext) => name.endsWith(ext))) return true;
+  const t = (file.type || "").toLowerCase();
+  return (
+    t === "text/csv" ||
+    t === "text/plain" ||
+    t === "text/tab-separated-values" ||
+    t === "application/pdf" ||
+    t.includes("spreadsheet") ||
+    t.includes("excel")
+  );
+}
+
+function primerArchivoExtracto(files: FileList | File[]): File | null {
+  return Array.from(files).find(esArchivoExtracto) ?? null;
+}
+
+function hayArchivosArrastrados(dt: DataTransfer): boolean {
+  const types = Array.from(dt.types || []);
+  return types.includes("Files") || types.includes("application/x-moz-file");
+}
+
+function tipoArchivoExtracto(nombre: string): "pdf" | "excel" | "csv" | "otro" {
+  const n = (nombre || "").toLowerCase();
+  if (n.endsWith(".pdf")) return "pdf";
+  if (n.endsWith(".xlsx") || n.endsWith(".xlsm") || n.endsWith(".xls")) return "excel";
+  if (n.endsWith(".csv") || n.endsWith(".tsv") || n.endsWith(".txt")) return "csv";
+  return "otro";
+}
+
+const TIPO_ARCHIVO_UI: Record<
+  ReturnType<typeof tipoArchivoExtracto>,
+  { label: string; className: string }
+> = {
+  pdf: { label: "PDF", className: "bg-rose-500/15 text-rose-700" },
+  excel: { label: "Excel", className: "bg-emerald-500/15 text-emerald-700" },
+  csv: { label: "CSV", className: "bg-sky-500/15 text-sky-800" },
+  otro: { label: "Archivo", className: "bg-muted/20 text-muted" },
+};
 
 type ExtractoLink = {
   vinculo_id: number;
@@ -69,6 +112,20 @@ type Candidato = {
   banco?: string;
   cuenta?: string;
   archivo_nombre?: string;
+};
+
+type Sugerencia = {
+  movimiento_id: string;
+  extracto_mov_id: number;
+  libro: {
+    fecha: string;
+    tipo: "ingreso" | "egreso";
+    concepto: string;
+    monto: number;
+    fuente: string;
+  };
+  extracto: Candidato;
+  ambiguo?: boolean;
 };
 
 type ConsultaExtractoResp = {
@@ -277,11 +334,19 @@ export default function IngresosEgresosPanel() {
   const [nombreExtracto, setNombreExtracto] = useState("");
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [dropActivo, setDropActivo] = useState(false);
+  const [biblioAbierta, setBiblioAbierta] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [modalMov, setModalMov] = useState<Movimiento | null>(null);
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
   const [candLoading, setCandLoading] = useState(false);
   const [candError, setCandError] = useState<string | null>(null);
+  const [autoAbierto, setAutoAbierto] = useState(false);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoErr, setAutoErr] = useState<string | null>(null);
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
+  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+  const [sugSeleccion, setSugSeleccion] = useState<Record<string, boolean>>({});
   const [consultaConcepto, setConsultaConcepto] = useState("");
   const [consultaExtractoId, setConsultaExtractoId] = useState<string>("todos");
   const [consultaBusy, setConsultaBusy] = useState(false);
@@ -409,6 +474,74 @@ export default function IngresosEgresosPanel() {
     }
   };
 
+  const sugKey = (s: Sugerencia) => `${s.movimiento_id}|${s.extracto_mov_id}`;
+
+  const abrirAutoVincular = async () => {
+    setAutoAbierto(true);
+    setAutoErr(null);
+    setAutoMsg(null);
+    setSugerencias([]);
+    setSugSeleccion({});
+    setAutoBusy(true);
+    try {
+      const params = new URLSearchParams({
+        desde,
+        hasta,
+        meli: incluirMeli ? "1" : "0",
+        siigo: incluirSiigo ? "1" : "0",
+      });
+      const r = await api.get<{ sugerencias: Sugerencia[] }>(
+        `/api/contabilidad/extractos/sugerencias?${params}`,
+        { timeoutMs: 60_000 },
+      );
+      const lista = r.sugerencias ?? [];
+      setSugerencias(lista);
+      setSugSeleccion(Object.fromEntries(lista.map((s) => [sugKey(s), !s.ambiguo])));
+    } catch (e) {
+      setAutoErr((e as Error).message || "No se pudieron calcular sugerencias");
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  const confirmarAutoVincular = async () => {
+    const pares = sugerencias
+      .filter((s) => sugSeleccion[sugKey(s)])
+      .map((s) => ({ extracto_mov_id: s.extracto_mov_id, movimiento_id: s.movimiento_id }));
+    if (pares.length === 0) {
+      setAutoErr("Seleccione al menos una sugerencia para vincular");
+      return;
+    }
+    setAutoBusy(true);
+    setAutoErr(null);
+    try {
+      const r = await api.post<{
+        vinculados: number;
+        errores: Array<{ movimiento_id?: string; extracto_mov_id?: number; error: string }>;
+      }>("/api/contabilidad/extractos/vincular-lote", { pares });
+      setAutoMsg(
+        `${r.vinculados} movimiento${r.vinculados === 1 ? "" : "s"} vinculado${r.vinculados === 1 ? "" : "s"}` +
+          (r.errores?.length ? ` · ${r.errores.length} con error` : ""),
+      );
+      await refreshAll();
+      if (!r.errores?.length) {
+        setAutoAbierto(false);
+      } else {
+        const conError = new Set(r.errores.map((er) => er.movimiento_id));
+        const vinculadosKeys = new Set(
+          pares
+            .filter((p) => !conError.has(p.movimiento_id))
+            .map((p) => `${p.movimiento_id}|${p.extracto_mov_id}`),
+        );
+        setSugerencias((prev) => prev.filter((s) => !vinculadosKeys.has(sugKey(s))));
+      }
+    } catch (e) {
+      setAutoErr((e as Error).message || "No se pudo vincular el lote");
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   const onUpload = async (file: File) => {
     setUploadBusy(true);
     setUploadMsg(null);
@@ -445,6 +578,45 @@ export default function IngresosEgresosPanel() {
     }
   };
 
+  const onDragEnterExtracto = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadBusy) return;
+    if (hayArchivosArrastrados(e.dataTransfer)) {
+      setDropActivo(true);
+    }
+  };
+
+  const onDragOverExtracto = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadBusy) return;
+    if (hayArchivosArrastrados(e.dataTransfer)) {
+      e.dataTransfer.dropEffect = "copy";
+      setDropActivo(true);
+    }
+  };
+
+  const onDragLeaveExtracto = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDropActivo(false);
+  };
+
+  const onDropExtracto = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropActivo(false);
+    if (uploadBusy) return;
+    const file = primerArchivoExtracto(e.dataTransfer.files);
+    if (!file) {
+      setUploadMsg("Arrastre un CSV, Excel o PDF de extracto bancario.");
+      return;
+    }
+    void onUpload(file);
+  };
+
   const onConsultarExtracto = async () => {
     const concepto = consultaConcepto.trim();
     if (concepto.length < 2) {
@@ -470,13 +642,19 @@ export default function IngresosEgresosPanel() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div
+      className="flex min-h-0 flex-1 flex-col gap-4"
+      onDragEnter={onDragEnterExtracto}
+      onDragOver={onDragOverExtracto}
+      onDragLeave={onDragLeaveExtracto}
+      onDrop={onDropExtracto}
+    >
       <div className="rounded-xl border border-border bg-surface-panel p-4 space-y-3">
         <div>
           <h2 className="text-base font-bold text-ink">Tabla de contabilidad</h2>
           <p className="text-xs text-muted">
-            Ingresos y egresos por fecha. Sube el extracto bancario (CSV/Excel/PDF) y vincula cada
-            movimiento contable con la línea del banco.
+            Ingresos y egresos por fecha. Arrastra el extracto bancario (CSV/Excel/PDF) a esta
+            pantalla o elige el archivo, y vincula cada movimiento contable con la línea del banco.
           </p>
         </div>
 
@@ -569,7 +747,13 @@ export default function IngresosEgresosPanel() {
         </div>
         {syncCobroMsg && <p className="text-xs text-muted">{syncCobroMsg}</p>}
 
-        <div className="rounded-lg border border-dashed border-border bg-surface/60 p-3 space-y-2">
+        <div
+          className={`rounded-lg border-2 border-dashed p-3 space-y-2 transition ${
+            dropActivo
+              ? "border-sky-500 bg-sky-500/10"
+              : "border-border bg-surface/60"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wide text-muted">
             Extracto bancario
           </div>
@@ -611,21 +795,65 @@ export default function IngresosEgresosPanel() {
                 if (f) void onUpload(f);
               }}
             />
+            <div
+              role="button"
+              tabIndex={uploadBusy ? -1 : 0}
+              aria-disabled={uploadBusy}
+              aria-label="Arrastrar o elegir extracto bancario"
+              title="Arrastra el CSV, Excel o PDF, o haz clic para elegirlo"
+              onClick={() => {
+                if (!uploadBusy) fileRef.current?.click();
+              }}
+              onKeyDown={(e) => {
+                if (uploadBusy) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileRef.current?.click();
+                }
+              }}
+              className={`mb-0.5 inline-flex h-8 w-[5.75rem] shrink-0 cursor-pointer items-center justify-center rounded-md border border-dashed text-[10px] font-semibold transition ${
+                uploadBusy ? "cursor-wait opacity-50" : ""
+              } ${
+                dropActivo
+                  ? "border-sky-600 bg-sky-500/20 text-sky-900"
+                  : "border-sky-500/70 bg-sky-500/10 text-sky-800 hover:border-sky-600 hover:bg-sky-500/15"
+              }`}
+            >
+              {uploadBusy ? "Subiendo…" : dropActivo ? "Suelta" : "Arrastrar"}
+            </div>
             <button
               type="button"
-              disabled={uploadBusy}
-              onClick={() => fileRef.current?.click()}
-              className="rounded-lg border-2 border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              onClick={() => setBiblioAbierta(true)}
+              className="mb-0.5 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-[10px] font-bold text-ink hover:border-accent hover:text-accent"
+              title="Abrir carpeta de extractos guardados"
             >
-              {uploadBusy ? "Subiendo…" : "Subir extracto desde mi computador"}
+              <span aria-hidden className="text-sm leading-none">
+                📁
+              </span>
+              Biblioteca
+              {(extractosQ.data?.extractos?.length ?? 0) > 0 && (
+                <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold text-sky-800">
+                  {extractosQ.data!.extractos.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => void abrirAutoVincular()}
+              className="mb-0.5 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-600/10 px-2.5 text-[10px] font-bold text-emerald-800 hover:bg-emerald-600/20"
+              title="Buscar movimientos del libro y líneas del extracto que calzan por fecha y monto, para confirmarlos en bloque"
+            >
+              <span aria-hidden className="text-sm leading-none">
+                🔗
+              </span>
+              Vincular automáticamente
             </button>
           </div>
           <p className="text-[11px] text-muted">
-            Elige el archivo Excel/CSV/PDF del extracto desde tu computador (el que descargaste o
-            generaste tú mismo) — se sube apenas lo seleccionas, no se trae de ningún lado
-            automáticamente. Encabezados típicos: Fecha, Descripción, Débito, Crédito (o Valor).
-            Separador ; o ,. Si el PDF de Bancolombia no se lee como texto, el sistema intenta
-            leerlo con IA (puede tardar unos segundos).
+            El archivo es el que descargaste o generaste tú — se sube al soltarlo o al
+            seleccionarlo, no se trae de ningún lado automáticamente. Encabezados típicos: Fecha,
+            Descripción, Débito, Crédito (o Valor). Separador ; o ,. Si el PDF de Bancolombia no se
+            lee como texto, el sistema intenta leerlo con IA (puede tardar unos segundos).
           </p>
           {uploadMsg && (
             <p
@@ -637,66 +865,6 @@ export default function IngresosEgresosPanel() {
             >
               {uploadMsg}
             </p>
-          )}
-          {(extractosQ.data?.extractos?.length ?? 0) > 0 && (
-            <ul className="text-[11px] text-muted space-y-0.5">
-              {extractosQ.data!.extractos.slice(0, 8).map((ex) => (
-                <li key={ex.id} className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-ink">
-                    #{ex.id} {ex.nombre || ex.banco || "Extracto"}
-                    {ex.cuenta ? ` · ${ex.cuenta}` : ""}
-                  </span>
-                  <span>
-                    {ex.periodo_desde}→{ex.periodo_hasta} · {ex.vinculados}/{ex.lineas_count}{" "}
-                    vinculados · {ex.archivo_nombre}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-accent hover:underline"
-                    onClick={() => {
-                      void (async () => {
-                        const actual = ex.nombre || "";
-                        const nuevo = window.prompt("Nombre del extracto en la base de datos:", actual);
-                        if (nuevo == null) return;
-                        const n = nuevo.trim();
-                        if (!n) {
-                          setUploadMsg("El nombre no puede quedar vacío");
-                          return;
-                        }
-                        try {
-                          await api.post(`/api/contabilidad/extractos/${ex.id}/nombre`, {
-                            nombre: n,
-                          });
-                          setUploadMsg(`Extracto #${ex.id} renombrado a «${n}»`);
-                          await refreshAll();
-                        } catch (e) {
-                          setUploadMsg((e as Error).message);
-                        }
-                      })();
-                    }}
-                  >
-                    Renombrar
-                  </button>
-                  <button
-                    type="button"
-                    className="text-rose-600 hover:underline"
-                    onClick={() => {
-                      void (async () => {
-                        if (!confirm(`¿Eliminar extracto #${ex.id} y sus vínculos?`)) return;
-                        try {
-                          await api.delete(`/api/contabilidad/extractos/${ex.id}`);
-                          await refreshAll();
-                        } catch (e) {
-                          setUploadMsg((e as Error).message);
-                        }
-                      })();
-                    }}
-                  >
-                    Eliminar
-                  </button>
-                </li>
-              ))}
-            </ul>
           )}
 
           <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface px-3 py-2.5">
@@ -1108,6 +1276,339 @@ export default function IngresosEgresosPanel() {
           </tbody>
         </table>
       </div>
+
+      {biblioAbierta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setBiblioAbierta(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
+                  <span aria-hidden>📁</span>
+                  Carpeta de extractos
+                </h3>
+                <p className="text-[11px] text-muted">
+                  {extractosQ.data?.extractos?.length ?? 0} archivo
+                  {(extractosQ.data?.extractos?.length ?? 0) === 1 ? "" : "s"} guardado
+                  {(extractosQ.data?.extractos?.length ?? 0) === 1 ? "" : "s"}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-muted hover:text-ink"
+                onClick={() => setBiblioAbierta(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-3">
+              {(extractosQ.data?.extractos?.length ?? 0) === 0 ? (
+                <p className="px-2 py-8 text-center text-xs text-muted">
+                  La carpeta está vacía. Arrastra o elige un extracto para guardarlo aquí.
+                </p>
+              ) : (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {extractosQ.data!.extractos.map((ex) => {
+                    const tipo = tipoArchivoExtracto(ex.archivo_nombre);
+                    const tipoUi = TIPO_ARCHIVO_UI[tipo];
+                    const titulo =
+                      ex.nombre || ex.banco || ex.archivo_nombre || `Extracto #${ex.id}`;
+                    const pct =
+                      ex.lineas_count > 0
+                        ? Math.round((100 * (ex.vinculados || 0)) / ex.lineas_count)
+                        : 0;
+                    return (
+                      <li
+                        key={ex.id}
+                        className="rounded-lg border border-border bg-surface px-3 py-2.5"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span
+                            className={`mt-0.5 inline-flex h-8 w-10 shrink-0 items-center justify-center rounded-md text-[10px] font-black uppercase ${tipoUi.className}`}
+                            title={ex.archivo_nombre}
+                          >
+                            {tipoUi.label}
+                          </span>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span
+                                className="truncate text-xs font-bold text-ink"
+                                title={titulo}
+                              >
+                                {titulo}
+                              </span>
+                              <span className="text-[10px] font-mono text-muted">#{ex.id}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted">
+                              {(ex.periodo_desde || ex.periodo_hasta) && (
+                                <span>
+                                  {ex.periodo_desde || "?"} → {ex.periodo_hasta || "?"}
+                                </span>
+                              )}
+                              {ex.banco ? <span>{ex.banco}</span> : null}
+                              {ex.cuenta ? <span>{ex.cuenta}</span> : null}
+                            </div>
+                            <div
+                              className="truncate text-[10px] text-muted"
+                              title={ex.archivo_nombre}
+                            >
+                              {ex.archivo_nombre}
+                            </div>
+                            <div className="flex items-center gap-2 pt-0.5">
+                              <div className="h-1.5 min-w-[4rem] flex-1 overflow-hidden rounded-full bg-border/70">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    pct >= 100
+                                      ? "bg-emerald-500"
+                                      : pct > 0
+                                        ? "bg-sky-500"
+                                        : "bg-muted/40"
+                                  }`}
+                                  style={{ width: `${Math.min(100, pct)}%` }}
+                                />
+                              </div>
+                              <span className="shrink-0 text-[10px] font-semibold text-ink">
+                                {ex.vinculados}/{ex.lineas_count} vinculados
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-0.5">
+                              <button
+                                type="button"
+                                className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink hover:border-accent hover:text-accent"
+                                onClick={() => {
+                                  void (async () => {
+                                    const actual = ex.nombre || "";
+                                    const nuevo = window.prompt(
+                                      "Nombre del extracto en la biblioteca:",
+                                      actual,
+                                    );
+                                    if (nuevo == null) return;
+                                    const n = nuevo.trim();
+                                    if (!n) {
+                                      setUploadMsg("El nombre no puede quedar vacío");
+                                      return;
+                                    }
+                                    try {
+                                      await api.post(
+                                        `/api/contabilidad/extractos/${ex.id}/nombre`,
+                                        { nombre: n },
+                                      );
+                                      setUploadMsg(`Extracto #${ex.id} renombrado a «${n}»`);
+                                      await refreshAll();
+                                    } catch (e) {
+                                      setUploadMsg((e as Error).message);
+                                    }
+                                  })();
+                                }}
+                              >
+                                Renombrar
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded border border-rose-200 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 hover:border-rose-400 hover:bg-rose-50"
+                                onClick={() => {
+                                  void (async () => {
+                                    if (
+                                      !confirm(`¿Eliminar extracto #${ex.id} y sus vínculos?`)
+                                    )
+                                      return;
+                                    try {
+                                      await api.delete(`/api/contabilidad/extractos/${ex.id}`);
+                                      await refreshAll();
+                                    } catch (e) {
+                                      setUploadMsg((e as Error).message);
+                                    }
+                                  })();
+                                }}
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {autoAbierto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !autoBusy && setAutoAbierto(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
+                  <span aria-hidden>🔗</span>
+                  Vincular automáticamente
+                </h3>
+                <p className="text-[11px] text-muted">
+                  Coincidencias por monto exacto entre el libro ({desde} → {hasta}) y las líneas de
+                  extracto sin vincular, con hasta 7 días de diferencia entre la fecha registrada y
+                  la del banco (la factura/cuenta de cobro suele registrarse unos días antes o
+                  después del pago real). Las marcadas ⚠ Revisar tienen más de una línea posible
+                  con el mismo monto — quedan sin seleccionar. Desmarca lo que no corresponda antes
+                  de confirmar.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={autoBusy}
+                className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-muted hover:text-ink disabled:opacity-50"
+                onClick={() => setAutoAbierto(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-3">
+              {autoBusy && sugerencias.length === 0 && (
+                <p className="px-2 py-8 text-center text-xs text-muted">Buscando coincidencias…</p>
+              )}
+              {autoErr && (
+                <p className="mb-2 rounded-lg bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-700">
+                  {autoErr}
+                </p>
+              )}
+              {autoMsg && (
+                <p className="mb-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-700">
+                  {autoMsg}
+                </p>
+              )}
+              {!autoBusy && !autoErr && sugerencias.length === 0 && (
+                <p className="px-2 py-8 text-center text-xs text-muted">
+                  No hay coincidencias nuevas para el rango de fechas actual. Amplía el rango
+                  (desde/hasta) si el extracto cubre un período distinto al que estás viendo.
+                </p>
+              )}
+              {sugerencias.length > 0 && (
+                <>
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
+                      <input
+                        type="checkbox"
+                        checked={sugerencias.every((s) => sugSeleccion[sugKey(s)])}
+                        onChange={(e) => {
+                          const v = e.target.checked;
+                          setSugSeleccion(
+                            Object.fromEntries(sugerencias.map((s) => [sugKey(s), v])),
+                          );
+                        }}
+                      />
+                      Seleccionar todas ({sugerencias.length})
+                    </label>
+                    <span className="text-[11px] text-muted">
+                      {Object.values(sugSeleccion).filter(Boolean).length} seleccionadas
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {sugerencias.map((s) => {
+                      const key = sugKey(s);
+                      const checked = !!sugSeleccion[key];
+                      return (
+                        <li
+                          key={key}
+                          className={`rounded-lg border px-3 py-2 text-[11px] transition ${
+                            s.ambiguo
+                              ? "border-amber-500/60 bg-amber-500/5"
+                              : checked
+                                ? "border-emerald-500/60 bg-emerald-500/5"
+                                : "border-border"
+                          }`}
+                        >
+                          <label className="flex cursor-pointer items-start gap-2.5">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={checked}
+                              onChange={(e) =>
+                                setSugSeleccion((prev) => ({ ...prev, [key]: e.target.checked }))
+                              }
+                            />
+                            <div className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-muted">
+                                  Libro
+                                  {s.ambiguo && (
+                                    <span
+                                      className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-amber-800"
+                                      title="Hay más de una línea de extracto con este mismo monto en la ventana de fechas — revisa cuál corresponde antes de confirmar"
+                                    >
+                                      ⚠ Revisar
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="truncate font-semibold text-ink" title={s.libro.concepto}>
+                                  {s.libro.concepto}
+                                </div>
+                                <div className="text-muted">
+                                  {s.libro.fecha} · {s.libro.tipo} · {formatCop(s.libro.monto)}
+                                </div>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[9px] font-bold uppercase tracking-wide text-muted">
+                                  Extracto {s.extracto.banco ? `· ${s.extracto.banco}` : ""}
+                                </div>
+                                <div
+                                  className="truncate font-semibold text-ink"
+                                  title={s.extracto.descripcion}
+                                >
+                                  {s.extracto.descripcion || "—"}
+                                </div>
+                                <div className="text-muted">
+                                  {s.extracto.fecha} · {s.extracto.tipo} ·{" "}
+                                  {formatCop(s.extracto.monto)}
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+            </div>
+            {sugerencias.length > 0 && (
+              <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
+                <button
+                  type="button"
+                  disabled={autoBusy}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted hover:text-ink disabled:opacity-50"
+                  onClick={() => setAutoAbierto(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    autoBusy || Object.values(sugSeleccion).filter(Boolean).length === 0
+                  }
+                  className="rounded-lg border-2 border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                  onClick={() => void confirmarAutoVincular()}
+                >
+                  {autoBusy
+                    ? "Vinculando…"
+                    : `Vincular ${Object.values(sugSeleccion).filter(Boolean).length} seleccionadas`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {modalMov && (
         <div

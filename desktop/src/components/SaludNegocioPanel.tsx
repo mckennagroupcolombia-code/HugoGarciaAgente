@@ -665,7 +665,11 @@ export default function SaludNegocioPanel() {
         <div className="rounded-xl border border-danger/30 bg-danger/10 p-8 text-center">
           <p className="text-2xl mb-2">⚠️</p>
           <p className="text-sm font-semibold text-danger">No se pudo calcular la salud del negocio</p>
-          <p className="text-xs text-muted mt-1">{(error as Error).message}</p>
+          <p className="text-xs text-muted mt-1">
+            {(error as Error).message === "HTTP 504" || /504|timeout|tardó demasiado/i.test((error as Error).message)
+              ? "El cálculo cruzó MeLi/facturas y el servidor cortó por tiempo (HTTP 504). Espera 1 minuto y vuelve a abrir el panel; la segunda carga sale de caché."
+              : (error as Error).message}
+          </p>
         </div>
       )}
 

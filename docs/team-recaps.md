@@ -1,3 +1,135 @@
+### 2026-09-06 22:54 - Studio: quitar formato Ficha técnica MP
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - En Diseño → Studio visual ya no aparece el formato ni el diseño «Ficha técnica MP» al crear plantilla.
+  - Se retiró de los tipos de impresión (90×140 mm), de los presets de Fichas técnicas y de los botones «Diligenciar etiqueta» / «Generar formatos de etiqueta».
+  - Nueva plantilla abre lienzo vacío al elegir tamaño. Las fichas MP ya guardadas siguen abriéndose.
+- **Archivos Modificados:** `etiquetasTipos.ts`, `plantillasVisuales.ts`, `PlantillasVisualesPanel.tsx`, `etiquetas_studio.py`, `routes.py`, `SelectorDisenoPlantilla.tsx` (eliminado), `docs/team-recaps.md`
+
+### 2026-09-06 19:00 - Alegra: eliminar productos OIL*
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se eliminaron (o inactivaron si tenían documentos) los productos cuyo SKU empieza por `OIL` en Alegra y en el espejo local.
+- **Archivos Modificados:** (ERP Alegra) · `app/data/contabilidad.db` · `docs/team-recaps.md`
+
+### 2026-09-06 18:50 - Catálogo Alegra: editar y eliminar
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Feature
+- **Qué se implementó:**
+  - En Contabilidad → Catálogo Alegra cada fila tiene Editar (nombre + precio lista) y Eliminar.
+  - API `PATCH/DELETE /api/alegra/catalogo/<codigo>`: escribe en Alegra y actualiza el espejo SQLite; si no se puede borrar por documentos, inactiva.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/alegra_catalogo_db.py`, `app/routes.py`, `desktop/src/components/CatalogoAlegraPanel.tsx`, `docs/agentic/CONTRACTS.md`, `tests/test_alegra_catalogo_db.py`, `docs/team-recaps.md`
+
+### 2026-09-06 18:35 - Sync precios MeLi → Alegra
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Reconciliación `reconciliar_precios_meli`: se aplicaron 22 SKUs (ajustes &lt;2× + altas desde precio Alegra $0). Actualizó Alegra, Sheets y web.
+  - Se omitieron 8 casos sospechosos (&gt;2× con precio Alegra ya cargado), p. ej. `C-ALMNAT250g`, `C-ACEITEATRE5mL`, `AGTMGNPLN` — requieren revisión manual (posible cruce de SKU).
+- **Archivos Modificados:** (ERP Alegra / MeLi / Sheets / web) · `docs/team-recaps.md`
+
+### 2026-09-06 17:35 - Alegra: eliminar combos sin sufijo mL/g
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se eliminaron 45 combos cuyo SKU no terminaba en `mL` ni `g` (duplicados truncados, UN/CM/LT/KG, kits sin unidad, etc.).
+  - `C-ESPCCRCRV22CM` no se pudo borrar (documentos asociados): quedó inactivo en Alegra y fuera del espejo local.
+- **Archivos Modificados:** (ERP Alegra) · `app/data/contabilidad.db` · `docs/team-recaps.md`
+
+### 2026-09-06 17:30 - Alegra: eliminar combos con prefijo D-
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se eliminaron en Alegra y en el espejo local los combos `D-ACETEATRE30mL` y `D-VITCACIASC500g` (duplicados de los `C-` equivalentes). No se tocó `DEXKg` ni otros SKU que solo empiezan por la letra D.
+- **Archivos Modificados:** (ERP Alegra) · `app/data/contabilidad.db` · `docs/team-recaps.md`
+
+### 2026-09-06 17:25 - Catálogo Alegra: clasificar productos / combos
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora UX
+- **Qué se implementó:**
+  - El panel Catálogo Alegra pasa a dos tarjetas de clasificación (Productos / Combos) con conteos; la tabla filtra por tipo seleccionado.
+  - La API `GET /api/alegra/catalogo` incluye `conteos:{product,kit}`.
+- **Archivos Modificados:** `desktop/src/components/CatalogoAlegraPanel.tsx`, `app/services/alegra_catalogo_db.py`, `docs/agentic/CONTRACTS.md`, `tests/test_alegra_catalogo_db.py`, `docs/team-recaps.md`
+
+### 2026-09-06 17:17 - Catálogo Alegra: fix sync POST 500
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El botón «Sincronizar desde Alegra» devolvía 500: al iniciar sync en hilo, `estado_sync()` pisaba `ok=True` con `ok=None` y el log hacía `error[:120]` sobre `None`.
+  - Respuesta de sync ahora fuerza `ok=True` al arrancar; el panel muestra el mensaje real del error si falla.
+- **Archivos Modificados:** `app/services/alegra_catalogo_db.py`, `app/routes.py`, `desktop/src/components/CatalogoAlegraPanel.tsx`, `tests/test_alegra_catalogo_db.py`, `docs/team-recaps.md`
+
+### 2026-09-06 16:30 - Catálogo Alegra local (SQLite + panel)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Feature
+- **Qué se implementó:**
+  - Espejo local de productos y combos Alegra en `contabilidad.db` (`alegra_items` + `alegra_kit_components`), con sync bajo demanda y upsert al crear producto/combo.
+  - API `GET/POST /api/alegra/catalogo*` y panel Contabilidad → Catálogo Alegra (buscar, filtro, receta, sincronizar).
+  - Pickers (`buscar_productos_alegra_picker`) usan SQLite si la sync tiene <24 h; si no, caen a la API.
+- **Archivos Modificados:** `app/services/contabilidad_db.py`, `app/services/alegra_catalogo_db.py`, `app/services/alegra.py`, `app/routes.py`, `desktop/src/components/CatalogoAlegraPanel.tsx`, `desktop/src/components/ContabilidadPanel.tsx`, `desktop/src/lib/contabilidadAccess.ts`, `desktop/src/lib/panelInfo.ts`, `desktop/src/stores/app.ts`, `desktop/src/App.tsx`, `docs/agentic/CONTRACTS.md`, `tests/test_alegra_catalogo_db.py`, `docs/team-recaps.md`
+
+### 2026-09-06 15:55 - Salud del negocio: fix HTTP 504
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - El panel fallaba con HTTP 504 porque el cruce de facturas Siigo/Alegra (~50 s) corría en serie después de costos/MeLi y el proxy cortaba ~100 s.
+  - Ese fetch ahora va en paralelo, con caché 5 min y `fecha_fin`; el resumen en memoria dura 10 min y, si expiró, sirve dato stale mientras recalcula.
+  - Mensaje del panel más claro cuando llega 504/timeout.
+- **Archivos Modificados:** `app/services/salud_negocio.py`, `tests/test_salud_negocio.py`, `desktop/src/components/SaludNegocioPanel.tsx`, `desktop/src/hooks/useSaludNegocio.ts`, `docs/team-recaps.md`
+
+### 2026-09-06 15:55 - Alegra: combos retail Global Trading FEA18545
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se crearon 14 combos en Alegra (250/500) duplicando la receta de empaque de arándanos/almendra (secos) y agua destilada/cocoamida (aceite), cambiando el producto principal al granel correspondiente (`AJONEGSACg`, `BAYGOJBERg`, etc.).
+- **Archivos Modificados:** (ERP Alegra) · `docs/team-recaps.md`
+
+### 2026-09-06 15:40 - Alegra: graneles Global Trading FEA18545
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se crearon en Alegra los 7 productos a granel de FEA18545 que no estaban tras la migración: `ACECOCmL`, `AJONEGSACg`, `BAYGOJBERg`, `DATSAYg`, `SALROSHIMFINg`, `SALROSHIMGRUg`, `SEMCHIg`. Ya existían `ARADESg` y `ALMNATg`.
+- **Archivos Modificados:** (ERP Alegra) · `docs/team-recaps.md`
+
+### 2026-09-06 15:16 - Códigos EAN: resto Global Trading FEA18545
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Se registraron los SKUs pendientes de la factura FEA18545 (2 refs por producto: 250 y 500): goji, dátiles, sal himalaya fino/grueso, chía y aceite de coco (mL). Almendra y arándano se omitieron porque ya existían; ajonjolí ya estaba del ejemplo.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/team-recaps.md`
+
+### 2026-09-06 15:10 - Códigos EAN: ejemplo Global Trading (ajonjolí negro)
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Operación / datos
+- **Qué se implementó:**
+  - Ejemplo de SKU EAN con regla «3 letras por palabra principal + presentación»: `C-AJONEG250g` (#133) y `C-AJONEG500g` (#135), producto de la factura Global Trading FEA18545.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/team-recaps.md`
+
+### 2026-09-06 14:45 - Biblioteca de extractos: botón que abre carpeta
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - La lista de extractos ya no queda abierta en la pantalla: hay un botón **Biblioteca** que abre una ventana tipo carpeta con todos los extractos guardados.
+- **Archivos Modificados:** `IngresosEgresosPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-06 14:40 - Ingresos/Egresos: biblioteca de extractos
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - Los extractos ya no se listan como texto suelto: aparecen en una **biblioteca** con tarjetas (PDF/Excel/CSV), periodo, progreso de vínculos y acciones Renombrar/Eliminar.
+  - La zona de arrastre quedó en una pastilla compacta junto a Nombre/Banco/Cuenta.
+- **Archivos Modificados:** `IngresosEgresosPanel.tsx`, `panelInfo.ts`, `docs/team-recaps.md`
+
+### 2026-09-06 14:20 - Ingresos/Egresos: subir extracto por arrastre
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - En Contabilidad → Ingresos / Egresos se puede **arrastrar** el extracto bancario (CSV, Excel o PDF) a la pantalla o a la zona de carga, además de elegir el archivo a mano.
+  - Si el archivo no es de extracto, avisa en vez de subirlo.
+- **Archivos Modificados:** `IngresosEgresosPanel.tsx`, `panelInfo.ts`, `docs/team-recaps.md`
+
 ### 2026-09-03 22:30 - Recordatorios: el visto ahora sí pasa al siguiente ciclo
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Corrección de Bug

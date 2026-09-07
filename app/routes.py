@@ -6919,6 +6919,189 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e), "items": []}), 502
 
+    @app.route("/api/alegra/catalogo", methods=["GET"])
+    @app.route("/app/api/alegra/catalogo", methods=["GET"])
+    def api_alegra_catalogo_listar():
+        """Lista el espejo local del catálogo Alegra (productos + kits)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import alegra_catalogo_db as cat
+
+            tipo = (request.args.get("tipo") or "").strip().lower() or None
+            if tipo in ("todos", "all", "*"):
+                tipo = None
+            q = (request.args.get("q") or "").strip()
+            try:
+                limit = min(max(int(request.args.get("limit") or 50), 1), 200)
+            except (TypeError, ValueError):
+                limit = 50
+            try:
+                offset = max(int(request.args.get("offset") or 0), 0)
+            except (TypeError, ValueError):
+                offset = 0
+            data = cat.listar_items(tipo=tipo, q=q, limit=limit, offset=offset)
+            data["sync"] = cat.estado_sync()
+            data["stale"] = cat.catalogo_stale()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e), "items": [], "total": 0}), 500
+
+    @app.route("/api/alegra/catalogo/sincronizar", methods=["POST"])
+    @app.route("/app/api/alegra/catalogo/sincronizar", methods=["POST"])
+    def api_alegra_catalogo_sincronizar():
+        """Dispara sync del catálogo Alegra → SQLite (en segundo plano)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import alegra_catalogo_db as cat
+            from app.panel_activity import log_line
+
+            body = request.get_json(silent=True) or {}
+            # sync=1 fuerza corrida síncrona (tests / scripts); default = hilo
+            sync_blocking = str(body.get("sync") or request.args.get("sync") or "").strip() in (
+                "1", "true", "yes",
+            )
+            log_line("▶ sincronizar_catalogo_alegra")
+            if sync_blocking:
+                resultado = cat.sincronizar_catalogo_alegra(en_hilo=False)
+            else:
+                resultado = cat.sincronizar_catalogo_alegra(en_hilo=True)
+            if resultado.get("ok"):
+                log_line(
+                    f"✔ sincronizar_catalogo_alegra "
+                    f"{resultado.get('mensaje') or ''}"
+                )
+                return jsonify(resultado)
+            log_line(
+                f"✖ sincronizar_catalogo_alegra — "
+                f"{str(resultado.get('error') or '')[:120]}"
+            )
+            return jsonify(resultado), 502
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/alegra/catalogo/<path:codigo>", methods=["GET"])
+    @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["GET"])
+    def api_alegra_catalogo_detalle(codigo: str):
+        """Detalle local de un producto/kit (incluye componentes si es combo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import alegra_catalogo_db as cat
+
+            item = cat.obtener_item(codigo)
+            if not item:
+                return jsonify({"ok": False, "error": f"No encontrado: {codigo}"}), 404
+            return jsonify({"ok": True, "item": item})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
+    @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
+    def api_alegra_catalogo_editar(codigo: str):
+        """Edita nombre y/o precio lista en Alegra y actualiza el espejo local."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        codigo = (codigo or "").strip()
+        if not codigo:
+            return jsonify({"ok": False, "error": "codigo obligatorio"}), 400
+        nombre = body.get("nombre")
+        precio_raw = body.get("precio_lista", body.get("precio"))
+        if nombre is None and precio_raw is None:
+            return jsonify({"ok": False, "error": "Enviá nombre y/o precio_lista"}), 400
+        try:
+            from app.services.alegra import (
+                actualizar_nombre_alegra_producto,
+                actualizar_precio_alegra_producto,
+            )
+            from app.services import alegra_catalogo_db as cat
+            from app.panel_activity import log_line
+
+            cambios: dict = {}
+            if nombre is not None:
+                nom = str(nombre).strip()
+                if not nom:
+                    return jsonify({"ok": False, "error": "nombre vacío"}), 400
+                log_line(f"▶ catalogo_editar_nombre {codigo}")
+                r_nom = actualizar_nombre_alegra_producto(codigo, nom)
+                if not r_nom.get("ok"):
+                    return jsonify({"ok": False, "error": r_nom.get("msg") or "Error nombre"}), 400
+                cambios["nombre"] = r_nom.get("nombre") or nom
+            if precio_raw is not None:
+                try:
+                    precio = float(precio_raw)
+                except (TypeError, ValueError):
+                    return jsonify({"ok": False, "error": "precio_lista inválido"}), 400
+                if precio < 0:
+                    return jsonify({"ok": False, "error": "precio_lista no puede ser negativo"}), 400
+                log_line(f"▶ catalogo_editar_precio {codigo} → {precio}")
+                r_pre = actualizar_precio_alegra_producto(codigo, precio)
+                if not r_pre.get("ok"):
+                    return jsonify({"ok": False, "error": r_pre.get("msg") or "Error precio"}), 400
+                cambios["precio_lista"] = precio
+
+            item = cat.actualizar_campos_locales(
+                codigo,
+                name=cambios.get("nombre"),
+                precio_lista=cambios.get("precio_lista"),
+            )
+            if not item:
+                # Si no estaba en el espejo, upsert mínimo
+                cat.upsert_item(
+                    alegra_id="",
+                    reference=codigo,
+                    name=cambios.get("nombre") or codigo,
+                    tipo="kit" if codigo.upper().startswith("C-") else "product",
+                    precio_lista=float(cambios.get("precio_lista") or 0),
+                )
+                item = cat.obtener_item(codigo)
+            log_line(f"✔ catalogo_editar {codigo}")
+            return jsonify({"ok": True, "item": item, "cambios": cambios})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/alegra/catalogo/<path:codigo>", methods=["DELETE"])
+    @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["DELETE"])
+    def api_alegra_catalogo_eliminar(codigo: str):
+        """Elimina (o inactiva) un producto/kit en Alegra y lo quita del espejo local."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        codigo = (codigo or "").strip()
+        if not codigo:
+            return jsonify({"ok": False, "error": "codigo obligatorio"}), 400
+        try:
+            from app.services.alegra import eliminar_producto_alegra
+            from app.services import alegra_catalogo_db as cat
+            from app.panel_activity import log_line
+
+            log_line(f"▶ catalogo_eliminar {codigo}")
+            resultado = eliminar_producto_alegra(codigo)
+            if not resultado.get("ok"):
+                if resultado.get("no_encontrado"):
+                    # Ya no está en Alegra: limpiar espejo igual
+                    cat.borrar_item_local(codigo)
+                    return jsonify({
+                        "ok": True,
+                        "modo": "solo_local",
+                        "mensaje": f"{codigo} no estaba en Alegra; se quitó del espejo local",
+                        "codigo": codigo,
+                    })
+                log_line(f"✖ catalogo_eliminar {codigo} — {str(resultado.get('msg') or '')[:120]}")
+                return jsonify({"ok": False, "error": resultado.get("msg") or "Error"}), 400
+
+            cat.borrar_item_local(codigo)
+            log_line(f"✔ catalogo_eliminar {codigo} ({resultado.get('modo')})")
+            return jsonify({
+                "ok": True,
+                "codigo": codigo,
+                "modo": resultado.get("modo"),
+                "mensaje": resultado.get("msg"),
+            })
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/siigo/productos/nombre", methods=["PUT", "PATCH"])
     @app.route("/app/api/siigo/productos/nombre", methods=["PUT", "PATCH"])
     def api_siigo_productos_actualizar_nombre():
@@ -9037,6 +9220,60 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/extractos/sugerencias", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/sugerencias", methods=["GET"])
+    def api_contabilidad_extractos_sugerencias():
+        """Auto-match libro↔extracto por monto+fecha (solo sugiere, no vincula)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        desde = (request.args.get("desde") or "").strip()
+        hasta = (request.args.get("hasta") or "").strip() or None
+        if not desde:
+            return jsonify({"error": "Parámetro desde requerido (YYYY-MM-DD)"}), 400
+        incluir_meli = (request.args.get("meli") or "1").strip() not in ("0", "false", "no")
+        incluir_siigo = (request.args.get("siigo") or "1").strip() not in ("0", "false", "no")
+        try:
+            ventana_dias = int(request.args.get("ventana_dias") or 7)
+        except ValueError:
+            ventana_dias = 7
+        try:
+            tolerancia = float(request.args.get("tolerancia") or 0.5)
+        except ValueError:
+            tolerancia = 0.5
+        try:
+            from app.services.contabilidad_ledger import armar_libro
+            from app.services.extracto_bancario import sugerencias_auto
+
+            libro = armar_libro(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
+            sugerencias = sugerencias_auto(
+                libro["movimientos"], ventana_dias=ventana_dias, tolerancia=tolerancia
+            )
+            return jsonify({"sugerencias": sugerencias, "avisos": libro.get("avisos") or []})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/vincular-lote", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos/vincular-lote", methods=["POST"])
+    def api_contabilidad_extractos_vincular_lote():
+        """Confirma en bloque una lista de {extracto_mov_id, movimiento_id} sugeridos."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        pares = data.get("pares") or []
+        if not isinstance(pares, list) or not pares:
+            return jsonify({"error": "Envíe «pares»: lista de {extracto_mov_id, movimiento_id}"}), 400
+        try:
+            from app.services.contabilidad_ledger import invalidar_cache_libro
+            from app.services.extracto_bancario import vincular_lote
+
+            resultado = vincular_lote(pares)
+            invalidar_cache_libro()
+            return jsonify({"ok": True, **resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/extractos/candidatos", methods=["GET"])
     @app.route("/app/api/contabilidad/extractos/candidatos", methods=["GET"])
     def api_contabilidad_extractos_candidatos():
@@ -9198,7 +9435,42 @@ def register_routes(app):
             if pago.get("created_by") != uid:
                 return jsonify({"error": "Solo puedes eliminar tus propios pagos"}), 403
         eliminar_pago(pago_id)
+        from app.services.contabilidad_ledger import invalidar_cache_libro
+        invalidar_cache_libro()
         return jsonify({"ok": True})
+
+    @app.route("/api/servicios/pagos/<int:pago_id>", methods=["PATCH"])
+    def api_servicios_pago_actualizar(pago_id):
+        """Corrige un pago ya registrado (ej. monto mal digitado al capturarlo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import actualizar_pago, obtener_pago
+        u, ver_todo = _servicios_actor()
+        uid = int(u["id"]) if u else None
+        pago = obtener_pago(int(pago_id))
+        if not pago:
+            return jsonify({"error": "No encontrado"}), 404
+        if not ver_todo and pago.get("created_by") != uid:
+            return jsonify({"error": "Solo puedes editar tus propios pagos"}), 403
+        data = request.get_json(silent=True) or {}
+        monto = data.get("monto")
+        if monto is not None:
+            try:
+                monto = float(monto)
+            except (TypeError, ValueError):
+                return jsonify({"error": "monto inválido"}), 400
+            if monto <= 0:
+                return jsonify({"error": "monto debe ser > 0"}), 400
+        actualizado = actualizar_pago(
+            int(pago_id),
+            fecha=(data.get("fecha") or "").strip() or None,
+            monto=monto,
+            notas=data.get("notas"),
+            comprobante=data.get("comprobante"),
+        )
+        from app.services.contabilidad_ledger import invalidar_cache_libro
+        invalidar_cache_libro()
+        return jsonify({"ok": True, "pago": actualizado})
 
     @app.route("/api/nomina/recordatorios", methods=["POST"])
     def api_nomina_recordatorios():
@@ -12404,7 +12676,6 @@ def register_routes(app):
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
         "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
         "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
-        "Ficha MP": (90, 140),
     }
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}

@@ -266,8 +266,6 @@ export const CATEGORIAS_FORMATO_BASE: CategoriaFormato[] = [
     nombre: "Fichas técnicas",
     emoji: "📄",
     formatos: [
-      { id: "ficha-mp", nombre: "Ficha MP 90×140 mm", descripcion: "Etiqueta técnica dos columnas (SCI)", ancho_mm: 90, alto_mm: 140, dpi: 96 },
-      { id: "ficha-mp-meli", nombre: "Ficha MP MeLi 1080×1620", descripcion: "Foto vertical de producto (2:3)", ancho_px: 1080, alto_px: 1620 },
       { id: "a4", nombre: "A4 vertical", ancho_mm: 210, alto_mm: 297, dpi: 150 },
       { id: "a4h", nombre: "A4 horizontal", ancho_mm: 297, alto_mm: 210, dpi: 150 },
       { id: "carta", nombre: "Carta US", ancho_mm: 216, alto_mm: 279, dpi: 150 },

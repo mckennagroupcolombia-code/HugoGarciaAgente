@@ -51,16 +51,21 @@ _producto_cache: dict[str, dict] = {}  # sku -> {"id":..., "price":...} (proceso
 def _nombre_mayusculas_alegra(nombre: str, *, max_len: int = 150) -> str:
     """Nombres de ítems en Alegra: MAYÚSCULAS, con unidades `mL` y `g` en esa grafía.
 
-    Ej.: ``urea 250 g`` → ``UREA 250 g``; ``aceite 30ml`` → ``ACEITE 30mL``.
+    Ej.: ``urea 250 g`` → ``UREA 250 g``; ``aceite 30ml`` → ``ACEITE 30mL``;
+    ``ajonjolí negro g`` → ``AJONJOLI NEGRO g``; ``aceite de coco ml`` → ``ACEITE DE COCO mL``.
     """
     import re
 
     s = (nombre or "").strip().upper()
     if not s:
         return ""
-    # Tras upper(), las unidades quedan ML / G; restaurar solo si van tras un número.
+    # Tras upper(), las unidades quedan ML / G; restaurar grafía pedida.
+    # 1) Tras un número: 250G → 250g, 30ML → 30mL
     s = re.sub(r"(\d)(\s*)ML\b", r"\1\2mL", s)
     s = re.sub(r"(\d)(\s*)G\b", r"\1\2g", s)
+    # 2) Unidad suelta al final del nombre (graneles): "... ML" / "... G"
+    s = re.sub(r"(?<![A-Z0-9])ML\b", "mL", s)
+    s = re.sub(r"(?<![A-Z0-9])G\b", "g", s)
     return s[:max_len]
 
 
@@ -1052,6 +1057,99 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
     }
 
 
+def eliminar_producto_alegra(codigo: str, *, inactivar_si_bloqueado: bool = True) -> dict:
+    """Elimina un producto/kit de Alegra por `reference`.
+
+    Si Alegra responde que tiene documentos asociados y `inactivar_si_bloqueado`,
+    lo deja inactive y lo reporta como ``inactivado`` (no borrado duro).
+    Retorna ``{ok, msg, codigo, modo: eliminado|inactivado}``.
+    """
+    codigo = (codigo or "").strip()
+    if not codigo:
+        return {"ok": False, "msg": "codigo es obligatorio"}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "msg": str(e)}
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": codigo, "limit": 5},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
+    if res.status_code != 200:
+        return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
+    productos = res.json() or []
+    if not productos:
+        return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra", "no_encontrado": True}
+
+    item = productos[0]
+    item_id = item.get("id")
+    if not item_id:
+        return {"ok": False, "msg": f"Producto {codigo} sin id en Alegra"}
+
+    try:
+        res_del = requests.delete(
+            f"{_ALEGRA_BASE}/items/{item_id}", headers=headers, timeout=25,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red eliminando: {e}"}
+
+    if res_del.status_code in (200, 204):
+        _producto_cache.pop(codigo, None)
+        return {
+            "ok": True,
+            "msg": f"{codigo} eliminado de Alegra",
+            "codigo": codigo,
+            "modo": "eliminado",
+            "alegra_id": item_id,
+        }
+
+    body = (res_del.text or "")[:300]
+    bloqueado = res_del.status_code == 400 and (
+        "documento" in body.lower()
+        or "asociad" in body.lower()
+        or "1015" in body
+        or "cannot be deleted" in body.lower()
+    )
+    if bloqueado and inactivar_si_bloqueado:
+        try:
+            res_in = requests.put(
+                f"{_ALEGRA_BASE}/items/{item_id}",
+                headers=headers,
+                json={"status": "inactive"},
+                timeout=20,
+            )
+        except requests.RequestException as e:
+            return {"ok": False, "msg": f"No se pudo eliminar ni inactivar: {e}"}
+        if res_in.status_code == 200:
+            _producto_cache.pop(codigo, None)
+            return {
+                "ok": True,
+                "msg": (
+                    f"{codigo} no se pudo borrar (tiene documentos); "
+                    "quedó inactivo en Alegra"
+                ),
+                "codigo": codigo,
+                "modo": "inactivado",
+                "alegra_id": item_id,
+            }
+        return {
+            "ok": False,
+            "msg": f"Alegra no permitió borrar ni inactivar: {res_in.status_code} {res_in.text[:200]}",
+        }
+
+    return {
+        "ok": False,
+        "msg": f"Alegra DELETE error {res_del.status_code}: {body}",
+    }
+
+
 def _mensaje_bloqueo_movimientos_alegra(texto: str) -> str | None:
     """Si Alegra rechaza editar por movimientos, mensaje claro en español."""
     t = (texto or "").lower()
@@ -1609,15 +1707,27 @@ def buscar_productos_alegra_picker(
     consulta: str, *, max_items: int = 40, excluir_combos: bool = True,
 ) -> list[dict]:
     """Espejo de `buscar_productos_siigo_picker` — busca productos/kits activos
-    en Alegra para pickers del panel. Alegra ya soporta búsqueda de texto libre
-    (`query`, sobre nombre y referencia) además de `reference` exacta, así que
-    no hace falta la cascada de pasos que tenía la versión Siigo.
+    en Alegra para pickers del panel. Primero consulta el catálogo SQLite local
+    (fresco <24h); si está vacío/stale o no hay matches, cae a la API Alegra.
     Retorna [{codigo, nombre, type}]."""
     q = (consulta or "").strip()
     if "—" in q or " - " in q:
         q = q.split("—")[0].split(" - ")[0].strip()
     if len(q) < 1:
         return []
+
+    try:
+        from app.services import alegra_catalogo_db as cat
+
+        if not cat.catalogo_stale():
+            locales = cat.buscar_picker_local(
+                q, max_items=max_items, excluir_combos=excluir_combos,
+            )
+            if locales:
+                return locales
+    except Exception:
+        pass
+
     try:
         headers = _alegra_headers()
     except RuntimeError:
@@ -1849,6 +1959,14 @@ def crear_producto_en_alegra(producto: dict) -> dict:
             )
         except Exception:
             pass
+        try:
+            from app.services.alegra_catalogo_db import upsert_item_desde_alegra
+
+            if not data.get("reference"):
+                data = {**data, "reference": codigo, "name": data.get("name") or nombre}
+            upsert_item_desde_alegra(data)
+        except Exception:
+            pass
         return {
             "ok": True,
             "mensaje": f"Producto {codigo} creado en Alegra",
@@ -1936,6 +2054,23 @@ def crear_combo_en_alegra(
 
     if r.status_code in (200, 201):
         data = r.json() if r.content else {}
+        try:
+            from app.services.alegra_catalogo_db import upsert_item_desde_alegra
+
+            comps_local = [
+                {"reference": c, "quantity": qty, "name": ""}
+                for c, qty in comps_raw
+            ]
+            if not data.get("reference"):
+                data = {
+                    **data,
+                    "reference": codigo_limpio,
+                    "name": data.get("name") or nombre_limpio,
+                    "type": "kit",
+                }
+            upsert_item_desde_alegra(data, componentes=comps_local)
+        except Exception:
+            pass
         return {
             "ok": True,
             "mensaje": f"Combo {codigo_limpio} creado en Alegra",

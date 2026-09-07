@@ -269,6 +269,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "contabilidad",
   },
+  "catalogo-alegra": {
+    emoji: "📦",
+    label: "Catálogo Alegra",
+    description: "Espejo local de productos y combos de Alegra: búsqueda rápida, receta de kits y sincronización bajo demanda.",
+    tips: [
+      "Pulsa «Sincronizar desde Alegra» la primera vez o cuando el listado esté desactualizado (>24 h).",
+      "Usá Productos / Combos arriba para clasificar; en cada fila podés Editar (nombre/precio) o Eliminar.",
+      "Si Alegra no deja borrar por facturas asociadas, el ítem se inactiva y desaparece del listado activo.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   "centros-costo": {
     emoji: "💰",
     label: "Centros de costo",
@@ -382,11 +394,11 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "📒",
     label: "Ingresos / Egresos",
     description:
-      "Tabla contable por fecha: ventas Alegra (y Siigo histórico hasta 2026-09-02), MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos, servicios operativos y cuotas de créditos adquiridos. Permite subir el extracto bancario (CSV/Excel) y vincular cada movimiento con la línea del banco.",
+      "Tabla contable por fecha: ventas Alegra (y Siigo histórico hasta 2026-09-02), MeLi y página web; cobros MeLi; facturas de compra y cuentas de cobro del correo; impuestos, servicios operativos y cuotas de créditos adquiridos. Permite subir el extracto bancario (CSV/Excel/PDF) arrastrándolo o eligiendo el archivo, y vincular cada movimiento con la línea del banco.",
     tips: [
       "Filtra por rango de fechas y por fuente (MeLi, Alegra, web, compras, cuentas de cobro, operativos).",
       "Mismo concepto el mismo día → una casilla con sumatoria; clic para desplegar el detalle.",
-      "Sube el extracto (CSV/Excel con Fecha + Débito/Crédito) y usa «Vincular» en cada fila; sugiere por monto y fecha.",
+      "Arrastra el extracto (CSV/Excel/PDF) o elige el archivo; queda en la biblioteca y puedes vincular cada fila por monto y fecha.",
       "Las ventas web son pedidos con estado approved en la tienda.",
       "Las cuentas de cobro del correo (p. ej. William) aparecen como egreso aparte.",
     ],

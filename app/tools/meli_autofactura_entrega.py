@@ -36,6 +36,7 @@ from app.services.meli import (
     consultar_envio_meli,
     consultar_item_meli_basico,
     consultar_orden_meli_completa,
+    consultar_pack_meli,
     meli_pack_tiene_documento_fiscal,
     subir_factura_meli,
 )
@@ -90,6 +91,25 @@ def _registrar_estado_orden(order_id: str, **campos) -> None:
         entrada.update(campos)
         entrada["actualizado_en"] = datetime.now().isoformat(timespec="seconds")
         _guardar_estado_entregas(data)
+
+
+def _hermana_del_pack_ya_subio_pdf(ordenes_hermanas: list[str], order_id_actual: str) -> bool:
+    """True si OTRA orden hermana del mismo pack (misma lista `ordenes_hermanas`,
+    resuelta vía `consultar_pack_meli`) ya subió su PDF a MeLi — en una corrida
+    anterior (backfill) o en esta misma (packs multi-orden, ver
+    `procesar_entrega_meli_para_factura`). MeLi solo admite un documento fiscal
+    por pack, así que esto NO es un duplicado real.
+
+    Se compara por order_id (no por el campo `pack_id` persistido) para que
+    también funcione contra registros viejos, de antes de este fix, que nunca
+    guardaron `pack_id`."""
+    for oid in ordenes_hermanas:
+        if oid == str(order_id_actual):
+            continue
+        datos = _estado_existente_orden(oid)
+        if datos and datos.get("estado") == "facturada" and datos.get("pdf_subido_meli"):
+            return True
+    return False
 
 
 def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
@@ -273,8 +293,8 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             )
             return
 
-        order_id = shipment.get("order_id")
-        if not order_id:
+        order_id_envio = shipment.get("order_id")
+        if not order_id_envio:
             print(f"⚠️ [MELI-AUTOFACTURA] Envío {shipping_id} entregado pero sin order_id — reviso manual.")
             registrar_meli_webhook_incidente(
                 "autofactura_entrega_sin_order_id",
@@ -282,8 +302,77 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
                 source="meli_autofactura_entrega",
             )
             return
-        order_id = str(order_id)
+        order_id_envio = str(order_id_envio)
 
+        # OJO: NO se puede deducir el estado de TODO el pack a partir de la orden
+        # que trae el shipment — MeLi puede reportar precisamente la orden que YA
+        # se facturó, dejando las hermanas sin procesar (bug confirmado en vivo el
+        # 2026-09-06 al reprocesar el pack 2000014868087133: el shipment siempre
+        # reportó la orden del Maní Tostado, ya facturada, y una dedup temprana acá
+        # habría ocultado las otras 4 órdenes pendientes). Por eso el dedup real es
+        # por orden, dentro de `_facturar_orden_entregada`, después de resolver el
+        # pack completo.
+        orden_ancla = consultar_orden_meli_completa(order_id_envio)
+        if not orden_ancla:
+            _registrar_estado_orden(order_id_envio, estado="error", error="No se pudo obtener la orden de MeLi.")
+            return
+
+        # BUG corregido 2026-09-06: un carrito con varios productos genera UNA orden
+        # MeLi por producto, todas compartiendo un mismo pack_id y un mismo shipment.
+        # `GET /shipments/{id}` solo expone UN order_id (el que MeLi decide reportar,
+        # arbitrario) — facturar solo esa orden dejaba el resto de la venta sin
+        # facturar en silencio (caso real: pack 2000014868087133, 5 productos por
+        # $88.095, solo se facturaron $8.500 de un producto). Ahora se resuelven
+        # TODAS las órdenes hermanas del pack vía `consultar_pack_meli()` y cada una
+        # se factura por separado (Alegra factura por order_id, no por pack_id — ver
+        # `app/services/facturacion_ventas_unificado.py`).
+        pack_id = str(orden_ancla.get("pack_id") or order_id_envio).strip()
+        pack = consultar_pack_meli(pack_id)
+        order_ids = [str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]
+        if not order_ids:
+            order_ids = [order_id_envio]
+        elif order_id_envio not in order_ids:
+            order_ids.append(order_id_envio)
+
+        if len(order_ids) > 1:
+            print(
+                f"📦 [MELI-AUTOFACTURA] Envío {shipping_id} es un pack multi-orden ({pack_id}): "
+                f"{len(order_ids)} órdenes a facturar por separado."
+            )
+
+        for order_id in order_ids:
+            _facturar_orden_entregada(
+                order_id=order_id,
+                shipping_id=shipping_id,
+                shipment=shipment,
+                orden_precargada=orden_ancla if order_id == order_id_envio else None,
+                ordenes_hermanas=order_ids,
+            )
+    except Exception as e:
+        print(f"❌ [MELI-AUTOFACTURA] Error procesando envío {shipping_id}: {e}")
+        try:
+            registrar_meli_webhook_incidente(
+                "autofactura_entrega_excepcion",
+                shipping_id=str(shipping_id),
+                error=str(e)[:300],
+                source="meli_autofactura_entrega",
+            )
+        except Exception:
+            pass
+
+
+def _facturar_orden_entregada(
+    *,
+    order_id: str,
+    shipping_id: str,
+    shipment: dict,
+    orden_precargada: dict | None,
+    ordenes_hermanas: list[str],
+) -> None:
+    """Factura en Alegra UNA orden MeLi entregada (una orden = un producto del
+    carrito). Extraído de `procesar_entrega_meli_para_factura` para poder repetirlo
+    por cada orden hermana de un mismo pack/envío."""
+    try:
         previo = _estado_existente_orden(order_id)
         if previo and previo.get("estado") in _ESTADOS_TERMINALES:
             print(f"⏭️ [MELI-AUTOFACTURA] Orden {order_id} ya en estado {previo.get('estado')!r} — dedup.")
@@ -291,7 +380,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
 
         _registrar_estado_orden(order_id, shipping_id=str(shipping_id), estado="en_proceso")
 
-        orden = consultar_orden_meli_completa(order_id)
+        orden = orden_precargada or consultar_orden_meli_completa(order_id)
         if not orden:
             _registrar_estado_orden(order_id, estado="error", error="No se pudo obtener la orden de MeLi.")
             return
@@ -408,6 +497,17 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
             aviso_pdf = ""
             if not result.get("pdf_base64"):
                 aviso_pdf = "\n⚠️ No se pudo descargar el PDF de Alegra — súbelo a MeLi manualmente."
+            elif _hermana_del_pack_ya_subio_pdf(ordenes_hermanas, order_id):
+                # Otra orden hermana de este mismo pack YA subió su PDF (en esta misma
+                # corrida o en una anterior — ver `_pack_ya_tiene_pdf_subido_por_otra_orden`)
+                # — MeLi solo admite un documento fiscal por pack, así que esto es
+                # esperado y NO un duplicado real: no crear ticket, solo dejar constancia.
+                pdf_subido = True
+                aviso_pdf = (
+                    "\nℹ️ MeLi ya tiene el documento fiscal de otra orden de este mismo "
+                    "pack/carrito (un solo documento por pack) — esta factura queda "
+                    "registrada en Alegra pero no se sube de nuevo a MeLi."
+                )
             elif meli_pack_tiene_documento_fiscal(pack_id):
                 # En vez de solo avisar en texto (el operador tenía que ir a
                 # revisar Astro Killer a mano, sin dejar rastro de por qué),
@@ -429,6 +529,7 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
                 order_id,
                 estado="facturada",
                 proveedor="alegra",
+                pack_id=pack_id,
                 siigo_invoice_id=result.get("invoice_id"),
                 siigo_invoice_number=result.get("number"),
                 siigo_invoice_status=result.get("status"),
@@ -450,10 +551,12 @@ def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
     except Exception as e:
-        print(f"❌ [MELI-AUTOFACTURA] Error procesando envío {shipping_id}: {e}")
+        print(f"❌ [MELI-AUTOFACTURA] Error facturando orden {order_id} (envío {shipping_id}): {e}")
         try:
+            _registrar_estado_orden(order_id, estado="error", error=str(e)[:300])
             registrar_meli_webhook_incidente(
                 "autofactura_entrega_excepcion",
+                order_id=order_id,
                 shipping_id=str(shipping_id),
                 error=str(e)[:300],
                 source="meli_autofactura_entrega",

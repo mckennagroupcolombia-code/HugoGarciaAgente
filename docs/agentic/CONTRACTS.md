@@ -252,11 +252,16 @@ Persistencia: `app/data/empaque_evidencia.db` + fotos en `app/data/empaque_uploa
 Panel React: id `empaque` (hub Atención). Permiso `permisos_secciones.empaque`.
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
 | `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea producto en **Alegra** (ruta `/api/siigo/*` se mantiene por compatibilidad); `{ok, mensaje\|error, siigo_producto?}` |
-| `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Alegra; `{items[{codigo,nombre,type}], total}` |
+| `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Alegra (o espejo SQLite si sync <24h); `{items[{codigo,nombre,type}], total}` |
 | `/api/siigo/combos` | POST | `codigo`, `nombre`, `componentes[{code,quantity}]`, `precio_lista?`, `iva?` | Crea kit en Alegra; requiere ≥1 componente existente |
 | `/api/siigo/centros-costo` | GET | — | Centros de costo Alegra `{centros[{id,code,name,active}]}` |
+| `/api/alegra/catalogo` | GET | `tipo?` (`product`\|`kit`), `q?`, `limit?`, `offset?` | Espejo local SQLite; `{items, total, synced_at, stale, sync, conteos:{product,kit}}` |
+| `/api/alegra/catalogo/<codigo>` | GET | — | Detalle + `componentes[]` si es kit |
+| `/api/alegra/catalogo/<codigo>` | PUT/PATCH | `{nombre?, precio_lista?}` | Edita en Alegra + espejo local; `{ok, item, cambios}` |
+| `/api/alegra/catalogo/<codigo>` | DELETE | — | Elimina en Alegra (o inactiva si tiene documentos) y quita del espejo; `{ok, modo, mensaje}` |
+| `/api/alegra/catalogo/sincronizar` | POST | body opcional `{sync:1}` bloqueante | Sync Alegra→SQLite (default en hilo); `{ok, started?, productos?, kits?, sync}` |
 
-También existen prefijos `/app/api/siigo/productos` y `/app/api/siigo/combos` para mutaciones bajo el SPA.
+También existen prefijos `/app/api/siigo/productos`, `/app/api/siigo/combos` y `/app/api/alegra/catalogo*` para el SPA.
 
 ## Rentabilidad / compras exterior
 

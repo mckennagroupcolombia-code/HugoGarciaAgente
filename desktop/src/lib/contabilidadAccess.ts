@@ -19,6 +19,7 @@ export const CONTABILIDAD_PANELS = [
   "compras-exterior",
   "productos-siigo",
   "costos-productos",
+  "catalogo-alegra",
   "operativos",
   "rrhh",
 ] as const satisfies readonly Panel[];
@@ -105,6 +106,7 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p["compras-exterior"]
       || p["productos-siigo"]
       || p["costos-productos"]
+      || p["catalogo-alegra"]
       || p.rrhh
       || p.operativos
       || p.impuestos
@@ -201,6 +203,17 @@ export function puedeVerModuloContabilidad(
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con
     // socios/proveedores son datos sensibles — no se hereda de facturación/sync.
     return Boolean(p["libro-mayor"]);
+  }
+  if (seccion === "catalogo-alegra") {
+    return Boolean(
+      p["catalogo-alegra"]
+        || p["productos-siigo"]
+        || p["costos-productos"]
+        || p.facturas
+        || p.sync
+        || p.facturacion
+        || p.rentabilidad,
+    );
   }
   return Boolean(p[seccion as keyof typeof p]);
 }

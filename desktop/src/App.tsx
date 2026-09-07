@@ -109,6 +109,7 @@ function PanelRouterInner() {
     case "ventas-email":
       return <VentasEmailPanel />;
     case "costos-productos":
+    case "catalogo-alegra":
     case "rentabilidad":
     case "publicidad":
     case "salud-negocio":
