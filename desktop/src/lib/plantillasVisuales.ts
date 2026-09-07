@@ -74,6 +74,18 @@ export interface ElementoTexto extends ElementoBase {
   marcoAncho?: number;
   /** Color del anillo; por defecto el color del texto. */
   marcoColor?: string;
+  /** Reduce fontSize/lineHeight automáticamente al exportar si el texto no
+   *  cabe en `height`, en vez de sobreponerse al elemento siguiente.
+   *  undefined/false = comportamiento actual (puede desbordar). */
+  autofit?: boolean;
+  /** Piso de fontSize al reducir por autofit. undefined = 55% del fontSize
+   *  base de ese elemento. */
+  minFontSize?: number;
+  /** Solo en plantillas de ficha MP (`doc.ficha_mp`): qué campo de
+   *  `DatosFichaTecnicaMp` alimenta este texto (valor de `CampoTextoFichaMp`,
+   *  tipado en plantillaFichaTecnicaMp.ts para evitar import circular aquí).
+   *  Ausente = contenido fijo de marca/diseño, no se toca en aplicación masiva. */
+  campoProducto?: string;
 }
 
 export interface ElementoRect extends ElementoBase {
@@ -108,6 +120,10 @@ export interface PlantillaVisualDoc {
   carpeta?: string;
   /** Plantilla creada por el pipeline AI (.ai → Studio); vive en la raíz. */
   origen_ai?: boolean;
+  /** SKU/código Siigo representativo con el que se diseñó esta plantilla
+   *  (opcional). Asocia renders_etiquetas/<sku>/ y prerrellena el campo al
+   *  reabrir en Diligenciar etiqueta. */
+  sku?: string;
   formato: FormatoCanvas;
   fondo: string;
   elementos: ElementoVisual[];

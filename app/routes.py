@@ -1751,8 +1751,16 @@ def register_routes(app):
 
     @app.errorhandler(500)
     def _api_500(e):
+        orig = getattr(e, "original_exception", None)
+        try:
+            from app.services import telemetria
+
+            telemetria.registrar_error(
+                "http_500", origen=request.path, exception=orig or e
+            )
+        except Exception:
+            pass
         if _pide_json_api():
-            orig = getattr(e, "original_exception", None)
             msg = str(orig or e)[:300] or "Error interno del servidor"
             return jsonify({"error": msg}), 500
         return e
@@ -3225,6 +3233,85 @@ def register_routes(app):
             return jsonify(data)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/telemetria/evento", methods=["POST"])
+    def api_telemetria_evento():
+        """Ingesta de eventos desde bot-mckenna (Node) u otros procesos locales.
+        Sin auth: localhost-only (mismo criterio que /api/costos-ia), y
+        _check_acceso_red ya bloquea IPs no-127.* salvo acceso de red habilitado."""
+        try:
+            from app.services import telemetria
+
+            data = request.get_json(silent=True) or {}
+            event = str(data.get("event") or "").strip()
+            if not event:
+                return jsonify({"ok": False, "error": "Falta 'event'"}), 400
+            level = str(data.get("level") or "info").strip().lower()
+            origen = str(data.get("origen") or "bot-node")[:120]
+            detalle = data.get("detalle")
+            if level == "error":
+                telemetria.registrar_error(
+                    event,
+                    origen=origen,
+                    mensaje=str(data.get("mensaje") or "")[:500],
+                    contexto=json.dumps(detalle, ensure_ascii=False, default=str)[:2000]
+                    if detalle
+                    else "",
+                )
+            else:
+                telemetria.incrementar_evento(event, canal=origen)
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+    @app.route("/api/telemetria/resumen")
+    def api_telemetria_resumen():
+        """Agregados de telemetría (métricas + errores + estado de servicios).
+        Sin auth: solo agregados, mismo criterio que /api/metricas."""
+        try:
+            from app.services import telemetria
+
+            servicios = {}
+            for nombre, puerto, path in (
+                ("webhook-meli", 8080, "/status"),
+                ("agente-pro", 8081, "/status"),
+                ("whatsapp-bridge", 3000, "/monitor/json"),
+            ):
+                try:
+                    r = _requests_lib.get(f"http://127.0.0.1:{puerto}{path}", timeout=1.5)
+                    servicios[nombre] = r.status_code < 500
+                except Exception:
+                    servicios[nombre] = False
+
+            return jsonify(
+                {
+                    "metricas": {
+                        "hoy": telemetria.metricas_hoy(),
+                        "historial_30d": telemetria.resumen_metricas(30).get("historial", []),
+                    },
+                    "errores_resumen": telemetria.resumen_errores(7),
+                    "servicios": servicios,
+                }
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)[:200]}), 500
+
+    @app.route("/api/telemetria/errores")
+    def api_telemetria_errores():
+        """Errores recientes con traceback: requiere auth (expone detalle interno)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import telemetria
+
+            limite = min(max(int(request.args.get("limite", 50)), 1), 500)
+            event = request.args.get("event") or None
+            origen = request.args.get("origen") or None
+            return jsonify(
+                {"errores": telemetria.errores_recientes(limite=limite, event=event, origen=origen)}
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)[:200]}), 500
 
     @app.route("/api/responder-preventa", methods=["POST"])
     def api_responder_preventa():
@@ -18541,6 +18628,46 @@ def register_routes(app):
             return jsonify({"ok": True, "formato": "png", "nombre": f"{safe}{suf}.png", "base64": b64})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/plantillas-visuales/aplicar-lote", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/aplicar-lote", methods=["POST"])
+    def api_plantillas_visuales_aplicar_lote():
+        """Aplica una plantilla de ficha MP (Diligenciar etiqueta) a varios
+        productos/SKUs de una sola vez, con autofit real por elemento — el
+        reemplazo de "repetir el formulario a mano" que rompía la retícula
+        al desbordar texto. Ver app/tools/plantillas_visuales.py::aplicar_plantilla_lote."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.plantillas_visuales import aplicar_plantilla_lote
+
+        body = request.get_json(silent=True) or {}
+        plantilla_id = (body.get("plantilla_id") or "").strip()
+        productos = body.get("productos")
+        if not plantilla_id or not isinstance(productos, list) or not productos:
+            return jsonify({"error": "Faltan 'plantilla_id' y/o 'productos' (lista no vacía)"}), 400
+
+        try:
+            resultados = aplicar_plantilla_lote(
+                plantilla_id,
+                productos,
+                formato=(body.get("formato") or "png").strip().lower(),
+                escala=max(0.25, min(8.0, float(body.get("escala") or 1))),
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+        exitosos = sum(1 for r in resultados if r.get("ok"))
+        con_revision = sum(1 for r in resultados if r.get("requiere_revision"))
+        return jsonify({
+            "ok": True,
+            "resultados": resultados,
+            "total": len(resultados),
+            "exitosos": exitosos,
+            "con_revision": con_revision,
+        })
 
     @app.route("/api/plantillas-visuales/desenfoque", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/desenfoque", methods=["POST"])

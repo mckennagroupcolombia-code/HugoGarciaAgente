@@ -1,3 +1,15 @@
+### 2026-09-07 00:45 - Studio: autofit de texto + Aplicar en lote
+- **Autor:** Claude (Sonnet 5)
+- **Tipo de Cambio:** Corrección de raíz / Feature
+- **Qué se implementó:**
+  - Causa raíz del bug de aplicación masiva (texto sobrepuesto al diligenciar en escala, ej. 76×66mm / MANTECA DE CACAO REFINADA 1000g): `exportar_raster`/`exportar_pdf` nunca comparaban la altura del texto contra su caja. Nuevo autofit opt-in (`autofit`/`minFontSize` por elemento) reduce fuente/interlineado hasta caber, o marca `requiere_revision` en vez de desbordar en silencio. Sin cambios para las plantillas ya guardadas (campo ausente = comportamiento actual).
+  - Nuevo campo `campoProducto` en `ElementoTexto` (+ `contenidoCampoProductoFichaMp` en `plantillaFichaTecnicaMp.ts`): identifica qué texto de una ficha MP es variable por producto vs. fijo de marca, ya conectado en los ~15 campos de `plantillaFichaTecnicaMp()` con `autofit: true` por defecto.
+  - Endpoint `POST /api/plantillas-visuales/aplicar-lote` + `aplicar_plantilla_lote()`: aplica una plantilla a N SKUs con autofit real. Nueva pantalla "Aplicar en lote" (`AplicarLotePanel.tsx`, botón en las tarjetas de ficha MP del Studio) para usarlo sin tocar código.
+  - Almacenamiento por producto: `renders_etiquetas/<sku>/etiqueta.png` + `ficha_tecnica.json` (SKU/código Siigo, mismo identificador que `/api/etiquetas/datos/<sku>`); nuevo campo `sku` opcional en `plantillas_visuales.json`.
+  - `FichaMpDiligenciarPanel` (Diligenciar etiqueta) exporta ahora vía el motor backend (autofit incluido) en vez de `html-to-image` sobre el DOM — lo que se aprueba 1-a-1 coincide con lo que produce el lote. La pantalla interactiva (clic-para-editar, sliders de `AjustesDiagramacionCompleta`) no se tocó: se evaluó migrarla a `VisualCanvasEditor` pero ese editor es de pantalla completa (no aloja un sidebar) y el renderer estático liviano del proyecto omite líneas/imágenes — habría degradado una UX que ya funciona bien para el caso 1 a 1.
+  - "Generar formatos de etiqueta" ya se había retirado en el commit anterior (22:54) — confirmado, nada pendiente ahí.
+- **Archivos Modificados:** `app/tools/plantillas_visuales.py`, `app/routes.py`, `desktop/src/lib/plantillasVisuales.ts`, `desktop/src/lib/plantillaFichaTecnicaMp.ts`, `desktop/src/components/plantillas-visuales/FichaMpDiligenciarPanel.tsx`, `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`, `desktop/src/components/plantillas-visuales/AplicarLotePanel.tsx` (nuevo), `tests/test_plantillas_visuales_autofit.py` (nuevo), `tests/test_plantillas_visuales_lote.py` (nuevo), `docs/team-recaps.md`
+
 ### 2026-09-06 23:10 - Studio: diagramar foto al tamaño del lienzo
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Corrección / Feature

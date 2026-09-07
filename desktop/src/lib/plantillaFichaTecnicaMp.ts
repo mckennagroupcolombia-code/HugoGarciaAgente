@@ -439,6 +439,13 @@ function tx(opts: {
   nombre?: string;
   role?: RolTextoCapa;
   h?: number;
+  /** Campo de `DatosFichaTecnicaMp` que alimenta este texto — ausencia =
+   *  contenido fijo de marca/diseño, no se toca en aplicación masiva. */
+  campo?: CampoTextoFichaMp;
+  /** undefined con `campo` presente = true (autofit por defecto en los
+   *  campos variables por producto, para que aplicar en lote no desborde). */
+  autofit?: boolean;
+  minFontSize?: number;
 }): ElementoTexto {
   const lh = opts.lh ?? 1.2;
   const lines = opts.lines ?? Math.max(1, (opts.content.match(/\n/g)?.length ?? 0) + 1);
@@ -460,6 +467,9 @@ function tx(opts: {
     lineHeight: lh,
     nombreCapa: opts.nombre,
     textRole: opts.role,
+    campoProducto: opts.campo,
+    autofit: opts.campo ? (opts.autofit ?? true) : opts.autofit,
+    minFontSize: opts.minFontSize,
   };
 }
 
@@ -565,6 +575,58 @@ export function esPlantillaFichaMp(doc: Pick<PlantillaVisualDoc, "ficha_mp">): b
   return Boolean(doc.ficha_mp && typeof doc.ficha_mp === "object");
 }
 
+/** `campoProducto` que existen pero no deben ofrecerse como columna variable
+ *  en "Aplicar en lote" (la marca no cambia de producto a producto, aunque
+ *  técnicamente sí lleve un `campoProducto` para poder editarla campo a campo). */
+export const CAMPOS_PRODUCTO_FIJOS_MARCA: readonly CampoTextoFichaMp[] = ["marca"];
+
+/** Dado un `campoProducto` + los datos de un producto, produce el `content`
+ *  final para el elemento correspondiente — espejo de cómo
+ *  `plantillaFichaTecnicaMp()` compone los campos que salen de más de un
+ *  valor de `DatosFichaTecnicaMp` (concentración, CAS, destacados). Es la
+ *  función que arma el payload de "Aplicar en lote": el backend
+ *  (`aplicar_plantilla_lote`) recibe el `content` ya formateado y no
+ *  reimplementa este formateo compuesto en Python. */
+export function contenidoCampoProductoFichaMp(
+  campo: CampoTextoFichaMp,
+  datos: DatosFichaTecnicaMp,
+): string {
+  switch (campo) {
+    case "concentracion":
+      return `${datos.concentracionLabel}\n${datos.concentracionValor}`;
+    case "cas":
+      return `${datos.casLabel}\n${datos.cas}`;
+    case "feat0":
+      return datos.features[0]?.titulo ?? "";
+    case "feat1":
+      return datos.features[1]?.titulo ?? "";
+    case "feat2":
+      return datos.features[2]?.titulo ?? "";
+    case "atencion":
+      return datos.atencionTexto;
+    case "abreviatura":
+      return datos.abreviatura;
+    case "nombre":
+      return datos.nombre;
+    case "tagline":
+      return datos.tagline;
+    case "descripcion":
+      return datos.descripcion;
+    case "aplicaciones":
+      return datos.aplicaciones;
+    case "incorporacion":
+      return datos.incorporacion;
+    case "peso":
+      return datos.peso;
+    case "almacenamiento":
+      return datos.almacenamiento;
+    case "marca":
+      return datos.marca;
+    default:
+      return "";
+  }
+}
+
 export function parsearFichaMpDePlantilla(
   doc: Pick<PlantillaVisualDoc, "ficha_mp" | "formato">,
 ): { color: string; tipoNombre: string; datos: DatosFichaTecnicaMp; estilo: EstiloFichaMp } | null {
@@ -658,6 +720,7 @@ export function plantillaFichaTecnicaMp(opts: {
       align: "center",
       nombre: "Abreviatura",
       role: "titulo",
+      campo: "abreviatura",
     }),
   );
   y += abbrSize * 1.12;
@@ -676,6 +739,7 @@ export function plantillaFichaTecnicaMp(opts: {
       lines: d.nombre.length > 28 ? 2 : 1,
       nombre: "Nombre producto",
       role: "titulo",
+      campo: "nombre",
     }),
   );
   y += nameSize * (d.nombre.length > 28 ? 2.4 : 1.35);
@@ -693,6 +757,7 @@ export function plantillaFichaTecnicaMp(opts: {
       align: "center",
       nombre: "Tagline",
       role: "subtitulo",
+      campo: "tagline",
     }),
   );
   y += tagSize * 1.7;
@@ -737,6 +802,7 @@ export function plantillaFichaTecnicaMp(opts: {
       lh: 1.25,
       h: boxH - specPad * 2,
       nombre: "Concentración",
+      campo: "concentracion",
     }),
   );
   els.push(
@@ -753,6 +819,7 @@ export function plantillaFichaTecnicaMp(opts: {
       lh: 1.25,
       h: boxH - specPad * 2,
       nombre: "CAS",
+      campo: "cas",
     }),
   );
 
@@ -773,6 +840,7 @@ export function plantillaFichaTecnicaMp(opts: {
       h: descBand.h,
       nombre: "Descripción",
       role: "descripcion",
+      campo: "descripcion",
     }),
   );
 
@@ -837,6 +905,7 @@ export function plantillaFichaTecnicaMp(opts: {
         lines: 2,
         h: featH * 0.38,
         nombre: f.titulo,
+        campo: (i === 0 ? "feat0" : i === 1 ? "feat1" : "feat2") as CampoTextoFichaMp,
       }),
     );
   });
@@ -849,6 +918,7 @@ export function plantillaFichaTecnicaMp(opts: {
     cuerpo: string,
     icono: IconoFichaMp,
     capa: string,
+    campoCuerpo?: CampoTextoFichaMp,
   ) => {
     const b = band(from, to);
     els.push(ln(leftX, b.y, leftX + leftW, b.y, color, sw, `Línea ${capa}`));
@@ -885,13 +955,14 @@ export function plantillaFichaTecnicaMp(opts: {
         lh: 1.25,
         h: Math.max(20, b.y + b.h - bodyY - gap * 0.5),
         nombre: `Texto ${capa}`,
+        campo: campoCuerpo,
       }),
     );
     els.push(ln(leftX, b.y + b.h, leftX + leftW, b.y + b.h, color, sw, `Línea fin ${capa}`));
   };
 
-  addSeccion(0.55, 0.695, d.aplicacionesTitulo, d.aplicaciones, "matraz", "aplicaciones");
-  addSeccion(0.71, 0.855, d.incorporacionTitulo, d.incorporacion, "mortero", "incorporacion");
+  addSeccion(0.55, 0.695, d.aplicacionesTitulo, d.aplicaciones, "matraz", "aplicaciones", "aplicaciones");
+  addSeccion(0.71, 0.855, d.incorporacionTitulo, d.incorporacion, "mortero", "incorporacion", "incorporacion");
 
   const badge = band(0.875, 0.98);
   const badgeH = Math.min(badge.h, Math.max(22, H * 0.05));
@@ -921,6 +992,7 @@ export function plantillaFichaTecnicaMp(opts: {
       h: badgeH * 0.7,
       z: 5,
       nombre: "Peso",
+      campo: "peso",
     }),
   );
 
@@ -937,6 +1009,7 @@ export function plantillaFichaTecnicaMp(opts: {
       weight: "800",
       align: "center",
       nombre: "Marca",
+      campo: "marca",
     }),
   );
 
@@ -979,6 +1052,7 @@ export function plantillaFichaTecnicaMp(opts: {
       lh: 1.25,
       h: warnB.h * 0.5,
       nombre: "Atención texto",
+      campo: "atencion",
     }),
   );
 
@@ -998,6 +1072,7 @@ export function plantillaFichaTecnicaMp(opts: {
       lines: 4,
       h: stor.h - gap,
       nombre: "Almacenamiento",
+      campo: "almacenamiento",
     }),
   );
   els.push(ln(rightX, stor.y + stor.h, rightX + rightW, stor.y + stor.h, color, sw, "Línea fin almacenamiento"));

@@ -3,7 +3,6 @@
  * de la etiqueta MP tipo SCI. El PNG se exporta desde el HTML, no del lienzo.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
-import { toBlob } from "html-to-image";
 import { api } from "../../api/client";
 import { Field } from "../documentos/DocumentoGeneradorTab";
 import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
@@ -1651,17 +1650,28 @@ export default function FichaMpDiligenciarPanel({
     return () => window.removeEventListener("paste", handlePaste);
   }, [procesarArchivoCaptura]);
 
+  /** Exporta vía el motor backend (mismo `exportar_raster` con autofit que
+   *  usa "Aplicar en lote"): lo que aprueba un humano 1-a-1 aquí es
+   *  exactamente lo que produce la automatización a escala — ya no se
+   *  rasteriza el DOM con html-to-image (ese motor no tenía autofit). */
   async function rasterizar(): Promise<Blob> {
-    const el = etiquetaRef.current;
-    if (!el) throw new Error("No hay vista previa");
-    await document.fonts?.ready;
-    const blob = await toBlob(el, {
-      pixelRatio: 300 / CANVAS_DPI,
-      backgroundColor: "#ffffff",
-      cacheBust: true,
+    const doc = plantillaFichaTecnicaMp({
+      formato: tipoEtiquetaToFormato(tipo),
+      categoria: "etiquetas",
+      carpeta: CARPETA_FORMATOS_ETIQUETA,
+      colorPrimario: color,
+      datos,
     });
-    if (!blob) throw new Error("No se pudo generar el PNG");
-    return blob;
+    const escala = 300 / (doc.formato.dpi || CANVAS_DPI);
+    const res = await api.post<{ ok: boolean; base64: string; error?: string }>(
+      "/api/plantillas-visuales/exportar",
+      { plantilla: doc, formato: "png", escala },
+    );
+    if (!res?.base64) throw new Error(res?.error || "No se pudo generar el PNG");
+    const bin = atob(res.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: "image/png" });
   }
 
   async function descargar() {

@@ -20,6 +20,13 @@ _ASSETS_DIR = _REPO / "uploads" / "plantillas_visuales"
 _MAX_PLANTILLAS = 500
 _MAX_ASSET_BYTES = 8 * 1024 * 1024
 
+# Carpeta por producto (SKU/código Siigo): etiqueta(s) generada(s) + imagen +
+# ficha técnica usada. Ya existe en .gitignore y en disco (con dos carpetas
+# de staging manual sin relación con este código, ver _CARPETAS_RESERVADAS)
+# — se reusa en vez de crear una raíz nueva.
+_RENDERS_DIR = _REPO / "renders_etiquetas"
+_CARPETAS_RESERVADAS = {"etiquetas_nuevas_svg", "staging_nuevo_patron"}
+
 # Cache en memoria de plantillas_visuales.json, invalidada por mtime: cada
 # tecla en el buscador del Studio listaba y filtraba el catálogo completo
 # releyendo y re-parseando el JSON desde disco. `_load_all` devuelve una
@@ -289,6 +296,15 @@ def guardar_plantilla(body: dict) -> dict:
         ficha_mp = (existente or {}).get("ficha_mp")
     if isinstance(ficha_mp, dict):
         entry["ficha_mp"] = _copia_fiel_json(ficha_mp)
+    # Producto (SKU/código Siigo) representativo con el que se diseñó esta
+    # plantilla — opcional, permite asociar renders_etiquetas/<sku>/ y
+    # pre-rellenar el campo al reabrir en Diligenciar etiqueta.
+    sku = body.get("sku")
+    if sku is None:
+        sku = (existente or {}).get("sku")
+    sku = (sku or "").strip()
+    if sku:
+        entry["sku"] = sku
     items = [p for p in todas if p.get("id") != pid]
     items.insert(0, entry)
     _save_all(items)
@@ -432,7 +448,40 @@ def _cargar_imagen_rl(src: str, ancho_pt: float | None = None, alto_pt: float | 
     return None
 
 
-def exportar_pdf(plantilla: dict) -> bytes:
+def _wrap_texto_pdf(c, texto: str, font: str, size: float, ancho: float) -> list[str]:
+    """Equivalente de `_wrap_texto_raster` para el canvas de reportlab."""
+    lineas: list[str] = []
+    for parrafo in (texto or "").split("\n"):
+        actual = ""
+        for palabra in parrafo.split(" "):
+            cand = (actual + " " + palabra).strip()
+            if actual and c.stringWidth(cand, font, size) > ancho:
+                lineas.append(actual)
+                actual = palabra
+            else:
+                actual = cand
+        lineas.append(actual)
+    return lineas
+
+
+def _ajustar_texto_a_caja_pdf(
+    c, texto: str, font: str, size_base: float, lh_base: float,
+    ancho: float, alto: float, min_font_size: float | None,
+) -> tuple[list[str], float, float, bool]:
+    """Mismo autofit de `_ajustar_texto_a_caja`, en puntos PDF."""
+    size = size_base
+    lh = lh_base
+    min_fs = float(min_font_size) if min_font_size is not None else size_base * 0.55
+    min_fs = max(2.0, min(min_fs, size_base))
+    lineas = _wrap_texto_pdf(c, texto, font, size, ancho)
+    while len(lineas) * size * lh > alto and size > min_fs:
+        size = max(min_fs, size * 0.94)
+        lineas = _wrap_texto_pdf(c, texto, font, size, ancho)
+    cabe = len(lineas) * size * lh <= alto
+    return lineas, size, lh, cabe
+
+
+def exportar_pdf(plantilla: dict, avisos_out: list | None = None) -> bytes:
     from reportlab.lib.units import inch
     from reportlab.pdfgen import canvas as rl_canvas
 
@@ -498,11 +547,25 @@ def exportar_pdf(plantilla: dict) -> bytes:
             c.setFillColor(color)
             size = float(el.get("fontSize") or 16) / dpi * 72
             font = "Helvetica-Bold" if str(el.get("fontWeight") or "") in ("bold", "700") else "Helvetica"
-            c.setFont(font, max(4, size))
             texto = str(el.get("content") or "")
             align = (el.get("align") or "left").strip()
-            for i, linea in enumerate(texto.split("\n")):
-                ly = y + h - size * (i + 1) * 1.2
+            lh = 1.2
+            if el.get("autofit"):
+                min_fs = el.get("minFontSize")
+                min_fs_pt = float(min_fs) / dpi * 72 if min_fs is not None else None
+                lineas, size, lh, cabe = _ajustar_texto_a_caja_pdf(
+                    c, texto, font, size, lh, w, h, min_fs_pt,
+                )
+                if not cabe and avisos_out is not None:
+                    avisos_out.append({
+                        "elemento": el.get("id"),
+                        "nombreCapa": el.get("nombreCapa"),
+                    })
+            else:
+                lineas = texto.split("\n")
+            c.setFont(font, max(4, size))
+            for i, linea in enumerate(lineas):
+                ly = y + h - size * (i + 1) * lh
                 if align == "center":
                     c.drawCentredString(x + w / 2, ly, linea)
                 elif align == "right":
@@ -792,7 +855,50 @@ def _wrap_texto_raster(texto: str, fnt, medidor, ancho: float) -> list[str]:
     return lineas
 
 
-def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) -> bytes:
+def _ajustar_texto_a_caja(
+    texto: str,
+    fnt_weight: str,
+    size_base: float,
+    lh_base: float,
+    ancho: float,
+    alto: float,
+    ss: int,
+    min_font_size: float | None,
+    medidor,
+) -> tuple[list[str], Any, float, float, bool]:
+    """Reduce fontSize/lineHeight iterativamente hasta que el wrap quepa en
+    `alto` (unidades de pantalla, sin supersampling — igual que `ancho`).
+
+    Causa raíz del bug de aplicación masiva: `exportar_raster` dibujaba el
+    texto con tamaño fijo sin comprobar nunca la altura de la caja, así que
+    un contenido más largo que el usado al diseñar la plantilla se dibujaba
+    encima del siguiente elemento. Esta función es opt-in (`el["autofit"]`)
+    para no cambiar el render de ninguna plantilla ya guardada.
+
+    Devuelve (lineas, fuente_pil, size_final, lh_final, cabe). `cabe=False`
+    señala que ni al tamaño mínimo entra — el caller debe marcarlo para
+    revisión manual, nunca truncar contenido en silencio.
+    """
+    size = size_base
+    lh = lh_base
+    min_fs = float(min_font_size) if min_font_size is not None else size_base * 0.55
+    min_fs = max(4.0, min(min_fs, size_base))
+    fnt = _fuente_raster(fnt_weight, int(round(size * ss)))
+    lineas = _wrap_texto_raster(texto, fnt, medidor, ancho * ss)
+    while len(lineas) * size * lh > alto and size > min_fs:
+        size = max(min_fs, size * 0.94)
+        fnt = _fuente_raster(fnt_weight, int(round(size * ss)))
+        lineas = _wrap_texto_raster(texto, fnt, medidor, ancho * ss)
+    cabe = len(lineas) * size * lh <= alto
+    return lineas, fnt, size, lh, cabe
+
+
+def exportar_raster(
+    plantilla: dict,
+    formato: str = "png",
+    escala: float = 1.0,
+    avisos_out: list | None = None,
+) -> bytes:
     """Render fiel al editor DOM: Montserrat con word-wrap y line-height 1.2,
     alineación por línea e imágenes con objectFit contain (incluye SVG data-URI
     vía cairosvg cuando está disponible). Se dibuja a 3× y se reescala."""
@@ -872,7 +978,18 @@ def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) 
             if float(el.get("arco") or 0):
                 _texto_arco_raster(img, el, contenido, fnt, medidor, ss)
                 continue
-            lineas = _wrap_texto_raster(contenido, fnt, medidor, ew * ss)
+            if el.get("autofit"):
+                lineas, fnt, size, lh, cabe = _ajustar_texto_a_caja(
+                    contenido, str(el.get("fontWeight") or ""), size, lh,
+                    ew, eh, ss, el.get("minFontSize"), medidor,
+                )
+                if not cabe and avisos_out is not None:
+                    avisos_out.append({
+                        "elemento": el.get("id"),
+                        "nombreCapa": el.get("nombreCapa"),
+                    })
+            else:
+                lineas = _wrap_texto_raster(contenido, fnt, medidor, ew * ss)
             cy = y * ss
             for linea in lineas:
                 ancho_ln = medidor.textlength(linea, font=fnt)
@@ -948,3 +1065,93 @@ def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) 
     else:
         img.save(out, format="PNG")
     return out.getvalue()
+
+
+def _nombre_sku_seguro(sku: str) -> str:
+    s = re.sub(r"[^\w\-]+", "_", (sku or "").strip())[:80]
+    if not s or s in _CARPETAS_RESERVADAS:
+        raise ValueError(f"SKU inválido o reservado: {sku!r}")
+    return s
+
+
+def _guardar_render_producto(sku: str, blob: bytes, formato: str) -> str:
+    carpeta = _RENDERS_DIR / _nombre_sku_seguro(sku)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    ext = {"jpeg": "jpg"}.get((formato or "png").lower(), (formato or "png").lower())
+    dest = carpeta / f"etiqueta.{ext}"
+    dest.write_bytes(blob)
+    try:
+        return str(dest.relative_to(_REPO))
+    except ValueError:
+        return str(dest)
+
+
+def _guardar_ficha_tecnica_producto(sku: str, datos: dict) -> None:
+    """Copia liviana de los datos usados para esa etiqueta — trazabilidad."""
+    carpeta = _RENDERS_DIR / _nombre_sku_seguro(sku)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    with open(carpeta / "ficha_tecnica.json", "w", encoding="utf-8") as f:
+        json.dump(datos, f, ensure_ascii=False, indent=2)
+
+
+def _aplicar_datos_producto_a_elementos(elementos: list[dict], datos: dict) -> None:
+    """Reescribe in-place el `content` de cada elemento con `campoProducto`
+    presente en `datos` (ya formateado por el frontend — ver
+    `contenidoCampoProductoFichaMp` en plantillaFichaTecnicaMp.ts, que evita
+    reimplementar el formateo de campos compuestos en dos lenguajes)."""
+    for el in elementos:
+        campo = el.get("campoProducto")
+        if campo and campo in datos:
+            el["content"] = datos[campo]
+
+
+def aplicar_plantilla_lote(
+    plantilla_id: str,
+    productos: list[dict],
+    formato: str = "png",
+    escala: float = 1.0,
+) -> list[dict]:
+    """Aplica una plantilla de ficha MP a varios productos/SKUs, con autofit
+    real por elemento — el reemplazo de "repetir el formulario a mano"."""
+    base = obtener_plantilla(plantilla_id)
+    if not base or not isinstance(base.get("ficha_mp"), dict):
+        raise ValueError("La plantilla no es una ficha MP (falta 'ficha_mp')")
+    resultados: list[dict] = []
+    for prod in productos:
+        sku = str(prod.get("sku") or "").strip()
+        if not sku:
+            resultados.append({"sku": None, "ok": False, "motivo": "Falta 'sku'"})
+            continue
+        datos = prod.get("datos") or {}
+        doc = copy.deepcopy(base)
+        try:
+            _aplicar_datos_producto_a_elementos(doc.get("elementos") or [], datos)
+        except Exception as exc:
+            resultados.append({"sku": sku, "ok": False, "motivo": str(exc)})
+            continue
+        avisos: list[dict] = []
+        try:
+            if formato == "pdf":
+                blob = exportar_pdf(doc, avisos_out=avisos)
+            else:
+                blob = exportar_raster(doc, formato, escala=escala, avisos_out=avisos)
+        except Exception as exc:
+            resultados.append({"sku": sku, "ok": False, "motivo": str(exc)})
+            continue
+        try:
+            ruta = _guardar_render_producto(sku, blob, formato)
+            _guardar_ficha_tecnica_producto(sku, datos)
+        except ValueError as exc:
+            resultados.append({"sku": sku, "ok": False, "motivo": str(exc)})
+            continue
+        motivo = "; ".join(
+            (a.get("nombreCapa") or a.get("elemento") or "") for a in avisos
+        ) or None
+        resultados.append({
+            "sku": sku,
+            "ok": True,
+            "ruta": ruta,
+            "requiere_revision": bool(avisos),
+            "motivo": motivo,
+        })
+    return resultados

@@ -23,6 +23,7 @@ import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
+import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
 import { esPlantillaFichaMp } from "../../lib/plantillaFichaTecnicaMp";
@@ -565,7 +566,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar";
+type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote";
 
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
@@ -594,9 +595,10 @@ export default function PlantillasVisualesPanel({
   const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
   const [fichaInicial, setFichaInicial] = useState<PlantillaVisualDoc | null>(null);
+  const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
 
   useEffect(() => {
-    onInmersivoChange?.(vista === "editor" || vista === "diligenciar");
+    onInmersivoChange?.(vista === "editor" || vista === "diligenciar" || vista === "lote");
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
@@ -993,6 +995,21 @@ export default function PlantillasVisualesPanel({
             setDoc(plantilla);
             docGuardadoRef.current = plantilla;
             setVista("editor");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "lote" && plantillaLote) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <AplicarLotePanel
+          plantillaId={plantillaLote.id}
+          nombrePlantilla={plantillaLote.nombre}
+          onVolver={() => {
+            setPlantillaLote(null);
+            setVista("lista");
           }}
         />
       </div>
@@ -1468,6 +1485,19 @@ export default function PlantillasVisualesPanel({
                     {labelFormato(p.formato)}
                     {esPlantillaFichaMp(p) ? " · formulario" : ""}
                   </p>
+                  {esPlantillaFichaMp(p) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPlantillaLote({ id: p.id, nombre: p.nombre });
+                        setVista("lote");
+                      }}
+                      className="mt-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/20"
+                    >
+                      📋 Aplicar en lote
+                    </button>
+                  )}
                   {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
                     <button
                       type="button"
