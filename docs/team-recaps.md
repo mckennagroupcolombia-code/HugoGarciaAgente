@@ -1,3 +1,12 @@
+### 2026-09-06 23:10 - Studio: diagramar foto al tamaño del lienzo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Feature
+- **Qué se implementó:**
+  - La diagramación desde captura ya no vuelca textos en la plantilla SCI fija: la Visión IA copia posiciones (0–1) y el servidor las escala al `canvas_w×canvas_h` del formato elegido.
+  - Flujo: Nueva plantilla → elegir tamaño → pegar/subir foto (o lienzo vacío) → editor con el dibujo ajustado.
+  - API `POST /api/plantillas-visuales/abstraer-etiqueta` con `modo: "layout"` + dimensiones del formato.
+- **Archivos Modificados:** `plantillas_etiqueta_vision.py`, `routes.py`, `ScanCapturaLayoutPanel.tsx`, `PlantillasVisualesPanel.tsx`, `FichaMpDiligenciarPanel.tsx`, `tests/test_plantillas_etiqueta_layout.py`, `docs/team-recaps.md`
+
 ### 2026-09-06 22:54 - Studio: quitar formato Ficha técnica MP
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Mejora técnica

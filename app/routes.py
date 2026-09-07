@@ -18699,18 +18699,33 @@ def register_routes(app):
     def api_plantillas_visuales_abstraer_etiqueta():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.tools.plantillas_etiqueta_vision import abstraer_elementos_etiqueta
+        from app.tools.plantillas_etiqueta_vision import (
+            abstraer_elementos_etiqueta,
+            diagramar_layout_al_lienzo,
+        )
         import base64
 
         img_bytes = b""
         mime = "image/jpeg"
+        body = request.get_json(silent=True) or {}
 
         if "imagen" in request.files:
             f = request.files["imagen"]
             img_bytes = f.read()
             mime = f.mimetype or "image/jpeg"
+            # FormData: dimensiones / modo también pueden venir en form fields.
+            if not body:
+                body = {
+                    "modo": request.form.get("modo") or "campos",
+                    "canvas_w": request.form.get("canvas_w"),
+                    "canvas_h": request.form.get("canvas_h"),
+                    "ancho_mm": request.form.get("ancho_mm"),
+                    "alto_mm": request.form.get("alto_mm"),
+                    "tipo_etiqueta": request.form.get("tipo_etiqueta"),
+                    "categoria": request.form.get("categoria"),
+                    "carpeta": request.form.get("carpeta"),
+                }
         else:
-            body = request.get_json(silent=True) or {}
             b64_data = (body.get("imagen_b64") or "").strip()
             if b64_data:
                 if "," in b64_data:
@@ -18729,9 +18744,58 @@ def register_routes(app):
         if not img_bytes:
             return jsonify({"ok": False, "error": "No se recibió ninguna imagen"}), 400
 
+        modo = str(body.get("modo") or "campos").strip().lower()
+        if modo in ("layout", "lienzo", "diagramar", "canvas"):
+            try:
+                canvas_w = int(float(body.get("canvas_w") or 0))
+                canvas_h = int(float(body.get("canvas_h") or 0))
+            except (TypeError, ValueError):
+                canvas_w = canvas_h = 0
+            if canvas_w < 8 or canvas_h < 8:
+                return jsonify({
+                    "ok": False,
+                    "error": "Para diagramar al lienzo envía canvas_w y canvas_h (px) del formato elegido.",
+                }), 400
+            try:
+                layout = diagramar_layout_al_lienzo(
+                    img_bytes, mime, canvas_w=canvas_w, canvas_h=canvas_h,
+                )
+            except Exception as exc:
+                log.error("Error al diagramar layout al lienzo: %s", exc)
+                return jsonify({"ok": False, "error": str(exc)}), 500
+
+            formato = {
+                "id": body.get("formato_id") or "desde-foto",
+                "nombre": body.get("formato_nombre") or layout.get("nombre") or "Desde foto",
+                "ancho_px": canvas_w,
+                "alto_px": canvas_h,
+                "dpi": int(float(body.get("dpi") or 96)),
+            }
+            try:
+                if body.get("ancho_mm") is not None:
+                    formato["ancho_mm"] = float(body["ancho_mm"])
+                if body.get("alto_mm") is not None:
+                    formato["alto_mm"] = float(body["alto_mm"])
+            except (TypeError, ValueError):
+                pass
+            tipo_et = (body.get("tipo_etiqueta") or "").strip()
+            if tipo_et:
+                formato["tipo_etiqueta"] = tipo_et
+
+            plantilla = {
+                "id": "nuevo",
+                "nombre": layout.get("nombre") or formato["nombre"],
+                "categoria": (body.get("categoria") or "etiquetas").strip() or "etiquetas",
+                "carpeta": body.get("carpeta") or "",
+                "formato": formato,
+                "fondo": layout.get("fondo") or "#ffffff",
+                "elementos": layout.get("elementos") or [],
+            }
+            return jsonify({"ok": True, "modo": "layout", "plantilla": plantilla})
+
         try:
             res = abstraer_elementos_etiqueta(img_bytes, mime)
-            return jsonify({"ok": True, "abstraccion": res})
+            return jsonify({"ok": True, "modo": "campos", "abstraccion": res})
         except Exception as exc:
             log.error("Error al abstraer etiqueta con visión: %s", exc)
             return jsonify({"ok": False, "error": str(exc)}), 500

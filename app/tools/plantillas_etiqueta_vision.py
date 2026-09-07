@@ -74,6 +74,218 @@ REGLAS DE ABSTRACCIÓN:
 - Devuelve SOLO el objeto JSON sin texto antes ni después.
 """
 
+_PROMPT_LAYOUT_LIENZO = """Eres un diagramador. Debes COPIAR la geometría de ESTA foto de etiqueta al lienzo, no inventar otra plantilla.
+
+PROHIBIDO:
+- Usar el layout genérico SCI de dos columnas (ficha técnica MP) salvo que la foto sea EXACTAMENTE ese diseño.
+- Inventar bloques (CAS, pH, GHS, código de barras, columnas) que no se vean en la foto.
+- Reordenar, centrar «bonito» o homogeneizar lo que en la foto está asimétrico.
+
+OBLIGATORIO:
+- Recorta mentalmente la etiqueta (ignora mesa, fondo, manos). (0,0) es la esquina superior izquierda de la ETIQUETA, (1,1) la inferior derecha.
+- Cada texto visible es un bloque `text` con su posición real (x,y,w,h en fracciones 0–1).
+- Cada recuadro, franja o badge visible es un `rect`. Cada línea divisoria visible es un `line` (x,y,x2,y2 en 0–1).
+- Transcribe el texto TAL CUAL (mayúsculas, saltos de línea con \\n).
+- Color de cada texto/borde: hex aproximado de la tinta en la foto.
+- fontSize es fracción de la ALTURA de la etiqueta (título grande ~0.06–0.10, cuerpo ~0.018–0.03).
+
+JSON único, sin markdown:
+{
+  "nombre": "nombre corto del producto visible",
+  "fondo": "#ffffff",
+  "elementos": [
+    {
+      "type": "text",
+      "x": 0.05, "y": 0.02, "w": 0.90, "h": 0.08,
+      "content": "TEXTO",
+      "fontSize": 0.055,
+      "fontWeight": "800",
+      "align": "center",
+      "color": "#1a1a1a"
+    },
+    {
+      "type": "rect",
+      "x": 0.0, "y": 0.0, "w": 1.0, "h": 0.12,
+      "fill": "#ffffff",
+      "stroke": "#3d246b",
+      "strokeWidth": 1
+    },
+    {
+      "type": "line",
+      "x": 0.05, "y": 0.40, "x2": 0.95, "y2": 0.40,
+      "stroke": "#3d246b",
+      "strokeWidth": 1
+    }
+  ]
+}
+"""
+
+
+def _num(v: Any, default: float = 0.0) -> float:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _espacio_coords(elementos: list[Any]) -> str:
+    vals: list[float] = []
+    for e in elementos:
+        if not isinstance(e, dict):
+            continue
+        for k in ("x", "y", "w", "width", "h", "height", "x2", "y2"):
+            if k in e:
+                vals.append(_num(e.get(k)))
+    mx = max(vals) if vals else 0.0
+    if mx <= 1.5:
+        return "frac"
+    if mx <= 100:
+        return "pct"
+    return "px"
+
+
+def _a_frac(v: Any, espacio: str, span: float) -> float:
+    n = _num(v)
+    if espacio == "frac":
+        f = n
+    elif espacio == "pct":
+        f = n / 100.0
+    else:
+        f = n / span if span else 0.0
+    return max(0.0, min(1.2, f))
+
+
+def _hex_color(v: Any, default: str = "#1a1a1a") -> str:
+    s = str(v or "").strip()
+    if re.fullmatch(r"#?[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?", s):
+        if not s.startswith("#"):
+            s = "#" + s
+        if len(s) == 4:
+            s = "#" + "".join(ch * 2 for ch in s[1:])
+        return s.lower()
+    return default
+
+
+def layout_a_elementos(raw_elementos: Any, canvas_w: int, canvas_h: int) -> list[dict[str, Any]]:
+    """Convierte bloques 0–1 / % / px del modelo a elementos del lienzo Studio (px)."""
+    if not isinstance(raw_elementos, list):
+        return []
+    w = max(1, int(canvas_w))
+    h = max(1, int(canvas_h))
+    espacio = _espacio_coords(raw_elementos)
+    out: list[dict[str, Any]] = []
+    z = 1
+    for i, raw in enumerate(raw_elementos):
+        if not isinstance(raw, dict):
+            continue
+        tipo = str(raw.get("type") or raw.get("tipo") or "text").lower()
+        if tipo in ("texto", "txt"):
+            tipo = "text"
+        if tipo in ("rectangulo", "caja", "box"):
+            tipo = "rect"
+        if tipo in ("linea",):
+            tipo = "line"
+        if tipo not in ("text", "rect", "line"):
+            continue
+        x = round(_a_frac(raw.get("x"), espacio, w) * w, 2)
+        y = round(_a_frac(raw.get("y"), espacio, h) * h, 2)
+        ww = round(_a_frac(raw.get("w", raw.get("width")), espacio, w) * w, 2)
+        hh = round(_a_frac(raw.get("h", raw.get("height")), espacio, h) * h, 2)
+        eid = f"e{i + 1}"
+        if tipo == "line":
+            x2 = round(_a_frac(raw.get("x2", raw.get("x")), espacio, w) * w, 2)
+            y2 = round(_a_frac(raw.get("y2", raw.get("y")), espacio, h) * h, 2)
+            if x2 == x and y2 == y:
+                x2 = x + max(ww, 1)
+                y2 = y
+            out.append(
+                {
+                    "id": eid,
+                    "type": "line",
+                    "x": x,
+                    "y": y,
+                    "x2": x2,
+                    "y2": y2,
+                    "width": max(1, abs(x2 - x)),
+                    "height": max(1, abs(y2 - y)),
+                    "rotation": 0,
+                    "zIndex": z,
+                    "stroke": _hex_color(raw.get("stroke") or raw.get("color"), "#1a1a1a"),
+                    "strokeWidth": max(0.5, _num(raw.get("strokeWidth"), 1)),
+                    "nombreCapa": str(raw.get("nombre") or "Línea")[:40],
+                }
+            )
+            z += 1
+            continue
+        if tipo == "rect":
+            out.append(
+                {
+                    "id": eid,
+                    "type": "rect",
+                    "x": x,
+                    "y": y,
+                    "width": max(2, ww),
+                    "height": max(2, hh),
+                    "rotation": 0,
+                    "zIndex": z,
+                    "fill": _hex_color(raw.get("fill"), "#ffffff"),
+                    "stroke": _hex_color(raw.get("stroke"), "#000000"),
+                    "strokeWidth": max(0, _num(raw.get("strokeWidth"), 1)),
+                    "borderRadius": max(0, _num(raw.get("borderRadius"), 0)),
+                    "nombreCapa": str(raw.get("nombre") or "Recuadro")[:40],
+                }
+            )
+            z += 1
+            continue
+        fs_raw = _num(raw.get("fontSize"), 0.025)
+        if fs_raw <= 1.5:
+            font_size = max(6, round(fs_raw * h, 1))
+        elif fs_raw <= 30:
+            font_size = max(6, round((fs_raw / 100.0) * h, 1))
+        else:
+            font_size = max(6, fs_raw)
+        align = str(raw.get("align") or "left").lower()
+        if align not in ("left", "center", "right", "justify"):
+            align = "left"
+        weight = str(raw.get("fontWeight") or "400")
+        if weight not in ("400", "500", "600", "700", "800", "900"):
+            weight = "700" if weight.lower() in ("bold", "black") else "400"
+        content = str(raw.get("content") or raw.get("texto") or "").strip()
+        if not content:
+            continue
+        out.append(
+            {
+                "id": eid,
+                "type": "text",
+                "x": x,
+                "y": y,
+                "width": max(8, ww),
+                "height": max(8, hh if hh > 1 else font_size * 1.4),
+                "rotation": 0,
+                "zIndex": z + 10,
+                "content": content,
+                "fontSize": font_size,
+                "fontFamily": "Montserrat, sans-serif",
+                "fontWeight": weight,
+                "color": _hex_color(raw.get("color"), "#1a1a1a"),
+                "align": align,
+                "nombreCapa": content.replace("\n", " ")[:40],
+            }
+        )
+        z += 1
+    return out
+
+
+def materializar_plantilla_layout(raw: dict[str, Any], canvas_w: int, canvas_h: int) -> dict[str, Any]:
+    elementos = layout_a_elementos(raw.get("elementos"), canvas_w, canvas_h)
+    fondo = _hex_color(raw.get("fondo") or raw.get("background"), "#ffffff")
+    nombre = str(raw.get("nombre") or "Etiqueta desde foto").strip() or "Etiqueta desde foto"
+    return {
+        "nombre": nombre[:80],
+        "fondo": fondo,
+        "elementos": elementos,
+    }
+
 
 def _limpiar_json(texto: str) -> str:
     raw = (texto or "").strip()
@@ -107,7 +319,11 @@ def _optimizar_imagen_bytes(data: bytes, mime_type: str) -> tuple[bytes, str]:
         return data, mime_type
 
 
-def extraer_etiqueta_con_gemini(imagen_bytes: bytes, mime_type: str) -> dict[str, Any] | None:
+def extraer_etiqueta_con_gemini(
+    imagen_bytes: bytes,
+    mime_type: str,
+    prompt: str | None = None,
+) -> dict[str, Any] | None:
     api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     if not api_key:
         log.warning("GOOGLE_API_KEY no configurada para extracción de etiqueta")
@@ -127,7 +343,7 @@ def extraer_etiqueta_con_gemini(imagen_bytes: bytes, mime_type: str) -> dict[str
         client = genai.Client(api_key=api_key)
         contents = [
             gtypes.Part.from_bytes(data=img_opt, mime_type=mime_opt),
-            _PROMPT_ABSTRACCION_ETIQUETA,
+            prompt or _PROMPT_ABSTRACCION_ETIQUETA,
         ]
         resp = client.models.generate_content(model=modelo, contents=contents)
         tin, tout = usage_gemini(resp)
@@ -142,7 +358,12 @@ def extraer_etiqueta_con_gemini(imagen_bytes: bytes, mime_type: str) -> dict[str
         return None
 
 
-def extraer_etiqueta_con_anthropic(imagen_bytes: bytes, mime_type: str) -> dict[str, Any] | None:
+def extraer_etiqueta_con_anthropic(
+    imagen_bytes: bytes,
+    mime_type: str,
+    prompt: str | None = None,
+    max_tokens: int = 2048,
+) -> dict[str, Any] | None:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
         return None
@@ -167,7 +388,7 @@ def extraer_etiqueta_con_anthropic(imagen_bytes: bytes, mime_type: str) -> dict[
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model=modelo,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             messages=[
                 {
                     "role": "user",
@@ -180,7 +401,7 @@ def extraer_etiqueta_con_anthropic(imagen_bytes: bytes, mime_type: str) -> dict[
                                 "data": b64,
                             },
                         },
-                        {"type": "text", "text": _PROMPT_ABSTRACCION_ETIQUETA},
+                        {"type": "text", "text": prompt or _PROMPT_ABSTRACCION_ETIQUETA},
                     ],
                 }
             ],
@@ -213,3 +434,37 @@ def abstraer_elementos_etiqueta(imagen_bytes: bytes, mime_type: str = "image/jpe
         return res
 
     raise RuntimeError("No se pudo abstraer la información de la imagen de la etiqueta.")
+
+
+def diagramar_layout_al_lienzo(
+    imagen_bytes: bytes,
+    mime_type: str = "image/jpeg",
+    *,
+    canvas_w: int,
+    canvas_h: int,
+) -> dict[str, Any]:
+    """
+    Extrae geometría de la foto (fracciones 0–1) y la materializa en el lienzo
+    del tamaño elegido por el operador (canvas_w × canvas_h px).
+    """
+    w = max(8, int(canvas_w))
+    h = max(8, int(canvas_h))
+    prompt = (
+        _PROMPT_LAYOUT_LIENZO
+        + f"\n\nEl operador ya eligió el lienzo: {w}×{h} px. "
+        "Tus coordenadas siguen en fracciones 0–1; el servidor las escalará a ese tamaño."
+    )
+    raw = extraer_etiqueta_con_gemini(imagen_bytes, mime_type, prompt=prompt)
+    if not raw:
+        raw = extraer_etiqueta_con_anthropic(
+            imagen_bytes, mime_type, prompt=prompt, max_tokens=4096
+        )
+    if not raw:
+        raise RuntimeError("No se pudo diagramar el layout de la imagen al lienzo.")
+
+    plantilla = materializar_plantilla_layout(raw, w, h)
+    if not plantilla.get("elementos"):
+        raise RuntimeError("La visión no devolvió elementos posicionables.")
+    plantilla["canvas_w"] = w
+    plantilla["canvas_h"] = h
+    return plantilla

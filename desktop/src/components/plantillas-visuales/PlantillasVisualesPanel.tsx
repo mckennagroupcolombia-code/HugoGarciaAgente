@@ -5,7 +5,6 @@ import {
   duplicarPlantillaVisual,
   fusionarMetadatosPlantillaTrasGuardar,
   labelFormato,
-  plantillaVacia,
   type FormatoCanvas,
   type PlantillaVisualDoc,
 } from "../../lib/plantillasVisuales";
@@ -24,6 +23,7 @@ import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
+import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
 import { esPlantillaFichaMp } from "../../lib/plantillaFichaTecnicaMp";
 
@@ -565,7 +565,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "editor" | "diligenciar";
+type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar";
 
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
@@ -576,6 +576,10 @@ export default function PlantillasVisualesPanel({
   const qc = useQueryClient();
   const [vista, setVista] = useState<Vista>("lista");
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
+  const [pendienteNuevo, setPendienteNuevo] = useState<{
+    formato: FormatoCanvas;
+    categoriaId: string;
+  } | null>(null);
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -834,13 +838,19 @@ export default function PlantillasVisualesPanel({
 
   const abrirNuevo = () => {
     setDoc(null);
+    setPendienteNuevo(null);
     setVista("formato");
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    const nuevo = plantillaVacia(formato, categoriaId, carpetaActual);
+    setPendienteNuevo({ formato, categoriaId });
+    setVista("scan");
+  };
+
+  const crearDesdeScan = (nuevo: PlantillaVisualDoc) => {
     setDoc(nuevo);
     docGuardadoRef.current = nuevo;
+    setPendienteNuevo(null);
     setVista("editor");
   };
 
@@ -978,6 +988,12 @@ export default function PlantillasVisualesPanel({
             void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
             void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
           }}
+          onAbrirEnLienzo={(plantilla) => {
+            setFichaInicial(null);
+            setDoc(plantilla);
+            docGuardadoRef.current = plantilla;
+            setVista("editor");
+          }}
         />
       </div>
     );
@@ -989,8 +1005,24 @@ export default function PlantillasVisualesPanel({
         <SelectorFormatoCanvas
           onElegir={elegirFormato}
           onCancelar={() => {
+            setPendienteNuevo(null);
             setVista("lista");
           }}
+          subtitulo="Elige primero el tamaño del lienzo; después podrás pegar una foto y ajustar el dibujo a ese formato."
+        />
+      </div>
+    );
+  }
+
+  if (vista === "scan" && pendienteNuevo) {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <ScanCapturaLayoutPanel
+          formato={pendienteNuevo.formato}
+          categoriaId={pendienteNuevo.categoriaId}
+          carpeta={carpetaActual}
+          onListo={crearDesdeScan}
+          onVolver={() => setVista("formato")}
         />
       </div>
     );

@@ -1302,10 +1302,13 @@ export default function FichaMpDiligenciarPanel({
   onVolver,
   inicial,
   onGuardada,
+  onAbrirEnLienzo,
 }: {
   onVolver: () => void;
   inicial?: PlantillaVisualDoc | null;
   onGuardada?: (doc: PlantillaVisualDoc) => void;
+  /** Si viene de una captura, abre el lienzo libre con el layout escalado al formato. */
+  onAbrirEnLienzo?: (doc: PlantillaVisualDoc) => void;
 }) {
   const { data: tiposData } = useTiposEtiqueta();
   const tipos = useMemo(() => {
@@ -1475,10 +1478,9 @@ export default function FichaMpDiligenciarPanel({
       setCapturaRefUrl(url);
       setModoComparacion("lado_a_lado");
       setEscaneandoIA(true);
-      setMsg("Analizando captura y extrayendo elementos con Visión IA…");
+      setMsg("Diagramando la captura al tamaño del formato elegido…");
 
       try {
-        // Enviar como Base64 para máxima compatibilidad
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve, reject) => {
           reader.onload = () => resolve(reader.result as string);
@@ -1487,11 +1489,66 @@ export default function FichaMpDiligenciarPanel({
         reader.readAsDataURL(file);
         const b64Data = await base64Promise;
 
+        // Preferir layout geométrico escalado al lienzo (no volcar textos en plantilla SCI).
+        if (onAbrirEnLienzo) {
+          const formato = tipoEtiquetaToFormato(tipo);
+          try {
+            const layoutRes = await api.post<{
+              ok: boolean;
+              plantilla?: PlantillaVisualDoc;
+              error?: string;
+            }>(
+              "/api/plantillas-visuales/abstraer-etiqueta",
+              {
+                modo: "layout",
+                imagen_b64: b64Data,
+                canvas_w: formato.ancho_px,
+                canvas_h: formato.alto_px,
+                dpi: formato.dpi || 96,
+                formato_id: formato.id,
+                formato_nombre: formato.nombre,
+                ancho_mm: formato.ancho_mm,
+                alto_mm: formato.alto_mm,
+                tipo_etiqueta: formato.tipo_etiqueta,
+                categoria: "etiquetas",
+                carpeta: CARPETA_FORMATOS_ETIQUETA,
+              },
+              { timeoutMs: 90_000 },
+            );
+            if (layoutRes?.ok && layoutRes.plantilla) {
+              const plantilla: PlantillaVisualDoc = {
+                ...layoutRes.plantilla,
+                id:
+                  layoutRes.plantilla.id && layoutRes.plantilla.id !== "nuevo"
+                    ? layoutRes.plantilla.id
+                    : `tmp-${Date.now().toString(36)}`,
+                formato: {
+                  ...formato,
+                  ...(layoutRes.plantilla.formato || {}),
+                  ancho_px: formato.ancho_px,
+                  alto_px: formato.alto_px,
+                  ancho_mm: formato.ancho_mm,
+                  alto_mm: formato.alto_mm,
+                },
+              };
+              onAbrirEnLienzo(plantilla);
+              return;
+            }
+            setMsg(
+              "No se pudo diagramar al lienzo (" +
+                (layoutRes?.error || "sin respuesta") +
+                "). Intentando extracción de campos…",
+            );
+          } catch (layoutErr) {
+            console.warn("Layout al lienzo falló:", layoutErr);
+          }
+        }
+
         let res: { ok: boolean; abstraccion?: any; error?: string } | null = null;
         try {
           res = await api.post<{ ok: boolean; abstraccion?: any; error?: string }>(
             "/api/plantillas-visuales/abstraer-etiqueta",
-            { imagen_b64: b64Data },
+            { imagen_b64: b64Data, modo: "campos" },
             { timeoutMs: 45000 },
           );
         } catch (apiErr) {
@@ -1568,15 +1625,15 @@ export default function FichaMpDiligenciarPanel({
             : "Etiqueta MP",
         );
 
-        setMsg("¡Abstracción completada! Elementos detectados y diagramados en el lienzo ✓");
-        setTimeout(() => setMsg(null), 4000);
+        setMsg("Campos detectados (plantilla fija). Para copiar el dibujo al tamaño del lienzo usa Nueva plantilla → formato → captura.");
+        setTimeout(() => setMsg(null), 5000);
       } catch (err) {
         setMsg(err instanceof Error ? err.message : "Error al procesar la imagen con IA");
       } finally {
         setEscaneandoIA(false);
       }
     },
-    [tipos, tipo.nombre],
+    [onAbrirEnLienzo, tipo, tipos],
   );
 
   useEffect(() => {
@@ -1802,7 +1859,9 @@ export default function FichaMpDiligenciarPanel({
               <span className="text-[10px] font-bold uppercase tracking-wider text-accent">Escáner · Referencia</span>
               <h3 className="text-sm font-bold text-ink">Agregar captura de etiqueta</h3>
               <p className="mt-0.5 text-xs text-muted">
-                Pega con <kbd className="rounded border border-border bg-surface px-1 py-0.5 font-mono text-[10px] text-ink">Ctrl+V</kbd> o sube una imagen de referencia para comparar con el diagrama.
+                Primero elige el formato arriba. Luego pega con{" "}
+                <kbd className="rounded border border-border bg-surface px-1 py-0.5 font-mono text-[10px] text-ink">Ctrl+V</kbd>{" "}
+                o sube una foto: el dibujo se escala a ese tamaño en el lienzo libre.
               </p>
 
               <input
