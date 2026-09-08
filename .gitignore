@@ -163,3 +163,12 @@ app/data/proveedores.db-shm
 
 # Renders de verificación del formulario de etiqueta (runtime)
 app/data/verificacion_formulario_manteca/
+
+# Volcados de depuración de Playwright MCP (runtime). Los .yml/.json que ya
+# estaban rastreados antes de esta regla siguen en git; esto frena los nuevos.
+.playwright-mcp/
+
+# Capturas sueltas de prueba en la raíz (runtime)
+/cafeina_test.png
+/cafeina_test2.png
+/preview_audit.png
