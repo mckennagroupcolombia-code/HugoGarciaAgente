@@ -378,6 +378,8 @@ export default function VentasAstroKillerPanel() {
   const [verError, setVerError] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
   const [generarMsg, setGenerarMsg] = useState<string | null>(null);
+  const [facturando, setFacturando] = useState<string | null>(null);
+  const [facturarMsg, setFacturarMsg] = useState<Record<string, { ok: boolean; texto: string }>>({});
   const qc = useQueryClient();
 
   // null = usar el default según `dias` (limiteParaDias); se fija a un
@@ -471,6 +473,30 @@ export default function VentasAstroKillerPanel() {
       setVerError((e as Error).message || "No se pudo obtener el documento.");
     } finally {
       setVerLoading(null);
+    }
+  }
+
+  async function facturarAhora(orderId: string) {
+    setFacturando(orderId);
+    setFacturarMsg((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+    try {
+      const res = await api.post<{ ok: boolean; mensaje?: string; error?: string; numero?: string }>(
+        "/api/facturacion/ventas-unificadas/facturar-ahora",
+        { order_id: orderId },
+      );
+      setFacturarMsg((prev) => ({
+        ...prev,
+        [orderId]: { ok: !!res.ok, texto: res.mensaje || res.error || (res.ok ? "Factura creada." : "No se pudo facturar.") },
+      }));
+      if (res.ok) refrescar();
+    } catch (e) {
+      setFacturarMsg((prev) => ({ ...prev, [orderId]: { ok: false, texto: (e as Error).message || "No se pudo facturar." } }));
+    } finally {
+      setFacturando(null);
     }
   }
 
@@ -709,7 +735,33 @@ export default function VentasAstroKillerPanel() {
                     Facturado en Alegra
                   </p>
                   {venta.facturas.length === 0 && !venta.factura_legado && (
-                    <p className="px-3 py-2 text-xs text-muted">Sin factura.</p>
+                    <div className="px-3 py-2">
+                      <p className="text-xs text-muted">Sin factura.</p>
+                      {venta.es_meli && venta.estado_facturacion === "sin_facturar" && (
+                        <div className="mt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => void facturarAhora(venta.order_id)}
+                            disabled={facturando === venta.order_id}
+                            className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
+                            title="Emite la factura electrónica en Alegra sin salir de la aplicación"
+                          >
+                            {facturando === venta.order_id ? "Facturando…" : "🧾 Facturar ahora"}
+                          </button>
+                          {facturarMsg[venta.order_id] && (
+                            <p
+                              className={`mt-1 text-[11px] ${
+                                facturarMsg[venta.order_id].ok
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {facturarMsg[venta.order_id].texto}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                   <div className="divide-y divide-border/60">
                     {venta.facturas.map((f) => (

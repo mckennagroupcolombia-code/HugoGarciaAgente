@@ -6826,6 +6826,28 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    @app.route("/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
+    def api_facturacion_ventas_unificadas_facturar_ahora():
+        """Botón "Facturar ahora" del panel Ventas y NC (ver TKT-2026-1178):
+        emite en Alegra, desde la aplicación, una venta MeLi puntual marcada
+        "🔴 Sin facturar" — sin tener que ir a Alegra manualmente. Reusa la
+        misma lógica que la autofactura automática al entregarse el pedido
+        (Flujo G), pero disparada por un operador para UNA orden concreta."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        order_id = str(data.get("order_id") or request.args.get("order_id") or "").strip()
+        if not order_id:
+            return jsonify({"ok": False, "error": "order_id requerido"}), 400
+        try:
+            from app.tools.meli_autofactura_entrega import facturar_orden_meli_manual
+
+            resultado = facturar_orden_meli_manual(order_id)
+            return jsonify(resultado), (200 if resultado.get("ok") else 502)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
     @app.route("/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
     @app.route("/app/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
     def api_facturacion_ventas_unificadas_generar_ticket():

@@ -368,30 +368,32 @@ def _facturar_orden_entregada(
     shipment: dict,
     orden_precargada: dict | None,
     ordenes_hermanas: list[str],
-) -> None:
+) -> dict:
     """Factura en Alegra UNA orden MeLi entregada (una orden = un producto del
     carrito). Extraído de `procesar_entrega_meli_para_factura` para poder repetirlo
-    por cada orden hermana de un mismo pack/envío."""
+    por cada orden hermana de un mismo pack/envío.
+
+    Devuelve un dict {ok, ...} describiendo el resultado — usado por
+    `facturar_orden_meli_manual()` (botón "Facturar ahora" del panel Ventas y
+    NC) para dar respuesta síncrona al operador; el disparo por webhook
+    ignora el valor de retorno (ya deja rastro en el estado local + WhatsApp)."""
     try:
         previo = _estado_existente_orden(order_id)
         if previo and previo.get("estado") in _ESTADOS_TERMINALES:
             print(f"⏭️ [MELI-AUTOFACTURA] Orden {order_id} ya en estado {previo.get('estado')!r} — dedup.")
-            return
+            return {"ok": previo.get("estado") == "facturada", "omitido": True, "estado": previo.get("estado"), "mensaje": f"Orden ya en estado {previo.get('estado')!r}."}
 
         _registrar_estado_orden(order_id, shipping_id=str(shipping_id), estado="en_proceso")
 
         orden = orden_precargada or consultar_orden_meli_completa(order_id)
         if not orden:
             _registrar_estado_orden(order_id, estado="error", error="No se pudo obtener la orden de MeLi.")
-            return
+            return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
 
         if orden.get("status") not in ("paid", "partially_paid"):
-            _registrar_estado_orden(
-                order_id,
-                estado="omitida",
-                error=f"Orden en estado {orden.get('status')!r}, no pagada.",
-            )
-            return
+            error = f"Orden en estado {orden.get('status')!r}, no pagada."
+            _registrar_estado_orden(order_id, estado="omitida", error=error)
+            return {"ok": False, "error": error}
 
         # Pre-chequeo contra el índice legado (Siigo / astroselling.com) ANTES de
         # llamar a Alegra — no solo antes de subir el PDF a MeLi. Sin esto, cada
@@ -419,7 +421,11 @@ def _facturar_orden_entregada(
                 f"⏭️ [MELI-AUTOFACTURA] Orden {order_id} (pack {pack_id}) ya tiene factura "
                 f"{legado.get('integracion')} {legado.get('factura_numero')} — no se factura de nuevo en Alegra."
             )
-            return
+            return {
+                "ok": True,
+                "omitido": True,
+                "mensaje": f"Ya facturada vía {legado.get('integracion')} {legado.get('factura_numero')} — no se duplica.",
+            }
 
         lines, line_error = _construir_lineas_factura_desde_orden_meli(orden)
         if line_error:
@@ -441,7 +447,7 @@ def _facturar_orden_entregada(
                     error=line_error,
                     source="meli_autofactura_entrega",
                 )
-            return
+            return {"ok": False, "error": line_error}
 
         datos_comprador = _extraer_datos_comprador(order_id, shipment)
         total = sum(l["cantidad"] * l["precio_unitario"] for l in lines)
@@ -463,7 +469,10 @@ def _facturar_orden_entregada(
                 total=total,
                 source="meli_autofactura_entrega",
             )
-            return
+            return {
+                "ok": False,
+                "error": "Autofactura MeLi desactivada (MELI_AUTOFACTURA_ENTREGA_ACTIVO=0, modo sombra).",
+            }
 
         result = crear_factura_venta_alegra(
             nombre_cliente=datos_comprador["nombre_cliente"],
@@ -543,6 +552,12 @@ def _facturar_orden_entregada(
                 f"{aviso_pdf}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
+            return {
+                "ok": True,
+                "mensaje": f"Factura {numero} creada en Alegra.{aviso_pdf}",
+                "numero": numero,
+                "url": result.get("url"),
+            }
         else:
             _registrar_estado_orden(order_id, estado="error", error=result.get("error"))
             enviar_whatsapp_reporte(
@@ -550,6 +565,7 @@ def _facturar_orden_entregada(
                 f"pero falló la factura en Alegra:\n{result.get('error')}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
+            return {"ok": False, "error": result.get("error") or "Alegra rechazó la factura."}
     except Exception as e:
         print(f"❌ [MELI-AUTOFACTURA] Error facturando orden {order_id} (envío {shipping_id}): {e}")
         try:
@@ -563,3 +579,50 @@ def _facturar_orden_entregada(
             )
         except Exception:
             pass
+        return {"ok": False, "error": str(e)[:300]}
+
+
+def facturar_orden_meli_manual(order_id: str) -> dict:
+    """Punto de entrada manual (botón "Facturar ahora" del panel Ventas y NC,
+    ver TKT-2026-1178) para facturar en Alegra una orden MeLi puntual que
+    quedó marcada "sin_facturar" — reutiliza exactamente la misma lógica que
+    el disparo automático por webhook (`_facturar_orden_entregada`), pero sin
+    esperar al tópico 'shipments' ni a que la orden aparezca como "ancla" de
+    un pack. A diferencia del disparo automático, respeta la orden puntual
+    que el operador está viendo (no reprocesa órdenes hermanas del pack —
+    cada una se factura desde su propia fila del panel).
+
+    NO respeta `MELI_AUTOFACTURA_ENTREGA_ACTIVO`: ese flag existe para no
+    tocar Alegra/DIAN en automático mientras no se confirme que el webhook
+    'shipments' llega de verdad (ver módulo docstring); esta función solo se
+    ejecuta cuando un operador humano hace click explícito sobre una venta
+    puntual ya verificada como entregada."""
+    order_id = str(order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id requerido."}
+
+    orden = consultar_orden_meli_completa(order_id)
+    if not orden:
+        return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
+
+    shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
+    shipment = consultar_envio_meli(shipping_id) if shipping_id else None
+    if shipping_id and (shipment or {}).get("status") != "delivered":
+        estado_envio = (shipment or {}).get("status") or "desconocido"
+        return {"ok": False, "error": f"El envío está en estado {estado_envio!r}, aún no 'delivered'."}
+
+    activo_previo = os.environ.get("MELI_AUTOFACTURA_ENTREGA_ACTIVO")
+    os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = "1"
+    try:
+        return _facturar_orden_entregada(
+            order_id=order_id,
+            shipping_id=shipping_id or order_id,
+            shipment=shipment or {},
+            orden_precargada=orden,
+            ordenes_hermanas=[order_id],
+        )
+    finally:
+        if activo_previo is None:
+            os.environ.pop("MELI_AUTOFACTURA_ENTREGA_ACTIVO", None)
+        else:
+            os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = activo_previo
