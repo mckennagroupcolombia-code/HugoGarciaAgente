@@ -4328,7 +4328,7 @@ function CentroMandoHome({
         <div className="grid grid-cols-2 gap-2">
           {pVer("acciones") && (
             <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-3">
-              <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} />
+              <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} onVerTodo={acciones.length > 3 ? onAcciones : undefined} />
               {acciones.length === 0 ? (
                 <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
               ) : (
@@ -4345,6 +4345,12 @@ function CentroMandoHome({
                       </span>
                     </button>
                   ))}
+                  {acciones.length > 3 && (
+                    <button type="button" onClick={onAcciones}
+                      className="mck-press w-full rounded-lg border border-dashed border-accent/35 px-3 py-1.5 text-[11px] font-bold text-accent hover:bg-accent/10 transition">
+                      Ver las {acciones.length} — hay {acciones.length - 3} más →
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -4352,7 +4358,7 @@ function CentroMandoHome({
 
           {pVer("solicitudes") && (
             <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-              <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} />
+              <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} onVerTodo={solicitudes.length > 3 ? onSolicitudes : undefined} />
               {solicitudes.length === 0 ? (
                 <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
               ) : (
@@ -4368,6 +4374,12 @@ function CentroMandoHome({
                       </span>
                     </button>
                   ))}
+                  {solicitudes.length > 3 && (
+                    <button type="button" onClick={onSolicitudes}
+                      className="mck-press w-full rounded-lg border border-dashed border-accent/35 px-3 py-1.5 text-[11px] font-bold text-accent hover:bg-accent/10 transition">
+                      Ver las {solicitudes.length} — hay {solicitudes.length - 3} más →
+                    </button>
+                  )}
                 </div>
               )}
             </div>
