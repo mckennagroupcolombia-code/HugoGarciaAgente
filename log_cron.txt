@@ -4781,3 +4781,45 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 1afccb5] Auto-commit: actualizacion diaria 2026-09-07 23:00
+ 120 files changed, 10405 insertions(+), 2848 deletions(-)
+ create mode 100644 .schema
+ create mode 100644 DISENO CORPORATIVO /LOGOTIPO TURQUESA.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260907T192916.png
+ create mode 100644 app/data/eliminar_combos_sin_c_20260907_123012.json
+ create mode 100644 app/data/eliminar_combos_sin_c_pass2_20260907_123211.json
+ create mode 100644 app/data/telemetria_errores.jsonl.lock
+ delete mode 100644 app/data/verificacion_plantillas_ai/100g/ACIDO SALICILICO 100g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/100g/NIACINAMIDA 100g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/250g/BORAX 500g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/50x42/AZUL DE METILENO 30 mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/50x42/VERDE MALAQUITA 30mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/50x42/VIOLETA DE GENCIANA 30mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/5g/AZUL DE METILENO 30 mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/5g/VERDE MALAQUITA 30mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/5g/VIOLETA DE GENCIANA 30mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/69x51/ACIDO SALICILICO 100g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/69x51/NIACINAMIDA 100g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/76x66/BORAX 500g.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/final/AZUL DE METILENO 30 mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/final/VERDE MALAQUITA 30mL.png
+ delete mode 100644 app/data/verificacion_plantillas_ai/final/VIOLETA DE GENCIANA 30mL.png
+ create mode 100644 app/services/contabilidad_autopost.py
+ create mode 100644 desktop/src/components/ComprobanteWidget.tsx
+ create mode 100644 desktop/src/components/InventarioPanel.tsx
+ create mode 100644 desktop/src/components/NegocioPanel.tsx
+ create mode 100644 desktop/src/components/PrestamosPanel.tsx
+ create mode 100644 desktop/src/components/nav/KeepAliveHubShell.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/BarcodeSkuBuscador.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/FormularioEtiquetaCamposPanel.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/useFormularioEtiqueta.ts
+ create mode 100644 docs/agentic/modules/contabilidad.md
+ create mode 100644 scripts/backfill_contabilidad_autopost.py
+ create mode 100644 scripts/contabilidad_autopost_cron.py
+[2026-09-07 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-07 23:00'
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
